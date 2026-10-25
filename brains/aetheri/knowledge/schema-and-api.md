@@ -1,9 +1,12 @@
 # SQLite schema and management API
 
-25 October 2026. Discussion draft following approval of the
+25 October 2026. Initial schema/API contract accepted by the user following the
 [identity/lifecycle model](identity-and-lifecycle.md). The SQL and XML are executable
-contract artefacts, not installed services or production catalogues. This is the
-first management nucleus; device settings, document grants, credential storage,
+contract artefacts, not installed services or production catalogues.
+The next [filesystem/permissions proposal](filesystem-and-permissions.md) develops
+storage/enforcement boundaries and introduces new recommendations for discussion.
+
+This is the first management nucleus; device settings, document grants, credential storage,
 plugins and boot deployment have not acquired complete APIs through this document.
 
 ## Files and ownership
@@ -316,9 +319,9 @@ returns requested, already_completed or too_late plus current revision. Requeste
 does not promise rollback. If a call times out, query/retry the same accepted intent;
 a timeout is not a negative acknowledgement.
 
-Recommended initial budgets, still product/implementation proposals:
+Accepted initial budgets; changes need explicit rationale and compatibility review:
 
-| Limit | Proposal |
+| Limit | Initial value |
 | --- | --- |
 | Unaccepted change / launch plan | 5 minutes / 30 seconds, current BootId + CLOCK_BOOTTIME |
 | Page | 1–128 records, SDK default 64; max serialized message 128 KiB |
@@ -347,7 +350,7 @@ or new stream incarnation requires a snapshot refresh. Disconnect/Close destroys
 subscriptions, not operations. Enforce bounded queues; never silently promise a
 durable event log. Numeric revisions can skip; they are not progress percentages.
 
-Protocol major 1 freezes existing signatures and meanings once accepted/released.
+Protocol major 1 freezes existing signatures and meanings for its first release.
 Add optional methods/capabilities through minor versions; breaking changes get a
 new interface major. Unknown required values are errors, not permissive defaults.
 Database schema version and wire version are independent.
@@ -404,7 +407,7 @@ against SQLite, not against a service implementation. It does not establish C AB
 correctness, D-Bus interoperability, race-free admission, authorization, sandboxing,
 filesystem deletion, fsync/crash recovery, migrations, resource limits or hardware
 acceptance. Follow with a small Linux authority prototype and fault-injection
-cases after this contract and remaining security/storage details are accepted.
+cases after the remaining security/storage details are specified and accepted.
 
 ## Primary references
 
@@ -417,4 +420,4 @@ cases after this contract and remaining security/storage details are accepted.
 - [SQLite atomic commit](https://sqlite.org/atomiccommit.html): assumptions and recovery, not cross-system atomicity.
 
 Sources inspected on 25 October 2026. Table names, method semantics and budgets
-are original Aetheri recommendations; upstream libraries do not supply this policy.
+are original Aetheri contract decisions; upstream libraries do not supply this policy.

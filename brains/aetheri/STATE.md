@@ -1,46 +1,47 @@
 # State
 
-25 October 2026 — identity/lifecycle accepted; concrete schema/API draft prepared.
+25 October 2026 — initial schema/API accepted; filesystem/permissions proposal prepared.
 
 ## Confirmed
 
 Linux x86-64/UEFI, C17/targeted Rust/adapters, glibc, MIT, modular B,
 wlroots, selected systemd/session integration, SQLite, versioned base and managed
 apps. Suspend/resume required with independent Intel/NVIDIA acceptance.
-Module split and the [identity/lifecycle model](knowledge/identity-and-lifecycle.md)
-are accepted, including scoped installations, fresh activations/runs, private-data
-epochs, durable requests, retry/expiry, removal fencing and honest recovery.
+Module, identity/lifecycle and initial [schema/API](knowledge/schema-and-api.md)
+contracts are accepted, including the SQL/XML, failure semantics and initial budgets.
 
-F: is reported completely clear. Last read-only observation: approximately 232.4 GiB
-free. Use only F:/Aetheri; no volume formatting or unrelated path changes.
+F: is reported completely clear. Last capacity observation: approximately 232.4 GiB
+free. Work stays in F:/Aetheri; no whole-volume or unrelated-path changes.
 
 ## Prepared
 
-[Concrete schema/API draft](knowledge/schema-and-api.md): three SQL source files,
-one D-Bus XML contract and a disposable standard-library validator. System/user
-catalogues have separate trusted writers; common plans/operations/delegation
-correlation preserve exact target lifetimes. The proposed API has 14 methods.
+The [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md)
+defines a Linux-compatible host tree, readable ownership views, immutable store,
+exact StorageRef roots, private app views and independent documents. It compares
+enforcement options and recommends SELinux plus namespaces for same-UID boundaries,
+with ext4 and LUKS2 as proposed storage foundations.
 
-Executed with Python 3.12.14 and SQLite 3.53.1: 374 assertions, exit 0.
-Selected positive/negative SQL constraints and XML structure/type signatures pass.
-Both disposable catalogues pass foreign-key and database integrity checks.
-The assertion count is mostly structural validation, not 374 lifecycle scenarios.
+These new filesystem/security recommendations remain for user discussion.
+No new dependency is adopted, downloaded or installed by this planning work.
 
-## Limits
+## Evidence and limits
 
-No production database created/migrated, dependency installed, OS/app service,
-VM/kernel, live D-Bus exchange or hardware acceptance. The SQL bootstraps test
-catalogues only. Runtime security, concurrency, durable filesystem publication,
-power-loss recovery and schema upgrade/downgrade are not verified.
+This turn: researched primary references and validated project documentation.
+No Linux permissions, labels, confinement, encryption, mounts or purge tests ran.
 
-Detailed SQL/XML and proposed budgets remain under discussion. Before services,
-freeze canonical artifact/intent bytes/test vectors, peer identity/authorization,
-sandbox/storage ownership and cross-authority lease/admission/recovery.
+Previous SQL/XML validation: Python 3.12.14 / SQLite 3.53.1, 374 assertions, exit 0,
+including selected constraints and structural checks for 14 API methods.
+That result is historical; it is not a new security/storage test or runtime proof.
+No production database, OS service, VM/kernel or hardware acceptance exists.
+
+Before implementation acceptance, specify and test canonical encodings, registered
+volume/root identity, ownership headers, authenticated app/principal mapping,
+mandatory policy/category allocation, IPC mediation and cross-authority recovery.
 Browser/boot/update integration, shell syntax and UI alternatives remain open.
 
 ## Publication and next step
 
-Public planning repository: https://github.com/Lulus792/Aetheri.
-Explain and review the schema/API proposal, then design the security/storage and
-recovery boundaries needed for a small Linux authority prototype. Keep settled
-architectural choices; implementation gates are not new foundation questions.
+Public repository: https://github.com/Lulus792/Aetheri.
+Discuss filesystem ownership and enforcement recommendations, then define the
+launch, grant, revocation and removal protocol against concrete Linux primitives.
+Do not reopen settled architecture or treat a document as operating security.

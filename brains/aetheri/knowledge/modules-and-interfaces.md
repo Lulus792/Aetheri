@@ -4,8 +4,10 @@
 the approved B/wlroots/systemd/SQLite architecture. Exact method/helper names,
 schemas and limits remain descriptive; there are no installed executables or
 implemented APIs. The [identity/lifecycle model](identity-and-lifecycle.md) is now
-accepted; the [concrete schema/API draft](schema-and-api.md) adds proposed SQL/XML
-and isolated checks without claiming runtime interoperability.
+accepted; the [initial schema/API](schema-and-api.md) is also accepted.
+It adds SQL/XML and isolated checks without claiming runtime interoperability.
+The [storage/permissions proposal](filesystem-and-permissions.md) develops the
+next boundary and remains a recommendation.
 
 ## Goals and rules
 

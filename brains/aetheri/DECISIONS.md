@@ -138,3 +138,18 @@ The [schema/API draft](knowledge/schema-and-api.md) proposes byte encodings,
 14 D-Bus methods, explicit errors and initial resource/deadline/receipt budgets.
 These new details remain recommendations; no approval is inferred in advance.
 Executable SQL/XML fixtures validate selected constraints, not production services.
+
+## Schema/API approval and storage discussion — 25 October 2026
+
+The user accepted the initial concrete SQLite/API recommendations and requested
+filesystem structure, storage ownership and permission boundaries next.
+The initial SQL/XML, table relationships, operation semantics and starting budgets
+are accepted. Canonical artifact/intent byte encodings, runtime authentication
+and integration gates remain unresolved as already recorded in that contract.
+Earlier pending schema/API status is superseded; no runtime acceptance is implied.
+
+The [storage/permissions proposal](knowledge/filesystem-and-permissions.md)
+recommends a conventional Linux technical hierarchy, managed code/data roots,
+independent documents, explicit grants and mandatory same-UID separation.
+Ext4/LUKS2 and SELinux plus namespaces are new recommendations for discussion,
+not inferred dependency approval. No on-disk installation or host policy change.

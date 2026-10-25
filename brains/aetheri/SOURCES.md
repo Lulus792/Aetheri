@@ -174,3 +174,29 @@ concrete schema/API discussion. New SQL/XML and policy details remain proposals.
   3.12.14 / SQLite 3.53.1: 374 assertions passed, exit 0, in-memory constraints
   and XML structure only. Proposed SQLite runtime minimum 3.37 is a STRICT feature
   floor, not a pinned or security-approved dependency release.
+
+## Filesystem, ownership and permissions — 25 October 2026
+
+The user accepted the initial schema/API and requested the next storage/security
+discussion. The [proposal](knowledge/filesystem-and-permissions.md) links all
+inspected primary sources and distinguishes them from original Aetheri policy.
+
+- UAPI/systemd filesystem hierarchy and XDG base directories: technical conventions,
+  read-only/mutable paths and configuration/data/state/cache/runtime roles.
+- SELinuxProject type enforcement, security contexts and MAC/MCS: label/policy
+  separation; no assumption that an existing policy implements our account/app rules.
+  The direct GitHub type-enforcement page initially lacked useful body; indexed
+  official project text supplied the relevant material.
+- Kernel AppArmor, Landlock and Linux namespaces: alternatives and supplementary
+  confinement. Landlock descriptor inheritance and unsupported-feature limits
+  prevent treating it as a complete standalone Aetheri security contract.
+- systemd execution/resource-control manuals: supervision/sandboxing and privilege
+  limits. In particular, read-only directory views do not block socket IPC, and
+  SELinuxContext is ignored when SELinux is disabled.
+- openat2/unlink/chmod and portal FileChooser: bounded resolution, open-handle
+  lifetime and URI selection. st_dev equality does not rule out bind mounts.
+- Kernel ext4 and cryptsetup manual: storage/encryption foundations only.
+  No filesystem benchmark, encryption setup or hardware test was performed.
+
+Current work validates documentation only. No Linux confinement, deletion,
+permission, label or power-loss checks were executed for Aetheri this turn.

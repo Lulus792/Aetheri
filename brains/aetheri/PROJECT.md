@@ -64,9 +64,12 @@ system installation authority, per-user mediation, compositor, desktop UI and ap
 with typed local control and owner-scoped metadata writers. The
 [identity/lifecycle model](knowledge/identity-and-lifecycle.md) is accepted,
 including distinct installation/generation/data/run/operation lifetimes.
-The [concrete schema/API draft](knowledge/schema-and-api.md) now provides proposed
-SQL constraints, D-Bus signatures and isolated validation. These finer contracts
-and budgets remain for discussion; no runtime service is implemented.
+The initial [schema/API contract](knowledge/schema-and-api.md) is now accepted:
+SQL constraints, D-Bus signatures, failure semantics and starting budgets.
+Isolated validation exists; no runtime service is implemented.
+The [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md)
+develops paths, exact storage ownership, document grants and same-UID enforcement.
+Its ext4/LUKS2/SELinux recommendations remain for discussion.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 

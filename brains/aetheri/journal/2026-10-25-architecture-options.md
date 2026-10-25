@@ -92,3 +92,28 @@ Document validation passed: 37 UTF-8 files without BOM/NUL, 77 local Markdown
 links, balanced fences and valid six-field brain metadata/project root. Git diff
 checks passed. New SQL/XML/Python sources use explicit LF rules for the Linux target.
 Existing projects, migration processes and other drives remain untouched.
+
+## Schema/API approval and filesystem/permissions discussion
+
+The user accepted the initial schema/API recommendations. Recorded that acceptance
+while keeping actual runtime/canonical encoding/security gates explicit.
+Prepared one consolidated filesystem/ownership/permissions proposal, preserving
+the existing SQL/XML and avoiding speculative implementation trees.
+
+The proposal covers familiar Linux paths versus readable UI, immutable payloads,
+exact private storage roots/headers, independent documents, cache/credential/
+service ownership, same-UID control-database protection and explicit developer
+project grants. It compares DAC-only, Landlock, AppArmor and SELinux approaches;
+recommends SELinux plus namespaces, with ext4/LUKS2 as proposed storage foundations.
+These new recommendations remain open; no dependencies or policies were installed.
+
+Read architecture/Linux/security skill guidance and focused checked containment/
+publication notes, then verified applicable facts against primary kernel, SELinux,
+systemd, UAPI, XDG and cryptsetup/portal documentation. Historical examples from
+other projects are not counted as Aetheri security tests.
+No mount, format, encryption, permission, service, VM or hardware operation.
+
+Documentation validation passed with exit 0: 38 UTF-8 files without BOM/NUL,
+88 local Markdown links, balanced fences, six-field brain metadata/project root
+and accepted-schema/proposed-storage status markers. Git diff checks passed.
+The SQL/XML runtime fixtures are unchanged and were not rerun as security tests.

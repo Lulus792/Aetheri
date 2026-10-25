@@ -9,7 +9,8 @@ Updated 25 October 2026 after approval of B, wlroots, systemd and SQLite.
 4. [Architecture](knowledge/architecture-options.md): selected boundaries and alternatives,
    then [module/interfaces](knowledge/modules-and-interfaces.md),
    [identity/lifecycle](knowledge/identity-and-lifecycle.md),
-   [schema/API draft](knowledge/schema-and-api.md) and
+   [schema/API](knowledge/schema-and-api.md),
+   [storage/permissions proposal](knowledge/filesystem-and-permissions.md) and
    [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),

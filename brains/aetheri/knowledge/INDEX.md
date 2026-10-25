@@ -1,6 +1,10 @@
 # Knowledge and proposals
 
-- [SQLite schema and management API](schema-and-api.md): executable discussion
+- [Filesystem, storage ownership and permission boundaries](filesystem-and-permissions.md):
+  proposed Linux hierarchy, private roots versus documents, same-UID confinement,
+  grants, deletion/recovery and ext4/LUKS2/SELinux recommendations.
+
+- [SQLite schema and management API](schema-and-api.md): accepted initial
   contracts, two database owners, typed requests, failure semantics and validation.
 
 - [Identity and lifecycle](identity-and-lifecycle.md): component/artifact/install/data

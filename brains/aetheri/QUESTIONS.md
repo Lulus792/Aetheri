@@ -37,13 +37,17 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and
 versioned base/managed-app separation. Do not reopen these settled choices.
 Remaining work: exact versions/build options and compatibility, sandbox/update/boot
-mechanisms, browser embedding, filesystem layout and plugin interfaces.
+mechanisms, browser embedding, filesystem implementation and plugin interfaces.
 The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
 The [module/interface plan](knowledge/modules-and-interfaces.md) is now accepted
-in direction. Working helper names and concrete API signatures remain descriptive.
+in direction. The initial concrete management contract is accepted, not installed.
 The [identity/lifecycle model](knowledge/identity-and-lifecycle.md) is accepted.
-The [schema/API draft](knowledge/schema-and-api.md) now proposes exact SQL/XML,
-error/deadline/retention rules and isolated fixtures. Discuss this draft next.
+The [schema/API contract](knowledge/schema-and-api.md), including SQL/XML and
+starting error/deadline/retention rules, is now accepted.
+Discuss the [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md):
+technical paths versus readable UI, private-data roots and documents, narrow
+grants and SELinux as the recommended mandatory enforcement candidate.
+Ext4/LUKS2 and SELinux are new recommendations, not assumed dependency approval.
 Before implementation, freeze artifact/intent canonical encodings with test vectors,
 authenticated peer/principal mapping, filesystem identity and cross-authority
 admission/recovery. Isolated SQL checks do not settle these integration gates.
@@ -52,6 +56,9 @@ A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot
 checks early software. Secure Boot may be included, but no keys/settings are changed.
 Design separate VM/test-data and personal-data acceptance.
+The storage proposal recommends encrypted personal-use storage; boot/unlock,
+recovery keys, policy maintenance, label/category allocation, exact ownership-header
+bytes and registered-volume identity still require concrete implementation contracts.
 
 A3. Define full removal for multiple users, shared dependencies, rollback snapshots,
 exported documents and externally stored data. Draft in app-lifecycle.md is a

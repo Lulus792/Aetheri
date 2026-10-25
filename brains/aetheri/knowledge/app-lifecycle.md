@@ -117,6 +117,14 @@ in backups/remote storage when only the live installation was purged.
 9. Unmanaged content and remote/backup copies remain visibly outside the result.
 10. Test storage reclaimed versus retained recovery/shared storage without double counting.
 
+## Proposed storage enforcement
+
+The [filesystem/permissions proposal](filesystem-and-permissions.md) maps these
+requirements to immutable code, exact private storage roots, protected ownership
+headers, external document grants and mandatory same-UID isolation.
+The SELinux/ext4/LUKS2 recommendations are new proposals, not tested integrations.
+Removing a directory name alone cannot establish complete managed-state removal.
+
 ## Relation to other systems
 
 Flatpak distinguishes package removal and deletion of app data, showing that these
