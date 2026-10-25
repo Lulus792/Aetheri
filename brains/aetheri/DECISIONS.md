@@ -105,6 +105,22 @@ The user requested a detailed explanation and recommendation for modules and
 interfaces. The [plan](knowledge/modules-and-interfaces.md) is prepared within the
 approved architecture. Proposed finer decisions: privileged system authority plus
 per-user broker, compositor/UI separation, typed local D-Bus/sd-bus control,
-owner-scoped SQLite writers and recoverable operation contracts. These details
-remain proposals; no new backend, executable/API, schema or implementation is
-approved merely by recording this discussion.
+owner-scoped SQLite writers and recoverable operation contracts. Initially these
+were proposals; the user has now accepted the module/interface direction.
+No exact wire signature, schema, authentication/sandbox backend or implementation
+is implied by that acceptance.
+
+## Module approval and identity planning — 25 October 2026
+
+Accepted by the user: the explained module/interface split, typed local control
+(D-Bus/sd-bus direction), per-owner metadata writers and recoverable operations.
+Core architectural choices remain settled. Working names are not installed APIs.
+
+The user requests the next concrete identity/lifetime contract. The recommended
+ComponentId/ArtifactId/InstallId/GenerationId/DataEpochId/LaunchId/OperationId model,
+request semantics, expiry and cancellation rules are documented for discussion;
+these fine-grained rules are not marked approved without the user's response.
+
+Storage clarification: the user reports F: completely clear. Continue using
+F:/Aetheri; this does not authorize whole-volume formatting or changes outside
+our workspace. Read-only capacity observation: approximately 232.4 GiB free.

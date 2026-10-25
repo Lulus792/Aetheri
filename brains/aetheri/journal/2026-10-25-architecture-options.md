@@ -46,3 +46,20 @@ is not reopened. Existing projects and migrations remain untouched.
 Module-plan document checks passed: 30 UTF-8 files without BOM/NUL, 50 local
 Markdown links, balanced code fences and valid brain metadata/project root.
 Git diff --check passed. No runtime/API/security tests are implied by this check.
+
+## Module approval and identity/lifecycle discussion
+
+User accepted module/interface recommendations and requested identities/lifetimes.
+Recorded acceptance separately from the new detailed contract. Prepared a single
+identity/lifecycle document with logical/content/installation/generation/data/run/
+operation identities, admission/leases, revision epochs, retries/expiry, cancellation,
+restore and cleanup scenarios. No schema or runtime state was created.
+
+Read RFC UUID, Linux process-descriptor, systemd and SQLite primary references.
+The user also reports F: fully clear; only queried capacity, approximately 232.4 GiB.
+All work remains under F:/Aetheri; no unrelated files or processes touched.
+
+Identity-draft document validation passed: 31 UTF-8 files without BOM/NUL,
+60 local Markdown links, balanced fences, valid brain metadata/project root and
+all seven principal identity definitions present. Git diff --check passed.
+This validates documents, not lifecycle execution, security or fault recovery.

@@ -1,8 +1,10 @@
 # Module and interface plan
 
-25 October 2026. Status: proposed detailed design within the approved B/wlroots/
-systemd/SQLite architecture. Module names and interfaces below are descriptive;
-there are no installed executables, implemented APIs or fixed wire schemas yet.
+25 October 2026. Status: module/interface direction accepted by the user within
+the approved B/wlroots/systemd/SQLite architecture. Exact method/helper names,
+schemas and limits remain descriptive; there are no installed executables or
+implemented APIs. The next [identity/lifecycle contract](identity-and-lifecycle.md)
+provides recommended fine-grained rules for discussion.
 
 ## Goals and rules
 
@@ -125,9 +127,10 @@ SQL access. Candidate entities:
 
 ### User broker database
 
-One trusted writer per user owns per-user installation associations, private grant
-metadata, retained-data choices, integration preferences and durable user-operation
-receipts. Other users cannot read private history/paths merely to draw a global
+One trusted writer per user owns private grant metadata, retained-data choices,
+integration preferences and durable user-operation receipts. Installed/active
+package facts have one authoritative catalogue owner; a per-user enrollment
+projection is not a second editable installation record. Other users cannot read private history/paths merely to draw a global
 component list. Root and user databases are different ownership scopes, not one
 globally writable registry and not one pretend cross-user atomic transaction.
 
@@ -330,9 +333,10 @@ libraries, typed local control IPC, a per-owner SQLite writer model and explicit
 recoverable operations. Reuse systemd/backend interfaces instead of implementing
 duplicate live-state managers.
 
-The user has approved B/wlroots/systemd/SQLite; these finer interface, process,
-storage and helper choices remain a proposal. No schema, bus policy, authentication
-backend, sandbox engine, executable list or precise resource limit is fixed here.
+The user has approved B/wlroots/systemd/SQLite and the explained module/interface
+direction. No exact schema, bus policy, authentication backend, sandbox engine,
+executable list or precise resource limit is fixed here. Identity/lifetime details
+are the next contract rather than a reason to reopen the accepted architecture.
 
 Next contracts should cover package/operation identity and recovery first, then
 trusted launch/document grants, followed by compositor/UI/session integration.

@@ -139,3 +139,18 @@ In particular, FileChooser returns selected URIs; a native-handle Aetheri SDK ne
 an adapter rather than an invented claim about standard portal responses. SQLite
 transactions do not encompass arbitrary filesystem/service/boot changes, and a
 path/grant metadata change does not automatically revoke an already-open descriptor.
+
+## Identity and lifecycle — 25 October 2026
+
+- The user accepted the module/interface direction and requested the next contract.
+- [Identity/lifecycle draft](knowledge/identity-and-lifecycle.md) records original
+  proposed rules and distinguishes design examples from test evidence.
+- [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562.html): UUID format/generation reference;
+  UUIDv4 local IDs are a recommendation, not authority/security tokens.
+- [pidfd_open](https://man7.org/linux/man-pages/man2/pidfd_open.2.html): process references.
+- [systemd service API](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html):
+  runtime unit/job/invocation observations, not Aetheri's durable product identity.
+- [SQLite atomic commit](https://www.sqlite.org/atomiccommit.html): database boundary;
+  no claim of cross-service/filesystem exactly-once behavior.
+- User storage update: F: reported clear; free-space query only, approximately
+  232.4 GiB at observation. No other project was modified.

@@ -86,3 +86,10 @@ Evidence: first-round PowerShell/WSL observations; user hardware report;
 [QEMU](https://www.qemu.org/docs/master/system/introduction.html),
 [iwlwifi](https://wireless.docs.kernel.org/en/latest/en/users/drivers/iwlwifi.html),
 [Chromium build requirements](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md).
+
+## Latest storage clarification
+
+The user subsequently reports F: completely clear. A read-only capacity query
+showed approximately 232.4 GiB free. This supersedes earlier capacity snapshots
+for planning only. Continue to use F:/Aetheri and do not format/repartition the
+volume or operate on unrelated directories. No cleanup was performed here.

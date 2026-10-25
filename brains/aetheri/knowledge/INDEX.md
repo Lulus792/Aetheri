@@ -1,5 +1,8 @@
 # Knowledge and proposals
 
+- [Identity and lifecycle](identity-and-lifecycle.md): component/artifact/install/data
+  and launch IDs, activation generations, requests, recovery and removal fencing.
+
 - [Module and interface plan](modules-and-interfaces.md): responsibility/process map,
   authority/data ownership, IPC contracts, workflows and recovery boundaries.
 

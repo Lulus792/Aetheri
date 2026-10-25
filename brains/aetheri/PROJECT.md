@@ -59,10 +59,12 @@ apps/tools are separately managed with controlled private state and shared runti
 This selects responsibility boundaries, not exact versions, filesystem layout,
 boot/update engine or browser integration.
 
-The proposed [module/interface plan](knowledge/modules-and-interfaces.md) separates
-system installation authority, per-user mediation, compositor, desktop UI and apps.
-Detailed process/transport/authority choices are for discussion, not approved by
-publishing the plan.
+The accepted [module/interface plan](knowledge/modules-and-interfaces.md) separates
+system installation authority, per-user mediation, compositor, desktop UI and apps,
+with typed local control and owner-scoped metadata writers. Concrete identity,
+generation, start and recovery rules are recommended in the
+[identity/lifecycle contract](knowledge/identity-and-lifecycle.md); exact schemas,
+wire signatures and limits are not implicitly fixed.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 

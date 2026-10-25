@@ -39,9 +39,12 @@ versioned base/managed-app separation. Do not reopen these settled choices.
 Remaining work: exact versions/build options and compatibility, sandbox/update/boot
 mechanisms, browser embedding, filesystem layout and plugin interfaces.
 The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
-The [module/interface plan](knowledge/modules-and-interfaces.md) now specifies proposed
-owners, trust/process boundaries, transport choices and operation semantics.
-Discuss that finer split before treating its working names/APIs as selected.
+The [module/interface plan](knowledge/modules-and-interfaces.md) is now accepted
+in direction. Working helper names and concrete API signatures remain descriptive.
+The [identity/lifecycle contract](knowledge/identity-and-lifecycle.md) recommends
+how components, exact artifacts, installations, generations, private data, launches
+and durable operations differ. Discuss those detailed rules next, including retry
+expiry, retained-data attach, app readiness and phase-aware cancellation.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

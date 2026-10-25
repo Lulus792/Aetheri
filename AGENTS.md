@@ -14,6 +14,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   ownership boundaries. Do not reopen these choices without material new evidence.
   Exact releases and remaining sandbox/update/browser integrations need review;
   architectural selection is not implementation or runtime acceptance.
+- Approved module direction: privileged system authority plus per-user mediation,
+  compositor/UI separation, typed local D-Bus/sd-bus control, owner-scoped SQLite
+  writers and recoverable operations. Detailed ID/lifecycle contracts are under
+  discussion in brains/aetheri/knowledge/identity-and-lifecycle.md; do not treat
+  draft wire types, state enums or helper names as implemented APIs.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

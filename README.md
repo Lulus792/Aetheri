@@ -10,6 +10,7 @@ installer or working Aetheri application yet.
 [Decisions](brains/aetheri/DECISIONS.md) ·
 [Architecture options](brains/aetheri/knowledge/architecture-options.md) ·
 [Module and interface plan](brains/aetheri/knowledge/modules-and-interfaces.md) ·
+[Identity and lifecycle](brains/aetheri/knowledge/identity-and-lifecycle.md) ·
 [Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
 
 ## Direction

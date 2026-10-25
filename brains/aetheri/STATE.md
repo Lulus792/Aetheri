@@ -1,44 +1,41 @@
 # State
 
-25 October 2026 — module and interface plan prepared for discussion.
+25 October 2026 — module direction accepted; identity/lifecycle contract prepared.
 
-## Confirmed architecture
+## Confirmed
 
-Linux x86-64/UEFI, C17 primary, targeted Rust/adapters, existing development tools,
-glibc, MIT; controlled modular B architecture, original wlroots-based compositor,
-selected systemd/session/sleep foundation, SQLite metadata and versioned read-only
-base plus independently managed apps/tools with controlled ownership.
-Suspend/resume is required on independently accepted Intel/NVIDIA profiles.
+Linux x86-64/UEFI, C17/targeted Rust/adapters, glibc, MIT, modular B,
+wlroots, selected systemd/session integration, SQLite, versioned base and managed
+apps. Suspend/resume required with independent Intel/NVIDIA acceptance.
+The user accepted the module/interface direction: system authority, per-user broker,
+compositor/UI separation, typed local control and owner-scoped metadata writers.
 
-## Completed
+F: is reported completely clear. Read-only observation: approximately 232.4 GiB free.
+Use only F:/Aetheri; do not infer permission for volume formatting or unrelated paths.
 
-Prepared [module/interface plan](knowledge/modules-and-interfaces.md): responsibilities,
-process lifetimes, authoritative data owners, privileged versus per-user mediation,
-local interfaces, app launch/document access, install/purge/update workflows, display/
-lock/suspend and recovery behavior. Source layout is proposed without creating stub
-code directories. Existing architecture choices are retained.
+## Prepared
 
-New finer choices are recommendations, not implementation selections: exact authority
-process split, D-Bus/sd-bus binding, portal/authentication adapters, schemas, operation
-signatures and resource limits. No additional backend is implicitly selected.
+[Identity/lifecycle contract](knowledge/identity-and-lifecycle.md) distinguishes
+logical components, immutable artifacts, installation lifetimes, activations,
+private-data epochs, actual app runs and durable mutation intents.
+It proposes scoped revisions, retry/expiry rules, launch/removal admission,
+recovery, cancellation, shared references and bounded receipts.
+
+Examples cover update/rollback, close/reopen, retained-data reinstall, old purge
+versus new install, missing startup acknowledgement and catalogue restore.
+These are contract examples and future acceptance cases, not executed tests.
+Fine-grained recommendations remain for user discussion.
 
 ## Limits
 
-No runtime dependency installed, schema created/migrated, executable implemented,
-VM/kernel built or hardware accepted. Document validation does not certify security,
-crash recovery, display behavior or performance.
+No runtime component installed, schema created/migrated, app/VM/kernel implemented
+or hardware accepted. UUIDs and SQLite do not by themselves supply authorization,
+filesystem identity, cross-service atomicity or exactly-once side effects.
+Exact schema/wire types, limits, browser/boot/sandbox/authentication integration and
+shell syntax still require their contracts and compatibility work.
 
-Use F:/Aetheri only. Physim/NexaCloud files, processes and active migrations untouched.
-Future Physim/NexaUI migration is not executed by this planning task.
-
-## Publication
+## Publication and next step
 
 Public planning repository: https://github.com/Lulus792/Aetheri.
-The module plan is a discussion draft within an approved architecture, not a release.
-
-## Next
-
-Discuss fine-grained module/interface recommendations, then specify identity and
-recoverable lifecycle contracts, trusted launch/document access and compositor/
-session integration. Pin actual dependencies and perform bounded prototypes only
-after concrete contracts and compatibility checks.
+Discuss identity/lifecycle recommendations, then define concrete schema constraints,
+request formats and failure fixtures. Keep accepted architectural/module decisions.
