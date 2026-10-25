@@ -73,6 +73,28 @@ current decisions; use this file for the latest user choices.
 
 Suspend/resume is confirmed by the user. The three overall approaches and component
 comparisons are documented in [architecture options](knowledge/architecture-options.md).
-The recommended modular system, wlroots-first compositor evaluation, selected
-systemd/session foundation and versioned system/app separation are proposals only.
-No architecture choice, new runtime dependency or exact version is approved yet.
+These were initially proposals. The user subsequently approved the overall
+recommendations and explicitly selected B, wlroots, systemd and SQLite.
+
+## Approved architecture — 25 October 2026
+
+- Controlled modular system (B): original desktop/apps and lifecycle policy on
+  selected maintained system foundations.
+- Original Wayland compositor based on wlroots. libweston is retained only as
+  comparison history, not an unresolved default choice.
+- Selected systemd components for service supervision, sessions and sleep integration.
+  Do not equate this with enabling every optional service or adopting another desktop.
+- SQLite for durable component/installation metadata, used in-process without
+  introducing a separate database-server service.
+- Versioned read-only system base, separately managed apps/tools/shared runtimes,
+  controlled app-private state and one authoritative component inventory.
+
+Reason: retain original product control and complete-removal semantics without
+reimplementing all display/session/storage infrastructure first. Consequences:
+we own integration, policy, lifecycle/recovery and release acceptance; must audit
+versions, transitive dependencies and installed/activated components; must still
+implement and test filesystem/service/database recovery across transaction boundaries.
+
+Exact releases, sandbox/update/boot implementations, browser engine, filesystem,
+plugin protocol and shell-language syntax are not implicitly fixed. Approval
+selects architecture, not evidence of working software or measured performance.

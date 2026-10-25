@@ -8,6 +8,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Rust and small C++ adapters where justified, existing open development tools,
   glibc and the discussed technical-library boundary. Exact dependency versions
   and substantial new families need evidence and discussion before adoption.
+- Approved architecture: controlled modular system (B), original wlroots-based
+  Wayland compositor, selected systemd/session/sleep components, SQLite metadata,
+  versioned read-only system base and separately managed apps/tools with enforced
+  ownership boundaries. Do not reopen these choices without material new evidence.
+  Exact releases and remaining sandbox/update/browser integrations need review;
+  architectural selection is not implementation or runtime acceptance.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

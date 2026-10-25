@@ -1,39 +1,42 @@
 # State
 
-25 October 2026 — suspend confirmed and architecture alternatives prepared.
+25 October 2026 — architecture selected; implementation planning remains.
+
+## Confirmed
+
+- Linux x86-64/UEFI, C17 primary, targeted Rust/adapters, existing development tools,
+  glibc and MIT; suspend/resume required.
+- Controlled modular system (B), original wlroots-based Wayland compositor,
+  selected systemd/session/sleep foundation and SQLite component metadata.
+- Versioned read-only system base plus separately managed apps/tools/shared runtimes,
+  controlled private state and authoritative ownership/permission inventory.
+- Original shell/language, custom terminal/editor/plugins, browser without clutter,
+  Physim future NexaUI migration and NexaCloud Desktop target.
+- Laptop first; later RTX 2080 Ti main PC with separate hardware acceptance.
+- Use F:/Aetheri. Other projects' files, processes and active migrations remain protected.
 
 ## Completed
 
-- SecondBrain-style memory and English documentation maintained.
-- Agreed foundations: C17, targeted Rust/adapters, existing development tools,
-  glibc, retained technical backends and MIT; exact integration versions still open.
-- Recorded original shell/language, custom editor/plugins/terminal sessions,
-  browser goals, Physim future NexaUI migration and NexaCloud Desktop target.
-- Component/file/process visibility and complete managed-state removal specified.
-- F:/Aetheri is our workspace; other projects' active migrations/processes protected.
-- Suspend/resume confirmed for laptop and later main-PC acceptance.
-- Prepared [architecture alternatives](knowledge/architecture-options.md), comparing
-  distribution-derived, controlled modular and deeper original userspace approaches,
-  with compositor, service/session, update, sandbox, inventory and plugin tradeoffs.
-- Recommendations remain proposals: modular original platform, wlroots-first
-  compositor evaluation, selected systemd/session foundation, versioned read-only
-  system deployments plus independent managed apps.
+Maintained English project memory and comparison rationale. Recorded explicit
+architecture approval and removed stale proposal-only status from current guidance.
+The architecture discussion remains available to explain alternatives and consequences.
 
 ## Limits
 
-Planning documentation only. No new runtime libraries selected/installed, VM created,
-kernel built, app implemented, disk formatted or hardware accepted in this work.
-Research reads live upstream docs, not an audited dependency graph or benchmark.
+No component installed, dependency release pinned, VM created, kernel built,
+app implemented or hardware accepted in this work. SQLite transaction support does
+not by itself implement cross-filesystem/service/boot recovery.
+Versions, sandbox/update/boot mechanisms, filesystem layout, browser embedding,
+plugin interfaces and shell syntax still need concrete specifications.
 
 ## Publication
 
 Public planning repository: https://github.com/Lulus792/Aetheri.
-The architecture discussion is explicitly a proposal; publishing it does not
-approve its implementation choices. Historical publication evidence is retained
-in the journal. No bootable OS release.
+Current decisions are architecture selections, not a bootable OS release or test result.
 
 ## Next
 
-Discuss the proposed architecture with the user. Record selected boundaries before
-pinning dependencies or running implementation spikes. Then define bounded acceptance
-for package recovery, compositor/NexaUI interaction, VM boot and physical sleep.
+Prepare the detailed module/interface and dependency/build plan within the selected
+architecture, then bounded lifecycle/recovery and compositor/NexaUI prototypes,
+a coherent QEMU boot image, and physical suspend/display tests.
+Discuss remaining product choices when concrete alternatives are ready.

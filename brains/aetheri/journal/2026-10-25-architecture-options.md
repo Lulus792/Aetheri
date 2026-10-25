@@ -18,3 +18,15 @@ Document checks passed with exit 0: 29 UTF-8 text/metadata files without BOM/NUL
 41 local Markdown links, valid six-field brain metadata/project root and balanced
 architecture code fences. Git diff --check passed. No runtime tests are implied.
 Next: explain alternatives, capture the user's architecture choices, then plan spikes.
+
+## Subsequent user approval
+
+The user approved the recommendations and explicitly chose B, wlroots, systemd
+and SQLite. Updated current decisions, project, instructions, comparison status,
+questions and README. Preserved alternatives as rationale. Versioned base/managed-app
+separation is part of the approved recommendation; exact implementation choices
+and releases remain open. No dependencies installed or code implemented.
+
+Approval-update validation passed: 29 UTF-8 files, 41 local Markdown links,
+valid brain metadata/root, balanced code fences and consistent selected component
+names in the current entry documents. Git diff --check passed; no runtime tests.

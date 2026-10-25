@@ -1,6 +1,10 @@
 # Architecture options for Aetheri
 
-25 October 2026. Status: proposed architecture, not a selected stack or implementation.
+25 October 2026. Status: core architecture approved by the user after this comparison.
+Selected: controlled modular system B, wlroots compositor foundation, selected
+systemd/session/sleep integration, SQLite metadata and versioned base/managed-app
+separation. The alternatives below explain the rationale; exact releases and
+remaining implementation mechanisms are open. No runtime acceptance is implied.
 Suspend/resume is now a confirmed requirement on both target hardware profiles.
 The language/runtime/license choices in [DECISIONS](../DECISIONS.md) remain settled.
 
@@ -70,7 +74,8 @@ These responsibilities are different.
 | Original low-level implementation | Nearly all display/protocol/input coordination | Kernel, selected drivers and basic libraries | Highest ownership burden and least early evidence for multi-monitor/resume behavior |
 
 Recommendation: an original Wayland compositor on wlroots as the first candidate,
-with libweston as the comparison fallback. Neither is approved by this document.
+with libweston recorded as the comparison alternative. The user has now selected
+wlroots; it is not necessary to reopen this choice before the bounded prototype.
 A tiny nested prototype must establish required client, buffer, sync, lock,
 fractional-scale and output behavior before commitment. Core wlroots/libweston
 capabilities do not certify a custom Aetheri compositor.
@@ -104,7 +109,7 @@ device access, login/lock and suspend coordination add further requirements.
 | Original init/supervisor | Full implementation ownership | Signals, child ownership, dependency/readiness rules, shutdown, privileges, sessions, recovery and sleep integration |
 
 Recommendation for the first daily-use platform: selected systemd components
-including session/sleep integration. This is a proposed new dependency choice.
+including session/sleep integration. The user has now approved this dependency direction.
 It is not a proposal to install a whole distribution desktop or enable every
 optional systemd service. Produce an inventory of actual binaries, libraries,
 units and activation reasons. Do not claim it is small before measuring.
@@ -195,7 +200,7 @@ acceptance cases remain in [application lifecycle](app-lifecycle.md).
 
 For the inventory store, compare an original transactional format with SQLite.
 Recommendation: consider SQLite for durable metadata; it is an in-process library
-without a database-server daemon. That is a new library proposal, not a selection.
+without a database-server daemon. The user has now selected SQLite.
 Human-readable manifests describe signed packages; an authoritative transaction store
 records the current installed state. Avoid two independently editable sources of truth.
 
@@ -279,8 +284,8 @@ Proposed package of decisions:
 4. Versioned read-only base plus independently managed apps/tools, enforced
    private-state boundaries and one authoritative component inventory.
 
-These are recommendations for user discussion, not adopted dependencies.
-SQLite, sandbox/update implementation, compositor version and the browser engine
+The user has approved this architecture package and explicitly selected SQLite.
+Sandbox/update implementation, exact component versions and the browser engine
 remain specific follow-up choices. Keep the approved C17/targeted Rust/glibc/MIT
 foundation intact.
 

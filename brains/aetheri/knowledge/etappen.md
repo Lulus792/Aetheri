@@ -1,10 +1,11 @@
 # Possible milestones
 
-Proposal, not a committed architecture or schedule.
+Architecture foundations are approved; the implementation sequence and schedule
+remain a proposal.
 
 | Milestone | Deliverable | Acceptance |
 | --- | --- | --- |
-| 0: Foundations | Agreed C17/Rust/tool/glibc/library policy and MIT, recorded workflows and hardware | Foundations recorded; exact architecture and dependency releases still open |
+| 0: Foundations | Agreed C17/Rust/tool/glibc/library policy and MIT, recorded workflows and hardware | Foundations and B/wlroots/systemd/SQLite selected; exact releases and integration still open |
 | 1: Architecture and UI direction | At least two suitable structures, dependency/service/ownership maps, shell-language and desktop/app concepts | Consequences explained; user chooses design direction |
 | 2: Build and boot | Versioned kernel/userspace build and VM definition | Own image boots to a defined serial result within budget |
 | 3: Base userspace | Init/supervision, processes, files, diagnostics, original shell and original language | Defined syntax/jobs/errors, persistence and controlled failures work |

@@ -119,3 +119,10 @@ components at their authoritative versioned source before adoption.
 - systemd.io/SYSUPDATE was unavailable and a Chromium sandboxing path returned 404.
   The reachable sysupdate manual and earlier CEF sandbox references were used;
   no claims are based on the unavailable paths.
+
+## Architecture approval — 25 October 2026
+
+The user approved the architecture recommendations and explicitly selected B,
+wlroots, systemd and SQLite. This is the authority for the selected direction;
+upstream documentation supplies technical references, not user authorization.
+Exact releases and implementation acceptance remain unclaimed.

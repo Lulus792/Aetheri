@@ -4,7 +4,9 @@
 C17 primary, targeted Rust/small adapters, existing tools, glibc, the proposed
 technical-library boundary and useful service backends are accepted. Original shell
 and language start together. MIT is selected. Browser engine and exact dependency
-versions remain open. No component has been installed or integrated.
+versions remain open. The later architecture decision selects B, wlroots, selected
+systemd components, SQLite and versioned base/managed-app separation. See
+[architecture](architecture-options.md). No component has been installed or integrated.
 
 Use [DECISIONS](../DECISIONS.md) for current choices; recommendations below explain
 the alternatives considered and do not reopen settled questions.

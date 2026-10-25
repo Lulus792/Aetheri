@@ -52,6 +52,13 @@ audio/Bluetooth/WLAN backends need not be replaced merely to increase original c
 Exact component versions and transitive footprints must be reviewed before adoption.
 NexaUI remains subject to suitability and performance acceptance.
 
+Selected architecture: controlled modular system (B), an original Wayland
+compositor based on wlroots, selected systemd/session/sleep components and SQLite
+for component metadata. The system base uses versioned read-only deployments;
+apps/tools are separately managed with controlled private state and shared runtimes.
+This selects responsibility boundaries, not exact versions, filesystem layout,
+boot/update engine or browser integration.
+
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 
 ## Hardware, storage and security

@@ -34,11 +34,11 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 
 ## Architecture and security
 
-A1. [Architecture comparison](knowledge/architecture-options.md) is prepared.
-Discuss the recommended overall B approach, wlroots-first compositor evaluation,
-selected systemd/session/sleep foundation and versioned base/app separation.
-These remain proposals. Exact versions, sandbox/update engines, browser embedding,
-plugin isolation and major transitive dependencies need follow-up review.
+A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and
+versioned base/managed-app separation. Do not reopen these settled choices.
+Remaining work: exact versions/build options and compatibility, sandbox/update/boot
+mechanisms, browser embedding, filesystem layout and plugin interfaces.
+The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

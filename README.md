@@ -26,7 +26,11 @@ promotions and sponsored clutter, with content filtering under user control.
 
 The agreed starting point is C17, targeted Rust and small adapters where justified,
 glibc and selected maintained technical backends. NexaUI is the preferred toolkit
-candidate; Physim should migrate to it when ready. Exact versions and architecture
+candidate; Physim should migrate to it when ready.
+
+The selected architecture uses an original wlroots-based Wayland compositor,
+selected systemd components, SQLite component metadata, a versioned read-only
+system base and separately managed apps. Exact releases and runtime behavior
 remain to be validated.
 
 The laptop is the first hardware test target. A later main-PC target has four CPU
