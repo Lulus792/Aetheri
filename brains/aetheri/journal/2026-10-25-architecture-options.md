@@ -63,3 +63,32 @@ Identity-draft document validation passed: 31 UTF-8 files without BOM/NUL,
 60 local Markdown links, balanced fences, valid brain metadata/project root and
 all seven principal identity definitions present. Git diff --check passed.
 This validates documents, not lifecycle execution, security or fault recovery.
+
+## Identity approval and concrete SQLite/API discussion
+
+The user accepted the identity/lifecycle recommendations. Updated current memory
+to record that acceptance separately from the new schema/API recommendations.
+
+Prepared three proposed SQL files, one D-Bus introspection XML and one standard-
+library validator, explained in a single knowledge document. Eighteen distinct
+table designs cover owner identity, exact package/activation relationships, private
+data, launch admission and durable/delegated operation correlation. Fourteen methods
+define typed previews, acceptance, status, launch and authorized event subscriptions.
+Budgets and concrete signatures are proposals; nothing is installed or exposed.
+
+Read official SQLite/D-Bus and Linux clock documentation. Chose DELETE + EXTRA
+as the proposed first durability configuration after checking rollback-journal
+last-commit behavior; in-memory fixtures cannot verify power-loss durability.
+
+Executed validator with Python 3.12.14 / SQLite 3.53.1, exit 0:
+374 assertions, including selected SQL rejection/acceptance cases and structural
+XML checks for 14 methods; foreign_key_check and integrity_check pass for both
+disposable catalogues. Most assertions are structural, not end-to-end scenarios.
+No live D-Bus, filesystem publication/deletion, security, race, migration, VM or
+hardware acceptance. Canonical encoding/test vectors, authenticated principals
+and storage/admission/recovery integrations remain gates before implementation.
+
+Document validation passed: 37 UTF-8 files without BOM/NUL, 77 local Markdown
+links, balanced fences and valid six-field brain metadata/project root. Git diff
+checks passed. New SQL/XML/Python sources use explicit LF rules for the Linux target.
+Existing projects, migration processes and other drives remain untouched.

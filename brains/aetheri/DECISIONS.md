@@ -124,3 +124,17 @@ these fine-grained rules are not marked approved without the user's response.
 Storage clarification: the user reports F: completely clear. Continue using
 F:/Aetheri; this does not authorize whole-volume formatting or changes outside
 our workspace. Read-only capacity observation: approximately 232.4 GiB free.
+
+## Identity approval and concrete schema/API draft — 25 October 2026
+
+The user accepted the explained identity/lifecycle recommendations and asked for
+concrete SQLite and API contracts. This supersedes the earlier pending status of
+that model. Distinct component/artifact/install/generation/data/run/operation IDs,
+scope epochs/revisions, exact-target removal, retry/expiry, cancellation and recovery
+are accepted in direction.
+
+The [schema/API draft](knowledge/schema-and-api.md) proposes byte encodings,
+18 distinct table designs (14 system / 11 user including common definitions),
+14 D-Bus methods, explicit errors and initial resource/deadline/receipt budgets.
+These new details remain recommendations; no approval is inferred in advance.
+Executable SQL/XML fixtures validate selected constraints, not production services.

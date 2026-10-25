@@ -1,8 +1,9 @@
 # Identity and lifecycle contract
 
-25 October 2026. Status: recommended contract for discussion, not an implemented
-schema/API or a user-approved final identity specification. The module/interface
-plan is now accepted; B/wlroots/systemd/SQLite remain the approved foundation.
+25 October 2026. Status: identity/lifecycle model accepted by the user.
+B/wlroots/systemd/SQLite and the module/interface split remain approved.
+The subsequent [schema/API draft](schema-and-api.md) proposes concrete encodings,
+constraints and limits; acceptance of this model is not runtime implementation.
 
 ## Principles
 
@@ -369,9 +370,10 @@ values or unnecessary copies of private payloads.
 | Cancellation after partial purge | Truthful partial/recovery result; no promise of undo |
 | Damaged metadata or replaced data root | Stop destructive work; do not garbage-collect by guessing |
 
-These are specification examples and planned contract/fault-injection cases, not
-executed tests. Follow with concrete schema constraints, wire types, deadlines,
-resource/retention limits, authentication bindings and failure fixtures.
+These remain specification examples, not evidence of end-to-end lifecycle execution.
+The subsequent [schema/API draft](schema-and-api.md) supplies SQL/XML and executes
+selected constraint cases in disposable SQLite catalogues. Wire interoperability,
+authentication, filesystem/supervisor recovery and fault injection remain untested.
 
 ## Primary references
 

@@ -41,10 +41,12 @@ mechanisms, browser embedding, filesystem layout and plugin interfaces.
 The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
 The [module/interface plan](knowledge/modules-and-interfaces.md) is now accepted
 in direction. Working helper names and concrete API signatures remain descriptive.
-The [identity/lifecycle contract](knowledge/identity-and-lifecycle.md) recommends
-how components, exact artifacts, installations, generations, private data, launches
-and durable operations differ. Discuss those detailed rules next, including retry
-expiry, retained-data attach, app readiness and phase-aware cancellation.
+The [identity/lifecycle model](knowledge/identity-and-lifecycle.md) is accepted.
+The [schema/API draft](knowledge/schema-and-api.md) now proposes exact SQL/XML,
+error/deadline/retention rules and isolated fixtures. Discuss this draft next.
+Before implementation, freeze artifact/intent canonical encodings with test vectors,
+authenticated peer/principal mapping, filesystem identity and cross-authority
+admission/recovery. Isolated SQL checks do not settle these integration gates.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

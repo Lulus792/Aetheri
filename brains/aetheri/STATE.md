@@ -1,41 +1,46 @@
 # State
 
-25 October 2026 — module direction accepted; identity/lifecycle contract prepared.
+25 October 2026 — identity/lifecycle accepted; concrete schema/API draft prepared.
 
 ## Confirmed
 
 Linux x86-64/UEFI, C17/targeted Rust/adapters, glibc, MIT, modular B,
 wlroots, selected systemd/session integration, SQLite, versioned base and managed
 apps. Suspend/resume required with independent Intel/NVIDIA acceptance.
-The user accepted the module/interface direction: system authority, per-user broker,
-compositor/UI separation, typed local control and owner-scoped metadata writers.
+Module split and the [identity/lifecycle model](knowledge/identity-and-lifecycle.md)
+are accepted, including scoped installations, fresh activations/runs, private-data
+epochs, durable requests, retry/expiry, removal fencing and honest recovery.
 
-F: is reported completely clear. Read-only observation: approximately 232.4 GiB free.
-Use only F:/Aetheri; do not infer permission for volume formatting or unrelated paths.
+F: is reported completely clear. Last read-only observation: approximately 232.4 GiB
+free. Use only F:/Aetheri; no volume formatting or unrelated path changes.
 
 ## Prepared
 
-[Identity/lifecycle contract](knowledge/identity-and-lifecycle.md) distinguishes
-logical components, immutable artifacts, installation lifetimes, activations,
-private-data epochs, actual app runs and durable mutation intents.
-It proposes scoped revisions, retry/expiry rules, launch/removal admission,
-recovery, cancellation, shared references and bounded receipts.
+[Concrete schema/API draft](knowledge/schema-and-api.md): three SQL source files,
+one D-Bus XML contract and a disposable standard-library validator. System/user
+catalogues have separate trusted writers; common plans/operations/delegation
+correlation preserve exact target lifetimes. The proposed API has 14 methods.
 
-Examples cover update/rollback, close/reopen, retained-data reinstall, old purge
-versus new install, missing startup acknowledgement and catalogue restore.
-These are contract examples and future acceptance cases, not executed tests.
-Fine-grained recommendations remain for user discussion.
+Executed with Python 3.12.14 and SQLite 3.53.1: 374 assertions, exit 0.
+Selected positive/negative SQL constraints and XML structure/type signatures pass.
+Both disposable catalogues pass foreign-key and database integrity checks.
+The assertion count is mostly structural validation, not 374 lifecycle scenarios.
 
 ## Limits
 
-No runtime component installed, schema created/migrated, app/VM/kernel implemented
-or hardware accepted. UUIDs and SQLite do not by themselves supply authorization,
-filesystem identity, cross-service atomicity or exactly-once side effects.
-Exact schema/wire types, limits, browser/boot/sandbox/authentication integration and
-shell syntax still require their contracts and compatibility work.
+No production database created/migrated, dependency installed, OS/app service,
+VM/kernel, live D-Bus exchange or hardware acceptance. The SQL bootstraps test
+catalogues only. Runtime security, concurrency, durable filesystem publication,
+power-loss recovery and schema upgrade/downgrade are not verified.
+
+Detailed SQL/XML and proposed budgets remain under discussion. Before services,
+freeze canonical artifact/intent bytes/test vectors, peer identity/authorization,
+sandbox/storage ownership and cross-authority lease/admission/recovery.
+Browser/boot/update integration, shell syntax and UI alternatives remain open.
 
 ## Publication and next step
 
 Public planning repository: https://github.com/Lulus792/Aetheri.
-Discuss identity/lifecycle recommendations, then define concrete schema constraints,
-request formats and failure fixtures. Keep accepted architectural/module decisions.
+Explain and review the schema/API proposal, then design the security/storage and
+recovery boundaries needed for a small Linux authority prototype. Keep settled
+architectural choices; implementation gates are not new foundation questions.

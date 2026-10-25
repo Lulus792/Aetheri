@@ -154,3 +154,23 @@ path/grant metadata change does not automatically revoke an already-open descrip
   no claim of cross-service/filesystem exactly-once behavior.
 - User storage update: F: reported clear; free-space query only, approximately
   232.4 GiB at observation. No other project was modified.
+
+## Concrete SQLite and API contracts — 25 October 2026
+
+The user accepted the identity/lifecycle recommendations and requested the next
+concrete schema/API discussion. New SQL/XML and policy details remain proposals.
+
+- [SQLite STRICT](https://sqlite.org/stricttables.html), [foreign keys](https://sqlite.org/foreignkeys.html)
+  and [partial indexes](https://sqlite.org/partialindex.html): checked table primitives.
+- [Transactions](https://sqlite.org/lang_transaction.html), [triggers](https://sqlite.org/lang_createtrigger.html)
+  and [PRAGMAs](https://sqlite.org/pragma.html): settings, constraints and commit boundaries.
+  In particular, rollback-journal DELETE mode needs EXTRA rather than just FULL
+  for the documented stronger last-commit power-loss durability.
+- [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html):
+  introspection/signatures/credentials, not Aetheri application authorization.
+- [clock_gettime](https://man7.org/linux/man-pages/man2/clock_gettime.2.html):
+  CLOCK_BOOTTIME counts suspension and is separate from adjustable wall time.
+- Local execution of [validator](../../tools/validate_contracts.py) using Python
+  3.12.14 / SQLite 3.53.1: 374 assertions passed, exit 0, in-memory constraints
+  and XML structure only. Proposed SQLite runtime minimum 3.37 is a STRICT feature
+  floor, not a pinned or security-approved dependency release.

@@ -3,8 +3,9 @@
 25 October 2026. Status: module/interface direction accepted by the user within
 the approved B/wlroots/systemd/SQLite architecture. Exact method/helper names,
 schemas and limits remain descriptive; there are no installed executables or
-implemented APIs. The next [identity/lifecycle contract](identity-and-lifecycle.md)
-provides recommended fine-grained rules for discussion.
+implemented APIs. The [identity/lifecycle model](identity-and-lifecycle.md) is now
+accepted; the [concrete schema/API draft](schema-and-api.md) adds proposed SQL/XML
+and isolated checks without claiming runtime interoperability.
 
 ## Goals and rules
 

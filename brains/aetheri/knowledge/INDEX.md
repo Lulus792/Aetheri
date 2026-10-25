@@ -1,5 +1,8 @@
 # Knowledge and proposals
 
+- [SQLite schema and management API](schema-and-api.md): executable discussion
+  contracts, two database owners, typed requests, failure semantics and validation.
+
 - [Identity and lifecycle](identity-and-lifecycle.md): component/artifact/install/data
   and launch IDs, activation generations, requests, recovery and removal fencing.
 

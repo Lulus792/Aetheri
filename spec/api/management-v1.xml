@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Discussion draft: management object /org/aetheri/Management1.
+     User interface also on that object, user authority only.
+     Subscription interface on returned per-caller ephemeral object paths.
+     Error semantics, caller binding, limits and tuple fields are in schema-and-api.md.
+     This describes interfaces, not installed services or bus policy. -->
+<node>
+  <interface name="org.aetheri.Management1">
+    <method name="GetProtocolInfo">
+      <arg direction="out" name="major" type="u"/>
+      <arg direction="out" name="minor" type="u"/>
+      <arg direction="out" name="capabilities" type="as"/>
+      <arg direction="out" name="authority_epoch" type="ay"/>
+      <arg direction="out" name="event_incarnation" type="ay"/>
+    </method>
+    <method name="ListComponents">
+      <arg direction="in" name="limit" type="u"/>
+      <arg direction="in" name="cursor" type="s"/>
+      <arg direction="out" name="snapshot_epoch" type="ay"/>
+      <arg direction="out" name="snapshot_revision" type="t"/>
+      <arg direction="out" name="items" type="a(ssss)"/>
+      <arg direction="out" name="next_cursor" type="s"/>
+    </method>
+    <method name="ListInstalls">
+      <arg direction="in" name="component_id" type="s"/>
+      <arg direction="in" name="scope_id" type="ay"/>
+      <arg direction="in" name="limit" type="u"/>
+      <arg direction="in" name="cursor" type="s"/>
+      <arg direction="out" name="source_epoch" type="ay"/>
+      <arg direction="out" name="snapshot_revision" type="t"/>
+      <arg direction="out" name="items" type="a(aysaysayt)"/>
+      <arg direction="out" name="next_cursor" type="s"/>
+    </method>
+    <method name="GetInstall">
+      <arg direction="in" name="install_id" type="ay"/>
+      <arg direction="out" name="source_epoch" type="ay"/>
+      <arg direction="out" name="component_id" type="s"/>
+      <arg direction="out" name="scope_id" type="ay"/>
+      <arg direction="out" name="state" type="s"/>
+      <arg direction="out" name="active_generation_id" type="ay"/>
+      <arg direction="out" name="revision" type="t"/>
+    </method>
+    <method name="PrepareChange">
+      <arg direction="in" name="kind" type="s"/>
+      <arg direction="in" name="component_id" type="s"/>
+      <arg direction="in" name="scope_id" type="ay"/>
+      <arg direction="in" name="install_id" type="ay"/>
+      <arg direction="in" name="generation_id" type="ay"/>
+      <arg direction="in" name="data_epoch_id" type="ay"/>
+      <arg direction="in" name="artifact_id" type="ay"/>
+      <arg direction="in" name="retention" type="s"/>
+      <arg direction="out" name="plan_id" type="ay"/>
+      <arg direction="out" name="authority_epoch" type="ay"/>
+      <arg direction="out" name="boot_id" type="ay"/>
+      <arg direction="out" name="expires_boottime_ns" type="t"/>
+      <arg direction="out" name="intent_digest" type="ay"/>
+      <arg direction="out" name="effect_count" type="u"/>
+    </method>
+    <method name="ListPlanEffects">
+      <arg direction="in" name="plan_id" type="ay"/>
+      <arg direction="in" name="limit" type="u"/>
+      <arg direction="in" name="cursor" type="s"/>
+      <arg direction="out" name="effects" type="a(ssayss)"/>
+      <arg direction="out" name="next_cursor" type="s"/>
+    </method>
+    <method name="ApplyPlan">
+      <arg direction="in" name="plan_id" type="ay"/>
+      <arg direction="in" name="expected_epoch" type="ay"/>
+      <arg direction="in" name="request_key" type="ay"/>
+      <arg direction="in" name="intent_digest" type="ay"/>
+      <arg direction="out" name="operation_id" type="ay"/>
+    </method>
+    <method name="GetOperation">
+      <arg direction="in" name="operation_id" type="ay"/>
+      <arg direction="out" name="state" type="s"/>
+      <arg direction="out" name="phase" type="s"/>
+      <arg direction="out" name="reason_code" type="s"/>
+      <arg direction="out" name="outcome" type="s"/>
+      <arg direction="out" name="accepted_unix_ms" type="t"/>
+      <arg direction="out" name="completed_unix_ms" type="t"/>
+      <arg direction="out" name="result_kind" type="s"/>
+      <arg direction="out" name="result_ref" type="ay"/>
+      <arg direction="out" name="revision" type="t"/>
+    </method>
+    <method name="ListOperationSteps">
+      <arg direction="in" name="operation_id" type="ay"/>
+      <arg direction="in" name="limit" type="u"/>
+      <arg direction="in" name="cursor" type="s"/>
+      <arg direction="out" name="steps" type="a(ussays)"/>
+      <arg direction="out" name="next_cursor" type="s"/>
+    </method>
+    <method name="CancelOperation">
+      <arg direction="in" name="operation_id" type="ay"/>
+      <arg direction="in" name="expected_revision" type="t"/>
+      <arg direction="out" name="disposition" type="s"/>
+      <arg direction="out" name="revision" type="t"/>
+    </method>
+    <method name="SubscribeOperation">
+      <arg direction="in" name="operation_id" type="ay"/>
+      <arg direction="out" name="subscription" type="o"/>
+      <arg direction="out" name="stream_incarnation" type="ay"/>
+      <arg direction="out" name="base_sequence" type="t"/>
+    </method>
+  </interface>
+  <interface name="org.aetheri.User1">
+    <method name="PrepareLaunch">
+      <arg direction="in" name="component_id" type="s"/>
+      <arg direction="in" name="action_id" type="s"/>
+      <arg direction="out" name="plan_id" type="ay"/>
+      <arg direction="out" name="authority_epoch" type="ay"/>
+      <arg direction="out" name="boot_id" type="ay"/>
+      <arg direction="out" name="expires_boottime_ns" type="t"/>
+      <arg direction="out" name="intent_digest" type="ay"/>
+      <arg direction="out" name="effect_count" type="u"/>
+    </method>
+    <method name="GetLaunch">
+      <arg direction="in" name="launch_id" type="ay"/>
+      <arg direction="out" name="install_id" type="ay"/>
+      <arg direction="out" name="generation_id" type="ay"/>
+      <arg direction="out" name="data_epoch_id" type="ay"/>
+      <arg direction="out" name="state" type="s"/>
+      <arg direction="out" name="readiness" type="s"/>
+      <arg direction="out" name="boot_id" type="ay"/>
+      <arg direction="out" name="supervisor_unit" type="s"/>
+      <arg direction="out" name="invocation_id" type="ay"/>
+      <arg direction="out" name="revision" type="t"/>
+    </method>
+  </interface>
+  <interface name="org.aetheri.Subscription1">
+    <method name="Close">
+    </method>
+    <!-- Authorized unicast delivery; never a broadcast of private activity. -->
+    <signal name="OperationChanged">
+      <arg name="operation_id" type="ay"/>
+      <arg name="stream_incarnation" type="ay"/>
+      <arg name="sequence" type="t"/>
+      <arg name="operation_revision" type="t"/>
+    </signal>
+  </interface>
+</node>

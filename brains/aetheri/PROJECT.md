@@ -61,10 +61,12 @@ boot/update engine or browser integration.
 
 The accepted [module/interface plan](knowledge/modules-and-interfaces.md) separates
 system installation authority, per-user mediation, compositor, desktop UI and apps,
-with typed local control and owner-scoped metadata writers. Concrete identity,
-generation, start and recovery rules are recommended in the
-[identity/lifecycle contract](knowledge/identity-and-lifecycle.md); exact schemas,
-wire signatures and limits are not implicitly fixed.
+with typed local control and owner-scoped metadata writers. The
+[identity/lifecycle model](knowledge/identity-and-lifecycle.md) is accepted,
+including distinct installation/generation/data/run/operation lifetimes.
+The [concrete schema/API draft](knowledge/schema-and-api.md) now provides proposed
+SQL constraints, D-Bus signatures and isolated validation. These finer contracts
+and budgets remain for discussion; no runtime service is implemented.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 
