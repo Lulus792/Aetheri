@@ -6,7 +6,8 @@ Updated 25 October 2026 after the foundation choices and F: readiness confirmati
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.
 3. [Decisions](DECISIONS.md): confirmed choices and superseded assumptions.
-4. [Application lifecycle](knowledge/app-lifecycle.md): ownership and complete removal.
+4. [Architecture options](knowledge/architecture-options.md): alternatives and recommendations,
+   followed by [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),
    [testing](knowledge/testumgebung.md) and [milestones](knowledge/etappen.md).

@@ -1,5 +1,8 @@
 # Knowledge and proposals
 
+- [Architecture options](architecture-options.md): overall approaches, compositor,
+  supervision, updates, sandboxing, plugins and required suspend/resume.
+
 - [Application lifecycle](app-lifecycle.md): component visibility and complete managed-state removal.
 
 - [Technology options](technology-options.md): language, tools, libraries, services,

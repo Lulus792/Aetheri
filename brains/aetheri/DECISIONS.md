@@ -49,7 +49,9 @@ drivers and standards are accepted.
 Dedicated laptop first; later main PC: four CPU cores/eight threads and RTX 2080 Ti,
 user-reported. Up to three monitors, 1080p/1440p/4K. Wired/Bluetooth keyboard and
 mouse, 3.5 mm/Bluetooth headphones, WLAN and Bluetooth required.
-Monitor modes/connections, exact devices and suspend behavior remain open.
+Monitor modes/connections and exact devices remain open. The user subsequently
+confirmed suspend/resume as required. The concrete sleep state and driver behavior
+must be tested separately on the laptop and main PC; hibernation is not selected.
 
 VM RAM allowance: up to 16 GB. Initial approximately 32 GB total storage discussion
 was followed by allocation of F:. The user now states F: is ready for Aetheri while
@@ -66,3 +68,11 @@ and generated images/build trees. Verify actual outcome before recording success
 Memory format: schema 1, template version 1, project aetheri, root `../..`.
 The initial German question list remains archived. Historical proposals are not
 current decisions; use this file for the latest user choices.
+
+## Architecture discussion — 25 October 2026
+
+Suspend/resume is confirmed by the user. The three overall approaches and component
+comparisons are documented in [architecture options](knowledge/architecture-options.md).
+The recommended modular system, wlroots-first compositor evaluation, selected
+systemd/session foundation and versioned system/app separation are proposals only.
+No architecture choice, new runtime dependency or exact version is approved yet.

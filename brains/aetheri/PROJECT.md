@@ -60,6 +60,8 @@ First target: dedicated HP EliteBook 840 G4 with Intel graphics and 16 GB RAM.
 Later target: main computer, four cores/eight threads, RTX 2080 Ti; CPU model,
 RAM, ports and precise monitor modes still need collection.
 WLAN, Bluetooth, wired/Bluetooth input and 3.5 mm/Bluetooth headphones are required.
+Suspend/resume is required, with separate laptop and main-PC acceptance. Hibernate
+has not been requested.
 
 VM tests run on the current development machine, up to 16 GB RAM.
 F: is now available for Aetheri. Use F:/Aetheri; protect existing Physim/NexaCloud

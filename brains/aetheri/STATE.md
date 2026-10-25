@@ -1,38 +1,39 @@
 # State
 
-25 October 2026 — foundations agreed, app lifecycle and hardware scope refined.
+25 October 2026 — suspend confirmed and architecture alternatives prepared.
 
 ## Completed
 
-- SecondBrain-style project memory, sources and English documentation maintained.
-- First two answer rounds incorporated; current choices are in DECISIONS.
-- C17/targeted Rust/adapters, existing development tools, glibc, retained technical
-  backends and MIT selected. Exact versions and OS architecture remain open.
-- Physim future NexaUI migration and NexaCloud Desktop target recorded.
-- Original shell/language, custom editor/plugins/tmux-style terminal, uncluttered
-  browser and content filtering recorded.
-- Component/file/process visibility and complete app-removal requirements drafted.
-- Laptop versus main-PC Intel/NVIDIA test targets distinguished.
-- F: readiness confirmed. Existing Physim/NexaCloud paths, processes and migrations protected.
+- SecondBrain-style memory and English documentation maintained.
+- Agreed foundations: C17, targeted Rust/adapters, existing development tools,
+  glibc, retained technical backends and MIT; exact integration versions still open.
+- Recorded original shell/language, custom editor/plugins/terminal sessions,
+  browser goals, Physim future NexaUI migration and NexaCloud Desktop target.
+- Component/file/process visibility and complete managed-state removal specified.
+- F:/Aetheri is our workspace; other projects' active migrations/processes protected.
+- Suspend/resume confirmed for laptop and later main-PC acceptance.
+- Prepared [architecture alternatives](knowledge/architecture-options.md), comparing
+  distribution-derived, controlled modular and deeper original userspace approaches,
+  with compositor, service/session, update, sandbox, inventory and plugin tradeoffs.
+- Recommendations remain proposals: modular original platform, wlroots-first
+  compositor evaluation, selected systemd/session foundation, versioned read-only
+  system deployments plus independent managed apps.
 
 ## Limits
 
-This is a planning repository. No packages installed, VM created, kernel built,
-app implemented, disk formatted or hardware accepted through this work.
-Current docs describe requirements/proposals, not working uninstall/security features.
+Planning documentation only. No new runtime libraries selected/installed, VM created,
+kernel built, app implemented, disk formatted or hardware accepted in this work.
+Research reads live upstream docs, not an audited dependency graph or benchmark.
 
 ## Publication
 
-Public repository: https://github.com/Lulus792/Aetheri.
-Owner/public visibility verified through GitHub's API and the visible repository.
-Initial planning snapshot 424752efc1bce040ddeeee1cd92c5768eb307f86 was pushed to main;
-remote branch SHA matched local HEAD. GitHub displays the README and MIT license.
-This is published planning documentation, not a bootable OS release.
+Public planning repository: https://github.com/Lulus792/Aetheri.
+The architecture discussion is explicitly a proposal; publishing it does not
+approve its implementation choices. Historical publication evidence is retained
+in the journal. No bootable OS release.
 
 ## Next
 
-Compare the remaining architecture choices. Explain suspend and security gates
-in ordinary language. Preserve the published planning snapshot and update the
-project memory as decisions are made.
-Collect only the concrete unresolved browser/session/hardware requirements needed
-for the next design. No new 32-question intake.
+Discuss the proposed architecture with the user. Record selected boundaries before
+pinning dependencies or running implementation spikes. Then define bounded acceptance
+for package recovery, compositor/NexaUI interaction, VM boot and physical sleep.

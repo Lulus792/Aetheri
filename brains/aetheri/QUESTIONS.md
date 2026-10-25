@@ -28,15 +28,17 @@ H1. Main PC CPU model, RAM and monitor connectors/dock; monitor refresh rates an
 whether mixed scaling must work simultaneously. No new hardware inspection implied
 by the user's broad four-core/eight-thread/RTX 2080 Ti description.
 
-H2. Does the first daily-use release need suspend/resume on both laptop and desktop?
-Suspend is low-power sleep with working state normally retained in RAM. Hibernate
-saves state to disk and is separate. Confirm microphone and special peripheral features later.
+H2. Suspend/resume is confirmed and no longer an open product choice. Select and
+validate sleep modes, lid/idle policy, locking and device recovery on each hardware
+profile. Hibernate remains separate. Confirm microphone/special peripheral features later.
 
 ## Architecture and security
 
-A1. Compare compositor, init/service supervision, package/install ownership model,
-browser embedding, plugin isolation and filesystem layout. Exact versions and
-large transitive dependencies need review within the accepted policy.
+A1. [Architecture comparison](knowledge/architecture-options.md) is prepared.
+Discuss the recommended overall B approach, wlroots-first compositor evaluation,
+selected systemd/session/sleep foundation and versioned base/app separation.
+These remain proposals. Exact versions, sandbox/update engines, browser embedding,
+plugin isolation and major transitive dependencies need follow-up review.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

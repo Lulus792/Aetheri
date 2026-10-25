@@ -1,13 +1,14 @@
 # Aetheri
 
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
-with its own desktop and applications.
+with its own desktop and applications, including required suspend/resume support.
 
 The project is in architecture and product planning. There is no bootable image,
 installer or working Aetheri application yet.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
+[Architecture options](brains/aetheri/knowledge/architecture-options.md) ·
 [Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
 
 ## Direction

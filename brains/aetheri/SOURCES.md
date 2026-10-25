@@ -103,3 +103,19 @@ components at their authoritative versioned source before adoption.
 - [Flatpak command reference](https://docs.flatpak.org/en/latest/flatpak-command-reference.html):
   distinction between package uninstall and app-data removal, reference only.
 - [MIT license](https://opensource.org/license/mit): user selected MIT; LICENSE added.
+
+## Architecture comparison — 25 October 2026
+
+- [Architecture options](knowledge/architecture-options.md) links the primary sources
+  read for this comparison: Wayland, wlroots/libweston, systemd/logind/sleep, s6,
+  RAUC/sysupdate, Flatpak portals, Linux restrictions/cgroups, SQLite and NVIDIA.
+- systemd-sysupdate's inspected live manual marks it experimental; no update engine
+  is selected automatically as a consequence of recommending systemd.
+- The systemd sleep documentation notes frozen user.slice during low-level hooks;
+  app preparation must use the supported phase/interfaces rather than waiting on
+  frozen user services.
+- SQLite atomic commit covers database transactions, not a combined arbitrary
+  filesystem/service/boot transaction. Our lifecycle state machine is original design.
+- systemd.io/SYSUPDATE was unavailable and a Chromium sandboxing path returned 404.
+  The reachable sysupdate manual and earlier CEF sandbox references were used;
+  no claims are based on the unavailable paths.

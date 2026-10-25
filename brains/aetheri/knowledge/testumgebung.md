@@ -39,7 +39,8 @@ No target disk is selected and the dedicated-device designation is not a disk-wi
 Required workflows: WLAN, Bluetooth, headphone audio, multiple monitors, DE/US input
 and scaling. Up to three 1080p/1440p/4K monitors are requested. Connection paths, refresh rates
 and mixed-scaling details remain open. Wired/Bluetooth keyboards and mice, and
-3.5 mm/Bluetooth headphones, are required. Suspend/resume priority needs confirmation.
+3.5 mm/Bluetooth headphones, are required. Suspend/resume is now required, with
+separate physical acceptance on each target profile. Hibernate remains unselected.
 
 ## Later main-PC target: user-reported
 
