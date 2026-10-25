@@ -23,13 +23,16 @@ Current docs describe requirements/proposals, not working uninstall/security fea
 
 ## Publication
 
-Public repository created: https://github.com/Lulus792/Aetheri.
-Owner and public visibility were verified through GitHub's API. The planning
-snapshot has not yet been pushed; record push success only after remote verification.
+Public repository: https://github.com/Lulus792/Aetheri.
+Owner/public visibility verified through GitHub's API and the visible repository.
+Initial planning snapshot 424752efc1bce040ddeeee1cd92c5768eb307f86 was pushed to main;
+remote branch SHA matched local HEAD. GitHub displays the README and MIT license.
+This is published planning documentation, not a bootable OS release.
 
 ## Next
 
-Validate and publish the planning snapshot, then compare the remaining architecture
-choices. Explain suspend and security gates in ordinary language.
+Compare the remaining architecture choices. Explain suspend and security gates
+in ordinary language. Preserve the published planning snapshot and update the
+project memory as decisions are made.
 Collect only the concrete unresolved browser/session/hardware requirements needed
 for the next design. No new 32-question intake.

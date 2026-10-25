@@ -17,11 +17,13 @@ main PC requires independent graphics and sleep testing.
 Cached GitHub authentication was verified against Lulus792 without displaying
 credentials. Browser fallback reached GitHub login; no credentials were entered.
 Public Lulus792/Aetheri was created and owner/visibility verified via GitHub's API.
-The planning snapshot still needs its initial push and remote verification.
+Initial planning snapshot 424752efc1bce040ddeeee1cd92c5768eb307f86 pushed to main;
+remote branch SHA matched. GitHub's visible repository shows Public, README and MIT.
 
 Document check passed: 26 files, 32 local Markdown links, valid six-field brain
 metadata/project root and eight unique remaining question groups. Added Git text
 attributes afterward to preserve LF for Markdown/JSON/metadata. No OS tests implied.
 
-Next: validate planning snapshot, publish to the already-requested public repository,
-then architecture comparison and concrete browser/shell/session/UI design.
+Next: architecture comparison and concrete browser/shell/session/UI design.
+The final validation includes the 27 tracked text/metadata files after adding
+Git attributes; no generated builds, VM images or files from other projects are tracked.
