@@ -20,10 +20,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   The initial SQL/XML management contracts and limits are accepted in
   brains/aetheri/knowledge/schema-and-api.md. Run tools/validate_contracts.py for
   isolated constraints; acceptance does not imply installed APIs.
-- Filesystem/ownership/enforcement recommendations are under discussion in
-  brains/aetheri/knowledge/filesystem-and-permissions.md. Ext4, LUKS2 and SELinux
-  are proposed integrations, not installed or approved new dependency families.
-  Do not create the proposed Linux tree on the Windows host or change host policy.
+- Filesystem/ownership/enforcement direction is accepted in
+  brains/aetheri/knowledge/filesystem-and-permissions.md, including ext4, LUKS2 and
+  SELinux plus namespaces as foundations. Exact releases, policy and runtime
+  acceptance are pending. Do not create the Linux tree or change policy on Windows.
+- Launch/document/revocation/removal protocol is under discussion in
+  brains/aetheri/knowledge/launch-access-and-removal.md. The current SQL/XML lacks
+  its grant, edit and dispatch/gate extensions; do not claim those already exist.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

@@ -3,8 +3,10 @@
 25 October 2026. Initial schema/API contract accepted by the user following the
 [identity/lifecycle model](identity-and-lifecycle.md). The SQL and XML are executable
 contract artefacts, not installed services or production catalogues.
-The next [filesystem/permissions proposal](filesystem-and-permissions.md) develops
-storage/enforcement boundaries and introduces new recommendations for discussion.
+The [filesystem/permissions direction](filesystem-and-permissions.md) is now
+accepted. The next [launch/access protocol proposal](launch-access-and-removal.md)
+specifies workflows and identifies additional grant/edit/gate records and methods.
+These additions are not implemented by the existing SQL/XML nucleus.
 
 This is the first management nucleus; device settings, document grants, credential storage,
 plugins and boot deployment have not acquired complete APIs through this document.

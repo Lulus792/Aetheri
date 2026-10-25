@@ -1,8 +1,11 @@
 # Filesystem, storage ownership and permission boundaries
 
-25 October 2026. Discussion proposal following user acceptance of the
-[schema/API contract](schema-and-api.md). Paths below describe a future Aetheri
-installation, not directories to create on the Windows development host.
+25 October 2026. Filesystem/ownership/enforcement direction accepted by the user,
+including ext4/LUKS2 and SELinux plus namespaces as starting foundations.
+The [launch/access protocol proposal](launch-access-and-removal.md) develops the
+next concrete handshake and remains for discussion.
+Paths below describe a future Aetheri installation, not directories to create
+on the Windows development host.
 No partition, mount, policy, encryption key or permission is changed by this document.
 
 ## Recommendation and alternatives
@@ -12,8 +15,8 @@ content-addressed app store, exact private-data roots, and separate user documen
 Present readable ownership views in Files/Settings; IDs remain available in details.
 
 For the first disk implementation, recommend ext4 for writable Linux storage and
-LUKS2 encryption for personal-use installations. This is a new recommendation,
-not a selected release or a measured performance result. A conventional GPT/UEFI
+LUKS2 encryption for personal-use installations. These are accepted starting
+foundations, not selected releases or measured performance results. A conventional GPT/UEFI
 layout with an EFI System Partition and encrypted Linux storage is sufficient as
 a starting model; sizes, chosen disk, unlock/recovery and boot-image format remain
 a separate reviewed installation plan. The EFI partition is outside this encrypted
@@ -211,9 +214,9 @@ two processes running as the same Unix user.
 | AppArmor profiles + namespaces | Viable alternative; policy/path/mount and communication rules need a full design |
 | SELinux type enforcement + allocated app/account categories + namespaces | Recommended candidate for same-UID broker protection and owned-data separation; more policy/build/recovery work |
 
-SELinux is a new proposed dependency family, not installed or already accepted.
-Its kernel enforcement and maintained userspace tools are foundations; Aetheri
-owns the product policy. Do not build a new security engine or claim generic
+SELinux is accepted as the mandatory-policy foundation; no policy/tools are
+installed or validated here. Its kernel enforcement and maintained userspace tools
+are foundations; Aetheri owns the product policy. Do not build a new security engine or claim generic
 reference policy already implements our boundaries.
 
 Use distinct policy domains for system authority, user broker, vault, desktop
@@ -448,5 +451,6 @@ A later isolated Linux prototype must cover:
 
 Inspected 25 October 2026. The direct GitHub type-enforcement page initially returned
 no useful body; the indexed official project source supplied the relevant text.
-The path layout, ownership protocol and SELinux recommendation are original Aetheri
-design proposals. They are not user approval, an upstream promise or a security test.
+The path layout, ownership direction and SELinux selection are original Aetheri
+design decisions accepted by the user. They are not an upstream promise,
+implemented security policy or executed security test.

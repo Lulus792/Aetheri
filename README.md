@@ -12,7 +12,8 @@ installer or working Aetheri application yet.
 [Module and interface plan](brains/aetheri/knowledge/modules-and-interfaces.md) ·
 [Identity and lifecycle](brains/aetheri/knowledge/identity-and-lifecycle.md) ·
 [Schema and API](brains/aetheri/knowledge/schema-and-api.md) ·
-[Storage and permissions proposal](brains/aetheri/knowledge/filesystem-and-permissions.md) ·
+[Storage and permissions](brains/aetheri/knowledge/filesystem-and-permissions.md) ·
+[Launch and access protocol proposal](brains/aetheri/knowledge/launch-access-and-removal.md) ·
 [Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
 
 ## Direction

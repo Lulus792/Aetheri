@@ -200,3 +200,25 @@ inspected primary sources and distinguishes them from original Aetheri policy.
 
 Current work validates documentation only. No Linux confinement, deletion,
 permission, label or power-loss checks were executed for Aetheri this turn.
+
+## Launch, file access, revocation and removal — 25 October 2026
+
+The user accepted filesystem/ownership/enforcement recommendations, including
+ext4/LUKS2/SELinux foundations, and requested the concrete combined flow.
+The [protocol proposal](knowledge/launch-access-and-removal.md) links the primary
+references inspected for this discussion.
+
+- systemd service API: transient units/jobs and identity observations; a returned
+  job path is not a target-app readiness/launch completion proof.
+- systemd kill manual: control-group stopping and automatic SIGKILL after timeout.
+  Graceful interactive removal needs an explicit policy preventing silent escalation.
+- Kernel cgroup v2: populated observes the recursive process subtree; external
+  delegated descriptors still need their own holder accounting.
+- Linux open/unlink/openat2/fsync: descriptor lifetime, bounded resolution and
+  required directory durability, not universal revocation or filesystem/SQL atomicity.
+- D-Bus credentials and XDG FileChooser: authenticated observations versus user
+  selection; URI strings need adaptation into checked local resource grants.
+
+These sources support primitives. The reservation/ready/dispatch protocol, native
+grant/edit model, limitations with direct writers and proposed record/API extensions
+are original Aetheri recommendations. No live Linux/security/protocol tests ran.

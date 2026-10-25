@@ -153,3 +153,18 @@ recommends a conventional Linux technical hierarchy, managed code/data roots,
 independent documents, explicit grants and mandatory same-UID separation.
 Ext4/LUKS2 and SELinux plus namespaces are new recommendations for discussion,
 not inferred dependency approval. No on-disk installation or host policy change.
+
+## Storage approval and launch/access protocol — 25 October 2026
+
+The user accepted the filesystem, storage ownership and permission recommendations.
+This includes the proposed Linux-compatible layout, exact private roots versus
+independent documents, ext4/LUKS2 and SELinux plus namespaces as foundations.
+This supersedes their earlier pending status, not the remaining release/policy/
+boot/integration and runtime acceptance gates. No install or host policy change.
+
+The new [protocol proposal](knowledge/launch-access-and-removal.md) describes
+root/data/grant admission and drain, native brokered document access, explicit direct
+compatibility grants, controlled save/revocation and graceful removal.
+These new detailed protocol choices remain recommendations.
+The original 18 table designs and 14 methods do not yet implement the identified
+grant/edit/gate/dispatch extensions; no silent schema/API expansion is recorded.

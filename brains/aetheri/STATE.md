@@ -1,47 +1,47 @@
 # State
 
-25 October 2026 — initial schema/API accepted; filesystem/permissions proposal prepared.
+25 October 2026 — storage/enforcement accepted; launch/access/removal protocol proposed.
 
 ## Confirmed
 
 Linux x86-64/UEFI, C17/targeted Rust/adapters, glibc, MIT, modular B,
 wlroots, selected systemd/session integration, SQLite, versioned base and managed
 apps. Suspend/resume required with independent Intel/NVIDIA acceptance.
-Module, identity/lifecycle and initial [schema/API](knowledge/schema-and-api.md)
-contracts are accepted, including the SQL/XML, failure semantics and initial budgets.
+Module, identity/lifecycle, initial schema/API and filesystem/ownership directions
+are accepted. Ext4, LUKS2 and SELinux plus namespaces are accepted starting
+foundations; exact releases, tools, policy and runtime acceptance remain pending.
 
-F: is reported completely clear. Last capacity observation: approximately 232.4 GiB
-free. Work stays in F:/Aetheri; no whole-volume or unrelated-path changes.
+Work stays in F:/Aetheri. No unrelated project, drive or migration is changed.
 
 ## Prepared
 
-The [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md)
-defines a Linux-compatible host tree, readable ownership views, immutable store,
-exact StorageRef roots, private app views and independent documents. It compares
-enforcement options and recommends SELinux plus namespaces for same-UID boundaries,
-with ext4 and LUKS2 as proposed storage foundations.
+[Launch/access/removal protocol](knowledge/launch-access-and-removal.md) proposes
+durable root/data/grant gates, reservation/ready/dispatch/drain handshakes, native
+brokered versus direct access, grant lifetimes, coordinated local saves and
+truthful revocation/removal. Interactive stop does not silently escalate to kill.
 
-These new filesystem/security recommendations remain for user discussion.
-No new dependency is adopted, downloaded or installed by this planning work.
+The proposal identifies grant/resource/access/edit and dispatch/gate persistence
+and typed API additions absent from the current SQL/XML nucleus. Existing source
+contracts are unchanged; no migration or service has been implemented.
 
 ## Evidence and limits
 
-This turn: researched primary references and validated project documentation.
-No Linux permissions, labels, confinement, encryption, mounts or purge tests ran.
+This turn researches primary references and validates documentation only.
+No app, grant, stream, policy, mount, encryption, stop or deletion was executed.
 
-Previous SQL/XML validation: Python 3.12.14 / SQLite 3.53.1, 374 assertions, exit 0,
-including selected constraints and structural checks for 14 API methods.
-That result is historical; it is not a new security/storage test or runtime proof.
-No production database, OS service, VM/kernel or hardware acceptance exists.
+Historical SQL/XML check: Python 3.12.14 / SQLite 3.53.1, 374 assertions, exit 0.
+It covers selected core constraints and structural checks for 14 methods, not the
+new protocol or Linux security. No production catalogue, VM/kernel, OS service
+or hardware acceptance exists.
 
-Before implementation acceptance, specify and test canonical encodings, registered
-volume/root identity, ownership headers, authenticated app/principal mapping,
-mandatory policy/category allocation, IPC mediation and cross-authority recovery.
-Browser/boot/update integration, shell syntax and UI alternatives remain open.
+Before implementation, freeze the added record/wire formats, canonical encodings,
+registered-root identity, sender/category/IPC mapping, stream/commit ordering,
+supervisor/launcher setup and crash recovery. Browser integration, boot/update,
+shell syntax, terminal-session lifetime and UI alternatives remain open.
 
 ## Publication and next step
 
 Public repository: https://github.com/Lulus792/Aetheri.
-Discuss filesystem ownership and enforcement recommendations, then define the
-launch, grant, revocation and removal protocol against concrete Linux primitives.
-Do not reopen settled architecture or treat a document as operating security.
+Discuss protocol recommendations, then define the minimal grant/dispatch schema
+and API additions and a bounded Linux prototype acceptance matrix.
+Keep accepted architecture; planning is not operating security or performance evidence.

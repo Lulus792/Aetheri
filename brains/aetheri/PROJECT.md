@@ -56,8 +56,8 @@ Selected architecture: controlled modular system (B), an original Wayland
 compositor based on wlroots, selected systemd/session/sleep components and SQLite
 for component metadata. The system base uses versioned read-only deployments;
 apps/tools are separately managed with controlled private state and shared runtimes.
-This selects responsibility boundaries, not exact versions, filesystem layout,
-boot/update engine or browser integration.
+This selects responsibility boundaries; exact releases, boot/update engine,
+on-disk deployment format and browser integration still need their contracts.
 
 The accepted [module/interface plan](knowledge/modules-and-interfaces.md) separates
 system installation authority, per-user mediation, compositor, desktop UI and apps,
@@ -67,9 +67,12 @@ including distinct installation/generation/data/run/operation lifetimes.
 The initial [schema/API contract](knowledge/schema-and-api.md) is now accepted:
 SQL constraints, D-Bus signatures, failure semantics and starting budgets.
 Isolated validation exists; no runtime service is implemented.
-The [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md)
-develops paths, exact storage ownership, document grants and same-UID enforcement.
-Its ext4/LUKS2/SELinux recommendations remain for discussion.
+The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
+is accepted, including managed paths/ownership, independent documents and
+ext4/LUKS2/SELinux plus namespaces as starting foundations.
+The [launch/access protocol proposal](knowledge/launch-access-and-removal.md)
+now defines admission, native versus direct grants, revocation, save and removal
+handshakes. New protocol/schema/API extensions remain for discussion.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 

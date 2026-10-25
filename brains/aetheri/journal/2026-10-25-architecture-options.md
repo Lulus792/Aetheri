@@ -117,3 +117,26 @@ Documentation validation passed with exit 0: 38 UTF-8 files without BOM/NUL,
 88 local Markdown links, balanced fences, six-field brain metadata/project root
 and accepted-schema/proposed-storage status markers. Git diff checks passed.
 The SQL/XML runtime fixtures are unchanged and were not rerun as security tests.
+
+## Storage approval and concrete lifecycle protocol
+
+The user accepted filesystem/ownership/permission recommendations, including
+ext4, LUKS2 and SELinux plus namespaces as foundations. Recorded acceptance without
+claiming selected releases, installed policy or runtime acceptance.
+
+Prepared one linked protocol document for launch, selection/access, native save,
+revocation and removal. It defines root/data/grant fences and durable dispatch/
+drain correlation, contrasts brokered native access with direct handles, scopes
+saved grants to the installation/data lifetime and preserves uncertain outcomes.
+Graceful stop does not authorize silent timeout escalation to force-kill.
+
+Identified missing grant/edit/gate/dispatch persistence and typed interface additions
+rather than claiming the core SQL/XML already supports them. SQL/XML and validator
+are unchanged. New protocol details remain for discussion.
+Read systemd, cgroup, Linux descriptor/path/flush, D-Bus and portal primary sources.
+No services, policies, encryption, mounts, file access/revocation or purge executed.
+
+Documentation checks passed, exit 0: 39 UTF-8 files without BOM/NUL, 98 local
+Markdown links, balanced fences and valid six-field brain metadata/project root.
+Accepted-storage/proposed-protocol markers and unchanged SQL/XML/tool sources
+were checked. Git diff checks passed. No new runtime/security test result.

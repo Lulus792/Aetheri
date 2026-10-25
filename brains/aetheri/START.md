@@ -10,7 +10,8 @@ Updated 25 October 2026 after approval of B, wlroots, systemd and SQLite.
    then [module/interfaces](knowledge/modules-and-interfaces.md),
    [identity/lifecycle](knowledge/identity-and-lifecycle.md),
    [schema/API](knowledge/schema-and-api.md),
-   [storage/permissions proposal](knowledge/filesystem-and-permissions.md) and
+   [storage/permissions](knowledge/filesystem-and-permissions.md),
+   [launch/access protocol proposal](knowledge/launch-access-and-removal.md) and
    [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),

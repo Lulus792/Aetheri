@@ -37,17 +37,20 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and
 versioned base/managed-app separation. Do not reopen these settled choices.
 Remaining work: exact versions/build options and compatibility, sandbox/update/boot
-mechanisms, browser embedding, filesystem implementation and plugin interfaces.
+integration, browser embedding, filesystem implementation and plugin interfaces.
 The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
 The [module/interface plan](knowledge/modules-and-interfaces.md) is now accepted
 in direction. The initial concrete management contract is accepted, not installed.
 The [identity/lifecycle model](knowledge/identity-and-lifecycle.md) is accepted.
 The [schema/API contract](knowledge/schema-and-api.md), including SQL/XML and
 starting error/deadline/retention rules, is now accepted.
-Discuss the [filesystem/permissions proposal](knowledge/filesystem-and-permissions.md):
-technical paths versus readable UI, private-data roots and documents, narrow
-grants and SELinux as the recommended mandatory enforcement candidate.
-Ext4/LUKS2 and SELinux are new recommendations, not assumed dependency approval.
+The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
+is accepted, including ext4/LUKS2 and SELinux plus namespaces.
+Discuss the [launch/access protocol](knowledge/launch-access-and-removal.md):
+durable gates/reservations, native versus direct access, saved grants, coordinated
+save conflicts, truthful revocation and graceful/explicit-force removal.
+The existing management nucleus needs the proposed grant/edit/dispatch extensions;
+do not treat those as already present or silently change accepted method meanings.
 Before implementation, freeze artifact/intent canonical encodings with test vectors,
 authenticated peer/principal mapping, filesystem identity and cross-authority
 admission/recovery. Isolated SQL checks do not settle these integration gates.
@@ -56,7 +59,7 @@ A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot
 checks early software. Secure Boot may be included, but no keys/settings are changed.
 Design separate VM/test-data and personal-data acceptance.
-The storage proposal recommends encrypted personal-use storage; boot/unlock,
+Encrypted personal-use storage is accepted in direction; boot/unlock,
 recovery keys, policy maintenance, label/category allocation, exact ownership-header
 bytes and registered-volume identity still require concrete implementation contracts.
 

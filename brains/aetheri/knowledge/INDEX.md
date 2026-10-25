@@ -1,8 +1,11 @@
 # Knowledge and proposals
 
+- [Launch, document access, revocation and removal](launch-access-and-removal.md):
+  proposed end-to-end handshakes, fences, native/direct grants, saving and crash cases.
+
 - [Filesystem, storage ownership and permission boundaries](filesystem-and-permissions.md):
-  proposed Linux hierarchy, private roots versus documents, same-UID confinement,
-  grants, deletion/recovery and ext4/LUKS2/SELinux recommendations.
+  accepted Linux hierarchy, private roots versus documents, same-UID confinement,
+  grants, deletion/recovery and ext4/LUKS2/SELinux foundations.
 
 - [SQLite schema and management API](schema-and-api.md): accepted initial
   contracts, two database owners, typed requests, failure semantics and validation.

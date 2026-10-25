@@ -117,12 +117,14 @@ in backups/remote storage when only the live installation was purged.
 9. Unmanaged content and remote/backup copies remain visibly outside the result.
 10. Test storage reclaimed versus retained recovery/shared storage without double counting.
 
-## Proposed storage enforcement
+## Accepted storage direction and proposed protocol
 
-The [filesystem/permissions proposal](filesystem-and-permissions.md) maps these
-requirements to immutable code, exact private storage roots, protected ownership
-headers, external document grants and mandatory same-UID isolation.
-The SELinux/ext4/LUKS2 recommendations are new proposals, not tested integrations.
+The accepted [filesystem/permissions direction](filesystem-and-permissions.md) maps
+these requirements to immutable code, exact private storage roots, protected
+ownership headers, external document grants and mandatory same-UID isolation.
+SELinux/ext4/LUKS2 are accepted foundations, not tested integrations.
+The [launch/access/removal proposal](launch-access-and-removal.md) supplies the
+next concrete handshake, including direct-handle holders and coordinated saving.
 Removing a directory name alone cannot establish complete managed-state removal.
 
 ## Relation to other systems
