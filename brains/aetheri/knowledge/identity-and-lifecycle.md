@@ -2,8 +2,9 @@
 
 25 October 2026. Status: identity/lifecycle model accepted by the user.
 B/wlroots/systemd/SQLite and the module/interface split remain approved.
-The subsequent [schema/API draft](schema-and-api.md) proposes concrete encodings,
-constraints and limits; acceptance of this model is not runtime implementation.
+The subsequent [schema/API contract](schema-and-api.md) is accepted, including
+initial constraints and limits; canonical formats and runtime integration still
+require their implementation evidence.
 
 ## Principles
 

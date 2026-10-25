@@ -1,7 +1,11 @@
 # Knowledge and proposals
 
+- [Minimal contract extension and first Linux prototype](first-linux-prototype.md):
+  proposed five-table/schema-v2 change, nine new methods, bounded native-read scope,
+  carrier/resources and explicit acceptance gates.
+
 - [Launch, document access, revocation and removal](launch-access-and-removal.md):
-  proposed end-to-end handshakes, fences, native/direct grants, saving and crash cases.
+  accepted end-to-end handshakes, fences, native/direct grants, saving and crash cases.
 
 - [Filesystem, storage ownership and permission boundaries](filesystem-and-permissions.md):
   accepted Linux hierarchy, private roots versus documents, same-UID confinement,

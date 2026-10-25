@@ -168,3 +168,18 @@ compatibility grants, controlled save/revocation and graceful removal.
 These new detailed protocol choices remain recommendations.
 The original 18 table designs and 14 methods do not yet implement the identified
 grant/edit/gate/dispatch extensions; no silent schema/API expansion is recorded.
+
+## Lifecycle protocol approval and P0 proposal — 26 October 2026
+
+The user accepted the combined launch/file-grant/revocation/removal recommendations.
+Durable fences/reservations, native brokered versus direct access, scoped grants,
+controlled saves and honest closure/recovery are accepted in direction.
+Interactive timeout does not automatically authorize forced termination.
+This supersedes pending protocol status, not the unimplemented SQL/API extensions.
+
+The [minimal extension/P0 proposal](knowledge/first-linux-prototype.md) recommends
+five new table designs, schema v2 and nine additive public/private methods.
+It limits the first implementation to confined launch, small native reads,
+revocation and exact fixture removal; edits/bulk/direct/persistent grants follow.
+A QEMU/Fedora Server 44 headless development carrier and initial VM resources are
+new proposals. They do not select the final Aetheri base or install dependencies.

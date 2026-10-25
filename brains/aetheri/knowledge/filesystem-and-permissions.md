@@ -2,8 +2,9 @@
 
 25 October 2026. Filesystem/ownership/enforcement direction accepted by the user,
 including ext4/LUKS2 and SELinux plus namespaces as starting foundations.
-The [launch/access protocol proposal](launch-access-and-removal.md) develops the
-next concrete handshake and remains for discussion.
+The [launch/access protocol](launch-access-and-removal.md) is now accepted.
+The next [P0 proposal](first-linux-prototype.md) narrows the initial implementation
+and remains for discussion.
 Paths below describe a future Aetheri installation, not directories to create
 on the Windows development host.
 No partition, mount, policy, encryption key or permission is changed by this document.

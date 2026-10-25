@@ -222,3 +222,27 @@ references inspected for this discussion.
 These sources support primitives. The reservation/ready/dispatch protocol, native
 grant/edit model, limitations with direct writers and proposed record/API extensions
 are original Aetheri recommendations. No live Linux/security/protocol tests ran.
+
+## Minimal extension and first prototype — 26 October 2026
+
+The user accepted the lifecycle protocol and requested minimal DB/API additions
+and the first Linux prototype's scope.
+
+- [SQLite ALTER TABLE](https://www.sqlite.org/lang_altertable.html):
+  supported schema-change procedure for constraint/table rebuilds.
+- [SQLite PRAGMAs](https://www.sqlite.org/pragma.html):
+  user_version is application-managed, independent from SQLite's own schema cookie.
+- [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html):
+  typed interfaces and capability/version handling.
+- [QEMU introduction](https://www.qemu.org/docs/master/system/introduction.html):
+  WHPX and TCG execution modes.
+- [Fedora Server download](https://fedoraproject.org/server/download/):
+  Fedora Server 44 x86_64 media and verification workflow currently offered.
+  This is a proposed development carrier, not a downloaded/verified image or final base.
+- Fedora Quick Docs SELinux getting-started fetch returned an access-denied
+  challenge; no guest-enforcement conclusion relies on that page.
+- Read-only PowerShell observation: QEMU tools absent from PATH, WSL Alpine-Dev,
+  F: approximately 232.4 GiB free. No WHPX capability or tool-installation claim.
+
+The [P0 contract/scope proposal](knowledge/first-linux-prototype.md) is original
+Aetheri design. New migration, API, VM and runtime tests have not been executed.

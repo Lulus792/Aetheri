@@ -1,10 +1,10 @@
 # Launch, document access, revocation and removal protocol
 
-25 October 2026. Discussion proposal. The user accepted the
-[filesystem/ownership/enforcement direction](filesystem-and-permissions.md),
-including ext4, LUKS2 and SELinux plus namespaces as starting foundations.
-This adds protocol recommendations; no services, policies or new SQL tables exist
-through this document. The accepted [management core](schema-and-api.md) remains
+Drafted 25 October 2026; protocol accepted by the user on 26 October 2026.
+The [filesystem/ownership/enforcement direction](filesystem-and-permissions.md),
+including ext4, LUKS2 and SELinux plus namespaces, remains accepted.
+The [P0 proposal](first-linux-prototype.md) now defines minimal implementation scope.
+No services, policies or new SQL tables exist through this document. The accepted [management core](schema-and-api.md) remains
 the starting point, not a claim that it already implements document grants.
 
 ## Responsibilities and invariants
@@ -380,7 +380,10 @@ Proposed logical records for the next reviewed schema change:
 | launch_dispatches | Root reservation + recipient account/authority, unit/boot/context, dispatch intent and observed outcome |
 | document_edits | Grant/resource, owned temporary storage, expected revision, commit/flush/recovery state and result correlation |
 
-These are responsibilities to persist, not six new daemons. Some may share
+These are responsibilities to persist, not six new daemons.
+The subsequent [P0 proposal](first-linux-prototype.md) starts with five table designs;
+document_edits and actual write/commit handling are deferred until the native-read
+lifecycle and isolation proof passes. Some may share
 existing journal structures if their full identity/state can be represented
 without hidden volatile obligations. Exact DDL, enum additions, migration and
 limits remain a follow-up contract change; existing SQL is unchanged here.
@@ -446,5 +449,6 @@ These are proposed tests, not executed results:
   URI selection requiring an Aetheri adapter.
 
 Inspected 25 October 2026. Aetheri's fences, grant model, dispatch handshake,
-native-save restrictions and UI rules are original recommendations. Research and
-document checks are not live launch/grant/revocation/removal or Linux security tests.
+native-save restrictions and UI rules are original protocol decisions accepted
+on 26 October 2026. Research/document checks are not live launch, grant,
+revocation, removal or Linux security tests.

@@ -93,3 +93,21 @@ The user subsequently reports F: completely clear. A read-only capacity query
 showed approximately 232.4 GiB free. This supersedes earlier capacity snapshots
 for planning only. Continue to use F:/Aetheri and do not format/repartition the
 volume or operate on unrelated directories. No cleanup was performed here.
+
+## P0 proposal and refreshed observation — 26 October 2026
+
+Read-only host query: qemu-system-x86_64 and qemu-img not found on PATH;
+WSL lists Alpine-Dev; F: approximately 232.4 GiB free. QEMU may exist elsewhere;
+WHPX enablement/availability was not inspected. No tool/distro/VM installed.
+
+The [P0 proposal](first-linux-prototype.md) recommends a dedicated x86-64 UEFI
+QEMU VM: initially 2 vCPUs, 8 GiB RAM and 48 GiB sparse capacity, within the
+16 GiB RAM ceiling. Fedora Server 44 is a proposed glibc/systemd/SELinux development
+carrier, not Aetheri's final base. Pin/verify its image and actually prove enforcing
+policy inside the VM. Shared WSL remains unchanged.
+
+No personal data, raw hardware disk or writable host-folder sharing in this fixture
+environment. Sparse maximum capacity is not actual usage; measure growth.
+Use existing ignored vm/download/build locations, with native WHPX verification
+or explicitly recorded TCG functional execution. No native-performance conclusion
+follows from TCG timings.

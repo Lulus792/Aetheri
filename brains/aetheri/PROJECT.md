@@ -70,9 +70,11 @@ Isolated validation exists; no runtime service is implemented.
 The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
 is accepted, including managed paths/ownership, independent documents and
 ext4/LUKS2/SELinux plus namespaces as starting foundations.
-The [launch/access protocol proposal](knowledge/launch-access-and-removal.md)
-now defines admission, native versus direct grants, revocation, save and removal
-handshakes. New protocol/schema/API extensions remain for discussion.
+The accepted [launch/access protocol](knowledge/launch-access-and-removal.md)
+defines admission, native versus direct grants, revocation, save and removal.
+The [P0 proposal](knowledge/first-linux-prototype.md) narrows the first implementation
+to real confined launch, small native reads, revocation and fixture removal.
+Its schema-v2/API additions and Fedora/QEMU test-carrier scope remain proposals.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 

@@ -13,7 +13,8 @@ installer or working Aetheri application yet.
 [Identity and lifecycle](brains/aetheri/knowledge/identity-and-lifecycle.md) ·
 [Schema and API](brains/aetheri/knowledge/schema-and-api.md) ·
 [Storage and permissions](brains/aetheri/knowledge/filesystem-and-permissions.md) ·
-[Launch and access protocol proposal](brains/aetheri/knowledge/launch-access-and-removal.md) ·
+[Launch and access protocol](brains/aetheri/knowledge/launch-access-and-removal.md) ·
+[First Linux prototype proposal](brains/aetheri/knowledge/first-linux-prototype.md) ·
 [Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
 
 ## Direction

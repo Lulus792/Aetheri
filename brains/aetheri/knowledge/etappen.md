@@ -25,3 +25,16 @@ have a concrete purpose. Planning remains revisable after practical evidence.
 Packaging and complete removal are architecture-level requirements from the start.
 Exercise ownership/purge cases before app distribution, not only at final cleanup.
 F:/Aetheri is the project workspace; other projects' active outputs/migrations remain protected.
+
+## Proposed first implementation slice — 26 October 2026
+
+The user accepted the lifecycle protocol. The concrete
+[P0 proposal](first-linux-prototype.md) precedes the original-image boot milestone:
+versioned grant/dispatch contracts, then a headless enforcing Linux test carrier,
+then actual confined launch/read/revoke/removal and race/recovery evidence.
+
+P0 uses a maintained development carrier to test Aetheri's own services. It does
+not claim an original bootable image, finished desktop or complete document system.
+Five new table designs and nine method roles are proposed; document edits, bulk
+streams, direct/project/saved grants and UI follow. This sequence is a proposal,
+with completion defined by all P0 acceptance gates rather than a date promise.

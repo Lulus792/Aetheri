@@ -46,11 +46,12 @@ The [schema/API contract](knowledge/schema-and-api.md), including SQL/XML and
 starting error/deadline/retention rules, is now accepted.
 The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
 is accepted, including ext4/LUKS2 and SELinux plus namespaces.
-Discuss the [launch/access protocol](knowledge/launch-access-and-removal.md):
-durable gates/reservations, native versus direct access, saved grants, coordinated
-save conflicts, truthful revocation and graceful/explicit-force removal.
-The existing management nucleus needs the proposed grant/edit/dispatch extensions;
-do not treat those as already present or silently change accepted method meanings.
+The [launch/access protocol](knowledge/launch-access-and-removal.md) is accepted.
+Discuss the [minimal extension/P0 proposal](knowledge/first-linux-prototype.md):
+five new table designs, additive native-read/revoke/runtime interfaces, schema-v2
+migration and a headless enforcing Linux test carrier. Saved/direct/write/bulk
+document access remains in the accepted longer-term protocol, outside this first slice.
+The existing SQL/XML nucleus does not yet contain these proposed additions.
 Before implementation, freeze artifact/intent canonical encodings with test vectors,
 authenticated peer/principal mapping, filesystem identity and cross-authority
 admission/recovery. Isolated SQL checks do not settle these integration gates.
