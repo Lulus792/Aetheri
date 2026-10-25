@@ -1,0 +1,25 @@
+# Local machine notes and credentials
+/local/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Generated builds, source downloads and virtual machines
+/build/
+/out/
+/downloads/
+/vm/
+*.iso
+*.qcow2
+*.vhd
+*.vhdx
+*.vmdk
+*.raw
+
+# Editor and interpreter caches
+.vs/
+.idea/
+__pycache__/
+*.pyc

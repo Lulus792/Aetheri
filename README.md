@@ -1,0 +1,43 @@
+# Aetheri
+
+Aetheri is a planned Linux-based desktop operating system for personal daily use,
+with its own desktop and applications.
+
+The project is in architecture and product planning. There is no bootable image,
+installer or working Aetheri application yet.
+
+[Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
+[Decisions](brains/aetheri/DECISIONS.md) ·
+[Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
+
+## Direction
+
+The first useful system should support ordinary web browsing, an original
+terminal/editor with document viewing and integrated pane/session management,
+Physim, and up to three monitors. The desktop should feel calm and compact:
+dark themes, glass, restrained animation and strong keyboard support.
+Normal operation must work offline without a cloud account.
+
+Original code, clear structure and efficient operation are priorities. The system
+will explain component/file/process ownership and offer complete removal of an
+app's managed state, not just its executable. A custom browser should avoid feeds,
+promotions and sponsored clutter, with content filtering under user control.
+
+The agreed starting point is C17, targeted Rust and small adapters where justified,
+glibc and selected maintained technical backends. NexaUI is the preferred toolkit
+candidate; Physim should migrate to it when ready. Exact versions and architecture
+remain to be validated.
+
+The laptop is the first hardware test target. A later main-PC target has four CPU
+cores, eight threads and an RTX 2080 Ti; graphics support needs separate acceptance.
+
+## Project memory
+
+The project memory follows [SecondBrain](https://github.com/Lulus792/SecondBrain).
+Open the `brains` workspace and select `aetheri`, or read
+[START.md](brains/aetheri/START.md).
+
+## License
+
+Original Aetheri code and documentation use the [MIT license](LICENSE).
+External components retain their own licenses.
