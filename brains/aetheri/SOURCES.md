@@ -126,3 +126,16 @@ The user approved the architecture recommendations and explicitly selected B,
 wlroots, systemd and SQLite. This is the authority for the selected direction;
 upstream documentation supplies technical references, not user authorization.
 Exact releases and implementation acceptance remain unclaimed.
+
+## Module and interface planning — 25 October 2026
+
+The new [module plan](knowledge/modules-and-interfaces.md) includes primary sources
+read for D-Bus/sd-bus, peer/process credentials, systemd transient operations and
+logind, portal file selection, SQLite atomic/WAL behavior, wlroots session lock,
+Linux file descriptors and local sockets. These justify available primitives,
+not the correctness of the proposed Aetheri integration.
+
+In particular, FileChooser returns selected URIs; a native-handle Aetheri SDK needs
+an adapter rather than an invented claim about standard portal responses. SQLite
+transactions do not encompass arbitrary filesystem/service/boot changes, and a
+path/grant metadata change does not automatically revoke an already-open descriptor.

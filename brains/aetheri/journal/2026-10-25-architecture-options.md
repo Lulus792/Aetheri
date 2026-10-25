@@ -30,3 +30,19 @@ and releases remain open. No dependencies installed or code implemented.
 Approval-update validation passed: 29 UTF-8 files, 41 local Markdown links,
 valid brain metadata/root, balanced code fences and consistent selected component
 names in the current entry documents. Git diff --check passed; no runtime tests.
+
+## Module and interface discussion
+
+Prepared a single consolidated module/interface draft rather than stub code trees
+or a separate daemon per logical feature. Covered trusted owners, process lifetimes,
+private versus machine metadata, typed control versus bulk/display transport,
+operation revisions/idempotency, crash recovery and representative user workflows.
+
+Read API/database skill knowledge and official D-Bus/systemd/portal/SQLite/wlroots/
+Linux descriptor references. No code, schema, dependency or hardware operation.
+New detailed recommendations remain open for discussion; approved core architecture
+is not reopened. Existing projects and migrations remain untouched.
+
+Module-plan document checks passed: 30 UTF-8 files without BOM/NUL, 50 local
+Markdown links, balanced code fences and valid brain metadata/project root.
+Git diff --check passed. No runtime/API/security tests are implied by this check.

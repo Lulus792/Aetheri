@@ -39,6 +39,9 @@ versioned base/managed-app separation. Do not reopen these settled choices.
 Remaining work: exact versions/build options and compatibility, sandbox/update/boot
 mechanisms, browser embedding, filesystem layout and plugin interfaces.
 The [comparison](knowledge/architecture-options.md) preserves rationale and alternatives.
+The [module/interface plan](knowledge/modules-and-interfaces.md) now specifies proposed
+owners, trust/process boundaries, transport choices and operation semantics.
+Discuss that finer split before treating its working names/APIs as selected.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

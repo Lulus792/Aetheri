@@ -20,6 +20,9 @@ Offer two explicit actions:
 The exact labels/defaults are a later UI choice. Do not silently preserve an
 AppData-like directory after claiming complete removal.
 
+The [module/interface plan](modules-and-interfaces.md) proposes authority scopes,
+operation identity/recovery and user/system metadata ownership for these requirements.
+
 ## Ownership model to design
 
 A manifest of installed files is necessary but not sufficient: it cannot observe

@@ -98,3 +98,13 @@ implement and test filesystem/service/database recovery across transaction bound
 Exact releases, sandbox/update/boot implementations, browser engine, filesystem,
 plugin protocol and shell-language syntax are not implicitly fixed. Approval
 selects architecture, not evidence of working software or measured performance.
+
+## Module/interface planning — 25 October 2026
+
+The user requested a detailed explanation and recommendation for modules and
+interfaces. The [plan](knowledge/modules-and-interfaces.md) is prepared within the
+approved architecture. Proposed finer decisions: privileged system authority plus
+per-user broker, compositor/UI separation, typed local D-Bus/sd-bus control,
+owner-scoped SQLite writers and recoverable operation contracts. These details
+remain proposals; no new backend, executable/API, schema or implementation is
+approved merely by recording this discussion.

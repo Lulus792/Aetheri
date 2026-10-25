@@ -1,5 +1,8 @@
 # Knowledge and proposals
 
+- [Module and interface plan](modules-and-interfaces.md): responsibility/process map,
+  authority/data ownership, IPC contracts, workflows and recovery boundaries.
+
 - [Architecture options](architecture-options.md): overall approaches, compositor,
   supervision, updates, sandboxing, plugins and required suspend/resume.
 

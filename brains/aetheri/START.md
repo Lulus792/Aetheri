@@ -7,7 +7,8 @@ Updated 25 October 2026 after approval of B, wlroots, systemd and SQLite.
 2. [State](STATE.md): actual work and publication status.
 3. [Decisions](DECISIONS.md): confirmed choices and superseded assumptions.
 4. [Architecture](knowledge/architecture-options.md): selected boundaries and alternatives,
-   followed by [application lifecycle](knowledge/app-lifecycle.md).
+   then [module/interfaces](knowledge/modules-and-interfaces.md) and
+   [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),
    [testing](knowledge/testumgebung.md) and [milestones](knowledge/etappen.md).
