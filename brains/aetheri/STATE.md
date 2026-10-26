@@ -1,11 +1,13 @@
 # State
 
-26 October 2026 — runtime-format reference and tests added; VM input preparation.
+26 October 2026 — installed UEFI/WHPX carrier and first tested native C17 core.
 
 ## Confirmed
 
 The user accepted the minimal extension/P0 plan and requested implementation of
 versioned database/API contracts and migration tests.
+The active user goal is to implement the full Aetheri project. The headless carrier
+and core below are progress toward that scope, not a smaller completion target.
 All earlier architecture, ownership, lifecycle and language decisions remain.
 P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
@@ -25,21 +27,51 @@ This harness is not a privileged Linux service or deployed C17 migrator.
 104-byte private-root header and canonical plan-intent encoding reference, with
 three independently constructed fixed byte/digest vectors. Payload verification
 checks supplied bytes and inventory; it is not a privileged filesystem importer.
-Linux peer/storage/exec/recovery obligations are described, not implemented.
+Principal/volume/supervision/recovery obligations remain pending; the native
+header/file primitives below implement only their bounded storage portion.
 
-[Carrier input lock](../../spec/vm-inputs.json) and preparation tool fetch/verify
-exact development inputs without installing or executing them. QEMU 11.1.0 Windows
-installer downloaded and SHA-512 checked. Its Windows signature reports an expired
-certificate; provisioning remains under review. Fedora's signed checksum list
-verified against the official full Fedora 44 fingerprint. The complete
-1228384256-byte Fedora net installer downloaded and matched its SHA-256.
+[Carrier input lock](../../spec/vm-inputs.json), verified cache and Windows-local
+archive extraction now provide QEMU 11.1.0 Windows build
+v11.1.0-12130-ge470268ff4. The unsigned 7-Zip MSI and expired-signature QEMU NSIS
+installer were read as data, never executed as installers. Expected hashes and
+third-party licenses were retained. Actual QEMU/firmware execution now works.
+
+Installed Fedora Server 44 carrier: UEFI, 2 vCPUs, 8 GiB RAM, one 48 GiB sparse
+qcow2 disk, ext4 root/boot. Installer validates guest product, exact virtual disk
+serial/size and disk count excluding RAM zram. No raw host disk or folder sharing.
+Host orchestration uses scoped keys, guarded starts and an AF_UNIX QMP endpoint
+under the Windows-user-only VM directory. TCP QMP was removed after a real guest
+reachability test; no guest-reachable QMP network listener remains.
+
+[Native core](../../src/core/owner.h): C17 owner encode/decode/matching and
+[bounded storage](../../src/core/storage.h) with required openat2 containment,
+regular-file/size/link checks and protected-header UID/mode/identity validation.
+No public RPC or app grants are exposed by these primitives.
 
 ## Executed evidence
 
 Python 3.12.14 / SQLite 3.53.1 on the development host:
 23 named catalogue/API tests passed again, exit 0, 27.041 seconds.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
-7 download-cache tests passed, exit 0, 0.085 seconds. Total: 44 named tests.
+7 download-cache tests passed, exit 0, 0.085 seconds. Those prior 44 host tests are
+unchanged. Ten additional host-orchestration tests passed after the new VM tools.
+
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Three tests pass in Debug
+with ASan/UBSan (0.06 s) and in Release (0.14 s), both exit 0. Actual same-filesystem
+bind mount is readable by baseline openat but rejected by the core with EXDEV;
+the mount probe runs only in its verified private namespace. No leak/UB report.
+GCC reports baseline x86-64 / generic tuning, without -march=native.
+
+Guest Python 3.14.3 / SQLite 3.51.2: existing 23 catalogue tests pass in 50.456 s
+and 14 runtime-format tests pass in 0.017 s. These remain contract tests.
+
+Guest inspection confirms EFI, ext4, systemd PID 1/running state, SELinux Enforcing,
+cgroup v2, root mount namespaces and bus ProcessFD/LinuxSecurityLabel support.
+Running kernel is 6.19.10-300.fc44; installed UAPI headers are 7.2.4-200.fc44.
+glibc after toolchain installation is 2.43-9.fc44; systemd 259.5, libselinux 3.10,
+policy 43.3, dbus-broker 37. Compiler/build package pins are in vm-inputs.json.
+Offline guest boot and SSH/local native tests also work. This is not physical
+hardware or desktop performance acceptance.
 
 Coverage includes both populated catalogue kinds, fresh-v2 equivalence, ten
 precommit failure points per kind, six child-process exits/reopens including after
@@ -60,19 +92,20 @@ exclusive partial-file creation and publication only after successful verificati
 The user confirmed this workstation as the main-PC target and added future AM5
 portability. Observed Xeon W-2123/nominal 32 GB/RTX 2080 Ti and three active monitor
 records are in [test environment](knowledge/testumgebung.md). A read-only WHP
-capability query returned S_OK, HypervisorPresent=true; no virtual processor ran.
+initial capability query returned S_OK without running a virtual processor. Later
+guest boots and native execution now supply the distinct WHPX execution evidence.
 
 ## Limits and next step
 
-No production catalogue migrated, VM/tool/policy installed, Linux authority,
-document transport or supervision implemented. No live D-Bus, SELinux enforcement,
-power-loss, native performance or hardware acceptance.
+The carrier uses Fedora's enforcing policy, not Aetheri app domains/categories.
+No production catalogue migrated, Aetheri authority/broker/launcher or document
+transport installed. No real app start/grant/revocation/purge, Aetheri confinement,
+power-loss, physical hardware or desktop acceptance. No original Aetheri image/UI.
 
-Next: finish reviewed local QEMU/UEFI provisioning, install the disposable guest,
-pin/review actual toolchain libraries, then implement the C17 authorities, broker,
-launcher/probe and real policy/peer mapping. Protected registry/read refs and
-target-exec evidence remain live-integration gates. All P0 Linux gates must pass;
-host contract tests and verified downloads alone do not complete P0.
+Next: C17 authority/broker/launcher/probe, protected registry/read refs, actual
+principal mapping, Aetheri SELinux policy and target-exec/recovery evidence.
+All P0 Linux gates must pass before expanding to the desktop/apps. The full
+daily-use Aetheri requirements, including user UI decisions, remain the objective.
 
 Work remains inside F:/Aetheri; other projects/shared WSL/hardware untouched.
 Public repository: https://github.com/Lulus792/Aetheri.

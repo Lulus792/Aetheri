@@ -159,9 +159,9 @@ QEMU's upstream download page links Stefan Weil's Windows builds. Downloaded
 version 11.1.0. Windows Authenticode reports a certificate outside its validity
 period; it is not a valid Windows signature. The inspected upstream NSIS script
 requests administrator privileges and includes machine registry/menu entries.
-Do not execute it as if it were a portable extraction. Reviewed extraction or a
-separately verified Windows tool source remains an integration task; neither
-disabling signature checks nor installing a broad new tool family is implied.
+Do not execute it as if it were a portable extraction. A reviewed extraction path
+has since been implemented below; no signature checks were disabled and neither
+MSI nor NSIS installation actions were executed.
 
 Fedora's signed checksum file was verified with the existing development GPG tool
 in a project-local ignored keyring. VALIDSIG fingerprint matched the official
@@ -173,7 +173,7 @@ finished with exit 0. This verifies installation media, not installed guest stat
 The project-local GPG agent was stopped after verification; no extra verification
 agent is intentionally left resident.
 
-No QEMU binary/installer was executed, Windows feature toggled, VM disk created,
+At that preparation stage, no QEMU binary/installer was executed, Windows feature toggled, VM disk created,
 guest installed or Linux policy loaded. Host DLL presence is not a WHPX test.
 Before A0: establish usable verified QEMU + UEFI firmware, probe actual acceleration,
 create only the disposable 48 GiB guest disk, install ext4 and record guest versions,
@@ -194,3 +194,104 @@ Sources inspected for preparation:
   checksum workflow and independent full-fingerprint comparison.
 - [WHvGetCapability](https://learn.microsoft.com/en-us/virtualization/api/hypervisor-platform/funcs/whvgetcapability):
   read-only host API query, separate from partition/virtual-processor execution.
+
+## Installed disposable carrier and native core — 26 October 2026
+
+[provision_windows.py](../../../tools/provision_windows.py) verifies pinned inputs,
+reads the 7-Zip MSI cabinet using the Windows MSI read-only database API and
+extracts 7z.exe, its DLL and notices. It then reads the verified QEMU NSIS archive
+as data. It executes neither installer nor package custom actions, adds no machine
+registry/menu entries and changes no Windows feature. Equal existing outputs are
+verified; changed outputs are refused, not overwritten. Temporary extraction is
+inside a verified project-local directory. Upstream licenses/support data remain
+with the tools; the local receipt hashes 3324 extracted files.
+
+7-Zip 26.05 x64 is a host-only extraction tool. Its MSI is unsigned; the exact
+2008576-byte SHA-256 was checked against the official linked GitHub release asset.
+Its LGPL/BSD/unRAR notices are preserved; it is not an Aetheri runtime dependency.
+QEMU reports 11.1.0, package v11.1.0-12130-ge470268ff4. Do not substitute the
+unmodified upstream tag's code identity for this provider build.
+
+[run_vm.py](../../../tools/run_vm.py) owns the dedicated guest. It records a UUID,
+guards starts with an OS file lock, checks a live QMP identity and recorded PID,
+and does not redispatch a live/unresolved start after a timeout. Boot/install stay
+attached to the runner. Startup records are durable host correlation, not the
+future Aetheri launch authority. Reinstallation requires --retry-install.
+
+The [Kickstart template](../../../spec/p0-carrier.ks.in) checks actual EFI, guest
+product, virtio disk serial AETHERI_P0_ONLY, exact 48 GiB and one non-RAM disk
+before partitioning only vda. The initial precheck correctly stopped because the
+installer also creates zram0; it was corrected to exclude RAM devices after live
+inspection confirmed the intended virtio identity and size. ESP is firmware-driven;
+root and /boot are ext4. Root password is locked, SSH uses a guest-only key and
+the trusted test account has passwordless sudo for fixture administration.
+This account is outside app trust; future app domains must prove denial of that
+administrative route before any confinement acceptance.
+
+WHPX now executes the guest. Unfiltered host VMX caused an early OVMF #GP at
+feature-control MSR 0x3a before disk writes; host,vmx=off,svm=off boots successfully.
+This only disables nested virtualization advertised to this guest, not host CPU
+virtualization or target-platform support. The recorded firmware is the bundled
+edk2-stable202408 image; it is development-VM firmware, not physical firmware or
+the final Aetheri trusted-boot selection.
+
+Observed guest: kernel 6.19.10-300.fc44, systemd 259.5, dbus-broker 37,
+libselinux 3.10/policy 43.3, SQLite 3.51.2 and Python 3.14.3. Inspection reports
+systemd PID 1/running, SELinux Enforcing, cgroup v2, mount namespaces and bus
+ProcessFD/LinuxSecurityLabel credentials. These are carrier prerequisites;
+no Aetheri app-domain policy or live lifecycle RPC is installed.
+
+Reviewed native build transaction: GCC 16.2.1-2, CMake 4.3.0-1, Ninja 1.13.2-2,
+matching sanitizer libraries, glibc-devel 2.43-9 and UAPI headers 7.2.4-200.
+Direct package versions are pinned in vm-inputs. DNF signature verification was
+enabled. The transaction installed 20 packages/upgraded six (about 91 MiB download,
+258 MiB additional guest data), including glibc 2.43-9. Header version differs from
+the running kernel. Transitive compiler/CMake packages belong to this carrier,
+not a selected production Aetheri image. GCC reports x86-64/generic defaults.
+
+[sync_guest.py](../../../tools/sync_guest.py) copies only explicit source/test/
+contract files over SSH, never a host mount. Canonical archive times are ignored
+on extraction so Ninja cannot mistake changed files for older object inputs.
+The initial mount-test run exposed that timestamp issue; after correction the
+actual new source rebuilt and all three tests passed. Source hashes are retained
+locally in the snapshot receipt. No live write-through host folder exists.
+
+## Host-control boundary and observed tests
+
+A real guest connection demonstrated that TCP QMP bound to host loopback was
+reachable through slirp's 10.0.2.2. That listener was removed before any untrusted
+app scenario. QMP now uses a local AF_UNIX path below vm/p0. Windows directory
+ACL verification reports inheritance disabled, one rule, current-user-only.
+The bundled Windows Python lacks a socket.AF_UNIX symbol, so a bounded Winsock
+sockaddr_un adapter connects the native endpoint; actual repeated QMP queries pass.
+No host TCP listener remains at the old QMP port and guest connection now returns
+ECONNREFUSED. Guest network access cannot open this unshared host filesystem socket.
+This is a corrected host-tool boundary, not evidence of Aetheri app confinement.
+
+Host SSH now receives explicit standard handles, bypasses personal configuration
+and agents, disables forwarding, and uses only this guest's key/known-host file.
+The initial piped inspection stalled due to Windows handle inheritance; only its
+verified own read-only SSH client was stopped, then the corrected path passed.
+No unrelated SSH/WSL or project process was stopped.
+
+The guest also boots with restrict=on networking. Host SSH and local C17 Release
+tests still pass in that state. Three native tests pass with ASan/UBSan in Debug
+and in Release, including real private-namespace same-filesystem bind denial.
+Existing 23 SQL/API and 14 format tests also pass on guest Python/SQLite. Ten
+new host orchestration tests cover live/unknown retries, scope, stale state and
+extraction refusal. See [state](../STATE.md) for the current executed boundary.
+
+Additional primary sources inspected:
+
+- [7-Zip downloads](https://www.7-zip.org/download.html) and
+  [license](https://www.7-zip.org/license.txt): extraction tool and retained notices.
+- [MsiOpenDatabase](https://learn.microsoft.com/en-us/windows/win32/api/msiquery/nf-msiquery-msiopendatabasew)
+  and [MsiRecordReadStream](https://learn.microsoft.com/en-us/windows/win32/api/msiquery/nf-msiquery-msirecordreadstream):
+  read-only container access, not installer execution.
+- [Pykickstart](https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html):
+  disk checks, partitions, users/keys and enforcing policy configuration.
+- [Windows AF_UNIX](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/):
+  host-local socket paths and filesystem write-access requirements.
+- [QEMU character sockets](https://github.com/qemu/qemu/blob/v11.1.0/qapi/char.json):
+  control/console primitives. The Windows pipe backend does not provide the
+  reconnect semantics needed here; the actual AF_UNIX backend was tested instead.

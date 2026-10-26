@@ -120,3 +120,59 @@ Text/source validation passed for 56 UTF-8 files, 168 local Markdown links,
 balanced fences, JSON and Python syntax. Reviewed selected public files and Git
 diff checks; no downloads, keyring, local state, user paths or generated test data
 are staged. Frozen SQL/XML and prior migration sources remain unchanged.
+
+## Installed carrier, private host control and native C17 storage
+
+Active goal is full Aetheri implementation. Prepared and actually executed a
+dedicated Fedora 44 x86-64 UEFI/WHPX guest, 2 vCPUs/8 GiB RAM/48 GiB sparse disk,
+with no shared host folder or physical disk. Reviewed archive extraction reads
+unsigned MSI/expired-signature NSIS as data; no installer actions/registry changes.
+Pinned 7-Zip 26.05 host-only extraction tool and preserved upstream notices.
+The reproducible helper verifies 3324 extracted files and refuses changed outputs.
+
+Observed firmware #GP at MSR 0x3a with unfiltered host VMX before disk writes;
+advertising host,vmx=off,svm=off booted. First disk precheck stopped because zram0
+was counted as a second disk. Live installer-shell inspection confirmed product,
+virtio serial, exact 48 GiB and RAM device; corrected only the RAM exclusion.
+The next installation completed/powered off, then the installed disk booted.
+
+SSH inspection initially stalled due to Windows child standard-handle inheritance.
+After a direct native SSH control succeeded, fixed explicit handles, ignored
+personal configuration/agents and disabled forwarding. Stopped only the verified
+own read-only stalled SSH client. Existing shared WSL/other projects were untouched.
+
+Guest baseline checks passed: EFI, ext4, systemd PID 1/running, SELinux Enforcing,
+cgroup v2, root mount namespace and bus ProcessFD/LinuxSecurityLabel availability.
+Kernel 6.19.10, systemd 259.5, dbus-broker 37, libselinux 3.10/policy 43.3,
+Python 3.14.3/SQLite 3.51.2. Reviewed/pinned GCC 16.2.1-2, CMake 4.3.0-1,
+Ninja 1.13.2-2, matching sanitizers, glibc-devel 2.43-9 and UAPI headers 7.2.4-200.
+DNF installed with signature verification; mirror 404s fell back successfully.
+Transaction installed 20/upgraded six packages; glibc is now 2.43-9. No C17 sd-bus/
+SQLite/SELinux development packages or Aetheri policies installed yet.
+
+Implemented native C17 owner codec and openat2-based bounded file/header reader,
+plus CMake and native tests. GCC baseline reports x86-64/generic, no host-native
+ISA assumption. Added real private-namespace same-filesystem bind containment.
+The first mount test used a stale binary: deterministic archive times made Ninja
+miss changed source. Corrected extraction to use guest times; rebuild then compiled
+the actual new mode and all three tests passed.
+
+Debug ASan/UBSan: 3/3, exit 0, 0.06 s. Release: 3/3, exit 0, 0.14 s, including
+private mount namespaces. Filesystem checks include symlink/FIFO/hardlink/type,
+size, UID/mode and owner mismatch; failed byte decode preserves outputs.
+Guest catalogue tests: 23/23, 50.456 s; format tests: 14/14, 0.017 s, exit 0.
+These checks do not implement or prove Aetheri app isolation, launch, grants,
+revocation, purge, production migration, power-loss or physical hardware behavior.
+
+Security review of the new VM helper found actual guest access to loopback TCP
+QMP through 10.0.2.2. Before any untrusted app scenario, replaced it with tested
+host-local AF_UNIX/Winsock control. The guest was gracefully powered down before
+transport replacement and booted offline afterward. Verified host directory ACL:
+inheritance disabled, one current-user-only rule. Old TCP listener is absent;
+guest probe returns ECONNREFUSED. Repeated local QMP queries and host SSH pass.
+Offline Release tests also pass. The host IPC adapter is separate from Linux
+Aetheri D-Bus contracts and is not treated as application security acceptance.
+
+Next: actual authority/broker/launcher/probe, protected registry and peer mapping,
+Aetheri app policy and full P0 lifecycle/race/recovery gates, then desktop/apps.
+The full user goal remains active; this carrier/core milestone does not complete it.

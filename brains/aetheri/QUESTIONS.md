@@ -52,12 +52,13 @@ The [launch/access protocol](knowledge/launch-access-and-removal.md) is accepted
 The [minimal extension/P0 scope](knowledge/first-linux-prototype.md) is now accepted.
 Its five new table designs, additive P0 interfaces and development migration/tests
 are implemented in [versioned contracts](../../spec/README.md).
-Next: exact verified VM/tool versions and the actual C17 authorities, launcher,
-policy/peer identity and transport. Saved/direct/write/bulk document access remains
+VM/tool setup now has actual guest evidence and pinned build tools. Next: the
+C17 authorities/launcher, policy/peer identity and transport. Saved/direct/write/bulk document access remains
 in the accepted longer-term protocol, outside this first implementation slice.
 The bounded P0 fixture/owner/intent encodings now have a
 [reference and frozen vectors](../../spec/runtime.md). This does not finalize
-general signed packages or implement filesystem identity. Peer/principal mapping,
+general signed packages or implement registered-volume identity. C17 owner codec
+and bounded reads now have native tests. Peer/principal mapping,
 policy/registry identities, target-exec evidence and actual cross-authority
 admission/recovery remain Linux integration gates. Isolated host tests do not
 settle these gates.

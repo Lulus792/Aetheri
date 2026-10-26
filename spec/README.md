@@ -18,6 +18,10 @@ SELinux policy, document transport or process supervision.
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
 | [vm-inputs.json](vm-inputs.json), [prepare_vm.py](../tools/prepare_vm.py) | Pinned development-carrier downloads and verification, without installation/execution |
+| [provision_windows.py](../tools/provision_windows.py), [run_vm.py](../tools/run_vm.py) | Local archive extraction and guarded disposable-guest installation/control |
+| [p0-carrier.ks.in](p0-carrier.ks.in), [inspect_carrier.py](../tools/inspect_carrier.py) | Scoped virtual-disk installation and observed Linux carrier prerequisites |
+| [sync_guest.py](../tools/sync_guest.py), [test_vm_tools.py](../tools/test_vm_tools.py) | Explicit source copying and host orchestration regressions |
+| [CMakeLists.txt](../CMakeLists.txt), [core](../src/core/storage.h), [native tests](../tests/test_core.c) | C17 ownership/storage primitives; build and scope in runtime.md |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
 Old management argument lists are unchanged. New interfaces require explicit
@@ -169,6 +173,7 @@ Run from the repository root with Python 3.11+ and SQLite 3.37+:
 python tools/test_contracts.py
 python tools/test_runtime_contracts.py
 python tools/test_vm_inputs.py
+python tools/test_vm_tools.py
 ```
 
 The suite runs the unchanged v1 constraints as a regression, validates extension

@@ -1,0 +1,54 @@
+# Disposable QEMU carrier only. Never use on physical hardware.
+text
+eula --agreed
+lang en_US.UTF-8
+keyboard us
+timezone Europe/Berlin --utc
+network --bootproto=dhcp --device=link --activate --hostname=aetheri-p0
+url --url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/
+rootpw --lock
+user --name=aetheri --groups=wheel --lock
+sshkey --username=aetheri "@SSH_PUBLIC_KEY@"
+selinux --enforcing
+firewall --enabled --service=ssh
+services --enabled=sshd --disabled=kdump
+firstboot --disable
+skipx
+ignoredisk --only-use=vda
+clearpart --all --initlabel --drives=vda --disklabel=gpt
+reqpart
+part /boot --fstype=ext4 --size=1024 --ondisk=vda
+part / --fstype=ext4 --size=8192 --grow --ondisk=vda
+bootloader --location=mbr --boot-drive=vda --append="console=ttyS0,115200n8"
+poweroff
+
+%pre --erroronfail --log=/tmp/aetheri-p0-pre.log
+set -eux
+test -d /sys/firmware/efi
+test "$(cat /sys/class/dmi/id/product_name)" = "Aetheri P0 disposable VM"
+test "$(readlink -f /dev/disk/by-id/virtio-AETHERI_P0_ONLY)" = /dev/vda
+test "$(blockdev --getsize64 /dev/vda)" = 51539607552
+test "$(lsblk -dn -o NAME,TYPE | awk '$2 == "disk" && $1 !~ /^zram[0-9]+$/ { n++ } END { print n+0 }')" = 1
+echo AETHERI_P0_DISK_IDENTITY_VERIFIED
+%end
+
+%packages --excludedocs
+@core
+openssh-server
+sudo
+python3
+policycoreutils
+tar
+%end
+
+%post --erroronfail --log=/root/aetheri-p0-post.log
+set -eu
+printf 'aetheri ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/aetheri-p0
+chmod 0440 /etc/sudoers.d/aetheri-p0
+visudo -cf /etc/sudoers.d/aetheri-p0
+mkdir -p /etc/ssh/sshd_config.d
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n' > /etc/ssh/sshd_config.d/10-aetheri-p0.conf
+restorecon -RF /etc/sudoers.d /etc/ssh
+printf 'Disposable Fedora development carrier; not an Aetheri release.\n' > /etc/aetheri-p0-carrier
+echo AETHERI_P0_INSTALL_COMPLETE
+%end

@@ -39,4 +39,5 @@ The five new table designs, nine method contracts and development migration test
 are implemented. P0 fixture/owner/intent byte references and tests now follow in
 [runtime contracts](../../../spec/runtime.md). Document edits, bulk streams,
 direct/project/saved grants and UI follow. Full P0 completion is defined by all
-Linux acceptance gates rather than a date promise; no guest/service is running yet.
+Linux acceptance gates rather than a date promise. The dedicated carrier now boots
+and runs native C17 core tests; Aetheri authority/app services are not installed yet.

@@ -30,13 +30,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - Versioned v2 SQL, additive P0 XML and development migration/tests are implemented;
   read spec/README.md and run tools/test_contracts.py. Keep v1 contracts unchanged.
   This does not implement Linux authorities, policy or document transport. Native
-  edits/bulk/direct/saved access remain later work. VM/tool installation has not occurred.
+  edits/bulk/direct/saved access remain later work. Dedicated carrier/tool setup now
+  exists; read STATE for the exact executed boundary.
 - P0 fixture/owner/intent byte references and frozen vectors are in spec/runtime.md;
   run tools/test_runtime_contracts.py. VM input pins/cache tooling are in
   spec/vm-inputs.json and tools/prepare_vm.py; run tools/test_vm_inputs.py.
-  Downloads are not installations. QEMU's checked Windows installer has an expired
-  Authenticode certificate; provisioning remains under review. Do not silently
-  execute it or equate a checksum match with a valid Windows signature.
+  QEMU's checked Windows installer has an expired Authenticode certificate; the
+  reviewed provision_windows.py reads MSI/NSIS archives as data without installer
+  execution. Do not equate source hashes with valid Windows codesignatures.
+- Native C17 ownership/storage primitives and tests exist under src/core and tests.
+  They are not an installed authority, public grant API or Aetheri app sandbox.
+  Dedicated guest runs Fedora enforcing policy; Aetheri domains remain unimplemented.
+  QMP must stay host-local AF_UNIX under the protected VM directory: guest slirp
+  networking can reach a host loopback TCP listener through 10.0.2.2. Never restore
+  unauthenticated TCP QMP. Use run_vm.py status/live process evidence before retries.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

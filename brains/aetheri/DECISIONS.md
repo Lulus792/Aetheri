@@ -221,3 +221,28 @@ RTX 2080 Ti and three active monitor records. User further requires Aetheri to
 work after a future AM5 upgrade. Preserve generic x86-64/UEFI and CPU feature
 detection; no Intel-only baseline or unconditional -march=native. Exact future
 CPU/mainboard/GPU and Linux physical acceptance remain open.
+
+## Active implementation and installed carrier — 26 October 2026
+
+The user set the continuing goal to implement Aetheri. Keep the complete agreed
+daily-use OS/apps scope; the headless P0 carrier is an intermediate development
+environment, not completion or a new final distribution choice.
+
+Implemented reviewed local extraction of pinned host tools, guarded guest setup,
+source transfer and actual native C17 owner/storage primitives. Neither upstream
+installer was executed. QEMU/UEFI/WHPX and the Fedora 44 ext4 guest now execute;
+baseline systemd/SELinux/cgroup/ProcessFD prerequisites have actual observations.
+Build tooling uses the recorded GCC/CMake/Ninja/sanitizer versions. Original C17
+code remains MIT; carrier/tool notices retain their own licenses.
+
+Corrected the new host-control transport before app scenarios: a benign guest
+probe could reach loopback TCP QMP through slirp. Replaced TCP with an actual
+Windows AF_UNIX socket under a current-user-only directory. IPC access is protected
+by the host filesystem, while UUID remains correlation rather than authentication.
+No host drive/share, Windows feature toggle or unrelated WSL/project mutation.
+
+Native checks now cover fixed owner bytes, preserved failure outputs, actual
+bounded reads and a real same-filesystem bind mount in a private namespace.
+Debug ASan/UBSan and Release pass. The core requires a caller-verified protected
+root and has no fallback to weaker resolution. This does not approve a finished
+Aetheri policy, volume registry, D-Bus authority, app launch or full removal.

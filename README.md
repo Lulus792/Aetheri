@@ -3,8 +3,9 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project has architecture plans and executable database/API contract checks.
-There is no bootable image, installer or working Aetheri application yet.
+The project has executable contracts, a native C17 ownership/storage core and a
+dedicated Fedora/UEFI test guest. There is no original Aetheri image, installer,
+desktop or working Aetheri application yet.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
@@ -65,9 +66,47 @@ preparation tooling; production services are planned in C17.
 
 `python tools/prepare_vm.py fetch` downloads the pinned development-carrier inputs
 under ignored downloads; `verify` checks cached bytes. Neither installs software,
-executes an installer or starts a VM. Read the current verification and outstanding
-tool-provenance gates in [test environment](brains/aetheri/knowledge/testumgebung.md)
-before using them. These carrier files are not an Aetheri system image.
+executes an installer or starts a VM. The reviewed Windows provisioning path reads
+MSI/NSIS archives as data and extracts local tools, preserving their licenses.
+Read [test environment](brains/aetheri/knowledge/testumgebung.md) before using the
+disposable guest. These carrier files are not an Aetheri system image.
+
+## Development guest
+
+With the pinned inputs present, use Python 3.11+ on Windows:
+
+```text
+python tools/provision_windows.py
+python tools/run_vm.py install
+python tools/run_vm.py --offline boot
+python tools/run_vm.py status
+python tools/sync_guest.py
+python tools/run_vm.py poweroff
+```
+
+install and boot stay attached while QEMU runs. Use a second terminal for status,
+SSH, source transfer and poweroff. Build tools are pinned separately in vm-inputs;
+the carrier image alone does not freeze package repositories.
+
+Install runs only on the registered 48 GiB virtual disk, after guest firmware,
+product, disk serial and size checks. Reinstallation requires --retry-install;
+an unobserved/live start never silently becomes a second VM. QMP uses a protected
+local AF_UNIX socket, not a guest-reachable TCP listener. SSH binds localhost,
+uses a guest-only key/known-host file and ignores personal SSH configuration/agents.
+Offline boot restricts guest networking while retaining that host SSH connection.
+
+sync_guest copies an explicit source snapshot through SSH. No host folder or
+physical drive is passed into the guest. Native build/test commands and their
+limits are in [runtime contracts](spec/runtime.md).
+
+| Directory | Contents |
+| --- | --- |
+| src/core | Native ownership encoding and bounded Linux storage primitives |
+| tests | Native functional and private mount-namespace probes |
+| tools | Host preparation, source transfer and development checks; not resident OS services |
+| spec | SQL/XML/byte contracts and pinned carrier/build inputs |
+| brains/aetheri | Requirements, decisions, evidence and remaining work |
+| local, downloads, vm, out, build | Ignored tool/cache/guest/test artifacts; never public source |
 
 ## License
 

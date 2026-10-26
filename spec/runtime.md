@@ -3,8 +3,9 @@
 26 October 2026. Byte formats below are implemented by the development reference
 [runtime_contracts.py](../tools/runtime_contracts.py) and checked against
 [frozen vectors](vectors/runtime-v1.json). They add no SQL tables or D-Bus methods.
-The Linux execution, credentials, storage and recovery obligations are specified
-here but have not been implemented or exercised on a guest.
+The native C17 owner codec and bounded Linux file reader are now implemented and
+tested in the guest. Authority/credential mapping, volume registration, app policy,
+launch, grants and operation recovery remain integration work.
 
 P0 handles trusted synthetic fixtures only. This is not a general package format,
 signed public installation protocol, production consent UI or permission engine.
@@ -22,7 +23,8 @@ and [SQL/XML guide](README.md) as the surrounding contracts.
 The reference accepts dictionaries/JSON for development convenience and emits
 bytes. Services must use bounded typed inputs and verified database projections.
 Do not hash JSON text, native C structures, filenames alone or freshly supplied
-client hashes. No byte decoder, privileged file importer or C17 codec exists yet.
+client hashes. The C17 owner codec checks the fixed header only; C17 fixture/intent
+codecs and a privileged importer are not implemented.
 
 ## Shared byte rules
 
@@ -255,6 +257,41 @@ payload, mismatched owner and old-install versus new-install intent. These are
 host tests, not Linux permission, file-resolution or service recovery tests.
 The exact fixture enrollment registry, gate/policy read refs, guest principal
 mapping, SELinux policy and exec evidence must be implemented before live exposure.
+
+## Native core and building
+
+[owner.h](../src/core/owner.h) defines the 104-byte header codec without hashing
+native structs or allocating memory. Failed decoding leaves its output unchanged.
+[storage.h](../src/core/storage.h) opens only bounded regular files below a borrowed,
+already trusted directory descriptor. It returns an owned read-only/CLOEXEC FD to
+the trusted caller, not to an app. It requires openat2 containment/no-symlink/
+no-mount-crossing flags with no weaker fallback. Owner reads also check UID,
+writable mode bits, full length and all expected identity fields.
+
+The caller still owes root/volume registration, MAC protection against same-UID
+writers, admission and lifetime coordination. These functions do not implement
+application authorization, a public document API or durable removal.
+
+Run in the dedicated Linux guest with the recorded GCC/CMake/Ninja toolchain:
+
+```text
+cmake -S /home/aetheri/source -B /home/aetheri/build/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAETHERI_SANITIZERS=ON -DAETHERI_PRIVILEGED_TESTS=ON
+cmake --build /home/aetheri/build/debug --parallel 2
+ctest --test-dir /home/aetheri/build/debug --output-on-failure
+```
+
+Repeat in a separate release build with CMAKE_BUILD_TYPE=Release and sanitizers
+off. The privileged test option defaults off. In the disposable guest it adds
+sudo/unshare for a private mount namespace, verifies separation from PID 1 before
+any mount change, makes propagation private and uses only newly created test
+directories. The test proves a real same-filesystem bind is reachable by ordinary
+openat yet rejected with EXDEV by the bounded reader. No physical disk is mounted.
+All successful fixture tests remove their own known files/directories.
+
+Three native tests pass in Debug with ASan/UBSan and in Release. They exercise the
+fixed owner vector, output/buffer bounds, actual reads, UID/mode mismatch, symlink,
+FIFO, directory, hardlink, oversized file and mount containment. This is kernel/
+codec evidence; it does not establish the future Aetheri SELinux app policy.
 
 Primary references inspected 26 October 2026:
 

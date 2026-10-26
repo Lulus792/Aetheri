@@ -9,7 +9,10 @@ through that contract work.
 The subsequent [runtime-contract slice](../../../spec/runtime.md) adds bounded
 fixture/owner/intent byte references, frozen vectors and host tests. The
 [carrier input lock](../../../spec/vm-inputs.json) pins preparation downloads;
-neither addition implements Linux enforcement or completes the guest setup.
+neither addition alone implements Linux enforcement or completes the guest setup.
+The later installed carrier and C17 owner/storage core now have executed evidence
+in [state](../STATE.md). Aetheri authorities, app labels and lifecycle RPC remain
+unimplemented; the complete P0 gates below still define acceptance.
 
 ## Recommendation
 
@@ -370,7 +373,9 @@ private removal can be verified; external selected documents remain read-only.
 | A9: retention/failure | Shared fixture provider retained for its consumer; IO/full-disk/flush faults produce blocked/recovery state and honest receipts |
 | A10: measurements | Reproducible launch/read/close/remove timings, resident memory, idle wakeups and storage overhead with VM/accelerator recorded |
 
-The contract portion of A1 now has executed evidence; Linux gates remain unexecuted.
+The contract portion of A1 and carrier prerequisites now have executed evidence,
+including native owner/read and same-filesystem bind containment tests. Full
+Aetheri Linux authority, app-domain and lifecycle gates remain unexecuted.
 A SQL-only green run is not completion. A0/A3 failure blocks Linux acceptance; permissive/unconfined runs
 cannot replace them. Inspect filesystem inventory, actual process identities and
 both catalogues, not just CLI exit codes or status strings. Preserve failure

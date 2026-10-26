@@ -304,3 +304,42 @@ requirements; read-only Windows observations are recorded separately in
 Executed 14 format and 7 cache tests, exit 0; reran 23 catalogue/API tests, exit 0.
 Total 44 named host tests. Native Linux, actual bus credentials, policy, filesystem
 containment, process recovery, performance and hardware remain untested for Aetheri.
+
+## Carrier execution and first C17 core — 26 October 2026
+
+User goal: implement the full agreed project. Current changes/evidence are an
+installed development carrier and native prerequisites, not final OS acceptance.
+
+- [Host extraction](../../tools/provision_windows.py): actual MSI read-only stream
+  access/native cabinet extraction and hash-verified NSIS data extraction succeeded.
+  [7-Zip release](https://github.com/ip7z/7zip/releases/tag/26.05) supplied asset
+  SHA-256; retained [license](https://www.7-zip.org/license.txt). No installer actions.
+- Microsoft [MSI database](https://learn.microsoft.com/en-us/windows/win32/api/msiquery/nf-msiquery-msiopendatabasew)
+  and [record stream](https://learn.microsoft.com/en-us/windows/win32/api/msiquery/nf-msiquery-msirecordreadstream)
+  documentation: container reads, not installation authorization.
+- [Pykickstart](https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html):
+  source for the bounded guest installation template. The Fedora f44 install-guide
+  URL was unavailable; no conclusion depends on it.
+- [EDK2 PlatformPei](https://github.com/tianocore/edk2/blob/master/OvmfPkg/PlatformPei/Platform.c)
+  and [Intel MSR definitions](https://github.com/tianocore/edk2/blob/master/MdePkg/Include/Register/Intel/ArchitecturalMsr.h):
+  references for the observed early feature-control fault. Bundled firmware bytes
+  are separately recorded by extraction hashes; current upstream source is not
+  asserted identical to those prebuilt bytes.
+- [Windows AF_UNIX](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/):
+  socket paths and host filesystem access. Native Winsock/QEMU exchange succeeded
+  despite this Python build lacking socket.AF_UNIX. TCP control was removed after
+  an actual guest 10.0.2.2 reachability probe; old port now refuses connections.
+- [QEMU pipe source](https://github.com/qemu/qemu/blob/v11.1.0/chardev/char-pipe.c)
+  and [Windows backend](https://github.com/qemu/qemu/blob/v11.1.0/chardev/char-win.c):
+  examined before choosing the reconnecting AF_UNIX socket path instead.
+- Native [owner](../../src/core/owner.c), [storage](../../src/core/storage.c) and
+  [tests](../../tests/test_core.c) are original code. openat2 flags were rechecked
+  against the [Linux manual](https://man7.org/linux/man-pages/man2/openat2.2.html).
+  Actual guest syscall/namespace cases pass, not just static configuration checks.
+
+Guest reports retained locally: EFI/ext4, systemd running/PID 1, enforcing policy,
+cgroup v2, private mount namespaces and ProcessFD/label bus capabilities. Native
+tests pass in Debug ASan/UBSan and Release; catalogue/format tests also pass on
+Python 3.14.3/SQLite 3.51.2. Exact versions and limitations are in
+[test environment](knowledge/testumgebung.md). Aetheri authority/app-domain,
+recovery, desktop, performance and physical hardware acceptance remain pending.

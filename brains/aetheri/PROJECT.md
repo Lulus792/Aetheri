@@ -75,8 +75,9 @@ defines admission, native versus direct grants, revocation, save and removal.
 The accepted [P0 scope](knowledge/first-linux-prototype.md) narrows the first
 implementation to confined launch, small native reads, revocation and fixture
 removal on a dedicated Fedora/QEMU development carrier.
-The [v2 SQL/XML and migration harness](../../spec/README.md) now implement the
-contract portion. Linux authorities, policy, transport and VM setup remain next.
+The [v2 SQL/XML and migration harness](../../spec/README.md) implement the contract
+portion. An installed headless development guest and tested C17 ownership/storage
+primitives now exist. Aetheri authorities, app policy and transport remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 
@@ -105,5 +106,6 @@ recoverable previous system version.
 
 ## Current stage
 
-Architecture planning with executable development contract tooling. Linux services,
-an original bootable image and hardware/performance acceptance remain unimplemented.
+Implementation in progress: contract tooling, dedicated Linux carrier and native
+C17 core. Linux authorities/apps, the desktop, an original bootable image and
+hardware/performance acceptance remain unimplemented.

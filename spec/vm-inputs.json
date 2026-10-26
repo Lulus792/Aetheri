@@ -3,7 +3,25 @@
   "purpose": "P0 development carrier inputs; not the Aetheri production base",
   "machine": {"architecture": "x86_64", "firmware": "UEFI", "vcpus": 2, "ram_mib": 8192, "disk_gib": 48},
   "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "guest_build_packages": [
+    "gcc-16.2.1-2.fc44.x86_64",
+    "cmake-4.3.0-1.fc44.x86_64",
+    "ninja-build-1.13.2-2.fc44.x86_64",
+    "libasan-16.2.1-2.fc44.x86_64",
+    "libubsan-16.2.1-2.fc44.x86_64",
+    "glibc-devel-2.43-9.fc44.x86_64",
+    "kernel-headers-7.2.4-200.fc44.x86_64"
+  ],
   "inputs": [
+    {
+      "name": "7z2605-x64.msi",
+      "version": "7-Zip 26.05 x64; host extraction tool only",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-x64.msi",
+      "size": 2008576,
+      "algorithm": "sha256",
+      "digest": "3fe4ab99fa15629c652944309a2b2bc6e41fc933fc6b63f5df1ebcf3aea68263",
+      "evidence": "https://api.github.com/repos/ip7z/7zip/releases/tags/26.05"
+    },
     {
       "name": "qemu-w64-setup-20260811.exe",
       "version": "QEMU 11.1.0, Stefan Weil Windows build 2026-08-11",
