@@ -63,6 +63,8 @@ int main(int argc, char **argv)
     CHECK(ae_catalogue_enroll_account(store, request.scope, 1000) == 0);
     struct ae_fixture_progress progress, marker;
     memset(&marker, 0xa5, sizeof marker); progress = marker;
+    CHECK(ae_catalogue_fixture_get(store,&request,manifest,size,&progress)==-ENOENT);
+    CHECK(memcmp(&progress,&marker,sizeof marker)==0 && scalar(argv[3],"SELECT count(*) FROM operations")==0);
     uint8_t other_boot[16]; id(other_boot,99);
     CHECK(ae_catalogue_fixture_accept(store,&request,manifest,size,other_boot,&progress) == -ESTALE);
     CHECK(memcmp(&progress,&marker,sizeof marker) == 0);
@@ -92,6 +94,7 @@ int main(int argc, char **argv)
     changed = request; ++changed.accepted_unix_ms;
     CHECK(ae_catalogue_fixture_accept(store,&changed,manifest,size,boot,&progress) == -ESTALE);
     uint8_t evidence[32]; memset(evidence,0x42,sizeof evidence);
+    CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,AE_FIXTURE_PLANNED,evidence,&progress)==-EINVAL);
     CHECK(ae_catalogue_fixture_transition(store,&request,manifest,size,AE_FIXTURE_READY,evidence,&progress) == -EINVAL);
     progress = marker; commit_fault = 2;
     CHECK(ae_catalogue_fixture_transition(store,&request,manifest,size,AE_FIXTURE_EXECUTING,evidence,&progress) == -EIO);
@@ -117,7 +120,39 @@ int main(int argc, char **argv)
     uint8_t incarnation[16]; id(incarnation,100);
     CHECK(ae_catalogue_begin_runtime(store,other_boot,incarnation) == 0);
     CHECK(ae_catalogue_fixture_accept(store,&request,manifest,size,other_boot,&progress) == 0 && progress.step == AE_FIXTURE_READY);
+    uint8_t publication[32]; memset(publication,0x43,sizeof publication);
+    CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,AE_FIXTURE_EXECUTING,publication,&progress)==-EINVAL);
+    CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,AE_FIXTURE_READY,publication,&progress)==-EINVAL);
+    const enum ae_fixture_step steps[]={AE_FIXTURE_PLANNED,AE_FIXTURE_EXECUTING,AE_FIXTURE_UNCERTAIN,AE_FIXTURE_EXECUTING,AE_FIXTURE_READY};
+    for (size_t n=0;n<sizeof steps/sizeof steps[0];++n) {
+        progress=marker; commit_fault=1;
+        revision=scalar(argv[3],"SELECT catalogue_revision FROM authority_meta");
+        CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,steps[n],publication,&progress)==-EIO);
+        CHECK(memcmp(&progress,&marker,sizeof marker)==0 && scalar(argv[3],"SELECT catalogue_revision FROM authority_meta")==revision);
+        commit_fault=2;
+        CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,steps[n],publication,&progress)==-EIO);
+        CHECK(memcmp(&progress,&marker,sizeof marker)==0 && scalar(argv[3],"SELECT catalogue_revision FROM authority_meta")==revision+1);
+        CHECK(ae_catalogue_close(&store)==0 && ae_catalogue_open(argv[3],&identity,&store)==0);
+        CHECK(ae_catalogue_fixture_get(store,&request,manifest,size,&progress)==0 && progress.publication_present && progress.publication_step==steps[n]);
+        CHECK(memcmp(progress.publication_evidence,publication,32)==0 && memcmp(progress.evidence,evidence,32)==0);
+        CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,steps[n],publication,&progress)==0);
+        CHECK(scalar(argv[3],"SELECT catalogue_revision FROM authority_meta")==revision+1);
+        publication[0]^=1;
+        CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,steps[n],publication,&progress)==-ESTALE);
+        publication[0]^=1;
+        CHECK(ae_catalogue_fixture_transition(store,&request,manifest,size,AE_FIXTURE_READY,evidence,&progress)==-EBUSY);
+    }
+    CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,AE_FIXTURE_UNCERTAIN,publication,&progress)==-EINVAL);
+    CHECK(ae_catalogue_fixture_publication(store,&request,manifest,size,AE_FIXTURE_EXECUTING,publication,&progress)==-EINVAL);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM operations WHERE state='running' AND phase='reconcile' AND reason_code='activation_pending' AND outcome IS NULL AND result_kind IS NULL")==1);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM artifacts WHERE store_state='verified'")==1);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM generations WHERE publication_state='committed' AND activated_once=0")==1);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM installs WHERE state='preparing' AND active_generation_id IS NULL")==1);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM generation_leases")==0);
+    CHECK(scalar(argv[3],"SELECT count(*) FROM operation_steps WHERE step_no=1 AND action='publish' AND subject_kind='storage' AND length(subject_ref)=32 AND state='applied'")==1);
+    changed=request; changed.scope_revision=2; progress=marker;
+    CHECK(ae_catalogue_fixture_get(store,&changed,manifest,size,&progress)<0 && memcmp(&progress,&marker,sizeof marker)==0);
     CHECK(ae_catalogue_close(&store) == 0);
-    puts("Native fixture journal acceptance, independent intent, lost commits, immutable binding and cross-boot replay passed.");
+    puts("Native stage/publication journal, independent intent, lost commits, immutable bindings and cross-boot replay passed; no activation or lease.");
     return 0;
 }

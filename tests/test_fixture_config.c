@@ -45,6 +45,27 @@ int main(void)
     CHECK(ae_fixture_config_decode(bytes,AE_FIXTURE_CONFIG_BYTES,&config)==-EBADMSG);
     CHECK(ae_fixture_config_decode(NULL,AE_FIXTURE_CONFIG_BYTES,&config)==-EINVAL);
     CHECK(ae_fixture_config_decode(bytes,AE_FIXTURE_CONFIG_BYTES,NULL)==-EINVAL);
+    uint8_t publication[AE_FIXTURE_STORE_CONFIG_BYTES+1U]={0};
+    memcpy(publication,"AETHSTO1",8); memset(publication+8,0x56,32);
+    memcpy(publication+40,bytes+224,72);
+    struct ae_fixture_store_config store, marker;
+    memset(&marker,0xa5,sizeof marker);
+    CHECK(ae_fixture_store_config_decode(publication,AE_FIXTURE_STORE_CONFIG_BYTES,&store)==0);
+    CHECK(store.stage_digest[0]==0x56 && store.store.inode==224 && store.container.inode==260);
+    for (size_t size=0;size<=sizeof publication;++size) if (size!=AE_FIXTURE_STORE_CONFIG_BYTES) {
+        store=marker;
+        CHECK(ae_fixture_store_config_decode(publication,size,&store)==-EBADMSG && memcmp(&store,&marker,sizeof marker)==0);
+    }
+    for (size_t offset=40;offset<=76;offset+=36) {
+        put(publication+offset+16,0,8); store=marker;
+        CHECK(ae_fixture_store_config_decode(publication,AE_FIXTURE_STORE_CONFIG_BYTES,&store)==-EBADMSG && memcmp(&store,&marker,sizeof marker)==0);
+        put(publication+offset+16,offset==40 ? 224 : 260,8);
+        put(publication+offset+32,1000000000,4);
+        CHECK(ae_fixture_store_config_decode(publication,AE_FIXTURE_STORE_CONFIG_BYTES,&store)==-EBADMSG);
+        put(publication+offset+32,999999999,4);
+    }
+    CHECK(ae_fixture_store_config_decode(NULL,AE_FIXTURE_STORE_CONFIG_BYTES,&store)==-EINVAL);
+    CHECK(ae_fixture_store_config_decode(publication,AE_FIXTURE_STORE_CONFIG_BYTES,NULL)==-EINVAL);
     puts("Protected fixture configuration bounds, identities and object-witness decoding passed.");
     return 0;
 }

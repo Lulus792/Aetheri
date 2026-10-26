@@ -741,3 +741,53 @@ test, store publication, publisher enrollment or app admission was performed.
 This is trusted administrative fixture preparation, not general client consent,
 publisher signatures, dynamic allocation, whole-filesystem clone authentication,
 atomic store publication, app launch or complete crash/power-loss recovery.
+
+## Journaled fixture-store publication — 27 October 2026
+
+- Linux [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html) documents
+  RENAME_NOREPLACE, mount/EXDEV constraints and failure handling;
+  [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html) separates file and
+  directory persistence. The original [publisher](../../src/core/publish.c) uses
+  no copy/overwrite fallback and repeats all file/directory/parent flushes on retry.
+- Linux [6.19 xattr implementation](https://github.com/torvalds/linux/blob/v6.19/fs/xattr.c)
+  delegates security.* writes to filesystem/LSM checks without ordinary VFS file
+  write-mode permission. This supports cap-zero sealing of owner-read-only files;
+  it does not bypass SELinux or read-only mounts. Actual final labeling succeeds
+  under enforcing policy with no added Linux capabilities.
+- Original [native tests](../../tests/test_publish.c) and
+  [driver](../../tools/test_publish_native.py): 34 ordinary fixtures exercise both
+  renames, before/after IO failures, process exit, separate-process reopen, full
+  resync counters, original root inodes, final 0555 retry, no replacement, conflicts,
+  links and visible unsupported metadata. Four private-namespace probes reject
+  same-inode store/container/payload/file bind mounts with EXDEV before publication.
+  These are unconfined filesystem tests, not power-loss or authority-admission proof.
+- Extended [journal tests](../../tests/test_fixture_journal.c) cover read-only
+  lookup, immutable publication evidence, legal/illegal transitions and before/
+  after real COMMIT acknowledgement failure at each phase. Reopen/retry preserves
+  original IDs/evidence/revision; verified artifact and committed generation remain
+  unactivated/preparing, without a result or lease. No schema/XML/version changes.
+- Complete native suites pass 23/23 Debug ASan/UBSan (77.94 s) and 23/23 Release
+  (55.99 s). Native/host SQLite and all SDK/dependency pins are unchanged.
+  Host orchestration/input guards pass 31/31; migration/wire tests 27/27 (46.744 s);
+  isolated validator 374 assertions/14 methods on host SQLite 3.53.1.
+  The final copied-container replacement case, retaining original held FDs while
+  substituting a complete byte-identical tree, passes focused Debug/Release
+  publication/mount repeats (12.00/10.77 s) with ESTALE and no recovery adoption.
+- Actual offline guest: root-provisioned AETHSTO1, original roots, native journal
+  execution, no-replace namespace moves and final exact modes/labels all pass in
+  aetheri_system_t/NoNewPrivileges/cap-zero units. Separate native replay preserves
+  operation revision and object inode/mode/ctime. Following the full suites, final
+  owner-chmod probes were built and pass in the installed service. Actual enforcing
+  AVCs identify store-code map and store-dir/code/data setattr denials. Ordinary
+  endpoint/app-denial and retained private-allocation checks also pass.
+- Graceful shutdown returned QEMU exit 0; verified process absence preceded an
+  offline boot of the same disk. The first SSH banner observation timed out while
+  boot continued; no replacement VM was started. Native publication replay then
+  reports cross_boot_reopen=true, with retained witnesses/operation, exact labels,
+  original inodes and denied final chmod/map. Normal protocol/app-denial and private
+  allocation reopening pass after boot. Owned authority/probe units are stopped.
+
+Publication is a trusted fixed administrative fixture, not general package trust,
+dynamic allocation, registered-volume/clone authentication, activation, app launch,
+full recovery coordination or physical power-loss acceptance. No service, toolchain
+family or public capability is added.

@@ -452,3 +452,23 @@ the executing step before payload writes. Content-identical candidates do not
 replace independently expected roots. Preserve uncertain stages and require repeat
 validation/flush. Keep the operation publish-pending and deny executable mappings
 for source/stage types; publication, activation and admission remain separate gates.
+
+## Publish one sealed manifest/payload object — 27 October 2026
+
+Keep the original staged payload inode and move it into a separately preallocated
+P0 carrier container. Publish the whole container under the canonical ArtifactId
+using same-mount RENAME_NOREPLACE; do not overwrite, copy on EXDEV or adopt matching
+unbound bytes. Bind stage/store/container witnesses through immutable AETHSTO1 and
+the existing operation's publish-step evidence before IO. No new schema family.
+
+Every retry rechecks data/identity and repeats all flushes, including both previous
+parents after visibility. Seal modes and final MAC types before committing verified/
+committed metadata. Deny final mutations even to the system role; keep apps without
+execution permission until launch admission is implemented. Publish with one owned
+RWP ancestor because separate bind-mounted leaves break rename's mount constraint;
+the source stays explicitly read-only and MAC still limits writes.
+
+Publication leaves installation preparing and operation running/reconcile with
+activation_pending. It is not app activation, an installation result or a lease.
+Root-provisioned infrastructure exercises the boundary without silently claiming
+general allocation, package trust, registered volumes or complete recovery.

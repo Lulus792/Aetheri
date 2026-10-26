@@ -14,6 +14,40 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_publication_uses_one_writable_mount_ancestor_and_administrative_identity(self):
+        record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
+                  "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
+                  "pending": None, "units": [], "fixture": {key: "00000000000040008000000000000002" for key in services.FIXTURE_IDS}}
+        record["fixture"]["artifact"] = "ab" * 32
+        for action in ("store-observe", "store-publish"):
+            with patch.object(services, "save"), patch.object(services, "run", return_value="") as command:
+                unit = services.start_unit(record, "system", fixture=action)
+                arguments = command.call_args.args
+                self.assertEqual([a for a in arguments if a.startswith("--property=ReadWritePaths=")], ["--property=ReadWritePaths=" + str(services.ROOT)])
+                self.assertIn("--property=ReadOnlyPaths=" + str(services.fixture_paths(record)["source"]), arguments)
+                self.assertIn("--property=CapabilityBoundingSet=", arguments)
+                self.assertEqual(arguments[-2:], ("system", "--fixture-" + action))
+            self.assertEqual(services.validate_record(json.loads(json.dumps(record))), record)
+            record["active_units"] = {"system": unit}
+            with self.assertRaisesRegex(RuntimeError, "cannot be an active authority"): services.validate_record(record)
+            record.pop("active_units")
+        with patch.object(services, "save", side_effect=AssertionError("mutation")):
+            with self.assertRaises(ValueError): services.start_unit(record, "user", fixture="store-publish")
+
+    def test_publication_payload_locations_must_be_unique(self):
+        slot, target = self.root / "slot", self.root / "store/object"
+        slot.mkdir()
+        target.mkdir(parents=True)
+        staging = slot / "staging"
+        staging.mkdir()
+        paths = dict(staging=staging, container=slot / "publication", target=target)
+        self.assertEqual(services.fixture_payload({}, paths), staging)
+        publication = {"fixture_publication": {}}
+        staging.rename(target / "payload")
+        self.assertEqual(services.fixture_payload(publication, paths), target / "payload")
+        staging.mkdir()
+        with self.assertRaisesRegex(RuntimeError, "ambiguous/missing"): services.fixture_payload(publication, paths)
+
     def test_storage_administration_cannot_become_a_live_broker(self):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},

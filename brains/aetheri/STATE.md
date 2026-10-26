@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — system-domain fixture journal and cross-boot staged reopening.
+27 October 2026 — journaled, sealed fixture-store publication.
 
 ## Confirmed
 
@@ -36,22 +36,52 @@ payload IO. Exact retry retains IDs/revisions; failed/uncertain work remains liv
 READY means an applied stage with operation running/publish, artifact staged,
 install preparing and generation staged. Nothing is published, active or completed.
 
+The separate [publication path](../../src/core/publish.h) now moves the original
+payload into a preallocated manifest/payload container and publishes that container
+under ArtifactId using same-mount RENAME_NOREPLACE. Immutable AETHSTO1 configuration
+binds the original stage hash, store anchor and container witnesses to journal
+step 1 before effects. Retries revalidate identity/content and repeat every flush;
+unknown targets and invalid namespace combinations are preserved and rejected.
+Final files/directories receive separate read-only MAC types. Actual enforcing
+cap-zero system units publish and replay without changing original root inodes,
+file metadata or operation revision. Owner chmod and executable mmap are denied.
+
+Publication commits artifact verified/generation committed atomically, while
+install stays preparing, activated_once=0 and operation running/reconcile with
+activation_pending and no result/outcome/lease. Public capabilities are unchanged.
+General dynamic allocation, volume/publisher trust, activation/admission, launch,
+document transport and complete recovery coordination remain pending.
+
 Actual native ELF stage/retry and cross-boot reopen pass. A same-filesystem copied
 source with identical bytes fails native ESTALE without changing the catalogue;
 its isolated probe is retired while the real source/stage remain. Enforcing AVCs
 confirm executable-map denial for both source and stage types, including the
 system role. Existing endpoint/app denial checks and private allocation reopening
 pass after the boot. Owned services/probes are stopped; both tracked fixtures remain.
+The staged payload has since moved into the sealed store through its original
+operation. After graceful shutdown/QEMU exit 0, verified PID absence and offline
+boot of the same disk, fixture-store-check reports cross_boot_reopen=true. Exact
+labels, original root objects, denied final mutations and unchanged publication
+revision pass again, followed by normal endpoint/app-denial and private storage
+checks. Use fixture-store-check now; the old stage path no longer exists.
 
-Native suites pass 21/21 Debug ASan/UBSan and 21/21 Release (45.53 s for Release),
-including journal lost-commit/identity/deadline cases and configuration bounds.
-Twenty-nine host guards pass (latest 0.231 s); the isolated host validator passes
+Native suites pass 23/23 Debug ASan/UBSan (77.94 s) and 23/23 Release (55.99 s),
+including publication rename/fsync faults, process exits, separate-process replay,
+unknown/copied roots, metadata conflicts and actual same-inode bind rejection.
+The extended journal tests inject before/after COMMIT failure at every publication
+phase and retain immutable evidence/IDs without activating. Internal configuration
+decoders cover byte bounds and missing/malformed object witnesses. Actual final
+owner-chmod denial probes were then built and exercised in the installed service.
+The strengthened copied-final-container case passes focused publication/mount
+repeats in Debug (12.00 s) and Release (10.77 s).
+Thirty-one host guards pass (24 orchestration and seven cache/input checks);
+27 migration/wire tests pass (46.744 s). The isolated host validator passes
 374 assertions on SQLite 3.53.1. Native guest SQLite remains pinned at 3.51.2.
 SQL/XML and frozen byte contracts and SDK
 pins are unchanged. New internal AETHFIC1 configuration, policy types and owned
 administrative binaries are documented in [runtime contracts](../../spec/runtime.md).
-Public methods/capabilities remain discovery-only. Store publication, activation,
-general recovery coordination and app/run admission remain next.
+Public methods/capabilities remain discovery-only. Activation, general recovery
+coordination and app/run admission remain next.
 
 [Versioned contracts](../../spec/README.md): complete common/system/user v2 SQL,
 five new table designs, unchanged v1 references and two additive XML interfaces
@@ -340,7 +370,7 @@ No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: atomic fixture store publication and activation/admission, app/run principal
+Next: activation/admission, app/run principal
 mapping, protected read refs, launcher/target-exec and remaining recovery/policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.

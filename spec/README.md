@@ -28,6 +28,7 @@ lifecycle methods defined by these contracts.
 | [fixture.h](../src/core/fixture.h), [fixture.c](../src/core/fixture.c), [native fixture tests](../tools/test_fixture_native.py) | Canonical C17 metadata decoding and field/bounds checks; no payload hashing, trust or importer |
 | [root.h](../src/core/root.h), [storage.h](../src/core/storage.h), [storage reference tests](../tests/test_storage_ref.c) | Runtime held/named mount identity and expected private-root binding; no durable volume enrollment or public grant transport |
 | [allocation.h](../src/core/allocation.h), [allocation-v1.json](vectors/allocation-v1.json), [native tests](../tools/test_allocation_native.py) | Immutable 168-byte allocation object witness and create-only publication/reopening; no volume authentication or complete operation journal |
+| [publish.h](../src/core/publish.h), [publication tests](../tools/test_publish_native.py) | Same-mount no-replace fixture publication and repeat flushes; installed journal/MAC integration and internal AETHSTO1 are described in runtime.md |
 | [vm-inputs.json](vm-inputs.json), [prepare_vm.py](../tools/prepare_vm.py) | Pinned development-carrier downloads and verification, without installation/execution |
 | [provision_windows.py](../tools/provision_windows.py), [run_vm.py](../tools/run_vm.py) | Local archive extraction and guarded disposable-guest installation/control |
 | [p0-carrier.ks.in](p0-carrier.ks.in), [inspect_carrier.py](../tools/inspect_carrier.py) | Scoped virtual-disk installation and observed Linux carrier prerequisites |

@@ -212,8 +212,9 @@ entire read-only inventory and content and repeats every required flush before
 returning success, even if an earlier root flush failed. It does not adopt an
 unbound candidate, finish a journal or prove physical power-loss durability.
 The administrative P0 integration below now supplies these gates for a trusted
-carrier fixture. General dynamic allocation, atomic store publication and recovery
-coordination remain next. Existing SQL/XML and canonical byte formats are unchanged.
+carrier fixture. Journaled atomic store publication is described below. General
+dynamic allocation and recovery coordination remain next. Existing SQL/XML and
+canonical byte formats are unchanged.
 
 ### Administrative P0 stage journal
 
@@ -229,7 +230,8 @@ rejected by this P0 native acceptance path until their admission is implemented.
 
 The source and slot live under the root-owned 0700 directory
 `/var/lib/aetheri-p0/fixtures/<StageSlotId>/`. `source/` and its children have
-aetheri_fixture_source_t; writable `staging/` has aetheri_staging_t. Both types
+aetheri_fixture_source_t; writable `staging/` has aetheri_staging_t. The containing
+slot has aetheri_stage_parent_t, a narrow namespace-mutation boundary. Both payload types
 deny executable mappings/execution to Aetheri processes. Apps cannot access the
 stage. This StageSlotId identifies preallocated carrier infrastructure; it is not
 the private-data StorageRef/DataEpoch/allocation-operation lifetime.
@@ -285,6 +287,77 @@ copy inside only its unit namespace: native ESTALE and unchanged catalogue are
 required before explicitly retiring that verified temporary copy. No live fixture,
 private data, unknown tree or volume is cleaned up. Empty-bootstrap cleanup refuses
 this prepared installation and the existing private allocation.
+
+### Administrative P0 store publication
+
+[core/publish](../src/core/publish.h) moves the independently bound payload into
+a preallocated container, writes a create-only immutable manifest, then publishes
+that whole container under `store/sha256/<ArtifactId>/`. Its only children are
+`manifest` and `payload/`. Both moves use renameat2(RENAME_NOREPLACE); the original
+payload/container inode and birth witnesses survive. An unknown existing target
+is rejected, even when its bytes match. There is no copy, overwrite or weaker
+rename fallback. All held parents and moved roots must have the same current
+unique mount ID. Matching st_dev alone is insufficient.
+
+The native system administrative path owns the journal and filesystem work.
+`--fixture-store-observe` reads preallocated objects; the root controller compares
+their inodes with its independent infrastructure receipt. It persists seal intent
+before publishing root-owned 0444 `registry/fixture-store.conf` (registry type):
+
+```text
+"AETHSTO1"[8]
+H stage_configuration_digest
+store_anchor_witness[36], publication_container_witness[36]
+```
+
+This internal 112-byte configuration uses the same witness encoding as AETHFIC1;
+both object witnesses must be present. Its SHA-256 is immutable step-1 evidence,
+binding the original stage configuration and separate store/container objects.
+The controller supplies carrier infrastructure, not a production dynamic allocator
+or publisher/signature enrollment. Configuration, receipts and objects are retained
+after uncertain results; empty-bootstrap cleanup refuses this installation.
+
+`--fixture-store-publish` first requires an existing exact accepted request and
+applied stage. It never accepts a new operation, refreshes its deadline or chooses
+replacement IDs. The existing v2 operation_steps table receives step 1, action
+publish, kind storage, ArtifactId subject. PLANNED reserves its configuration hash;
+EXECUTING is committed before filesystem effects. Failed work can become uncertain
+with the operation blocked/publish. Replays locate only the expected container and
+payload in the original, nested or final positions. Visible names/content alone
+never settle an uncertain operation. Full inventory/hash/identity checks and every
+file/directory/old-parent/new-parent flush are repeated, including after a final
+name became visible. Unexpected namespace combinations or missing final metadata
+are rejected rather than repaired from an unbound candidate.
+
+After the namespace moves, the service seals exact files/directories, revalidates
+the whole object and flushes again. Code/data/manifest have separate read-only
+SELinux types; directories are 0555 with aetheri_store_dir_t. The system role cannot
+write, chmod, relabel from final types or remove the store entry. Apps have no
+store access or execution permission yet. Native executable-mmap and owner chmod
+probes must fail, so ordinary read-only modes alone cannot claim MAC sealing.
+There are no remaining payload/manifest writer FDs at sealing.
+
+The publication unit uses one ReadWritePaths ancestor for this owned P0 root,
+with source explicitly ReadOnlyPaths. Separate writable leaf binds would prevent
+the required cross-parent rename. UID 0, NoNewPrivileges, empty capabilities,
+private mounts and MAC restrictions remain: this namespace choice grants no
+registry/private-user writes to the system domain. Only trusted PID 1 mounts it.
+
+Only after those checks does one SQLite transaction set the publish step applied,
+artifact verified and generation committed. Install stays preparing with no active
+generation; operation stays running/reconcile, reason activation_pending, with no
+outcome/result/lease. Applied publication cannot be downgraded by this API; later
+corruption must block admission. Lost COMMIT acknowledgement retains the original
+binding and requires recheck. General recovery coordination, activation, launching,
+document grants, package signatures and physical power-loss acceptance remain
+separate work. No public API capability or schema/wire version changes.
+
+After a Release build/update-owned and successful fixture-check, run the root-only
+controller actions fixture-store-prepare, then fixture-store-check. The latter
+uses separate native units for publication and exact replay; it checks content,
+labels, modes, original root inodes and unchanged operation/object metadata.
+Once publication starts, use fixture-store-check for reconciliation; the older
+fixture-check/rebind check addresses only the original staging location.
 
 ## Private-root owner v1
 

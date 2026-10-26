@@ -52,8 +52,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   staged payloads and repeats required flushes. A protected system-domain P0
   administrative path now binds a preallocated carrier slot and native install
   intent/journal before payload writes; it reopens after a guest boot. Read
-  spec/runtime.md's administrative stage journal. Publication, general dynamic
-  allocation, caller admission and complete recovery coordination remain pending.
+  spec/runtime.md's administrative stage journal and store publication. The trusted
+  fixture now publishes a manifest/payload container through no-replace same-mount
+  renames, immutable AETHSTO1 object evidence, full repeated flushes and final MAC
+  sealing. Published metadata is not activation: install preparing, operation
+  running/reconcile and no lease/run. General dynamic allocation, activation,
+  caller admission and complete recovery coordination remain pending. After moving
+  the payload use fixture-store-check, not the original stage/rebind checks.
   The slot ID is not a private-data StorageRef. Never adopt a candidate root from
   matching content/name; retain independent configuration/operation bindings.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.

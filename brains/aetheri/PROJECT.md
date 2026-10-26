@@ -89,7 +89,9 @@ against an independently expected ArtifactId and verify held-file content.
 The native payload stager checks complete inventory and copied bytes. The protected
 system-domain administrative path now binds a trusted native fixture to its
 preallocated carrier slot and operation journal, including cross-boot reopening.
-General dynamic allocation, store publication and admission remain separate work.
+The trusted fixture can now be published as one sealed manifest/payload object
+under its ArtifactId, with immutable operation evidence and exact retries.
+General dynamic allocation, activation and admission remain separate work.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete

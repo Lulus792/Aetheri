@@ -687,6 +687,18 @@ static int fixture_scope(struct ae_catalogue *store, const struct ae_fixture_req
     return result;
 }
 
+static int fixture_state(sqlite3_stmt *statement, int column, enum ae_fixture_step *step)
+{
+    const unsigned char *state=sqlite3_column_text(statement,column);
+    if (state==NULL) return -EUCLEAN;
+    if (strcmp((const char *)state,"planned")==0) *step=AE_FIXTURE_PLANNED;
+    else if (strcmp((const char *)state,"executing")==0) *step=AE_FIXTURE_EXECUTING;
+    else if (strcmp((const char *)state,"applied")==0) *step=AE_FIXTURE_READY;
+    else if (strcmp((const char *)state,"uncertain")==0) *step=AE_FIXTURE_UNCERTAIN;
+    else return -EUCLEAN;
+    return 0;
+}
+
 static int fixture_row(struct ae_catalogue *store, const struct fixture_value values[20], struct ae_fixture_progress *output)
 {
     int64_t count;
@@ -695,14 +707,15 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
     if (count != 1) return -EEXIST;
     sqlite3_stmt *statement = NULL;
     result = fixture_statement(store, FIXTURE_INPUT
-        "SELECT s.state,s.evidence_digest,o.revision,o.phase,o.state FROM input r "
+        "SELECT s.state,s.evidence_digest,o.revision,o.phase,o.state,t.state,t.evidence_digest,a.store_state,g.publication_state FROM input r "
         "JOIN operations o ON o.operation_id=r.op AND o.plan_id=r.plan AND o.actor_ref=r.actor AND o.request_key=r.retry AND o.intent_digest=r.digest AND o.accepted_unix_ms=r.accepted "
         "JOIN plans p ON p.plan_id=r.plan AND p.authority_epoch=r.authority AND p.actor_ref=r.actor AND p.scope_ref=r.scope AND p.kind='install' AND p.component_id=r.component AND p.artifact_ref=r.artifact AND p.intent_digest=r.digest AND p.boot_id=r.boot AND p.expires_boottime_ns=r.expires AND p.state='accepted' AND p.retention='none' "
         "JOIN components c ON c.component_id=r.component AND c.publisher_ref=r.publisher AND c.kind='app' AND c.protected=0 "
-        "JOIN artifacts a ON a.artifact_id=r.artifact AND a.component_id=r.component AND a.version_label=r.version AND a.target=r.target AND a.store_state='staged' "
+        "JOIN artifacts a ON a.artifact_id=r.artifact AND a.component_id=r.component AND a.version_label=r.version AND a.target=r.target "
         "JOIN installs i ON i.install_id=r.install AND i.component_id=r.component AND i.scope_id=r.scope AND i.state='preparing' AND i.active_generation_id IS NULL "
-        "JOIN generations g ON g.generation_id=r.generation AND g.install_id=r.install AND g.component_id=r.component AND g.artifact_id=r.artifact AND g.publication_state='staged' AND g.activated_once=0 "
+        "JOIN generations g ON g.generation_id=r.generation AND g.install_id=r.install AND g.component_id=r.component AND g.artifact_id=r.artifact AND g.activated_once=0 "
         "JOIN operation_steps s ON s.operation_id=r.op AND s.step_no=0 AND s.action='stage' AND s.subject_kind='storage' AND s.subject_ref=r.slot "
+        "LEFT JOIN operation_steps t ON t.operation_id=r.op AND t.step_no=1 AND t.action='publish' AND t.subject_kind='storage' AND t.subject_ref=r.artifact "
         "WHERE o.state IN ('accepted','running','blocked','recovering') AND o.outcome IS NULL AND o.result_kind IS NULL "
         "AND p.install_ref IS NULL AND p.generation_ref IS NULL AND p.data_epoch_ref IS NULL AND p.grant_ref IS NULL AND p.action_id IS NULL",
         values, &statement);
@@ -711,14 +724,22 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
         int code = sqlite3_step(statement);
         if (code != SQLITE_ROW) result = code == SQLITE_DONE ? -ESTALE : failure(code);
         else {
-            const unsigned char *state = sqlite3_column_text(statement, 0), *phase = sqlite3_column_text(statement, 3);
-            if (state == NULL || phase == NULL) result = -EUCLEAN;
-            else if (strcmp((const char *)state, "planned") == 0) progress.step = AE_FIXTURE_PLANNED;
-            else if (strcmp((const char *)state, "executing") == 0) progress.step = AE_FIXTURE_EXECUTING;
-            else if (strcmp((const char *)state, "applied") == 0) progress.step = AE_FIXTURE_READY;
-            else if (strcmp((const char *)state, "uncertain") == 0) progress.step = AE_FIXTURE_UNCERTAIN;
-            else result = -EUCLEAN;
-            if (result == 0 && strcmp((const char *)phase, progress.step == AE_FIXTURE_PLANNED ? "validate" : progress.step == AE_FIXTURE_READY ? "publish" : "stage") != 0) result = -EUCLEAN;
+            result=fixture_state(statement,0,&progress.step);
+            if (result==0 && sqlite3_column_type(statement,5)!=SQLITE_NULL) {
+                progress.publication_present=1;
+                result=fixture_state(statement,5,&progress.publication_step);
+                if (result==0 && (progress.step!=AE_FIXTURE_READY || sqlite3_column_type(statement,6)!=SQLITE_BLOB ||
+                    sqlite3_column_bytes(statement,6)!=32)) result=-EUCLEAN;
+                if (result==0) memcpy(progress.publication_evidence,sqlite3_column_blob(statement,6),32);
+            }
+            int published=progress.publication_present && progress.publication_step==AE_FIXTURE_READY;
+            const unsigned char *phase=sqlite3_column_text(statement,3), *artifact_state=sqlite3_column_text(statement,7),
+                *generation_state=sqlite3_column_text(statement,8);
+            const char *expected_phase=published ? "reconcile" : progress.step==AE_FIXTURE_PLANNED ? "validate" : progress.step==AE_FIXTURE_READY ? "publish" : "stage";
+            if (result==0 && (phase==NULL || artifact_state==NULL || generation_state==NULL ||
+                strcmp((const char *)phase,expected_phase)!=0 ||
+                strcmp((const char *)artifact_state,published ? "verified" : "staged")!=0 ||
+                strcmp((const char *)generation_state,published ? "committed" : "staged")!=0)) result=-EUCLEAN;
             if (result == 0 && sqlite3_column_type(statement, 1) != SQLITE_NULL) {
                 if (sqlite3_column_type(statement, 1) != SQLITE_BLOB || sqlite3_column_bytes(statement, 1) != 32) result = -EUCLEAN;
                 else { memcpy(progress.evidence, sqlite3_column_blob(statement, 1), 32); progress.evidence_present = 1; }
@@ -738,7 +759,7 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
         FIXTURE_INPUT "SELECT count(*) FROM plan_effects e,input r WHERE e.plan_id=r.plan AND e.component_id=r.component AND e.disposition='create' AND e.reason_code='fixture_prepare' AND ((e.effect_no=0 AND e.subject_kind='install' AND e.subject_ref=r.install) OR (e.effect_no=1 AND e.subject_kind='generation' AND e.subject_ref=r.generation) OR (e.effect_no=2 AND e.subject_kind='storage' AND e.subject_ref=r.slot))",
         FIXTURE_INPUT "SELECT count(*) FROM operation_steps s,input r WHERE s.operation_id=r.op"
     };
-    const int64_t expected[] = {1,1,3,3,1};
+    const int64_t expected[] = {1,1,3,3,progress.publication_present ? 2 : 1};
     for (size_t n = 0; result == 0 && n < sizeof checks / sizeof checks[0]; ++n) {
         result = fixture_count(store, checks[n], values, &count);
         if (result == 0 && count != expected[n]) result = -ESTALE;
@@ -818,6 +839,7 @@ int ae_catalogue_fixture_transition(struct ae_catalogue *store, const struct ae_
     result = fixture_scope(store, request);
     struct ae_fixture_progress progress;
     if (result == 0) result = fixture_row(store, values, &progress);
+    if (result == 0 && progress.publication_present) result = -EBUSY;
     if (result == 0 && progress.evidence_present && memcmp(progress.evidence, evidence, 32) != 0) result = -ESTALE;
     if (result == 0 && ((progress.step == AE_FIXTURE_PLANNED && step != AE_FIXTURE_EXECUTING) ||
         (progress.step == AE_FIXTURE_READY && step == AE_FIXTURE_EXECUTING))) result = -EINVAL;
@@ -843,6 +865,78 @@ int ae_catalogue_fixture_transition(struct ae_catalogue *store, const struct ae_
     }
     result = fixture_commit(store, result);
     if (result == 0) *output = progress;
+    return result;
+}
+
+int ae_catalogue_fixture_get(struct ae_catalogue *store, const struct ae_fixture_request *request,
+                             const uint8_t *manifest,size_t size,struct ae_fixture_progress *output)
+{
+    if (output==NULL) return -EINVAL;
+    struct ae_fixture fixture;
+    uint8_t digest[32];
+    struct fixture_value values[20];
+    int result=fixture_inputs(store,request,manifest,size,&fixture,digest,values);
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN");
+    if (result!=0) return result;
+    struct ae_fixture_progress progress;
+    result=fixture_scope(store,request);
+    if (result==0) result=fixture_row(store,values,&progress);
+    result=fixture_commit(store,result);
+    if (result==0) *output=progress;
+    return result;
+}
+
+int ae_catalogue_fixture_publication(struct ae_catalogue *store,const struct ae_fixture_request *request,
+                                     const uint8_t *manifest,size_t size,enum ae_fixture_step step,
+                                     const uint8_t evidence[32],struct ae_fixture_progress *output)
+{
+    if (output==NULL || evidence==NULL || step<AE_FIXTURE_PLANNED || step>AE_FIXTURE_UNCERTAIN) return -EINVAL;
+    struct ae_fixture fixture;
+    uint8_t digest[32];
+    struct fixture_value values[20];
+    int result=fixture_inputs(store,request,manifest,size,&fixture,digest,values);
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE");
+    if (result!=0) return result;
+    struct ae_fixture_progress progress;
+    result=fixture_scope(store,request);
+    if (result==0) result=fixture_row(store,values,&progress);
+    if (result==0 && progress.step!=AE_FIXTURE_READY) result=-EINVAL;
+    if (result==0 && progress.publication_present && memcmp(progress.publication_evidence,evidence,32)!=0) result=-ESTALE;
+    if (result==0 && ((!progress.publication_present && step!=AE_FIXTURE_PLANNED) ||
+        (progress.publication_present && progress.publication_step!=step &&
+            (step==AE_FIXTURE_PLANNED || progress.publication_step==AE_FIXTURE_READY ||
+             (progress.publication_step==AE_FIXTURE_PLANNED && step!=AE_FIXTURE_EXECUTING))))) result=-EINVAL;
+    int change=result==0 && (!progress.publication_present || progress.publication_step!=step);
+    if (change) {
+        struct ae_catalogue_info info;
+        result=read_info(store,&info);
+        if (result==0 && (info.revision==INT64_MAX || progress.revision==INT64_MAX)) result=-EOVERFLOW;
+        if (result==0 && !progress.publication_present) result=fixture_execute(store,FIXTURE_INPUT
+            "INSERT INTO operation_steps(operation_id,step_no,action,subject_kind,subject_ref,state) SELECT op,1,'publish','storage',artifact,'planned' FROM input",values);
+        sqlite3_stmt *statement=NULL;
+        const char *state=step==AE_FIXTURE_PLANNED ? "planned" : step==AE_FIXTURE_EXECUTING ? "executing" : step==AE_FIXTURE_READY ? "applied" : "uncertain";
+        if (result==0) result=failure(sqlite3_prepare_v2(store->db,"UPDATE operation_steps SET state=?,evidence_digest=? WHERE operation_id=? AND step_no=1",-1,&statement,NULL));
+        if (result==0) result=failure(sqlite3_bind_text(statement,1,state,-1,SQLITE_STATIC));
+        if (result==0) result=failure(sqlite3_bind_blob(statement,2,evidence,32,SQLITE_TRANSIENT));
+        if (result==0) result=failure(sqlite3_bind_blob(statement,3,request->operation,16,SQLITE_TRANSIENT));
+        if (result==0) result=failure(sqlite3_step(statement)==SQLITE_DONE ? SQLITE_OK : sqlite3_errcode(store->db));
+        int final=failure(sqlite3_finalize(statement));
+        if (result==0) result=final;
+        if (result==0 && step==AE_FIXTURE_READY) result=fixture_execute(store,FIXTURE_INPUT
+            "UPDATE artifacts SET store_state='verified' WHERE artifact_id=(SELECT artifact FROM input)",values);
+        if (result==0 && step==AE_FIXTURE_READY) result=fixture_execute(store,FIXTURE_INPUT
+            "UPDATE generations SET publication_state='committed',revision=revision+1 WHERE generation_id=(SELECT generation FROM input)",values);
+        if (result==0) result=fixture_execute(store,step==AE_FIXTURE_READY ? FIXTURE_INPUT
+            "UPDATE operations SET state='running',phase='reconcile',reason_code='activation_pending',revision=revision+1 WHERE operation_id=(SELECT op FROM input)" : step==AE_FIXTURE_UNCERTAIN ? FIXTURE_INPUT
+            "UPDATE operations SET state='blocked',phase='publish',reason_code='fixture_publish_uncertain',revision=revision+1 WHERE operation_id=(SELECT op FROM input)" : FIXTURE_INPUT
+            "UPDATE operations SET state='running',phase='publish',reason_code='',revision=revision+1 WHERE operation_id=(SELECT op FROM input)",values);
+        if (result==0) result=exec_sql(store->db,"UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+        if (result==0) result=fixture_row(store,values,&progress);
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *output=progress;
     return result;
 }
 

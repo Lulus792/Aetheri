@@ -81,7 +81,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage)))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -337,7 +337,19 @@ FIXTURE_IDS = ("plan", "operation", "actor", "request_key", "scope", "install", 
 def fixture_paths(record):
     parent = ROOT / "fixtures" / record["fixture"]["slot"]
     return dict(parent=parent, source=parent / "source", staging=parent / "staging",
-                config=ROOT / "registry/fixture.conf", manifest=ROOT / "registry/fixture.manifest")
+                config=ROOT / "registry/fixture.conf", manifest=ROOT / "registry/fixture.manifest",
+                container=parent / "publication", store=ROOT / "store/sha256",
+                target=ROOT / "store/sha256" / record["fixture"]["artifact"], store_config=ROOT / "registry/fixture-store.conf")
+
+
+def fixture_payload(record, paths):
+    candidates = [paths["staging"]]
+    if "fixture_publication" in record:
+        candidates += [paths["container"] / "payload", paths["target"] / "payload"]
+    existing = [path for path in candidates if path.exists() or path.is_symlink()]
+    if len(existing) != 1 or existing[0].is_symlink():
+        raise RuntimeError("ambiguous/missing fixture payload location")
+    return existing[0]
 
 
 def fixture_config(record, roots):
@@ -365,12 +377,14 @@ def verify_fixture(record, allow_unfinished=False):
     if state not in ("prepared", "stage-ready") and not (allow_unfinished and state in ("observing", "sealing")):
         raise RuntimeError("unfinished fixture provisioning needs explicit reconciliation")
     paths, fixture = fixture_paths(record), record["fixture"]
-    for path, mode in ((ROOT / "fixtures", 0o700), (paths["parent"], 0o700), (paths["source"], 0o555), (paths["staging"], 0o700)):
+    payload = fixture_payload(record, paths)
+    for path, mode in ((ROOT / "fixtures", 0o700), (paths["parent"], 0o700), (paths["source"], 0o555), (payload, None)):
         info = path.lstat()
-        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) != mode:
+        modes = (0o700, 0o555) if mode is None and "fixture_publication" in record else (0o700,) if mode is None else (mode,)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) not in modes:
             raise RuntimeError("fixture root ownership/mode changed")
     for key in ("source", "staging"):
-        info = paths[key].stat()
+        info = (payload if key == "staging" else paths[key]).stat()
         expected = fixture["objects"][key]
         if info.st_ino != expected[0] or (state in ("observing", "sealing") and info.st_ctime_ns != expected[1]):
             raise RuntimeError("preallocated fixture object changed")
@@ -392,6 +406,19 @@ def verify_fixture(record, allow_unfinished=False):
     if state == "sealing": acceptable.add(fixture["sealed_sha256"])
     if checksum(paths["config"]) not in acceptable:
         raise RuntimeError("protected fixture configuration changed")
+    if "fixture_publication" in record:
+        publication = record["fixture_publication"]
+        if publication["state"] not in ("observing", "sealing", "prepared", "executing", "published"):
+            raise RuntimeError("unfinished publication infrastructure needs reconciliation")
+        containers = [p for p in (paths["container"], paths["target"]) if p.exists() or p.is_symlink()]
+        if len(containers) != 1 or containers[0].is_symlink(): raise RuntimeError("ambiguous publication container")
+        for key, path in (("store", paths["store"]), ("container", containers[0])):
+            info = path.lstat()
+            if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) not in ((0o700,) if key == "store" else (0o700, 0o555)) or info.st_ino != publication["objects"][key]:
+                raise RuntimeError("preallocated publication object changed")
+        if publication["state"] not in ("observing", "sealing"):
+            owned_file(paths["store_config"], 0o444)
+            if checksum(paths["store_config"]) != publication["config_sha256"]: raise RuntimeError("publication configuration changed")
 
 
 def fixture_prepare(record):
@@ -432,7 +459,7 @@ def fixture_prepare(record):
         save(record)  # Administrative carrier-infrastructure intent before effects.
         paths = fixture_paths(record)
         directory(ROOT / "fixtures", "aetheri_root_t", mode=0o700)
-        directory(paths["parent"], "aetheri_root_t", mode=0o700)
+        directory(paths["parent"], "aetheri_stage_parent_t", mode=0o700)
         directory(paths["source"], "aetheri_fixture_source_t", mode=0o700)
         for name in ("bin", "share"): directory(paths["source"] / name, "aetheri_fixture_source_t", mode=0o700)
         publish(paths["source"] / "bin/probe", binary, "aetheri_fixture_source_t", mode=0o555)
@@ -514,6 +541,89 @@ def fixture_check(record):
     print(json.dumps(record["fixture_check"]))
 
 
+def fixture_store_prepare(record):
+    verified(record)
+    stop(record)
+    paths = fixture_paths(record)
+    if "fixture_publication" not in record:
+        if record["fixture_state"] != "stage-ready": raise RuntimeError("stage verification is required first")
+        for path in (ROOT / "store", paths["container"], paths["store_config"]):
+            if path.exists() or path.is_symlink(): raise RuntimeError("unowned publication infrastructure exists")
+        record["fixture_publication"] = dict(state="preparing")
+        save(record)  # Root-provisioned carrier infrastructure, not dynamic allocation.
+        directory(ROOT / "store", "aetheri_root_t", mode=0o700)
+        directory(paths["store"], "aetheri_store_parent_t", mode=0o700)
+        directory(paths["container"], "aetheri_publication_t", mode=0o700)
+        for path in (paths["container"], paths["parent"], paths["store"], ROOT / "store", ROOT): flush_path(path, True)
+        record["fixture_publication"].update(state="observing", objects={key: paths[key].stat().st_ino for key in ("store", "container")})
+        save(record)
+    publication = record["fixture_publication"]
+    if publication["state"] == "observing":
+        unit = start_unit(record, "system", fixture="store-observe")
+        output = run("journalctl", "-u", unit, "--output=cat", "--no-pager")
+        values = re.findall(r"^fixture-store-roots ([0-9a-f]{144})$", output, re.M)
+        if len(values) != 1: raise RuntimeError("publication object observation missing/ambiguous")
+        roots = bytes.fromhex(values[0])
+        for offset, key in ((0, "store"), (36, "container")):
+            if struct.unpack_from(">Q", roots, offset + 16)[0] != publication["objects"][key]: raise RuntimeError("publication observation differs from provisioned inode")
+        data = b"AETHSTO1" + bytes.fromhex(record["fixture"]["config_sha256"]) + roots
+        publication.update(state="sealing", config=data.hex(), config_sha256=hashlib.sha256(data).hexdigest())
+        save(record)
+    if publication["state"] == "sealing":
+        data = bytes.fromhex(publication["config"])
+        if not paths["store_config"].exists(): publish(paths["store_config"], data, "aetheri_registry_t")
+        owned_file(paths["store_config"], 0o444)
+        if paths["store_config"].read_bytes() != data: raise RuntimeError("uncertain publication configuration differs")
+        flush_path(paths["store_config"])
+        flush_path(ROOT / "registry", True)
+        publication["state"] = "prepared"
+        save(record)
+    verified(record)
+    print("Publication container and store witness configuration sealed; no payload moved or publication step accepted.")
+
+
+def fixture_store_check(record):
+    verified(record)
+    stop(record)
+    fixture, publication = record["fixture"], record["fixture_publication"]
+    if publication["state"] not in ("prepared", "executing", "published"): raise RuntimeError("publication infrastructure not sealed")
+    publication["state"] = "executing" if publication["state"] != "published" else "published"
+    save(record)  # Permit known alternate locations after an interrupted native dispatch.
+    def journal():
+        with sqlite3.connect(f"file:{state_path(record, 'system') / 'catalogue.sqlite3'}?mode=ro", uri=True) as db:
+            return db.execute("SELECT o.state,o.phase,o.outcome,o.revision,s.state,lower(hex(s.evidence_digest)),a.store_state,i.state,g.publication_state,g.activated_once,i.active_generation_id,o.reason_code FROM operations o JOIN operation_steps s USING(operation_id) JOIN artifacts a ON a.artifact_id=? JOIN installs i ON i.install_id=? JOIN generations g ON g.generation_id=? WHERE o.operation_id=? AND s.step_no=1",
+                              tuple(bytes.fromhex(fixture[key]) for key in ("artifact", "install", "generation", "operation"))).fetchone()
+    start_unit(record, "system", fixture="store-publish")
+    first = journal()
+    expected = ("running", "reconcile", None, first[3] if first else None, "applied", publication["config_sha256"], "verified", "preparing", "committed", 0, None, "activation_pending")
+    if first != expected: raise AssertionError(("publication journal differs", first))
+    paths = fixture_paths(record)
+    container, payload = paths["target"], paths["target"] / "payload"
+    if container.stat().st_ino != publication["objects"]["container"] or payload.stat().st_ino != fixture["objects"]["staging"][0]: raise AssertionError("publication copied/replaced an expected root")
+    expected_paths = {".", "manifest", "payload", "payload/bin", "payload/share"} | {"payload/" + f["path"] for f in fixture["manifest"]["files"]}
+    if {"."} | {p.relative_to(container).as_posix() for p in container.rglob("*")} != expected_paths: raise AssertionError("published inventory differs")
+    snapshot = {p.relative_to(container).as_posix(): (p.stat().st_ino, p.stat().st_mode, p.stat().st_ctime_ns) for p in [container, *container.rglob("*")]}
+    for path in (container, payload, payload / "bin", payload / "share"):
+        if stat.S_IMODE(path.stat().st_mode) != 0o555 or os.getxattr(path, "security.selinux").rstrip(b"\0") != b"system_u:object_r:aetheri_store_dir_t:s0": raise AssertionError("store directory is not sealed")
+    owned_file(container / "manifest", 0o444)
+    if checksum(container / "manifest") != fixture["artifact"]: raise AssertionError("published manifest differs")
+    for file in fixture["manifest"]["files"]:
+        path = payload / file["path"]
+        owned_file(path, file["mode"])
+        expected_type = "aetheri_store_code_t" if file["mode"] == 0o555 else "aetheri_store_data_t"
+        if checksum(path) != file["sha256"] or os.getxattr(path, "security.selinux").rstrip(b"\0") != ("system_u:object_r:" + expected_type + ":s0").encode(): raise AssertionError("published content/label differs")
+    if os.getxattr(container / "manifest", "security.selinux").rstrip(b"\0") != b"system_u:object_r:aetheri_store_manifest_t:s0": raise AssertionError("manifest not sealed")
+    start_unit(record, "system", fixture="store-publish")
+    if journal() != first or snapshot != {p.relative_to(container).as_posix(): (p.stat().st_ino, p.stat().st_mode, p.stat().st_ctime_ns) for p in [container, *container.rglob("*")]}: raise AssertionError("publication retry rewrote objects/metadata")
+    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    first_boot = publication.setdefault("first_boot", boot)
+    publication.update(state="published", check=dict(native_journal=True, original_root_inodes=True, sealed_types=True,
+                       exact_replay=True, cross_boot_reopen=first_boot != boot, store_setattr_denied=True, activated=False, operation_completed=False))
+    save(record)
+    verified(record)
+    print(json.dumps(publication["check"]))
+
+
 def fixture_rebind_check(record):
     verified(record)
     stop(record)
@@ -591,7 +701,7 @@ def publish_broker_slot(record, unit):
 
 
 def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None):
-    if fixture is not None and (fixture not in ("observe", "stage") or role != "system" or init or probe or enroll or storage):
+    if fixture is not None and (fixture not in ("observe", "stage", "store-observe", "store-publish") or role != "system" or init or probe or enroll or storage):
         raise ValueError("fixture administration requires only the system role")
     if fixture_source_override is not None and (fixture != "stage" or fixture_source_override != fixture_paths(record)["parent"] / "copied-source"):
         raise ValueError("only the owned fixed fixture substitution probe may bind a source")
@@ -628,7 +738,10 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else [])
-        if fixture:
+        if fixture in ("store-observe", "store-publish"):
+            properties["ReadWritePaths"] = str(ROOT)
+            properties["ReadOnlyPaths"] = str(fixture_paths(record)["source"])
+        elif fixture:
             properties["ReadWritePaths"] += " " + str(fixture_paths(record)["staging"])
         if fixture_source_override is not None:
             properties["BindReadOnlyPaths"] = str(fixture_source_override) + ":" + str(fixture_paths(record)["source"])
@@ -893,6 +1006,13 @@ def update_owned(record):
     if hashlib.sha256(new_policy).hexdigest() != record["policy_sha256"]:
         run("semodule", "-X", "400", "-i", str(cil))
     record["policy_sha256"] = checksum(cil)
+    if "fixture" in record:
+        parent = fixture_paths(record)["parent"]
+        expected_inode = record.setdefault("fixture_parent_inode", parent.stat().st_ino)
+        save(record)  # Same protected slot, explicit type upgrade; never another root.
+        if parent.lstat().st_ino != expected_inode or parent.is_symlink(): raise RuntimeError("fixture parent changed during policy upgrade")
+        label(parent, "aetheri_stage_parent_t")
+        flush_path(parent, True)
     for role in ("system", "user"):
         target = ROOT / (role + "-authority")
         temporary = ROOT / (role + "-authority.next")
@@ -1098,6 +1218,8 @@ def main():
         elif action == "storage-check": storage_check(record)
         elif action == "fixture-prepare": fixture_prepare(record)
         elif action == "fixture-check": fixture_check(record)
+        elif action == "fixture-store-prepare": fixture_store_prepare(record)
+        elif action == "fixture-store-check": fixture_store_check(record)
         elif action == "fixture-rebind-check": fixture_rebind_check(record)
         else: raise RuntimeError("unsupported controller action")
     finally:

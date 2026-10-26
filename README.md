@@ -17,7 +17,8 @@ Immutable allocation records now preserve object bindings across a tested guest 
 Native SHA-256 verifies canonical fixture metadata and held-file content using
 OpenSSL 3.5 LTS. The system's internal administrative path now stages a trusted
 native probe under a durable operation and reopens it after a guest boot.
-Store publication, activation and app launch remain unfinished.
+That trusted fixture can now be atomically published into a sealed managed store,
+with journaled retries. Activation and app launch remain unfinished.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
@@ -114,7 +115,7 @@ limits are in [runtime contracts](spec/runtime.md).
 
 | Directory | Contents |
 | --- | --- |
-| src/core | Ownership/allocation records, fixture metadata, bounded storage and SHA-256 verification |
+| src/core | Ownership/allocation records, fixture metadata, bounded storage, staging/publication and SHA-256 verification |
 | src/catalogue | SQLite v2 identity/runtime/account and fixture-operation transactions |
 | src/linux | Bus credentials and live process/unit/invocation checks; app/run admission remains pending |
 | src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |

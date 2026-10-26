@@ -682,3 +682,48 @@ is active and no original desktop/system image is claimed.
 27 October handoff: final reviewed state retains the real fixtures, with all
 owned service/probe units stopped. Next implement journaled atomic publication;
 do not restart from another slot or turn staged metadata into active code early.
+
+### Sealed store publication — 27 October
+
+Implemented core/publish plus the existing catalogue/system administrative path.
+The original payload moves into a preallocated manifest/payload container, then
+same-mount RENAME_NOREPLACE publishes that container under ArtifactId. Independent
+AETHSTO1 binds stage configuration, store anchor and container inode/birth/filesystem
+witnesses to step-1 evidence. Separate root provisioning and native journal ownership
+remain explicit; general allocation and publisher enrollment are not implemented.
+
+Retries validate both expected objects and exact inventory/content and repeat all
+file/directory/old-parent/new-parent flushes. Errors retain effects. New final MAC
+types deny system-role mutations and all current app store access/execution.
+One owned RWP ancestor preserves the mount identity needed for rename; source is
+explicitly read-only. No capabilities, dependency, schema or public API is added.
+Applied publication means artifact verified/generation committed, but installation
+still preparing and operation running/reconcile/activation_pending. No lease/result.
+
+All 23 native tests pass Debug ASan/UBSan (77.94 s) and Release (55.99 s). New
+publication cases cover before/after rename failures, process exit, full resync,
+copied/unknown targets, conflicting metadata and real same-inode binds. Journal
+tests inject before/after real COMMIT acknowledgement failure at every publication
+phase. Host guards pass 31/31 and migration/wire tests 27/27 (46.744 s); isolated
+validator passes 374 assertions. Final chmod probes were then built and exercised
+in the actual installed system role, with unchanged inode/mode/ctime on replay.
+
+Actual enforcing cap-zero native publication/replay succeeds. Audit evidence shows
+store-code map and store-dir/code/data setattr denials, permissive=0. An initial
+follow-up discovery check was called while endpoints were stopped; explicit start
+then check passes. Private allocation reopening remains unchanged. All owned units
+drained, graceful QEMU exit 0 and PID absence preceded offline reboot of the same
+disk. An early SSH banner timeout was only an observation; live VM was preserved.
+After readiness, publication reports cross_boot_reopen=true with original objects,
+exact sealed labels and unchanged operation revision. Endpoint/app-denial and
+private-storage checks pass after boot; all owned authority/probe units stopped.
+Final review adds a complete byte-identical final-container substitution after
+pinning the original FDs: native ESTALE preserves both roots and never adopts the
+copy. Focused publication/mount Debug/Release repeats pass (12.00/10.77 s), now
+covering 34 ordinary fixtures plus four actual bind probes.
+
+Next: activation and app/run admission/recovery with target-exec evidence. Reuse
+the retained published fixture; fixture-store-check replaces original stage/rebind
+checks after the move. Preserve private allocation and both journals. Personal UI/
+destructive choices remain deferred under the user's delegated recommendation rule;
+the full personal OS/apps goal is active.

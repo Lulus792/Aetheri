@@ -2,6 +2,7 @@
 #include "core/digest.h"
 #include "core/fixture.h"
 #include "core/import.h"
+#include "core/publish.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -72,6 +73,19 @@ int ae_fixture_config_decode(const uint8_t *bytes, size_t size, struct ae_fixtur
     int result = witness_decode(bytes + 224, &config.source);
     if (result == 0) result = witness_decode(bytes + 260, &config.staging);
     if (result == 0) *output = config;
+    return result;
+}
+
+int ae_fixture_store_config_decode(const uint8_t *bytes,size_t size,struct ae_fixture_store_config *output)
+{
+    if (bytes==NULL || output==NULL) return -EINVAL;
+    if (size!=AE_FIXTURE_STORE_CONFIG_BYTES || memcmp(bytes,"AETHSTO1",8)!=0) return -EBADMSG;
+    struct ae_fixture_store_config config={0};
+    memcpy(config.stage_digest,bytes+8,32);
+    int result=witness_decode(bytes+40,&config.store);
+    if (result==0) result=witness_decode(bytes+76,&config.container);
+    if (result==0 && (config.store.inode==0 || config.container.inode==0)) result=-EBADMSG;
+    if (result==0) *output=config;
     return result;
 }
 
@@ -239,7 +253,7 @@ int ae_authority_fixture(struct ae_catalogue *catalogue, int observe, const uint
     int parent = -1, source = -1, stage = -1;
     if (result == 0) { parent = protected_directory(ROOT "/fixtures", 0700, "aetheri_root_t"); result = parent < 0 ? parent : 0; }
     result = close_owned(parent, result); parent = -1;
-    if (result == 0) { parent = protected_directory(parent_path, 0700, "aetheri_root_t"); result = parent < 0 ? parent : 0; }
+    if (result == 0) { parent = protected_directory(parent_path, 0700, "aetheri_stage_parent_t"); result = parent < 0 ? parent : 0; }
     if (result == 0) { source = protected_directory(source_path, 0555, "aetheri_fixture_source_t"); result = source < 0 ? source : 0; }
     if (result == 0) { stage = protected_directory(stage_path, 0700, "aetheri_staging_t"); result = stage < 0 ? stage : 0; }
     if (result == 0) result = labels(source, &fixture, "aetheri_fixture_source_t");
@@ -289,6 +303,192 @@ int ae_authority_fixture(struct ae_catalogue *catalogue, int observe, const uint
         if (result == 0) puts("fixture-stage ready; operation remains running/publish; artifact/generation remain staged");
     }
     result = close_owned(stage, result); result = close_owned(source, result); result = close_owned(parent, result);
+    free(manifest);
+    return result;
+}
+
+static int publication_directory(const char *path,const char *old_type)
+{
+    int fd=selected(path,1);
+    if (fd<0) return fd;
+    struct stat info;
+    int result=fstat(fd,&info)==0 ? 0 : -errno;
+    if (result==0 && (info.st_uid!=0 || ((info.st_mode&07777)!=0700 && (info.st_mode&07777)!=0555))) result=-EACCES;
+    if (result==0 && labeled_fd(fd,old_type)!=0) result=labeled_fd(fd,"aetheri_store_dir_t");
+    if (result!=0) return close_owned(fd,result);
+    return fd;
+}
+
+static int seal_node(int fd,const char *old_type,const char *final_type,mode_t mode,int root)
+{
+    struct stat info;
+    int result=fstat(fd,&info)==0 ? 0 : -errno;
+    char *context=NULL;
+    if (result==0 && fgetfilecon_raw(fd,&context)<0) result=-EACCES;
+    int sealed=result==0 && has_type(context,final_type);
+    if (result==0 && (!sealed && !has_type(context,old_type))) result=-EACCES;
+    if (result==0 && (info.st_uid!=0 || (info.st_mode&07777)!=mode)) {
+        if (!sealed && root && (info.st_mode&07777)==0700 && info.st_uid==0) {
+            if (fchmod(fd,mode)!=0) result=-errno;
+        } else result=-EACCES;
+    }
+    if (result==0 && !sealed) {
+        char target[128];
+        int length=snprintf(target,sizeof target,"system_u:object_r:%s:s0",final_type);
+        if (length<0 || (size_t)length>=sizeof target) result=-EOVERFLOW;
+        else if (fsetfilecon_raw(fd,target)!=0) result=-errno;
+    }
+    freecon(context);
+    if (result==0) result=labeled_fd(fd,final_type);
+    return result;
+}
+
+static int seal_publication(int container,int payload,const struct ae_fixture *fixture)
+{
+    for (uint32_t n=0;n<fixture->file_count;++n) {
+        struct ae_fixture_text path=fixture->files[n].path;
+        /* Children first, then their directories. Repeated shared prefixes are
+         * exact final-label checks, never a relabel-from-final permission. */
+        for (size_t p=path.size;p>0;--p) if (p==path.size || path.data[p]=='/') {
+            char name[257]; memcpy(name,path.data,p); name[p]='\0';
+            int file=p==path.size;
+            struct open_how how={.flags=(uint64_t)(O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK | (file ? 0 : O_DIRECTORY)),
+                .resolve=RESOLVE_BENEATH | RESOLVE_NO_XDEV | RESOLVE_NO_SYMLINKS | RESOLVE_NO_MAGICLINKS};
+            int fd=(int)syscall(SYS_openat2,payload,name,&how,sizeof how);
+            if (fd<0) return -errno;
+            const char *type=file ? (fixture->files[n].mode==0555 ? "aetheri_store_code_t" : "aetheri_store_data_t") : "aetheri_store_dir_t";
+            int result=seal_node(fd,"aetheri_staging_t",type,file ? (mode_t)fixture->files[n].mode : 0555,0);
+            result=close_owned(fd,result);
+            if (result!=0) return result;
+        }
+    }
+    int result=seal_node(payload,"aetheri_staging_t","aetheri_store_dir_t",0555,1);
+    struct open_how how={.flags=O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK,
+        .resolve=RESOLVE_BENEATH | RESOLVE_NO_XDEV | RESOLVE_NO_SYMLINKS | RESOLVE_NO_MAGICLINKS};
+    int metadata=-1;
+    if (result==0) { metadata=(int)syscall(SYS_openat2,container,"manifest",&how,sizeof how); if (metadata<0) result=-errno; }
+    if (result==0) result=seal_node(metadata,"aetheri_publication_t","aetheri_store_manifest_t",0444,0);
+    result=close_owned(metadata,result);
+    if (result==0) result=seal_node(container,"aetheri_publication_t","aetheri_store_dir_t",0555,1);
+    return result;
+}
+
+/* The inode owner could chmod a read-only inode under DAC. Even a no-op chmod
+ * must therefore fail under the final MAC type. Unexpected permission changes
+ * only ctime, never the requested mode; report failure and preserve evidence. */
+static int no_store_setattr(int root,mode_t mode)
+{
+    if (fchmod(root,mode)==0) return -EPERM;
+    return errno==EACCES || errno==EPERM ? 0 : -errno;
+}
+
+int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
+{
+    uint8_t bytes[AE_FIXTURE_CONFIG_BYTES],publication_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],stage_digest[32],evidence[32];
+    uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES);
+    if (manifest==NULL) return -ENOMEM;
+    size_t config_size,size,publication_size;
+    struct ae_fixture_config config;
+    struct ae_fixture_store_config publication_config;
+    struct ae_fixture fixture;
+    struct ae_fixture_progress progress={0};
+    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
+    if (result==0) result=ae_sha256_bytes(bytes,sizeof bytes,stage_digest);
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&size);
+    if (result==0) result=ae_fixture_verify_manifest(manifest,size,config.request.artifact,&fixture);
+    if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,size,&progress);
+    if (result==0 && (progress.step!=AE_FIXTURE_READY || !progress.evidence_present || memcmp(progress.evidence,stage_digest,32)!=0)) result=-ESTALE;
+    if (result==0 && !observe) result=protected_bytes(ROOT "/registry/fixture-store.conf",publication_bytes,sizeof publication_bytes,&publication_size);
+    if (result==0 && !observe) result=ae_fixture_store_config_decode(publication_bytes,publication_size,&publication_config);
+    if (result==0 && !observe && memcmp(publication_config.stage_digest,stage_digest,32)!=0) result=-ESTALE;
+    if (result==0 && !observe) result=ae_sha256_bytes(publication_bytes,sizeof publication_bytes,evidence);
+    if (result==0 && !observe && progress.publication_present && memcmp(progress.publication_evidence,evidence,32)!=0) result=-ESTALE;
+    char slot[33],artifact[65],parent_path[256],local_path[288],stored_path[288],payload_path[320];
+    for (size_t n=0;result==0 && n<16;++n) snprintf(slot+n*2U,3,"%02x",(unsigned int)config.request.slot[n]);
+    for (size_t n=0;result==0 && n<32;++n) snprintf(artifact+n*2U,3,"%02x",(unsigned int)config.request.artifact[n]);
+    if (result==0) {
+        snprintf(parent_path,sizeof parent_path,ROOT "/fixtures/%s",slot);
+        snprintf(local_path,sizeof local_path,"%s/publication",parent_path);
+        snprintf(stored_path,sizeof stored_path,ROOT "/store/sha256/%s",artifact);
+        snprintf(payload_path,sizeof payload_path,"%s/staging",parent_path);
+    }
+    int parent=-1,store=-1,container=-1,payload=-1;
+    int local=1,staged=1;
+    if (result==0) { parent=protected_directory(parent_path,0700,"aetheri_stage_parent_t"); if (parent<0) result=parent; }
+    if (result==0) { store=protected_directory(ROOT "/store/sha256",0700,"aetheri_store_parent_t"); if (store<0) result=store; }
+    if (result==0) {
+        container=publication_directory(local_path,"aetheri_publication_t");
+        if (container==-ENOENT && !observe) { local=0; container=publication_directory(stored_path,"aetheri_publication_t"); }
+        if (container<0) result=container;
+    }
+    if (result==0) {
+        payload=publication_directory(payload_path,"aetheri_staging_t");
+        if (payload==-ENOENT && !observe) {
+            staged=0;
+            snprintf(payload_path,sizeof payload_path,"%s/payload",local ? local_path : stored_path);
+            payload=publication_directory(payload_path,"aetheri_staging_t");
+        }
+        if (payload<0) result=payload;
+    }
+    if (result==0) result=root_matches(payload,&config.staging);
+    if (result==0 && observe) {
+        uint8_t roots[72]; int empty=0;
+        result=is_empty(container,&empty);
+        if (result==0 && !empty) result=-EEXIST;
+        if (result==0) result=witness_encode(store,roots);
+        if (result==0) result=witness_encode(container,roots+36);
+        if (result==0) {
+            fputs("fixture-store-roots ",stdout);
+            for (size_t n=0;n<sizeof roots;++n) printf("%02x",(unsigned int)roots[n]);
+            putchar('\n');
+        }
+    } else if (result==0) {
+        result=root_matches(store,&publication_config.store);
+        if (result==0) result=root_matches(container,&publication_config.container);
+        if (result==0 && !progress.publication_present) {
+            int empty=0;
+            result=is_empty(container,&empty);
+            struct stat info;
+            if (result==0 && (!local || !staged || !empty)) result=-ESTALE;
+            if (result==0 && fstatat(store,artifact,&info,AT_SYMLINK_NOFOLLOW)==0) result=-EEXIST;
+            else if (result==0 && errno!=ENOENT) result=-errno;
+            if (result==0) result=ae_catalogue_fixture_publication(catalogue,&config.request,manifest,size,AE_FIXTURE_PLANNED,evidence,&progress);
+        }
+        if (result==0 && progress.publication_step!=AE_FIXTURE_READY)
+            result=ae_catalogue_fixture_publication(catalogue,&config.request,manifest,size,AE_FIXTURE_EXECUTING,evidence,&progress);
+        if (result==0) {
+            struct ae_fixture_publication publication={parent,parent,store,payload,container,"staging","publication"};
+            result=ae_fixture_publish_namespace(&publication,manifest,size,config.request.artifact);
+            if (result==0) result=seal_publication(container,payload,&fixture);
+            if (result==0) result=ae_fixture_publish_namespace(&publication,manifest,size,config.request.artifact);
+            for (uint32_t n=0;result==0 && n<fixture.file_count;++n) if (fixture.files[n].mode==0555)
+                result=no_executable_mapping(payload,&fixture.files[n]);
+            if (result==0) result=no_store_setattr(container,0555);
+            if (result==0) result=no_store_setattr(payload,0555);
+            for (uint32_t n=0;result==0 && n<fixture.file_count;++n) {
+                char name[257];
+                memcpy(name,fixture.files[n].path.data,fixture.files[n].path.size); name[fixture.files[n].path.size]='\0';
+                struct open_how how={.flags=O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK,
+                    .resolve=RESOLVE_BENEATH | RESOLVE_NO_XDEV | RESOLVE_NO_SYMLINKS | RESOLVE_NO_MAGICLINKS};
+                int fd=(int)syscall(SYS_openat2,payload,name,&how,sizeof how);
+                if (fd<0) result=-errno;
+                else result=no_store_setattr(fd,(mode_t)fixture.files[n].mode);
+                result=close_owned(fd,result);
+            }
+            if (result==0) result=root_matches(container,&publication_config.container);
+            if (result==0) result=root_matches(payload,&config.staging);
+            if (result==0) result=ae_catalogue_fixture_publication(catalogue,&config.request,manifest,size,AE_FIXTURE_READY,evidence,&progress);
+            if (result!=0 && progress.publication_step!=AE_FIXTURE_READY) {
+                struct ae_fixture_progress ignored;
+                int marked=ae_catalogue_fixture_publication(catalogue,&config.request,manifest,size,AE_FIXTURE_UNCERTAIN,evidence,&ignored);
+                if (marked!=0) fprintf(stderr,"Fixture publication uncertainty acknowledgement failed: %d\n",marked);
+            }
+        }
+        if (result==0) puts("fixture-store verified; generation committed; install preparing; operation running/reconcile; activation pending");
+    }
+    result=close_owned(payload,result); result=close_owned(container,result);
+    result=close_owned(store,result); result=close_owned(parent,result);
     free(manifest);
     return result;
 }

@@ -46,4 +46,12 @@ int ae_fixture_sync_staged_payload(int staging_fd,
                                     const uint8_t *manifest, size_t manifest_size,
                                     const uint8_t expected_artifact[32]);
 
+/* Same bounded inventory/hash/flush check for a journal-bound payload in either
+ * private staging (0700) or a sealed store object (0555). No mode/label changes.
+ * root_mode must be exactly one of those values; all other trust rules apply.
+ */
+int ae_fixture_sync_payload(int root_fd, unsigned int root_mode,
+                            const uint8_t *manifest, size_t manifest_size,
+                            const uint8_t expected_artifact[32]);
+
 #endif
