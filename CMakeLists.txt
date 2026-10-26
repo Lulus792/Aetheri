@@ -47,6 +47,23 @@ if(AETHERI_LINUX_IPC)
     target_compile_definitions(aetheri_linux PRIVATE _GNU_SOURCE)
     target_compile_options(aetheri_linux PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
     target_link_libraries(aetheri_linux PUBLIC aetheri_core PkgConfig::SYSTEMD)
+    pkg_check_modules(SELINUX REQUIRED IMPORTED_TARGET libselinux>=3.10)
+    set(AETHERI_WIRE_TABLES "${CMAKE_CURRENT_BINARY_DIR}/generated/wire-tables.h")
+    add_custom_command(OUTPUT "${AETHERI_WIRE_TABLES}"
+        COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_api.py" "${AETHERI_WIRE_TABLES}"
+        DEPENDS tools/embed_api.py spec/api/management-v1.xml spec/api/documents-v1.xml spec/api/runtime-v1.xml
+        VERBATIM)
+    add_executable(aetheri-authority src/authority/main.c "${AETHERI_WIRE_TABLES}")
+    target_include_directories(aetheri-authority PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    target_compile_definitions(aetheri-authority PRIVATE _GNU_SOURCE)
+    target_compile_options(aetheri-authority PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    target_link_libraries(aetheri-authority PRIVATE aetheri_catalogue aetheri_linux PkgConfig::SELINUX)
+    if(AETHERI_POLICY_PROBES)
+        add_executable(probe_service tests/probe_service.c)
+        target_compile_definitions(probe_service PRIVATE _GNU_SOURCE)
+        target_compile_options(probe_service PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        target_link_libraries(probe_service PRIVATE aetheri_linux PkgConfig::SELINUX)
+    endif()
 endif()
 
 include(CTest)

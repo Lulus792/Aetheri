@@ -274,3 +274,27 @@ registered root/volume identity and global service readiness remain authority
 responsibilities. Preserve owned files/receipts when commit or directory flush
 acknowledgement is uncertain. Existing gate closure and recovery marking do not
 prove actual process/descriptor drain. No public service capability is added yet.
+
+## Confined protocol endpoints — 26 October 2026
+
+The selected system/user boundary now has a C17 prototype service with two roles,
+fixed protected bootstrap registries, separate enforcing domains/catalogue writers
+and actual boot/runtime sourcing. XML method tables are generated at build time.
+Only discovery is enabled; no lifecycle capability is advertised. Internal calls
+remain unauthorized until real broker registration/principal mapping exists.
+This is implementation progress within the approved architecture, not approval of
+production policy, category allocation, registered volumes or all P0 runtime gates.
+
+Use the existing login user manager for the user endpoint; do not enable lingering
+to keep a headless test artificially alive. Bind only its session socket onto a
+precreated private-namespace mount placeholder, keeping home directories hidden.
+RestrictSUIDSGID=no preserves required openat2; startup still verifies enforcing
+type, NoNewPrivileges and empty capabilities. The exact integration failures,
+compensating boundaries, actual checks and limits are in
+[runtime](../../spec/runtime.md#confined-protocol-services).
+
+The root controller operates only the dedicated empty prototype. It refuses
+uncertain starts, remaining processes/jobs, altered inputs or unexplained entries.
+Administrative update/cleanup interruption requires inspection; do not present
+this tool as the production recovery/removal engine. No dependency release or
+library family was changed for this service implementation.

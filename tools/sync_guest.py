@@ -18,7 +18,7 @@ def main():
     paths = [vm.ROOT / "CMakeLists.txt"]
     for prefix in ("src", "tests", "spec", "tools", "policy"):
         paths.extend(path for path in (vm.ROOT / prefix).rglob("*")
-                     if path.is_file() and path.suffix in (".c", ".h", ".py", ".sql", ".xml", ".json", ".cil"))
+                     if path.is_file() and path.suffix in (".c", ".h", ".py", ".sql", ".xml", ".json", ".cil", ".conf"))
     payload = io.BytesIO()
     inventory = {}
     with tarfile.open(fileobj=payload, mode="w") as archive:

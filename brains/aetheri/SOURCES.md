@@ -412,3 +412,36 @@ The existing development canonicalizer was made literal-preserving with scoped
 SQL parser/real schema-drift regressions. The expanded 26-test suite passes on
 guest Python 3.14.3/SQLite 3.51.2. No production authority/registry/MAC readiness,
 native migration or physical flush/power-loss evidence follows from these tests.
+
+## Confined protocol services — 26 October 2026
+
+- [D-Bus daemon policy](https://dbus.freedesktop.org/doc/dbus-daemon.1.html):
+  SELinux send_msg/acquire_svc, explicit own-name associations and min_fds on
+  destination/type rules. The actual carrier uses dbus-broker 37; live app and
+  unowned-name/FD negatives verify the relevant behavior there.
+- [SELinux reference-policy D-Bus interfaces](https://github.com/SELinuxProject/refpolicy/blob/master/policy/modules/services/dbus.if):
+  scoped messaging, connection and fd-use patterns. This is a reference, not a
+  claim that Fedora 43.3 policy is identical. Fedora rawhide dbus.if URLs returned
+  404 and are not evidence.
+- [systemd execution](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html):
+  ProtectHome/namespace bind behavior and RestrictSUIDSGID/openat2 interaction.
+  The latest manual currently describes 262; installed integration is 259.10.
+  [v259 seccomp implementation](https://github.com/systemd/systemd/blob/v259/src/shared/seccomp-util.c)
+  and actual ENOSYS/capability/namespace observations delimit the selected carrier.
+- [sd-bus reads](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_message_read.html):
+  typed borrowed message values and descriptor lifetime. Local installed headers
+  were also checked for method-vtable argument-name ordering and macros.
+- Executed original [C17 authority](../../src/authority/main.c),
+  [client](../../tests/probe_service.c), [CIL](../../policy/p0-services.cil) and
+  [controller](../../tools/p0_services.py): both confined discovery endpoints,
+  method-shape/real-boot checks, app positives/negatives, actual restarts and
+  removal/recreation of the inspected empty bootstrap. These are partial P0
+  results, not a complete app launcher, permissions or removal implementation.
+
+Enforcing AVCs identified missing supervisor mounton/entry/state/notify setup
+permissions. The final socket mount uses a dedicated precreated placeholder;
+no permission to create arbitrary user_tmp_t files was added. The controller
+initially requested an unsupported systemctl JSON option; the final drain check
+uses the actual typed systemd ListJobs reply. Kernel proc attr/current observations
+include a terminating NUL, handled explicitly by the controller's comparison.
+Raw receipts/logs stay ignored; published notes omit host-private paths and IDs.

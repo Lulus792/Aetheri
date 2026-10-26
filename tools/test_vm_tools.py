@@ -2,15 +2,65 @@
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch
 
 import provision_windows as provision
 import run_vm as vm
 import test_linux_policy as policy
+import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_authority_pending_dispatch_blocks_start_stop_and_cleanup(self):
+        record = {"pending": "unacknowledged.service"}
+        with patch.object(services, "run", side_effect=AssertionError("supervisor mutation")), \
+             patch.object(services, "verified", side_effect=AssertionError("queried installation")):
+            for action in (services.start, services.stop, services.cleanup):
+                with self.assertRaisesRegex(RuntimeError, "unacknowledged dispatch"):
+                    action(record)
+
+    def test_authority_dispatch_timeout_preserves_pending_identity(self):
+        record = {"pending": None, "units": [], "token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002"}
+        with patch.object(services, "save"), patch.object(services, "run", side_effect=subprocess.TimeoutExpired("systemd-run", 40)) as command:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                services.start_unit(record, "user")
+            self.assertEqual(record["pending"], record["units"][0])
+            self.assertEqual(command.call_count, 1)
+
+    def test_authority_stop_never_accepts_a_remaining_process(self):
+        observations = ["ActiveState=active\nMainPID=123\nControlGroup=/owned\nLoadState=loaded", "", "ActiveState=failed\nMainPID=123\nControlGroup=/owned"]
+        with patch.object(services, "run", side_effect=observations), patch.object(services, "save") as saved:
+            with self.assertRaisesRegex(RuntimeError, "not drained"):
+                services.stop({"pending": None, "units": ["owned.service"]})
+            saved.assert_not_called()
+
+    def test_authority_existing_name_with_wrong_pid_is_not_adopted(self):
+        record = {"pending": None, "active_units": {"system": "owned.service"}}
+        with patch.object(services, "verified"), patch.object(services, "bus", side_effect=["b true", "u 456"]), \
+             patch.object(services, "run", return_value="123"), patch.object(services, "start_unit") as dispatch:
+            with self.assertRaisesRegex(RuntimeError, "identity is unresolved"):
+                services.start(record)
+            dispatch.assert_not_called()
+
+    def test_authority_stop_preserves_a_pending_supervisor_job(self):
+        observations = ["ActiveState=inactive\nMainPID=0\nControlGroup=\nLoadState=loaded", "", "ActiveState=inactive\nMainPID=0\nControlGroup="]
+        jobs = {"type": "a(usssoo)", "data": [[[1, "owned.service", "start", "waiting", "/job/1", "/unit/1"]]]}
+        with patch.object(services, "run", side_effect=observations), patch.object(services, "bus", return_value=json.dumps(jobs)), patch.object(services, "save") as saved:
+            with self.assertRaisesRegex(RuntimeError, "supervisor job"):
+                services.stop({"pending": None, "units": ["owned.service"]})
+            saved.assert_not_called()
+
+    def test_authority_failed_dispatch_with_a_job_stays_pending(self):
+        record = {"pending": None, "units": [], "token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002"}
+        failed = subprocess.CalledProcessError(1, "systemd-run", stderr="failed")
+        with patch.object(services, "save"), patch.object(services, "run", side_effect=[failed, "ActiveState=failed\nMainPID=0\nControlGroup="]), \
+             patch.object(services, "unit_has_job", return_value=True):
+            with self.assertRaises(subprocess.CalledProcessError):
+                services.start_unit(record, "user")
+            self.assertEqual(record["pending"], record["units"][0])
+
     def test_policy_cleanup_never_infers_exit_from_unacknowledged_dispatch(self):
         with patch.object(policy, "run", side_effect=AssertionError("queried or mutated supervisor")) as invoked:
             with self.assertRaisesRegex(RuntimeError, "unacknowledged dispatch"):

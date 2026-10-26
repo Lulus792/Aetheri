@@ -53,7 +53,8 @@ The [minimal extension/P0 scope](knowledge/first-linux-prototype.md) is now acce
 Its five new table designs, additive P0 interfaces and development migration/tests
 are implemented in [versioned contracts](../../spec/README.md).
 VM/tool setup now has actual guest evidence and pinned build tools. Next: the
-C17 authorities/launcher, policy/peer identity and transport. Saved/direct/write/bulk document access remains
+C17 app/run authorization/launcher, remaining policy and transport. The two confined
+protocol endpoints now run, with discovery only. Saved/direct/write/bulk document access remains
 in the accepted longer-term protocol, outside this first implementation slice.
 The bounded P0 fixture/owner/intent encodings now have a
 [reference and frozen vectors](../../spec/runtime.md). This does not finalize

@@ -66,7 +66,8 @@ with typed local control and owner-scoped metadata writers. The
 including distinct installation/generation/data/run/operation lifetimes.
 The initial [schema/API contract](knowledge/schema-and-api.md) is now accepted:
 SQL constraints, D-Bus signatures, failure semantics and starting budgets.
-Isolated validation exists; no runtime service is implemented.
+Isolated validation and two prototype protocol endpoints exist; lifecycle methods
+are not implemented.
 The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
 is accepted, including managed paths/ownership, independent documents and
 ext4/LUKS2/SELinux plus namespaces as starting foundations.
@@ -77,7 +78,9 @@ implementation to confined launch, small native reads, revocation and fixture
 removal on a dedicated Fedora/QEMU development carrier.
 The [v2 SQL/XML and migration harness](../../spec/README.md) implement the contract
 portion. An installed headless development guest and tested C17 ownership/storage
-primitives now exist. Aetheri authorities, app policy and transport remain next.
+primitives now exist. System/user service roles also expose protocol discovery
+under dedicated enforcing domains. App/run authorization, launch and transport
+remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 
@@ -107,5 +110,5 @@ recoverable previous system version.
 ## Current stage
 
 Implementation in progress: contract tooling, dedicated Linux carrier and native
-C17 core. Linux authorities/apps, the desktop, an original bootable image and
-hardware/performance acceptance remain unimplemented.
+C17 core and confined protocol endpoints. Linux app lifecycle, the desktop, an
+original bootable image and hardware/performance acceptance remain unimplemented.

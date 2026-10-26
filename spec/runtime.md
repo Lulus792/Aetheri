@@ -412,3 +412,139 @@ Primary references inspected 26 October 2026:
 Record layouts, limits and recovery policy are original Aetheri design, not claims
 that these references provide a finished Aetheri service. The augmented-mask manual
 URL was unavailable; no claim relies on its unavailable contents.
+
+## Confined protocol services
+
+`src/authority/main.c` builds one C17 executable with system/user roles. Both now
+execute in the enforcing disposable carrier, each with its own catalogue writer.
+This is the first service boundary, not a working app manager: GetProtocolInfo
+returns wire 1.1, its durable authority epoch, a fresh event incarnation and an
+empty capability list. All other public methods return UnsupportedCapability;
+Runtime1 returns NotAuthorized until broker registration is implemented. No
+subscription object, launch, grant, revocation or app-removal capability exists.
+
+`tools/embed_api.py` generates ignored native vtables from the accepted XML at
+build time. Interface roles are explicit. Names, directions and argument types
+are compared with live method introspection; custom XML annotations are not
+reproduced as dynamic vtable annotations. No frozen XML or v1 SQL was changed.
+
+Startup requires the expected effective UID, enforcing SELinux type,
+NoNewPrivileges and empty effective/permitted/inheritable capabilities. A fixed
+root-owned registry binds each role to its durable authority/account identities.
+The native store verifies these against v2 metadata. The actual kernel boot and
+fresh runtime incarnation are committed before acquiring the bus name and sending
+systemd readiness. Each handler captures required bus-authenticated ProcessFD and
+connection credentials; the user role also requires its account UID. It releases
+the pin after these read-only/unsupported calls. This is not sufficient authority
+for future mutating methods: registered app/run, current-domain, invocation,
+revision and volume evidence must be added before those methods are enabled.
+
+The explicit root-only `tools/p0_services.py` controller installs only the dedicated
+guest bootstrap below. It uses the existing carrier tools and reviewed SDKs; no
+new library family or package transaction was needed. Building with
+`AETHERI_LINUX_IPC=ON` creates the authority. Add `AETHERI_POLICY_PROBES=ON` for the
+confined C17 service client. Neither build option installs policy or starts services.
+
+| Guest path | Owner and purpose |
+| --- | --- |
+| /var/lib/aetheri-p0 | Root-owned 0755 bootstrap, separate from the proposed production layout |
+| registry/system.conf, registry/user-1000.conf | Root-owned 0444 fixed identities; apps cannot read them |
+| system | Root-owned 0700 system catalogue and stable writer.lock |
+| users/&lt;account UUID&gt;/control | UID 1000, 0700 user catalogue; MAC prevents same-UID app access |
+| system-authority, user-authority, probe-service | Root-owned 0555 copies with separate entry types and recorded hashes |
+| user-bus | Root-owned empty 0444 mount placeholder; only user/probe namespaces bind the actual session socket here |
+| probe-data | UID 1000, 0700 synthetic c31,c32 data; the client creates, reads and removes a scratch file |
+| controller.json, aetheri_p0_services.cil | Root-only operation receipt and root-owned policy input |
+| /etc/dbus-1/{system.d,session.d}/90-aetheri-p0.conf | Exact root-owned bus-name associations and FD-call restrictions |
+
+The registry is a bounded ASCII bootstrap format, not a general registry API:
+
+```text
+AETHERI-P0-AUTHORITY-1
+kind=system
+epoch=<32 lowercase hexadecimal UUIDv4 digits>
+owner=-
+uid=0
+```
+
+For the user, kind is user, owner is its 32-digit UUIDv4 and uid is 1000. Order,
+line endings and final newline are exact; complete files must be smaller than
+256 bytes. The daemon accepts no client-controlled path or identity. This does
+not register a production volume, firmware identity or arbitrary user account.
+
+The service CIL gives the two authorities separate state types. A confined app
+can send public messages to User1, but cannot read authority state/registry,
+acquire its name, send raw System1 messages or use authority FDs/ptrace rights.
+Compile-time neverallow rules complement actual negative tests; ptrace and all
+descriptor-transfer paths still need their own complete P0 acceptance. The bus
+policies deny FD-bearing method calls to authority owners. They leave bus credential
+replies intact, so the required bus-sourced ProcessFD remains usable. No permissive
+mode, blanket generated policy or fallback to numeric PID authorization is used.
+
+Transient system services set private mount namespaces, ProtectSystem=strict,
+ProtectHome=yes, their own writable state exception, empty capability bounds,
+namespace restrictions and no automatic SIGKILL escalation. RestrictSUIDSGID is
+explicitly disabled: its selected seccomp implementation blocks openat2, which
+the native reader requires. NoNewPrivileges, empty capabilities, readonly mounts
+and MAC remain required. No weaker path-resolution fallback was introduced.
+Binding into ProtectHome=tmpfs initially failed because init_t could not create
+the destination file with user_tmp_t. The final profile uses the precreated,
+separately typed root-owned mount placeholder instead of broader init permissions.
+
+User/probe units follow the existing user@1000.service through BindsTo/After.
+The headless SSH login supplies that session; lingering is not enabled. Logout
+can stop the user role and replace the session socket. A later explicit start
+checks actual bus/supervisor ownership before starting a fresh role. The last
+controller state alone never proves that an endpoint is still alive.
+
+Run inside the dedicated guest after reviewing the controller and policy:
+
+```text
+sudo python3 /home/aetheri/source/tools/p0_services.py prepare
+sudo python3 /home/aetheri/source/tools/p0_services.py start
+sudo python3 /home/aetheri/source/tools/p0_services.py check
+sudo python3 /home/aetheri/source/tools/p0_services.py restart-check
+sudo python3 /home/aetheri/source/tools/p0_services.py idle-check
+sudo python3 /home/aetheri/source/tools/p0_services.py stop
+```
+
+Use prepare only when no owned bootstrap/module/bus file exists. After reviewed
+source changes and a Release rebuild, update-owned verifies the existing bytes,
+stops its recorded units and replaces only its policy/binaries/bus inputs. No
+catalogue is overwritten or implicitly migrated. Actions serialize on the stable
+root-owned carrier marker. Receipts are written with exclusive temporary creation,
+fsync, rename and parent flush; a pending dispatch survives an observation timeout.
+
+`cleanup` is administrative removal of an **empty development bootstrap**. It
+requires no pending dispatch, drained recorded units and jobs, unowned authority
+names, exact expected entries/permissions and empty non-metadata tables. Symlinks,
+sidecars, unknown files or managed rows cause refusal. It enumerates/unlinks only
+known files; no recursive shell deletion or physical-storage operation is used.
+Update/cleanup are not a production transactional installer: interruption between
+policy/file changes requires manual reconciliation. No automatic repair, power-loss
+guarantee or general app-removal acceptance is claimed.
+
+`lifecycle-check` explicitly restarts, checks an unowned-name takeover denial,
+adds an unknown file and requires cleanup to preserve it, then removes that exact
+test file. It removes the inspected empty bootstrap and prepares a fresh one,
+requiring new account/authority identities. Its final check succeeds on both new
+roles. This action intentionally replaces only empty prototype metadata.
+
+Executed 26 October 2026 in the offline carrier: both roles and live method shapes,
+real boot binding, same-UID app discovery/own scratch access and the specified
+negative calls all pass. The C17 client verifies its actual domain, UID, empty
+capabilities and NoNewPrivileges. Bad argument signatures, unsupported methods and
+unexpected FDs return their expected errors. Restart and empty-bootstrap lifecycle
+checks pass. Native Debug ASan/UBSan and Release suites pass 8/8 (20.25/19.86 s);
+host orchestration/cleanup guards pass 17/17 (0.198 s).
+
+A single 5.023 s idle sample observed one task per authority, zero reported CPU
+and voluntary/involuntary context-switch deltas, PSS 2184/2147 KiB, RSS 6532/6340
+KiB and cgroup MemoryCurrent 1634304/1650688 bytes (system/user). Memory measures
+have different accounting scopes; context switches are not a precise wakeup count.
+This is not a long-term performance, startup/latency or finished-OS budget. The
+controller is a short-lived development tool, not another resident service.
+
+Next remain actual broker registration/principal mapping, protected volume/read
+refs, fixture import, launch supervision/target-exec, access transport and recovery.
+No app can yet be launched or removed through these public endpoints.

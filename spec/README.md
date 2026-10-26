@@ -4,6 +4,10 @@
 migration behavior and D-Bus messages; they do not implement the Linux authorities,
 SELinux policy, document transport or process supervision.
 
+The separate [C17 runtime prototype](runtime.md#confined-protocol-services) now
+implements confined system/user discovery endpoints. This does not enable the
+lifecycle methods defined by these contracts.
+
 ## Files and versions
 
 | Files | Purpose |
@@ -279,7 +283,7 @@ The implementation notes and latest executed result are recorded in the
 
 Inspected 26 October 2026. The first www.sqlite.org ALTER TABLE fetch timed out;
 the sqlite.org copy was read successfully. No claims rely on the timed-out response.
-Linux service implementation, actual policy/peer mapping, real document/root
+Full Linux lifecycle service implementation, app/run policy/peer mapping, real document/root
 identity, general signed package formats and hardware/power-loss acceptance remain
 future work. P0 bounded byte formats now have a reference and tests in runtime.md;
 they are not a general package importer. Development-carrier downloads are handled

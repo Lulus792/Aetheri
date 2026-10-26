@@ -291,3 +291,49 @@ Guest Python 3.14.3/SQLite 3.51.2: all 26 catalogue/API tests pass in 47.238 s.
 Host Python 3.12.14/SQLite 3.53.1: all 26 pass again in 35.068 s, exit 0.
 Full daily-use OS/apps goal remains active; the next integration is actual
 system/user authorities, protected registry/domain setup and end-to-end P0.
+
+## Confined discovery endpoints and empty-bootstrap lifecycle
+
+Implemented one C17 executable with two authority roles, fixed protected bootstrap
+registries, dedicated enforcing types and real boot/runtime sourcing before name
+ownership/readiness. Accepted XML generates native method tables. Discovery works;
+all lifecycle capabilities remain absent and return explicit errors. No new
+dependency family or SDK install. Full scope remains the daily-use OS/apps.
+
+Actual integration exposed separate setup failures: RestrictSUIDSGID seccomp
+rejected required openat2, root-directory opens required explicit authority
+permissions, SQLite journal mode setup required own-file setattr, and readiness
+needed the observed notify-socket/peer permissions. A ProtectHome exception also
+needed a precreated, separately typed socket mount target. No weaker openat2 path,
+app mount/privilege grant, permissive mode or broad init user-file creation.
+
+Both endpoints and live method shapes pass against the XML. The actual confined
+same-UID client verifies its label/UID/NoNewPrivileges/empty caps, discovers the
+protocol and accesses its own scratch. Private registry/catalogue, raw user
+systemd, system bus, unexpected FD calls and unowned authority-name takeover are
+denied; unsupported functions and bad argument types return the expected errors.
+Restart preserves durable epoch/boot, changes runtime/events and advances revision.
+
+The explicit root controller serializes actions, preserves pending dispatches and
+checks recorded process/cgroup/job drain without SIGKILL. An unknown fixture file
+blocks cleanup and survives. After removing only that exact synthetic file, the
+inspected empty bootstrap, bus files and module were removed and prepared again;
+new owner/epochs and both fresh endpoints pass. This is not app removal or
+power-loss acceptance. Interrupted admin update/cleanup still needs inspection.
+User roles follow the login manager; logout can stop them, no lingering enabled.
+
+Native Debug ASan/UBSan 8/8 in 20.25 s and Release 8/8 in 19.86 s, exit 0.
+Host orchestration/cleanup 17/17 in 0.198 s, exit 0. A 5.023 s Release idle sample
+has one task each, zero reported CPU/context-switch deltas, PSS 2184/2147 KiB,
+RSS 6532/6340 KiB and cgroup MemoryCurrent 1634304/1650688 bytes (system/user).
+Accounting scopes differ; this is not a precise wakeup counter, long-term workload
+measurement, startup/latency acceptance or finished-OS budget. Units were stopped;
+the recreated bootstrap/policy/bus files are retained inside the guest.
+
+Next: real broker/app/run registration and authorization, volume/read references,
+fixture import/exec supervision, then document access/revocation/removal/recovery.
+No original desktop, apps or Aetheri image is claimed. Existing projects and
+physical disks remain untouched; logs/receipts stay under ignored local state.
+
+The unchanged contract/frozen-reference suite was rerun on host Python 3.12.14 /
+SQLite 3.53.1: 26/26 in 29.508 s, exit 0.

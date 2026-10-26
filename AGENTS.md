@@ -29,7 +29,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   brains/aetheri/knowledge/first-linux-prototype.md.
 - Versioned v2 SQL, additive P0 XML and development migration/tests are implemented;
   read spec/README.md and run tools/test_contracts.py. Keep v1 contracts unchanged.
-  This does not implement Linux authorities, policy or document transport. Native
+  This contract portion does not implement Linux lifecycle or document transport. Native
   edits/bulk/direct/saved access remain later work. Dedicated carrier/tool setup now
   exists; read STATE for the exact executed boundary.
 - P0 fixture/owner/intent byte references and frozen vectors are in spec/runtime.md;
@@ -58,6 +58,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   never a default host test or production installer. It must stay enforcing,
   preserve uncertain dispatches and refuse foreign fixtures/modules. Fixed test
   categories are not a production category allocator or complete A3 acceptance.
+- src/authority implements two confined prototype protocol endpoints, generated
+  from accepted XML. Read spec/runtime.md#confined-protocol-services. Only discovery
+  works; no lifecycle capabilities are advertised. tools/p0_services.py explicitly
+  provisions/checks/stops the dedicated guest bootstrap. lifecycle-check removes
+  and recreates only an inspected empty bootstrap, never a production app install.
+  Preserve unknown/pending dispatches, processes, jobs and unexplained entries.
+  Its admin update/cleanup interruption needs manual reconciliation; do not claim
+  production power-loss recovery. User roles follow the login manager, no lingering.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

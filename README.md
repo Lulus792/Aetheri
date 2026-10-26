@@ -3,9 +3,11 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project has executable contracts, native C17 storage/catalogue/bus-peer code, and tested
-SELinux fixture boundaries in a dedicated Fedora/UEFI guest. There is no original
-Aetheri image, installer, desktop or working Aetheri application yet.
+The project has executable contracts, native C17 storage/catalogue/bus-peer code,
+and two tested, confined protocol services in a dedicated Fedora/UEFI guest. Their
+only working public method is protocol discovery; app lifecycle operations remain
+unimplemented. There is no original Aetheri image, installer, desktop or working
+Aetheri application yet.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
@@ -62,7 +64,7 @@ checks do not start an OS service or create a production catalogue.
 P0 fixture/ownership/intent formats have a development reference and frozen byte
 vectors. Run `python tools/test_runtime_contracts.py` for format/payload checks and
 `python tools/test_vm_inputs.py` for download-cache checks. Python remains test/
-preparation tooling; production services are planned in C17.
+preparation tooling; the two prototype service roles are implemented in C17.
 
 `python tools/prepare_vm.py fetch` downloads the pinned development-carrier inputs
 under ignored downloads; `verify` checks cached bytes. Neither installs software,
@@ -102,9 +104,10 @@ limits are in [runtime contracts](spec/runtime.md).
 | Directory | Contents |
 | --- | --- |
 | src/core | Native ownership encoding and bounded Linux storage primitives |
-| src/catalogue | SQLite v2 creation/validation and startup-context transaction; no deployed authority yet |
-| src/linux | Linux sd-bus credential capture; no installed authority or app authorization yet |
-| policy | Temporary P0 fixture policy; production domains and category allocation remain pending |
+| src/catalogue | SQLite v2 creation/validation and startup-context transaction |
+| src/linux | Linux sd-bus credential capture; app/run authorization remains pending |
+| src/authority | System/user protocol endpoints, protected bootstrap registry and supervised runtime identities |
+| policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |
 | spec | SQL/XML/byte contracts and pinned carrier/build inputs |

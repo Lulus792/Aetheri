@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — native catalogue startup now joins core/peer and partial MAC proof.
+26 October 2026 — confined system/user protocol endpoints now execute in the carrier.
 
 ## Confirmed
 
@@ -28,7 +28,9 @@ creation, canonical opening/validation, writer lifetime and atomic runtime/boot
 updates. SQL is embedded at build time from the same canonical sources. Existing
 open gates close and recovery triggers run; no holder is settled or gate reopened.
 Root/MAC/registry identity, actual boot/runtime generation and service admission
-remain caller duties. No native v1 migration or authority daemon is deployed.
+remain caller duties. The prototype service below now supplies its protected fixed
+registry, SELinux type and actual kernel boot; volume registration and full
+admission/recovery remain pending. No native v1 migration is implemented.
 
 [P0 runtime contracts](../../spec/runtime.md): bounded fixture manifest,
 104-byte private-root header and canonical plan-intent encoding reference, with
@@ -64,20 +66,30 @@ This is connection identity, not app/run authorization or current-domain proof.
 app domain with two same-UID/disjoint-category data roots, separate synthetic
 broker/document types and narrow supervisor setup permissions. The C17 probe and
 root-only controller are explicit opt-in tests; their module/root are removed
-after success. No production policy/category allocator or Aetheri service exists.
+after success. No production policy/category allocator is implied.
+
+[C17 authority](../../src/authority/main.c): two supervised service roles with
+dedicated enforcing domains and separate catalogue writers. Fixed root-owned
+bootstrap registries bind account/epochs; process startup verifies its own type,
+NoNewPrivileges and empty capabilities. Actual boot/runtime are committed before
+the bus name and readiness notification. Generated method tables preserve accepted
+method/argument signatures. GetProtocolInfo returns 1.1 and no capabilities;
+other public methods return UnsupportedCapability, internal Runtime1 returns
+NotAuthorized. See [service boundary](../../spec/runtime.md#confined-protocol-services).
 
 ## Executed evidence
 
 Python 3.12.14 / SQLite 3.53.1 on the development host:
 The catalogue/API suite now has 26 named tests, including literal-preserving
 canonicalization and real schema-drift rejection, with unchanged frozen v1 files.
-All pass on the host in 35.068 s, exit 0.
+All pass again on the host in 29.508 s, exit 0.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
-are unchanged. The host orchestration/cleanup guard suite has 11 passing tests.
+are unchanged. The host orchestration/cleanup guard suite now has 17 passing tests
+(0.198 s), including pending dispatch, remaining process/job and wrong-owner PID.
 
 Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Eight tests now pass in Debug
-with ASan/UBSan (21.21 s) and Release (19.01 s), both exit 0 in the offline guest.
+with ASan/UBSan (20.25 s) and Release (19.86 s), both exit 0 in the offline guest.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -140,15 +152,32 @@ guest boots and native execution now supply the distinct WHPX execution evidence
 
 ## Limits and next step
 
-The carrier retains Fedora's enforcing base; only the temporary fixture app-domain/
-category experiment above has run. Permanent broker/system/app policy is pending.
-No production catalogue migrated, Aetheri authority/broker/launcher or document
-transport installed. No complete Aetheri launch/grant/revocation/purge, permanent
+The service integration passed live method-shape/real-boot checks and a same-UID
+confined C17 caller: public discovery and own scratch write/read work, while private
+catalogue/registry, raw user systemd and system bus access are denied. Unsupported,
+bad-signature and unexpected-FD calls return their expected errors. The caller
+cannot acquire the User1 name even while unowned. Restart preserves epoch/boot,
+changes runtime/events and advances revision. An unexplained file blocks cleanup
+and survives; the inspected empty bootstrap, bus files and module were then removed
+and recreated with fresh durable identities. This is not app removal acceptance.
+
+A 5.023 s idle observation of Release endpoints recorded one task each, zero
+reported CPU/context-switch deltas, PSS 2184/2147 KiB and cgroup MemoryCurrent
+1634304/1650688 bytes (system/user). These are a short carrier sample, not a
+full-system budget or precise wakeup counter. Full startup/latency/workload evidence
+remains pending. Owned units were explicitly stopped after the sample; the
+prototype registry/catalogues, policy and bus files remain for further work.
+User roles are tied to the existing login user manager; lingering is disabled.
+
+The carrier retains Fedora's enforcing base plus the explicit P0 service module.
+Production broker/system/app policy and category allocation remain pending.
+No production catalogue migrated, Aetheri launcher or document transport installed.
+No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: C17 authority/broker/launcher/probe, protected registry/read refs, complete
-app/run principal mapping, Aetheri SELinux policy and target-exec/recovery evidence.
+Next: broker registration and app/run principal mapping, protected read refs,
+fixture import/launcher, target-exec/recovery evidence and the remaining P0 policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.
 
