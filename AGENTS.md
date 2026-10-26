@@ -48,6 +48,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   exact RPMs/hashes are in spec/vm-inputs.json. CMake/runtime reject other families
   and versions below 3.5.9. core/digest uses fixed EVP SHA-256 in a private context;
   fixture verification does not replace publisher trust, inventory or staged import.
+  core/import now checks complete trusted-fixture inventories, copies/hashes private
+  staged payloads and repeats required flushes. It has native tests, not a deployed
+  authority/journal/publication path. Its caller must supply independent trusted
+  identity/intent, enforcing MAC/parent protection and writer exclusion.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   core/root requires STATX_MNT_ID_UNIQUE and joins held/named mount/inode/filesystem
   observations. These are runtime facts, never durable volume/clone authentication.

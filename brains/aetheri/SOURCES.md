@@ -662,3 +662,35 @@ Hashes verify observed content only. Protected inventory/copy/publication,
 publisher registry and app/run admission remain unimplemented; frozen SQL/XML and
 byte contracts are unchanged. The package pins apply to this development carrier,
 not a finished production base or a performance/hardware acceptance claim.
+
+## Native payload staging — 26 October 2026
+
+- [openat2](https://man7.org/linux/man-pages/man2/openat2.2.html): required contained
+  resolution and NO_XDEV's coverage of bind mounts. [O_PATH](https://man7.org/linux/man-pages/man2/open.2.html)
+  permits descriptor-level classification without opening file content/device IO.
+  The original [stager](../../src/core/import.c) pins each declared leaf, checks
+  regular type/ownership/mode/link/size and reopens its own proc FD; trusted procfs
+  and protected namespaces remain caller prerequisites.
+- [readdir](https://man7.org/linux/man-pages/man3/readdir.3.html): explicit EOF/error
+  handling and no reliance on d_type. [listxattr](https://man7.org/linux/man-pages/man2/listxattr.2.html)
+  can omit inaccessible names. Accordingly the stager rejects visible unsupported
+  xattrs, imports none, and leaves hidden-attribute exclusion plus SELinux policy
+  validation to trusted preparation. No broader metadata-audit claim is made.
+- Actual [native probes](../../tests/test_import.c) and
+  [driver](../../tools/test_import_native.py): 19/19 Debug ASan/UBSan (47.59 s),
+  19/19 Release (43.60 s). Forty-two ordinary fixtures cover copied/frozen bytes,
+  changed content, exact/extra/missing inventory, links/FIFO/socket, metadata,
+  interrupted/short/error IO, corruption, retained partial state and resync.
+  The 32-file/32-MiB bounds and 127-level directory ancestry pass. FD counts and
+  borrowed root offsets are retained. Actual same-inode/device file/directory
+  binds fail EXDEV in a private mount namespace; a listed character device is
+  rejected before the content-open counter advances. A root-fsync EIO followed
+  by a fresh process repeats both file and all three directory flushes.
+  A strengthened multi-chunk source substitution probe then passes in focused
+  Debug/Release repeats (18.80/19.65 s including mount probes): after the first
+  chunk, a different same-length inode replaces the source path. The copy retains
+  the original held inode's bytes and the operation rejects the changed source.
+
+These are unconfined development tests on the enforcing carrier, not proof of
+the installed authority's MAC/operation-journal integration. No physical power-loss
+test, store publication, publisher enrollment or app admission was performed.

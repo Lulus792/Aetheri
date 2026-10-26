@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — reviewed OpenSSL 3.5.9 and native fixture SHA-256 verification.
+26 October 2026 — native payload inventory, copy/hash and staged flush retry.
 
 ## Confirmed
 
@@ -13,6 +13,24 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+[Payload staging](../../src/core/import.h) now validates an independently expected
+ArtifactId and complete trusted synthetic source inventory, then creates exclusive
+copies in an empty private root. It rejects unexpected entries, links/nonregular
+objects, mount transitions, wrong owner/mode and visible unsupported metadata.
+Copied content is hashed after writer FDs close; files/child directories become
+read-only while the root stays 0700. Errors preserve partial state. A separate
+recheck repeats every required file/directory flush after uncertain results.
+Native tests cover actual copies, corruption/IO faults, retained state, maximum
+file/byte/depth bounds and real same-inode file/directory binds/device rejection.
+These tests run unconfined in the enforcing carrier; the privileged mount probes
+use a private namespace. The installed system authority does not call the stager
+yet. Protected fixture identity/journal/MAC integration and publication remain
+next; no public API, app admission or full installation is claimed.
+Final native suites pass 19/19 Debug ASan/UBSan (47.59 s) and 19/19 Release
+(43.60 s). They include 42 ordinary staging fixtures plus private-namespace
+same-inode bind and listed-device cases. No package, policy, running service,
+protected allocation fixture or frozen SQL/XML/byte contract changed in this step.
 
 [Versioned contracts](../../spec/README.md): complete common/system/user v2 SQL,
 five new table designs, unchanged v1 references and two additive XML interfaces

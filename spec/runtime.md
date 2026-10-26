@@ -26,7 +26,8 @@ Do not hash JSON text, native C structures, filenames alone or freshly supplied
 client hashes. The C17 owner codec checks the fixed header; the C17 fixture decoder
 now validates canonical metadata bytes. The native SHA-256 verifier binds them to
 an independently expected ArtifactId and checks held-file content. Native intent
-encoding and a privileged importer are not implemented.
+encoding and the privileged importer/journal/publication integration are pending.
+The native payload stager below now implements the bounded filesystem copy portion.
 
 ## Shared byte rules
 
@@ -168,6 +169,49 @@ hello-newline digest under the real enforcing, cap-zero user authority domain.
 This is a synthetic integration proof, not a public grant or package importer.
 The [dependency review](../brains/aetheri/SOURCES.md#openssl-35-lts-adoption--26-october-2026)
 records exact RPM provenance, license, footprint and test evidence.
+
+### Native payload staging
+
+[import.h](../src/core/import.h) adds two synchronous internal C17 operations:
+`ae_fixture_stage_payload` prepares an empty 0700 root from an authority-selected
+0555 synthetic source; `ae_fixture_sync_staged_payload` rechecks an independently
+journal-bound existing root and repeats all file/directory flushes. Roots are
+authority-selected FDs; neither operation publishes an artifact or updates a catalogue. Both require
+an independently trusted ArtifactId, operation/root binding, protected parents/
+mount namespace, caller-supplied MAC validation and exclusion of other writers.
+All objects belong to the authority's effective UID; its umask preserves owner
+directory access (normally 0077). Staging root's parent persistence is a caller duty.
+
+The inventory contains exactly the declared files and their derived directories,
+including no unexpected empty directories. Directory entry types are not trusted.
+Each listed leaf is first pinned with O_PATH and classified; only a regular inode
+with the exact length/mode, owner and single link is reopened through its held
+proc FD. Contained source/stage lookups require openat2 no-symlink/no-mount flags,
+including same-filesystem binds. Root observations require unique mount IDs;
+held/named metadata observations detect ordinary substitution/drift. They do not
+exclude a privileged mutator or authenticate a volume.
+
+The stager keeps at most 32 source file FDs and bounded derived directory metadata,
+not a recursive stack or FD per directory. A 64 KiB buffer copies at most 16 MiB
+per file / 32 MiB total. Files are created exclusively at 0600; their writer FDs
+close after read-only mode and flush. The final inventory/hash/flush pass reads
+those protected copies. Children become 0555; the staging root remains 0700.
+No hooks execute. Creation metadata comes from fixed rules and validated manifest
+modes; no source data/mode/owner/xattr writes occur. Reads may update source atime.
+
+Visible xattrs other than the host security.selinux label are rejected; no xattrs,
+ACLs, capabilities or source labels are imported. An unprivileged list can omit
+hidden names, so trusted fixture preparation must exclude those separately. MAC
+type/category authorization remains a caller obligation; mode bits alone do not
+isolate apps sharing a UID. This is not an arbitrary untrusted archive extractor.
+
+On any error or lost reply, the operation must retain its intent and partial
+root. A nonempty root blocks another fresh staging attempt. Resync verifies the
+entire read-only inventory and content and repeats every required flush before
+returning success, even if an earlier root flush failed. It does not adopt an
+unbound candidate, finish a journal or prove physical power-loss durability.
+Installed authority/registry/MAC/journal integration and atomic store publication
+remain next. Existing SQL/XML and canonical byte formats are unchanged.
 
 ## Private-root owner v1
 

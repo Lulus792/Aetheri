@@ -616,3 +616,30 @@ The optional private allocation fixture and protected registry remain intact.
 Next: protected fixture inventory/copy/hash, publication and app/run admission,
 then the remaining P0 launcher/grant/revocation/retirement work. No original
 bootable OS, desktop, app, general signing protocol or hardware acceptance claimed.
+
+### Native inventory and private payload staging
+
+Implemented core/import's bounded inventory/copy/hash/flush and independently
+bound staged resync, following c-specialist/security-auditor guidance. It keeps
+the root private, rejects nonempty fresh targets and preserves failures. Source
+data/owner/mode/xattrs are not written; normal read-atime changes remain possible.
+The caller still owes trusted fixture/root/operation bindings, genuine procfs,
+MAC and writer exclusion before using this primitive in an authority.
+
+Final native suites: Debug ASan/UBSan 19/19, 47.59 s; Release 19/19, 43.60 s.
+Both include 42 ordinary fixtures and real private-namespace mount/device probes.
+Tests prove copied bytes, limits, failed-IO retention, repeat flushes and borrowed
+FD/offset lifetime. Initial xattr test setup failed because its read-only fixture
+could not accept the test attribute; setup now temporarily grants owner write,
+sets the attribute, restores the intended mode, then exercises actual rejection.
+The final complete suites pass that case. Toolchain/dependency pins, frozen
+contracts and policy are unchanged; no installed authority action was added.
+Final review strengthened the source-replacement case to three copy chunks and
+different same-length replacement content. The staged bytes still match the held
+original inode; source drift rejects the operation. Additional focused import/
+mount repeats pass Debug 18.80 s and Release 19.65 s, after the complete suites.
+
+Next: connect the stager to fixed protected fixture setup, independent operation/
+root identity and the real system-domain journal/publication path. Preserve all
+existing allocation data and do not let empty-bootstrap cleanup retire it. Public
+API capabilities remain discovery-only; the full OS/apps objective remains active.

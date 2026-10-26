@@ -15,7 +15,8 @@ on startup, broker registration and use. General account management remains pend
 Native storage references check expected ownership and held directory/mount identity.
 Immutable allocation records now preserve object bindings across a tested guest boot.
 Native SHA-256 verifies canonical fixture metadata and held-file content using
-OpenSSL 3.5 LTS. Protected package import and publication remain unfinished.
+OpenSSL 3.5 LTS. The native payload stager now checks inventory and copied content;
+the installed authority, recovery journal and publication still need integration.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·

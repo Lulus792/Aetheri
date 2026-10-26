@@ -37,8 +37,9 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 ## Architecture and security
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
-installed and native byte/held-FD verification is tested. Protected fixture
-enrollment, staged copy/hash and publisher trust remain implementation work.
+installed and native byte/held-FD verification is tested. Native payload staging
+now checks inventory/copied bytes and resyncs. Protected authority/journal
+integration, publication and publisher trust remain implementation work.
 General distribution signing and key rotation still require release contracts.
 
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and

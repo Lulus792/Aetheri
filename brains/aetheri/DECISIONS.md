@@ -422,3 +422,16 @@ lookup. Metadata checks detect drift but cannot exclude writers; the importer mu
 copy/hash into protected staging and independently trust its expected ArtifactId.
 No signature protocol, general publisher enrollment or package installation is
 implied by these primitives or the synthetic enforcing storage check.
+
+## Stage copied payloads before publication — 26 October 2026
+
+Build one bounded C17 payload stager, using the existing canonical manifest,
+openat2, root observations and EVP backend. Check the exact inventory before
+effects, classify pinned objects before opening file content, and hash protected
+copies rather than reopening the source for execution. Keep an operation-owned
+0700 root, exclusive files and read-only completed children; never publish or
+silently clean up on error. A separate validated resync repeats file/directory
+flushes; matching content alone does not settle a previous failed flush.
+Caller-owned authorization, independent root/intent bindings and same-UID MAC
+writer exclusion are explicit prerequisites. Retain these gates when wiring the
+installed authority; a tested filesystem primitive does not replace them.
