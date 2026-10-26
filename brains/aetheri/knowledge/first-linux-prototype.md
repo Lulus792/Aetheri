@@ -12,7 +12,9 @@ fixture/owner/intent byte references, frozen vectors and host tests. The
 neither addition alone implements Linux enforcement or completes the guest setup.
 The later installed carrier and C17 owner/storage core now have executed evidence
 in [state](../STATE.md). Aetheri authorities, app labels and lifecycle RPC remain
-unimplemented; the complete P0 gates below still define acceptance.
+unimplemented as deployed services. A temporary same-UID/MCS policy fixture now
+also passes; this is only partial A3, with bus/ptrace/FD-transfer and full runtime
+mapping still pending. The complete P0 gates below define acceptance.
 
 ## Recommendation
 

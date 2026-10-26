@@ -312,3 +312,12 @@ Debug ASan/UBSan tests pass in 0.26 s and four Release tests in 0.05 s, exit 0.
 The [runtime guide](../../../spec/runtime.md) explains the real sender/exit/FD
 and negative provenance cases. They do not establish Aetheri run authorization
 or same-UID app isolation; those integration gates remain open.
+
+The subsequent [temporary policy proof](../../../spec/runtime.md) now exercises
+part of that same-UID boundary in this enforcing/offline guest. Two C17 probes
+share UID 1000 and a data type but have disjoint fixed MCS categories. Their own
+read/write/create succeeds; sibling/synthetic broker/unselected/sudo access is
+denied with enforcing AVC evidence. Actual capabilities are empty and
+NoNewPrivileges is set. The opt-in controller removes its verified module/root
+after success and preserves uncertain dispatches/failures. Production broker/app
+policy and the remaining A3 IPC/ptrace/FD-transfer cases are still pending.

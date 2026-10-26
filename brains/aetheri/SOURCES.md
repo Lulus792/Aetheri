@@ -362,3 +362,27 @@ recovery, desktop, performance and physical hardware acceptance remain pending.
 
 Both bus roles still require actual Aetheri domain/registry/invocation authorization.
 No service or app policy was installed through this library/test addition.
+
+## Enforcing fixture policy — 26 October 2026
+
+- SELinux Project [CIL types, 3.11](https://github.com/SELinuxProject/selinux/blob/3.11/secilc/docs/cil_type_statements.md)
+  and [access-vector rules](https://github.com/SELinuxProject/selinux/blob/master/secilc/docs/cil_access_vector_rules.md):
+  type/attribute and explicit allow/neverallow syntax. The role-page fetch at 3.11
+  was unavailable; no assertion relies on that missing page.
+- Fedora [MCS policy](https://github.com/fedora-selinux/selinux-policy/blob/rawhide/policy/mcs)
+  and [domain interfaces](https://github.com/fedora-selinux/selinux-policy/blob/rawhide/policy/modules/kernel/domain.if):
+  reviewed attribute/category semantics, not claimed identical to installed policy 43.3.
+- Executed [original fixture module](../../policy/p0-fixture.cil),
+  [C17 probe](../../tests/probe_policy.c) and [controller](../../tools/test_linux_policy.py)
+  on the recorded carrier: two disjoint-category/same-UID positives and required
+  negatives pass, with enforcing AVC evidence and exact new-file labels. The final
+  probe also verifies actual empty capability sets and NoNewPrivileges.
+
+Initial mounton/entry-execute denials stopped target execution. Reviewed explicit
+permissions were added to init_t for only the new types; no audit2allow-generated
+blanket policy, permissive mode or app privilege grant. Failed owned fixtures
+were verified against loaded CIL and settled units before cleanup/retry.
+Production policy, category reuse, IPC/ptrace/FD-transfer enforcement and the full
+Aetheri lifecycle remain unaccepted. The temporary module/root were removed.
+Existing carrier tools used policycoreutils/libsemanage 3.10-1 and libsepol 3.11-1;
+no policy-development package was installed for this CIL proof.

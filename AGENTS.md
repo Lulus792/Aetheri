@@ -40,13 +40,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   execution. Do not equate source hashes with valid Windows codesignatures.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   They are not an installed authority, public grant API or Aetheri app sandbox.
-  Dedicated guest runs Fedora enforcing policy; Aetheri domains remain unimplemented.
+  Dedicated guest runs Fedora enforcing policy. A temporary Aetheri app-domain/MCS
+  fixture probe is tested and removes its module afterward; production authority/
+  broker/app domains and category allocation remain unimplemented.
   QMP must stay host-local AF_UNIX under the protected VM directory: guest slirp
   networking can reach a host loopback TCP listener through 10.0.2.2. Never restore
   unauthenticated TCP QMP. Use run_vm.py status/live process evidence before retries.
 - Native src/linux/peer captures bus-authenticated connection credentials and a
   process pin. This is not complete app/run authorization or current-domain proof.
   Keep required ProcessFD/provenance checks; do not replace them with UID/PID paths.
+- tools/test_linux_policy.py is an explicit root-only disposable-carrier test,
+  never a default host test or production installer. It must stay enforcing,
+  preserve uncertain dispatches and refuse foreign fixtures/modules. Fixed test
+  categories are not a production category allocator or complete A3 acceptance.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

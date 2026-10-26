@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — installed UEFI/WHPX carrier, native core and bus-peer capture.
+26 October 2026 — installed carrier, native core/peer capture and partial MAC proof.
 
 ## Confirmed
 
@@ -53,6 +53,12 @@ bus credentials and an owned process pin without /proc augmentation or numeric-P
 fallback. It rejects missing/augmented provenance and preserves outputs on error.
 This is connection identity, not app/run authorization or current-domain proof.
 
+[Temporary SELinux fixture](../../policy/p0-fixture.cil): tested one MCS-constrained
+app domain with two same-UID/disjoint-category data roots, separate synthetic
+broker/document types and narrow supervisor setup permissions. The C17 probe and
+root-only controller are explicit opt-in tests; their module/root are removed
+after success. No production policy/category allocator or Aetheri service exists.
+
 ## Executed evidence
 
 Python 3.12.14 / SQLite 3.53.1 on the development host:
@@ -60,9 +66,11 @@ Python 3.12.14 / SQLite 3.53.1 on the development host:
 14 runtime-format tests passed, exit 0, 0.023 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. Those prior 44 host tests are
 unchanged. Ten additional host-orchestration tests passed after the new VM tools.
+The subsequent policy-cleanup guard brings this host suite to 11 passing tests.
 
 Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Four tests now pass in Debug
-with ASan/UBSan (0.26 s) and in Release (0.05 s), both exit 0 after offline reboot.
+with ASan/UBSan (latest 0.19 s) and in Release (0.05 s), both exit 0 after offline
+reboot and again after policy-fixture cleanup.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -83,6 +91,15 @@ All nine carrier prerequisites pass again after the reboot. Compiler/SDK direct
 package pins are in vm-inputs.json; transitive dependencies belong to this carrier.
 Offline guest boot and SSH/local native tests also work. This is not physical
 hardware or desktop performance acceptance.
+
+Both SELinux probes pass while offline/Enforcing: exact UID/domain/categories,
+empty effective/permitted/inheritable capabilities, NoNewPrivileges, own-data
+read/write/create and inherited label; sibling/broker/unselected/sudo denied.
+Same-UID controls outside the domain read all negative fixtures and elevate via
+the carrier's test sudo setup. Eight enforcing AVCs confirm the category/type
+denials. Verified no owned test module/root remains afterward. Setup failures
+were preserved/reconciled before narrow supervisor-only corrections; no app
+mount rights or permissive execution were introduced. This is partial A3 only.
 
 Coverage includes both populated catalogue kinds, fresh-v2 equivalence, ten
 precommit failure points per kind, six child-process exits/reopens including after
@@ -108,10 +125,12 @@ guest boots and native execution now supply the distinct WHPX execution evidence
 
 ## Limits and next step
 
-The carrier uses Fedora's enforcing policy, not Aetheri app domains/categories.
+The carrier retains Fedora's enforcing base; only the temporary fixture app-domain/
+category experiment above has run. Permanent broker/system/app policy is pending.
 No production catalogue migrated, Aetheri authority/broker/launcher or document
-transport installed. No real app start/grant/revocation/purge, Aetheri confinement,
-power-loss, physical hardware or desktop acceptance. No original Aetheri image/UI.
+transport installed. No complete Aetheri launch/grant/revocation/purge, permanent
+confinement, power-loss, physical hardware or desktop acceptance. No original
+Aetheri image/UI.
 
 Next: C17 authority/broker/launcher/probe, protected registry/read refs, complete
 app/run principal mapping, Aetheri SELinux policy and target-exec/recovery evidence.

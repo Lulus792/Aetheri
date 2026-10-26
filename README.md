@@ -3,9 +3,9 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project has executable contracts, native C17 ownership/storage and bus-peer code, and a
-dedicated Fedora/UEFI test guest. There is no original Aetheri image, installer,
-desktop or working Aetheri application yet.
+The project has executable contracts, native C17 storage/bus-peer code, and tested
+SELinux fixture boundaries in a dedicated Fedora/UEFI guest. There is no original
+Aetheri image, installer, desktop or working Aetheri application yet.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
@@ -103,6 +103,7 @@ limits are in [runtime contracts](spec/runtime.md).
 | --- | --- |
 | src/core | Native ownership encoding and bounded Linux storage primitives |
 | src/linux | Linux sd-bus credential capture; no installed authority or app authorization yet |
+| policy | Temporary P0 fixture policy; production domains and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |
 | spec | SQL/XML/byte contracts and pinned carrier/build inputs |

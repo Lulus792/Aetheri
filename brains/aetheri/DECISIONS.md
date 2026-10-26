@@ -246,3 +246,17 @@ bounded reads and a real same-filesystem bind mount in a private namespace.
 Debug ASan/UBSan and Release pass. The core requires a caller-verified protected
 root and has no fallback to weaker resolution. This does not approve a finished
 Aetheri policy, volume registry, D-Bus authority, app launch or full removal.
+
+## Temporary MAC proof — 26 October 2026
+
+Implemented and exercised an original CIL fixture policy in the disposable
+enforcing carrier, then removed its module/root. One app domain uses two fixed,
+disjoint MCS category pairs under the same UID. Own data works; sibling/synthetic
+broker/unselected-document access and sudo execution are denied. Actual UID,
+label, empty capability sets and NoNewPrivileges are verified by the C17 probe.
+
+This is partial implementation evidence within the selected SELinux/namespaces
+architecture, not a new production-domain/category-allocation decision or full
+A3 acceptance. The explicit root-only fixture controller must preserve uncertain
+dispatches and verify owned module bytes/settled units before cleanup. No default
+host test activates policy; no permissive mode or automatic app SIGKILL fallback.

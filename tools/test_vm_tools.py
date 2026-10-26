@@ -7,9 +7,16 @@ from unittest.mock import patch
 
 import provision_windows as provision
 import run_vm as vm
+import test_linux_policy as policy
 
 
 class VmTools(unittest.TestCase):
+    def test_policy_cleanup_never_infers_exit_from_unacknowledged_dispatch(self):
+        with patch.object(policy, "run", side_effect=AssertionError("queried or mutated supervisor")) as invoked:
+            with self.assertRaisesRegex(RuntimeError, "unacknowledged dispatch"):
+                policy.cleanup_owned({"dispatch_in_progress": "uncertain.service"})
+            invoked.assert_not_called()
+
     def setUp(self):
         output = vm.ROOT / "out"
         output.mkdir(exist_ok=True)

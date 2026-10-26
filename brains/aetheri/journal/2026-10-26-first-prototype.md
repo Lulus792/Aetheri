@@ -206,3 +206,42 @@ All nine carrier prerequisites pass again; SELinux remains Enforcing and systemd
 running. Full P0 and the daily-use OS/apps goal remain unfinished and active.
 The unchanged 23 catalogue and 14 format tests pass again after the SQLite package
 update in 42.982 s and 0.016 s respectively, exit 0.
+
+## Partial enforcing MAC proof
+
+Published peer milestone 9d557e1 and verified remote main. Added one original
+CIL fixture module, one C17 probe and an explicit root-only carrier controller.
+No new tool family/package was needed: the installed carrier semodule supports CIL.
+Production policy, protected writers, category allocation/reuse and the full
+P0 authority/launcher/grant/removal implementation remain pending.
+
+The first attempt failed before target exec at mount-namespace setup: enforcing
+AVC denied init_t mounton of the new data directory. Added only that supervisor
+permission. The next attempt failed before target exec at entry-file execute;
+added init_t read/open/getattr/execute/map for the exact new executable type.
+Neither correction added app mount rights or disabled enforcement. Both failed
+owned fixtures were inspected, their inactive/failed/no-process units and loaded
+CIL bytes verified, then their exact module/files removed before retry.
+
+Both probes subsequently passed under UID 1000 and aetheri_p0_app_t with category
+pairs c21,c22 and c23,c24. The same data type/UID serves both roots. Each reads,
+appends and creates its own file with the exact inherited label; sibling read,
+synthetic broker state, unselected document and sudo exec return EACCES. Eight
+enforcing AVCs corroborate category search/type read/execute denials. Outside-app
+same-UID controls read all targets and can use the fixture administrative sudo.
+
+The final rebuilt Release probe also checks actual empty effective/permitted/
+inheritable capability sets and NoNewPrivileges. That repeated two-fixture run
+passes and removes its exact module/root. Build result/attempt records stay in
+the guest build tree. Eleven host guard tests pass in 0.164 s, including refusal
+to infer safe cleanup from an unacknowledged dispatch. No arbitrary recursive
+purge, foreign policy replacement or production-removal claim.
+
+Partial A3 is evidenced; real authorized broker IPC, ptrace/FD-transfer cases,
+production domains, app/run mapping, exec-event observation and complete P0 gates
+remain open. Full daily-use Aetheri/apps goal stays active.
+After cleanup, all four existing Debug/Release tests pass again (0.19/0.05 s,
+exit 0). Cleared only the two verified stopped failed-test unit records; their
+diagnostic attempt files/audit history remain. Systemd reports running, SELinux
+Enforcing, with no owned policy module/root left. The existing semodule stack is
+policycoreutils/libsemanage 3.10-1 and libsepol 3.11-1.

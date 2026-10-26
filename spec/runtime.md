@@ -199,7 +199,9 @@ allocation/reuse. Deny apps access to databases/journals, headers, sibling paylo
 unselected documents, raw system/user supervisor control and arbitrary broker
 registration. App payload remains writable in its allowed root; code stays read-only.
 Namespaces restrict visibility; they do not replace mandatory access enforcement.
-No policy source, category allocator or credentials backend is installed yet.
+The temporary fixture policy and connection-credential library below test only
+parts of this boundary. No production policy/category allocator or complete
+app/run credentials backend is installed yet.
 
 P0 is headless with one protected test-account/session context, not an interactive
 logind seat or arbitrary client-supplied session. Its exact registered context is
@@ -332,6 +334,61 @@ and incomplete credentials for rejection cases; the positive case uses real
 sd-bus queries. These processes run outside the app boundary. Four native tests
 pass in Debug ASan/UBSan and Release after an offline reboot; this is not A3
 confinement or complete principal authorization.
+
+## Disposable SELinux fixture boundary
+
+[p0-fixture.cil](../policy/p0-fixture.cil) is an original, narrowly scoped test
+module for the selected enforcing Fedora carrier. One app domain is constrained
+by MCS; two synthetic data roots use the same type/UID but disjoint fixed
+category pairs. Broker-state and unselected-document fixtures have separate
+types with no app read/write allowance. Compile-time neverallow rules also guard
+those types, privilege capabilities, domain changes and controller/supervisor
+ptrace. This is not the production broker/system policy or a category allocator.
+
+The [C17 probe](../tests/probe_policy.c) runs through a transient systemd service
+as UID 1000. The controller sets the exact SELinux context, empty capability
+bounding set, NoNewPrivileges, a private mount namespace and read-only system
+with its own data exception. It disables automatic SIGKILL escalation. Each probe
+verifies its actual UID, kernel-provided label, empty effective/permitted/
+inheritable capabilities and NoNewPrivileges. It reads/appends its own fixture,
+creates a file with the exact inherited data label, and requires EACCES for
+sibling data, synthetic broker state, unselected document and sudo execution.
+Outside-app controls prove that this same UID can read the negative fixtures
+and can use the carrier's administrative sudo route. Enforcing audit records
+confirm MCS search and type read/execute denials; this is not a DAC-only test.
+
+Run explicitly in the disposable carrier, after reviewing the module/controller:
+
+```text
+cmake -S /home/aetheri/source -B /home/aetheri/build/release -DAETHERI_POLICY_PROBES=ON
+cmake --build /home/aetheri/build/release --parallel 2
+sudo python3 /home/aetheri/source/tools/test_linux_policy.py
+```
+
+Building the optional probe does not install policy. The root-only controller
+checks the carrier marker/firmware/product, enforcing mode, fixed fixture account
+and absence of an existing module/root. It never changes enforcing mode or
+relabels another project. It copies/hash-records its probe/policy, creates only
+the fixed disposable /var/lib/aetheri-p0-policy-test tree, tests both identities,
+checks settled units/jobs and removes its enumerated files and exact module.
+The JSON result/attempt records stay under the guest build directory.
+
+Failure preserves the fixture for inspection. The explicit
+--recover-owned-fixture path refuses unacknowledged dispatch, live/unknown unit
+state, altered module bytes or unexplained entries. It compares the installed
+priority-400 CIL with its owned input before removing that module. These checks
+depend on the selected Fedora policy-store layout and are test tooling, not the
+future Aetheri recovery/removal implementation.
+
+Both probes pass in the offline enforcing guest, including capability checks;
+the module/root are absent afterward. Initial setup failures exposed two missing
+supervisor permissions (mounton of the new data directory and execute of the
+new entry type). Both stopped before target exec and were corrected narrowly.
+No app mount/privilege permission or permissive mode was added.
+
+This supplies a part of A3. Live broker/runtime bus authorization, ptrace/FD-transfer
+tests, protected SQLite writers, registry/category lifecycle, selected grants,
+authority-controlled target-exec evidence and full A2–A9 remain pending.
 
 Primary references inspected 26 October 2026:
 
