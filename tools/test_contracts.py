@@ -633,6 +633,19 @@ def wire_shape(root):
 
 
 class ApiContracts(unittest.TestCase):
+    def test_internal_broker_identity_contract(self):
+        root = ET.parse(ROOT / "spec/api/broker-v1.xml").getroot()
+        self.assertEqual(root.attrib["name"], "/org/aetheri/Broker1")
+        self.assertEqual(wire_shape(root), {"org.aetheri.Broker1": {"Register": ("ay ay ay ay", "ay"), "Check": ("ay", "ay")}})
+        interface = root.find("interface")
+        annotations = {a.attrib["name"]: a.attrib["value"] for a in interface.findall("annotation")}
+        self.assertEqual(annotations["org.aetheri.Contract.Version"], "1.0")
+        self.assertEqual(annotations["org.aetheri.Contract.Visibility"], "broker-only")
+        self.assertEqual(len(root.findall(".//arg")), 7)
+        for arg in root.findall(".//arg"):
+            self.assertEqual(arg.attrib["type"], "ay")
+            self.assertEqual(arg.find("annotation").attrib, {"name": "org.aetheri.Contract.Bytes", "value": "16"})
+
     def test_frozen_extension_signatures_and_limits(self):
         for short,expected in WIRE.items():
             file = "documents" if short=="Documents1" else "runtime"

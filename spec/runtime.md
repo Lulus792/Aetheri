@@ -165,7 +165,8 @@ to a new installation/data epoch. No fallback interprets unknown versions as v1.
 ## Process and principal mapping: Linux implementation contract
 
 These roles define admission responsibilities. Protocol endpoints now execute;
-the complete lifecycle and broker/app registration remain unimplemented.
+the complete lifecycle and app registration remain unimplemented. The final section
+records the protected P0 broker enrollment now implemented.
 
 | Role | Identity and authority |
 | --- | --- |
@@ -421,7 +422,8 @@ execute in the enforcing disposable carrier, each with its own catalogue writer.
 This is the first service boundary, not a working app manager: GetProtocolInfo
 returns wire 1.1, its durable authority epoch, a fresh event incarnation and an
 empty capability list. All other public methods return UnsupportedCapability;
-Runtime1 returns NotAuthorized until broker registration is implemented. No
+Runtime1 returns NotAuthorized to unregistered callers; authenticated active
+brokers still receive UnsupportedCapability. Private Broker1 enrollment now works. No
 subscription object, launch, grant, revocation or app-removal capability exists.
 
 `tools/embed_api.py` generates ignored native vtables from the accepted XML at
@@ -546,7 +548,7 @@ have different accounting scopes; context switches are not a precise wakeup coun
 This is not a long-term performance, startup/latency or finished-OS budget. The
 controller is a short-lived development tool, not another resident service.
 
-Next remain actual broker registration/principal mapping, protected volume/read
+Next remain complete app principal mapping and general account eligibility, protected volume/read
 refs, fixture import, launch supervision/target-exec, access transport and recovery.
 No app can yet be launched or removed through these public endpoints.
 
@@ -626,6 +628,107 @@ CPU/context-switch growth, PSS 2184/2267 KiB and MemoryCurrent 1630208/1658880 b
 (system/user). This remains a short observation, not a full performance budget.
 Owned services were stopped afterward; prototype data/policy stay in the guest.
 
-Next: connect this evidence to protected broker/app/run registration and current
-catalogue fences, then fixture import and reserve/ready/dispatch with target-exec
+Next: connect protected broker enrollment and process evidence to app/run records
+and current catalogue fences, then fixture import and reserve/ready/dispatch with target-exec
 observation. No lifecycle capability is enabled by this observer alone.
+
+## Protected P0 broker enrollment
+
+[broker-v1.xml](api/broker-v1.xml) defines private interface 1.0 on System1:
+Register(expected_system_epoch, account_scope_id, broker_epoch, broker_incarnation)
+and Check(broker_incarnation), each returning the current system incarnation.
+Every argument is exactly 16 bytes, with UUIDv4 checked by the native receiver.
+This adds no public lifecycle capability, SQL table or change to the existing
+public wire 1.1/frozen v1 contracts.
+
+The fixed eligible test account is UID 1000. Existing protected registry files
+bind account and durable user/system epochs. A new root-owned 0444 registry file,
+registry/broker.conf, selects its expected supervised unit:
+
+```text
+AETHERI-P0-BROKER-1
+unit=<controller-derived aetheri-p0-...-user-...service name>
+```
+
+The initial unit value is `-`, which cannot enroll. The root controller publishes
+a selected slot atomically before its recorded user-service dispatch. Neither
+method accepts a client-selected UID, PID, security label, unit, executable or
+path. Native identity reads may inspect the other role's root-owned registry;
+they never open the other owner's SQLite catalogue. General eligible-account
+records, scope-table enrollment, multiple users and registered volumes remain
+future work. This is a bootstrap for the dedicated prototype account.
+
+Register captures authenticated connection credentials/ProcessFD, checks the
+protected account/epochs, requires the exact aetheri_user_t context and UID, and
+joins the current process to that selected unit, invocation, boot and cgroup.
+The known user service may still be activating while its Type=notify startup
+registers. This stage binds identity only. After the acknowledgement, the user
+service sends readiness. Check and Runtime1 authentication always use the normal
+observer requiring active state; registration does not bypass that gate.
+
+The registered incarnation is declared by the trusted broker after committing its
+own catalogue runtime. Root binds it to the observed connection/invocation; it
+does not become a second reader/writer of private user SQLite state. Every use
+rechecks current root metadata, enforcing domain, protected enrollment and current
+process context. Matching IDs from another caller are insufficient. Runtime1
+still returns UnsupportedCapability even for a verified broker; launch/dispatch
+effects and their catalogue fences are not implemented.
+
+[broker.c](../src/authority/broker.c) owns one retained process FD and two targeted
+subscriptions: its pidfd exit and the bus daemon's NameOwnerChanged for exactly
+that unique sender. It subscribes before checking NameHasOwner, covering a
+connection that vanished before the subscription. Binding and use recheck state
+after nested bus calls. Same-binding enrollment is idempotent; a different live
+binding conflicts instead of replacing its FD/context. Connection loss and process
+exit invalidate identity and release the watcher/pin. This never settles app
+holders, releases generation/data leases or proves that an app cgroup drained.
+
+The user service now owns a second connection, to the fixed system bus. Policy
+permits its bus-daemon/System1 traffic and narrow root observations of broker
+process metadata. It gains no raw system-manager permission. App domains still
+cannot reach the system bus. The user listens only for System1 ownership changes;
+there is no global name monitor, polling loop or additional resident process.
+After root restart it re-enrolls on demand. One explicit NotAuthorized response
+can trigger one idempotent enrollment/check retry, covering notification ordering;
+timeouts do not trigger an immediate retry or service redispatch.
+
+The controller manages the additional slot and root-owned probe-broker executable
+(0555, user entry type). The probe makes only public discovery and required
+negative calls. An explicit update-owned may add this new probe after proving its
+path absent in the earlier receipt; ordinary actions require the full inventory.
+Unknown or changed files are never silently adopted. Administrative interrupted
+update/cleanup still needs inspection. No production migration guarantee is added.
+
+Executed in the enforcing offline carrier:
+
+- Actual system/user enrollment and active Check work with unchanged empty Linux
+  capability sets. The user endpoint's public discovery exercises that Check.
+- A same-UID unconfined process and a same-domain wrong unit both have working
+  public transport, but copied real IDs cannot Register, Check or call Runtime1.
+  Existing app-domain raw-system-bus/private-state denials remain.
+- Ending the broker reduces root descriptors from 12 to 11. Starting its next
+  incarnation restores that one pin with a changed user runtime. Restarting only
+  root preserves the live user PID/runtime and establishes a new registration.
+- Separate cache tests inject context results, then exercise actual name loss
+  while the process stays alive and actual pidfd exit while the name stays owned.
+  They cover FD transfer, idempotence, live conflict, reentrant invalidation and
+  a name already gone before subscription. They are not substitutes for the
+  separate real kernel/enforcing integration.
+- Full restart, unowned-name denial, unknown-entry preservation and removal/
+  recreation of the inspected empty bootstrap pass with the new inventory.
+
+Native suites pass 10/10 Debug ASan/UBSan and Release (30.75/19.18 s); the final
+name-loss race checks pass again in their focused cache case. Host contracts pass
+27/27 in 33.642 s and orchestration guards 18/18 in 0.164 s. A test-inventory
+format mismatch (spaced argument types versus a concatenated wire signature) was
+corrected before that passing run; no wire format was weakened.
+
+A 5.024 s idle sample records one task each, zero reported CPU/context-switch
+deltas, PSS 2260/2297 KiB, RSS 6748/6656 KiB and MemoryCurrent 1904640/1662976 bytes
+(system/user). This remains a short metadata-service sample with different memory
+accounting scopes. Owned services were stopped; no wakeup/workload/hardware or
+finished-OS budget is claimed.
+
+Next: native account/fixture enrollment, verified storage/volume/read references,
+app/run records and reserve/ready/dispatch/exec evidence. The complete OS/apps goal
+remains; broker enrollment alone does not launch an app or grant document access.

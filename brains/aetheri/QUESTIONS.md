@@ -63,7 +63,8 @@ and bounded reads now have native tests. The native catalogue store also creates
 validates v2 and commits startup context; it receives trusted identity/boot values
 from its caller and does not implement the registry, kernel-context sourcing or
 native v1 migration. Current peer/process observations now exist, but binding them
-to registered broker/app/run identity remains pending. Complete principal mapping,
+to app/run identity remains pending. Protected P0 broker enrollment now works for
+the fixed eligible test account; general account eligibility and complete principal mapping,
 policy/registry identities, target-exec evidence and actual cross-authority
 admission/recovery remain Linux integration gates. Isolated host tests do not
 settle these gates.

@@ -24,9 +24,9 @@ static int copy_text(char *output, size_t capacity, const char *input)
     return 0;
 }
 
-static int equal_context(const struct ae_process_context *a, const struct ae_process_context *b)
+int ae_process_context_equal(const struct ae_process_context *a, const struct ae_process_context *b)
 {
-    return a->uid == b->uid && a->cgroup_id == b->cgroup_id &&
+    return a != NULL && b != NULL && a->uid == b->uid && a->cgroup_id == b->cgroup_id &&
            memcmp(a->boot, b->boot, sizeof a->boot) == 0 &&
            memcmp(a->invocation, b->invocation, sizeof a->invocation) == 0 &&
            strncmp(a->unit, b->unit, sizeof a->unit) == 0 &&
@@ -46,7 +46,7 @@ static int identity(const struct ae_peer *peer, struct pidfd_info *info)
     return ae_peer_alive(peer);
 }
 
-static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context)
+static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering)
 {
     sd_bus_message *reply = NULL;
     int result = sd_bus_call_method(bus, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
@@ -84,7 +84,7 @@ static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_pr
             if (result > 0) {
                 unsigned int bit = strcmp(key, "ActiveState") == 0 ? 1U : 2U;
                 if (found & bit) result = -EBADMSG;
-                else if (bit == 1U && strcmp(text, "active") != 0) result = -EAGAIN;
+                else if (bit == 1U && strcmp(text, "active") != 0 && (!registering || strcmp(text, "activating") != 0)) result = -EAGAIN;
                 else if (bit == 2U && strcmp(text, context->unit) != 0) result = -ESTALE;
                 if (result >= 0) { found |= bit; result = sd_bus_message_exit_container(properties); }
             }
@@ -132,7 +132,7 @@ static int cgroup_identity(const char *path, uint64_t expected)
     return result;
 }
 
-static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context)
+static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering)
 {
     struct pidfd_info info;
     int result = identity(peer, &info);
@@ -140,7 +140,7 @@ static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_proce
     if (result == 0 && getpidcon_raw(peer->connection_pid, &label) != 0) result = -errno;
     if (result == 0) result = copy_text(context->label, sizeof context->label, label);
     if (result == 0 && strcmp(context->label, peer->connection_label) != 0) result = -ESTALE;
-    if (result == 0) result = manager_context(peer, bus, context);
+    if (result == 0) result = manager_context(peer, bus, context, registering);
     if (result == 0) result = sd_pidfd_get_cgroup(peer->pidfd, &cgroup);
     if (result == 0 && strcmp(cgroup, context->cgroup) != 0) result = -ESTALE;
     if (result == 0) result = cgroup_identity(cgroup, info.cgroupid);
@@ -157,16 +157,26 @@ static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_proce
     return result;
 }
 
-int ae_process_observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output)
+static int observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output, int registering)
 {
     if (peer == NULL || system_bus == NULL || output == NULL || peer->pidfd < 0 || peer->connection_pid <= 0 ||
         memchr(peer->connection_label, 0, sizeof peer->connection_label) == NULL || peer->connection_label[0] == 0) return -EINVAL;
     struct ae_process_context first = {0}, second = {0};
-    int result = observe_once(peer, system_bus, &first);
-    if (result == 0) result = observe_once(peer, system_bus, &second);
-    if (result == 0 && !equal_context(&first, &second)) result = -ESTALE;
+    int result = observe_once(peer, system_bus, &first, registering);
+    if (result == 0) result = observe_once(peer, system_bus, &second, registering);
+    if (result == 0 && !ae_process_context_equal(&first, &second)) result = -ESTALE;
     if (result == 0) *output = second;
     return result;
+}
+
+int ae_process_observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output)
+{
+    return observe(peer, system_bus, output, 0);
+}
+
+int ae_process_observe_registration(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output)
+{
+    return observe(peer, system_bus, output, 1);
 }
 
 int ae_process_verify(const struct ae_peer *peer, sd_bus *system_bus, const struct ae_process_context *expected)
@@ -174,7 +184,7 @@ int ae_process_verify(const struct ae_peer *peer, sd_bus *system_bus, const stru
     if (expected == NULL) return -EINVAL;
     struct ae_process_context actual;
     int result = ae_process_observe(peer, system_bus, &actual);
-    if (result == 0 && !equal_context(expected, &actual)) result = -ESTALE;
+    if (result == 0 && !ae_process_context_equal(expected, &actual)) result = -ESTALE;
     return result;
 }
 

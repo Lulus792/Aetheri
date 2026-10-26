@@ -75,13 +75,15 @@ def load():
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-init)?|user(?:-init)?|probe-(?:check|claim))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-init)?|user(?:-init)?|probe-(?:check|claim|broker))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
         raise RuntimeError("unrecognized pending dispatch")
     if any(role not in ("system", "user") or unit not in record["units"] for role, unit in record.get("active_units", {}).items()):
         raise RuntimeError("unrecognized active authority")
+    if record.get("broker_unit") is not None and (record["broker_unit"] not in record["units"] or re.search(r"-user-[0-9]+\.service$", record["broker_unit"]) is None):
+        raise RuntimeError("unrecognized protected broker unit")
     return record
 
 
@@ -91,7 +93,7 @@ def module_bytes():
     return bz2.decompress(data) if data.startswith(b"BZh") else data
 
 
-def verified(record):
+def verified(record, allow_new_probe=False):
     if hashlib.sha256(module_bytes()).hexdigest() != record["policy_sha256"]:
         raise RuntimeError("installed module differs from owned policy")
     owned_file(ROOT / (MODULE + ".cil"), 0o644)
@@ -118,6 +120,17 @@ def verified(record):
     owned_file(mount, 0o444)
     if mount.stat().st_size != 0:
         raise RuntimeError("untrusted bus mount placeholder")
+    owned_file(ROOT / "registry/broker.conf", 0o444)
+    if (ROOT / "registry/broker.conf").read_text() != "AETHERI-P0-BROKER-1\nunit=" + (record.get("broker_unit") or "-") + "\n":
+        raise RuntimeError("protected broker slot changed")
+    probe = ROOT / "probe-broker"
+    if allow_new_probe and "broker_probe_sha256" not in record:
+        if probe.exists() or probe.is_symlink():
+            raise RuntimeError("unregistered broker probe exists")
+    else:
+        owned_file(probe, 0o555)
+        if checksum(probe) != record["broker_probe_sha256"]:
+            raise RuntimeError("broker probe changed")
 
 
 def label(path, type_name, cats=""):
@@ -149,6 +162,7 @@ def prepare():
               "policy_sha256": checksum(SOURCE / "policy/p0-services.cil"),
               "authority_sha256": checksum(BUILD / "aetheri-authority"),
               "probe_sha256": checksum(BUILD / "probe_service"),
+              "broker_probe_sha256": checksum(BUILD / "probe_broker"),
               "config_sha256": {role: checksum(SOURCE / ("policy/org.aetheri." + ("System1" if role == "system" else "User1") + ".conf")) for role in CONFIGS},
               "units": [], "pending": None, "state": "preparing"}
     save(record)
@@ -158,6 +172,7 @@ def prepare():
     run("semodule", "-X", "400", "-i", str(cil))
     label(ROOT, "aetheri_root_t")
     directory(ROOT / "registry", "aetheri_registry_t")
+    publish(ROOT / "registry/broker.conf", b"AETHERI-P0-BROKER-1\nunit=-\n", "aetheri_registry_t")
     directory(ROOT / "system", "aetheri_system_state_t", mode=0o700)
     directory(ROOT / "users", "aetheri_root_t")
     directory(ROOT / "users" / record["owner"], "aetheri_root_t")
@@ -175,6 +190,7 @@ def prepare():
         CONFIGS[role].chmod(0o644)
         run("restorecon", str(CONFIGS[role]))
     publish(ROOT / "probe-service", (BUILD / "probe_service").read_bytes(), "aetheri_app_exec_t", mode=0o555)
+    publish(ROOT / "probe-broker", (BUILD / "probe_broker").read_bytes(), "aetheri_user_exec_t", mode=0o555)
     for role in ("system", "user"):
         bus(role, "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReloadConfig")
     record["state"] = "prepared"
@@ -191,11 +207,20 @@ def unit_has_job(unit):
     return jobs["type"] != "a(usssoo)" or any(job[1] == unit for job in jobs["data"][0])
 
 
-def start_unit(record, role, init=False, probe=None):
+def publish_broker_slot(record, unit):
+    temporary = ROOT / "registry/broker.next"
+    publish(temporary, ("AETHERI-P0-BROKER-1\nunit=" + unit + "\n").encode(), "aetheri_registry_t")
+    os.replace(temporary, ROOT / "registry/broker.conf")
+    record["broker_unit"] = unit
+
+
+def start_unit(record, role, init=False, probe=None, claims=None):
     suffix = ("probe-" + probe) if probe else role + ("-init" if init else "")
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
+    if role == "user" and not init and probe is None:
+        publish_broker_slot(record, unit)
     if unit not in record["units"]:
         record["units"].append(unit)
     record["pending"] = unit
@@ -210,6 +235,10 @@ def start_unit(record, role, init=False, probe=None):
     if probe:
         properties.update(SELinuxContext="system_u:system_r:aetheri_app_t:s0:c31,c32", ReadWritePaths=str(ROOT / "probe-data"))
         command = [str(ROOT / "probe-service"), probe, record["owner"]]
+        if probe == "broker":
+            properties["SELinuxContext"] = "system_u:system_r:aetheri_user_t:s0"
+            properties.pop("ReadWritePaths")
+            command = [str(ROOT / "probe-broker"), *claims]
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else [])
@@ -260,7 +289,7 @@ def start(record):
             continue
         if role in active:
             facts = dict(line.split("=", 1) for line in run("systemctl", "show", active[role], "--property=ActiveState,MainPID,ControlGroup").splitlines())
-            if facts.get("ActiveState") not in ("inactive", "failed") or facts.get("MainPID") != "0" or facts.get("ControlGroup"):
+            if facts.get("ActiveState") not in ("inactive", "failed") or facts.get("MainPID") != "0" or facts.get("ControlGroup") or unit_has_job(active[role]):
                 raise RuntimeError("old authority still live/unknown; no second dispatch")
         if not (state_path(record, role) / "catalogue.sqlite3").exists():
             start_unit(record, role, init=True)
@@ -286,11 +315,11 @@ def check(record):
             raise AssertionError("durable/protocol/runtime identity mismatch")
         if actual[1].lower() != Path("/proc/sys/kernel/random/boot_id").read_text().strip().replace("-", ""):
             raise AssertionError("catalogue is not bound to the real kernel boot")
-        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1"]
+        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1", "/org/aetheri/Broker1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1"]
         name = "org.aetheri.System1" if role == "system" else "org.aetheri.User1"
         for path in paths:
             live = ET.fromstring(json.loads(bus(role, "--json=short", "call", name, path, "org.freedesktop.DBus.Introspectable", "Introspect"))["data"][0])
-            expected_file = "management-v1.xml" if path.endswith("Management1") else ("runtime-v1.xml" if path.endswith("Runtime1") else "documents-v1.xml")
+            expected_file = {"Management1": "management-v1.xml", "Runtime1": "runtime-v1.xml", "Documents1": "documents-v1.xml", "Broker1": "broker-v1.xml"}[path.rsplit("/", 1)[1]]
             expected = ET.parse(SOURCE / "spec/api" / expected_file).getroot()
             for interface in expected.findall("interface"):
                 if interface.attrib["name"] == "org.aetheri.Subscription1" or (role == "system" and interface.attrib["name"] == "org.aetheri.User1"):
@@ -319,6 +348,9 @@ def check(record):
                         "revision": actual[3], "observed": facts}
     user_run("python3", "-c", "from pathlib import Path; p=Path('" + str(state_path(record, "user") / "catalogue.sqlite3") + "'); assert p.open('rb').read(16)==b'SQLite format 3\\0'")
     start_unit(record, "user", probe="check")
+    claims = [record["epochs"]["system"], record["owner"], record["epochs"]["user"], report["user"]["runtime"]]
+    user_run(str(BUILD / "probe_broker"), *claims)
+    start_unit(record, "user", probe="broker", claims=claims)
     record["report"] = report
     save(record)
     print(json.dumps({"confined_endpoints": 2, "live_xml": True, "real_boot": True, "app_public_ipc_and_denials": True}))
@@ -342,18 +374,22 @@ def restart_check(record):
     print("Restart preserves epochs/boot, replaces runtime/events, advances revisions; unowned name claim denied.")
 
 
+def stop_unit(unit):
+    facts = dict(line.split("=", 1) for line in run("systemctl", "show", unit, "--property=ActiveState,MainPID,ControlGroup,LoadState").splitlines())
+    if facts.get("LoadState") != "not-found":
+        run("systemctl", "stop", unit, timeout=20)
+    facts = dict(line.split("=", 1) for line in run("systemctl", "show", unit, "--property=ActiveState,MainPID,ControlGroup").splitlines())
+    if facts.get("ActiveState") not in ("inactive", "failed") or facts.get("MainPID") != "0" or facts.get("ControlGroup"):
+        raise RuntimeError("owned unit is not drained; preserve state")
+    if unit_has_job(unit):
+        raise RuntimeError("owned unit still has a supervisor job; preserve state")
+
+
 def stop(record):
     if record["pending"]:
         raise RuntimeError("unacknowledged dispatch requires reconciliation")
     for unit in record["units"]:
-        facts = dict(line.split("=", 1) for line in run("systemctl", "show", unit, "--property=ActiveState,MainPID,ControlGroup,LoadState").splitlines())
-        if facts.get("LoadState") != "not-found":
-            run("systemctl", "stop", unit, timeout=20)
-        facts = dict(line.split("=", 1) for line in run("systemctl", "show", unit, "--property=ActiveState,MainPID,ControlGroup").splitlines())
-        if facts.get("ActiveState") not in ("inactive", "failed") or facts.get("MainPID") != "0" or facts.get("ControlGroup"):
-            raise RuntimeError("owned unit is not drained; preserve state")
-        if unit_has_job(unit):
-            raise RuntimeError("owned unit still has a supervisor job; preserve state")
+        stop_unit(unit)
     record["state"] = "stopped"
     save(record)
     print("Owned authority/probe units stopped without SIGKILL escalation.")
@@ -375,6 +411,8 @@ def cleanup(record):
              ROOT / "system-authority": (0, 0o555), ROOT / "user-authority": (0, 0o555),
              ROOT / "probe-service": (0, 0o555), ROOT / "user-bus": (0, 0o444),
              ROOT / "registry/system.conf": (0, 0o444), ROOT / "registry/user-1000.conf": (0, 0o444)}
+    files[ROOT / "registry/broker.conf"] = (0, 0o444)
+    files[ROOT / "probe-broker"] = (0, 0o555)
     for role in ("system", "user"):
         directory = state_path(record, role)
         uid = 0 if role == "system" else 1000
@@ -436,7 +474,7 @@ def cleanup(record):
 
 
 def update_owned(record):
-    verified(record)
+    verified(record, allow_new_probe=True)
     stop(record)
     record["state"] = "updating-owned-inputs"
     save(record)
@@ -454,6 +492,9 @@ def update_owned(record):
     temporary = ROOT / "probe-service.next"
     publish(temporary, (BUILD / "probe_service").read_bytes(), "aetheri_app_exec_t", mode=0o555)
     os.replace(temporary, ROOT / "probe-service")
+    temporary = ROOT / "probe-broker.next"
+    publish(temporary, (BUILD / "probe_broker").read_bytes(), "aetheri_user_exec_t", mode=0o555)
+    os.replace(temporary, ROOT / "probe-broker")
     for role, target in CONFIGS.items():
         source = SOURCE / ("policy/org.aetheri." + ("System1" if role == "system" else "User1") + ".conf")
         if checksum(source) != record["config_sha256"][role]:
@@ -465,7 +506,8 @@ def update_owned(record):
             os.replace(temporary, target)
             record["config_sha256"][role] = checksum(target)
             bus(role, "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReloadConfig")
-    record.update(authority_sha256=checksum(BUILD / "aetheri-authority"), probe_sha256=checksum(BUILD / "probe_service"), state="prepared")
+    record.update(authority_sha256=checksum(BUILD / "aetheri-authority"), probe_sha256=checksum(BUILD / "probe_service"),
+                  broker_probe_sha256=checksum(BUILD / "probe_broker"), state="prepared")
     save(record)
     print("Updated verified stopped owned policy/executables; registry and catalogues preserved.")
 
@@ -498,6 +540,36 @@ def lifecycle_check(record):
     check(replacement)
     print(json.dumps({"restart": before, "unknown_entry_preserved": True, "empty_bootstrap_removed": True,
                       "fresh_registry": True, "after_recreation": replacement["report"]}))
+
+
+def broker_check(record):
+    start(record)
+    check(record)
+    first = record["report"]
+    root_pid = first["system"]["observed"]["MainPID"]
+    def root_fds():
+        return len(list((Path("/proc") / root_pid / "fd").iterdir()))
+    bound = root_fds()
+    stop_unit(record["active_units"]["user"])
+    protocol("system")  # Read-side liveness barrier; no launch/holder settlement.
+    dropped = root_fds()
+    if dropped != bound - 1:
+        raise AssertionError("departed broker did not release exactly its retained process pin")
+    start(record)
+    check(record)
+    second = record["report"]
+    if second["system"]["observed"]["MainPID"] != root_pid or root_fds() != bound or second["user"]["runtime"] == first["user"]["runtime"]:
+        raise AssertionError("new broker failed to replace only its own binding")
+    user_pid = second["user"]["observed"]["MainPID"]
+    stop_unit(record["active_units"]["system"])
+    start(record)
+    check(record)
+    third = record["report"]
+    if third["user"]["observed"]["MainPID"] != user_pid or third["user"]["runtime"] != second["user"]["runtime"] or third["system"]["runtime"] == second["system"]["runtime"]:
+        raise AssertionError("root restart did not re-register the existing broker")
+    record["broker_check"] = {"fds_bound": bound, "fds_after_exit": dropped, "user_replaced": True, "root_restarted_with_user_retained": True}
+    save(record)
+    print(json.dumps(record["broker_check"]))
 
 
 def idle_check(record):
@@ -558,6 +630,7 @@ def main():
         elif action == "cleanup": cleanup(record)
         elif action == "lifecycle-check": lifecycle_check(record)
         elif action == "idle-check": idle_check(record)
+        elif action == "broker-check": broker_check(record)
         elif action == "update-owned": update_owned(record)
         else: raise RuntimeError("unsupported controller action")
     finally:

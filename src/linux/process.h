@@ -24,6 +24,13 @@ struct ae_process_context {
  */
 int ae_process_observe(const struct ae_peer *peer, sd_bus *system_bus,
                        struct ae_process_context *output);
+/* Registration may pin a known service while its Type=notify startup is still
+ * activating. This does NOT establish active admission; verify still requires
+ * active state. Use only after selecting a protected supervisor slot.
+ */
+int ae_process_observe_registration(const struct ae_peer *peer, sd_bus *system_bus,
+                                    struct ae_process_context *output);
+int ae_process_context_equal(const struct ae_process_context *a, const struct ae_process_context *b);
 /* The only local pidfd_open path: pin this calling process itself. Never use
  * this to replace a caller's required bus-authenticated ProcessFD.
  */

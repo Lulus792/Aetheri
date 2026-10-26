@@ -1,6 +1,7 @@
 #include "catalogue/store.h"
 #include "linux/peer.h"
 #include "linux/process.h"
+#include "authority/broker.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -26,6 +27,11 @@ struct authority {
     struct ae_catalogue_identity identity;
     sd_id128_t boot, runtime, events;
     uid_t uid;
+    sd_event *event;
+    sd_bus *system_bus;
+    struct ae_broker broker;
+    sd_id128_t system_runtime;
+    int registered;
 };
 
 static int context_is(const char *context, const char *type)
@@ -92,7 +98,7 @@ static int uuid4(const uint8_t value[AE_ID_BYTES])
 }
 
 /* Root-provisioned fixed P0 bootstrap registry. No path/identity from a client. */
-static int load_registry(struct authority *authority, char state_path[256])
+static int load_registry(struct authority *authority, char *state_path)
 {
     int root = open_trusted(ROOT, 1);
     if (root < 0) return root;
@@ -143,6 +149,7 @@ static int load_registry(struct authority *authority, char state_path[256])
     }
     snprintf(uid, sizeof uid, "\nuid=%u\n", (unsigned int)authority->uid);
     if (strcmp(tail, uid) != 0) return -EBADMSG;
+    if (state_path == NULL) return 0; /* Identity read only; never another owner's DB. */
     count = system ? snprintf(state_path, 256, ROOT "/system") :
                      snprintf(state_path, 256, ROOT "/users/%s/control", owner);
     if (count < 0 || count >= 256) return -EINVAL;
@@ -157,6 +164,169 @@ static int load_registry(struct authority *authority, char state_path[256])
     if (fd < 0) return fd;
     result = labeled(fd, system ? "aetheri_system_state_t" : "aetheri_user_state_t");
     close(fd);
+    return result;
+}
+
+static int broker_unit(char output[256])
+{
+    int fd = open_trusted(ROOT "/registry/broker.conf", 0);
+    if (fd < 0) return fd;
+    struct stat info;
+    char bytes[256] = {0};
+    int result = fstat(fd, &info) == 0 && S_ISREG(info.st_mode) && info.st_uid == 0 && info.st_nlink == 1 &&
+                 (info.st_mode & 07777) == 0444 && info.st_size > 0 && info.st_size < 256 ? labeled(fd, "aetheri_registry_t") : -EACCES;
+    ssize_t count = result == 0 ? read(fd, bytes, sizeof bytes - 1U) : -1;
+    close(fd);
+    const char prefix[] = "AETHERI-P0-BROKER-1\nunit=";
+    if (result < 0) return result;
+    if (count != info.st_size || count <= (ssize_t)sizeof prefix || bytes[count - 1] != '\n' ||
+        memchr(bytes, 0, (size_t)count) != NULL || memcmp(bytes, prefix, sizeof prefix - 1U) != 0) return -EBADMSG;
+    bytes[count - 1] = 0;
+    const char *unit = bytes + sizeof prefix - 1U;
+    size_t length = strlen(unit);
+    if (length < 20 || length >= 256 || strncmp(unit, "aetheri-p0-", 11) != 0 ||
+        strstr(unit, "-user-") == NULL || strcmp(unit + length - 8, ".service") != 0) return -ENODATA;
+    for (size_t n = 0; n < length; ++n)
+        if (!((unit[n] >= 'a' && unit[n] <= 'z') || (unit[n] >= '0' && unit[n] <= '9') || unit[n] == '-' || unit[n] == '.')) return -EBADMSG;
+    memcpy(output, unit, length + 1U);
+    return 0;
+}
+
+static int read_id(sd_bus_message *message, uint8_t output[16])
+{
+    const void *bytes = NULL;
+    size_t size = 0;
+    int result = sd_bus_message_read_array(message, 'y', &bytes, &size);
+    if (result <= 0 || size != 16 || !uuid4(bytes)) return -EBADMSG;
+    memcpy(output, bytes, size);
+    return 0;
+}
+
+static int authority_info(struct authority *authority, struct ae_catalogue_info *info)
+{
+    int result = enforced_domain(authority->identity.kind == AE_CATALOGUE_SYSTEM ? "aetheri_system_t" : "aetheri_user_t");
+    if (result == 0) result = ae_catalogue_get_info(authority->catalogue, info);
+    if (result == 0 && (memcmp(info->boot_id, authority->boot.bytes, 16) != 0 ||
+        memcmp(info->runtime_incarnation, authority->runtime.bytes, 16) != 0)) result = -ESTALE;
+    return result;
+}
+
+static int runtime_reply(sd_bus_message *message, struct authority *authority)
+{
+    sd_bus_message *reply = NULL;
+    int result = sd_bus_message_new_method_return(message, &reply);
+    if (result >= 0) result = sd_bus_message_append_array(reply, 'y', authority->runtime.bytes, 16);
+    if (result >= 0) result = sd_bus_send(NULL, reply, NULL);
+    sd_bus_message_unref(reply);
+    return result < 0 ? result : 1;
+}
+
+static int broker_current(struct authority *authority, struct ae_peer *peer, sd_bus_message *message)
+{
+    struct ae_catalogue_info info;
+    int result = authority_info(authority, &info);
+    if (result == 0) result = ae_peer_capture(message, peer);
+    struct authority enrolled = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
+    char unit[256];
+    if (result == 0) result = load_registry(&enrolled, NULL);
+    if (result == 0) result = broker_unit(unit);
+    if (result == 0 && (memcmp(enrolled.identity.authority_epoch, authority->broker.identity.epoch, 16) != 0 ||
+        memcmp(enrolled.identity.owner, authority->broker.identity.account, 16) != 0 || strcmp(unit, authority->broker.context.unit) != 0)) result = -EACCES;
+    if (result == 0) result = ae_broker_verify(&authority->broker, peer, sd_bus_message_get_bus(message));
+    return result;
+}
+
+static int method_register(sd_bus_message *message, void *userdata, sd_bus_error *error)
+{
+    struct authority *authority = userdata;
+    struct ae_peer peer = AE_PEER_INIT;
+    struct ae_broker_identity claimed;
+    uint8_t system_epoch[16];
+    struct ae_catalogue_info info;
+    int result = authority_info(authority, &info);
+    if (result == 0) result = ae_peer_capture(message, &peer);
+    if (result == 0) result = read_id(message, system_epoch);
+    if (result == 0) result = read_id(message, claimed.account);
+    if (result == 0) result = read_id(message, claimed.epoch);
+    if (result == 0) result = read_id(message, claimed.runtime);
+    struct authority enrolled = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
+    char unit[256];
+    if (result == 0) result = load_registry(&enrolled, NULL);
+    if (result == 0) result = broker_unit(unit);
+    if (result == 0 && (memcmp(system_epoch, authority->identity.authority_epoch, 16) != 0 ||
+        memcmp(claimed.account, enrolled.identity.owner, 16) != 0 || memcmp(claimed.epoch, enrolled.identity.authority_epoch, 16) != 0)) result = -EACCES;
+    if (result == 0 && security_getenforce() != 1) result = -EACCES;
+    if (result == 0) result = ae_broker_bind(&authority->broker, &peer, sd_bus_message_get_bus(message), authority->event,
+                                           &claimed, unit, authority->boot.bytes);
+    ae_peer_clear(&peer);
+    if (result < 0) return sd_bus_error_set_const(error, result == -EALREADY ? "org.aetheri.Error1.Conflict" : "org.aetheri.Error1.NotAuthorized", "Protected broker enrollment required");
+    return runtime_reply(message, authority);
+}
+
+static int method_check(sd_bus_message *message, void *userdata, sd_bus_error *error)
+{
+    struct authority *authority = userdata;
+    struct ae_peer peer = AE_PEER_INIT;
+    uint8_t runtime[16];
+    int result = read_id(message, runtime);
+    if (result == 0) result = broker_current(authority, &peer, message);
+    if (result == 0 && memcmp(runtime, authority->broker.identity.runtime, 16) != 0) result = -EACCES;
+    ae_peer_clear(&peer);
+    if (result < 0) return sd_bus_error_set_const(error, result == -EAGAIN ? "org.aetheri.Error1.NeedsRecovery" : "org.aetheri.Error1.NotAuthorized", "Active registered broker required");
+    return runtime_reply(message, authority);
+}
+
+static int owner_changed(sd_bus_message *message, void *userdata, sd_bus_error *error)
+{
+    (void)error;
+    struct authority *authority = userdata;
+    const char *name, *old_owner, *new_owner;
+    int result = sd_bus_message_read(message, "sss", &name, &old_owner, &new_owner);
+    (void)old_owner;
+    if (result < 0) return result;
+    if (authority->identity.kind == AE_CATALOGUE_SYSTEM) ae_broker_name_lost(&authority->broker, name, new_owner);
+    else if (strcmp(name, "org.aetheri.System1") == 0) authority->registered = 0;
+    return 0;
+}
+
+static int register_system(struct authority *authority)
+{
+    struct authority system = {.uid = 0, .identity.kind = AE_CATALOGUE_SYSTEM};
+    int result = load_registry(&system, NULL);
+    sd_bus_message *request = NULL, *reply = NULL;
+    if (result == 0) result = sd_bus_message_new_method_call(authority->system_bus, &request, "org.aetheri.System1", "/org/aetheri/Broker1", "org.aetheri.Broker1", "Register");
+    if (result >= 0) result = sd_bus_message_append_array(request, 'y', system.identity.authority_epoch, 16);
+    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->identity.owner, 16);
+    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->identity.authority_epoch, 16);
+    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->runtime.bytes, 16);
+    if (result >= 0) result = sd_bus_call(authority->system_bus, request, 2000000, NULL, &reply);
+    if (result > 0) result = read_id(reply, authority->system_runtime.bytes);
+    sd_bus_message_unref(request); sd_bus_message_unref(reply);
+    authority->registered = result == 0;
+    return result;
+}
+
+static int check_system(struct authority *authority)
+{
+    int result = authority->registered ? 0 : register_system(authority);
+    for (unsigned int attempt = 0; result == 0 && attempt < 2; ++attempt) {
+        sd_bus_message *request = NULL, *reply = NULL;
+        sd_bus_error error = SD_BUS_ERROR_NULL;
+        result = sd_bus_message_new_method_call(authority->system_bus, &request, "org.aetheri.System1", "/org/aetheri/Broker1", "org.aetheri.Broker1", "Check");
+        if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->runtime.bytes, 16);
+        if (result >= 0) result = sd_bus_call(authority->system_bus, request, 2000000, &error, &reply);
+        sd_id128_t runtime;
+        if (result > 0) result = read_id(reply, runtime.bytes);
+        if (result == 0 && memcmp(runtime.bytes, authority->system_runtime.bytes, 16) != 0) result = -ESTALE;
+        int retry = attempt == 0 && result < 0 && sd_bus_error_has_name(&error, "org.aetheri.Error1.NotAuthorized");
+        sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply);
+        if (!retry) break;
+        /* Explicit rejection can follow a root restart. Identity registration is
+         * idempotent and still rechecks protected enrollment. Never retry timeout. */
+        authority->registered = 0;
+        result = register_system(authority);
+    }
+    if (result < 0) authority->registered = 0;
     return result;
 }
 
@@ -176,12 +346,11 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
     int result = authenticate(message, authority, error);
     if (result < 0) return result;
     struct ae_catalogue_info info;
-    result = ae_catalogue_get_info(authority->catalogue, &info);
-    if (result != 0 || security_getenforce() != 1 ||
-        memcmp(info.boot_id, authority->boot.bytes, AE_ID_BYTES) != 0 ||
-        memcmp(info.runtime_incarnation, authority->runtime.bytes, AE_ID_BYTES) != 0)
+    result = authority_info(authority, &info);
+    if (result != 0)
         return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Authority context is unavailable");
     if (authority->identity.kind == AE_CATALOGUE_SYSTEM) {
+        if (authority->broker.peer.pidfd >= 0 && ae_peer_alive(&authority->broker.peer) == -ESRCH) ae_broker_clear(&authority->broker);
         struct ae_process_context supervised;
         sd_id128_t invocation;
         result = ae_process_observe_self(sd_bus_message_get_bus(message), &supervised);
@@ -190,7 +359,7 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
             memcmp(invocation.bytes, supervised.invocation, sizeof supervised.invocation) != 0 ||
             memcmp(authority->boot.bytes, supervised.boot, sizeof supervised.boot) != 0)
             return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Supervised authority context is unavailable");
-    }
+    } else if (check_system(authority) != 0) return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "System broker registration is unavailable");
     sd_bus_message *reply = NULL;
     result = sd_bus_message_new_method_return(message, &reply);
     if (result >= 0) result = sd_bus_message_append(reply, "uu", 1U, 1U);
@@ -205,10 +374,12 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
 
 static int method_unavailable(sd_bus_message *message, void *userdata, sd_bus_error *error)
 {
-    int result = authenticate(message, userdata, error);
-    if (result < 0) return result;
-    if (strcmp(sd_bus_message_get_interface(message), "org.aetheri.Runtime1") == 0)
-        return sd_bus_error_set_const(error, "org.aetheri.Error1.NotAuthorized", "Registered broker authorization is not available");
+    struct authority *authority = userdata;
+    int internal = strcmp(sd_bus_message_get_interface(message), "org.aetheri.Runtime1") == 0;
+    struct ae_peer peer = AE_PEER_INIT;
+    int result = internal ? broker_current(authority, &peer, message) : authenticate(message, userdata, error);
+    ae_peer_clear(&peer);
+    if (result < 0) return internal ? sd_bus_error_set_const(error, "org.aetheri.Error1.NotAuthorized", "Active registered broker required") : result;
     return sd_bus_error_set_const(error, "org.aetheri.Error1.UnsupportedCapability", "This authority does not implement that capability yet");
 }
 
@@ -227,7 +398,8 @@ int main(int argc, char **argv)
         (argc == 3 && strcmp(argv[2], "--init") != 0)) {
         fputs("Usage: aetheri-authority system|user [--init]\n", stderr); return 2;
     }
-    struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER, .uid = geteuid()};
+    struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
+                                  .uid = geteuid(), .broker = AE_BROKER_INIT};
     int system = authority.identity.kind == AE_CATALOGUE_SYSTEM;
     if ((system && authority.uid != 0) || (!system && authority.uid == 0)) return 3;
     int result = enforced_domain(system ? "aetheri_system_t" : "aetheri_user_t");
@@ -253,6 +425,7 @@ int main(int argc, char **argv)
     sigemptyset(&signals); sigaddset(&signals, SIGTERM); sigaddset(&signals, SIGINT);
     if (result == 0 && sigprocmask(SIG_BLOCK, &signals, NULL) != 0) result = -errno;
     if (result == 0) result = sd_event_default(&event);
+    if (result >= 0) authority.event = event;
     if (result >= 0) result = sd_event_add_signal(event, NULL, SIGTERM, stop_signal, NULL);
     if (result >= 0) result = sd_event_add_signal(event, NULL, SIGINT, stop_signal, NULL);
     if (result >= 0) result = sd_bus_new(&bus);
@@ -264,6 +437,18 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_bus_set_method_call_timeout(bus, 2000000);
     if (result >= 0) result = sd_bus_set_exit_on_disconnect(bus, 1);
     if (result >= 0) result = sd_bus_start(bus);
+    if (result >= 0 && !system) {
+        result = sd_bus_new(&authority.system_bus);
+        if (result >= 0) result = sd_bus_set_address(authority.system_bus, "unix:path=/run/dbus/system_bus_socket");
+        if (result >= 0) result = sd_bus_set_bus_client(authority.system_bus, 1);
+        if (result >= 0) result = sd_bus_set_method_call_timeout(authority.system_bus, 2000000);
+        if (result >= 0) result = sd_bus_set_exit_on_disconnect(authority.system_bus, 1);
+        if (result >= 0) result = sd_bus_start(authority.system_bus);
+        if (result >= 0) result = sd_bus_attach_event(authority.system_bus, event, 0);
+        if (result >= 0) result = sd_bus_add_match(authority.system_bus, NULL,
+            "type='signal',sender='org.freedesktop.DBus',path='/org/freedesktop/DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='org.aetheri.System1'", owner_changed, &authority);
+        if (result >= 0) result = register_system(&authority);
+    }
     for (size_t n = 0; result >= 0 && wire_interfaces[n].roles != 0; ++n) {
         const struct wire_interface *wire = &wire_interfaces[n];
         if ((wire->roles & (int)authority.identity.kind) != 0)
@@ -274,6 +459,8 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_notify(0, "READY=1\nSTATUS=Protocol endpoint available; lifecycle capabilities not implemented");
     if (result >= 0) result = sd_event_loop(event);
     if (result < 0) fprintf(stderr, "Authority startup/runtime failed: %d\n", result);
+    ae_broker_clear(&authority.broker);
+    sd_bus_flush_close_unref(authority.system_bus);
     sd_bus_flush_close_unref(bus);
     sd_event_unref(event);
     int closed = ae_catalogue_close(&authority.catalogue);

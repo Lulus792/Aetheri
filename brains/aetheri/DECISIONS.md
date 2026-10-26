@@ -318,3 +318,25 @@ and NoNewPrivileges. Separately, the confined system authority's self-check pass
 after narrow read/status/cgroup policy additions. No ptrace, cgroup writes, new
 capability, dependency family or package upgrade was adopted. Keep that distinction
 when assessing later full app/run and target-exec acceptance.
+
+## Fixed P0 broker enrollment — 26 October 2026
+
+Implemented private Broker1 1.0 without changing public wire 1.1 or schema v2.
+Root-owned account/epoch configuration and a selected supervised unit enroll the
+sole eligible test broker. Native connection credentials, current context and
+invocation bind its declared catalogue runtime. This implements the accepted
+registration direction; general eligibility, app/run admission and launch remain.
+
+Registration can pin the known Type=notify process while activating, but every
+use requires active state. Only the trusted root controller selects the unit;
+copied IDs cannot choose a principal. Same binding is idempotent; live replacement
+conflicts. Targeted name/exit subscriptions invalidate identity without claiming
+app drain or releasing leases. A name-presence fence after subscription closes
+the already-disconnected race; state is rechecked after nested bus calls.
+
+The user broker gets a fixed system-bus connection and only bus-daemon/System1
+messaging, not raw supervisor access. A root restart can re-enroll the existing
+broker on demand; no timeout-driven service restart. The new probe and slot are
+explicit development inventory, with no new dependency family, capability or
+SDK/package version. Keep the single-account bootstrap and unfinished production
+policy/account/launch boundaries visible.

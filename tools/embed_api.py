@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     lines = ["/* Generated from the accepted XML contracts. Do not edit. */"]
     descriptors = []
-    for file in ("management-v1.xml", "documents-v1.xml", "runtime-v1.xml"):
+    for file in ("management-v1.xml", "documents-v1.xml", "runtime-v1.xml", "broker-v1.xml"):
         node = ET.parse(ROOT / "spec/api" / file).getroot()
         for interface in node.findall("interface"):
             name = interface.attrib["name"]
@@ -19,7 +19,7 @@ def main():
                 continue  # No subscription objects exist until that capability is implemented.
             identifier = "wire_" + name.replace(".", "_")
             roles = {"org.aetheri.Management1": 3, "org.aetheri.Runtime1": 1,
-                     "org.aetheri.User1": 2, "org.aetheri.Documents1": 2}
+                     "org.aetheri.User1": 2, "org.aetheri.Documents1": 2, "org.aetheri.Broker1": 1}
             if name not in roles:
                 raise ValueError("interface requires an explicit authority role")
             role = roles[name]
@@ -35,6 +35,8 @@ def main():
                             raise ValueError("unsupported argument identifier")
                     return " ".join("SD_BUS_PARAM(" + arg.attrib["name"] + ")" for arg in group) or '""'
                 callback = "method_info" if name == "org.aetheri.Management1" and method.attrib["name"] == "GetProtocolInfo" else "method_unavailable"
+                if name == "org.aetheri.Broker1":
+                    callback = {"Register": "method_register", "Check": "method_check"}[method.attrib["name"]]
                 fields = [json.dumps(method.attrib["name"]), json.dumps("".join(a.attrib["type"] for a in inputs)),
                           names(inputs), json.dumps("".join(a.attrib["type"] for a in outputs)), names(outputs),
                           callback, "SD_BUS_VTABLE_UNPRIVILEGED"]

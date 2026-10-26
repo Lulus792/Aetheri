@@ -478,3 +478,28 @@ Raw receipts/logs stay ignored; published notes omit host-private paths and IDs.
 Initial USER_AVC system/status and cgroup filesystem/getattr denials were resolved
 with read-side permissions only. Full principal registration, app-domain peer
 observations, cross-run FD/ptrace enforcement and target-exec proof remain open.
+
+## Broker enrollment and lifetime — 26 October 2026
+
+- [D-Bus name ownership](https://dbus.freedesktop.org/doc/dbus-specification.html#bus-messages-name-owner-changed):
+  authenticated daemon NameOwnerChanged fields, unique-name lifetime and
+  NameHasOwner. The cache subscribes to one exact sender before its presence fence.
+- [sd-bus match rules](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_add_match.html):
+  synchronous match installation, callback/slot lifetime and exact signal filters.
+  The separate sd_bus_match_signal manual URL was unavailable; this shared manual
+  was read instead. Actual integration uses installed systemd 259.10, not the
+  latest manual's 262 runtime.
+- [sd-event I/O sources](https://www.freedesktop.org/software/systemd/man/latest/sd_event_add_io.html):
+  epoll readiness, source disable/unref and explicit descriptor ownership. Broker
+  clear disables/unrefs the source before closing its retained ProcessFD.
+- Executed [identity cache](../../src/authority/broker.c),
+  [cache tests](../../tests/test_broker.c), [negative caller](../../tests/probe_broker.c)
+  and [controller broker-check](../../tools/p0_services.py): real enforcing enrollment,
+  copied-ID rejection with working transport, departed pin 12→11, fresh user and
+  root-only restart with user PID/runtime preserved. Cache context is injected in
+  the isolated cache test; its independent daemon-name and pidfd events are real.
+
+The internal XML is original Aetheri bootstrap design, not a D-Bus-specified app
+authorization protocol. Existing public v1/XML and SQL remain unchanged. The
+single UID-1000 eligible slot is not general account enrollment, volume identity,
+app principal registration, target-exec proof or full lifecycle acceptance.

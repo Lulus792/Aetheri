@@ -8,6 +8,8 @@ and two tested, confined protocol services in a dedicated Fedora/UEFI guest. The
 only working public method is protocol discovery; app lifecycle operations remain
 unimplemented. There is no original Aetheri image, installer, desktop or working
 Aetheri application yet.
+The prototype's internal broker registration now binds the user service to its
+protected account and supervised runtime; app admission remains unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
@@ -106,7 +108,7 @@ limits are in [runtime contracts](spec/runtime.md).
 | src/core | Native ownership encoding and bounded Linux storage primitives |
 | src/catalogue | SQLite v2 creation/validation and startup-context transaction |
 | src/linux | Bus credentials and live process/unit/invocation checks; app/run admission remains pending |
-| src/authority | System/user protocol endpoints, protected bootstrap registry and supervised runtime identities |
+| src/authority | System/user endpoints, protected bootstrap identity and broker enrollment/lifetimes |
 | policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |

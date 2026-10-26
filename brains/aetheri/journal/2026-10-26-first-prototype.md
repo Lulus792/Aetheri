@@ -384,3 +384,41 @@ fixture import/reserve/ready/dispatch/target-exec. Full daily-use OS goal remain
 Unchanged frozen contracts/migration regression rerun on host Python 3.12.14 /
 SQLite 3.53.1: 26/26 in 29.069 s, exit 0. The isolated validator also passes its
 374 assertions. These add no process/policy claims beyond the native evidence.
+
+## Protected broker enrollment
+
+Added private Broker1 1.0 Register/Check contracts without changing public wire
+1.1, schema v2 or frozen v1 files. Root-owned bootstrap account/epoch records
+and a selected supervised service identify the sole eligible test broker. Its
+actual bus connection, ProcessFD, current credentials/domain and service invocation
+bind its declared runtime. Registration permits the selected Type=notify service
+to be activating; subsequent checks require active state.
+
+The cache owns one process pin and targeted name/exit subscriptions. Name loss
+and process exit independently invalidate identity. NameHasOwner after subscription
+rejects an already-disconnected sender; state is rechecked after nested bus calls.
+Invalidation does not settle app holders, leases or uncertain operations.
+
+Ten native tests passed in Debug with ASan/UBSan (30.75 s) and Release (19.18 s).
+After the final name-presence fence, the focused cache test passed again in Debug
+(0.05 s) and Release (0.01 s). It uses mocked process context with real bus-name
+and pidfd events; separate enforcing integration checks supply actual credentials.
+Host contract tests passed 27/27 (33.642 s), orchestration guards 18/18 (0.164 s).
+
+Actual offline enforcing service checks reject copied identity claims from both
+an ordinary same-UID process and another service in the broker domain. Stopping
+the broker reduces system-service FDs from 12 to 11; replacing it restores one
+pin. Restarting only the system authority allows the existing user service to
+re-enroll without replacing its process/runtime. The final repeat passed after
+the name-presence fence. Both owned authorities were then stopped normally.
+
+The guarded empty-bootstrap cleanup/recreation and fresh-identity checks also
+passed with the new slot/probe inventory. A 5.024 s idle sample reports one task
+per authority and zero reported CPU/context-switch deltas; PSS was 2260/2297 KiB,
+RSS 6748/6656 KiB and MemoryCurrent 1904640/1662976 bytes (system/user).
+These are short prototype observations, not finished-OS performance acceptance.
+
+No SDK/package version or dependency family changed. General account eligibility,
+app/run mapping, registered volumes, admission, target-exec and document/removal
+protocols remain next. The full daily-use OS objective remains active; future
+AM5 support remains a recorded portability requirement awaiting concrete hardware.

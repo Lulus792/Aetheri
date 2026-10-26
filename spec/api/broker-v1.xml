@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Internal P0 identity bootstrap only. No app self-registration or launch.
+     Runtime semantics and protected-slot/lifetime rules: spec/runtime.md. -->
+<node name="/org/aetheri/Broker1">
+  <interface name="org.aetheri.Broker1">
+    <annotation name="org.aetheri.Contract.Version" value="1.0"/>
+    <annotation name="org.aetheri.Contract.Visibility" value="broker-only"/>
+    <method name="Register">
+      <arg direction="in" name="expected_system_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="account_scope_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="broker_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="broker_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+    </method>
+    <method name="Check">
+      <arg direction="in" name="broker_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+    </method>
+  </interface>
+</node>

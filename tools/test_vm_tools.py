@@ -23,7 +23,7 @@ class VmTools(unittest.TestCase):
 
     def test_authority_dispatch_timeout_preserves_pending_identity(self):
         record = {"pending": None, "units": [], "token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002"}
-        with patch.object(services, "save"), patch.object(services, "run", side_effect=subprocess.TimeoutExpired("systemd-run", 40)) as command:
+        with patch.object(services, "save"), patch.object(services, "publish_broker_slot"), patch.object(services, "run", side_effect=subprocess.TimeoutExpired("systemd-run", 40)) as command:
             with self.assertRaises(subprocess.TimeoutExpired):
                 services.start_unit(record, "user")
             self.assertEqual(record["pending"], record["units"][0])
@@ -56,10 +56,19 @@ class VmTools(unittest.TestCase):
         record = {"pending": None, "units": [], "token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002"}
         failed = subprocess.CalledProcessError(1, "systemd-run", stderr="failed")
         with patch.object(services, "save"), patch.object(services, "run", side_effect=[failed, "ActiveState=failed\nMainPID=0\nControlGroup="]), \
-             patch.object(services, "unit_has_job", return_value=True):
+             patch.object(services, "unit_has_job", return_value=True), patch.object(services, "publish_broker_slot"):
             with self.assertRaises(subprocess.CalledProcessError):
                 services.start_unit(record, "user")
             self.assertEqual(record["pending"], record["units"][0])
+
+    def test_authority_stopped_unit_with_pending_job_is_not_replaced(self):
+        record = {"pending": None, "active_units": {"system": "owned.service"}}
+        with patch.object(services, "verified"), patch.object(services, "bus", return_value="b false"), \
+             patch.object(services, "run", return_value="ActiveState=inactive\nMainPID=0\nControlGroup="), \
+             patch.object(services, "unit_has_job", return_value=True), patch.object(services, "start_unit") as dispatched:
+            with self.assertRaisesRegex(RuntimeError, "still live/unknown"):
+                services.start(record)
+            dispatched.assert_not_called()
 
     def test_policy_cleanup_never_infers_exit_from_unacknowledged_dispatch(self):
         with patch.object(policy, "run", side_effect=AssertionError("queried or mutated supervisor")) as invoked:

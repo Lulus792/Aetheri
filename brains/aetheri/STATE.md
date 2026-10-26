@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — live process/invocation checks now join the confined endpoints.
+26 October 2026 — protected broker enrollment now joins live process/invocation checks.
 
 ## Confirmed
 
@@ -67,7 +67,14 @@ joins current kernel UID/label, actual system service/invocation and cgroup-v2
 path/inode identity. Required PIDFD_GET_INFO fields must exist; observations repeat
 under liveness checks and stale contexts are rejected. The system endpoint uses
 its self-only pin to corroborate its own invocation/boot on discovery. This is
-not full broker/app registration, catalogue admission or target-exec evidence.
+not itself broker/app registration, catalogue admission or target-exec evidence.
+
+[Broker enrollment](../../src/authority/broker.h): a protected root-owned slot and
+account/epoch bootstrap select the sole eligible UID-1000 user service. Register
+binds its authenticated bus/sender/ProcessFD, current domain/credentials and actual
+unit/invocation to its declared catalogue runtime. Check requires active state and
+revalidates enrollment/context. Name/exit events invalidate the retained identity;
+no polling or app-holder settlement. This is not general account or app admission.
 
 [Temporary SELinux fixture](../../policy/p0-fixture.cil): tested one MCS-constrained
 app domain with two same-UID/disjoint-category data roots, separate synthetic
@@ -81,25 +88,25 @@ bootstrap registries bind account/epochs; process startup verifies its own type,
 NoNewPrivileges and empty capabilities. Actual boot/runtime are committed before
 the bus name and readiness notification. Generated method tables preserve accepted
 method/argument signatures. GetProtocolInfo returns 1.1 and no capabilities;
-other public methods return UnsupportedCapability, internal Runtime1 returns
-NotAuthorized. See [service boundary](../../spec/runtime.md#confined-protocol-services).
+other public methods return UnsupportedCapability. Private Broker1 Register/Check
+work; Runtime1 denies unregistered callers and remains UnsupportedCapability for
+an authenticated active broker. See [service boundary](../../spec/runtime.md#confined-protocol-services).
 
 ## Executed evidence
 
 Python 3.12.14 / SQLite 3.53.1 on the development host:
-The catalogue/API suite now has 26 named tests, including literal-preserving
+The catalogue/API suite now has 27 named tests, including private broker wire shape,
+literal-preserving
 canonicalization and real schema-drift rejection, with unchanged frozen v1 files.
-All pass again on the host in 29.069 s, exit 0.
+All pass again on the host in 33.642 s, exit 0.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
-are unchanged. The host orchestration/cleanup guard suite now has 17 passing tests
-(0.198 s), including pending dispatch, remaining process/job and wrong-owner PID.
+are unchanged. The host orchestration/cleanup guard suite now has 18 passing tests
+(0.164 s), including pending dispatch, remaining process/job and wrong-owner PID.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Nine tests pass in Debug
-with ASan/UBSan (32.56 s) and Release (27.86 s), both exit 0 in the offline guest.
-These full runs overlapped policy compilation and are not latency benchmarks.
-After the final guard/string/self-pin adjustments, the process case passes again
-in Debug (0.72 s) and Release (0.60 s).
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Ten tests pass in Debug
+with ASan/UBSan (30.75 s) and Release (19.18 s), both exit 0 in the offline guest.
+These are functional/sanitizer checks, not latency benchmarks.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -114,6 +121,8 @@ unsupported ioctl, wrong cgroup ID and credentials changing during observation;
 failed outputs stay untouched. Repeated peer/self observations balance FDs.
 These target processes are deliberately unconfined development fixtures; separately,
 the actual enforcing system authority passes its new self-check with empty caps.
+The broker cache case uses mocked context, real daemon name-loss and separate
+pidfd-exit events: transfer/idempotence/conflict and reentrant invalidation pass.
 
 Guest Python 3.14.3 / SQLite 3.51.2: updated 26 catalogue/API tests pass in 47.238 s
 and the prior unchanged 14 runtime-format tests in 0.016 s, exit 0.
@@ -179,13 +188,21 @@ changes runtime/events and advances revision. An unexplained file blocks cleanup
 and survives; the inspected empty bootstrap, bus files and module were then removed
 and recreated with fresh durable identities. This is not app removal acceptance.
 
-A later 5.030 s idle observation after the self-check integration recorded one task
-each, zero reported CPU/context-switch deltas, PSS 2184/2267 KiB and cgroup
-MemoryCurrent 1630208/1658880 bytes (system/user). These are a short carrier sample, not a
+A later 5.024 s idle observation after broker enrollment recorded one task each,
+zero reported CPU/context-switch deltas, PSS 2260/2297 KiB and cgroup
+MemoryCurrent 1904640/1662976 bytes (system/user). These are a short carrier sample, not a
 full-system budget or precise wakeup counter. Full startup/latency/workload evidence
 remains pending. Owned units were explicitly stopped after the sample; the
 prototype registry/catalogues, policy and bus files remain for further work.
 User roles are tied to the existing login user manager; lingering is disabled.
+
+Actual enrollment/Check pass under the two dedicated enforcing domains. Copied
+real identities fail from both an unconfined same-UID process and a same-domain
+different unit; their public transport works. Existing app raw-system-bus denials
+remain. Broker departure reduces root FDs from 12 to 11; replacement restores only
+that pin. A root-only restart re-enrolls the still-live user PID/runtime. Full
+restart, unknown-entry preservation and empty-bootstrap recreation also pass with
+the new slot/probe inventory. These are identity tests, not app launch/removal.
 
 The carrier retains Fedora's enforcing base plus the explicit P0 service module.
 Production broker/system/app policy and category allocation remain pending.
@@ -194,7 +211,7 @@ No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: broker registration and app/run principal mapping, protected read refs,
+Next: native account/fixture enrollment and app/run principal mapping, protected read refs,
 fixture import/launcher, target-exec/recovery evidence and the remaining P0 policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.

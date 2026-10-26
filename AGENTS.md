@@ -55,7 +55,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Its self-pin API is only for the calling process, never a substitute for a
   missing caller ProcessFD. Snapshots are not full app/run admission or target-exec
   evidence. The root endpoint checks its own supervised context on discovery;
-  complete broker/app registration, mutation fences and policy still remain.
+  complete app registration, mutation fences and production policy still remain.
 - Native src/catalogue now creates/validates v2 and commits startup context using
   build-embedded canonical SQL. Read spec/README.md#native-catalogue-boundary.
   No production registry/MAC/authority or native v1 migration is implied. Keep
@@ -66,13 +66,23 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   preserve uncertain dispatches and refuse foreign fixtures/modules. Fixed test
   categories are not a production category allocator or complete A3 acceptance.
 - src/authority implements two confined prototype protocol endpoints, generated
-  from accepted XML. Read spec/runtime.md#confined-protocol-services. Only discovery
-  works; no lifecycle capabilities are advertised. tools/p0_services.py explicitly
+  from accepted XML. Read spec/runtime.md#confined-protocol-services. Public discovery
+  and private P0 Broker1 enrollment/check now work; no lifecycle capabilities are
+  advertised. Read the broker enrollment section in spec/runtime.md. Bootstrap is
+  one protected UID-1000 account/unit, not general account/launch admission. Losing
+  a name/process drops identity only; never infer app drain or release leases.
+  tools/p0_services.py explicitly
   provisions/checks/stops the dedicated guest bootstrap. lifecycle-check removes
   and recreates only an inspected empty bootstrap, never a production app install.
   Preserve unknown/pending dispatches, processes, jobs and unexplained entries.
   Its admin update/cleanup interruption needs manual reconciliation; do not claim
   production power-loss recovery. User roles follow the login manager, no lingering.
+- src/authority/broker owns the retained peer pin and narrow name/exit subscriptions.
+  Registration may observe a known Type=notify service while activating; every
+  use still verifies active state. Caller-supplied IDs cannot select the unit.
+  broker-check proves departure FD cleanup, user replacement and root-only restart.
+  Cache tests mock context but use real name-loss/pidfd events; separate enforcing
+  integration rejects unconfined and same-domain/wrong-unit impersonators.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
