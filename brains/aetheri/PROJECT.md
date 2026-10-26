@@ -84,8 +84,9 @@ references to current credentials, service invocation and cgroup identity; the
 system endpoint verifies its own supervised context. A protected single-account
 broker enrollment now binds the actual user-service connection and invocation.
 The system catalogue also enrolls the fixed test account without UID/scope rebinding.
-Native fixture metadata decoding now validates canonical package descriptions;
-content hashing, payload import and publication remain separate work.
+Native fixture decoding and SHA-256 now validate canonical package descriptions
+against an independently expected ArtifactId and verify held-file content.
+Protected payload import, inventory and publication remain separate work.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete
@@ -122,8 +123,9 @@ recoverable previous system version.
 The user is temporarily unavailable and authorizes well-supported recommended
 technical choices with documented reasons. Defer personally important product/UI
 and destructive hardware decisions until they can participate; continue independent
-work. OpenSSL 3.5 LTS/libcrypto is explicitly accepted, with exact package review
-before installation or linking. Existing foundational choices remain unchanged.
+work. OpenSSL 3.5 LTS/libcrypto is explicitly accepted and adopted after exact
+Fedora 1:3.5.9-1.fc44 RPM/signature/license review. Existing foundational choices
+remain unchanged.
 
 Implementation in progress: contract tooling, dedicated Linux carrier and native
 C17 core and confined protocol endpoints. Linux app lifecycle, the desktop, an

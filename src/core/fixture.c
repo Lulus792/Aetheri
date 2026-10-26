@@ -1,7 +1,32 @@
 #include "core/fixture.h"
+#include "core/digest.h"
 
 #include <errno.h>
 #include <string.h>
+
+int ae_fixture_verify_manifest(const uint8_t *bytes, size_t size,
+                               const uint8_t expected_artifact[32], struct ae_fixture *output)
+{
+    if (expected_artifact == NULL || output == NULL) return -EINVAL;
+    struct ae_fixture fixture;
+    int result = ae_fixture_decode(bytes, size, &fixture);
+    if (result != 0) return result;
+    uint8_t digest[AE_SHA256_BYTES];
+    result = ae_sha256_bytes(bytes, size, digest);
+    if (result != 0) return result;
+    if (memcmp(digest, expected_artifact, sizeof digest) != 0) return -EBADMSG;
+    *output = fixture;
+    return 0;
+}
+
+int ae_fixture_verify_file(const struct ae_fixture_file *file, int fd)
+{
+    if (file == NULL) return -EINVAL;
+    uint8_t digest[AE_SHA256_BYTES];
+    int result = ae_sha256_fd(fd, file->size, digest);
+    if (result != 0) return result;
+    return memcmp(digest, file->sha256, sizeof digest) == 0 ? 0 : -EBADMSG;
+}
 
 struct reader { const uint8_t *bytes; size_t size, position; };
 

@@ -581,3 +581,38 @@ close-error case passes in Debug/Release focused repeats (2.14/1.99 s). Actual
 empty-bootstrap cleanup was deliberately refused with allocated data present;
 native storage-check afterward retains the same witness/hash/inode and payload.
 The isolated validator still passes its unchanged 374 assertions.
+
+### Reviewed native SHA-256 backend
+
+Applied c-specialist, dependency-manager and security-auditor workflows. The user's
+accepted OpenSSL 3.5 LTS choice now has exact Fedora 1:3.5.9-1.fc44 libs/devel pins,
+official HTTPS cached RPMs and verified full Fedora 44 key signatures. Reviewed
+source-RPM identity, Apache-2.0 license, advisory/maintenance branch, dependencies
+and the actual transaction. Offline signature-checked installation upgraded one
+existing runtime and added one development package, about 5 MiB net. No service or
+policy permission was added; installed RPM verification and pkg-config pass.
+
+Added core/digest: fixed EVP/default-provider SHA256 in a private synchronous
+context, unchanged output on failure, checked cleanup, 16 MiB bounded held-FD
+hashing that preserves offset/ownership and detects ordinary metadata drift.
+Fixture verification checks canonical metadata against an independently expected
+ArtifactId and per-file bytes against that decoded manifest. It does not trust
+newly supplied hashes or implement inventory, copy/publication or app admission.
+The existing administrative storage check verifies its fixed hello-newline digest
+inside the real enforcing cap-zero user domain without new permissions.
+
+Executed 17/17 native Debug ASan/UBSan cases (30.46 s), 17/17 Release (25.14 s),
+29 host VM/cache guards (0.272 s), and all five cached input hashes. Added exact
+old/new runtime-family rejection cases then passed focused Debug/Release repeats
+(0.84/0.43 s). Crypto setup/update/final/unload and read/stat failure paths preserve
+output/offset/FD lifetime; changed same-size content and wrong ArtifactId fail.
+Public ELF needs show libcrypto.so.3 without direct libssl linkage.
+
+Actual graceful VM shutdown finished with QEMU exit 0; PID absence was checked
+before booting the same disk offline. All nine carrier prerequisites pass after
+boot. Native enforcing allocation publish/retry/separate reopen again reports
+native_sha256=true and cross_boot_reopen=true, with the existing witness retained.
+The optional private allocation fixture and protected registry remain intact.
+Next: protected fixture inventory/copy/hash, publication and app/run admission,
+then the remaining P0 launcher/grant/revocation/retirement work. No original
+bootable OS, desktop, app, general signing protocol or hardware acceptance claimed.

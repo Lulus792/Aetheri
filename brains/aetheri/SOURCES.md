@@ -611,3 +611,54 @@ app admission, public document access or private purge acceptance. The private
 fixture is retained; empty-bootstrap cleanup refuses it by design. SDK/package
 versions are unchanged. User evidence now accepts OpenSSL 3.5 LTS and delegates
 well-supported technical choices; exact package adoption is still unimplemented.
+
+## OpenSSL 3.5 LTS adoption — 26 October 2026
+
+- [Official releases](https://openssl-library.org/source/): 3.5.9, released
+  29 September 2026, belongs to the accepted 3.5 LTS branch, supported through
+  8 April 2030. [Security advisories](https://openssl-library.org/news/vulnerabilities/)
+  include fixes in 3.5.9, including CVE-2026-35189. Its affected X.509/CRL path
+  is not used by this SHA-256 wrapper; the maintained patch is still preferred.
+  This dated review is not a claim of universal vulnerability absence.
+- Actual DNF cached metadata resolved 1:3.5.9-1.fc44; the web Fedora package page
+  still showed 3.5.5. Reviewed both repository and local-RPM dry runs. Downloaded
+  exact libs/devel x86_64 RPMs from the official Fedora HTTPS update mirror, not
+  the HTTP mirror returned by repoquery. [Input lock](../../spec/vm-inputs.json)
+  records actual byte counts/SHA-256. rpmkeys verified both OpenPGP/header/payload
+  signatures/digests against full existing Fedora 44 fingerprint
+  36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6. A locally calculated hash alone was
+  not treated as publisher authentication.
+- Actual RPM headers identify source openssl-3.5.9-1.fc44.src.rpm, Apache-2.0,
+  installed sizes 9654845 bytes for libs and 4736693 for devel. Package scriptlet
+  listings were empty; ordinary package-manager triggers remain possible. Existing
+  dependencies satisfy glibc/zlib/crypto-policies/ca-certificates/pkg-config needs.
+  Offline DNF with localpkg_gpgcheck=True installed exactly the reviewed pair:
+  one upgrade, one addition, 0 bytes downloaded and about 5 MiB net extra. No
+  added daemon. Installed RPM verification is clean; libcrypto pkg-config is 3.5.9.
+  The package retains /usr/share/licenses/openssl-libs/LICENSE.txt (Apache 2.0).
+- [EVP digest API](https://docs.openssl.org/3.5/man3/EVP_DigestInit/),
+  [library contexts](https://docs.openssl.org/3.5/man3/OSSL_LIB_CTX/) and
+  [default provider](https://docs.openssl.org/3.5/man7/OSSL_PROVIDER-default/):
+  explicit provider-constrained SHA256 fetch, checked lifecycle and call-local
+  cleanup. Original [wrapper](../../src/core/digest.c) and
+  [fixture checks](../../src/core/fixture.c) use these APIs without default-context
+  changes/global cleanup. They do not implement original cryptography or TLS.
+- Actual ELF dynamic entries: test_digest needs libcrypto.so.3 and libc.so.6;
+  authority needs libcrypto, sqlite3, selinux, systemd and libc. No direct libssl
+  dependency was added. This is not a claim about every transitive carrier library.
+- [Tests](../../tests/test_digest.c) and [independent vectors](../../tools/test_digest_native.py):
+  native Debug ASan/UBSan 17/17 (30.46 s), Release 17/17 (25.14 s); host VM/cache
+  guards 29/29 (0.272 s); all five download-cache hashes pass. Actual enforcing
+  cap-zero user-domain allocation publish/retry/verify reports native_sha256=true
+  and preserves the existing witness. No SELinux permission was added.
+- After the crypto update, actual graceful poweroff, QEMU exit 0 and verified PID
+  absence preceded offline boot of the same disk. All nine carrier prerequisites
+  pass. Added runtime-version rejection cases pass in focused Debug/Release repeats
+  (0.84/0.43 s). The enforcing storage check again passes native_sha256 and unchanged
+  cross-boot witness reopening. Earlier full suites precede only these additional
+  version tests; the focused repeats include them.
+
+Hashes verify observed content only. Protected inventory/copy/publication,
+publisher registry and app/run admission remain unimplemented; frozen SQL/XML and
+byte contracts are unchanged. The package pins apply to this development carrier,
+not a finished production base or a performance/hardware acceptance claim.

@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — immutable allocation witnesses reopen across a tested guest boot.
+26 October 2026 — reviewed OpenSSL 3.5.9 and native fixture SHA-256 verification.
 
 ## Confirmed
 
@@ -308,9 +308,31 @@ daily-use Aetheri requirements, including user UI decisions, remain the objectiv
 
 The user accepted OpenSSL 3.5 LTS/libcrypto for native SHA-256 and delegates
 well-supported recommended technical choices while temporarily unavailable.
-The carrier already has openssl-libs 3.5.5-1.fc44, without development metadata or
-the openssl command. Upstream now lists 3.5.9 for that LTS branch. Exact package,
-provenance/security/footprint review remains pending; no dependency was added.
+The exact review selected Fedora openssl-libs and openssl-devel 1:3.5.9-1.fc44,
+Apache-2.0, from the official HTTPS update mirror. Both RPM signatures match the
+existing full Fedora 44 key; hashes/sizes are pinned. The offline signature-checked
+transaction upgraded the existing libs 3.5.5 and added devel, with no other packages
+or service. RPM verification and pkg-config 3.5.9 pass. Runtime ABI remains
+libcrypto.so.3; Aetheri requests only the Crypto CMake component.
+
+[Native SHA-256](../../src/core/digest.h) uses a private call-local EVP context and
+fixed default-provider SHA256. It preserves outputs on failure and hashes a bounded
+held regular FD without changing its offset or closing it. Canonical fixture
+verification now checks an independently expected ArtifactId and per-file content;
+it does not enroll newly supplied IDs, inventory a tree or publish an app.
+Seventeen native cases pass Debug ASan/UBSan (30.46 s) and Release (25.14 s).
+Known answers, the frozen fixture, chunk/size limits, changed same-size content,
+crypto setup/final/unload faults and read/stat faults pass. Twenty-nine host VM/
+cache guards pass (0.272 s); all five cached input hashes pass.
+The actual cap-zero enforcing administrative storage check now verifies its fixed
+hello-newline SHA-256 and retains the allocation witness unchanged across retries.
+No policy permission was added. [Sources](SOURCES.md#openssl-35-lts-adoption--26-october-2026)
+records the dependency review and remaining importer boundary.
+After graceful shutdown and verified QEMU exit/PID absence, the same disk boots
+offline again. All nine carrier prerequisites pass. Additional old/new runtime
+version rejection tests pass in focused Debug/Release repeats (0.84/0.43 s).
+The enforcing storage check again reports native_sha256=true and cross-boot
+reopening with the retained record. No installation or private-data removal occurs.
 Personally important product/UI/destructive choices are deferred until the user
 can participate; continue independent implementation and document recommendations.
 

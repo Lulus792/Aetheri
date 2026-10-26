@@ -24,8 +24,9 @@ The reference accepts dictionaries/JSON for development convenience and emits
 bytes. Services must use bounded typed inputs and verified database projections.
 Do not hash JSON text, native C structures, filenames alone or freshly supplied
 client hashes. The C17 owner codec checks the fixed header; the C17 fixture decoder
-now validates canonical metadata bytes. Native intent encoding, content hashing
-and a privileged importer are not implemented.
+now validates canonical metadata bytes. The native SHA-256 verifier binds them to
+an independently expected ArtifactId and checks held-file content. Native intent
+encoding and a privileged importer are not implemented.
 
 ## Shared byte rules
 
@@ -94,8 +95,9 @@ Future Linux enrollment must verify regular files using held descriptors below a
 protected root, reject unexpected links/mount transitions and hash the bytes
 actually copied into trusted staging. Reopening the original path after hashing
 would break that binding. Verified files are made immutable to app domains before
-publication; runtime generation leases protect their removal. A cryptographic
-library and signatures for general distribution remain a separate release choice.
+publication; runtime generation leases protect their removal. OpenSSL 3.5 LTS is
+the accepted native hashing backend; signatures for general distribution remain
+a separate release contract.
 
 ### Native fixture decoder
 
@@ -123,8 +125,49 @@ prefix of the frozen vector is rejected with unchanged output.
 This is metadata validation only: supplied SHA-256 values are copied, not trusted
 or checked against payload bytes. File inventory, held-source copy/hash, publisher
 registry, immutable publication and catalogue admission remain importer duties.
-The user accepted OpenSSL 3.5 LTS/libcrypto for native hashing. Exact package review
-precedes installation/linking; no direct crypto dependency was added in this step.
+The decoder itself does not hash. The verification functions below add that
+separate check without changing the frozen manifest or SQL/XML contracts.
+
+### Native SHA-256 verification
+
+[digest.h](../src/core/digest.h) provides bounded byte and held-regular-FD hashing
+using OpenSSL EVP. It selects SHA256 from provider=default in a private, synchronous
+call-local library context; it accepts no algorithm, provider, configuration or
+path from a client. It frees its own resources without changing or cleaning up the
+process-wide default context. Context allocation, provider/fetch/init/update/final
+and unload failures return errors; there is no original cryptographic fallback.
+The 3.5 family and maintenance floor 3.5.9 are checked at build and runtime.
+
+The FD function hashes offset zero through the exact expected length, at most
+16 MiB, in 64 KiB chunks. It preserves the borrowed FD and its seek offset, retries
+EINTR, handles short reads and rejects nonregular files, size mismatch, early EOF
+and read failures. It compares inode/device, ownership, mode, links, size and
+mtime/ctime before/after. Outputs remain unchanged on every error, including crypto
+cleanup failure. These observations detect ordinary drift; they do not exclude a
+writer or make a file immutable. Copy/hash into protected staging is still required.
+
+`ae_fixture_verify_manifest` validates canonical bytes and checks their digest
+against the caller's independently trusted ArtifactId before returning borrowed
+views. `ae_fixture_verify_file` checks the length/digest of one decoded file using
+its held FD. Neither function opens a pathname, authenticates a publisher, checks
+the complete directory inventory or publishes/adopts an installation. Replacing
+payload, manifest and a newly supplied expected digest together remains forbidden.
+Public digests are compared as ordinary bytes; they are not secret authenticators.
+
+The [native test](../tests/test_digest.c) and
+[independent driver](../tools/test_digest_native.py) cover empty/abc/million-a known
+answers, frozen manifest/payload values, binary data, 64 KiB chunk boundaries and
+the exact 16 MiB bound. They reject changed canonical metadata against its original
+ArtifactId and same-size altered payload. Fault tests exercise crypto setup/final/
+cleanup errors, interrupted/short/failed reads, stat errors and observed drift,
+with unchanged outputs/offsets and retained borrowed FDs. Invalid OpenSSL config/
+module locations do not alter these fixed private-context results on this carrier.
+
+The fixed administrative allocation check also verifies its independently known
+hello-newline digest under the real enforcing, cap-zero user authority domain.
+This is a synthetic integration proof, not a public grant or package importer.
+The [dependency review](../brains/aetheri/SOURCES.md#openssl-35-lts-adoption--26-october-2026)
+records exact RPM provenance, license, footprint and test evidence.
 
 ## Private-root owner v1
 

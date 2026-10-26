@@ -404,3 +404,21 @@ The user is temporarily unavailable and authorizes well-supported recommended
 technical choices with recorded rationale. Personally important product/UI and
 destructive choices wait for their participation. This supersedes pending-answer
 notes for the OpenSSL family; it does not change earlier foundational requirements.
+
+## Native hashing backend and minimum release — 26 October 2026
+
+Adopt Fedora openssl-libs and openssl-devel 1:3.5.9-1.fc44 after actual package
+resolution, full-key RPM signature verification, upstream maintenance/security and
+Apache-2.0 review. Prefer the maintained LTS patch over the existing 3.5.5 runtime;
+do not introduce the newer major family. This updates one runtime and adds one
+development package, about 5 MiB net according to the reviewed DNF transaction.
+No new resident service is required. Exact inputs remain in vm-inputs.json.
+
+Use EVP SHA256 with provider=default in a private synchronous context, rather than
+original cryptographic code, legacy digest APIs or caller-selected plugins. Link
+the Crypto component only; require >=3.5.9 within the 3.5 family at build/runtime.
+Treat failures as errors and preserve output. Hash the held FD, not a later path
+lookup. Metadata checks detect drift but cannot exclude writers; the importer must
+copy/hash into protected staging and independently trust its expected ArtifactId.
+No signature protocol, general publisher enrollment or package installation is
+implied by these primitives or the synthetic enforcing storage check.

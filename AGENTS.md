@@ -44,8 +44,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Native core/fixture now decodes canonical AETHFIX1 into borrowed bounded text
   views. Retain immutable input while using them; never treat views as C strings.
   It validates metadata, not content hashes, publisher trust or installation.
-  OpenSSL 3.5 LTS/libcrypto is accepted by the user; exact package review precedes
-  installation/linking. Do not treat the older carrier-transitive library as a new pin.
+  OpenSSL 3.5 LTS/libcrypto is accepted and reviewed at Fedora 1:3.5.9-1.fc44;
+  exact RPMs/hashes are in spec/vm-inputs.json. CMake/runtime reject other families
+  and versions below 3.5.9. core/digest uses fixed EVP SHA-256 in a private context;
+  fixture verification does not replace publisher trust, inventory or staged import.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   core/root requires STATX_MNT_ID_UNIQUE and joins held/named mount/inode/filesystem
   observations. These are runtime facts, never durable volume/clone authentication.

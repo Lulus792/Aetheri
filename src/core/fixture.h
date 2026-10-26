@@ -37,4 +37,18 @@ struct ae_fixture {
  */
 int ae_fixture_decode(const uint8_t *bytes, size_t size, struct ae_fixture *output);
 
+/* Decode and hash canonical manifest bytes against an independently trusted
+ * expected ArtifactId. Borrowed input/output lifetimes match decode above.
+ * -EBADMSG includes a digest mismatch; output is unchanged on every error.
+ * This does not authenticate the publisher or enroll the supplied expected ID.
+ */
+int ae_fixture_verify_manifest(const uint8_t *bytes, size_t size,
+                               const uint8_t expected_artifact[32], struct ae_fixture *output);
+
+/* Verify one decoded file's length/digest through a borrowed regular FD. No path
+ * opening, ownership/policy decisions, inventory check or installation. See
+ * digest.h for mutation/offset semantics. file must be from a validated manifest.
+ */
+int ae_fixture_verify_file(const struct ae_fixture_file *file, int fd);
+
 #endif

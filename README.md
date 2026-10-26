@@ -14,6 +14,8 @@ The system catalogue now persists that test account's UID binding and checks it
 on startup, broker registration and use. General account management remains pending.
 Native storage references check expected ownership and held directory/mount identity.
 Immutable allocation records now preserve object bindings across a tested guest boot.
+Native SHA-256 verifies canonical fixture metadata and held-file content using
+OpenSSL 3.5 LTS. Protected package import and publication remain unfinished.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
@@ -110,7 +112,7 @@ limits are in [runtime contracts](spec/runtime.md).
 
 | Directory | Contents |
 | --- | --- |
-| src/core | Native ownership encoding and bounded Linux storage primitives |
+| src/core | Ownership/allocation records, fixture metadata, bounded storage and SHA-256 verification |
 | src/catalogue | SQLite v2 creation/validation and startup-context transaction |
 | src/linux | Bus credentials and live process/unit/invocation checks; app/run admission remains pending |
 | src/authority | System/user endpoints, protected bootstrap identity and broker enrollment/lifetimes |

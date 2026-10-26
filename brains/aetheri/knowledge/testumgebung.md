@@ -321,3 +321,14 @@ denied with enforcing AVC evidence. Actual capabilities are empty and
 NoNewPrivileges is set. The opt-in controller removes its verified module/root
 after success and preserves uncertain dispatches/failures. Production broker/app
 policy and the remaining A3 IPC/ptrace/FD-transfer cases are still pending.
+
+## SHA-256 SDK addition — 26 October 2026
+
+The user-approved OpenSSL 3.5 LTS backend is now directly pinned at Fedora
+1:3.5.9-1.fc44 for libs/devel. Both official HTTPS RPM downloads passed full Fedora
+44 key signature/digest verification. Offline DNF with local package signature
+checks upgraded existing libs and added development headers/pkg-config only,
+about 5 MiB net; no service was added. Exact downloads/hashes are in vm-inputs.json.
+The upstream source release and installed Apache-2.0 license were reviewed.
+See [dependency evidence](../SOURCES.md#openssl-35-lts-adoption--26-october-2026).
+Original Aetheri code remains MIT. Neither RPM nor build output is public source.

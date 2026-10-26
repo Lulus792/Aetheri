@@ -314,7 +314,7 @@ def storage_check(record):
     if "storage_record_inode" in record and record["storage_record_inode"] != first[1]:
         raise AssertionError("committed allocation record inode changed")
     record.update(storage_record_sha256=first[0], storage_record_inode=first[1], storage_state="published")
-    record["storage_check"] = {"durable_record": True, "exact_retry_preserved": True, "separate_invocation_reopen": True, "cross_boot_reopen": first_boot != boot}
+    record["storage_check"] = {"durable_record": True, "exact_retry_preserved": True, "separate_invocation_reopen": True, "cross_boot_reopen": first_boot != boot, "native_sha256": True}
     save(record)
     verify_storage(record)
     print(json.dumps(record["storage_check"]))

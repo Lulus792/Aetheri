@@ -13,8 +13,13 @@ option(AETHERI_PRIVILEGED_TESTS "Run privileged probes in the disposable guest" 
 option(AETHERI_LINUX_IPC "Build the native sd-bus peer integration" OFF)
 option(AETHERI_POLICY_PROBES "Build the disposable SELinux policy probe (does not install policy)" OFF)
 
-add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c)
+find_package(OpenSSL 3.5.9 REQUIRED COMPONENTS Crypto)
+if(NOT OPENSSL_VERSION VERSION_LESS "3.6.0")
+    message(FATAL_ERROR "Review a new OpenSSL release family before adoption; supported family is 3.5 LTS.")
+endif()
+add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c src/core/digest.c)
 target_include_directories(aetheri_core PUBLIC src)
+target_link_libraries(aetheri_core PUBLIC OpenSSL::Crypto)
 target_compile_definitions(aetheri_core PRIVATE _GNU_SOURCE)
 target_compile_options(aetheri_core PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 if(AETHERI_SANITIZERS)
@@ -77,6 +82,19 @@ if(AETHERI_POLICY_PROBES)
     target_compile_options(probe_policy PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 endif()
 if(BUILD_TESTING)
+    add_executable(test_digest tests/test_digest.c)
+    target_compile_definitions(test_digest PRIVATE _GNU_SOURCE)
+    target_compile_options(test_digest PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    target_link_options(test_digest PRIVATE
+        -Wl,--wrap=OpenSSL_version_num
+        -Wl,--wrap=OSSL_LIB_CTX_new -Wl,--wrap=OSSL_PROVIDER_load -Wl,--wrap=OSSL_PROVIDER_unload
+        -Wl,--wrap=EVP_MD_fetch -Wl,--wrap=EVP_MD_get_size -Wl,--wrap=EVP_MD_CTX_new
+        -Wl,--wrap=EVP_DigestInit_ex2 -Wl,--wrap=EVP_DigestUpdate -Wl,--wrap=EVP_DigestFinal_ex
+        -Wl,--wrap=pread -Wl,--wrap=fstat)
+    target_link_libraries(test_digest PRIVATE aetheri_core)
+    add_test(NAME core.digest COMMAND Python3::Interpreter
+             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_digest_native.py" $<TARGET_FILE:test_digest> "${CMAKE_CURRENT_BINARY_DIR}")
+    set_tests_properties(core.digest PROPERTIES TIMEOUT 45)
     add_executable(test_allocation tests/test_allocation.c)
     target_compile_definitions(test_allocation PRIVATE _GNU_SOURCE)
     target_compile_options(test_allocation PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

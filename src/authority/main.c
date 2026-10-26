@@ -3,6 +3,7 @@
 #include "linux/process.h"
 #include "authority/broker.h"
 #include "core/allocation.h"
+#include "core/fixture.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -434,6 +435,14 @@ static int storage_action(struct authority *authority, const char *control, int 
     }
     char text[7];
     if (result == 0 && (pread(document, text, sizeof text, 0) != 6 || memcmp(text, "hello\n", 6) != 0)) result = -EBADMSG;
+    /* Independently fixed synthetic fixture digest, not a client-supplied hash.
+     * Exercise libcrypto under the real cap-zero user-domain confinement. */
+    static const struct ae_fixture_file expected_document = {
+        .size = 6,
+        .sha256 = {0x58,0x91,0xb5,0xb5,0x22,0xd5,0xdf,0x08,0x6d,0x0f,0xf0,0xb1,0x10,0xfb,0xd9,0xd2,
+                   0x1b,0xb4,0xfc,0x71,0x63,0xaf,0x34,0xd0,0x82,0x86,0xa2,0xe8,0x46,0xf6,0xbe,0x03}
+    };
+    if (result == 0) result = ae_fixture_verify_file(&expected_document, document);
     if (document >= 0) close(document);
     ae_storage_ref_close(&reference);
     if (payload >= 0) close(payload);
@@ -441,7 +450,7 @@ static int storage_action(struct authority *authority, const char *control, int 
     if (root >= 0) close(root);
     if (anchor >= 0) close(anchor);
     if (registry >= 0) close(registry);
-    if (result == 0) puts("allocation: protected record and current mounted object agree; internal fixture read passed");
+    if (result == 0) puts("allocation: protected record and current mounted object agree; internal fixture read and SHA-256 passed");
     return result;
 }
 
