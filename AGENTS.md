@@ -38,6 +38,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   QEMU's checked Windows installer has an expired Authenticode certificate; the
   reviewed provision_windows.py reads MSI/NSIS archives as data without installer
   execution. Do not equate source hashes with valid Windows codesignatures.
+  Native core/fixture now decodes canonical AETHFIX1 into borrowed bounded text
+  views. Retain immutable input while using them; never treat views as C strings.
+  It validates metadata, not content hashes, publisher trust or installation.
+  OpenSSL 3.5 LTS/libcrypto is proposed; user choice/package review remain pending.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   They are not an installed authority, public grant API or Aetheri app sandbox.
   Dedicated guest runs Fedora enforcing policy. A temporary Aetheri app-domain/MCS

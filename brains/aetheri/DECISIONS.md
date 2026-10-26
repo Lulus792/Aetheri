@@ -354,3 +354,13 @@ rearmed or rebound; a live UID collision fails. New identity after UID reuse nev
 changes or adopts the old lifetime. This implements the accepted identity model
 without schema/wire changes, a public account API or a new process/dependency.
 General eligibility and OS-account retirement coordination remain future work.
+
+## Canonical native fixture decoding — 26 October 2026
+
+Implement the accepted AETHFIX1 metadata contract in the existing core module,
+without introducing a new runtime language, parser library, service or format.
+Use fixed bounded arrays and borrowed immutable text spans; reject noncanonical
+order/paths/UTF-8 and preserve caller output on failure. Keeping decoding separate
+from trust, payload hashing and publication prevents a parsed manifest from being
+mistaken for an approved installation. The proposed hash-library selection remains
+an open user discussion, not an adopted dependency decision.

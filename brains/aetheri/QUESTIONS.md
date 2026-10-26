@@ -36,6 +36,13 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 
 ## Architecture and security
 
+C1. Native SHA-256: OpenSSL 3.5 LTS/libcrypto is proposed and was presented to the
+user for the requested library discussion. Choice remains pending. The carrier
+already contains openssl-libs 3.5.5-1.fc44, but no openssl-devel/pkg-config metadata;
+upstream lists 3.5.9 as the current 3.5 LTS maintenance release. Exact package,
+provenance, security/compatibility and footprint review precede direct adoption.
+The native fixture decoder proceeds without a new crypto dependency meanwhile.
+
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and
 versioned base/managed-app separation. Do not reopen these settled choices.
 Remaining work: exact versions/build options and compatibility, sandbox/update/boot

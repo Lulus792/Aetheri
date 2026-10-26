@@ -3,7 +3,7 @@
 26 October 2026. Byte formats below are implemented by the development reference
 [runtime_contracts.py](../tools/runtime_contracts.py) and checked against
 [frozen vectors](vectors/runtime-v1.json). They add no SQL tables or D-Bus methods.
-The native C17 owner codec, bounded Linux file reader and bus-credential capture
+The native C17 owner/fixture decoders, bounded Linux file reader and bus-credential capture
 are implemented and tested in the guest. App/run mapping, volume registration, app policy,
 launch, grants and operation recovery remain integration work.
 
@@ -23,8 +23,9 @@ and [SQL/XML guide](README.md) as the surrounding contracts.
 The reference accepts dictionaries/JSON for development convenience and emits
 bytes. Services must use bounded typed inputs and verified database projections.
 Do not hash JSON text, native C structures, filenames alone or freshly supplied
-client hashes. The C17 owner codec checks the fixed header only; C17 fixture/intent
-codecs and a privileged importer are not implemented.
+client hashes. The C17 owner codec checks the fixed header; the C17 fixture decoder
+now validates canonical metadata bytes. Native intent encoding, content hashing
+and a privileged importer are not implemented.
 
 ## Shared byte rules
 
@@ -95,6 +96,35 @@ actually copied into trusted staging. Reopening the original path after hashing
 would break that binding. Verified files are made immutable to app domains before
 publication; runtime generation leases protect their removal. A cryptographic
 library and signatures for general distribution remain a separate release choice.
+
+### Native fixture decoder
+
+[fixture.h](../src/core/fixture.h) exposes bounded C17 views of canonical AETHFIX1
+metadata. Text views borrow immutable input bytes and carry lengths; they are not
+NUL-terminated C strings. The caller must retain the input until all views are no
+longer used. Decoding allocates nothing and leaves output untouched on failure.
+Unused slots are empty. It adds no filesystem lookup, service, schema or wire API.
+
+The decoder validates exact field/count/byte bounds, strict UTF-8, the contract's
+C0/C1 exclusion, target and nonzero publisher identity. File paths/actions and
+dependency digests must already be in canonical order. It rejects duplicate files,
+file ancestors (including a non-adjacent ancestor in sorted order), unsafe paths,
+unsupported modes, payload-size overflow, undeclared/nonexecutable action targets
+and trailing bytes. Actions reference a checked file index; arguments remain literal
+length-delimited text. It never interprets them as shell code.
+
+The test-only batch reader and Python driver compare native field projections
+with the frozen vector and independently expected fields. Valid cases include
+zero-byte files, empty arguments, Unicode boundaries, maximum counts/lengths and
+the exact payload-size limit. Negative cases include invalid UTF-8/controls,
+wrong order, aliasing paths, hostile counts and an oversized record. Every shorter
+prefix of the frozen vector is rejected with unchanged output.
+
+This is metadata validation only: supplied SHA-256 values are copied, not trusted
+or checked against payload bytes. File inventory, held-source copy/hash, publisher
+registry, immutable publication and catalogue admission remain importer duties.
+OpenSSL 3.5 LTS/libcrypto has been proposed for native hashing; the user's library
+choice and exact package review remain pending. No crypto dependency was added.
 
 ## Private-root owner v1
 

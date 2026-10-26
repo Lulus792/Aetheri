@@ -460,3 +460,34 @@ General account eligibility and OS-account retirement coordination remain open.
 Both owned authorities/probes were stopped normally after integration; the offline
 carrier and inspected bootstrap remain available. The isolated validator also
 passes its unchanged 374 assertions; no public schema/XML source changed.
+
+## Native fixture metadata
+
+Implemented canonical AETHFIX1 decoding in core/fixture.[ch], with fixed bounded
+records and borrowed immutable text spans. Strict UTF-8, text/path/token, order,
+ancestor, mode, size/count and action-target checks preserve output on failure.
+No dynamic allocation, filesystem access, hash implementation, publisher trust,
+catalogue enrollment, package installation or new resident process is added.
+
+The test-only C batch reader and Python interop driver compare every projected
+field against independently expected metadata and unchanged frozen bytes. Final
+focused runs cover 8 valid records, 81 malformed records and every shorter prefix
+of the frozen vector: Debug ASan/UBSan 0.10 s, Release 0.08 s, both exit 0.
+The complete native suite passed 12/12 Debug (25.99 s) and Release (21.62 s);
+those full runs preceded two additional positive boundary fixtures, which passed
+in the final focused repeats. Host runtime-format regression passed 14/14 in
+0.012 s. No diagnostics, sanitizer report or format/vector change.
+
+Reviewed the hash-library candidate separately: the offline carrier contains
+openssl-libs 3.5.5-1.fc44, without development metadata or the openssl command.
+Official upstream lists OpenSSL 3.5 LTS maintenance 3.5.9 and Apache-2.0 licensing.
+Presented libcrypto for SHA-256 to the user because they requested library choices
+before adoption. The asynchronous choice remains unanswered; no new package,
+link dependency, version pin or security approval was introduced. Exact package
+provenance/security/compatibility/footprint review still precedes adoption.
+
+The dedicated offline VM remains live; the previously stopped Aetheri authorities
+were not started/updated for this pure core addition. Next: native payload copy/
+hash and immutable publication, protected machine/volume/read references and app
+admission/launch. Library-independent storage work can proceed while the choice
+is open; the full daily-use OS goal remains active.

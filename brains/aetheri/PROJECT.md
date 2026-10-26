@@ -84,6 +84,8 @@ references to current credentials, service invocation and cgroup identity; the
 system endpoint verifies its own supervised context. A protected single-account
 broker enrollment now binds the actual user-service connection and invocation.
 The system catalogue also enrolls the fixed test account without UID/scope rebinding.
+Native fixture metadata decoding now validates canonical package descriptions;
+content hashing, payload import and publication remain separate work.
 App/run registration and admission, launch and transport remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.

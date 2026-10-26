@@ -523,3 +523,25 @@ app principal registration, target-exec proof or full lifecycle acceptance.
 Retirement/UID-reuse cases mutate only closed native-test fixture catalogues.
 They prove API behavior, not production Linux-user retirement, NSS synchronization
 or access to old app data. No production account lifecycle is claimed.
+
+## Native fixture metadata and hash-library proposal — 26 October 2026
+
+- [Frozen fixture vector](../../spec/vectors/runtime-v1.json), accepted
+  [byte contract](../../spec/runtime.md#fixture-manifest-v1), original
+  [C17 decoder](../../src/core/fixture.c), [native reader](../../tests/test_fixture.c)
+  and [interop driver](../../tools/test_fixture_native.py): 8 valid metadata
+  projections, 81 malformed records and every frozen-vector truncation pass in
+  Debug ASan/UBSan and Release. Full native suites pass 12/12 in 25.99/21.62 s.
+  This proves metadata behavior, not payload verification or publication.
+- [RFC 3629](https://www.rfc-editor.org/info/rfc3629/): valid UTF-8 scalar sequences,
+  shortest encoding, surrogate exclusion and upper code-point boundary. Aetheri's
+  additional C0/C1 exclusion comes from its own accepted text contract.
+- [OpenSSL releases/licensing](https://openssl-library.org/source/): current 3.5
+  LTS release 3.5.9, dated 29 September 2026, branch support to 8 April 2030,
+  Apache-2.0 license. [3.5 digest API](https://docs.openssl.org/3.5/man3/EVP_DigestInit/):
+  maintained EVP digest operations, failure returns and context lifetime. These
+  support a proposed integration, not a completed dependency/security audit.
+- Actual offline guest rpm/pkg-config inspection: openssl-libs 3.5.5-1.fc44 is
+  installed; openssl-devel, the openssl executable and libcrypto metadata are absent.
+  The user was offered a library choice. No answer, direct dependency, package
+  transaction or version change is recorded in this step.

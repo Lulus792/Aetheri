@@ -3,7 +3,7 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project has executable contracts, native C17 storage/catalogue/process-identity code,
+The project has executable contracts, native C17 manifest/storage/catalogue/process-identity code,
 and two tested, confined protocol services in a dedicated Fedora/UEFI guest. Their
 only working public method is protocol discovery; app lifecycle operations remain
 unimplemented. There is no original Aetheri image, installer, desktop or working

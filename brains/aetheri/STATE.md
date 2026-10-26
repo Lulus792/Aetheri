@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — durable test-account enrollment now backs broker identity checks.
+26 October 2026 — canonical fixture metadata now has a tested native C17 decoder.
 
 ## Confirmed
 
@@ -57,6 +57,12 @@ reachability test; no guest-reachable QMP network listener remains.
 regular-file/size/link checks and protected-header UID/mode/identity validation.
 No public RPC or app grants are exposed by these primitives.
 
+[Fixture metadata](../../src/core/fixture.h): canonical AETHFIX1 decoding now
+returns bounded borrowed text views and checked file/action/provider records.
+Strict UTF-8, token/path/order/ancestor/mode/count/size/action checks reject bad
+metadata without changing output. There is no allocation, filesystem operation,
+payload hash verification, publisher enrollment or app installation in this API.
+
 [Linux peer capture](../../src/linux/peer.h) now collects required authenticated
 bus credentials and an owned process pin without /proc augmentation or numeric-PID
 fallback. It rejects missing/augmented provenance and preserves outputs on error.
@@ -107,15 +113,19 @@ The catalogue/API suite now has 27 named tests, including private broker wire sh
 literal-preserving
 canonicalization and real schema-drift rejection, with unchanged frozen v1 files.
 All pass again on the host in 33.642 s, exit 0.
-14 runtime-format tests passed, exit 0, 0.023 seconds.
+14 runtime-format tests passed again, exit 0, 0.012 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
 are unchanged. The host orchestration/cleanup guard suite now has 20 passing tests
 (0.179 s), including pending dispatch, remaining process/job, wrong-owner PID,
 administrative receipt roundtrips and protection of non-bootstrap account records.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Eleven tests pass in Debug
-with ASan/UBSan (26.96 s) and Release (22.61 s), both exit 0 in the offline guest.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Twelve tests pass in Debug
+with ASan/UBSan (25.99 s) and Release (21.62 s), both exit 0 in the offline guest.
 These are functional/sanitizer checks, not latency benchmarks.
+The fixture case compares decoded fields against the unchanged frozen vector and
+independent expected metadata. Its final focused runs pass with 8 valid records,
+81 malformed records and every shorter prefix of the frozen vector, preserving
+failed output (Debug 0.10 s, Release 0.08 s). No content hashing is claimed.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -235,6 +245,12 @@ Next: native fixture enrollment and app/run principal mapping, protected read re
 fixture import/launcher, target-exec/recovery evidence and the remaining P0 policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.
+
+OpenSSL 3.5 LTS/libcrypto is proposed for native SHA-256 and was presented to the
+user for the requested library discussion; no answer/adoption is recorded yet.
+The carrier already has openssl-libs 3.5.5-1.fc44, without development metadata or
+the openssl command. Upstream now lists 3.5.9 for that LTS branch. Exact package,
+provenance/security/footprint review remains pending; no dependency was added.
 
 Work remains inside F:/Aetheri; other projects/shared WSL/hardware untouched.
 Public repository: https://github.com/Lulus792/Aetheri.
