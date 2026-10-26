@@ -14,6 +14,9 @@ SELinux policy, document transport or process supervision.
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation/opening, writer lifetime and startup-context transaction |
+| [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of canonical v2 statements; no runtime SQL-file loading |
+| [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
@@ -123,6 +126,69 @@ The caller's external quiescence requirement remains essential; the backup/data-
 version check is not a replacement for the final Linux service coordination.
 Backups contain private administrative metadata and need protected storage.
 Backup restoration remains an explicit new-authority-epoch recovery procedure.
+
+## Native catalogue boundary
+
+The C17 store now implements v2 creation, validation and startup-context writes.
+The v1-to-v2 migration itself remains the Python development implementation above;
+native opening rejects v1/unknown versions rather than recreating or migrating them.
+No SQL/XML source or protocol version changed for this addition.
+
+| Internal C API | Behavior |
+| --- | --- |
+| ae_catalogue_create | Explicit O_EXCL creation, canonical schema and supplied authority metadata in one transaction; flush parent directory afterward |
+| ae_catalogue_open | Existing database only; validate application/version, exact schema, foreign keys, integrity and expected owner/epoch |
+| ae_catalogue_begin_runtime | Atomically set a fresh runtime/boot, advance catalogue revision, close existing open gates and trigger recovery marking |
+| ae_catalogue_get_info | Return checked identity/current-context fields; never a readiness or holder-drain assertion |
+| ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
+
+The caller supplies an already protected, stable absolute directory and identity
+from its trusted registry. The directory must be 0700 and belong to the effective
+UID; regular catalogue/lock/journal files must be 0600, same owner and singly linked.
+openat2/no-symlink/no-mount-crossing checks protect relative files, with no weaker
+fallback. The live root/database/lock identities and SQLite's moved-file observation
+are checked on use. This does not establish registered-volume identity or MAC
+protection from same-UID apps; those remain prerequisites for a real authority.
+
+Owned files are catalogue.sqlite3 and a stable writer.lock. The latter serializes
+cooperating native writers and stays in place after its CLOEXEC handle closes.
+SQLite manages catalogue.sqlite3-journal during rollback transactions/recovery;
+the store never removes a hot journal by hand. WAL/SHM sidecars and other journal
+modes are rejected. No attached database, extension loading, trusted-schema
+functions or double-quoted string fallback is enabled. SQL/value limits are 1 MiB,
+cache target 512 KiB and mmap disabled for this P0 connection.
+
+The opaque handle is single-threaded and process-bound. Do not open/close another
+descriptor to the database inode while SQLite owns POSIX locks, or carry its
+connection across fork. The preflight descriptor closes before SQLite opens.
+The caller still owes protection of the whole path, root/volume registration,
+actual kernel boot identity, fresh runtime generation and service admission.
+
+Creation errors preserve owned files for inspection. A failed directory flush can
+follow a successful metadata commit; repeat creation then fails with EEXIST, and
+explicit existing-file validation resolves the visible database. This is not a
+physical durability proof. Startup transaction failures/lost replies similarly
+require observation/reconciliation, never a claim that nothing happened.
+Closing gates retain their durable intent; native startup does not settle holders,
+reopen gates or establish global service readiness.
+
+At build time, embed_schema.py generates an ignored generated/schema.c in each
+build directory from the three canonical v2 SQL files. The native library contains
+those statements and builds its validation reference in memory using the selected
+SQLite library. Normalization preserves text literals and escaped quotes while
+handling external whitespace/comments and ordinary quoted identifiers. The
+development validator now follows the same rule; literal-space drift is rejected.
+Python 3.11+ is a build/test dependency, not a runtime interpreter in the authority.
+
+Eight Linux CTest cases pass in Debug ASan/UBSan and Release, including four new
+catalogue cases. They cover both owners, native creation/reopen, wrong owner/epoch,
+duplicate/fork writers, schema/version/constraint/corruption failures, path and
+sidecar rejection, replacement detection, revision overflow, actual SQLite
+page-limit SQLITE_FULL rollback, injected commit/directory-flush errors and four
+child-process exits around commit across both owner kinds. The cross-language
+case opens populated Python migrations without changing any row or file byte.
+No production catalogue, deployed migrator, authority RPC or app grant is created
+by these tests. Build commands and the other Linux prerequisites are in runtime.md.
 
 ## API semantics
 

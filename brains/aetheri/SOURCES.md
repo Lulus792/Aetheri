@@ -386,3 +386,29 @@ Production policy, category reuse, IPC/ptrace/FD-transfer enforcement and the fu
 Aetheri lifecycle remain unaccepted. The temporary module/root were removed.
 Existing carrier tools used policycoreutils/libsemanage 3.10-1 and libsepol 3.11-1;
 no policy-development package was installed for this CIL proof.
+
+## Native catalogue startup — 26 October 2026
+
+- SQLite [opening](https://sqlite.org/c3ref/open.html) and
+  [connection configuration](https://sqlite.org/c3ref/c_dbconfig_defensive.html):
+  normal Unix VFS, explicit create/open and checked defensive settings.
+- SQLite [corruption/locking cautions](https://sqlite.org/howtocorrupt.html):
+  do not independently close a descriptor to an inode while SQLite owns POSIX
+  locks; do not reuse connections across fork or hand-delete a hot journal.
+- SQLite [file controls](https://sqlite.org/c3ref/c_fcntl_begin_atomic_write.html)
+  and [atomic commit](https://sqlite.org/atomiccommit.html): moved-file observation,
+  transaction/acknowledgement boundaries and hardware assumptions.
+- CMake [FindSQLite3, 4.3](https://cmake.org/cmake/help/v4.3/module/FindSQLite3.html):
+  current imported target and documented older-tool alias. Only recorded 4.3.0
+  actually built here; no older-tool execution is claimed.
+- Executed [native implementation](../../src/catalogue/store.c),
+  [failure/process tests](../../tests/test_catalogue.c) and
+  [migration interop](../../tools/test_catalogue_native.py): eight native CTest
+  cases pass with/without sanitizers, both catalogue kinds; populated migrations
+  retain rows/file bytes. Test-only commit/flush fault injection is distinguished
+  from actual SQLite page-limit FULL and real process exits.
+
+The existing development canonicalizer was made literal-preserving with scoped
+SQL parser/real schema-drift regressions. The expanded 26-test suite passes on
+guest Python 3.14.3/SQLite 3.51.2. No production authority/registry/MAC readiness,
+native migration or physical flush/power-loss evidence follows from these tests.

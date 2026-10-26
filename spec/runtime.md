@@ -277,9 +277,9 @@ application authorization, a public document API or durable removal.
 Run in the dedicated Linux guest with the recorded GCC/CMake/Ninja toolchain:
 
 ```text
-cmake -S /home/aetheri/source -B /home/aetheri/build/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAETHERI_SANITIZERS=ON -DAETHERI_PRIVILEGED_TESTS=ON
+cmake -S /home/aetheri/source -B /home/aetheri/build/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAETHERI_SANITIZERS=ON -DAETHERI_PRIVILEGED_TESTS=ON -DAETHERI_LINUX_IPC=ON
 cmake --build /home/aetheri/build/debug --parallel 2
-ctest --test-dir /home/aetheri/build/debug --output-on-failure
+XDG_RUNTIME_DIR=/run/user/1000 ctest --test-dir /home/aetheri/build/debug --output-on-failure
 ```
 
 Repeat in a separate release build with CMAKE_BUILD_TYPE=Release and sanitizers
@@ -290,10 +290,17 @@ directories. The test proves a real same-filesystem bind is reachable by ordinar
 openat yet rejected with EXDEV by the bounded reader. No physical disk is mounted.
 All successful fixture tests remove their own known files/directories.
 
-Three native tests pass in Debug with ASan/UBSan and in Release. They exercise the
+The three core-focused tests pass in Debug with ASan/UBSan and Release. They exercise the
 fixed owner vector, output/buffer bounds, actual reads, UID/mode mismatch, symlink,
 FIFO, directory, hardlink, oversized file and mount containment. This is kernel/
 codec evidence; it does not establish the future Aetheri SELinux app policy.
+
+The [native catalogue boundary](README.md#native-catalogue-boundary) now adds
+canonical v2 creation/opening and startup transactions. Its SQLite SDK is the
+reviewed carrier dependency. Build/test additionally needs Python 3.11+ for SQL
+embedding, without adding a runtime Python interpreter requirement to services.
+Four catalogue CTest cases bring the native suite to eight; see the guide for
+failure, process-exit and populated-migration evidence and remaining caller duties.
 
 ## Native bus-credential capture
 

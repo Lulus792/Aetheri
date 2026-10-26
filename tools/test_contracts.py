@@ -129,6 +129,20 @@ def legacy(db, kind):
     return f
 
 
+class SqlCanonicalization(unittest.TestCase):
+    def test_identifier_formatting_preserves_literal_content(self):
+        self.assertEqual(cc.canonical('CREATE  TABLE "example" (value TEXT DEFAULT \'a "b"  c\')'),
+                         'CREATE TABLE example (value TEXT DEFAULT \'a "b"  c\')')
+        self.assertNotEqual(cc.canonical("SELECT 'two  spaces'"), cc.canonical("SELECT 'two spaces'"))
+
+    def test_comments_are_ignored_only_outside_literals(self):
+        self.assertEqual(cc.canonical("SELECT /* ignored */ '--  /* data */', 'a''  b' -- tail\n"),
+                         "SELECT '--  /* data */', 'a''  b'")
+        for malformed in ("SELECT /* incomplete", "SELECT 'incomplete", 'SELECT "bad name"'):
+            with self.assertRaises(cc.ContractError):
+                cc.canonical(malformed)
+
+
 class ContractCase(unittest.TestCase):
     def setUp(self):
         out = (ROOT/"out").resolve()
@@ -157,6 +171,17 @@ class ContractCase(unittest.TestCase):
         f = legacy(db,kind)
         cc.migrate_v1_to_v2(db,kind,backup=self.connect(kind+"-backup.db"))
         return db,f
+
+    def test_literal_schema_drift_is_rejected(self):
+        for kind in ("system", "user"):
+            db = self.connect("literal-" + kind + ".db")
+            cc.bootstrap(db, kind)
+            cc.validate(db, kind, metadata=False)
+            db.execute("PRAGMA writable_schema=ON")
+            db.execute("UPDATE sqlite_schema SET sql=replace(sql,'immutable gate target','immutable  gate target') WHERE name='immutable_gate'")
+            db.commit()
+            with self.assertRaisesRegex(cc.ContractError, "schema differs"):
+                cc.validate(db, kind, metadata=False)
 
     def active(self,kind):
         db,f = self.migrated(kind)

@@ -65,10 +65,34 @@ def bootstrap(db, kind, version=CURRENT_VERSION):
         raise
 
 
+_SQL_TOKENS = re.compile(r"'(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|--[^\n]*|/\*.*?\*/|[ \t\r\n\f\v]+|[^'\"/\- \t\r\n\f\v]+|.", re.S)
+
+
 def canonical(sql):
-    # Contract sources use double quotes only for identifiers, never string data.
-    sql = re.sub(r'"([A-Za-z_][A-Za-z0-9_]*)"', r"\1", sql)
-    return " ".join(sql.split())
+    # Normalize only formatting/ordinary quoted identifiers. Text literals and
+    # their escaped quotes/whitespace remain byte-significant, as in native C17.
+    if not isinstance(sql, str) or "\0" in sql:
+        raise ContractError("invalid schema SQL text")
+    output, space = [], False
+    for piece in _SQL_TOKENS.finditer(sql):
+        token = piece[0]
+        if token == "/" and sql.startswith("/*", piece.start()):
+            raise ContractError("incomplete schema SQL comment")
+        if token.startswith(("--", "/*")) or token[0] in " \t\r\n\f\v":
+            space = True
+            continue
+        if token.startswith('"'):
+            match = re.fullmatch(r'"([A-Za-z_][A-Za-z0-9_]*)"', token)
+            if match is None:
+                raise ContractError("unsupported quoted schema identifier")
+            token = match[1]
+        elif token == "'":
+            raise ContractError("incomplete schema SQL literal")
+        if space and output:
+            output.append(" ")
+        output.append(token)
+        space = False
+    return "".join(output)
 
 
 def signature(db):

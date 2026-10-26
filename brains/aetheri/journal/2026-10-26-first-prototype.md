@@ -245,3 +245,49 @@ exit 0). Cleared only the two verified stopped failed-test unit records; their
 diagnostic attempt files/audit history remain. Systemd reports running, SELinux
 Enforcing, with no owned policy module/root left. The existing semodule stack is
 policycoreutils/libsemanage 3.10-1 and libsepol 3.11-1.
+
+## Native SQLite catalogue startup
+
+Previous goal turn made verified progress (published core/peer/MAC milestones).
+Revalidated clean checkout 28782a3 and actual live QMP/process state; reused the
+same offline guest rather than starting another VM.
+
+Added C17 catalogue creation/opening, exact v2 schema/metadata validation, stable
+writer-lock lifetime and startup-context transaction. Python builds an ignored
+generated/schema.c from the canonical v2 files; no production interpreter or
+editable runtime SQL source. No new runtime library family or SDK transaction.
+SQLite SDK remains the reviewed 3.51.2-2; CMake's new imported target name is used
+with its documented alias for the older declared build-tool floor.
+
+The store requires protected 0700 directory/0600 singly-linked files, expected
+account/authority identities and one writer. It rejects sidecars/path replacement,
+uses the normal Unix VFS/NOFOLLOW, closes preflight DB descriptors before SQLite
+can hold POSIX locks and rejects fork-inherited handles. MAC/volume/registry and
+actual kernel boot/runtime generation remain external caller duties. No authority
+daemon/public RPC or native v1 migrator was installed.
+
+Native tests cover both kinds, creation/reopen/restart triggers, wrong identity,
+schema/literal/version drift, corruption/FK/CHECK failures and revision overflow.
+Page-limit injection causes actual SQLite SQLITE_FULL during creation and leaves
+no partial schema/version. Failed directory flush after commit preserves the
+visible committed catalogue for explicit existing-file resolution. Test-only
+precommit/lost-ack errors and four real child-process exits across both kinds
+show old/new runtime and gate state as expected. No physical power-loss claim.
+
+A symlink-alias test initially expected ELOOP; actual openat2 with final
+O_DIRECTORY|O_NOFOLLOW returned ENOTDIR. Independent syscall observation confirmed
+rejection, so the test now accepts those two valid refusal classes. The terminated
+failed fixture was inspected and only its three known files/directory removed.
+No containment flag or fallback was weakened.
+
+Added native opening of populated Python-migrated system/user catalogues: every
+row and database byte remains unchanged. Native exact comparison exposed the
+development normalizer's excessive whitespace handling inside SQL literals;
+corrected tokenization to preserve literal bytes/escaped quotes and added two
+parser cases plus real SQLite literal-drift rejection. Frozen v1 SQL/XML unchanged.
+
+Latest native run: 8/8 Debug ASan/UBSan in 21.21 s, 8/8 Release in 19.01 s, exit 0.
+Guest Python 3.14.3/SQLite 3.51.2: all 26 catalogue/API tests pass in 47.238 s.
+Host Python 3.12.14/SQLite 3.53.1: all 26 pass again in 35.068 s, exit 0.
+Full daily-use OS/apps goal remains active; the next integration is actual
+system/user authorities, protected registry/domain setup and end-to-end P0.

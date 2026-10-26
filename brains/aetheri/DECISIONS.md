@@ -260,3 +260,17 @@ architecture, not a new production-domain/category-allocation decision or full
 A3 acceptance. The explicit root-only fixture controller must preserve uncertain
 dispatches and verify owned module bytes/settled units before cleanup. No default
 host test activates policy; no permissive mode or automatic app SIGKILL fallback.
+
+## Native catalogue startup — 26 October 2026
+
+Implemented C17 v2 creation/opening and startup-context transactions against the
+selected SQLite library. Canonical SQL stays authoritative and is embedded at
+build time; no duplicated handwritten schema or runtime SQL-file loading. Unknown
+versions/drift fail closed, without implicit recreation or migration. The full
+v1-to-v2 migrator remains development Python until its native port is reviewed.
+
+One stable writer-lock file serializes cooperating native writers; same-UID MAC,
+registered root/volume identity and global service readiness remain authority
+responsibilities. Preserve owned files/receipts when commit or directory flush
+acknowledgement is uncertain. Existing gate closure and recovery marking do not
+prove actual process/descriptor drain. No public service capability is added yet.

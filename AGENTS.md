@@ -49,6 +49,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - Native src/linux/peer captures bus-authenticated connection credentials and a
   process pin. This is not complete app/run authorization or current-domain proof.
   Keep required ProcessFD/provenance checks; do not replace them with UID/PID paths.
+- Native src/catalogue now creates/validates v2 and commits startup context using
+  build-embedded canonical SQL. Read spec/README.md#native-catalogue-boundary.
+  No production registry/MAC/authority or native v1 migration is implied. Keep
+  writer.lock stable, never close independent DB-inode FDs during SQLite locks,
+  and never infer rollback from a lost commit/flush acknowledgement.
 - tools/test_linux_policy.py is an explicit root-only disposable-carrier test,
   never a default host test or production installer. It must stay enforcing,
   preserve uncertain dispatches and refuse foreign fixtures/modules. Fixed test

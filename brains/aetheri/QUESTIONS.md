@@ -58,7 +58,10 @@ in the accepted longer-term protocol, outside this first implementation slice.
 The bounded P0 fixture/owner/intent encodings now have a
 [reference and frozen vectors](../../spec/runtime.md). This does not finalize
 general signed packages or implement registered-volume identity. C17 owner codec
-and bounded reads now have native tests. Peer/principal mapping,
+and bounded reads now have native tests. The native catalogue store also creates/
+validates v2 and commits startup context; it receives trusted identity/boot values
+from its caller and does not implement the registry, kernel-context sourcing or
+native v1 migration. Peer/principal mapping,
 policy/registry identities, target-exec evidence and actual cross-authority
 admission/recovery remain Linux integration gates. Isolated host tests do not
 settle these gates.

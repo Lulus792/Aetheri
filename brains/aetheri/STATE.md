@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — installed carrier, native core/peer capture and partial MAC proof.
+26 October 2026 — native catalogue startup now joins core/peer and partial MAC proof.
 
 ## Confirmed
 
@@ -22,6 +22,13 @@ The Python development harness performs empty bootstrap, canonical validation,
 consistent backup and atomic v1-to-v2 migration. Old rows/IDs are preserved;
 new gates are closed and runtime incarnation unset pending service reconciliation.
 This harness is not a privileged Linux service or deployed C17 migrator.
+
+The [native C17 store](../../src/catalogue/store.h) now implements explicit v2
+creation, canonical opening/validation, writer lifetime and atomic runtime/boot
+updates. SQL is embedded at build time from the same canonical sources. Existing
+open gates close and recovery triggers run; no holder is settled or gate reopened.
+Root/MAC/registry identity, actual boot/runtime generation and service admission
+remain caller duties. No native v1 migration or authority daemon is deployed.
 
 [P0 runtime contracts](../../spec/runtime.md): bounded fixture manifest,
 104-byte private-root header and canonical plan-intent encoding reference, with
@@ -62,15 +69,15 @@ after success. No production policy/category allocator or Aetheri service exists
 ## Executed evidence
 
 Python 3.12.14 / SQLite 3.53.1 on the development host:
-23 named catalogue/API tests passed again, exit 0, 27.041 seconds.
+The catalogue/API suite now has 26 named tests, including literal-preserving
+canonicalization and real schema-drift rejection, with unchanged frozen v1 files.
+All pass on the host in 35.068 s, exit 0.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
-7 download-cache tests passed, exit 0, 0.085 seconds. Those prior 44 host tests are
-unchanged. Ten additional host-orchestration tests passed after the new VM tools.
-The subsequent policy-cleanup guard brings this host suite to 11 passing tests.
+7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
+are unchanged. The host orchestration/cleanup guard suite has 11 passing tests.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Four tests now pass in Debug
-with ASan/UBSan (latest 0.19 s) and in Release (0.05 s), both exit 0 after offline
-reboot and again after policy-fixture cleanup.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Eight tests now pass in Debug
+with ASan/UBSan (21.21 s) and Release (19.01 s), both exit 0 in the offline guest.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -78,9 +85,17 @@ bind mount is readable by baseline openat but rejected by the core with EXDEV;
 the mount probe runs only in its verified private namespace. No leak/UB report.
 GCC reports baseline x86-64 / generic tuning, without -march=native.
 
-Guest Python 3.14.3 / SQLite 3.51.2: after the SDK update, existing 23 catalogue
-tests pass again in 42.982 s and 14 runtime-format tests in 0.016 s, exit 0.
+Guest Python 3.14.3 / SQLite 3.51.2: updated 26 catalogue/API tests pass in 47.238 s
+and the prior unchanged 14 runtime-format tests in 0.016 s, exit 0.
 These remain contract tests.
+
+Native catalogue tests exercise both kinds, single-writer/fork guards, owner/
+epoch and file binding, schema/version/constraint/corruption rejection, SQLite
+page-limit FULL rollback, revision overflow and failed directory flush after
+commit. Injected precommit/lost-ack errors and four child-process exits across
+both owners preserve or commit the expected runtime/gates. Populated Python
+migrations open natively with identical rows and database bytes. These are
+Linux file/SQLite observations, not production registry/MAC or power-loss proof.
 
 Guest inspection confirms EFI, ext4, systemd PID 1/running state, SELinux Enforcing,
 cgroup v2, root mount namespaces and bus ProcessFD/LinuxSecurityLabel support.
