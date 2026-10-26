@@ -24,9 +24,11 @@ are different requirements and affect supervision/persistence design.
 
 ## Hardware and daily use
 
-H1. Main PC CPU model, RAM and monitor connectors/dock; monitor refresh rates and
-whether mixed scaling must work simultaneously. No new hardware inspection implied
-by the user's broad four-core/eight-thread/RTX 2080 Ti description.
+H1. The main PC is now confirmed as the development host: Xeon W-2123, nominal
+32 GB RAM, RTX 2080 Ti. Windows reports UG25F (HDMI) and two HP E223i (DisplayPort).
+Exact per-monitor modes/refresh/scaling and physical cable/adapter paths still need
+collection. A future AM5 upgrade must also work; exact CPU/board/GPU remain unknown.
+Keep baseline CPU portability and later separate hardware acceptance profiles.
 
 H2. Suspend/resume is confirmed and no longer an open product choice. Select and
 validate sleep modes, lid/idle policy, locking and device recovery on each hardware
@@ -53,9 +55,12 @@ are implemented in [versioned contracts](../../spec/README.md).
 Next: exact verified VM/tool versions and the actual C17 authorities, launcher,
 policy/peer identity and transport. Saved/direct/write/bulk document access remains
 in the accepted longer-term protocol, outside this first implementation slice.
-Before implementation, freeze artifact/intent canonical encodings with test vectors,
-authenticated peer/principal mapping, filesystem identity and cross-authority
-admission/recovery. Isolated SQL checks do not settle these integration gates.
+The bounded P0 fixture/owner/intent encodings now have a
+[reference and frozen vectors](../../spec/runtime.md). This does not finalize
+general signed packages or implement filesystem identity. Peer/principal mapping,
+policy/registry identities, target-exec evidence and actual cross-authority
+admission/recovery remain Linux integration gates. Isolated host tests do not
+settle these gates.
 
 A2. Explain the proposed daily-use gates: encryption protects data on storage,
 sandboxing restricts app access, backups recover lost/corrupt data, and trusted boot

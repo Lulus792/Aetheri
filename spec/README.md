@@ -15,6 +15,9 @@ SELinux policy, document transport or process supervision.
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
+| [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
+| [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
+| [vm-inputs.json](vm-inputs.json), [prepare_vm.py](../tools/prepare_vm.py) | Pinned development-carrier downloads and verification, without installation/execution |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
 Old management argument lists are unchanged. New interfaces require explicit
@@ -164,6 +167,8 @@ Run from the repository root with Python 3.11+ and SQLite 3.37+:
 
 ```text
 python tools/test_contracts.py
+python tools/test_runtime_contracts.py
+python tools/test_vm_inputs.py
 ```
 
 The suite runs the unchanged v1 constraints as a regression, validates extension
@@ -201,6 +206,9 @@ The implementation notes and latest executed result are recorded in the
 
 Inspected 26 October 2026. The first www.sqlite.org ALTER TABLE fetch timed out;
 the sqlite.org copy was read successfully. No claims rely on the timed-out response.
-Linux service implementation, policy/peer mapping, real document/root identity,
-canonical signed package formats and hardware/power-loss acceptance remain future
-work. No VM, OS component or dependency was installed for these contract tests.
+Linux service implementation, actual policy/peer mapping, real document/root
+identity, general signed package formats and hardware/power-loss acceptance remain
+future work. P0 bounded byte formats now have a reference and tests in runtime.md;
+they are not a general package importer. Development-carrier downloads are handled
+separately from these tests; current verification/install status is in the
+[test environment](../brains/aetheri/knowledge/testumgebung.md).

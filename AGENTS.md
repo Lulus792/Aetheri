@@ -31,6 +31,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   read spec/README.md and run tools/test_contracts.py. Keep v1 contracts unchanged.
   This does not implement Linux authorities, policy or document transport. Native
   edits/bulk/direct/saved access remain later work. VM/tool installation has not occurred.
+- P0 fixture/owner/intent byte references and frozen vectors are in spec/runtime.md;
+  run tools/test_runtime_contracts.py. VM input pins/cache tooling are in
+  spec/vm-inputs.json and tools/prepare_vm.py; run tools/test_vm_inputs.py.
+  Downloads are not installations. QEMU's checked Windows installer has an expired
+  Authenticode certificate; provisioning remains under review. Do not silently
+  execute it or equate a checksum match with a valid Windows signature.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
@@ -52,6 +58,9 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - UI remains a user decision. Later prepare multiple alternatives with keyboard,
   focus, scaling, three-monitor, accessibility and error-state behavior.
 - No invented commands, screenshots, measurements or hardware acceptance.
+- The user confirmed the current workstation is the main-PC target and requires
+  future AM5 portability. Read brains/aetheri/knowledge/testumgebung.md.
+  Keep the x86-64/UEFI baseline vendor-neutral; no unconditional -march=native.
 - Review selected files before public publication. Keep credentials, personal
   machine paths, local state, downloaded/build trees and VM images out of Git.
 - No laptop installation disk is selected. Verify exact device identity and

@@ -1,0 +1,266 @@
+"""P0 byte-contract reference; no filesystem, privilege or RPC implementation.
+
+JSON is a development input notation only. Hashes cover the binary encoding in
+spec/runtime.md, never a JSON serialization or a native in-memory structure.
+"""
+import hashlib
+import json
+import re
+import struct
+
+
+class InvalidContract(ValueError):
+    pass
+
+
+MAX_RECORD = 131072
+MAX_INT = 2**63 - 1
+
+
+def require(condition, message):
+    if not condition:
+        raise InvalidContract(message)
+
+
+def fields(value, names):
+    require(type(value) is dict and set(value) == set(names.split()), "record fields")
+
+
+def integer(value, maximum=MAX_INT, minimum=0):
+    require(type(value) is int and minimum <= value <= maximum, "integer range")
+    return value
+
+
+def rawhex(value, size):
+    require(type(value) is str and re.fullmatch(r"[0-9a-f]+", value) is not None
+            and len(value) == 2 * size, "lowercase fixed hex")
+    result = bytes.fromhex(value)
+    require(size != 16 or any(result), "nil identifier")
+    return result
+
+
+def ident(value):
+    return rawhex(value, 16)
+
+
+def blob(value, minimum, maximum):
+    require(type(value) is str and len(value) % 2 == 0
+            and re.fullmatch(r"[0-9a-f]*", value) is not None, "hex blob")
+    result = bytes.fromhex(value)
+    require(minimum <= len(result) <= maximum, "blob length")
+    return struct.pack(">I", len(result)) + result
+
+
+def text(value, maximum, *, pattern=None, empty=False):
+    require(type(value) is str, "text type")
+    try:
+        data = value.encode("utf-8", errors="strict")
+    except UnicodeError as error:
+        raise InvalidContract("UTF-8") from error
+    require((empty or data) and len(data) <= maximum
+            and all(ord(c) >= 32 and not 127 <= ord(c) <= 159 for c in value), "text bounds")
+    require(pattern is None or re.fullmatch(pattern, value) is not None, "text alphabet")
+    return struct.pack(">I", len(data)) + data
+
+
+def token(value, maximum=64):
+    return text(value, maximum, pattern=r"[a-z0-9._-]+")
+
+
+def member(value, choices):
+    require(type(value) is str and value in choices, "enum value")
+    return value
+
+
+def relative(value):
+    encoded = text(value, 256, pattern=r"[a-zA-Z0-9._/-]+")
+    require(all(part not in ("", ".", "..") and len(part) <= 64
+                for part in value.split("/")), "relative path")
+    return encoded
+
+
+def sequence(value, maximum, minimum=0):
+    require(type(value) is list and minimum <= len(value) <= maximum, "list bounds")
+    return struct.pack(">I", len(value))
+
+
+def optional(value, size):
+    return b"\0" if value is None else b"\1" + rawhex(value, size)
+
+
+def finish(value):
+    require(len(value) <= MAX_RECORD, "record limit")
+    return value
+
+
+def fixture(value):
+    fields(value, "component publisher version target files actions dependencies")
+    require(value["target"] == "x86_64-linux-gnu", "P0 target")
+    out = (b"AETHFIX1" + token(value["component"], 128) + ident(value["publisher"])
+           + text(value["version"], 128) + text(value["target"], 128))
+    files = value["files"]
+    out += sequence(files, 32, 1)
+    by_path = {}
+    total = 0
+    for item in files:
+        fields(item, "path mode size sha256")
+        relative(item["path"])
+        require(item["path"] not in by_path, "duplicate file")
+        require(item["mode"] in (0o444, 0o555) and type(item["mode"]) is int, "file mode")
+        total += integer(item["size"], 16 * 1024 * 1024)
+        by_path[item["path"]] = item
+    require(total <= 32 * 1024 * 1024, "payload limit")
+    paths = sorted(by_path)
+    require(not any("/".join(path.split("/")[:n]) in by_path
+                    for path in paths for n in range(1, len(path.split("/")))), "file ancestor")
+    for path in paths:
+        item = by_path[path]
+        out += (relative(path) + struct.pack(">IQ", item["mode"], item["size"])
+                + rawhex(item["sha256"], 32))
+    actions = value["actions"]
+    out += sequence(actions, 8)
+    seen = set()
+    encoded_actions = []
+    for action in actions:
+        fields(action, "id executable arguments")
+        key = action["id"]
+        token(key)
+        require(key not in seen, "duplicate action")
+        seen.add(key)
+        executable = action["executable"]
+        require(type(executable) is str and executable in by_path
+                and by_path[executable]["mode"] == 0o555, "declared executable")
+        data = token(key) + relative(executable) + sequence(action["arguments"], 8)
+        for argument in action["arguments"]:
+            data += text(argument, 256, empty=True)
+        encoded_actions.append((key, data))
+    out += b"".join(data for _, data in sorted(encoded_actions))
+    dependencies = value["dependencies"]
+    out += sequence(dependencies, 8)
+    depbytes = [rawhex(dep, 32) for dep in dependencies]
+    require(len(set(depbytes)) == len(depbytes), "duplicate dependency")
+    return finish(out + b"".join(sorted(depbytes)))
+
+
+OWNER_FIELDS = "machine volume account storage data allocation_operation"
+
+
+def owner(value):
+    fields(value, OWNER_FIELDS)
+    return b"AETHOWN1" + b"".join(ident(value[key]) for key in OWNER_FIELDS.split())
+
+
+def check_owner(data, expected):
+    require(type(data) is bytes and data == owner(expected), "ownership mismatch")
+    return True
+
+
+READ_KINDS = {"scope", "component", "install", "generation", "data", "policy",
+              "resource", "grant", "gate"}
+EFFECT_KINDS = {"install", "generation", "data", "grant", "integration", "storage"}
+DISPOSITIONS = {"create", "activate", "stop", "remove", "retain", "revoke"}
+
+
+def intent(value):
+    fields(value, "plan authority actor scope kind component install generation data artifact grant "
+           "retention action boot expires reads effects")
+    kind = value["kind"]
+    member(kind, ("install", "activate", "remove", "purge", "launch", "revoke"))
+    member(value["retention"], ("none", "keep_data", "purge_data"))
+    require((kind == "launch") == (value["action"] is not None), "action shape")
+    require((kind == "revoke") == (value["grant"] is not None), "grant shape")
+    i, g, d, a = (value[key] is not None for key in ("install", "generation", "data", "artifact"))
+    require({"install": not i and a, "activate": i and a,
+             "remove": i and value["retention"] != "none",
+             "purge": d and value["retention"] == "purge_data",
+             "launch": i and g and d and value["retention"] == "none",
+             "revoke": i and d and not g and not a and value["retention"] == "none"}[kind],
+            "intent target shape")
+    out = b"AETHINT1" + b"".join(ident(value[key]) for key in ("plan", "authority", "actor", "scope"))
+    out += token(kind) + token(value["component"], 128)
+    out += b"".join(optional(value[key], size) for key, size in
+                    (("install", 16), ("generation", 16), ("data", 16), ("artifact", 32), ("grant", 16)))
+    out += token(value["retention"])
+    out += b"\0" if value["action"] is None else b"\1" + token(value["action"])
+    out += ident(value["boot"]) + struct.pack(">Q", integer(value["expires"]))
+    reads = value["reads"]
+    out += sequence(reads, 128)
+    encoded_reads = []
+    seen = set()
+    for row in reads:
+        fields(row, "epoch kind ref revision")
+        member(row["kind"], READ_KINDS)
+        epoch = ident(row["epoch"])
+        reference = blob(row["ref"], 1, 128)
+        key = (epoch, row["kind"], bytes.fromhex(row["ref"]))
+        require(key not in seen, "duplicate read")
+        seen.add(key)
+        encoded_reads.append((key, epoch + token(row["kind"]) + reference
+                              + struct.pack(">Q", integer(row["revision"], minimum=1))))
+    out += b"".join(data for _, data in sorted(encoded_reads))
+    effects = value["effects"]
+    out += sequence(effects, 128)
+    seen = set()
+    encoded_effects = []
+    for row in effects:
+        fields(row, "number kind component ref disposition reason")
+        number = integer(row["number"], 127)
+        require(number not in seen, "duplicate effect number")
+        seen.add(number)
+        member(row["kind"], EFFECT_KINDS)
+        member(row["disposition"], DISPOSITIONS)
+        require(type(row["ref"]) is str and len(row["ref"]) in (32, 64), "effect reference")
+        data = (struct.pack(">I", number) + token(row["kind"]) + token(row["component"], 128)
+                + blob(row["ref"], 16, 32) + token(row["disposition"]) + token(row["reason"]))
+        encoded_effects.append((number, data))
+    require(seen == set(range(len(effects))), "effect numbering")
+    return finish(out + b"".join(data for _, data in sorted(encoded_effects)))
+
+
+ENCODERS = {"fixture": fixture, "owner": owner, "intent": intent}
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def verify_payload(manifest, expected_artifact, payload):
+    """Check supplied immutable bytes; caller still owes trusted provenance/IO.
+
+    No pathname opening or installation. A valid hash is not publisher trust.
+    """
+    encoded = fixture(manifest)
+    require(digest(encoded) == rawhex(expected_artifact, 32).hex(), "artifact mismatch")
+    require(type(payload) is dict and set(payload) == {f["path"] for f in manifest["files"]},
+            "payload inventory")
+    for row in manifest["files"]:
+        data = payload[row["path"]]
+        require(type(data) is bytes and len(data) == row["size"]
+                and digest(data) == row["sha256"], "payload mismatch")
+    return True
+
+
+def load_json(data):
+    require(type(data) is bytes and len(data) <= MAX_RECORD, "JSON input bounds")
+
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result, "duplicate JSON key")
+            result[key] = value
+        return result
+
+    try:
+        result = json.loads(data.decode("utf-8"), object_pairs_hook=pairs,
+                            parse_constant=lambda _: require(False, "JSON constant"))
+        pending = [(result, 0)]
+        while pending:
+            value, depth = pending.pop()
+            require(depth <= 16, "JSON nesting")
+            if type(value) is dict:
+                pending.extend((child, depth + 1) for child in value.values())
+            elif type(value) is list:
+                pending.extend((child, depth + 1) for child in value)
+        return result
+    except (ValueError, RecursionError) as error:
+        raise InvalidContract("JSON syntax") from error

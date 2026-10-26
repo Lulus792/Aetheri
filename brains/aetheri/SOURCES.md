@@ -264,3 +264,43 @@ Executed tools/test_contracts.py using Python 3.12.14 / SQLite 3.53.1:
 child-process terminations/reopens and engine SQLITE_FULL through a page limit.
 This is development-host database evidence, not real full-volume/power-loss or
 Linux service/enforcement acceptance. See [contract guide](../../spec/README.md).
+
+## P0 runtime formats and carrier preparation — 26 October 2026
+
+The user asked to begin the next implementation slice, then clarified the current
+host as the main-PC target and added future AM5 portability. These are user
+requirements; read-only Windows observations are recorded separately in
+[test environment](knowledge/testumgebung.md).
+
+- [Runtime specification](../../spec/runtime.md), development codec and frozen
+  vectors: original Aetheri design. Three vector byte strings were constructed
+  without importing the encoder under test. No C17 service/decoder is implied.
+- [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html#bus-messages-get-connection-credentials),
+  [sd-bus sender credentials](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_query_sender_creds.html)
+  and [credential fields](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_creds_get_pid.html):
+  process pinning, labels, augmentation and unsafe executable-path assumptions.
+  The separate augmented-mask manual URL was unavailable.
+- [openat2](https://man7.org/linux/man-pages/man2/openat2.2.html) and
+  [systemd execution](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html):
+  containment/setup primitives, not an Aetheri enforcement result.
+- [QEMU downloads](https://www.qemu.org/download/#windows),
+  [Windows provider](https://qemu.weilnetz.de/w64/) and
+  [v11.1.0 installer source](https://github.com/qemu/qemu/blob/v11.1.0/qemu.nsi):
+  Windows build 2026-08-11/product 11.1.0, provider checksum, privileged installer
+  behavior. Downloaded bytes match SHA-512; Windows reports an expired signing
+  certificate. No installer/QEMU execution occurred.
+- [Fedora Server download](https://fedoraproject.org/server/download/) and
+  [signing fingerprints](https://fedoraproject.org/security/): release 44-1.7
+  net installer/checksum. Local GPG VALIDSIG matched full fingerprint
+  36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6. This authenticates the checksum list;
+  the separate media digest must also match before use.
+- [Microsoft connector enum](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmdt/ne-d3dkmdt-_d3dkmdt_video_output_technology):
+  observed connection codes 5/10 mean HDMI/external DisplayPort. The earlier
+  wingdi URL was unavailable; the driver-header page supplied the definition.
+- [WHvGetCapability](https://learn.microsoft.com/en-us/virtualization/api/hypervisor-platform/funcs/whvgetcapability):
+  read-only capability query returned S_OK and HypervisorPresent=true. No partition
+  or virtual processor was created; no QEMU/WHPX guest execution claim.
+
+Executed 14 format and 7 cache tests, exit 0; reran 23 catalogue/API tests, exit 0.
+Total 44 named host tests. Native Linux, actual bus credentials, policy, filesystem
+containment, process recovery, performance and hardware remain untested for Aetheri.

@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "purpose": "P0 development carrier inputs; not the Aetheri production base",
+  "machine": {"architecture": "x86_64", "firmware": "UEFI", "vcpus": 2, "ram_mib": 8192, "disk_gib": 48},
+  "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "inputs": [
+    {
+      "name": "qemu-w64-setup-20260811.exe",
+      "version": "QEMU 11.1.0, Stefan Weil Windows build 2026-08-11",
+      "url": "https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.exe",
+      "size": 206615928,
+      "algorithm": "sha512",
+      "digest": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",
+      "evidence": "https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.sha512"
+    },
+    {
+      "name": "Fedora-Server-netinst-x86_64-44-1.7.iso",
+      "version": "Fedora Server 44-1.7 x86_64 network installer",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Server/x86_64/iso/Fedora-Server-netinst-x86_64-44-1.7.iso",
+      "size": 1228384256,
+      "algorithm": "sha256",
+      "digest": "ae20c06bea746913cadea7d80463e13f4bf55bee4df2918111c921c674b70283",
+      "evidence": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Server/x86_64/iso/Fedora-Server-44-1.7-x86_64-CHECKSUM"
+    }
+  ]
+}

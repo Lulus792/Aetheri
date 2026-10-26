@@ -83,8 +83,11 @@ Original Aetheri code/documentation: MIT. External components retain their condi
 ## Hardware, storage and security
 
 First target: dedicated HP EliteBook 840 G4 with Intel graphics and 16 GB RAM.
-Later target: main computer, four cores/eight threads, RTX 2080 Ti; CPU model,
-RAM, ports and precise monitor modes still need collection.
+Main-PC target is confirmed as the current development host: Xeon W-2123,
+four cores/eight threads, nominal 32 GB RAM and RTX 2080 Ti. Three active monitor
+records were observed; precise per-monitor modes/scaling still need collection.
+A future AM5 upgrade is an additional x86-64/UEFI portability requirement; exact
+board/CPU/GPU and physical acceptance remain pending.
 WLAN, Bluetooth, wired/Bluetooth input and 3.5 mm/Bluetooth headphones are required.
 Suspend/resume is required, with separate laptop and main-PC acceptance. Hibernate
 has not been requested.
@@ -102,5 +105,5 @@ recoverable previous system version.
 
 ## Current stage
 
-Requirements and architecture planning. No implementation, hardware compatibility,
-performance or completion-date guarantee follows from this document.
+Architecture planning with executable development contract tooling. Linux services,
+an original bootable image and hardware/performance acceptance remain unimplemented.

@@ -6,6 +6,11 @@ The [versioned contracts](../../../spec/README.md) now implement the SQL/XML and
 development migration/test portion below. No VM or Linux authority is implemented
 through that contract work.
 
+The subsequent [runtime-contract slice](../../../spec/runtime.md) adds bounded
+fixture/owner/intent byte references, frozen vectors and host tests. The
+[carrier input lock](../../../spec/vm-inputs.json) pins preparation downloads;
+neither addition implements Linux enforcement or completes the guest setup.
+
 ## Recommendation
 
 Build P0 as a headless, end-to-end lifecycle proof on disposable Linux storage:

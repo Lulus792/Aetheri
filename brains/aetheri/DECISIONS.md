@@ -197,3 +197,27 @@ old identities; migration backfills closed gates rather than silently admitting 
 
 No VM/service implementation or runtime security acceptance follows. Python here
 is contract/test tooling; C17 remains the production language direction.
+
+## Next implementation slice and hardware clarification — 26 October 2026
+
+The user asked to begin the recommended next work. Added bounded P0 fixture,
+private-root owner and plan-intent encoding references with independent fixed byte
+vectors and negative host tests. They do not change frozen v1 SQL/XML or implement
+general signed packages. Runtime principal, storage, target-exec and recovery
+obligations are recorded in [P0 runtime contracts](../../spec/runtime.md);
+their Linux backends remain unimplemented and require guest evidence.
+
+Pinned QEMU 11.1.0 Windows build 2026-08-11 and Fedora Server 44-1.7 network media
+for development-carrier preparation. QEMU was linked by the upstream download
+page; the provider's SHA-512 matches, but Windows Authenticode reports an expired
+certificate. Do not call it a valid Windows signature or silently execute the
+installer. A suitable local tool-provisioning path remains to be reviewed.
+The Fedora checksum signature was verified against the official full Fedora 44
+fingerprint. Downloads/pinning do not select the final Aetheri base or prove a VM.
+
+The user confirmed that the present development workstation is also the main-PC
+target. Read-only Windows queries identify Xeon W-2123, nominal 32 GB RAM,
+RTX 2080 Ti and three active monitor records. User further requires Aetheri to
+work after a future AM5 upgrade. Preserve generic x86-64/UEFI and CPU feature
+detection; no Intel-only baseline or unconditional -march=native. Exact future
+CPU/mainboard/GPU and Linux physical acceptance remain open.
