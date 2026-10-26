@@ -22,7 +22,7 @@ static int denied_file(const char *path)
 
 int main(int argc, char **argv)
 {
-    CHECK(argc == 3 && (strcmp(argv[1], "check") == 0 || strcmp(argv[1], "claim") == 0), 10);
+    CHECK((argc == 3 || argc == 4) && (strcmp(argv[1], "check") == 0 || strcmp(argv[1], "claim") == 0), 10);
     uint8_t owner[AE_ID_BYTES];
     CHECK(ae_id_from_hex(argv[2], strlen(argv[2]), owner) == 0 && geteuid() == 1000, 11);
     CHECK(prctl(PR_GET_NO_NEW_PRIVS, 0L, 0L, 0L, 0L) == 1, 28);
@@ -87,6 +87,14 @@ int main(int argc, char **argv)
         char private_path[256];
         snprintf(private_path, sizeof private_path, "/var/lib/aetheri-p0/users/%s/control/catalogue.sqlite3", argv[2]);
         CHECK(denied_file(private_path) && denied_file("/var/lib/aetheri-p0/registry/user-1000.conf"), 25);
+        if (argc == 4) {
+            uint8_t storage[AE_ID_BYTES];
+            CHECK(ae_id_from_hex(argv[3], strlen(argv[3]), storage) == 0, 39);
+            snprintf(private_path, sizeof private_path, "/var/lib/aetheri-p0/users/%s/control/allocations/%s", argv[2], argv[3]);
+            CHECK(denied_file(private_path), 40);
+            snprintf(private_path, sizeof private_path, "/var/lib/aetheri-p0/users/%s/data/%s/owner", argv[2], argv[3]);
+            CHECK(denied_file(private_path) && denied_file("/var/lib/aetheri-p0/registry/allocation.conf"), 41);
+        }
         int scratch = open("/var/lib/aetheri-p0/probe-data/scratch", O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
         CHECK(scratch >= 0 && write(scratch, "P0", 2) == 2 && lseek(scratch, 0, SEEK_SET) == 0, 36);
         char data[2];

@@ -123,8 +123,8 @@ prefix of the frozen vector is rejected with unchanged output.
 This is metadata validation only: supplied SHA-256 values are copied, not trusted
 or checked against payload bytes. File inventory, held-source copy/hash, publisher
 registry, immutable publication and catalogue admission remain importer duties.
-OpenSSL 3.5 LTS/libcrypto has been proposed for native hashing; the user's library
-choice and exact package review remain pending. No crypto dependency was added.
+The user accepted OpenSSL 3.5 LTS/libcrypto for native hashing. Exact package review
+precedes installation/linking; no direct crypto dependency was added in this step.
 
 ## Private-root owner v1
 
@@ -145,9 +145,10 @@ header. The future protected registry must bind it to the mounted guest filesyst
 and held root, and detect unknown/duplicate/cloned registration before admission.
 The reference's exact-byte check does not implement that registry or prove a mount.
 UID mapping is checked separately against AccountId; UID reuse cannot adopt data.
-The future protected allocation registry must retain this header binding for the
-root's lifetime, even after the general operation receipt is pruned. No existing
-SQL column is silently assumed to contain that registry or allocation operation.
+The independent P0 allocation record below now retains this header binding outside
+the general operation receipt. Full allocation-journal and volume admission remain
+future work. No existing SQL column is silently assumed to contain that registry
+or allocation operation.
 
 Create the owner header through trusted allocation under protected anchors. Flush
 header and required directories before publishing allocation success. Apps see
@@ -209,6 +210,114 @@ reference returns EXDEV; the catalogue rejects reads/startup writes with ESTALE 
 preserves its database state. After unmounting the owned test bind, the original
 binding works again. These tests do not establish durable volume registration,
 general app MAC policy, clone detection, purge or public read/revoke acceptance.
+
+### Immutable allocation witness v1
+
+[allocation.h](../src/core/allocation.h) implements the independent object witness,
+with [frozen bytes](vectors/allocation-v1.json) checked by both C and Python. It is
+exactly 168 bytes, in this order:
+
+```text
+"AETHALC1"
+104-byte AETHOWN1 owner record
+u64 filesystem_type, 8 opaque filesystem-ID bytes
+u64 anchor_inode, u64 anchor_birth_seconds, u32 anchor_birth_nanoseconds
+u64 root_inode, u64 root_birth_seconds, u32 root_birth_nanoseconds
+```
+
+Integers are big-endian and at most 2^63-1; inodes/filesystem type are positive,
+anchor/root inodes differ, seconds are nonnegative and nanoseconds are below 10^9.
+The filesystem ID is an opaque Linux x86-64 observation, not an ext4 UUID or a
+genuine-volume certificate. No mount ID, device number or native struct padding
+is serialized. Runtime mount instances change across boots/service namespaces.
+Birth time is optional for generic root observation and mandatory for this record.
+
+The registry uses one immutable record named by the 32-hex StorageRef, under a
+0700 directory owned by the user authority. The record is a singly linked 0600
+regular file. Capture requires independently authorized/flushed allocation setup,
+matching held/named root, owner header and filesystem witnesses. It is not an API
+for adopting arbitrary existing data. The separate registry retains the allocation
+operation binding for the data lifetime, independently of ordinary receipt pruning.
+
+Publication writes an unnamed O_TMPFILE inode in the protected registry, sets its
+mode, writes the complete record and fsyncs it. A create-only link then publishes
+the exact already-open FD; fsync of the registry acknowledges the durable name.
+The documented /proc/self/fd route links only this process's owned FD with no new
+capability. It assumes the trusted kernel proc view, not a client-selected PID/path.
+Unsupported filesystem/O_TMPFILE behavior fails; there is no named-temp fallback.
+Before link, an interrupted unnamed inode disappears on descriptor close. After
+link, a failed/lost directory-flush or close acknowledgement preserves the visible record.
+
+Exact same-intent retries compare all canonical bytes and flush the directory;
+they do not rewrite the existing inode. A different owner/object at the same key
+fails. Reopening reads only existing metadata, checks the independently expected
+six owner IDs, anchor/root inode and birth time, and filesystem witnesses, then
+constructs a current storage_ref. A copied header on another directory cannot
+replace the recorded root. Unknown/missing/mismatched records never trigger repair.
+
+This does not create directories, authorize an account/volume, declare a data epoch
+ready, settle a catalogue operation, authenticate a whole cloned filesystem or
+implement purge. The owning authority must journal intent before filesystem work
+and reconcile uncertain effects before publishing app admission. A filesystem
+matching its own supplied witness is not independent volume provenance.
+
+Native tests cover frozen bytes/all truncations, invalid ranges, unavailable birth
+time, immutable retries, two concurrent identical publishers, file/link metadata,
+all six owner mismatches, copied-root rejection and reopening after closing FDs.
+Injected file-fsync failure/process exit before link leaves no named record;
+lost directory-fsync acknowledgement/process exit after link leaves exactly one
+record. An injected close error after successful publication also reports failure
+while preserving the record. Reconciliation retains that identity. These are process/IO fault
+observations, not physical power-loss or complete allocation-journal acceptance.
+
+### Confined allocation fixture
+
+The root-only controller now offers storage-prepare and storage-check for an
+optional fixed test allocation. Preparation requires a stopped initialized owner
+and active fixed account, refuses preexisting paths, durably records the exact
+intent first, and creates/flushes the protected root/header/payload/configuration.
+Interrupted setup stays preparing and requires inspection; it is not the production
+allocation/recovery engine. It performs no direct SQL writes or app installation.
+
+| Prototype path | Purpose |
+| --- | --- |
+| registry/allocation.conf | Root-owned 0444 AETHOWN1 fixed test intent |
+| users/account/control/allocations | User-owned 0700 aetheri_allocation_t private witness registry |
+| users/account/data/storage/owner | User-owned 0600 broker-protected owner header |
+| users/account/data/storage/payload/document | User-owned 0600 synthetic hello file, app-data type at fixed c31,c32 |
+
+Data parents/root are user-owned 0700 broker-state type; apps receive no metadata
+traversal permission. This fixture uses synthetic machine/volume/data/operation
+identities, not registered production volumes or admitted DataEpoch/install rows.
+The registry adds one 168-byte record; it does not start a resident service.
+
+Native user --storage-publish/--storage-verify actions run as supervised one-shots
+under aetheri_user_t, NoNewPrivileges and empty capabilities. They take the existing
+owner catalogue writer lock, validate protected fixed configuration/labels, publish
+or read the immutable witness, reconstruct the current reference and read the
+bounded hello bytes internally. They accept no caller paths/IDs and expose no new
+D-Bus method/capability. Read-only verification never publishes a missing record.
+
+Policy allows only the broker to create/link its private witness type and read
+app-data fixtures; app metadata access has explicit neverallow rules. Actual
+same-UID controls outside the app domain read the record; the confined app with
+known StorageRef cannot open record, owner header or configuration. Existing
+negative IPC/capability tests still pass. Administrative storage units cannot be
+selected as live broker units or active protocol authorities.
+
+Actual native publication, repeat without inode/hash changes and a separate unit's
+reopen pass while offline/enforcing. A graceful guest reboot ended QEMU because
+the carrier uses -no-reboot. After verifying process exit 0, the same disk booted
+offline with a new kernel BootId. storage-check then reopened the original witness
+with unchanged hash/inode and reported cross_boot_reopen=true. This is a real
+cross-boot observation, not a physical power-loss or complete service-recovery claim.
+
+The optional allocation makes this bootstrap nonempty. cleanup/lifecycle-check must
+preserve it and refuse empty-bootstrap deletion until a reviewed storage-retirement
+protocol is implemented. Unknown record publication is reconciled only by explicit
+storage-check against the same protected intent; no fresh IDs are substituted.
+The actual empty-bootstrap cleanup refusal was exercised; native storage-check
+afterward reopened the unchanged private witness/payload successfully.
 
 ## Plan intent v1
 

@@ -531,3 +531,53 @@ registered account/volume/allocation provenance and admission remain caller duti
 No durable registry format, clone proof, public document grant or purge is added.
 No SDK/package/crypto change or other-project/hardware mutation. The OpenSSL choice
 remains unanswered; independent storage/enrollment work can continue.
+
+## Immutable allocation object records and cross-boot reopen
+
+Implemented canonical 168-byte AETHALC1 encode/decode, independent frozen vector,
+and protected create-only publication/reopening in core/allocation.[ch]. Six owner
+IDs and filesystem/inode/birth facts persist; transient mount/device IDs do not.
+Generic root observations now carry optional birth time, required for allocation
+witnesses. Capture presumes independently authorized/flushed setup; neither a
+candidate path nor filesystem ID authenticates a volume or admits an app.
+
+O_TMPFILE holds incomplete metadata unnamed. After full write/file fsync, a
+create-only link publishes the owned FD and directory fsync acknowledges its name.
+No named-temp residue, replacement, new capability or crypto implementation.
+Native tests cover codec truncations/ranges, unavailable birth time, immutable/
+concurrent same-intent retries, owner mismatch, copied root, metadata and reopen.
+Injected failure/exit before link leaves zero named records; lost acknowledgement/
+exit after link leaves exactly one. Same-intent reconciliation preserves identity.
+
+Sixteen tests pass: Debug ASan/UBSan 28.27 s, Release 25.39 s, exit 0. Twenty-two
+host orchestration guards pass again in 0.194 s. SQL/XML/v1 sources are unchanged.
+The new optional controller storage-prepare fixture records intent before effects,
+creates/flushes protected roots/header/payload/config and tracks every location.
+Native user --storage-publish/--storage-verify one-shots hold the owner writer lock
+under enforcing user-domain/NoNewPrivileges/empty caps. Immutable repeat and separate
+invocation reopen succeed. Same-UID control reads the witness, while app-domain
+known-ID witness/header/config access is denied; existing broker/IPC checks pass.
+
+Performed a real graceful guest reboot. QEMU's configured -no-reboot exited 0;
+verified recorded PID absence, then booted the same disk offline without reinstall.
+SSH/QMP guards initially refused reads while no VM was live; no duplicate start
+was issued from an observation timeout. After new boot identity, storage-check
+reports cross_boot_reopen=true and retains record hash/inode. Broker checks pass
+again; services/probes were stopped normally. The new boot helper remains live.
+
+The allocated fixture/registry remains intentionally: it is now tracked private
+data and cleanup/lifecycle-check must refuse empty-bootstrap deletion. Reviewed
+retirement, full operation-journal/volume provenance and actual app/grant/purge
+integration remain next; this metadata feature is not their acceptance.
+
+During this work the user accepted OpenSSL 3.5 LTS/libcrypto and then delegated
+well-supported technical recommendations while unavailable. Updated current
+instructions/questions/decisions; personally important product/UI/destructive
+choices wait. Exact crypto package review/install/linking follows; no dependency
+or SDK version changed here. The full daily-use OS/apps goal remains active.
+Final acknowledgement review also reports an error if closing the published
+writer FD fails, preserving the record rather than claiming rollback. The injected
+close-error case passes in Debug/Release focused repeats (2.14/1.99 s). Actual
+empty-bootstrap cleanup was deliberately refused with allocated data present;
+native storage-check afterward retains the same witness/hash/inode and payload.
+The isolated validator still passes its unchanged 374 assertions.

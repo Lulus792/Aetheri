@@ -19,6 +19,7 @@
 (type aetheri_bus_mount_t)
 (type aetheri_system_state_t)
 (type aetheri_user_state_t)
+(type aetheri_allocation_t)
 (type aetheri_app_data_t)
 (type aetheri_system_service_t)
 (type aetheri_user_service_t)
@@ -26,6 +27,7 @@
 (roletype object_r aetheri_user_service_t)
 (typeattributeset file_type (aetheri_system_exec_t aetheri_user_exec_t aetheri_app_exec_t aetheri_root_t aetheri_registry_t aetheri_system_state_t aetheri_user_state_t aetheri_app_data_t))
 (typeattributeset file_type (aetheri_bus_mount_t))
+(typeattributeset file_type (aetheri_allocation_t))
 (typeattributeset exec_type (aetheri_system_exec_t aetheri_user_exec_t aetheri_app_exec_t))
 (typeattributeset entry_type (aetheri_system_exec_t aetheri_user_exec_t aetheri_app_exec_t))
 
@@ -119,6 +121,11 @@
 (allow aetheri_system_t aetheri_system_state_t (file (read write append open getattr setattr create unlink lock)))
 (allow aetheri_user_t aetheri_user_state_t (dir (search read open getattr write add_name remove_name)))
 (allow aetheri_user_t aetheri_user_state_t (file (read write append open getattr setattr create unlink lock)))
+; Private allocation metadata: immutable create-only publication by the broker.
+(allow aetheri_user_t aetheri_allocation_t (dir (search read open getattr write add_name)))
+(allow aetheri_user_t aetheri_allocation_t (file (read write open getattr setattr create link)))
+(allow aetheri_user_t aetheri_app_data_t (dir (search read open getattr)))
+(allow aetheri_user_t aetheri_app_data_t (file (read open getattr)))
 
 ; Apps can reach the user protocol endpoint, never the raw system authority.
 (allow aetheri_app_t aetheri_user_t (dbus (send_msg)))
@@ -131,5 +138,7 @@
 (neverallow aetheri_app_t aetheri_registry_t (file (read write append open map execute)))
 (neverallow aetheri_app_t aetheri_system_state_t (file (read write append open map execute)))
 (neverallow aetheri_app_t aetheri_user_state_t (file (read write append open map execute)))
+(neverallow aetheri_app_t aetheri_allocation_t (file (read write append open map execute link unlink)))
+(neverallow aetheri_app_t aetheri_allocation_t (dir (search read write add_name remove_name)))
 (neverallow aetheri_process self (capability (sys_admin sys_ptrace setuid setgid dac_override dac_read_search)))
 (neverallow aetheri_process self (process (setexec setcurrent dyntransition)))

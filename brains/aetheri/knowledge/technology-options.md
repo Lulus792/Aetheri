@@ -107,21 +107,20 @@ runtime process behavior, expected footprint and replacement/review conditions.
 A browser bundle can contain many libraries; counting it as one package does not
 make the underlying code disappear. No lockfile with invented selections is created.
 
-## Native content-hash candidate — 26 October 2026
+## Native content-hash selection — 26 October 2026
 
-Proposed, not adopted: OpenSSL 3.5 LTS through libcrypto for native SHA-256 fixture/
+User accepted; not yet installed/linked: OpenSSL 3.5 LTS through libcrypto for native SHA-256 fixture/
 intent hashing. Use the maintained digest API; do not create original cryptography.
 No libssl/TLS integration or new resident service is proposed for this step.
 Upstream lists 3.5.9 (29 September 2026) with branch support through 8 April 2030
 and Apache-2.0 licensing. Original Aetheri code remains MIT; preserve third-party
-conditions. A smaller digest library remains an alternative requiring its own
-version/license/integration review, potentially alongside a later TLS dependency.
+conditions. The recommendation avoids maintaining an extra digest-specific
+dependency alongside later TLS needs. This does not select the browser's engine/TLS stack.
 
 Actual offline carrier inspection: openssl-libs 3.5.5-1.fc44 is already installed;
 openssl-devel, the openssl command and libcrypto pkg-config metadata are absent.
-This is not approval to directly link that older package or install an unreviewed
-development package. The user was offered the library choice; no answer is yet
-recorded. Exact package provenance/hash, transaction/transitive footprint and
+The user accepted the library recommendation and delegates well-supported
+technical choices while unavailable. Exact package provenance/hash, transaction/transitive footprint and
 dated security/compatibility review remain required before adoption. No new
 package, compiler, build/runtime family or TLS policy changed in this step.
 

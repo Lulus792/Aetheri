@@ -2,6 +2,7 @@
 #include "linux/peer.h"
 #include "linux/process.h"
 #include "authority/broker.h"
+#include "core/allocation.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -390,6 +391,60 @@ static int method_unavailable(sd_bus_message *message, void *userdata, sd_bus_er
 struct wire_interface { int roles; const char *path, *name; const sd_bus_vtable *vtable; };
 #include "wire-tables.h"
 
+static int storage_action(struct authority *authority, const char *control, int publish)
+{
+    struct ae_owner owner;
+    int config = open_trusted(ROOT "/registry/allocation.conf", 0);
+    if (config < 0) return config;
+    struct stat status;
+    uint8_t bytes[AE_OWNER_BYTES];
+    int result = fstat(config, &status) == 0 && S_ISREG(status.st_mode) && status.st_uid == 0 &&
+                 status.st_nlink == 1 && (status.st_mode & 07777) == 0444 && status.st_size == AE_OWNER_BYTES ?
+                 labeled(config, "aetheri_registry_t") : -EACCES;
+    if (result == 0 && pread(config, bytes, sizeof bytes, 0) != (ssize_t)sizeof bytes) result = -EBADMSG;
+    close(config);
+    if (result == 0 && (ae_owner_decode(bytes, sizeof bytes, &owner) != 0 ||
+        memcmp(owner.id[AE_ACCOUNT], authority->identity.owner, AE_ID_BYTES) != 0)) result = -ESTALE;
+    for (size_t n = 0; result == 0 && n < AE_OWNER_FIELDS; ++n) if (!uuid4(owner.id[n])) result = -EBADMSG;
+    char account[33], storage[33], registry_path[320], anchor_path[256], root_path[320];
+    sd_id128_t id;
+    memcpy(id.bytes, authority->identity.owner, AE_ID_BYTES); sd_id128_to_string(id, account);
+    if (result == 0) { memcpy(id.bytes, owner.id[AE_STORAGE], AE_ID_BYTES); sd_id128_to_string(id, storage); }
+    if (result == 0) {
+        int a = snprintf(registry_path, sizeof registry_path, "%s/allocations", control);
+        int b = snprintf(anchor_path, sizeof anchor_path, ROOT "/users/%s/data", account);
+        int c = snprintf(root_path, sizeof root_path, "%s/%s", anchor_path, storage);
+        if (a < 0 || (size_t)a >= sizeof registry_path || b < 0 || (size_t)b >= sizeof anchor_path || c < 0 || (size_t)c >= sizeof root_path) result = -EOVERFLOW;
+    }
+    int registry = -1, anchor = -1, root = -1, header = -1, payload = -1, document = -1;
+    if (result == 0) { registry = open_trusted(registry_path, 1); result = registry < 0 ? registry : labeled(registry, "aetheri_allocation_t"); }
+    if (result == 0) { anchor = open_trusted(anchor_path, 1); result = anchor < 0 ? anchor : labeled(anchor, "aetheri_user_state_t"); }
+    if (result == 0) { root = open_trusted(root_path, 1); result = root < 0 ? root : labeled(root, "aetheri_user_state_t"); }
+    if (result == 0) { header = ae_open_small_file(root, "owner", 5, AE_OWNER_BYTES); result = header < 0 ? header : labeled(header, "aetheri_user_state_t"); }
+    if (result == 0) {
+        payload = openat(root, "payload", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+        result = payload < 0 ? -errno : labeled(payload, "aetheri_app_data_t");
+    }
+    if (result == 0 && publish) result = ae_allocation_publish(registry, anchor, root, &owner);
+    struct ae_storage_ref *reference = NULL;
+    if (result == 0) result = ae_allocation_open(registry, anchor, &owner, &reference);
+    if (result == 0) {
+        document = ae_storage_ref_read(reference, "document", 8, 65536);
+        result = document < 0 ? document : 0;
+    }
+    char text[7];
+    if (result == 0 && (pread(document, text, sizeof text, 0) != 6 || memcmp(text, "hello\n", 6) != 0)) result = -EBADMSG;
+    if (document >= 0) close(document);
+    ae_storage_ref_close(&reference);
+    if (payload >= 0) close(payload);
+    if (header >= 0) close(header);
+    if (root >= 0) close(root);
+    if (anchor >= 0) close(anchor);
+    if (registry >= 0) close(registry);
+    if (result == 0) puts("allocation: protected record and current mounted object agree; internal fixture read passed");
+    return result;
+}
+
 static int stop_signal(sd_event_source *source, const struct signalfd_siginfo *signal_info, void *userdata)
 {
     (void)signal_info; (void)userdata;
@@ -400,8 +455,9 @@ int main(int argc, char **argv)
 {
     if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
         (argc == 3 && strcmp(argv[2], "--init") != 0 &&
-         !(strcmp(argv[1], "system") == 0 && strcmp(argv[2], "--enroll-account") == 0))) {
-        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account\n", stderr); return 2;
+         !(strcmp(argv[1], "system") == 0 && strcmp(argv[2], "--enroll-account") == 0) &&
+         !(strcmp(argv[1], "user") == 0 && (strcmp(argv[2], "--storage-publish") == 0 || strcmp(argv[2], "--storage-verify") == 0)))) {
+        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account; user --storage-publish|--storage-verify\n", stderr); return 2;
     }
     int initialize = argc == 3 && strcmp(argv[2], "--init") == 0;
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
@@ -422,10 +478,11 @@ int main(int argc, char **argv)
         if (result == 0) result = argc == 3 ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
                                             ae_catalogue_check_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid, &revision);
     }
+    if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(argv[2], "--storage-publish") == 0);
     if (argc == 3) {
         int closed = ae_catalogue_close(&authority.catalogue);
         if (result == 0) result = closed;
-        if (result != 0) fprintf(stderr, "Catalogue initialization failed: %d\n", result);
+        if (result != 0) fprintf(stderr, "Authority administrative action failed: %d\n", result);
         return result == 0 ? 0 : 4;
     }
     if (result == 0) result = sd_id128_randomize(&authority.runtime);

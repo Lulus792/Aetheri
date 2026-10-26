@@ -86,8 +86,10 @@ broker enrollment now binds the actual user-service connection and invocation.
 The system catalogue also enrolls the fixed test account without UID/scope rebinding.
 Native fixture metadata decoding now validates canonical package descriptions;
 content hashing, payload import and publication remain separate work.
-Retained private-root references now join expected owner headers with current
-held/named filesystem identity. Durable volume/allocation enrollment remains pending.
+Retained private-root references join expected owner headers with current
+held/named filesystem identity. Immutable allocation object records now persist
+that binding and reopen after a guest boot. Genuine volume enrollment and complete
+allocation-journal/admission integration remain pending.
 App/run registration and admission, launch and transport remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
@@ -116,6 +118,12 @@ Updates: notify, install on explicit choice, verify signatures and retain a
 recoverable previous system version.
 
 ## Current stage
+
+The user is temporarily unavailable and authorizes well-supported recommended
+technical choices with documented reasons. Defer personally important product/UI
+and destructive hardware decisions until they can participate; continue independent
+work. OpenSSL 3.5 LTS/libcrypto is explicitly accepted, with exact package review
+before installation or linking. Existing foundational choices remain unchanged.
 
 Implementation in progress: contract tooling, dedicated Linux carrier and native
 C17 core and confined protocol endpoints. Linux app lifecycle, the desktop, an

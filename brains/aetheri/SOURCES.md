@@ -576,3 +576,38 @@ or access to old app data. No production account lifecycle is claimed.
 No SDK/package or crypto adoption occurred. No physical hardware, durable volume
 registry, independent allocation record, clone detection, public read/revoke or
 private purge acceptance is inferred from these runtime observations.
+
+## Immutable allocation witness and cross-boot test — 26 October 2026
+
+- [Linux O_TMPFILE](https://man7.org/linux/man-pages/man2/open.2.html): unnamed
+  inode lifetime, supported filesystems and linking an owned FD through proc without
+  CAP_DAC_READ_SEARCH. No capability was added and no named-temp fallback is used.
+- [Linux linkat](https://man7.org/linux/man-pages/man2/link.2.html): create-only
+  destination semantics, existing-name collision and symlink-follow source flag.
+- [Linux fsync](https://man7.org/linux/man-pages/man2/fsync.2.html): file persistence
+  and the separate directory flush required for a durable name. Failed/lost replies
+  do not justify assuming that an effect never happened.
+- Original [allocation codec/IO](../../src/core/allocation.c), independent
+  [vector](../../spec/vectors/allocation-v1.json), [native tests](../../tests/test_allocation.c)
+  and [interop driver](../../tools/test_allocation_native.py). Sixteen native tests
+  pass Debug ASan/UBSan (28.27 s) and Release (25.39 s); 22 host guards pass (0.194 s).
+  The new case exercises real immutable publication/reopening/concurrent retries,
+  copied-root rejection, all owner fields and pre/post-link IO/process-exit faults.
+  A final close-error acknowledgement case passes in focused repeats (2.14/1.99 s)
+  and preserves the committed record. Actual empty-bootstrap cleanup refusal leaves
+  the fixture available for a successful unchanged native reopen.
+- Actual [authority administrative actions](../../src/authority/main.c),
+  [protected setup/controller](../../tools/p0_services.py) and
+  [same-UID app probe](../../tests/probe_service.c): enforcing cap-zero user-domain
+  publish/verify passes; ordinary same-UID read works while app metadata reads with
+  the known StorageRef are denied. Different unit invocations reopen the same record.
+- Actual guest restart: configured -no-reboot produced QEMU exit 0, verified PID
+  absence preceded offline boot of the same disk, and a new kernel BootId preceded
+  cross_boot_reopen=true with unchanged record hash/inode. Broker checks pass again.
+
+Synthetic fixture machine/volume IDs and inode/birth witnesses are not genuine
+volume enrollment, whole-filesystem clone authentication, an allocation journal,
+app admission, public document access or private purge acceptance. The private
+fixture is retained; empty-bootstrap cleanup refuses it by design. SDK/package
+versions are unchanged. User evidence now accepts OpenSSL 3.5 LTS and delegates
+well-supported technical choices; exact package adoption is still unimplemented.

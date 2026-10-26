@@ -11,10 +11,14 @@ struct ae_root_identity {
     uint32_t device_major, device_minor, uid, gid, mode;
     int64_t filesystem_type;
     uint8_t filesystem_id[8];
+    int birth_present;
+    int64_t birth_seconds;
+    uint32_t birth_nanoseconds;
 };
 
 /* Borrow fd. Require statx's non-recycled STATX_MNT_ID_UNIQUE and all metadata
- * fields, with repeated observations. No legacy mount-ID/device-only fallback.
+ * fields, with repeated observations. Birth time is reported when available;
+ * allocation records require it. No legacy mount-ID/device-only fallback.
  * Outputs stay unchanged on failure; negative errno. */
 int ae_root_observe(int fd, struct ae_root_identity *output);
 int ae_root_equal(const struct ae_root_identity *left, const struct ae_root_identity *right);

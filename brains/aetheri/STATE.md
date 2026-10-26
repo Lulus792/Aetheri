@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — retained private-root references and catalogue mount checks now work.
+26 October 2026 — immutable allocation witnesses reopen across a tested guest boot.
 
 ## Confirmed
 
@@ -68,6 +68,16 @@ fork use. Closing a reference does not revoke an already returned internal FD.
 These are runtime primitives; persistent volume/allocation enrollment, same-UID
 MAC admission and public native-byte transport remain caller/integration duties.
 
+[Allocation witnesses](../../src/core/allocation.h): canonical immutable 168-byte
+records retain all six owner IDs, anchor/root inode and birth time, and filesystem
+observations. O_TMPFILE/create-only link/fsync publication never overwrites a
+committed key. Exact retries retain its bytes/inode; mismatches fail. A protected
+existing record supplies expected object facts when rebuilding a current reference.
+This is not genuine-volume authentication or a complete allocation-operation journal.
+An optional fixed allocation fixture now exercises publication/verification through
+the confined user authority's one-shot administrative modes and catalogue writer lock.
+It is tracked private data, so empty-bootstrap cleanup intentionally refuses it.
+
 [Fixture metadata](../../src/core/fixture.h): canonical AETHFIX1 decoding now
 returns bounded borrowed text views and checked file/action/provider records.
 Strict UTF-8, token/path/order/ancestor/mode/count/size/action checks reject bad
@@ -126,12 +136,12 @@ canonicalization and real schema-drift rejection, with unchanged frozen v1 files
 All pass again on the host in 33.642 s, exit 0.
 14 runtime-format tests passed again, exit 0, 0.012 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
-are unchanged. The host orchestration/cleanup guard suite now has 20 passing tests
-(0.179 s), including pending dispatch, remaining process/job, wrong-owner PID,
-administrative receipt roundtrips and protection of non-bootstrap account records.
+are unchanged. The host orchestration/cleanup guard suite now has 22 passing tests
+(0.194 s), including pending dispatch, remaining process/job, wrong-owner PID,
+administrative receipt roles and preservation of non-bootstrap accounts/allocated data.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Fifteen tests pass in Debug
-with ASan/UBSan (27.91 s) and Release (25.02 s), both exit 0 in the offline guest.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Sixteen tests pass in Debug
+with ASan/UBSan (28.27 s) and Release (25.39 s), both exit 0 in the offline guest.
 These are functional/sanitizer checks, not latency benchmarks.
 The fixture case compares decoded fields against the unchanged frozen vector and
 independent expected metadata. Its final focused runs pass with 8 valid records,
@@ -145,8 +155,16 @@ preserve failed output. Two actual same-inode/device bind tests reject the chang
 mount via storage and catalogue paths, retaining database state. Final focused
 storage tests add all nine mismatched root observations and pass again in Debug
 (0.08 s total) and Release (0.04 s total).
-Private storage fixtures are unconfined tests; the separately enforcing service
-integration below covers the catalogue observers, not complete private-root MAC admission.
+These primitive tests are unconfined; the separate fixed-allocation integration
+now supplies actual enforcing publication/read/metadata-denial observations. Complete
+app/run/document admission is still pending.
+The allocation case checks independent frozen bytes/all truncations, invalid ranges,
+missing birth time, immutable and concurrent same-intent retries, copied roots,
+record metadata and actual close/reopen. File-fsync failure/process exit before link
+leaves no named record; lost directory-fsync acknowledgement/process exit after link
+leaves one unchanged record. Reconciliation preserves that exact identity.
+The final close-error acknowledgement case also preserves the published record;
+focused allocation repeats pass in Debug (2.14 s) and Release (1.99 s).
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -262,6 +280,20 @@ Actual broker replacement/root-only restart and full restart, unknown-entry
 preservation and confined fresh bootstrap initialization pass with the root checks.
 Owned services were stopped normally after the final idle observation.
 
+The new user-domain storage-publish/storage-verify one-shots pass with enforcing
+SELinux, NoNewPrivileges and empty capabilities. They preserve the published record
+on repeat and reopen it in a separate invocation. A same-UID ordinary control can
+read the witness; the confined app with its known StorageRef cannot open witness,
+owner header or protected configuration. Existing broker/IPC denials still pass.
+A graceful guest reboot triggered the configured QEMU -no-reboot exit 0; its PID
+was confirmed gone before offline boot of the same disk. A different kernel BootId
+and cross_boot_reopen=true then confirm native reopening with unchanged record
+hash/inode. Broker replacement/root-only restart passes again after that boot.
+Services are stopped; the optional allocation fixture/registry remains for further
+work and makes cleanup/lifecycle-check intentionally out of scope until retirement.
+Actual cleanup refusal preserved that witness/payload; a subsequent native reopen
+passed with the same hash/inode. The isolated validator still passes 374 assertions.
+
 The carrier retains Fedora's enforcing base plus the explicit P0 service module.
 Production broker/system/app policy and category allocation remain pending.
 No production catalogue migrated, Aetheri launcher or document transport installed.
@@ -274,11 +306,13 @@ fixture import/launcher, target-exec/recovery evidence and the remaining P0 poli
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.
 
-OpenSSL 3.5 LTS/libcrypto is proposed for native SHA-256 and was presented to the
-user for the requested library discussion; no answer/adoption is recorded yet.
+The user accepted OpenSSL 3.5 LTS/libcrypto for native SHA-256 and delegates
+well-supported recommended technical choices while temporarily unavailable.
 The carrier already has openssl-libs 3.5.5-1.fc44, without development metadata or
 the openssl command. Upstream now lists 3.5.9 for that LTS branch. Exact package,
 provenance/security/footprint review remains pending; no dependency was added.
+Personally important product/UI/destructive choices are deferred until the user
+can participate; continue independent implementation and document recommendations.
 
 Work remains inside F:/Aetheri; other projects/shared WSL/hardware untouched.
 Public repository: https://github.com/Lulus792/Aetheri.

@@ -16,6 +16,7 @@ import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
+import runtime_contracts
 
 ROOT = Path("/var/lib/aetheri-p0")
 SOURCE = Path(__file__).resolve().parents[1]
@@ -78,7 +79,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll))?|user(?:-init)?|probe-(?:check|claim|broker))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -89,6 +90,13 @@ def validate_record(record):
         raise RuntimeError("administrative/probe unit cannot be an active authority")
     if record.get("broker_unit") is not None and (record["broker_unit"] not in record["units"] or re.search(r"-user-[0-9]+\.service$", record["broker_unit"]) is None):
         raise RuntimeError("unrecognized protected broker unit")
+    if "storage" in record:
+        intent = record["storage"]
+        if set(intent) != set(runtime_contracts.OWNER_FIELDS.split()) or intent["account"] != record["owner"]:
+            raise RuntimeError("unrecognized allocation intent")
+        for value in intent.values():
+            if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
+                raise RuntimeError("invalid allocation identity")
     return record
 
 
@@ -98,7 +106,7 @@ def module_bytes():
     return bz2.decompress(data) if data.startswith(b"BZh") else data
 
 
-def verified(record, allow_new_probe=False):
+def verified(record, allow_new_probe=False, allow_unreceipted_storage=False):
     if hashlib.sha256(module_bytes()).hexdigest() != record["policy_sha256"]:
         raise RuntimeError("installed module differs from owned policy")
     owned_file(ROOT / (MODULE + ".cil"), 0o644)
@@ -136,6 +144,8 @@ def verified(record, allow_new_probe=False):
         owned_file(probe, 0o555)
         if checksum(probe) != record["broker_probe_sha256"]:
             raise RuntimeError("broker probe changed")
+    if "storage" in record:
+        verify_storage(record, allow_unreceipted_storage)
 
 
 def label(path, type_name, cats=""):
@@ -207,6 +217,109 @@ def state_path(record, role):
     return ROOT / "system" if role == "system" else ROOT / "users" / record["owner"] / "control"
 
 
+def storage_paths(record):
+    anchor = ROOT / "users" / record["owner"] / "data"
+    root = anchor / record["storage"]["storage"]
+    registry = state_path(record, "user") / "allocations"
+    return {"anchor": anchor, "root": root, "registry": registry, "payload": root / "payload",
+            "owner": root / "owner", "document": root / "payload/document",
+            "config": ROOT / "registry/allocation.conf", "record": registry / record["storage"]["storage"]}
+
+
+def verify_storage(record, allow_unreceipted=False):
+    if record.get("storage_state") not in ("prepared", "published"):
+        raise RuntimeError("interrupted storage preparation needs reconciliation")
+    paths = storage_paths(record)
+    for key in ("anchor", "root", "registry", "payload"):
+        info = paths[key].lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 1000 or stat.S_IMODE(info.st_mode) != 0o700:
+            raise RuntimeError("private fixture directory changed")
+    for key in ("anchor", "root"):
+        info = paths[key].stat()
+        if (info.st_ino, info.st_ctime_ns) != (record["storage_" + key + "_inode"], record["storage_" + key + "_ctime_ns"]):
+            raise RuntimeError("private fixture object replaced or metadata changed")
+    expected = runtime_contracts.owner(record["storage"])
+    for key, uid, mode, contents in (("config", 0, 0o444, expected), ("owner", 1000, 0o600, expected), ("document", 1000, 0o600, b"hello\n")):
+        info = paths[key].lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != uid or stat.S_IMODE(info.st_mode) != mode or paths[key].read_bytes() != contents:
+            raise RuntimeError("private fixture file changed")
+    entry = paths["record"]
+    if "storage_record_sha256" in record:
+        info = entry.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != 1000 or stat.S_IMODE(info.st_mode) != 0o600 or info.st_size != 168 or checksum(entry) != record["storage_record_sha256"]:
+            raise RuntimeError("immutable allocation record changed")
+    elif (entry.exists() or entry.is_symlink()) and not allow_unreceipted:
+        raise RuntimeError("unreceipted allocation needs explicit storage-check reconciliation")
+
+
+def storage_prepare(record):
+    verified(record)
+    stop(record)
+    if "storage" in record:
+        raise RuntimeError("storage already present; preserve its allocation")
+    if not (state_path(record, "user") / "catalogue.sqlite3").is_file():
+        raise RuntimeError("initialize the owner catalogue before storage preparation")
+    with sqlite3.connect("file:" + str(state_path(record, "system") / "catalogue.sqlite3") + "?mode=ro", uri=True) as db:
+        eligible = db.execute("SELECT kind,os_uid,state FROM scopes WHERE scope_id=?", (bytes.fromhex(record["owner"]),)).fetchall()
+    db.close()
+    if eligible != [("account", 1000, "active")]:
+        raise RuntimeError("fixed account is not eligible for storage preparation")
+    intent = {key: uuid.uuid4().hex for key in runtime_contracts.OWNER_FIELDS.split()}
+    intent["account"] = record["owner"]
+    candidate = {**record, "storage": intent}
+    paths = storage_paths(candidate)
+    if any(paths[key].exists() or paths[key].is_symlink() for key in ("anchor", "registry", "config")):
+        raise RuntimeError("unregistered storage path exists; no adoption")
+    record.update(storage=intent, storage_state="preparing")
+    save(record)
+    directory(paths["registry"], "aetheri_allocation_t", uid=1000, mode=0o700)
+    for key in ("anchor", "root"):
+        directory(paths[key], "aetheri_user_state_t", uid=1000, mode=0o700)
+    directory(paths["payload"], "aetheri_app_data_t", uid=1000, mode=0o700, cats="c31,c32")
+    expected = runtime_contracts.owner(intent)
+    publish(paths["config"], expected, "aetheri_registry_t")
+    publish(paths["owner"], expected, "aetheri_user_state_t", mode=0o600)
+    publish(paths["document"], b"hello\n", "aetheri_app_data_t", mode=0o600)
+    os.chown(paths["owner"], 1000, 1000); os.chown(paths["document"], 1000, 1000)
+    label(paths["document"], "aetheri_app_data_t", "c31,c32")
+    for path in [paths[key] for key in ("config", "owner", "document", "payload", "root", "anchor", "registry")] + [state_path(record, "user"), ROOT / "users" / record["owner"], ROOT / "registry"]:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    for key in ("anchor", "root"):
+        info = paths[key].stat()
+        record["storage_" + key + "_inode"], record["storage_" + key + "_ctime_ns"] = info.st_ino, info.st_ctime_ns
+    record["storage_state"] = "prepared"
+    save(record)
+    print("Prepared protected fixed storage intent/root/payload; no durable allocation record or app installed.")
+
+
+def storage_check(record):
+    verified(record, allow_unreceipted_storage=True)
+    stop(record)
+    paths = storage_paths(record)
+    before = (checksum(paths["record"]), paths["record"].stat().st_ino) if paths["record"].exists() else None
+    start_unit(record, "user", storage="publish")
+    first = (checksum(paths["record"]), paths["record"].stat().st_ino)
+    if before is not None and before != first:
+        raise AssertionError("existing allocation changed on repeat publication")
+    start_unit(record, "user", storage="publish")
+    if first != (checksum(paths["record"]), paths["record"].stat().st_ino):
+        raise AssertionError("allocation retry rewrote the committed object")
+    start_unit(record, "user", storage="verify")
+    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    first_boot = record.setdefault("storage_first_boot", boot)
+    if "storage_record_inode" in record and record["storage_record_inode"] != first[1]:
+        raise AssertionError("committed allocation record inode changed")
+    record.update(storage_record_sha256=first[0], storage_record_inode=first[1], storage_state="published")
+    record["storage_check"] = {"durable_record": True, "exact_retry_preserved": True, "separate_invocation_reopen": True, "cross_boot_reopen": first_boot != boot}
+    save(record)
+    verify_storage(record)
+    print(json.dumps(record["storage_check"]))
+
+
 def unit_has_job(unit):
     jobs = json.loads(bus("system", "--json=short", "call", "org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager", "ListJobs"))
     return jobs["type"] != "a(usssoo)" or any(job[1] == unit for job in jobs["data"][0])
@@ -219,14 +332,16 @@ def publish_broker_slot(record, unit):
     record["broker_unit"] = unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None, enroll=False):
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None):
     if enroll and (role != "system" or init or probe):
         raise ValueError("account enrollment requires only the system administrative role")
-    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "")
+    if storage is not None and (storage not in ("publish", "verify") or role != "user" or init or probe or enroll):
+        raise ValueError("storage administration requires only the user role")
+    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "-storage-" + storage if storage else "")
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
-    if role == "user" and not init and probe is None:
+    if role == "user" and not init and probe is None and storage is None:
         publish_broker_slot(record, unit)
     if unit not in record["units"]:
         record["units"].append(unit)
@@ -242,18 +357,20 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False):
     if probe:
         properties.update(SELinuxContext="system_u:system_r:aetheri_app_t:s0:c31,c32", ReadWritePaths=str(ROOT / "probe-data"))
         command = [str(ROOT / "probe-service"), probe, record["owner"]]
+        if "storage" in record:
+            command.append(record["storage"]["storage"])
         if probe == "broker":
             properties["SELinuxContext"] = "system_u:system_r:aetheri_user_t:s0"
             properties.pop("ReadWritePaths")
             command = [str(ROOT / "probe-broker"), *claims]
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
-        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else [])
+        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--storage-" + storage] if storage else [])
     if role == "user" or probe:
         properties.update(BindsTo="user@1000.service", After="user@1000.service",
                           BindReadOnlyPaths="/run/user/1000/bus:" + str(ROOT / "user-bus"))
-    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll else "notify")]
-    if init or probe or enroll:
+    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll or storage else "notify")]
+    if init or probe or enroll or storage:
         arguments.append("--wait")
     arguments.extend("--property=" + key + "=" + value for key, value in properties.items())
     try:
@@ -356,6 +473,8 @@ def check(record):
         report[role] = {"epoch": epoch, "events": event, "runtime": actual[2].lower(), "boot": actual[1].lower(),
                         "revision": actual[3], "observed": facts}
     user_run("python3", "-c", "from pathlib import Path; p=Path('" + str(state_path(record, "user") / "catalogue.sqlite3") + "'); assert p.open('rb').read(16)==b'SQLite format 3\\0'")
+    if "storage_record_sha256" in record:
+        user_run("python3", "-c", "from pathlib import Path; p=Path('" + str(storage_paths(record)["record"]) + "'); assert p.open('rb').read(8)==b'AETHALC1'")
     start_unit(record, "user", probe="check")
     claims = [record["epochs"]["system"], record["owner"], record["epochs"]["user"], report["user"]["runtime"]]
     user_run(str(BUILD / "probe_broker"), *claims)
@@ -417,6 +536,8 @@ def cleanup(record):
         raise RuntimeError("unacknowledged dispatch requires reconciliation")
     verified(record)
     stop(record)
+    if "storage" in record:
+        raise RuntimeError("allocated private data is not an empty bootstrap; use a reviewed storage retirement protocol")
     for role, name in (("system", "org.aetheri.System1"), ("user", "org.aetheri.User1")):
         if bus(role, "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner", "s", name) != "b false":
             raise RuntimeError("authority name still owned; preserve installation")
@@ -705,6 +826,8 @@ def main():
         elif action == "update-owned": update_owned(record)
         elif action == "enroll-account": enroll_account(record)
         elif action == "account-check": account_check(record)
+        elif action == "storage-prepare": storage_prepare(record)
+        elif action == "storage-check": storage_check(record)
         else: raise RuntimeError("unsupported controller action")
     finally:
         os.close(marker)

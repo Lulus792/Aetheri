@@ -379,3 +379,28 @@ remain controlled; observations do not lock out a concurrent privileged mutator.
 An internal file FD retains its own holder obligation after a root reference closes.
 P0 native transport returns bounded bytes and closes that FD; direct app descriptors
 remain deferred. Actual fstatfs denial justified only authority fs_t getattr access.
+
+## Independent allocation object witness — 26 October 2026
+
+Keep the owner/operation binding in an independent immutable record outside the
+allocated tree and ordinary operation-receipt lifetime. One 168-byte record per
+StorageRef joins owner IDs with inode/birth/filesystem witnesses; mutable mount
+instances stay runtime-only. This preserves the accepted lifetime boundary without
+silently assigning unimplemented registry semantics to an existing SQL column.
+The owning operation still needs intent-before-effects and journal reconciliation;
+record publication alone does not admit an app or authenticate a volume.
+
+Publish an unnamed fully written/flushed inode with a create-only link and directory
+flush. Preserve uncertain results, compare exact intent on retry and reject copies/
+rebindings. Retain the newly allocated test fixture; an empty-bootstrap cleaner is
+not authorized to remove managed private data. Reviewed retirement remains next.
+
+## Delegated technical recommendations and OpenSSL — 26 October 2026
+
+The user explicitly accepted OpenSSL 3.5 LTS/libcrypto for native hashing. Review
+the exact package/source/license/security/footprint before installation/linking;
+do not adopt the older transitive carrier package as the new direct pin by default.
+The user is temporarily unavailable and authorizes well-supported recommended
+technical choices with recorded rationale. Personally important product/UI and
+destructive choices wait for their participation. This supersedes pending-answer
+notes for the OpenSSL family; it does not change earlier foundational requirements.

@@ -138,7 +138,7 @@ int main(int argc, char **argv)
             CHECK(ae_storage_ref_open(anchor, geteuid(), &wrong, &identity, &sentinel) < 0 && sentinel == reference);
         }
         int failures_before = descriptors();
-        for (int field = 0; field < 9; ++field) {
+        for (int field = 0; field < 12; ++field) {
             struct ae_root_identity wrong = identity;
             switch (field) {
             case 0: wrong.mount_id ^= 1U; break;
@@ -149,7 +149,10 @@ int main(int argc, char **argv)
             case 5: wrong.gid ^= 1U; break;
             case 6: wrong.mode ^= 0040; break;
             case 7: wrong.filesystem_type ^= 1; break;
-            default: wrong.filesystem_id[0] ^= 1U; break;
+            case 8: wrong.filesystem_id[0] ^= 1U; break;
+            case 9: wrong.birth_present ^= 1; break;
+            case 10: wrong.birth_seconds ^= 1; break;
+            default: wrong.birth_nanoseconds ^= 1U; break;
             }
             struct ae_storage_ref *sentinel = reference;
             CHECK(ae_storage_ref_open(anchor, geteuid(), &owner, &wrong, &sentinel) < 0 && sentinel == reference);

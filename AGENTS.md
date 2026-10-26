@@ -7,7 +7,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - Follow the user's agreed foundations: Linux x86-64/UEFI, C17 primary, targeted
   Rust and small C++ adapters where justified, existing open development tools,
   glibc and the discussed technical-library boundary. Exact dependency versions
-  and substantial new families need evidence and discussion before adoption.
+  and substantial new families need evidence, rationale and compatibility/security
+  review. While temporarily unavailable, the user authorizes well-supported
+  recommended technical choices; document them and defer personally important
+  product/UI/destructive choices. Do not repeatedly ask noncritical questions.
 - Approved architecture: controlled modular system (B), original wlroots-based
   Wayland compositor, selected systemd/session/sleep components, SQLite metadata,
   versioned read-only system base and separately managed apps/tools with enforced
@@ -41,7 +44,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Native core/fixture now decodes canonical AETHFIX1 into borrowed bounded text
   views. Retain immutable input while using them; never treat views as C strings.
   It validates metadata, not content hashes, publisher trust or installation.
-  OpenSSL 3.5 LTS/libcrypto is proposed; user choice/package review remain pending.
+  OpenSSL 3.5 LTS/libcrypto is accepted by the user; exact package review precedes
+  installation/linking. Do not treat the older carrier-transitive library as a new pin.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   core/root requires STATX_MNT_ID_UNIQUE and joins held/named mount/inode/filesystem
   observations. These are runtime facts, never durable volume/clone authentication.
@@ -49,6 +53,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   owner/root under a trusted anchor; caller still owes account/volume/MAC admission.
   Returned file FDs are internal bounded-read obligations, not native app transport.
   Closing a storage reference never revokes an already returned FD.
+  core/allocation adds immutable AETHALC1 object witnesses (168 bytes, frozen vector).
+  Birth time is mandatory for these records, optional for generic root snapshots.
+  Capture requires independently authorized, flushed allocation setup; never adopt
+  a candidate tree from its own header. Publishing uses O_TMPFILE/create-only link/
+  fsync; unknown acknowledgements preserve records. This is not volume/clone
+  authentication or a completed allocation/purge journal. The optional protected
+  storage fixture is now retained in the guest; empty-bootstrap cleanup must refuse
+  it until a reviewed storage-retirement protocol exists. Use storage-check for
+  native same-intent reconciliation, never mint replacement IDs after a lost reply.
   They are not an installed authority, public grant API or Aetheri app sandbox.
   Dedicated guest runs Fedora enforcing policy. A temporary Aetheri app-domain/MCS
   fixture probe is tested and removes its module afterward; production authority/

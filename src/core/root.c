@@ -13,9 +13,10 @@ static int directory(int fd, struct statx *status)
 {
     const unsigned int required = STATX_TYPE | STATX_MODE | STATX_UID | STATX_GID | STATX_INO | STATX_MNT_ID_UNIQUE;
     int result;
-    do { result = statx(fd, "", AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW, required, status); } while (result < 0 && errno == EINTR);
+    do { result = statx(fd, "", AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW, required | STATX_BTIME, status); } while (result < 0 && errno == EINTR);
     if (result < 0) return -errno;
     if ((status->stx_mask & required) != required || status->stx_mnt_id == 0) return -ENOTSUP;
+    if ((status->stx_mask & STATX_BTIME) && status->stx_btime.tv_nsec >= 1000000000U) return -EBADMSG;
     return S_ISDIR(status->stx_mode) ? 0 : -ENOTDIR;
 }
 
@@ -23,7 +24,9 @@ static int equal_stat(const struct statx *left, const struct statx *right)
 {
     return left->stx_mnt_id == right->stx_mnt_id && left->stx_ino == right->stx_ino &&
            left->stx_dev_major == right->stx_dev_major && left->stx_dev_minor == right->stx_dev_minor &&
-           left->stx_uid == right->stx_uid && left->stx_gid == right->stx_gid && left->stx_mode == right->stx_mode;
+           left->stx_uid == right->stx_uid && left->stx_gid == right->stx_gid && left->stx_mode == right->stx_mode &&
+           ((left->stx_mask ^ right->stx_mask) & STATX_BTIME) == 0 &&
+           (!(left->stx_mask & STATX_BTIME) || (left->stx_btime.tv_sec == right->stx_btime.tv_sec && left->stx_btime.tv_nsec == right->stx_btime.tv_nsec));
 }
 
 int ae_root_observe(int fd, struct ae_root_identity *output)
@@ -42,6 +45,11 @@ int ae_root_observe(int fd, struct ae_root_identity *output)
         .uid = first.stx_uid, .gid = first.stx_gid, .mode = first.stx_mode,
         .filesystem_type = (int64_t)filesystem.f_type};
     memcpy(value.filesystem_id, &filesystem.f_fsid, sizeof value.filesystem_id);
+    if (first.stx_mask & STATX_BTIME) {
+        value.birth_present = 1;
+        value.birth_seconds = first.stx_btime.tv_sec;
+        value.birth_nanoseconds = first.stx_btime.tv_nsec;
+    }
     *output = value;
     return 0;
 }
@@ -51,7 +59,8 @@ int ae_root_equal(const struct ae_root_identity *left, const struct ae_root_iden
     return left != NULL && right != NULL && left->mount_id == right->mount_id && left->inode == right->inode &&
            left->device_major == right->device_major && left->device_minor == right->device_minor &&
            left->uid == right->uid && left->gid == right->gid && left->mode == right->mode &&
-           left->filesystem_type == right->filesystem_type &&
+           left->filesystem_type == right->filesystem_type && left->birth_present == right->birth_present &&
+           left->birth_seconds == right->birth_seconds && left->birth_nanoseconds == right->birth_nanoseconds &&
            memcmp(left->filesystem_id, right->filesystem_id, sizeof left->filesystem_id) == 0;
 }
 
