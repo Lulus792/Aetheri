@@ -1,5 +1,6 @@
 """Host orchestration guards. No guest, installer or physical disk is executed."""
 import json
+import sqlite3
 from pathlib import Path
 import tempfile
 import subprocess
@@ -13,6 +14,42 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_account_enrollment_receipt_roundtrip_and_role_boundary(self):
+        record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
+                  "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
+                  "pending": None, "units": []}
+        with patch.object(services, "save"), patch.object(services, "run", return_value="") as command:
+            unit = services.start_unit(record, "system", enroll=True)
+            self.assertIn("--service-type=exec", command.call_args.args)
+            self.assertEqual(command.call_args.args[-2:], ("system", "--enroll-account"))
+        self.assertEqual(services.validate_record(json.loads(json.dumps(record))), record)
+        record["active_units"] = {"system": unit}
+        with self.assertRaisesRegex(RuntimeError, "cannot be an active authority"):
+            services.validate_record(record)
+        record.pop("active_units")
+        record["units"] = [unit.replace("-system-enroll-", "-user-enroll-")]
+        with self.assertRaisesRegex(RuntimeError, "foreign unit"):
+            services.validate_record(record)
+        with patch.object(services, "save", side_effect=AssertionError("mutation")):
+            with self.assertRaises(ValueError):
+                services.start_unit(record, "user", enroll=True)
+
+    def test_empty_bootstrap_cleanup_preserves_other_account_lifetimes(self):
+        owner = "00000000000040008000000000000002"
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE scopes(scope_id BLOB,kind TEXT,os_uid INTEGER,state TEXT,revision INTEGER)")
+            self.assertTrue(services.bootstrap_scopes(db, owner))
+            db.execute("INSERT INTO scopes VALUES(?,'account',1000,'active',1)", (bytes.fromhex(owner),))
+            self.assertTrue(services.bootstrap_scopes(db, owner))
+            for column, value in (("scope_id", bytes(16)), ("kind", "machine"), ("os_uid", 1001), ("state", "retired"), ("revision", 2)):
+                db.execute("SAVEPOINT changed_account")
+                db.execute("UPDATE scopes SET " + column + "=?", (value,))
+                self.assertFalse(services.bootstrap_scopes(db, owner))
+                db.execute("ROLLBACK TO changed_account")
+                db.execute("RELEASE changed_account")
+            db.execute("INSERT INTO scopes VALUES(zeroblob(16),'account',1001,'active',1)")
+            self.assertFalse(services.bootstrap_scopes(db, owner))
+
     def test_authority_pending_dispatch_blocks_start_stop_and_cleanup(self):
         record = {"pending": "unacknowledged.service"}
         with patch.object(services, "run", side_effect=AssertionError("supervisor mutation")), \

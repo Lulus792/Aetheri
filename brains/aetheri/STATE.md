@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — protected broker enrollment now joins live process/invocation checks.
+26 October 2026 — durable test-account enrollment now backs broker identity checks.
 
 ## Confirmed
 
@@ -76,6 +76,14 @@ unit/invocation to its declared catalogue runtime. Check requires active state a
 revalidates enrollment/context. Name/exit events invalidate the retained identity;
 no polling or app-holder settlement. This is not general account or app admission.
 
+System-owner native account enrollment/check now uses the existing scopes table.
+Creation and catalogue revision advance commit together. Exact active retries do
+not rewrite the database; retired or differently bound scopes and active UID
+collisions fail. The fixed system service requires its protected account row on
+normal startup, Register and Check/Runtime1 authentication. Explicit initialization
+or stopped administrative enrollment may create it. No general account creation,
+retirement API, NSS synchronization or private-data adoption is implemented.
+
 [Temporary SELinux fixture](../../policy/p0-fixture.cil): tested one MCS-constrained
 app domain with two same-UID/disjoint-category data roots, separate synthetic
 broker/document types and narrow supervisor setup permissions. The C17 probe and
@@ -101,11 +109,12 @@ canonicalization and real schema-drift rejection, with unchanged frozen v1 files
 All pass again on the host in 33.642 s, exit 0.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
-are unchanged. The host orchestration/cleanup guard suite now has 18 passing tests
-(0.164 s), including pending dispatch, remaining process/job and wrong-owner PID.
+are unchanged. The host orchestration/cleanup guard suite now has 20 passing tests
+(0.179 s), including pending dispatch, remaining process/job, wrong-owner PID,
+administrative receipt roundtrips and protection of non-bootstrap account records.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Ten tests pass in Debug
-with ASan/UBSan (30.75 s) and Release (19.18 s), both exit 0 in the offline guest.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Eleven tests pass in Debug
+with ASan/UBSan (26.96 s) and Release (22.61 s), both exit 0 in the offline guest.
 These are functional/sanitizer checks, not latency benchmarks.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
@@ -123,6 +132,10 @@ These target processes are deliberately unconfined development fixtures; separat
 the actual enforcing system authority passes its new self-check with empty caps.
 The broker cache case uses mocked context, real daemon name-loss and separate
 pidfd-exit events: transfer/idempotence/conflict and reentrant invalidation pass.
+The new native account case covers owner/fork/UID boundaries, exact retry,
+retirement without resurrection, fresh identity after UID reuse, the largest
+permitted UID, revision overflow and four pre/post-commit error/process-exit
+points. Reopen proves account rows and catalogue revision settle together.
 
 Guest Python 3.14.3 / SQLite 3.51.2: updated 26 catalogue/API tests pass in 47.238 s
 and the prior unchanged 14 runtime-format tests in 0.016 s, exit 0.
@@ -204,6 +217,13 @@ that pin. A root-only restart re-enrolls the still-live user PID/runtime. Full
 restart, unknown-entry preservation and empty-bootstrap recreation also pass with
 the new slot/probe inventory. These are identity tests, not app launch/removal.
 
+The actual enforcing authority refuses startup when the old bootstrap lacks its
+account row; it acquires no public name and leaves database bytes unchanged.
+Explicit native enrollment succeeds, and its exact retry preserves the complete
+database hash and revisions. Broker replacement/root-only restart and guarded
+empty-bootstrap recreation pass again with the durable account row. Normal new
+initialization creates it; other account records still block bootstrap cleanup.
+
 The carrier retains Fedora's enforcing base plus the explicit P0 service module.
 Production broker/system/app policy and category allocation remain pending.
 No production catalogue migrated, Aetheri launcher or document transport installed.
@@ -211,7 +231,7 @@ No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: native account/fixture enrollment and app/run principal mapping, protected read refs,
+Next: native fixture enrollment and app/run principal mapping, protected read refs,
 fixture import/launcher, target-exec/recovery evidence and the remaining P0 policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.

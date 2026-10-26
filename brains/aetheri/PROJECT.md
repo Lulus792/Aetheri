@@ -83,6 +83,7 @@ under dedicated enforcing domains. A native observer now joins held process
 references to current credentials, service invocation and cgroup identity; the
 system endpoint verifies its own supervised context. A protected single-account
 broker enrollment now binds the actual user-service connection and invocation.
+The system catalogue also enrolls the fixed test account without UID/scope rebinding.
 App/run registration and admission, launch and transport remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.

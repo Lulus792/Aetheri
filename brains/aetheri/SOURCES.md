@@ -503,3 +503,23 @@ The internal XML is original Aetheri bootstrap design, not a D-Bus-specified app
 authorization protocol. Existing public v1/XML and SQL remain unchanged. The
 single UID-1000 eligible slot is not general account enrollment, volume identity,
 app principal registration, target-exec proof or full lifecycle acceptance.
+
+## Durable account enrollment — 26 October 2026
+
+- [SQLite transactions](https://www.sqlite.org/lang_transaction.html): IMMEDIATE
+  writer acquisition, explicit commit/rollback and error cases. Native enrollment
+  inspects binding after acquiring its write transaction and commits row/revision
+  together; an error does not imply that a commit never happened.
+- [SQLite parameter binding](https://www.sqlite.org/c3ref/bind_blob.html): typed
+  BLOB/int64 inputs and SQLITE_TRANSIENT lifetimes. UID conversion preserves the
+  full accepted unsigned range without treating identity as SQL text.
+- [Native store](../../src/catalogue/store.c), [tests](../../tests/test_catalogue.c)
+  and [controller](../../tools/p0_services.py): eleven native tests pass in Debug
+  ASan/UBSan and Release; actual fixed-account missing-row startup denial, explicit
+  enrollment/idempotent database hash, broker restart and bootstrap recreation pass.
+  Twenty host guards cover administrative receipt roles and preservation of other
+  account records. Actual integration uses the unchanged pinned carrier SDKs.
+
+Retirement/UID-reuse cases mutate only closed native-test fixture catalogues.
+They prove API behavior, not production Linux-user retirement, NSS synchronization
+or access to old app data. No production account lifecycle is claimed.

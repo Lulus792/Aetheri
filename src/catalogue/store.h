@@ -43,6 +43,21 @@ int ae_catalogue_begin_runtime(struct ae_catalogue *catalogue,
                                const uint8_t boot_id[AE_ID_BYTES],
                                const uint8_t incarnation[AE_ID_BYTES]);
 int ae_catalogue_get_info(struct ae_catalogue *catalogue, struct ae_catalogue_info *output);
+/* System-owner account enrollment from protected administrative configuration.
+ * No client-selected identity/UID, account creation or private-data adoption.
+ * Matching active enrollment is idempotent; retired or differently bound scopes
+ * are never reactivated/rebound. A live UID collision is rejected. Insert and
+ * catalogue revision advance commit together. A lost commit acknowledgement is
+ * an error, not permission to allocate a replacement identity.
+ */
+int ae_catalogue_enroll_account(struct ae_catalogue *catalogue,
+                                const uint8_t account[AE_ID_BYTES], uint32_t os_uid);
+/* Require this exact active account/UID; preserve output on failure. The returned
+ * revision is a read observation, not a future admission lock or process proof.
+ */
+int ae_catalogue_check_account(struct ae_catalogue *catalogue,
+                               const uint8_t account[AE_ID_BYTES], uint32_t os_uid,
+                               int64_t *revision);
 /* Never carry SQLite connections across fork. These APIs reject a fork child;
  * callers must exec/_exit without using the inherited connection.
  */

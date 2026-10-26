@@ -654,9 +654,9 @@ The initial unit value is `-`, which cannot enroll. The root controller publishe
 a selected slot atomically before its recorded user-service dispatch. Neither
 method accepts a client-selected UID, PID, security label, unit, executable or
 path. Native identity reads may inspect the other role's root-owned registry;
-they never open the other owner's SQLite catalogue. General eligible-account
-records, scope-table enrollment, multiple users and registered volumes remain
-future work. This is a bootstrap for the dedicated prototype account.
+they never open the other owner's SQLite catalogue. The durable account extension
+below now backs this fixed account with a system scopes row. General account
+eligibility, multiple users and registered volumes remain future work.
 
 Register captures authenticated connection credentials/ProcessFD, checks the
 protected account/epochs, requires the exact aetheri_user_t context and UID, and
@@ -729,6 +729,61 @@ deltas, PSS 2260/2297 KiB, RSS 6748/6656 KiB and MemoryCurrent 1904640/1662976 b
 accounting scopes. Owned services were stopped; no wakeup/workload/hardware or
 finished-OS budget is claimed.
 
-Next: native account/fixture enrollment, verified storage/volume/read references,
+Next: native fixture enrollment, verified storage/volume/read references,
 app/run records and reserve/ready/dispatch/exec evidence. The complete OS/apps goal
 remains; broker enrollment alone does not launch an app or grant document access.
+
+## Durable P0 account enrollment
+
+The system catalogue now stores the fixed test account in the existing scopes
+table: protected AccountId, kind account, UID 1000, active state and revision 1.
+No schema/wire version, public method or resident process is added. The native
+enrollment API accepts trusted administrative identity/UID inputs, never app RPC
+arguments. The service obtains both from its root-owned registry.
+
+Enrollment takes a write transaction before inspecting existing state. A missing
+scope is inserted with the catalogue revision increment in the same commit.
+An exact active retry commits no data changes. A differently bound or retired
+scope fails; another active account already using that UID fails. A fresh account
+may use a retired account's old UID without adopting or changing the old scope.
+The API never retires, reactivates or rebinds accounts, edits credentials, changes
+Linux users, attaches private data or grants access to an app.
+
+System --init creates and enrolls the fixed bootstrap account. For an existing
+older empty development catalogue, the explicit stopped system --enroll-account
+administrative mode opens its original identity and enrolls the protected account.
+The writer lock excludes a concurrent service. No supplied account, UID or path
+argument is accepted. Normal startup never silently repairs a missing/retired
+scope: it requires an already matching active row before changing runtime or
+claiming its bus name. Register and broker-use checks also require that row.
+The returned account revision is an observation, not a future admission fence.
+
+The root controller's enroll-account action stops/drains owned services before
+that one-shot native command. account-check tests the missing-row startup denial
+when applicable, explicit enrollment and exact retry, inspecting real database
+rows, revision and file hash. Its administrative service is a distinct recorded
+unit, never eligible as a running authority or broker. The cleanup inventory may
+remove only zero scopes or the exact original active bootstrap row at revision 1;
+other, retired, changed or additional accounts require reconciliation.
+
+Executed in the offline enforcing carrier: the previous empty bootstrap refused
+normal startup with ENOENT, no owned name and unchanged database bytes. Native
+enrollment then succeeded; its retry preserved rows, revision and file hash.
+Broker departure/replacement and root-only restart passed again (12 to 11 held
+FDs on departure). Full restart, unknown-file preservation and empty-bootstrap
+cleanup/recreation passed with the account row created by normal initialization.
+
+Native account tests cover idempotence, live UID collision, wrong UID/owner/fork,
+retired scope rejection, a fresh identity after UID reuse and UID 4294967294.
+Revision overflow leaves state unchanged. Injected failed/lost commit acknowledgements
+and process exits before/after commit reopen with account and revision both absent
+or both committed; retry retains one exact account. These are SQLite/process-exit
+observations, not physical power-loss or production account-lifecycle acceptance.
+All eleven native tests pass in Debug ASan/UBSan (26.96 s) and Release (22.61 s).
+Twenty host orchestration guards pass (0.179 s). The first integration attempt
+after enrollment exposed a controller receipt grammar missing system-enroll units;
+the grammar and active-role boundary were corrected with a roundtrip regression.
+
+SDK/dependency/policy versions are unchanged. General account eligibility,
+Linux-account retirement coordination, machine/volume registration, fixture
+publication and full app/run admission remain separate implementation work.

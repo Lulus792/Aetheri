@@ -468,6 +468,81 @@ int ae_catalogue_begin_runtime(struct ae_catalogue *store, const uint8_t boot_id
     return result;
 }
 
+static int account_row(struct ae_catalogue *store, const uint8_t account[AE_ID_BYTES],
+                       uint32_t uid, int64_t *revision)
+{
+    sqlite3_stmt *statement = NULL;
+    int result = failure(sqlite3_prepare_v2(store->db,
+        "SELECT kind,os_uid,state,revision FROM scopes WHERE scope_id=?", -1, &statement, NULL));
+    if (result == 0) result = failure(sqlite3_bind_blob(statement, 1, account, AE_ID_BYTES, SQLITE_TRANSIENT));
+    int64_t found = 0;
+    if (result == 0) {
+        int code = sqlite3_step(statement);
+        if (code == SQLITE_DONE) result = -ENOENT;
+        else if (code != SQLITE_ROW) result = failure(code);
+        else if (sqlite3_column_type(statement, 0) != SQLITE_TEXT || sqlite3_column_bytes(statement, 0) != 7 ||
+                 memcmp(sqlite3_column_text(statement, 0), "account", 7) != 0 ||
+                 sqlite3_column_type(statement, 1) != SQLITE_INTEGER || sqlite3_column_int64(statement, 1) != (sqlite3_int64)uid ||
+                 sqlite3_column_type(statement, 2) != SQLITE_TEXT || sqlite3_column_bytes(statement, 2) != 6 ||
+                 memcmp(sqlite3_column_text(statement, 2), "active", 6) != 0) result = -ESTALE;
+        else if (sqlite3_column_type(statement, 3) != SQLITE_INTEGER || (found = sqlite3_column_int64(statement, 3)) < 1) result = -EUCLEAN;
+        else if ((code = sqlite3_step(statement)) != SQLITE_DONE) result = code == SQLITE_ROW ? -EUCLEAN : failure(code);
+    }
+    int final = failure(sqlite3_finalize(statement));
+    if (result == 0) result = final;
+    if (result == 0) *revision = found;
+    return result;
+}
+
+static int account_store(struct ae_catalogue *store, const uint8_t account[AE_ID_BYTES], uint32_t uid)
+{
+    if (account == NULL || !nonzero(account) || uid == UINT32_MAX) return -EINVAL;
+    int result = still_named(store);
+    if (result == 0 && store->identity.kind != AE_CATALOGUE_SYSTEM) result = -EACCES;
+    return result;
+}
+
+int ae_catalogue_check_account(struct ae_catalogue *store, const uint8_t account[AE_ID_BYTES],
+                               uint32_t uid, int64_t *revision)
+{
+    if (revision == NULL) return -EINVAL;
+    int result = account_store(store, account, uid);
+    if (result == 0) result = account_row(store, account, uid, revision);
+    return result;
+}
+
+int ae_catalogue_enroll_account(struct ae_catalogue *store, const uint8_t account[AE_ID_BYTES], uint32_t uid)
+{
+    int result = account_store(store, account, uid);
+    if (result != 0) return result;
+    result = exec_sql(store->db, "BEGIN IMMEDIATE");
+    if (result != 0) return result;
+    int64_t revision;
+    result = account_row(store, account, uid, &revision);
+    if (result == -ENOENT) {
+        struct ae_catalogue_info info;
+        result = read_info(store, &info);
+        if (result == 0 && info.revision == INT64_MAX) result = -EOVERFLOW;
+        sqlite3_stmt *statement = NULL;
+        if (result == 0) result = failure(sqlite3_prepare_v2(store->db,
+            "INSERT INTO scopes(scope_id,kind,os_uid,state) VALUES(?,'account',?,'active')", -1, &statement, NULL));
+        if (result == 0) result = failure(sqlite3_bind_blob(statement, 1, account, AE_ID_BYTES, SQLITE_TRANSIENT));
+        if (result == 0) result = failure(sqlite3_bind_int64(statement, 2, (sqlite3_int64)uid));
+        if (result == 0) {
+            int code = sqlite3_step(statement);
+            result = code == SQLITE_DONE ? 0 : (code == SQLITE_CONSTRAINT_UNIQUE ? -EEXIST : failure(code));
+        }
+        int final = failure(sqlite3_finalize(statement));
+        if (result == 0) result = final;
+        if (result == 0) result = exec_sql(store->db,
+            "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+        if (result == 0 && sqlite3_changes(store->db) != 1) result = -EUCLEAN;
+    }
+    if (result == 0) result = exec_sql(store->db, "COMMIT");
+    if (result != 0) (void)exec_sql(store->db, "ROLLBACK");
+    return result;
+}
+
 int ae_catalogue_close(struct ae_catalogue **output)
 {
     if (output == NULL) return -EINVAL;

@@ -61,6 +61,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   No production registry/MAC/authority or native v1 migration is implied. Keep
   writer.lock stable, never close independent DB-inode FDs during SQLite locks,
   and never infer rollback from a lost commit/flush acknowledgement.
+  System-owner account enrollment/check now uses existing scopes rows. Exact
+  active retries are idempotent; never rebind/reactivate an old scope or adopt its
+  private state on UID reuse. Only explicit initialization/admin enrollment may
+  insert the fixed test account; normal startup and broker use require it already.
 - tools/test_linux_policy.py is an explicit root-only disposable-carrier test,
   never a default host test or production installer. It must stay enforcing,
   preserve uncertain dispatches and refuse foreign fixtures/modules. Fixed test

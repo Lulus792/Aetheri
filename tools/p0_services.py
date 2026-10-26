@@ -69,19 +69,24 @@ def load():
     path = ROOT / "controller.json"
     if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1 or path.stat().st_uid != 0 or stat.S_IMODE(path.stat().st_mode) != 0o600:
         raise RuntimeError("untrusted controller record")
-    record = json.loads(path.read_text())
+    return validate_record(json.loads(path.read_text()))
+
+
+def validate_record(record):
     if str(uuid.UUID(record["token"])) != record["token"]:
         raise RuntimeError("invalid owned token")
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-init)?|user(?:-init)?|probe-(?:check|claim|broker))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll))?|user(?:-init)?|probe-(?:check|claim|broker))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
         raise RuntimeError("unrecognized pending dispatch")
     if any(role not in ("system", "user") or unit not in record["units"] for role, unit in record.get("active_units", {}).items()):
         raise RuntimeError("unrecognized active authority")
+    if any(re.search("-" + role + r"-[0-9]+\.service$", unit) is None for role, unit in record.get("active_units", {}).items()):
+        raise RuntimeError("administrative/probe unit cannot be an active authority")
     if record.get("broker_unit") is not None and (record["broker_unit"] not in record["units"] or re.search(r"-user-[0-9]+\.service$", record["broker_unit"]) is None):
         raise RuntimeError("unrecognized protected broker unit")
     return record
@@ -214,8 +219,10 @@ def publish_broker_slot(record, unit):
     record["broker_unit"] = unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None):
-    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "")
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False):
+    if enroll and (role != "system" or init or probe):
+        raise ValueError("account enrollment requires only the system administrative role")
+    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "")
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
@@ -241,12 +248,12 @@ def start_unit(record, role, init=False, probe=None, claims=None):
             command = [str(ROOT / "probe-broker"), *claims]
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
-        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else [])
+        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else [])
     if role == "user" or probe:
         properties.update(BindsTo="user@1000.service", After="user@1000.service",
                           BindReadOnlyPaths="/run/user/1000/bus:" + str(ROOT / "user-bus"))
-    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe else "notify")]
-    if init or probe:
+    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll else "notify")]
+    if init or probe or enroll:
         arguments.append("--wait")
     arguments.extend("--property=" + key + "=" + value for key, value in properties.items())
     try:
@@ -310,6 +317,8 @@ def check(record):
         epoch, event = protocol(role)
         with sqlite3.connect("file:" + str(state_path(record, role) / "catalogue.sqlite3") + "?mode=ro", uri=True) as db:
             actual = db.execute("SELECT hex(authority_epoch),hex(current_boot_id),hex(runtime_incarnation),catalogue_revision FROM authority_meta").fetchone()
+            if role == "system" and db.execute("SELECT kind,os_uid,state,revision FROM scopes WHERE scope_id=?", (bytes.fromhex(record["owner"]),)).fetchall() != [("account", 1000, "active", 1)]:
+                raise AssertionError("protected account enrollment differs from its native bootstrap")
         db.close()
         if epoch != record["epochs"][role] or epoch.upper() != actual[0] or event.upper() == actual[2]:
             raise AssertionError("durable/protocol/runtime identity mismatch")
@@ -395,6 +404,13 @@ def stop(record):
     print("Owned authority/probe units stopped without SIGKILL escalation.")
 
 
+def bootstrap_scopes(db, owner):
+    # Only the fixed bootstrap account may be removed with this empty carrier.
+    # Retired, rebound, revised or additional accounts require explicit handling.
+    rows = db.execute("SELECT hex(scope_id),kind,os_uid,state,revision FROM scopes").fetchall()
+    return rows in ([], [(owner.upper(), "account", 1000, "active", 1)])
+
+
 def cleanup(record):
     """Remove only an empty, inspected development bootstrap, never app data."""
     if record["pending"]:
@@ -448,6 +464,10 @@ def cleanup(record):
                 raise RuntimeError("catalogue requires inspection")
             tables = db.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
             for (table,) in tables:
+                if role == "system" and table == "scopes":
+                    if not bootstrap_scopes(db, record["owner"]):
+                        raise RuntimeError("non-bootstrap accounts exist; preserve installation")
+                    continue
                 quoted = '"' + table.replace('"', '""') + '"'
                 if table != "authority_meta" and db.execute("SELECT COUNT(*) FROM " + quoted).fetchone()[0] != 0:
                     raise RuntimeError("bootstrap contains managed records; cleanup refuses app removal")
@@ -510,6 +530,57 @@ def update_owned(record):
                   broker_probe_sha256=checksum(BUILD / "probe_broker"), state="prepared")
     save(record)
     print("Updated verified stopped owned policy/executables; registry and catalogues preserved.")
+
+
+def enroll_account(record):
+    verified(record)
+    stop(record)
+    start_unit(record, "system", enroll=True)
+    record["state"] = "prepared"
+    save(record)
+    print("Native fixed account enrollment completed; no service or app was started.")
+
+
+def account_check(record):
+    verified(record)
+    stop(record)
+    path = state_path(record, "system") / "catalogue.sqlite3"
+    def snapshot():
+        with sqlite3.connect("file:" + str(path) + "?mode=ro", uri=True) as db:
+            rows = db.execute("SELECT hex(scope_id),kind,os_uid,state,revision FROM scopes").fetchall()
+            revision = db.execute("SELECT catalogue_revision FROM authority_meta WHERE singleton=1").fetchone()[0]
+        db.close()
+        return rows, revision, checksum(path)
+    before = snapshot()
+    expected = [(record["owner"].upper(), "account", 1000, "active", 1)]
+    if before[0] not in ([], expected):
+        raise RuntimeError("existing account records require reconciliation")
+    denied_missing = False
+    if not before[0]:
+        try:
+            unit = start_unit(record, "system")
+        except subprocess.CalledProcessError:
+            failed = record["last_failure"]
+            journal = run("journalctl", "-u", failed["unit"], "--no-pager", "--output=cat")
+            if failed["facts"].get("ExecMainStatus") != "5" or "Authority startup/runtime failed: -2" not in journal:
+                raise AssertionError("missing account test failed for another reason")
+            if snapshot() != before or bus("system", "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner", "s", "org.aetheri.System1") != "b false":
+                raise AssertionError("unregistered account changed startup state or acquired the authority name")
+            denied_missing = True
+        else:
+            stop_unit(unit)
+            raise AssertionError("authority served without its account enrollment")
+    start_unit(record, "system", enroll=True)
+    first = snapshot()
+    start_unit(record, "system", enroll=True)
+    second = snapshot()
+    if first[0] != expected or first[1] != before[1] + (0 if before[0] else 1) or first != second:
+        raise AssertionError("native enrollment changed an identity or repeated a committed write")
+    record["account_check"] = {"durable_account": True, "exact_retry_preserves_database": True,
+                               "missing_account_blocks_start": denied_missing if not before[0] else None}
+    record["state"] = "prepared"
+    save(record)
+    print(json.dumps(record["account_check"]))
 
 
 def lifecycle_check(record):
@@ -632,6 +703,8 @@ def main():
         elif action == "idle-check": idle_check(record)
         elif action == "broker-check": broker_check(record)
         elif action == "update-owned": update_owned(record)
+        elif action == "enroll-account": enroll_account(record)
+        elif action == "account-check": account_check(record)
         else: raise RuntimeError("unsupported controller action")
     finally:
         os.close(marker)

@@ -64,7 +64,8 @@ validates v2 and commits startup context; it receives trusted identity/boot valu
 from its caller and does not implement the registry, kernel-context sourcing or
 native v1 migration. Current peer/process observations now exist, but binding them
 to app/run identity remains pending. Protected P0 broker enrollment now works for
-the fixed eligible test account; general account eligibility and complete principal mapping,
+the fixed eligible test account, now backed by a durable system scope/UID row;
+general account eligibility and complete principal mapping,
 policy/registry identities, target-exec evidence and actual cross-authority
 admission/recovery remain Linux integration gates. Isolated host tests do not
 settle these gates.

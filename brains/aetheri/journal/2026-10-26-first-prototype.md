@@ -422,3 +422,41 @@ No SDK/package version or dependency family changed. General account eligibility
 app/run mapping, registered volumes, admission, target-exec and document/removal
 protocols remain next. The full daily-use OS objective remains active; future
 AM5 support remains a recorded portability requirement awaiting concrete hardware.
+
+## Durable test-account enrollment
+
+Implemented system-owner account enrollment/check in the existing native store,
+using the unchanged scopes schema. Exact active retries preserve the database;
+retired/differently bound identities and live UID collisions fail. Row insertion
+and catalogue revision advance share a commit. The authority now requires its
+protected fixed account on ordinary startup and broker registration/use. Explicit
+initialization or a stopped administrative command can enroll it; no app-selected
+UID/account/path, account retirement API or private-data adoption is added.
+
+Eleven native tests passed, exit 0: Debug ASan/UBSan 26.96 s, Release 22.61 s.
+The account case checks UID/owner/fork boundaries, the largest accepted UID,
+idempotence, retired-scope rejection, a new identity after UID reuse, revision
+overflow and pre/post-commit error/process exits with reopen and exact retry.
+Twenty host guards passed in 0.179 s, including non-bootstrap scope preservation
+and administrative unit receipt/role boundaries.
+
+Actual offline enforcing integration: an older bootstrap with no account row
+refused root startup with ENOENT, no acquired name and unchanged database hash.
+Native enrollment succeeded; an exact retry preserved complete bytes and revision.
+The first later controller load rejected the new system-enroll unit because its
+receipt grammar had not been extended. Fixed the grammar, excluded administrative
+units from active-authority roles and added a roundtrip regression before continuing.
+
+Broker replacement and root-only restart passed again (retained pin 12 to 11 on
+departure). Full restart, unknown-entry preservation, guarded empty-bootstrap
+removal and fresh initialization/recreation passed with the account row. The
+controller permits only the original active revision-1 bootstrap scope for this
+administrative cleanup; other account state requires reconciliation.
+
+No dependency/package/policy versions changed. Next: native fixture publication,
+protected machine/volume/read references and app/run admission, then actual
+reserve/ready/dispatch, target-exec, document access/revoke and removal gates.
+General account eligibility and OS-account retirement coordination remain open.
+Both owned authorities/probes were stopped normally after integration; the offline
+carrier and inspected bootstrap remain available. The isolated validator also
+passes its unchanged 374 assertions; no public schema/XML source changed.

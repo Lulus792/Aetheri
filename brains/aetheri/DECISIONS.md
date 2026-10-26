@@ -340,3 +340,17 @@ broker on demand; no timeout-driven service restart. The new probe and slot are
 explicit development inventory, with no new dependency family, capability or
 SDK/package version. Keep the single-account bootstrap and unfinished production
 policy/account/launch boundaries visible.
+
+## Durable test-account enrollment — 26 October 2026
+
+Back the protected P0 account registry with the existing system scopes row before
+root readiness or broker registration/use. Only explicit initialization or stopped
+administrative enrollment may insert the expected account. Normal startup requires
+it already; it must not repair a missing/retired identity as a side effect.
+
+Account insertion and catalogue revision advance share one SQLite transaction.
+Exact active retries are idempotent. A retired/differently bound scope cannot be
+rearmed or rebound; a live UID collision fails. New identity after UID reuse never
+changes or adopts the old lifetime. This implements the accepted identity model
+without schema/wire changes, a public account API or a new process/dependency.
+General eligibility and OS-account retirement coordination remain future work.

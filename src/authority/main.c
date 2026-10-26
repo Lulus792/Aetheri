@@ -229,6 +229,8 @@ static int broker_current(struct authority *authority, struct ae_peer *peer, sd_
     struct authority enrolled = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
     char unit[256];
     if (result == 0) result = load_registry(&enrolled, NULL);
+    int64_t account_revision;
+    if (result == 0) result = ae_catalogue_check_account(authority->catalogue, enrolled.identity.owner, (uint32_t)enrolled.uid, &account_revision);
     if (result == 0) result = broker_unit(unit);
     if (result == 0 && (memcmp(enrolled.identity.authority_epoch, authority->broker.identity.epoch, 16) != 0 ||
         memcmp(enrolled.identity.owner, authority->broker.identity.account, 16) != 0 || strcmp(unit, authority->broker.context.unit) != 0)) result = -EACCES;
@@ -252,6 +254,8 @@ static int method_register(sd_bus_message *message, void *userdata, sd_bus_error
     struct authority enrolled = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
     char unit[256];
     if (result == 0) result = load_registry(&enrolled, NULL);
+    int64_t account_revision;
+    if (result == 0) result = ae_catalogue_check_account(authority->catalogue, enrolled.identity.owner, (uint32_t)enrolled.uid, &account_revision);
     if (result == 0) result = broker_unit(unit);
     if (result == 0 && (memcmp(system_epoch, authority->identity.authority_epoch, 16) != 0 ||
         memcmp(claimed.account, enrolled.identity.owner, 16) != 0 || memcmp(claimed.epoch, enrolled.identity.authority_epoch, 16) != 0)) result = -EACCES;
@@ -395,9 +399,11 @@ static int stop_signal(sd_event_source *source, const struct signalfd_siginfo *s
 int main(int argc, char **argv)
 {
     if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
-        (argc == 3 && strcmp(argv[2], "--init") != 0)) {
-        fputs("Usage: aetheri-authority system|user [--init]\n", stderr); return 2;
+        (argc == 3 && strcmp(argv[2], "--init") != 0 &&
+         !(strcmp(argv[1], "system") == 0 && strcmp(argv[2], "--enroll-account") == 0))) {
+        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account\n", stderr); return 2;
     }
+    int initialize = argc == 3 && strcmp(argv[2], "--init") == 0;
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
                                   .uid = geteuid(), .broker = AE_BROKER_INIT};
     int system = authority.identity.kind == AE_CATALOGUE_SYSTEM;
@@ -407,10 +413,18 @@ int main(int argc, char **argv)
     char state_path[256];
     if (result == 0) result = load_registry(&authority, state_path);
     if (result == 0) result = sd_id128_get_boot(&authority.boot);
-    if (result == 0) result = argc == 3 ? ae_catalogue_create(state_path, &authority.identity, authority.boot.bytes, &authority.catalogue) :
+    if (result == 0) result = initialize ? ae_catalogue_create(state_path, &authority.identity, authority.boot.bytes, &authority.catalogue) :
                                         ae_catalogue_open(state_path, &authority.identity, &authority.catalogue);
+    if (result == 0 && system) {
+        struct authority account = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
+        int64_t revision;
+        result = load_registry(&account, NULL);
+        if (result == 0) result = argc == 3 ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
+                                            ae_catalogue_check_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid, &revision);
+    }
     if (argc == 3) {
-        if (result == 0) result = ae_catalogue_close(&authority.catalogue);
+        int closed = ae_catalogue_close(&authority.catalogue);
+        if (result == 0) result = closed;
         if (result != 0) fprintf(stderr, "Catalogue initialization failed: %d\n", result);
         return result == 0 ? 0 : 4;
     }

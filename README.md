@@ -10,6 +10,8 @@ unimplemented. There is no original Aetheri image, installer, desktop or working
 Aetheri application yet.
 The prototype's internal broker registration now binds the user service to its
 protected account and supervised runtime; app admission remains unfinished.
+The system catalogue now persists that test account's UID binding and checks it
+on startup, broker registration and use. General account management remains pending.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·

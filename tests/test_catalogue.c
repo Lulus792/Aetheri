@@ -325,6 +325,95 @@ static void recovery(const char *build, enum ae_catalogue_kind kind)
     }
 }
 
+static void accounts(const char *build, enum ae_catalogue_kind kind)
+{
+    struct fixture fixture = make_fixture(build);
+    struct ae_catalogue_identity expected = identity(kind);
+    uint8_t boot[AE_ID_BYTES], first[AE_ID_BYTES], second[AE_ID_BYTES], zero[AE_ID_BYTES] = {0};
+    id(boot, 3); id(first, 10); id(second, 11);
+    struct ae_catalogue *store = NULL;
+    CHECK(ae_catalogue_create(fixture.directory, &expected, boot, &store) == 0);
+    int64_t revision = 99;
+    CHECK(ae_catalogue_enroll_account(store, zero, 1000) == -EINVAL);
+    CHECK(ae_catalogue_enroll_account(store, first, UINT32_MAX) == -EINVAL);
+    CHECK(ae_catalogue_check_account(store, first, 1000, NULL) == -EINVAL);
+    if (kind == AE_CATALOGUE_USER) {
+        CHECK(ae_catalogue_enroll_account(store, first, 1000) == -EACCES);
+        CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == -EACCES && revision == 99);
+    } else {
+        CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == -ENOENT && revision == 99);
+        CHECK(ae_catalogue_enroll_account(store, first, 1000) == 0);
+        CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == 0 && revision == 1);
+        for (int n = 0; n < 8; ++n) CHECK(ae_catalogue_enroll_account(store, first, 1000) == 0);
+        CHECK(ae_catalogue_enroll_account(store, second, 1000) == -EEXIST);
+        CHECK(ae_catalogue_enroll_account(store, first, 1001) == -ESTALE);
+        revision = 99;
+        CHECK(ae_catalogue_check_account(store, first, 1001, &revision) == -ESTALE && revision == 99);
+        struct ae_catalogue_info info;
+        CHECK(ae_catalogue_get_info(store, &info) == 0 && info.revision == 2);
+        pid_t child = fork();
+        CHECK(child >= 0);
+        if (child == 0) {
+            CHECK(ae_catalogue_enroll_account(store, second, 1001) == -ECHILD);
+            CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == -ECHILD);
+            _exit(0);
+        }
+        int status;
+        CHECK(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
+        CHECK(ae_catalogue_close(&store) == 0);
+        edit(&fixture, "UPDATE scopes SET state='retired',revision=revision+1");
+        CHECK(ae_catalogue_open(fixture.directory, &expected, &store) == 0);
+        CHECK(ae_catalogue_enroll_account(store, first, 1000) == -ESTALE);
+        CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == -ESTALE && revision == 99);
+        CHECK(ae_catalogue_enroll_account(store, second, 1000) == 0);
+        CHECK(ae_catalogue_check_account(store, second, 1000, &revision) == 0 && revision == 1);
+        uint8_t high[AE_ID_BYTES]; id(high, 12);
+        CHECK(ae_catalogue_enroll_account(store, high, 4294967294U) == 0);
+        CHECK(ae_catalogue_check_account(store, high, 4294967294U, &revision) == 0 && revision == 1);
+        CHECK(ae_catalogue_close(&store) == 0);
+        CHECK(integer(&fixture, "SELECT count(*) FROM scopes WHERE state='retired' AND os_uid=1000 AND revision=2") == 1);
+        edit(&fixture, "UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_open(fixture.directory, &expected, &store) == 0);
+        CHECK(ae_catalogue_enroll_account(store, second, 1000) == 0); /* No revision needed for an exact retry. */
+        CHECK(ae_catalogue_enroll_account(store, boot, 1002) == -EOVERFLOW);
+    }
+    CHECK(ae_catalogue_close(&store) == 0);
+    cleanup(&fixture);
+    if (kind != AE_CATALOGUE_SYSTEM) return;
+    for (int fault = 1; fault <= 4; ++fault) {
+        fixture = make_fixture(build);
+        CHECK(ae_catalogue_create(fixture.directory, &expected, boot, &store) == 0);
+        CHECK(ae_catalogue_close(&store) == 0);
+        if (fault <= 2) {
+            CHECK(ae_catalogue_open(fixture.directory, &expected, &store) == 0);
+            commit_fault = fault;
+            CHECK(ae_catalogue_enroll_account(store, first, 1000) == -EIO);
+            commit_fault = 0;
+            CHECK(ae_catalogue_close(&store) == 0);
+        } else {
+            pid_t child = fork();
+            CHECK(child >= 0);
+            if (child == 0) {
+                CHECK(ae_catalogue_open(fixture.directory, &expected, &store) == 0);
+                commit_fault = fault;
+                ae_catalogue_enroll_account(store, first, 1000);
+                _exit(1);
+            }
+            int status;
+            CHECK(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == (fault == 3 ? 76 : 77));
+        }
+        CHECK(ae_catalogue_open(fixture.directory, &expected, &store) == 0);
+        struct ae_catalogue_info info;
+        CHECK(ae_catalogue_get_info(store, &info) == 0 && info.revision == (fault == 2 || fault == 4 ? 2 : 1));
+        CHECK(ae_catalogue_check_account(store, first, 1000, &revision) == (fault == 2 || fault == 4 ? 0 : -ENOENT));
+        CHECK(ae_catalogue_enroll_account(store, first, 1000) == 0);
+        CHECK(ae_catalogue_get_info(store, &info) == 0 && info.revision == 2);
+        CHECK(ae_catalogue_close(&store) == 0);
+        CHECK(integer(&fixture, "SELECT count(*) FROM scopes") == 1);
+        cleanup(&fixture);
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc == 6 && strcmp(argv[1], "open") == 0) {
@@ -340,6 +429,7 @@ int main(int argc, char **argv)
     for (int kind = AE_CATALOGUE_SYSTEM; kind <= AE_CATALOGUE_USER; ++kind) {
         if (strcmp(argv[1], "basic") == 0) basic(argv[2], (enum ae_catalogue_kind)kind);
         else if (strcmp(argv[1], "reject") == 0) reject(argv[2], (enum ae_catalogue_kind)kind);
+        else if (strcmp(argv[1], "accounts") == 0) accounts(argv[2], (enum ae_catalogue_kind)kind);
         else { CHECK(strcmp(argv[1], "recovery") == 0); recovery(argv[2], (enum ae_catalogue_kind)kind); }
     }
     puts("catalogue: both owner kinds passed");
