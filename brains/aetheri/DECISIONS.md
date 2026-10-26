@@ -435,3 +435,20 @@ flushes; matching content alone does not settle a previous failed flush.
 Caller-owned authorization, independent root/intent bindings and same-UID MAC
 writer exclusion are explicit prerequisites. Retain these gates when wiring the
 installed authority; a tested filesystem primitive does not replace them.
+
+## Journal-bound administrative fixture staging — 26 October 2026
+
+Use the existing v2 plans/operations/steps and staged/preparing metadata, through
+the single native catalogue writer. Do not add a parallel installer database or
+mark a stage as a completed installation. A fixed native AETHINT1 install projection
+must match the independently protected digest; boot/deadline apply to new acceptance,
+while exact accepted retries retain IDs and revalidate scope/UID/revision.
+
+Use root-provisioned preallocated P0 carrier infrastructure to exercise this
+integration before implementing general dynamic allocation/public installation.
+The StageSlotId is distinct from private-data lifetimes. AETHFIC1 binds the selected
+source/stage inode/birth/filesystem witnesses; SHA-256(configuration) commits to
+the executing step before payload writes. Content-identical candidates do not
+replace independently expected roots. Preserve uncertain stages and require repeat
+validation/flush. Keep the operation publish-pending and deny executable mappings
+for source/stage types; publication, activation and admission remain separate gates.

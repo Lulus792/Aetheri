@@ -25,9 +25,10 @@ bytes. Services must use bounded typed inputs and verified database projections.
 Do not hash JSON text, native C structures, filenames alone or freshly supplied
 client hashes. The C17 owner codec checks the fixed header; the C17 fixture decoder
 now validates canonical metadata bytes. The native SHA-256 verifier binds them to
-an independently expected ArtifactId and checks held-file content. Native intent
-encoding and the privileged importer/journal/publication integration are pending.
-The native payload stager below now implements the bounded filesystem copy portion.
+an independently expected ArtifactId and checks held-file content. The protected
+administrative P0 path now constructs a fixed native install intent, journals the
+operation and stages copied payloads. General preview/allocation, atomic store
+publication and app/run admission remain pending.
 
 ## Shared byte rules
 
@@ -210,8 +211,80 @@ root. A nonempty root blocks another fresh staging attempt. Resync verifies the
 entire read-only inventory and content and repeats every required flush before
 returning success, even if an earlier root flush failed. It does not adopt an
 unbound candidate, finish a journal or prove physical power-loss durability.
-Installed authority/registry/MAC/journal integration and atomic store publication
-remain next. Existing SQL/XML and canonical byte formats are unchanged.
+The administrative P0 integration below now supplies these gates for a trusted
+carrier fixture. General dynamic allocation, atomic store publication and recovery
+coordination remain next. Existing SQL/XML and canonical byte formats are unchanged.
+
+### Administrative P0 stage journal
+
+[authority/fixture](../src/authority/fixture.h) connects the stager to the actual
+enforcing, cap-zero system role. This is a fixed administrative fixture path, not
+a public installer or authenticated arbitrary package upload. Root provisioning
+copies the reviewed native development probe into an immutable source and creates
+one empty private staging slot as carrier infrastructure. It reads the development
+binary into one buffer for that copy/manifest; no untrusted client's hashes enroll code.
+The probe uses the carrier's selected shared technical libraries; an empty managed
+provider list does not make its ELF self-contained. Declared providers are currently
+rejected by this P0 native acceptance path until their admission is implemented.
+
+The source and slot live under the root-owned 0700 directory
+`/var/lib/aetheri-p0/fixtures/<StageSlotId>/`. `source/` and its children have
+aetheri_fixture_source_t; writable `staging/` has aetheri_staging_t. Both types
+deny executable mappings/execution to Aetheri processes. Apps cannot access the
+stage. This StageSlotId identifies preallocated carrier infrastructure; it is not
+the private-data StorageRef/DataEpoch/allocation-operation lifetime.
+
+The protected root-owned 0444 `registry/fixture.manifest` contains canonical
+AETHFIX1 bytes. `registry/fixture.conf` is an internal 328-byte AETHFIC1 record:
+
+```text
+magic[8]
+ID plan, operation, actor, request_key, scope, install, generation, slot, publisher, boot
+H artifact
+u64 scope_revision, expires_boottime_ns, accepted_unix_ms
+source_witness[36], staging_witness[36]
+H expected_intent
+```
+
+The P0 accepted_unix_ms is the root-provisioned administrative request stamp,
+not a measurement of the later SQLite COMMIT instant. Deadline enforcement uses
+the trusted current boot and CLOCK_BOOTTIME instead of that wall-clock stamp.
+
+Each witness is u64 filesystem type, eight opaque fstatfs ID bytes, u64 inode,
+u64 birth seconds and u32 birth nanoseconds. It excludes ephemeral mount IDs.
+Read-only fixture-observe obtains witnesses from newly provisioned objects;
+the root controller checks their inodes against its independent setup receipt,
+persists seal intent, publishes and flushes the exact configuration and retains it.
+Normal staging requires exact existing witnesses; it never enrolls them by merely
+observing candidates. This is not registered-volume or whole-filesystem clone
+authentication. The P0 config fixes target OS UID 1000 and requires UUIDv4 IDs.
+
+The [native catalogue API](../src/catalogue/store.h) constructs the existing
+AETHINT1 projection: kind install, no existing install/generation/data/grant/action,
+one exact scope revision read, and create effects for the future InstallId,
+GenerationId and StageSlotId. It compares its digest to the independent protected
+expected intent. One SQLite transaction accepts the plan/operation, preparing
+metadata and planned stage step. Current kernel/catalogue boot and deadline are
+checked for new acceptance; exact accepted replay retains the original IDs/intent
+across boot/deadline boundaries and rechecks active scope/UID/revision.
+
+Before payload IO, another transaction binds SHA-256(configuration) to the executing
+step. A planned step requires an empty slot; existing bound work is rechecked/
+resynced. Failures preserve data and can mark the step uncertain/operation blocked.
+After copy/hash, exact labels, root witnesses, non-executable mappings and flushes
+pass, the step becomes applied and the operation remains running/publish. Artifact
+store state stays staged, install preparing, generation staged and result/outcome
+unset. No lease, activation or completed installation is inferred from READY.
+
+The root controller exposes fixture-prepare, fixture-check and fixture-rebind-check
+only in the dedicated marked carrier. After a Release build with
+AETHERI_LINUX_IPC=ON and AETHERI_POLICY_PROBES=ON, then update-owned,
+fixture-prepare provisions/seals once; fixture-check stages or rechecks in separate
+real system units. The substitution probe binds a same-filesystem identical source
+copy inside only its unit namespace: native ESTALE and unchanged catalogue are
+required before explicitly retiring that verified temporary copy. No live fixture,
+private data, unknown tree or volume is cleaned up. Empty-bootstrap cleanup refuses
+this prepared installation and the existing private allocation.
 
 ## Private-root owner v1
 

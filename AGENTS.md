@@ -49,9 +49,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   and versions below 3.5.9. core/digest uses fixed EVP SHA-256 in a private context;
   fixture verification does not replace publisher trust, inventory or staged import.
   core/import now checks complete trusted-fixture inventories, copies/hashes private
-  staged payloads and repeats required flushes. It has native tests, not a deployed
-  authority/journal/publication path. Its caller must supply independent trusted
-  identity/intent, enforcing MAC/parent protection and writer exclusion.
+  staged payloads and repeats required flushes. A protected system-domain P0
+  administrative path now binds a preallocated carrier slot and native install
+  intent/journal before payload writes; it reopens after a guest boot. Read
+  spec/runtime.md's administrative stage journal. Publication, general dynamic
+  allocation, caller admission and complete recovery coordination remain pending.
+  The slot ID is not a private-data StorageRef. Never adopt a candidate root from
+  matching content/name; retain independent configuration/operation bindings.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
   core/root requires STATX_MNT_ID_UNIQUE and joins held/named mount/inode/filesystem
   observations. These are runtime facts, never durable volume/clone authentication.

@@ -694,3 +694,50 @@ not a finished production base or a performance/hardware acceptance claim.
 These are unconfined development tests on the enforcing carrier, not proof of
 the installed authority's MAC/operation-journal integration. No physical power-loss
 test, store publication, publisher enrollment or app admission was performed.
+
+## Protected P0 fixture operation journal — 26 October 2026
+
+- [SQLite transactions](https://www.sqlite.org/lang_transaction.html),
+  [autocommit state](https://www.sqlite.org/c3ref/get_autocommit.html) and
+  [synchronous EXTRA](https://www.sqlite.org/pragma.html#pragma_synchronous):
+  one owner-controlled IMMEDIATE transaction, explicit rollback handling and
+  preservation of uncertain commit outcomes. The existing DELETE/EXTRA settings
+  remain unchanged; filesystem publication is not part of SQLite atomicity.
+- Original [native catalogue API](../../src/catalogue/store.h),
+  [journal tests](../../tests/test_fixture_journal.c) and
+  [independent intent projection](../../tools/test_fixture_journal_native.py).
+  Before-commit IO failure rolls back; simulated acknowledgement failure after
+  real COMMIT leaves one accepted operation. Reopen/retry retains IDs; changed
+  operation/key/stamp or evidence, wrong scope UID, stale boot and deadline fail.
+  Direct READY without executing evidence is refused. READY retains unpublished/
+  preparing metadata and no outcome. Accepted replay after a new boot succeeds.
+- Original [system administrative path](../../src/authority/fixture.c) and
+  [configuration decoder tests](../../tests/test_fixture_config.c): protected
+  AETHFIC1 byte bounds/IDs/number ranges, independent source/stage object witnesses,
+  root-selected paths and SELinux labels. Actual preallocated infrastructure is
+  supplied by the [root controller](../../tools/p0_services.py); business rows
+  are written by C17, not by a Python installation implementation.
+- Actual native suites: 21/21 Debug ASan/UBSan and 21/21 Release (45.53 s Release).
+  Twenty-nine host guards pass (latest 0.231 s); the isolated validator passes
+  374 assertions using host SQLite 3.53.1, separate from native guest 3.51.2.
+  Actual enforcing system-role units with
+  empty capabilities/NoNewPrivileges stage the compiled ELF probe, then replay
+  without changing files/operation revision. No new dependency/package family.
+- Actual source/stage executable mmap probes fail. Filtered guest AVC records
+  identify aetheri_system_t -> aetheri_fixture_source_t / aetheri_staging_t,
+  denied map, file class, permissive=0. No mapped bytes are executed. A non-TTY
+  audit query initially waited on its input pipe; its exact read-only process was
+  verified/pinned and terminated. --input-logs then read the actual guest audit log.
+- After normal service checks/stop, graceful VM poweroff returned QEMU exit 0;
+  verified PID absence preceded offline boot of the same disk. Native fixture-check
+  reports cross_boot_reopen=true with the same protected configuration/root
+  witnesses and pending publication. Existing endpoint/denial and private allocation
+  checks pass after boot; neither private data nor the live installation is removed.
+- Actual fixture-rebind-check creates identical bytes under a distinct inode on
+  the same filesystem, binds it only inside a system unit's private namespace and
+  observes native ESTALE/administrative exit 4. Catalogue hash is unchanged. The
+  drained, enumerated temporary copy is retired; normal fixture-check passes again.
+
+This is trusted administrative fixture preparation, not general client consent,
+publisher signatures, dynamic allocation, whole-filesystem clone authentication,
+atomic store publication, app launch or complete crash/power-loss recovery.

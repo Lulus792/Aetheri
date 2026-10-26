@@ -86,8 +86,10 @@ broker enrollment now binds the actual user-service connection and invocation.
 The system catalogue also enrolls the fixed test account without UID/scope rebinding.
 Native fixture decoding and SHA-256 now validate canonical package descriptions
 against an independently expected ArtifactId and verify held-file content.
-The native payload stager now checks the complete inventory and copied bytes in
-private staging. Authority/journal integration and publication remain separate work.
+The native payload stager checks complete inventory and copied bytes. The protected
+system-domain administrative path now binds a trusted native fixture to its
+preallocated carrier slot and operation journal, including cross-boot reopening.
+General dynamic allocation, store publication and admission remain separate work.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete

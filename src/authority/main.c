@@ -4,6 +4,7 @@
 #include "authority/broker.h"
 #include "core/allocation.h"
 #include "core/fixture.h"
+#include "authority/fixture.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -464,9 +465,9 @@ int main(int argc, char **argv)
 {
     if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
         (argc == 3 && strcmp(argv[2], "--init") != 0 &&
-         !(strcmp(argv[1], "system") == 0 && strcmp(argv[2], "--enroll-account") == 0) &&
+         !(strcmp(argv[1], "system") == 0 && (strcmp(argv[2], "--enroll-account") == 0 || strcmp(argv[2], "--fixture-observe") == 0 || strcmp(argv[2], "--fixture-stage") == 0)) &&
          !(strcmp(argv[1], "user") == 0 && (strcmp(argv[2], "--storage-publish") == 0 || strcmp(argv[2], "--storage-verify") == 0)))) {
-        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account; user --storage-publish|--storage-verify\n", stderr); return 2;
+        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account|--fixture-observe|--fixture-stage; user --storage-publish|--storage-verify\n", stderr); return 2;
     }
     int initialize = argc == 3 && strcmp(argv[2], "--init") == 0;
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
@@ -484,9 +485,11 @@ int main(int argc, char **argv)
         struct authority account = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
         int64_t revision;
         result = load_registry(&account, NULL);
-        if (result == 0) result = argc == 3 ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
+        if (result == 0) result = argc == 3 && (initialize || strcmp(argv[2], "--enroll-account") == 0) ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
                                             ae_catalogue_check_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid, &revision);
     }
+    if (result == 0 && system && argc == 3 && strncmp(argv[2], "--fixture-", 10) == 0)
+        result = ae_authority_fixture(authority.catalogue, strcmp(argv[2], "--fixture-observe") == 0, authority.boot.bytes);
     if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(argv[2], "--storage-publish") == 0);
     if (argc == 3) {
         int closed = ae_catalogue_close(&authority.catalogue);

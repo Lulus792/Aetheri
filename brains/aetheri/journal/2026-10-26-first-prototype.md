@@ -643,3 +643,42 @@ Next: connect the stager to fixed protected fixture setup, independent operation
 root identity and the real system-domain journal/publication path. Preserve all
 existing allocation data and do not let empty-bootstrap cleanup retire it. Public
 API capabilities remain discovery-only; the full OS/apps objective remains active.
+
+### Protected system-domain fixture journal
+
+Used the C, database and security workflows. Added the fixed native AETHINT1
+install projection and atomic plan/operation/preparing metadata on the existing
+v2 owner connection. Exact retry retains IDs; executing evidence binds the protected
+configuration before payload effects. READY leaves running/publish plus staged/
+preparing metadata, never a completed/active installation.
+
+Added internal AETHFIC1, native object observation/sealed root provisioning and
+system --fixture-observe/--fixture-stage. The root controller preallocates trusted
+carrier infrastructure and expected bytes; native C handles actual operational
+rows and stage IO. Added source/stage MAC types, deny executable mapping/execution,
+and keep caps empty/NNP. The Release compiler flagged a potentially uninitialized
+empty-slot result; explicit initialization resolved the warning before deployment.
+Both complete native suites now pass 21/21, including lost COMMIT acknowledgements,
+scope/identity/deadline, accepted cross-boot replay and configuration bounds;
+Release takes 45.53 s. Host guards: 29/29, latest 0.231 s. Isolated validator:
+374 assertions on host SQLite 3.53.1; native guest SQLite remains 3.51.2.
+
+Actual native ELF copy/hash/label/flush/journal succeeds in enforcing system units;
+exact repeats retain step/operation revision and file objects. Filtered AVCs prove
+source/stage map denial. The first non-TTY ausearch waited on stdin; inspection
+confirmed its own anon_pipe_read, and only that pidfd-pinned read-only query was
+terminated. --input-logs returned actual audit evidence. All owned units stopped;
+graceful QEMU exit 0/PID absence preceded offline boot. Fixture check reports real
+cross_boot_reopen=true; regular endpoint/app-denial and private storage checks pass.
+
+An identical-content same-filesystem source copy is bound only inside a probe
+unit's namespace. Native ESTALE occurs before journal modification; the verified
+temporary clone is retired and the real fixture rechecks successfully. Existing
+private allocation data/configuration remain intact. Public SQL/XML and old vectors,
+SDK pins and dependency families are unchanged. General allocation/recovery and
+atomic publication/activation/admission remain next; the full daily-use OS goal
+is active and no original desktop/system image is claimed.
+
+27 October handoff: final reviewed state retains the real fixtures, with all
+owned service/probe units stopped. Next implement journaled atomic publication;
+do not restart from another slot or turn staged metadata into active code early.

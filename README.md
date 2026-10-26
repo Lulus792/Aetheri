@@ -15,8 +15,9 @@ on startup, broker registration and use. General account management remains pend
 Native storage references check expected ownership and held directory/mount identity.
 Immutable allocation records now preserve object bindings across a tested guest boot.
 Native SHA-256 verifies canonical fixture metadata and held-file content using
-OpenSSL 3.5 LTS. The native payload stager now checks inventory and copied content;
-the installed authority, recovery journal and publication still need integration.
+OpenSSL 3.5 LTS. The system's internal administrative path now stages a trusted
+native probe under a durable operation and reopens it after a guest boot.
+Store publication, activation and app launch remain unfinished.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
@@ -114,9 +115,9 @@ limits are in [runtime contracts](spec/runtime.md).
 | Directory | Contents |
 | --- | --- |
 | src/core | Ownership/allocation records, fixture metadata, bounded storage and SHA-256 verification |
-| src/catalogue | SQLite v2 creation/validation and startup-context transaction |
+| src/catalogue | SQLite v2 identity/runtime/account and fixture-operation transactions |
 | src/linux | Bus credentials and live process/unit/invocation checks; app/run admission remains pending |
-| src/authority | System/user endpoints, protected bootstrap identity and broker enrollment/lifetimes |
+| src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |
 | policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |

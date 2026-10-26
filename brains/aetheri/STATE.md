@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — native payload inventory, copy/hash and staged flush retry.
+27 October 2026 — system-domain fixture journal and cross-boot staged reopening.
 
 ## Confirmed
 
@@ -23,14 +23,35 @@ read-only while the root stays 0700. Errors preserve partial state. A separate
 recheck repeats every required file/directory flush after uncertain results.
 Native tests cover actual copies, corruption/IO faults, retained state, maximum
 file/byte/depth bounds and real same-inode file/directory binds/device rejection.
-These tests run unconfined in the enforcing carrier; the privileged mount probes
-use a private namespace. The installed system authority does not call the stager
-yet. Protected fixture identity/journal/MAC integration and publication remain
-next; no public API, app admission or full installation is claimed.
-Final native suites pass 19/19 Debug ASan/UBSan (47.59 s) and 19/19 Release
-(43.60 s). They include 42 ordinary staging fixtures plus private-namespace
-same-inode bind and listed-device cases. No package, policy, running service,
-protected allocation fixture or frozen SQL/XML/byte contract changed in this step.
+The core tests run unconfined; privileged mount probes use a private namespace.
+The protected system-domain administrative path now also calls the stager with
+NoNewPrivileges and empty capabilities. Root-provisioned carrier infrastructure
+supplies an immutable expected manifest/configuration and preallocated empty slot;
+this is not a production dynamic allocator or untrusted package enrollment.
+
+The native catalogue writes the fixed canonical P0 install intent, scope read,
+three effects, operation/step and preparing component/artifact/install/generation
+metadata atomically. It commits the configuration/object-witness binding before
+payload IO. Exact retry retains IDs/revisions; failed/uncertain work remains live.
+READY means an applied stage with operation running/publish, artifact staged,
+install preparing and generation staged. Nothing is published, active or completed.
+
+Actual native ELF stage/retry and cross-boot reopen pass. A same-filesystem copied
+source with identical bytes fails native ESTALE without changing the catalogue;
+its isolated probe is retired while the real source/stage remain. Enforcing AVCs
+confirm executable-map denial for both source and stage types, including the
+system role. Existing endpoint/app denial checks and private allocation reopening
+pass after the boot. Owned services/probes are stopped; both tracked fixtures remain.
+
+Native suites pass 21/21 Debug ASan/UBSan and 21/21 Release (45.53 s for Release),
+including journal lost-commit/identity/deadline cases and configuration bounds.
+Twenty-nine host guards pass (latest 0.231 s); the isolated host validator passes
+374 assertions on SQLite 3.53.1. Native guest SQLite remains pinned at 3.51.2.
+SQL/XML and frozen byte contracts and SDK
+pins are unchanged. New internal AETHFIC1 configuration, policy types and owned
+administrative binaries are documented in [runtime contracts](../../spec/runtime.md).
+Public methods/capabilities remain discovery-only. Store publication, activation,
+general recovery coordination and app/run admission remain next.
 
 [Versioned contracts](../../spec/README.md): complete common/system/user v2 SQL,
 five new table designs, unchanged v1 references and two additive XML interfaces
@@ -319,8 +340,8 @@ No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: native fixture enrollment and app/run principal mapping, protected read refs,
-fixture import/launcher, target-exec/recovery evidence and the remaining P0 policy.
+Next: atomic fixture store publication and activation/admission, app/run principal
+mapping, protected read refs, launcher/target-exec and remaining recovery/policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.
 

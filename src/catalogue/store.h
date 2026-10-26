@@ -60,6 +60,54 @@ int ae_catalogue_enroll_account(struct ae_catalogue *catalogue,
 int ae_catalogue_check_account(struct ae_catalogue *catalogue,
                                const uint8_t account[AE_ID_BYTES], uint32_t os_uid,
                                int64_t *revision);
+
+/* Protected administrative P0 fixture request, not a client install API. The
+ * source and empty staging slot are preallocated carrier infrastructure. Caller
+ * independently authorizes publisher/artifact, scope/UID and every fresh ID;
+ * IDs are never inferred from candidate files or regenerated after uncertainty.
+ * The fixed install intent includes the scope read and install/generation/slot
+ * effects in canonical AETHINT1 order. Existing SQL/XML contracts are unchanged.
+ */
+struct ae_fixture_request {
+    uint8_t plan[16], operation[16], actor[16], request_key[16], scope[16];
+    uint8_t install[16], generation[16], slot[16], publisher[16], boot[16];
+    uint8_t artifact[32], expected_intent[32];
+    int64_t scope_revision, expires_boottime_ns, accepted_unix_ms;
+    uint32_t os_uid;
+};
+enum ae_fixture_step { AE_FIXTURE_PLANNED = 0, AE_FIXTURE_EXECUTING = 1,
+                       AE_FIXTURE_READY = 2, AE_FIXTURE_UNCERTAIN = 3 };
+struct ae_fixture_progress {
+    enum ae_fixture_step step;
+    int evidence_present;
+    uint8_t evidence[32], intent[32];
+    int64_t revision;
+};
+/* Atomic intent/operation/preparing metadata acceptance before payload effects.
+ * Exact replay returns the same operation/progress without revision advancement;
+ * changed IDs/actor/key/intent or conflicting slot ownership are rejected. A new
+ * request requires the current catalogue boot and unexpired CLOCK_BOOTTIME
+ * deadline. Caller supplies current_boot from the trusted kernel context, never
+ * from the request. Accepted replay can cross a boot/deadline with scope checks.
+ * Outputs stay unchanged on any error, including lost COMMIT acknowledgement.
+ */
+int ae_catalogue_fixture_accept(struct ae_catalogue *catalogue,
+                                const struct ae_fixture_request *request,
+                                const uint8_t *manifest, size_t size,
+                                const uint8_t current_boot[16],
+                                struct ae_fixture_progress *output);
+/* Persist executing + immutable evidence binding before IO, uncertain on failed
+ * IO, or applied stage/publish-pending only after full staged verification/flush.
+ * evidence is the independently validated protected fixture configuration hash,
+ * binding its source/staging object witnesses. It may never be replaced. READY
+ * does not complete the operation, publish/activate a generation or admit a run.
+ * This API does not perform or prove the external filesystem/policy work itself.
+ */
+int ae_catalogue_fixture_transition(struct ae_catalogue *catalogue,
+                                    const struct ae_fixture_request *request,
+                                    const uint8_t *manifest, size_t size,
+                                    enum ae_fixture_step step, const uint8_t evidence[32],
+                                    struct ae_fixture_progress *output);
 /* Never carry SQLite connections across fork. These APIs reject a fork child;
  * callers must exec/_exit without using the inherited connection.
  */
