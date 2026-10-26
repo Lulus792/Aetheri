@@ -3,8 +3,8 @@
 26 October 2026. Byte formats below are implemented by the development reference
 [runtime_contracts.py](../tools/runtime_contracts.py) and checked against
 [frozen vectors](vectors/runtime-v1.json). They add no SQL tables or D-Bus methods.
-The native C17 owner codec and bounded Linux file reader are now implemented and
-tested in the guest. Authority/credential mapping, volume registration, app policy,
+The native C17 owner codec, bounded Linux file reader and bus-credential capture
+are implemented and tested in the guest. App/run mapping, volume registration, app policy,
 launch, grants and operation recovery remain integration work.
 
 P0 handles trusted synthetic fixtures only. This is not a general package format,
@@ -292,6 +292,46 @@ Three native tests pass in Debug with ASan/UBSan and in Release. They exercise t
 fixed owner vector, output/buffer bounds, actual reads, UID/mode mismatch, symlink,
 FIFO, directory, hardlink, oversized file and mount containment. This is kernel/
 codec evidence; it does not establish the future Aetheri SELinux app policy.
+
+## Native bus-credential capture
+
+[peer.h](../src/linux/peer.h) captures the unique sender, bus incarnation,
+bus-authenticated connection UID/PID/SELinux label and an owned CLOEXEC ProcessFD
+from a received method call. It requires all four credential fields, omits
+SD_BUS_CREDS_AUGMENT and rejects augmented provenance. Missing ProcessFD does not
+fall back to pidfd_open of a later numeric PID. Failed capture preserves the
+output. A successful capture must be cleared; it does not stop/signal the sender.
+The authority must supply its trusted local bus connection. This helper does not
+authenticate an arbitrary bus address/server supplied by an app.
+
+The held process descriptor supports zero-time exit observation. This pin identifies
+the original connection process, not an executable, a new request's worker or an
+Aetheri run. A label captured when the connection opened is not a proof of its
+current domain. Supervisor invocation/cgroup, current label, registry, policy,
+admission and connection-lifetime invalidation remain mandatory caller work.
+No same-UID authorization shortcut, public lifecycle capability or resident
+credential-monitor process is introduced.
+
+Enable the optional Linux integration with AETHERI_LINUX_IPC=ON. It links the
+selected dynamic libsystemd; pkg-config checks API floor 259, while vm-inputs.json
+records the reviewed carrier package release. Run its test in the test account's
+active user-bus session, for example:
+
+```text
+cmake -S /home/aetheri/source -B /home/aetheri/build/debug -DAETHERI_LINUX_IPC=ON
+cmake --build /home/aetheri/build/debug --parallel 2
+XDG_RUNTIME_DIR=/run/user/1000 ctest --test-dir /home/aetheri/build/debug --output-on-failure
+```
+
+The new test uses a temporary unique-name object on the existing user bus, with
+separate server/client processes and no installed bus name or policy change.
+It checks the real sender against the known child UID/PID/label and bus ID,
+128 repeated captures without FD growth, FD close/exit behavior and invalid
+message/output preservation. Test-only linker wrapping supplies full-but-augmented
+and incomplete credentials for rejection cases; the positive case uses real
+sd-bus queries. These processes run outside the app boundary. Four native tests
+pass in Debug ASan/UBSan and Release after an offline reboot; this is not A3
+confinement or complete principal authorization.
 
 Primary references inspected 26 October 2026:
 

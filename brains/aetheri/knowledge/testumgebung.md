@@ -295,3 +295,20 @@ Additional primary sources inspected:
 - [QEMU character sockets](https://github.com/qemu/qemu/blob/v11.1.0/qapi/char.json):
   control/console primitives. The Windows pipe backend does not provide the
   reconnect semantics needed here; the actual AF_UNIX backend was tested instead.
+
+## SDK and native peer update — 26 October 2026
+
+The next reviewed SDK transaction installed systemd-devel 259.10-1,
+sqlite-devel 3.51.2-2 and libselinux-devel 3.11-2 with signature checks enabled.
+It also updated the corresponding runtime families: eight new/twelve upgraded
+packages, about 16 MiB inbound and 7 MiB extra. This is a carrier dependency
+transaction, not a new production library-family decision. Exact direct pins
+are in vm-inputs.json. No Aetheri app policy was loaded.
+
+After graceful shutdown/offline boot, all nine carrier prerequisites still pass.
+systemd is 259.10-1 and running, libselinux 3.11-2, SQLite 3.51.2-2, SELinux
+Enforcing. The native user-bus peer case now joins the three core tests: four
+Debug ASan/UBSan tests pass in 0.26 s and four Release tests in 0.05 s, exit 0.
+The [runtime guide](../../../spec/runtime.md) explains the real sender/exit/FD
+and negative provenance cases. They do not establish Aetheri run authorization
+or same-UID app isolation; those integration gates remain open.

@@ -22,6 +22,7 @@ SELinux policy, document transport or process supervision.
 | [p0-carrier.ks.in](p0-carrier.ks.in), [inspect_carrier.py](../tools/inspect_carrier.py) | Scoped virtual-disk installation and observed Linux carrier prerequisites |
 | [sync_guest.py](../tools/sync_guest.py), [test_vm_tools.py](../tools/test_vm_tools.py) | Explicit source copying and host orchestration regressions |
 | [CMakeLists.txt](../CMakeLists.txt), [core](../src/core/storage.h), [native tests](../tests/test_core.c) | C17 ownership/storage primitives; build and scope in runtime.md |
+| [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
 Old management argument lists are unchanged. New interfaces require explicit

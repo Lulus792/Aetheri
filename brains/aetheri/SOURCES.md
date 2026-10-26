@@ -343,3 +343,22 @@ tests pass in Debug ASan/UBSan and Release; catalogue/format tests also pass on
 Python 3.14.3/SQLite 3.51.2. Exact versions and limitations are in
 [test environment](knowledge/testumgebung.md). Aetheri authority/app-domain,
 recovery, desktop, performance and physical hardware acceptance remain pending.
+
+## Native connection credentials — 26 October 2026
+
+- [systemd v259 public header](https://github.com/systemd/systemd/blob/v259/src/systemd/sd-bus.h),
+  [credential implementation](https://github.com/systemd/systemd/blob/v259/src/libsystemd/sd-bus/bus-creds.c)
+  and [bus control](https://github.com/systemd/systemd/blob/v259/src/libsystemd/sd-bus/bus-control.c):
+  reviewed ProcessFD ownership, augmented masks and bus-supplied credential handling.
+  These are API references, not an assertion that the Fedora build is an identical tag.
+- Actual Fedora package metadata/transaction: systemd-devel 259.10-1
+  (LGPL-2.1-or-later AND MIT), sqlite-devel 3.51.2-2 (blessing) and
+  libselinux-devel 3.11-2 (LicenseRef-Fedora-Public-Domain). Signature verification
+  enabled, eight installed/twelve upgraded, about 16 MiB downloaded/7 MiB extra.
+- [Peer integration test](../../tests/test_peer.c): real user-bus sender pin,
+  matching known child credentials, exit, output preservation and balanced FDs.
+  Negative provenance cases use explicit test-only wrapping. Four native tests
+  pass in both instrumented Debug and Release after offline reboot.
+
+Both bus roles still require actual Aetheri domain/registry/invocation authorization.
+No service or app policy was installed through this library/test addition.

@@ -10,7 +10,10 @@
     "libasan-16.2.1-2.fc44.x86_64",
     "libubsan-16.2.1-2.fc44.x86_64",
     "glibc-devel-2.43-9.fc44.x86_64",
-    "kernel-headers-7.2.4-200.fc44.x86_64"
+    "kernel-headers-7.2.4-200.fc44.x86_64",
+    "systemd-devel-259.10-1.fc44.x86_64",
+    "sqlite-devel-3.51.2-2.fc44.x86_64",
+    "libselinux-devel-3.11-2.fc44.x86_64"
   ],
   "inputs": [
     {

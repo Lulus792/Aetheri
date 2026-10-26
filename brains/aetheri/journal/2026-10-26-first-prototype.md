@@ -176,3 +176,33 @@ Aetheri D-Bus contracts and is not treated as application security acceptance.
 Next: actual authority/broker/launcher/probe, protected registry and peer mapping,
 Aetheri app policy and full P0 lifecycle/race/recovery gates, then desktop/apps.
 The full user goal remains active; this carrier/core milestone does not complete it.
+
+## Native bus credential foundation
+
+Published carrier/core milestone 8fdaf5c to the public repository; remote main
+matched and working tree was clean before this next slice.
+
+Reviewed the selected sd-bus API at v259 and actual Fedora metadata before adding
+systemd-devel 259.10-1, sqlite-devel 3.51.2-2 and libselinux-devel 3.11-2.
+The signature-checked transaction installed eight/upgraded twelve packages, about
+16 MiB inbound/7 MiB extra. The explicit version pins are recorded in vm-inputs.
+systemd/libselinux/SQLite runtime packages updated accordingly. No Windows or
+other-project changes, no new Aetheri daemon or policy activation.
+
+Added optional C17 Linux peer library: unique sender/bus ID, authenticated UID,
+PID, SELinux connection label and owned CLOEXEC ProcessFD. Required fields and
+augmentation masks are checked with no numeric-PID fallback. Liveness observes
+the held process; current-domain, app/run and supervisor authorization remain open.
+
+Real user-bus test uses separate known client/server processes. It checks actual
+credentials, 128 captures without FD growth, invalid message/output preservation,
+exit/reaped-process detection and owned FD close. Negative test-only linker
+wrapping supplies full-but-augmented or incomplete credentials, both rejected.
+No fake positive capture or Aetheri app-confinement claim.
+
+Graceful carrier shutdown and offline boot succeeded after the SDK update.
+Four Debug ASan/UBSan tests pass in 0.26 s, four Release tests in 0.05 s, exit 0.
+All nine carrier prerequisites pass again; SELinux remains Enforcing and systemd
+running. Full P0 and the daily-use OS/apps goal remain unfinished and active.
+The unchanged 23 catalogue and 14 format tests pass again after the SQLite package
+update in 42.982 s and 0.016 s respectively, exit 0.

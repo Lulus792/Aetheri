@@ -44,6 +44,9 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   QMP must stay host-local AF_UNIX under the protected VM directory: guest slirp
   networking can reach a host loopback TCP listener through 10.0.2.2. Never restore
   unauthenticated TCP QMP. Use run_vm.py status/live process evidence before retries.
+- Native src/linux/peer captures bus-authenticated connection credentials and a
+  process pin. This is not complete app/run authorization or current-domain proof.
+  Keep required ProcessFD/provenance checks; do not replace them with UID/PID paths.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
