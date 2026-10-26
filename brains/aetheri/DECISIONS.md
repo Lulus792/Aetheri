@@ -298,3 +298,23 @@ uncertain starts, remaining processes/jobs, altered inputs or unexplained entrie
 Administrative update/cleanup interruption requires inspection; do not present
 this tool as the production recovery/removal engine. No dependency release or
 library family was changed for this service implementation.
+
+## Process-context observation — 26 October 2026
+
+Implemented a separate C17 Linux observer joining the existing bus ProcessFD to
+required kernel credentials/cgroup ID, current SELinux label and trusted systemd
+service/invocation metadata. Exact cgroup path/inode and repeated live observations
+must agree. No caller-PID reopening or missing-feature fallback. The self-pin API
+is limited to this calling process; System1 uses it for its own supervised context.
+
+This implements evidence collection/expected-context matching within the accepted
+principal contract. It does not register a broker/app or enable lifecycle methods.
+Protected launch/account/catalogue binding and admission remain next. The backend
+currently requires host PID/proc/cgroup-v2 views and a system-managed .service;
+arbitrary user units, scopes and delegated descendants are not generalized.
+
+Actual process tests deliberately run outside the app sandbox, with empty caps
+and NoNewPrivileges. Separately, the confined system authority's self-check passes
+after narrow read/status/cgroup policy additions. No ptrace, cgroup writes, new
+capability, dependency family or package upgrade was adopted. Keep that distinction
+when assessing later full app/run and target-exec acceptance.

@@ -79,8 +79,10 @@ removal on a dedicated Fedora/QEMU development carrier.
 The [v2 SQL/XML and migration harness](../../spec/README.md) implement the contract
 portion. An installed headless development guest and tested C17 ownership/storage
 primitives now exist. System/user service roles also expose protocol discovery
-under dedicated enforcing domains. App/run authorization, launch and transport
-remain next.
+under dedicated enforcing domains. A native observer now joins held process
+references to current credentials, service invocation and cgroup identity; the
+system endpoint verifies its own supervised context. App/run registration and
+admission, launch and transport remain next.
 
 Original Aetheri code/documentation: MIT. External components retain their conditions.
 

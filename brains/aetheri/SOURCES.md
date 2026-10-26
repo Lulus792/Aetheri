@@ -445,3 +445,36 @@ initially requested an unsupported systemctl JSON option; the final drain check
 uses the actual typed systemd ListJobs reply. Kernel proc attr/current observations
 include a terminating NUL, handled explicitly by the controller's comparison.
 Raw receipts/logs stay ignored; published notes omit host-private paths and IDs.
+
+## Process and service invocation evidence — 26 October 2026
+
+- [systemd manager API](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html):
+  GetUnitByPIDFD returns object/name/invocation; ControlGroup belongs to Service.
+  Latest manual is 262, while actual calls were verified on installed 259.10.
+- [pidfd login observations](https://www.freedesktop.org/software/systemd/man/latest/sd_pid_get_unit.html)
+  and [v259 implementation](https://github.com/systemd/systemd/blob/v259/src/libsystemd/sd-login/sd-login.c):
+  descriptor-based cgroup observations and post-read process verification. The
+  Aetheri observer also repeats/checks its own kernel/manager context.
+- [Linux proc attributes](https://man7.org/linux/man-pages/man5/proc_pid_attr.5.html),
+  [v6.19 proc implementation](https://github.com/torvalds/linux/blob/v6.19/fs/proc/base.c)
+  and [SELinux hooks](https://github.com/torvalds/linux/blob/v6.19/security/selinux/hooks.c):
+  current process attributes and access controls are distinct from connection labels.
+- [v6.19 cgroup identity](https://github.com/torvalds/linux/blob/v6.19/include/linux/cgroup.h):
+  kernel cgroup identity uses its kernfs node ID. Actual PIDFD_GET_INFO cgroup IDs
+  agree with opened cgroup-v2 directory inodes in this carrier; injected disagreement
+  is rejected. No claim of identical behavior on untested kernels/filesystem views.
+- Installed glibc 2.43 sys/pidfd.h and kernel 7.2.4 UAPI headers were read directly.
+  Their pidfd_info/mask/ioctl definitions delimit the actual ABI tested against
+  running kernel 6.19.10. Including Linux pidfd.h alongside libc fcntl.h caused
+  structure redefinition; the implementation uses glibc's provided wrapper instead.
+  The attempted PIDFD_GET_INFO manual and remote glibc-tag URLs were unavailable;
+  pidfs.c retrieval was rate-limited. No claim depends on those missing pages.
+- Executed [observer](../../src/linux/process.c), [native test](../../tests/test_process.c)
+  and updated [authority](../../src/authority/main.c): kernel/manager positives,
+  seven stale expected fields, actual same-name restart, departed sender, repeated
+  FD balance and test-only missing/changed/unsupported observations. The real
+  confined System1 also passes its self-context check without added capabilities.
+
+Initial USER_AVC system/status and cgroup filesystem/getattr denials were resolved
+with read-side permissions only. Full principal registration, app-domain peer
+observations, cross-run FD/ptrace enforcement and target-exec proof remain open.

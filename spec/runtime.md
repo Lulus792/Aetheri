@@ -164,7 +164,8 @@ to a new installation/data epoch. No fallback interprets unknown versions as v1.
 
 ## Process and principal mapping: Linux implementation contract
 
-All names below are implementation responsibilities, not running services.
+These roles define admission responsibilities. Protocol endpoints now execute;
+the complete lifecycle and broker/app registration remain unimplemented.
 
 | Role | Identity and authority |
 | --- | --- |
@@ -548,3 +549,83 @@ controller is a short-lived development tool, not another resident service.
 Next remain actual broker registration/principal mapping, protected volume/read
 refs, fixture import, launch supervision/target-exec, access transport and recovery.
 No app can yet be launched or removed through these public endpoints.
+
+## Live process and invocation proof
+
+[process.h](../src/linux/process.h) adds a C17 observer for the existing
+bus-authenticated process pin. It neither accepts a caller-selected executable nor
+opens a new process descriptor from the caller's numeric PID. A separate self API
+pins only the calling process, so an authority can corroborate its own context.
+It must never replace a missing bus-sourced caller ProcessFD.
+
+Each observation requires all of the following:
+
+- PIDFD_GET_INFO supplies PID, credentials and cgroup ID, with its returned mask
+  checked. PID and thread-group leader must match the captured connection. Real,
+  effective, saved and filesystem UIDs must still equal its connection UID.
+- Current SELinux attributes, read under the held live reference, match the
+  connection label. Current attributes are separate observations, not relabeled
+  bus-authenticated credentials.
+- The trusted host system bus resolves GetUnitByPIDFD to an actual system service
+  and nonempty invocation ID. Unit identity, active state and InvocationID agree;
+  ControlGroup comes from the Service interface, not the generic Unit interface.
+- The pidfd-based cgroup path agrees with that service's path. The opened directory
+  must be on cgroup v2; openat2 rejects symlinks, escaping and nested mount crossings.
+  Its inode must agree with the kernel's cgroup ID.
+
+The observer repeats the complete context and checks liveness before returning.
+Mismatch, unsupported features or missing evidence fail closed and preserve the
+output. Verify compares boot, UID, label, unit, invocation, cgroup path and ID with
+a trusted expected record. That record must come from supervision/registration,
+never an app's claimed tuple. The snapshot is not a lock against future changes,
+an exec observation, registry enrollment or a catalogue admission fence. Policy
+must prevent untrusted credential/domain/cgroup changes and cross-run FD/ptrace
+attacks. Revalidate at admission; do not cache this as permanent authority.
+
+This first backend requires a system-managed .service with exact cgroup membership,
+the host PID namespace and trusted host proc/cgroup/system-bus views. It does not
+generalize a user@ parent, a .scope, a child delegated cgroup or an arbitrary
+container into an Aetheri app identity. The selected carrier supplies the required
+glibc sys/pidfd.h ABI and kernel ioctl fields. Unsupported SDK/runtime combinations
+must fail, without a weaker numeric-PID fallback. No library family or installed
+release changed for this implementation.
+
+The system endpoint now corroborates its own active context and compares the
+observed boot/invocation with its actual boot and systemd-provided invocation.
+Missing evidence returns NeedsRecovery. The user endpoint does not gain raw
+system-manager access. Narrow root-domain policy additions allow read-side manager
+messaging/status and cgroup directory/filesystem observations; no tracing, cgroup
+writes or Linux capabilities were added. Actual enforcing USER_AVC and filesystem
+getattr denials identified the missing status/fstatfs permissions before correction.
+
+The optional linux.process CTest requires AETHERI_LINUX_IPC and
+AETHERI_PRIVILEGED_TESTS. Before requesting any system unit it verifies the fixed
+carrier product/marker, UEFI, enforcing mode and UID 1000. It starts a unique,
+bounded transient test service through the carrier's existing sudo route. The
+fixture uses the developer's unconfined context, empty capability bound and
+NoNewPrivileges. A standard env executable supplies the entry into that context
+before executing the home-directory test binary; it is a development fixture,
+not the trusted Aetheri launcher or target-exec proof. No blanket permission for
+init_t to execute user-home files was added. Completed fixtures use --collect;
+failure diagnostics remain in CTest/journal and unknown/live state is not an
+instruction to force-kill or redispatch.
+
+Real bus calls exercise the kernel/systemd positive path, seven wrong expected
+bindings, stale PID/label, unchanged error output and 32 repeated peer observations
+without FD growth. Eight repeated self observations also balance descriptors.
+After actual termination and a second start using the same unit name, a fresh
+invocation is observed and the old expected context is rejected. Test-only ioctl
+wrapping supplies missing credential-mask, unsupported ioctl, wrong-cgroup and
+mid-observation credential changes; positive evidence comes from the real kernel.
+
+Native full suites pass 9/9 in Debug ASan/UBSan and Release (32.56/27.86 s during
+overlapping policy work). Final focused process checks pass again (0.72/0.60 s).
+The updated enforcing endpoint discovery, existing app denials and actual restart
+checks also pass. A 5.030 s idle sample records one task each, no reported
+CPU/context-switch growth, PSS 2184/2267 KiB and MemoryCurrent 1630208/1658880 bytes
+(system/user). This remains a short observation, not a full performance budget.
+Owned services were stopped afterward; prototype data/policy stay in the guest.
+
+Next: connect this evidence to protected broker/app/run registration and current
+catalogue fences, then fixture import and reserve/ready/dispatch with target-exec
+observation. No lifecycle capability is enabled by this observer alone.

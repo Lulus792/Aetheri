@@ -1,5 +1,6 @@
 #include "catalogue/store.h"
 #include "linux/peer.h"
+#include "linux/process.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -180,6 +181,16 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
         memcmp(info.boot_id, authority->boot.bytes, AE_ID_BYTES) != 0 ||
         memcmp(info.runtime_incarnation, authority->runtime.bytes, AE_ID_BYTES) != 0)
         return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Authority context is unavailable");
+    if (authority->identity.kind == AE_CATALOGUE_SYSTEM) {
+        struct ae_process_context supervised;
+        sd_id128_t invocation;
+        result = ae_process_observe_self(sd_bus_message_get_bus(message), &supervised);
+        if (result != 0 || sd_id128_get_invocation(&invocation) != 0 ||
+            supervised.uid != authority->uid || !context_is(supervised.label, "aetheri_system_t") ||
+            memcmp(invocation.bytes, supervised.invocation, sizeof supervised.invocation) != 0 ||
+            memcmp(authority->boot.bytes, supervised.boot, sizeof supervised.boot) != 0)
+            return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Supervised authority context is unavailable");
+    }
     sd_bus_message *reply = NULL;
     result = sd_bus_message_new_method_return(message, &reply);
     if (result >= 0) result = sd_bus_message_append(reply, "uu", 1U, 1U);

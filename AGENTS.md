@@ -49,6 +49,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - Native src/linux/peer captures bus-authenticated connection credentials and a
   process pin. This is not complete app/run authorization or current-domain proof.
   Keep required ProcessFD/provenance checks; do not replace them with UID/PID paths.
+- Native src/linux/process joins that held ProcessFD to current UID/label, an
+  active system service invocation and cgroup-v2 identity. Read the process proof
+  in spec/runtime.md. Trusted host system bus/proc/cgroup views are prerequisites.
+  Its self-pin API is only for the calling process, never a substitute for a
+  missing caller ProcessFD. Snapshots are not full app/run admission or target-exec
+  evidence. The root endpoint checks its own supervised context on discovery;
+  complete broker/app registration, mutation fences and policy still remain.
 - Native src/catalogue now creates/validates v2 and commits startup context using
   build-embedded canonical SQL. Read spec/README.md#native-catalogue-boundary.
   No production registry/MAC/authority or native v1 migration is implied. Keep

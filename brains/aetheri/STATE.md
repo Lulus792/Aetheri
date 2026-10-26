@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — confined system/user protocol endpoints now execute in the carrier.
+26 October 2026 — live process/invocation checks now join the confined endpoints.
 
 ## Confirmed
 
@@ -62,6 +62,13 @@ bus credentials and an owned process pin without /proc augmentation or numeric-P
 fallback. It rejects missing/augmented provenance and preserves outputs on error.
 This is connection identity, not app/run authorization or current-domain proof.
 
+[Process observer](../../src/linux/process.h): the held process reference now
+joins current kernel UID/label, actual system service/invocation and cgroup-v2
+path/inode identity. Required PIDFD_GET_INFO fields must exist; observations repeat
+under liveness checks and stale contexts are rejected. The system endpoint uses
+its self-only pin to corroborate its own invocation/boot on discovery. This is
+not full broker/app registration, catalogue admission or target-exec evidence.
+
 [Temporary SELinux fixture](../../policy/p0-fixture.cil): tested one MCS-constrained
 app domain with two same-UID/disjoint-category data roots, separate synthetic
 broker/document types and narrow supervisor setup permissions. The C17 probe and
@@ -82,20 +89,31 @@ NotAuthorized. See [service boundary](../../spec/runtime.md#confined-protocol-se
 Python 3.12.14 / SQLite 3.53.1 on the development host:
 The catalogue/API suite now has 26 named tests, including literal-preserving
 canonicalization and real schema-drift rejection, with unchanged frozen v1 files.
-All pass again on the host in 29.508 s, exit 0.
+All pass again on the host in 29.069 s, exit 0.
 14 runtime-format tests passed, exit 0, 0.023 seconds.
 7 download-cache tests passed, exit 0, 0.085 seconds. These format/cache sources
 are unchanged. The host orchestration/cleanup guard suite now has 17 passing tests
 (0.198 s), including pending dispatch, remaining process/job and wrong-owner PID.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Eight tests now pass in Debug
-with ASan/UBSan (20.25 s) and Release (19.86 s), both exit 0 in the offline guest.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Nine tests pass in Debug
+with ASan/UBSan (32.56 s) and Release (27.86 s), both exit 0 in the offline guest.
+These full runs overlapped policy compilation and are not latency benchmarks.
+After the final guard/string/self-pin adjustments, the process case passes again
+in Debug (0.72 s) and Release (0.60 s).
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
 bind mount is readable by baseline openat but rejected by the core with EXDEV;
 the mount probe runs only in its verified private namespace. No leak/UB report.
 GCC reports baseline x86-64 / generic tuning, without -march=native.
+
+The process case uses actual bus credentials from a separately supervised UID-1000
+test service. Seven mismatched context fields, exited senders and a real same-name
+service restart reject stale identity. Test-only ioctl faults cover missing fields,
+unsupported ioctl, wrong cgroup ID and credentials changing during observation;
+failed outputs stay untouched. Repeated peer/self observations balance FDs.
+These target processes are deliberately unconfined development fixtures; separately,
+the actual enforcing system authority passes its new self-check with empty caps.
 
 Guest Python 3.14.3 / SQLite 3.51.2: updated 26 catalogue/API tests pass in 47.238 s
 and the prior unchanged 14 runtime-format tests in 0.016 s, exit 0.
@@ -161,9 +179,9 @@ changes runtime/events and advances revision. An unexplained file blocks cleanup
 and survives; the inspected empty bootstrap, bus files and module were then removed
 and recreated with fresh durable identities. This is not app removal acceptance.
 
-A 5.023 s idle observation of Release endpoints recorded one task each, zero
-reported CPU/context-switch deltas, PSS 2184/2147 KiB and cgroup MemoryCurrent
-1634304/1650688 bytes (system/user). These are a short carrier sample, not a
+A later 5.030 s idle observation after the self-check integration recorded one task
+each, zero reported CPU/context-switch deltas, PSS 2184/2267 KiB and cgroup
+MemoryCurrent 1630208/1658880 bytes (system/user). These are a short carrier sample, not a
 full-system budget or precise wakeup counter. Full startup/latency/workload evidence
 remains pending. Owned units were explicitly stopped after the sample; the
 prototype registry/catalogues, policy and bus files remain for further work.

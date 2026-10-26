@@ -337,3 +337,50 @@ physical disks remain untouched; logs/receipts stay under ignored local state.
 
 The unchanged contract/frozen-reference suite was rerun on host Python 3.12.14 /
 SQLite 3.53.1: 26/26 in 29.508 s, exit 0.
+
+## Live process and invocation context
+
+Added src/linux/process C17 observations from a held bus ProcessFD: required kernel
+PID/credential/cgroup fields, current SELinux label, actual systemd .service
+identity/active invocation, exact cgroup-v2 path/inode and repeated liveness/context.
+Error outputs remain unchanged. Expected records belong to trusted supervision;
+this does not register a broker/app or authorize any lifecycle operation.
+
+The root authority now verifies its own supervised invocation/boot on discovery.
+Its explicit self pin cannot replace a caller ProcessFD. Actual enforcing checks
+required root-domain manager status and cgroup directory/filesystem reads. No
+capability, tracing, cgroup write, user-manager access or permissive mode added.
+Existing app denials/discovery and actual service restarts still pass. Units were
+stopped after the final check; the dedicated bootstrap remains in the guest.
+
+Tests launch a unique system service as UID 1000 using the developer's unconfined
+context, NoNewPrivileges and empty cap bounds. Direct init_t execution of the
+home-directory binary was denied; the final fixture enters through the existing
+env executable without granting init_t broad home-file execution. It remains a
+test fixture, not the Aetheri launcher or proof of target exec. Unit/Service
+property separation was corrected after the live ControlGroup query showed the
+wrong interface. One fault case initially retained a deliberately changed peer
+label; restoring it isolates the intended second-observation credential fault.
+
+Actual kernel/bus positives and seven stale expected bindings pass. The same unit
+name is started twice after verified prior completion: new invocation accepted,
+old expected context denied. Missing fields, unsupported ioctl, wrong cgroup and
+changed second-observation credentials are test-only injected; actual exit and
+32 peer/eight self FD-balance checks also pass. Native full suites pass 9/9 Debug
+ASan/UBSan (32.56 s) and 9/9 Release (27.86 s), overlapping policy compilation.
+Final focused tests after guard/string/self-pin changes pass in 0.72/0.60 s.
+
+A later 5.030 s idle sample after self-check integration records one task each,
+zero reported CPU/context-switch deltas, PSS 2184/2267 KiB, RSS 6508/6640 KiB,
+MemoryCurrent 1630208/1658880 bytes (system/user). This is a short sample with
+different memory accounting scopes, not a finished-OS or workload budget.
+
+The selected SDK/library versions are unchanged. Glibc's sys/pidfd.h supplies the
+ABI without the Linux/libc fcntl redefinition conflict. Current credentials are
+separate observations, never claimed as additional bus-authenticated provenance.
+Next: bind evidence to protected broker/app/run records and current fences, then
+fixture import/reserve/ready/dispatch/target-exec. Full daily-use OS goal remains active.
+
+Unchanged frozen contracts/migration regression rerun on host Python 3.12.14 /
+SQLite 3.53.1: 26/26 in 29.069 s, exit 0. The isolated validator also passes its
+374 assertions. These add no process/policy claims beyond the native evidence.

@@ -30,6 +30,7 @@ lifecycle methods defined by these contracts.
 | [sync_guest.py](../tools/sync_guest.py), [test_vm_tools.py](../tools/test_vm_tools.py) | Explicit source copying and host orchestration regressions |
 | [CMakeLists.txt](../CMakeLists.txt), [core](../src/core/storage.h), [native tests](../tests/test_core.c) | C17 ownership/storage primitives; build and scope in runtime.md |
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
+| [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
