@@ -156,6 +156,60 @@ when their numeric UID equals the broker's. SELinux policy must enforce this.
 An unexpected type, mode, label, header, volume or root identity blocks destructive
 work. A header hash is no substitute for the expected owner and protected context.
 
+### Retained root and storage observations
+
+[root.h](../src/core/root.h) now observes a held directory using required statx
+fields and STATX_MNT_ID_UNIQUE, with filesystem type/ID from fstatfs. It repeats
+mount/inode/device/UID/GID/mode observations and rejects disagreement. A missing
+unique-mount field fails even when a legacy recycled mount ID exists; no weaker
+device/inode-only fallback. These structs are local runtime observations, not a
+serialized format or persistent volume identity. Filesystem IDs alone do not
+authenticate a volume or detect a replacement/cloned whole machine.
+
+The native catalogue now records this identity on open/create. Before ordinary
+uses, the retained directory and a no-symlink reopening of the protected absolute
+path must agree. This catches a same-device/same-inode bind mount substituted at
+that name. Only directory FDs are reopened/closed here: independent database-inode
+FDs must still not be closed while SQLite POSIX locks are active. Parent paths and
+mount topology require trusted writers/quiescence; observations are not a lock
+against a concurrent privileged namespace mutator.
+
+[storage.h](../src/core/storage.h) also exposes an opaque internal storage_ref.
+Its constructor borrows a trusted anchor and independently expected owner/root
+identity, derives the sole 32-hex leaf from StorageRef and opens it with openat2
+beneath/no-symlink/no-mount-crossing resolution. It owns duplicate CLOEXEC anchor/
+root FDs and copies the expected bindings; caller FDs may close afterward.
+The root/header must be the expected account UID at modes 0700/0600. Caller-supplied
+values cannot establish their own trusted allocation: protected account/volume/
+allocation provenance and enforcing labels remain the owning authority's duties.
+
+Each internal bounded-file open checks the retained anchor/root and named leaf,
+then the exact owner header, before/after opening below payload/. Payload must be
+account-owned 0700; the regular, singly linked bounded file must be account-owned.
+The P0 ASCII path/64-KiB limit remains. Root owner/control metadata is outside the
+payload namespace. Errors close transient file FDs. Fork children cannot use or
+close an inherited storage_ref. The reference adds no resident process or polling.
+
+An FD returned internally remains a read-worker obligation until explicitly closed.
+Closing a storage_ref cannot revoke that FD; the tests deliberately prove it stays
+readable. P0 native document transport must return bounded bytes and close its
+internal FD, with the admitted read tracked through completion. This does not add
+the deferred direct-descriptor grant mode or implement a public document method.
+
+Native tests use actual private temporary roots and payloads, independent expected
+test allocations, copied-header replacement, all six owner-field mismatches,
+permissions/UID changes, symlink escape, oversize, fork and 64 open/read/close cycles.
+A test-only header change at post-open validation rejects the result and balances
+FDs. Required-mask/unsupported-statx and changing directory metadata are injected
+separately; those are fault tests, not fabricated kernel-feature support.
+
+Two opt-in private mount-namespace tests bind a directory over its own name.
+Actual inode/device remain equal and unique mount IDs differ. The private storage
+reference returns EXDEV; the catalogue rejects reads/startup writes with ESTALE and
+preserves its database state. After unmounting the owned test bind, the original
+binding works again. These tests do not establish durable volume registration,
+general app MAC policy, clone detection, purge or public read/revoke acceptance.
+
 ## Plan intent v1
 
 Exact order, using the JSON names in the vectors:

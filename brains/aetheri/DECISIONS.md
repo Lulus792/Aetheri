@@ -364,3 +364,18 @@ order/paths/UTF-8 and preserve caller output on failure. Keeping decoding separa
 from trust, payload hashing and publication prevents a parsed manifest from being
 mistaken for an approved installation. The proposed hash-library selection remains
 an open user discussion, not an adopted dependency decision.
+
+## Runtime root references — 26 October 2026
+
+Complement accepted owner headers with current held/named directory observations:
+require STATX_MNT_ID_UNIQUE rather than relying only on device/inode, and keep
+private storage lookup beneath a trusted anchor using the derived StorageRef.
+Expected allocation identity must be independently trusted; observing a candidate
+does not authorize adopting it. Keep these runtime structs separate from future
+durable volume/allocation records, which still need enrollment/recovery contracts.
+
+Use the same root observer for catalogue directory bindings. Parent/mount writers
+remain controlled; observations do not lock out a concurrent privileged mutator.
+An internal file FD retains its own holder obligation after a root reference closes.
+P0 native transport returns bounded bytes and closes that FD; direct app descriptors
+remain deferred. Actual fstatfs denial justified only authority fs_t getattr access.

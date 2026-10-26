@@ -1,6 +1,6 @@
 # State
 
-26 October 2026 — canonical fixture metadata now has a tested native C17 decoder.
+26 October 2026 — retained private-root references and catalogue mount checks now work.
 
 ## Confirmed
 
@@ -56,6 +56,17 @@ reachability test; no guest-reachable QMP network listener remains.
 [bounded storage](../../src/core/storage.h) with required openat2 containment,
 regular-file/size/link checks and protected-header UID/mode/identity validation.
 No public RPC or app grants are exposed by these primitives.
+
+[Root observations](../../src/core/root.h) now require the kernel's non-recycled
+unique mount ID and repeat held directory identity/ownership observations around
+fstatfs. Native catalogues retain and recheck the held/named root on use.
+[Storage references](../../src/core/storage.h) bind an independently expected owner/
+directory identity to its derived StorageRef under a trusted anchor. Before/after
+internal bounded file opens they check held/named root, exact header and private
+payload UID/permissions. They own duplicate anchor/root FDs and reject inherited
+fork use. Closing a reference does not revoke an already returned internal FD.
+These are runtime primitives; persistent volume/allocation enrollment, same-UID
+MAC admission and public native-byte transport remain caller/integration duties.
 
 [Fixture metadata](../../src/core/fixture.h): canonical AETHFIX1 decoding now
 returns bounded borrowed text views and checked file/action/provider records.
@@ -119,13 +130,23 @@ are unchanged. The host orchestration/cleanup guard suite now has 20 passing tes
 (0.179 s), including pending dispatch, remaining process/job, wrong-owner PID,
 administrative receipt roundtrips and protection of non-bootstrap account records.
 
-Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Twelve tests pass in Debug
-with ASan/UBSan (25.99 s) and Release (21.62 s), both exit 0 in the offline guest.
+Native Linux: GCC 16.2.1, CMake 4.3.0, Ninja 1.13.2. Fifteen tests pass in Debug
+with ASan/UBSan (27.91 s) and Release (25.02 s), both exit 0 in the offline guest.
 These are functional/sanitizer checks, not latency benchmarks.
 The fixture case compares decoded fields against the unchanged frozen vector and
 independent expected metadata. Its final focused runs pass with 8 valid records,
 81 malformed records and every shorter prefix of the frozen vector, preserving
 failed output (Debug 0.10 s, Release 0.08 s). No content hashing is claimed.
+Storage-reference tests cover actual roots/payloads, all six owner bindings,
+copied-header replacement, UID/mode changes, escaped/oversized reads, fork and 64
+open/read/close cycles. Post-open header invalidation rejects the result without
+leaking its file FD. Unique-mask/unsupported/changing-directory-metadata faults
+preserve failed output. Two actual same-inode/device bind tests reject the changed
+mount via storage and catalogue paths, retaining database state. Final focused
+storage tests add all nine mismatched root observations and pass again in Debug
+(0.08 s total) and Release (0.04 s total).
+Private storage fixtures are unconfined tests; the separately enforcing service
+integration below covers the catalogue observers, not complete private-root MAC admission.
 The peer case uses two actual user-bus processes, checks the known sender and exit,
 rejects injected augmented/missing credentials, and balances 128 captures' FDs.
 Actual same-filesystem
@@ -211,9 +232,9 @@ changes runtime/events and advances revision. An unexplained file blocks cleanup
 and survives; the inspected empty bootstrap, bus files and module were then removed
 and recreated with fresh durable identities. This is not app removal acceptance.
 
-A later 5.024 s idle observation after broker enrollment recorded one task each,
-zero reported CPU/context-switch deltas, PSS 2260/2297 KiB and cgroup
-MemoryCurrent 1904640/1662976 bytes (system/user). These are a short carrier sample, not a
+A later 5.033 s idle observation after catalogue mount checks recorded one task each,
+zero reported CPU/context-switch deltas, PSS 2252/2292 KiB, RSS 6764/6676 KiB and cgroup
+MemoryCurrent 1646592/1667072 bytes (system/user). These are a short carrier sample, not a
 full-system budget or precise wakeup counter. Full startup/latency/workload evidence
 remains pending. Owned units were explicitly stopped after the sample; the
 prototype registry/catalogues, policy and bus files remain for further work.
@@ -233,6 +254,13 @@ Explicit native enrollment succeeds, and its exact retry preserves the complete
 database hash and revisions. Broker replacement/root-only restart and guarded
 empty-bootstrap recreation pass again with the durable account row. Normal new
 initialization creates it; other account records still block bootstrap cleanup.
+
+The updated enforcing authority initially refused startup on a real fs_t
+filesystem/getattr denial from fstatfs. One read-side rule for the two authority
+domains resolved it; no mount/write capability or app-domain permission was added.
+Actual broker replacement/root-only restart and full restart, unknown-entry
+preservation and confined fresh bootstrap initialization pass with the root checks.
+Owned services were stopped normally after the final idle observation.
 
 The carrier retains Fedora's enforcing base plus the explicit P0 service module.
 Production broker/system/app policy and category allocation remain pending.

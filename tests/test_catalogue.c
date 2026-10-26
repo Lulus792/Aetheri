@@ -1,4 +1,5 @@
 #include "catalogue/store.h"
+#include "core/root.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -8,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -414,6 +416,32 @@ static void accounts(const char *build, enum ae_catalogue_kind kind)
     }
 }
 
+static void mount_identity(const char *build)
+{
+    CHECK(geteuid() == 0);
+    struct fixture fixture = make_fixture(build);
+    struct ae_catalogue_identity expected = identity(AE_CATALOGUE_SYSTEM);
+    uint8_t boot[AE_ID_BYTES], runtime[AE_ID_BYTES]; id(boot, 3); id(runtime, 4);
+    struct ae_catalogue *store = NULL;
+    CHECK(ae_catalogue_create(fixture.directory, &expected, boot, &store) == 0);
+    struct ae_root_identity retained, named;
+    CHECK(ae_root_observe(fixture.root, &retained) == 0);
+    CHECK(mount(fixture.directory, fixture.directory, NULL, MS_BIND, NULL) == 0);
+    int alias = open(fixture.directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    CHECK(alias >= 0 && ae_root_observe(alias, &named) == 0);
+    CHECK(retained.inode == named.inode && retained.device_major == named.device_major &&
+          retained.device_minor == named.device_minor && retained.mount_id != named.mount_id);
+    struct ae_catalogue_info info, unchanged;
+    memset(&unchanged, 0xa5, sizeof unchanged); memcpy(&info, &unchanged, sizeof info);
+    CHECK(ae_catalogue_get_info(store, &info) == -ESTALE && memcmp(&info, &unchanged, sizeof info) == 0);
+    CHECK(ae_catalogue_begin_runtime(store, boot, runtime) == -ESTALE);
+    CHECK(close(alias) == 0 && umount(fixture.directory) == 0);
+    CHECK(ae_catalogue_get_info(store, &info) == 0 && info.revision == 1 && info.runtime_incarnation[15] == 0);
+    CHECK(ae_catalogue_close(&store) == 0);
+    cleanup(&fixture);
+    puts("catalogue: same inode/device bind replacement rejected by unique mount identity without changing state");
+}
+
 int main(int argc, char **argv)
 {
     if (argc == 6 && strcmp(argv[1], "open") == 0) {
@@ -426,6 +454,7 @@ int main(int argc, char **argv)
         return 0;
     }
     CHECK(argc == 3);
+    if (strcmp(argv[1], "mount") == 0) { mount_identity(argv[2]); return 0; }
     for (int kind = AE_CATALOGUE_SYSTEM; kind <= AE_CATALOGUE_USER; ++kind) {
         if (strcmp(argv[1], "basic") == 0) basic(argv[2], (enum ae_catalogue_kind)kind);
         else if (strcmp(argv[1], "reject") == 0) reject(argv[2], (enum ae_catalogue_kind)kind);

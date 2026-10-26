@@ -491,3 +491,43 @@ were not started/updated for this pure core addition. Next: native payload copy/
 hash and immutable publication, protected machine/volume/read references and app
 admission/launch. Library-independent storage work can proceed while the choice
 is open; the full daily-use OS goal remains active.
+
+## Retained storage references and mount identity
+
+Added core/root.[ch] with repeated statx observations and required unique mount
+IDs, plus held-FD filesystem facts. Catalogue open/create retain this identity;
+ordinary uses also reopen the protected named root and reject disagreement.
+Same inode/device is insufficient when a bind mount changes the visible mount.
+
+Added opaque internal storage references in the existing storage module. They
+derive the allocation leaf from StorageRef, copy independently expected owner/
+root identity, retain duplicate CLOEXEC anchor/root FDs and validate the exact
+0700/0600 private root/header before/after bounded payload opens. Payload and
+file UID checks prevent foreign-owned private content from being returned.
+Fork use fails. Closing the reference does not revoke a returned file FD: P0
+native transport must settle/close its internal read obligation and return bytes.
+
+Fifteen native tests passed, exit 0: Debug ASan/UBSan 27.91 s, Release 25.02 s.
+Actual roots/payloads, six owner mismatches, copied-header replacement, UID/mode,
+escape/oversize, fork, post-open header mutation/FD cleanup and 64 open/read/close
+cycles pass. Separate injected statx faults prove required-mask/error/metadata
+change handling without substituting for actual feature observations. Two opt-in
+private mount tests retain identical device/inode while unique IDs differ; storage
+returns EXDEV and catalogue operations ESTALE without changing state. Final nine
+expected-root field mismatch cases pass in focused repeats (0.08/0.04 s totals).
+
+Actual enforcing startup initially failed with EACCES and an fs_t filesystem/
+getattr AVC. Added only authority filesystem metadata read permission; no new app,
+mount, write or capability grant. Guarded update preserved the existing catalogues.
+Broker replacement/root-only restart and full restart, unknown-entry preservation
+and empty-bootstrap recreation/fresh confined initialization then passed.
+A 5.032725849 s idle observation shows one task each and zero reported CPU/context-
+switch deltas; PSS 2252/2292 KiB, RSS 6764/6676 KiB and MemoryCurrent
+1646592/1667072 bytes. Both owned services/probes were stopped normally afterward.
+
+Runtime reference fixtures are unconfined; separate real policy integration proves
+only catalogue observer/service behavior. Parent/mount topology, same-UID MAC,
+registered account/volume/allocation provenance and admission remain caller duties.
+No durable registry format, clone proof, public document grant or purge is added.
+No SDK/package/crypto change or other-project/hardware mutation. The OpenSSL choice
+remains unanswered; independent storage/enrollment work can continue.

@@ -26,6 +26,7 @@ lifecycle methods defined by these contracts.
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
 | [fixture.h](../src/core/fixture.h), [fixture.c](../src/core/fixture.c), [native fixture tests](../tools/test_fixture_native.py) | Canonical C17 metadata decoding and field/bounds checks; no payload hashing, trust or importer |
+| [root.h](../src/core/root.h), [storage.h](../src/core/storage.h), [storage reference tests](../tests/test_storage_ref.c) | Runtime held/named mount identity and expected private-root binding; no durable volume enrollment or public grant transport |
 | [vm-inputs.json](vm-inputs.json), [prepare_vm.py](../tools/prepare_vm.py) | Pinned development-carrier downloads and verification, without installation/execution |
 | [provision_windows.py](../tools/provision_windows.py), [run_vm.py](../tools/run_vm.py) | Local archive extraction and guarded disposable-guest installation/control |
 | [p0-carrier.ks.in](p0-carrier.ks.in), [inspect_carrier.py](../tools/inspect_carrier.py) | Scoped virtual-disk installation and observed Linux carrier prerequisites |

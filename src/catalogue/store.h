@@ -26,7 +26,9 @@ struct ae_catalogue_info {
  *
  * Explicit create uses O_EXCL; open never creates/replaces/migrates a database.
  * Both retain a separate CLOEXEC writer.lock, require rollback journaling and
- * validate exact v2 schema/metadata. Outputs remain unchanged on failure.
+ * validate exact v2 schema/metadata. A runtime unique mount identity pins the
+ * directory; later calls reject a named bind-mount replacement even for the same
+ * inode/device. This is not durable volume registration. Outputs remain unchanged on failure.
  * Errors are negative errno (EPROTONOSUPPORT for versions requiring migration).
  * Failed creation leaves its owned files for inspection, never blind deletion.
  */

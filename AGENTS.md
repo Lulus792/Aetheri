@@ -43,6 +43,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   It validates metadata, not content hashes, publisher trust or installation.
   OpenSSL 3.5 LTS/libcrypto is proposed; user choice/package review remain pending.
 - Native C17 ownership/storage primitives and tests exist under src/core and tests.
+  core/root requires STATX_MNT_ID_UNIQUE and joins held/named mount/inode/filesystem
+  observations. These are runtime facts, never durable volume/clone authentication.
+  storage_ref derives its leaf from StorageRef and binds an independently expected
+  owner/root under a trusted anchor; caller still owes account/volume/MAC admission.
+  Returned file FDs are internal bounded-read obligations, not native app transport.
+  Closing a storage reference never revokes an already returned FD.
   They are not an installed authority, public grant API or Aetheri app sandbox.
   Dedicated guest runs Fedora enforcing policy. A temporary Aetheri app-domain/MCS
   fixture probe is tested and removes its module afterward; production authority/

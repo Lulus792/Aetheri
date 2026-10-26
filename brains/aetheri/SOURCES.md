@@ -545,3 +545,34 @@ or access to old app data. No production account lifecycle is claimed.
   installed; openssl-devel, the openssl executable and libcrypto metadata are absent.
   The user was offered a library choice. No answer, direct dependency, package
   transaction or version change is recorded in this step.
+
+## Runtime root identity and retained storage — 26 October 2026
+
+- [Linux statx](https://man7.org/linux/man-pages/man2/statx.2.html): required-mask
+  semantics, descriptor lookup with AT_EMPTY_PATH and STATX_MNT_ID_UNIQUE since
+  Linux 6.8. The unique mount ID is not recycled while the system runs; the older
+  mountinfo ID is a different field interpretation. Runtime snapshots are not
+  persistent volume identities.
+- [Linux fstatfs](https://man7.org/linux/man-pages/man2/fstatfs.2.html): held-FD
+  filesystem type/ID observations and filesystem-specific/undefined fields.
+  A filesystem ID alone is not a genuine-volume or clone-authentication proof.
+- Original [root observer](../../src/core/root.c),
+  [storage refs](../../src/core/storage.c), [tests](../../tests/test_storage_ref.c)
+  and [catalogue integration](../../src/catalogue/store.c): actual same-inode/device
+  bind substitutions produce different unique mount IDs and are rejected; copied
+  owner headers cannot replace expected root identity. Native fault tests cover
+  missing/legacy fields, unsupported statx and changing directory metadata.
+- Fifteen native tests pass Debug ASan/UBSan (27.91 s) and Release (25.02 s).
+  Additional expected-root mismatch cases pass in the focused storage repeats
+  (0.08/0.04 s totals). These private storage fixtures are unconfined; they do not
+  replace required future same-UID MAC admission and document-grant integration.
+- Actual enforcing service startup logged filesystem/getattr denial on fs_t;
+  [P0 policy](../../policy/p0-services.cil) adds only that authority read permission.
+  Broker replacement/root-only restart, full restart and confined fresh bootstrap
+  initialization pass. A 5.033 s idle sample has one task each and zero reported
+  CPU/context-switch deltas; PSS 2252/2292 KiB, RSS 6764/6676 KiB,
+  MemoryCurrent 1646592/1667072 bytes. Services then stopped normally.
+
+No SDK/package or crypto adoption occurred. No physical hardware, durable volume
+registry, independent allocation record, clone detection, public read/revoke or
+private purge acceptance is inferred from these runtime observations.

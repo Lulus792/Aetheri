@@ -82,8 +82,10 @@ sandboxing restricts app access, backups recover lost/corrupt data, and trusted 
 checks early software. Secure Boot may be included, but no keys/settings are changed.
 Design separate VM/test-data and personal-data acceptance.
 Encrypted personal-use storage is accepted in direction; boot/unlock,
-recovery keys, policy maintenance, label/category allocation, exact ownership-header
-bytes and registered-volume identity still require concrete implementation contracts.
+recovery keys, policy maintenance, label/category allocation and durable allocation/
+registered-volume identity still require implementation contracts. Exact owner
+bytes and runtime private-root reference checks now exist; they do not settle
+persistent enrollment, clone detection or public document access.
 
 A3. Define full removal for multiple users, shared dependencies, rollback snapshots,
 exported documents and externally stored data. Draft in app-lifecycle.md is a

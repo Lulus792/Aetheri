@@ -69,6 +69,8 @@
 (allow unconfined_dbusd_t aetheri_process (dbus (send_msg)))
 
 (allow aetheri_authority aetheri_root_t (dir (read open)))
+; fstatfs for held catalogue/root observations; no mount or filesystem writes.
+(allow aetheri_authority fs_t (filesystem (getattr)))
 (allow aetheri_authority aetheri_registry_t (dir (search read open getattr)))
 (allow aetheri_authority aetheri_registry_t (file (read open getattr)))
 (allow aetheri_authority sysfs_t (dir (search getattr)))

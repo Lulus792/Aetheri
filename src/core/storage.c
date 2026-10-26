@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <linux/openat2.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -55,7 +56,7 @@ int ae_open_small_file(int root_fd, const char *relative, size_t length, size_t 
     return descriptor;
 }
 
-int ae_check_owner_header(int root_fd, uid_t expected_uid, const struct ae_owner *expected)
+static int check_owner_header(int root_fd, uid_t expected_uid, const struct ae_owner *expected, int exact_mode)
 {
     if (expected == NULL) return -EINVAL;
     int descriptor = ae_open_small_file(root_fd, "owner", 5, AE_OWNER_BYTES);
@@ -64,6 +65,7 @@ int ae_check_owner_header(int root_fd, uid_t expected_uid, const struct ae_owner
     int error = 0;
     if (fstat(descriptor, &status) != 0) error = errno;
     else if (status.st_uid != expected_uid || (status.st_mode & (S_IWGRP | S_IWOTH)) != 0) error = EACCES;
+    else if (exact_mode && (status.st_mode & 07777) != 0600) error = EACCES;
     uint8_t bytes[AE_OWNER_BYTES + 1U];
     size_t used = 0;
     while (error == 0 && used < sizeof bytes) {
@@ -79,4 +81,110 @@ int ae_check_owner_header(int root_fd, uid_t expected_uid, const struct ae_owner
     struct ae_owner actual;
     if (ae_owner_decode(bytes, used, &actual) != 0) return -EBADMSG;
     return ae_owner_matches(&actual, expected) ? 0 : -ESTALE;
+}
+
+int ae_check_owner_header(int root_fd, uid_t expected_uid, const struct ae_owner *expected)
+{
+    return check_owner_header(root_fd, expected_uid, expected, 0);
+}
+
+struct ae_storage_ref {
+    int anchor, root;
+    pid_t process;
+    uid_t uid;
+    char leaf[33];
+    struct ae_owner owner;
+    struct ae_root_identity anchor_identity, root_identity;
+};
+
+static int open_root(int anchor, const char *leaf)
+{
+    struct open_how how = {.flags = O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW,
+                          .resolve = RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS | RESOLVE_NO_MAGICLINKS | RESOLVE_NO_XDEV};
+    int fd;
+    do { fd = (int)syscall(SYS_openat2, anchor, leaf, &how, sizeof how); } while (fd < 0 && errno == EINTR);
+    return fd < 0 ? -errno : fd;
+}
+
+int ae_storage_ref_check(struct ae_storage_ref *reference)
+{
+    if (reference == NULL) return -EINVAL;
+    if (reference->process != getpid()) return -ECHILD;
+    struct ae_root_identity anchor, root;
+    int result = ae_root_observe(reference->anchor, &anchor);
+    if (result == 0 && !ae_root_equal(&anchor, &reference->anchor_identity)) result = -ESTALE;
+    if (result == 0) result = ae_root_observe(reference->root, &root);
+    if (result == 0 && !ae_root_equal(&root, &reference->root_identity)) result = -ESTALE;
+    int named = -1;
+    if (result == 0) {
+        named = open_root(reference->anchor, reference->leaf);
+        if (named < 0) result = named;
+    }
+    if (result == 0) result = ae_root_observe(named, &root);
+    if (result == 0 && !ae_root_equal(&root, &reference->root_identity)) result = -ESTALE;
+    if (named >= 0) close(named);
+    if (result == 0) result = check_owner_header(reference->root, reference->uid, &reference->owner, 1);
+    return result;
+}
+
+int ae_storage_ref_open(int anchor_fd, uid_t metadata_uid, const struct ae_owner *owner,
+                        const struct ae_root_identity *expected, struct ae_storage_ref **output)
+{
+    uint8_t encoded[AE_OWNER_BYTES];
+    if (anchor_fd < 0 || owner == NULL || expected == NULL || output == NULL ||
+        ae_owner_encode(owner, encoded, sizeof encoded) != 0 || expected->mount_id == 0 || expected->inode == 0) return -EINVAL;
+    if (expected->uid != metadata_uid || (expected->mode & 07777) != 0700) return -EACCES;
+    struct ae_storage_ref *reference = calloc(1, sizeof *reference);
+    if (reference == NULL) return -ENOMEM;
+    reference->root = reference->anchor = -1;
+    reference->process = getpid(); reference->uid = metadata_uid;
+    reference->owner = *owner; reference->root_identity = *expected;
+    static const char digits[] = "0123456789abcdef";
+    for (size_t n = 0; n < AE_ID_BYTES; ++n) {
+        reference->leaf[2U * n] = digits[owner->id[AE_STORAGE][n] >> 4];
+        reference->leaf[2U * n + 1U] = digits[owner->id[AE_STORAGE][n] & 15U];
+    }
+    reference->anchor = fcntl(anchor_fd, F_DUPFD_CLOEXEC, 3);
+    int result = reference->anchor < 0 ? -errno : ae_root_observe(reference->anchor, &reference->anchor_identity);
+    if (result == 0) {
+        reference->root = open_root(reference->anchor, reference->leaf);
+        if (reference->root < 0) result = reference->root;
+    }
+    if (result == 0) result = ae_storage_ref_check(reference);
+    if (result != 0) { ae_storage_ref_close(&reference); return result; }
+    *output = reference;
+    return 0;
+}
+
+int ae_storage_ref_read(struct ae_storage_ref *reference, const char *relative, size_t length, size_t limit)
+{
+    if (!valid_path(relative, length) || limit > 65536) return -EINVAL;
+    int result = ae_storage_ref_check(reference);
+    if (result != 0) return result;
+    int payload = open_root(reference->root, "payload");
+    if (payload < 0) return payload;
+    struct stat status;
+    if (fstat(payload, &status) != 0) result = -errno;
+    else if (status.st_uid != reference->uid || (status.st_mode & 07777) != 0700) result = -EACCES;
+    int fd = result == 0 ? ae_open_small_file(payload, relative, length, limit) : result;
+    close(payload);
+    if (fd < 0) return fd;
+    if (fstat(fd, &status) != 0) result = -errno;
+    else if (status.st_uid != reference->uid) result = -EACCES;
+    if (result != 0) { close(fd); return result; }
+    result = ae_storage_ref_check(reference);
+    if (result != 0) { close(fd); return result; }
+    return fd;
+}
+
+int ae_storage_ref_close(struct ae_storage_ref **output)
+{
+    if (output == NULL) return -EINVAL;
+    struct ae_storage_ref *reference = *output;
+    if (reference == NULL) return 0;
+    if (reference->process != getpid()) return -ECHILD;
+    if (reference->root >= 0) close(reference->root);
+    if (reference->anchor >= 0) close(reference->anchor);
+    free(reference); *output = NULL;
+    return 0;
 }

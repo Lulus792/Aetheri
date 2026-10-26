@@ -1,5 +1,6 @@
 #include "catalogue/store.h"
 #include "catalogue/schema.h"
+#include "core/root.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -20,6 +21,7 @@ struct ae_catalogue {
     pid_t process;
     int root, lock;
     struct stat root_stat, database_stat, lock_stat;
+    struct ae_root_identity root_identity;
     char directory[PATH_MAX], path[PATH_MAX];
 };
 
@@ -307,6 +309,8 @@ static int still_named(struct ae_catalogue *store)
 {
     if (store == NULL) return -EINVAL;
     if (store->process != getpid()) return -ECHILD;
+    int binding = ae_root_check_path(store->root, store->directory, &store->root_identity);
+    if (binding != 0) return binding;
     struct stat root, db, lock;
     if (lstat(store->directory, &root) != 0 || fstatat(store->root, "catalogue.sqlite3", &db, AT_SYMLINK_NOFOLLOW) != 0 ||
         fstatat(store->root, "writer.lock", &lock, AT_SYMLINK_NOFOLLOW) != 0) return -ESTALE;
@@ -346,6 +350,7 @@ static int connect_store(const char *directory, const struct ae_catalogue_identi
         if (store->root < 0) result = -errno;
     }
     if (result == 0 && fstat(store->root, &store->root_stat) != 0) result = -errno;
+    if (result == 0) result = ae_root_observe(store->root, &store->root_identity);
     if (result == 0 && (store->root_stat.st_uid != geteuid() || (store->root_stat.st_mode & 07777) != 0700)) result = -EACCES;
     if (result == 0) {
         struct stat existing;
