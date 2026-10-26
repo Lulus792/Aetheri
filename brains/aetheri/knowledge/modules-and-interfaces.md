@@ -8,8 +8,9 @@ accepted; the [initial schema/API](schema-and-api.md) is also accepted.
 It adds SQL/XML and isolated checks without claiming runtime interoperability.
 The [storage/permissions direction](filesystem-and-permissions.md) and
 [launch/access protocol](launch-access-and-removal.md) are also accepted.
-The [P0 proposal](first-linux-prototype.md) defines the next minimal implementation
-scope; no runtime acceptance is implied by these documents.
+The accepted [P0 scope](first-linux-prototype.md) has a
+[versioned SQL/XML implementation](../../../spec/README.md) and migration checks;
+Linux runtime acceptance remains separate.
 
 ## Goals and rules
 

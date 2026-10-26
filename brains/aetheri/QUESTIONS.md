@@ -47,11 +47,12 @@ starting error/deadline/retention rules, is now accepted.
 The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
 is accepted, including ext4/LUKS2 and SELinux plus namespaces.
 The [launch/access protocol](knowledge/launch-access-and-removal.md) is accepted.
-Discuss the [minimal extension/P0 proposal](knowledge/first-linux-prototype.md):
-five new table designs, additive native-read/revoke/runtime interfaces, schema-v2
-migration and a headless enforcing Linux test carrier. Saved/direct/write/bulk
-document access remains in the accepted longer-term protocol, outside this first slice.
-The existing SQL/XML nucleus does not yet contain these proposed additions.
+The [minimal extension/P0 scope](knowledge/first-linux-prototype.md) is now accepted.
+Its five new table designs, additive P0 interfaces and development migration/tests
+are implemented in [versioned contracts](../../spec/README.md).
+Next: exact verified VM/tool versions and the actual C17 authorities, launcher,
+policy/peer identity and transport. Saved/direct/write/bulk document access remains
+in the accepted longer-term protocol, outside this first implementation slice.
 Before implementation, freeze artifact/intent canonical encodings with test vectors,
 authenticated peer/principal mapping, filesystem identity and cross-authority
 admission/recovery. Isolated SQL checks do not settle these integration gates.

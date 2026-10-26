@@ -3,8 +3,8 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project is in architecture and product planning. There is no bootable image,
-installer or working Aetheri application yet.
+The project has architecture plans and executable database/API contract checks.
+There is no bootable image, installer or working Aetheri application yet.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
@@ -14,7 +14,8 @@ installer or working Aetheri application yet.
 [Schema and API](brains/aetheri/knowledge/schema-and-api.md) ·
 [Storage and permissions](brains/aetheri/knowledge/filesystem-and-permissions.md) ·
 [Launch and access protocol](brains/aetheri/knowledge/launch-access-and-removal.md) ·
-[First Linux prototype proposal](brains/aetheri/knowledge/first-linux-prototype.md) ·
+[First Linux prototype](brains/aetheri/knowledge/first-linux-prototype.md) ·
+[Versioned contracts](spec/README.md) ·
 [Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
 
 ## Direction
@@ -48,10 +49,11 @@ The project memory follows [SecondBrain](https://github.com/Lulus792/SecondBrain
 Open the `brains` workspace and select `aetheri`, or read
 [START.md](brains/aetheri/START.md).
 
-The `spec/` directory holds the agreed initial SQLite and D-Bus contracts. The `tools/`
-directory holds their disposable validation, runnable with
-`python tools/validate_contracts.py` (Python 3.10+, SQLite 3.37+).
-These checks do not start an OS service or create a production catalogue.
+The [spec/](spec/README.md) directory holds frozen v1 and current v2 SQLite
+contracts plus the additive D-Bus interfaces. Run
+`python tools/test_contracts.py` with Python 3.11+ and SQLite 3.37+ for migration,
+crash-reopen, constraint and wire checks. Test databases are disposable; these
+checks do not start an OS service or create a production catalogue.
 
 ## License
 

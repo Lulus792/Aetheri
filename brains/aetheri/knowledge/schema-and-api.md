@@ -7,8 +7,9 @@ The [filesystem/permissions direction](filesystem-and-permissions.md) is now
 accepted. The next [launch/access protocol proposal](launch-access-and-removal.md)
 specifies workflows and identifies additional grant/edit/gate records and methods.
 These additions are not implemented by the existing SQL/XML nucleus.
-The [P0 proposal](first-linux-prototype.md) now defines a minimal first extension
-and keeps its future migration separate from the current source contracts.
+The accepted [P0 scope](first-linux-prototype.md) now has a
+[versioned v2 implementation](../../../spec/README.md) for the minimal extension,
+with migration/constraint/XML checks. The initial v1 source contracts remain frozen.
 
 This is the first management nucleus; device settings, document grants, credential storage,
 plugins and boot deployment have not acquired complete APIs through this document.

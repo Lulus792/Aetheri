@@ -1,9 +1,10 @@
 # Minimal contract extension and first Linux prototype
 
-26 October 2026. Proposal for discussion after user approval of the
+26 October 2026. P0 scope accepted by the user after the
 [launch/access/revocation/removal protocol](launch-access-and-removal.md).
-This document specifies the next schema/API scope and a measurable prototype.
-It does not install a VM, implement services or change the existing SQL/XML.
+The [versioned contracts](../../../spec/README.md) now implement the SQL/XML and
+development migration/test portion below. No VM or Linux authority is implemented
+through that contract work.
 
 ## Recommendation
 
@@ -23,9 +24,9 @@ large streaming, directory/project grants, saved grants across reboot and direct
 POSIX access follow after this proof. Their accepted protocol remains the product
 direction; they are not claimed implemented or replaced by weaker fallbacks.
 
-All statements below are proposed target contracts, not executed behavior.
-No production data exists to migrate. Existing v1 artefacts remain the checked
-reference until the extension and migration are implemented and validated.
+The SQL/XML are now implemented and selected database/migration behaviors tested;
+Linux supervision, policy, document IO and service readiness remain target behavior.
+No production data exists to migrate. Existing v1 artefacts remain frozen references.
 
 ## Minimal database change
 
@@ -34,9 +35,9 @@ Add five table designs: one shared, one system-owned and three user-owned.
 Reuse plans, operations, operation_steps and operation_links instead of creating
 another operation journal.
 
-If implemented as described, the target has 23 distinct table designs:
+The current v2 implementation has 23 distinct table designs:
 16 in the system catalogue and 15 in a user catalogue, counting eight common
-definitions in each. Current executable source still has the original 18 designs.
+definitions in each. The original v1 source retains its 18 designs.
 Table count does not determine service count.
 
 Use the accepted BLOB16 IDs, BLOB32 digests, STRICT typing, explicit foreign keys,
@@ -191,13 +192,15 @@ No automatic 2-to-1 downgrade is promised.
 Before accepting the migration implementation, test populated v1 fixtures,
 preserved IDs/operations, intentional migration failure/rollback and successful
 reopen. A restored old backup requires the existing new-epoch reconciliation.
-None of these new migration tests has run in this planning turn.
+These migration cases now run in tools/test_contracts.py; details and limits are
+recorded in the [contract guide](../../../spec/README.md).
 
 ## Minimal API extension
 
 Keep the 14 accepted management methods and their argument meanings.
 Add five public document methods and four root-only runtime methods.
-These are proposed names/fields, not introspection XML already added to the repo.
+Their argument types/order/limits are now recorded in the additive XML files
+linked from the [contract guide](../../../spec/README.md). No RPC service exists yet.
 
 Negotiate interface major 1 with additive minor capabilities. P0 advertises only
 implemented semantics, for example documents.read-small.v1, access.revoke.v1 and
@@ -268,9 +271,9 @@ The authority derives account eligibility and validates the sender; being UID-eq
 to the desktop or knowing an ID is insufficient. Broker incarnation and ownership
 registration must survive/resolve replies without retaining stale admission.
 
-Final XML signatures, canonical fixture/intent bytes and policy/credential mapping
-must be frozen before the Linux implementation exposes these methods. This is
-finite implementation work for P0, not a reason to defer its acceptance criteria.
+XML signatures are now frozen for this P0 contract. Canonical fixture/intent bytes
+and policy/credential mapping still need implementation before live exposure.
+These remaining gates do not invalidate the finite acceptance criteria.
 
 ## P0 test environment
 
@@ -362,8 +365,8 @@ private removal can be verified; external selected documents remain read-only.
 | A9: retention/failure | Shared fixture provider retained for its consumer; IO/full-disk/flush faults produce blocked/recovery state and honest receipts |
 | A10: measurements | Reproducible launch/read/close/remove timings, resident memory, idle wakeups and storage overhead with VM/accelerator recorded |
 
-All gates are proposed acceptance, not executed results. A SQL-only green run is
-not completion. A0/A3 failure blocks Linux acceptance; permissive/unconfined runs
+The contract portion of A1 now has executed evidence; Linux gates remain unexecuted.
+A SQL-only green run is not completion. A0/A3 failure blocks Linux acceptance; permissive/unconfined runs
 cannot replace them. Inspect filesystem inventory, actual process identities and
 both catalogues, not just CLI exit codes or status strings. Preserve failure
 evidence and distinguish injected IO faults from physical power-loss testing.
@@ -386,10 +389,11 @@ Fedora VM's footprint is not a measurement of the future Aetheri system image.
 
 ## Evidence for this planning turn
 
-Only documentation and read-only environment discovery are performed here.
-The current v1 SQL/XML and validator remain unchanged. Their previous 374 assertions
-do not test these additions. No v2 migration, API implementation, VM, SELinux policy,
-app launch or purge has run.
+The subsequent implementation ran 23 named tests on Python 3.12.14 / SQLite 3.53.1,
+exit 0, including populated migration, rollback/crash recovery and XML conformance.
+V1 SQL/XML remain unchanged and their regression is included.
+No D-Bus service, VM, SELinux policy, real app launch, file access or purge has run.
+See the [contract guide](../../../spec/README.md) for the exact executed boundary.
 
 Primary sources inspected 26 October 2026:
 

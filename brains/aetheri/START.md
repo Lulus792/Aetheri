@@ -1,7 +1,7 @@
 # Start here
 
 Aetheri is a planned Linux-based personal desktop OS with original applications.
-Updated 26 October 2026 after protocol approval and preparation of the P0 proposal.
+Updated 26 October 2026 after P0 approval and versioned contract implementation.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.
@@ -12,7 +12,8 @@ Updated 26 October 2026 after protocol approval and preparation of the P0 propos
    [schema/API](knowledge/schema-and-api.md),
    [storage/permissions](knowledge/filesystem-and-permissions.md),
    [launch/access protocol](knowledge/launch-access-and-removal.md),
-   [first Linux prototype proposal](knowledge/first-linux-prototype.md) and
+   [first Linux prototype](knowledge/first-linux-prototype.md),
+   [versioned contract implementation](../../spec/README.md) and
    [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),

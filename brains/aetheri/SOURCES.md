@@ -246,3 +246,21 @@ and the first Linux prototype's scope.
 
 The [P0 contract/scope proposal](knowledge/first-linux-prototype.md) is original
 Aetheri design. New migration, API, VM and runtime tests have not been executed.
+
+## Versioned contract implementation — 26 October 2026
+
+- [SQLite rebuild procedure](https://sqlite.org/lang_altertable.html):
+  foreign-key sequencing, replacement tables and validation before commit.
+  The first www.sqlite.org fetch timed out; the sqlite.org copy was read.
+- [SQLite backup API](https://www.sqlite.org/backup.html):
+  consistent snapshots before migration.
+- [Python 3.12 sqlite3](https://docs.python.org/3.12/library/sqlite3.html):
+  backup/transaction behavior and executescript's implicit-commit caveat.
+- [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html):
+  static introspection/type conventions; XML annotations do not implement security.
+
+Executed tools/test_contracts.py using Python 3.12.14 / SQLite 3.53.1:
+23 named tests passed, exit 0. Includes 20 precommit-fault subcases, six actual
+child-process terminations/reopens and engine SQLITE_FULL through a page limit.
+This is development-host database evidence, not real full-volume/power-loss or
+Linux service/enforcement acceptance. See [contract guide](../../spec/README.md).

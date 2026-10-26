@@ -183,3 +183,17 @@ It limits the first implementation to confined launch, small native reads,
 revocation and exact fixture removal; edits/bulk/direct/persistent grants follow.
 A QEMU/Fedora Server 44 headless development carrier and initial VM resources are
 new proposals. They do not select the final Aetheri base or install dependencies.
+
+## P0 approval and contract implementation — 26 October 2026
+
+The user accepted the minimal schema/API/P0 recommendations and explicitly requested
+versioned contracts plus migration tests. The five-table first slice, schema v2,
+nine additive methods and headless carrier scope are accepted.
+
+Implemented v2 canonical snapshots, XML and a development bootstrap/migration
+harness with named SQL/wire/migration tests. Kept v1 SQL/XML byte-for-byte frozen.
+The migrator rebuilds under one transaction after a verified backup and preserves
+old identities; migration backfills closed gates rather than silently admitting work.
+
+No VM/service implementation or runtime security acceptance follows. Python here
+is contract/test tooling; C17 remains the production language direction.

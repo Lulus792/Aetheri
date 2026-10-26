@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Versioned P0 contract. Semantics/errors/limits: spec/README.md.
+     This is introspection data, not a service or an authorization policy. -->
+<node name="/org/aetheri/Documents1">
+  <interface name="org.aetheri.Documents1">
+    <annotation name="org.aetheri.Contract.Version" value="1.1"/>
+    <annotation name="org.aetheri.Contract.Schema" value="2"/>
+    <annotation name="org.aetheri.Contract.Visibility" value="caller-scoped"/>
+    <annotation name="org.aetheri.Contract.Capability" value="documents.read-small.v1"/>
+    <method name="GetGrant">
+      <arg direction="in" name="grant_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="resource_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="launch_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="rights" type="as"/>
+      <arg direction="out" name="state" type="s"/>
+      <arg direction="out" name="revision" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="1"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+      <arg direction="out" name="runtime_incarnation" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+    </method>
+    <method name="OpenRead">
+      <arg direction="in" name="grant_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="expected_grant_revision" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="1"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+      <arg direction="in" name="expected_authority_epoch" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="expected_runtime_incarnation" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="request_key" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="access_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="size" type="t">
+        <annotation name="org.aetheri.Contract.Maximum" value="65536"/>
+        <annotation name="org.aetheri.Contract.Minimum" value="0"/>
+      </arg>
+      <arg direction="out" name="state" type="s"/>
+    </method>
+    <method name="ReadRange">
+      <arg direction="in" name="access_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="expected_runtime_incarnation" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="offset" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="0"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+      <arg direction="in" name="maximum_bytes" type="u">
+        <annotation name="org.aetheri.Contract.Minimum" value="1"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="16384"/>
+      </arg>
+      <arg direction="out" name="data" type="ay">
+        <annotation name="org.aetheri.Contract.Maximum" value="16384"/>
+      </arg>
+      <arg direction="out" name="eof" type="b"/>
+    </method>
+    <method name="CloseAccess">
+      <arg direction="in" name="access_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="expected_runtime_incarnation" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="state" type="s"/>
+      <arg direction="out" name="revision" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="1"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+    </method>
+    <method name="PrepareRevokeGrant">
+      <annotation name="org.aetheri.Contract.Capability" value="access.revoke.v1"/>
+      <arg direction="in" name="grant_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="in" name="expected_revision" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="1"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+      <arg direction="out" name="plan_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="authority_epoch" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="boot_id" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="16"/>
+      </arg>
+      <arg direction="out" name="expires_boottime_ns" type="t">
+        <annotation name="org.aetheri.Contract.Minimum" value="0"/>
+        <annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/>
+      </arg>
+      <arg direction="out" name="intent_digest" type="ay">
+        <annotation name="org.aetheri.Contract.Bytes" value="32"/>
+      </arg>
+      <arg direction="out" name="effect_count" type="u"/>
+    </method>
+  </interface>
+</node>

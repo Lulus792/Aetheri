@@ -24,13 +24,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   brains/aetheri/knowledge/filesystem-and-permissions.md, including ext4, LUKS2 and
   SELinux plus namespaces as foundations. Exact releases, policy and runtime
   acceptance are pending. Do not create the Linux tree or change policy on Windows.
-- Launch/document/revocation/removal protocol is accepted in
-  brains/aetheri/knowledge/launch-access-and-removal.md. The current SQL/XML lacks
-  its grant, edit and dispatch/gate extensions; do not claim those already exist.
-- Minimal schema/API and P0 scope are proposed in
-  brains/aetheri/knowledge/first-linux-prototype.md. The plan does not implement
-  schema v2 or authorize pretending that a headless/small-read test covers the full
-  desktop/document system. VM/tool installation has not occurred.
+- Launch/document/revocation/removal protocol and P0 scope are accepted in
+  brains/aetheri/knowledge/launch-access-and-removal.md and
+  brains/aetheri/knowledge/first-linux-prototype.md.
+- Versioned v2 SQL, additive P0 XML and development migration/tests are implemented;
+  read spec/README.md and run tools/test_contracts.py. Keep v1 contracts unchanged.
+  This does not implement Linux authorities, policy or document transport. Native
+  edits/bulk/direct/saved access remain later work. VM/tool installation has not occurred.
 - Use English for project documentation. Conversation can remain German.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.

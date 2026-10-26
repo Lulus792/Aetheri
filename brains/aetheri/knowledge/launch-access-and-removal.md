@@ -3,7 +3,7 @@
 Drafted 25 October 2026; protocol accepted by the user on 26 October 2026.
 The [filesystem/ownership/enforcement direction](filesystem-and-permissions.md),
 including ext4, LUKS2 and SELinux plus namespaces, remains accepted.
-The [P0 proposal](first-linux-prototype.md) now defines minimal implementation scope.
+The accepted [P0 scope](first-linux-prototype.md) defines minimal implementation scope.
 No services, policies or new SQL tables exist through this document. The accepted [management core](schema-and-api.md) remains
 the starting point, not a claim that it already implements document grants.
 
@@ -364,12 +364,12 @@ Secure deletion/remote erasure remain outside live managed-removal semantics.
 
 ## Required schema and API additions
 
-This protocol exposes a real gap in the initial nucleus: current SQL/XML tracks
+This protocol exposed a gap in the initial v1 nucleus: its SQL/XML tracked
 installation/data/launch/operation identity but has no complete grant/edit or
 dispatch-gate model. Do not claim the existing 18 table designs or 14 methods
 already implement these flows.
 
-Proposed logical records for the next reviewed schema change:
+Logical records needed by the full protocol:
 
 | Record | Minimum purpose |
 | --- | --- |
@@ -381,12 +381,13 @@ Proposed logical records for the next reviewed schema change:
 | document_edits | Grant/resource, owned temporary storage, expected revision, commit/flush/recovery state and result correlation |
 
 These are responsibilities to persist, not six new daemons.
-The subsequent [P0 proposal](first-linux-prototype.md) starts with five table designs;
+The accepted [P0 scope](first-linux-prototype.md) starts with five table designs;
 document_edits and actual write/commit handling are deferred until the native-read
 lifecycle and isolation proof passes. Some may share
 existing journal structures if their full identity/state can be represented
-without hidden volatile obligations. Exact DDL, enum additions, migration and
-limits remain a follow-up contract change; existing SQL is unchanged here.
+without hidden volatile obligations. The [v2 contract implementation](../../../spec/README.md)
+now supplies P0 DDL, enum changes, migration tests and additive XML. Native editing,
+bulk transport and real runtime enforcement still require their implementation.
 
 Native document request/stream/edit and access-revocation interfaces must be added
 under explicit capabilities. Launch-with-documents and root-only reservation/

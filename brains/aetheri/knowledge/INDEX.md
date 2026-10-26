@@ -1,8 +1,10 @@
 # Knowledge and proposals
 
 - [Minimal contract extension and first Linux prototype](first-linux-prototype.md):
-  proposed five-table/schema-v2 change, nine new methods, bounded native-read scope,
-  carrier/resources and explicit acceptance gates.
+  accepted scope, current five-table/schema-v2 contracts, nine added methods,
+  carrier/resources and outstanding Linux acceptance gates.
+- [Versioned SQL/XML implementation](../../../spec/README.md): bootstrap/migration
+  harness, frozen reference, wire semantics, constraints and executable tests.
 
 - [Launch, document access, revocation and removal](launch-access-and-removal.md):
   accepted end-to-end handshakes, fences, native/direct grants, saving and crash cases.

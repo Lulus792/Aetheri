@@ -1,48 +1,50 @@
 # State
 
-26 October 2026 — lifecycle protocol accepted; minimal extension/P0 proposed.
+26 October 2026 — P0 accepted; versioned SQL/XML and migration tests implemented.
 
 ## Confirmed
 
-Linux x86-64/UEFI, C17/targeted Rust/adapters, glibc, MIT, modular B,
-wlroots, selected systemd/session integration, SQLite and versioned base/apps.
-Filesystem/ownership with ext4/LUKS2/SELinux plus namespaces is accepted.
-The user now accepted the launch/access/revocation/removal protocol, including
-native/direct distinctions, truthful closure and graceful versus explicit force.
+The user accepted the minimal extension/P0 plan and requested implementation of
+versioned database/API contracts and migration tests.
+All earlier architecture, ownership, lifecycle and language decisions remain.
+P0 carrier/resource selection is accepted as the development direction, not the
+final Aetheri distribution or runtime acceptance.
 
-Work remains inside F:/Aetheri. No unrelated project or shared WSL changed.
+## Implemented
 
-## Prepared
+[Versioned contracts](../../spec/README.md): complete common/system/user v2 SQL,
+five new table designs, unchanged v1 references and two additive XML interfaces
+with nine methods. Schema version 2 is independent from wire major/minor 1.1.
 
-[Minimal extension and P0](knowledge/first-linux-prototype.md) proposes schema v2
-with five new table designs and nine additive method roles. The first Linux slice
-covers real confined launch, a small per-run native read grant, revocation and
-exact private fixture removal. Native edits/streams, saved/direct/project grants
-and graphics follow later. These scope details remain for discussion.
+The Python development harness performs empty bootstrap, canonical validation,
+consistent backup and atomic v1-to-v2 migration. Old rows/IDs are preserved;
+new gates are closed and runtime incarnation unset pending service reconciliation.
+This harness is not a privileged Linux service or deployed C17 migrator.
 
-Proposed carrier: dedicated headless QEMU/UEFI VM, Fedora Server 44 x86_64 as a
-development test carrier, 2 vCPUs / 8 GiB RAM / 48 GiB sparse disk.
-This is not selection of Fedora as the final Aetheri distribution/base.
+## Executed evidence
 
-## Evidence and limits
+Python 3.12.14 / SQLite 3.53.1 on the development host:
+23 named tests passed, exit 0, 27.009 seconds in the final full run.
 
-26 October read-only observation: qemu-system-x86_64/qemu-img not found on PATH,
-WSL lists Alpine-Dev, F: approximately 232.4 GiB free. WHPX status is unverified.
-No tool/VM/policy installed and no guest/hardware operation performed.
+Coverage includes both populated catalogue kinds, fresh-v2 equivalence, ten
+precommit failure points per kind, six child-process exits/reopens including after
+commit, source drift/corruption/alias/read-only checks, SQLite page-limit
+SQLITE_FULL rollback, version gates, scoped grants, stale context/revisions,
+outstanding-record pruning and dispatch/drain constraints.
+The unchanged v1 regression and frozen SQL/XML hashes are included.
 
-This turn validates planning documents only. Schema v2, migration, added XML/API,
-services and P0 acceptance gates are not implemented or executed.
-The existing SQL/XML/tools are unchanged; the historical 374-assertion result
-covers only the initial contracts. No new SQL/security/performance claim.
+XML checks validate static names/types/limits/signatures. SQL cases validate
+database observations, not actual file/process/authorization state.
 
-Before P0 implementation, freeze its fixture/header/intent and wire formats,
-migration and policy/peer-identity details. Real enforcing Linux isolation,
-admission/recovery, read/revoke and old-purge/new-install cases must all pass.
-Broader browser/boot/shell/UI/hardware goals remain in project scope.
+## Limits and next step
 
-## Publication and next step
+No production catalogue migrated, VM/tool/policy installed, Linux authority,
+document transport or supervision implemented. No live D-Bus, SELinux enforcement,
+power-loss, native performance or hardware acceptance.
 
+Next: verified VM/toolchain setup and real C17 authority/broker/launcher/probe,
+with fixture/intent formats and policy/peer mapping. All remaining P0 Linux gates
+must pass; contract tests alone do not complete P0.
+
+Work remains inside F:/Aetheri; other projects/shared WSL/hardware untouched.
 Public repository: https://github.com/Lulus792/Aetheri.
-Discuss the concrete P0 proposal, then implement its versioned contracts/tests
-and verified VM setup before connecting the actual Linux services.
-A SQL-only test or an unconfined run does not satisfy P0.
