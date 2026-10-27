@@ -153,5 +153,8 @@ An independent compatible execution fixture is now published/activated alongside
 the original. Its separate user binding/private data are now enrolled with closed
 gates. Separate native execution intent/binding/preparation/arm transactions are
 now implemented and tested; live target-start integration remains next.
+The native execution tests now use an issuer-owned bounded error channel, with
+actual sd-bus writer transfer tested separately. Live journal/starter binding,
+target registration/readiness and independent drain remain pending.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

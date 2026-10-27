@@ -1069,3 +1069,30 @@ existing native commit helper is reused. Lost acknowledgement handling and
 fresh-only effect receipts are Aetheri's conservative protocol, exercised by
 controlled pre/post-commit errors and owner-process exits. These tests establish
 owner-store behavior, not power-loss durability, live execution or app readiness.
+
+## Issuer-owned execution error channel — 27 October 2026
+
+Original [reader/writer ownership contract](../../src/linux/exec_channel.h),
+[implementation](../../src/linux/exec_channel.c), [bounded/fault tests](../../tests/test_exec_channel.c),
+actual [sd-bus writer reply](../../tests/test_peer.c) and receiver use in the
+[one-way execution tests](../../tests/test_execute.c). The production execution
+boundary now uses the same anonymous Root-writer validator. No new SQL/XML,
+dependency family or policy grant is introduced.
+
+Primary systemd [append_basic v259](https://www.freedesktop.org/software/systemd/man/259/sd_bus_message_append_basic.html)
+and [read_basic v259](https://www.freedesktop.org/software/systemd/man/259/sd_bus_message_read_basic.html),
+read 27 October 2026: outgoing h duplicates the FD; incoming h remains borrowed
+from its message and needs a retained duplicate. These pages render as 259.6;
+the actual guest 259.10 roundtrip checks these descriptor lifetimes separately.
+Linux man-pages [pipe2](https://man7.org/linux/man-pages/man2/pipe.2.html) and
+[pipe semantics](https://man7.org/linux/man-pages/man7/pipe.7.html) document
+CLOEXEC/NONBLOCK creation, per-open-description flags and EOF only after all
+writer references close. They do not establish exec success or readiness.
+
+The actual enforcing Release probe verifies the new reader with target domain/
+UID/GID/capability/FD/image checks. An earlier instrumented Debug probe produced
+a same-domain ptrace AVC for LeakSanitizer in aetheri_exec_setup_test_t; that
+known failed unit/fixture was independently verified and retired before Release.
+Audit/journal evidence and an ignored guest failure receipt remain. No extra
+ptrace rule was added. This is a scoped test-instrumentation limit, not app
+readiness, a production execution interface or physical hardware acceptance.

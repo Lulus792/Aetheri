@@ -734,3 +734,20 @@ silently executing a possibly started run twice. Preserve leases and uncertainty
 through replacement. Profile bytes/digests are not authority or actual process
 evidence. Native journal tests establish this internal behavior; live starter,
 error channel, actual image/readiness and drain integration remain separate work.
+
+## Let the supervisor issue the error writer — 27 October 2026
+
+Root should create the anonymous error pipe and keep its reader, binding it to
+the admitted profile/journal and original held starter/invocation before sending
+only the writer in an authenticated registration reply. This avoids accepting a
+client-selected reader or weakening incoming-FD method-call denials. Native
+creation/reading and actual sd-bus writer transfer now have tests; live protocol
+and policy binding remain to implement. sd-bus copies the outgoing descriptor
+and borrows the incoming one, so both message and local writer lifetimes matter.
+
+Keep the 16-byte AETHXER1 record. Bound reading to two nonblocking calls and 17
+retained bytes, require EOF after a valid frame, and retain malformed/unknown
+outcomes. Empty EOF is never execution/readiness/drain. Remove terminal watches;
+do not introduce a polling process. Keep the explicit enforcing execution probe
+on Release binaries, with ASan/UBSan in the separate normal native suite. An
+observed LeakSanitizer same-domain ptrace denial does not justify broader policy.

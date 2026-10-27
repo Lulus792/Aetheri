@@ -2171,3 +2171,71 @@ restart at every stage, User replacement and rejection by no-exec withdrawal.
 These isolated owner-store tests do not exercise a live executing starter. The
 next integration must bind an authenticated error channel and actual target image,
 then readiness and independently proven drain; EOF is still unknown.
+
+## Issuer-owned execution error channel
+
+[exec_channel](../src/linux/exec_channel.h) now creates an anonymous in-memory
+pipe in the supervising process, which retains its reader and exports only the
+NONBLOCK/CLOEXEC writer. The one-way execution boundary independently checks the
+writer's anonymous pipe filesystem, UID/GID 0, mode and flags. Named FIFOs are
+rejected. No filesystem path, persistent file, new service or polling process is
+created for a channel. The caller owns one reader/object; constructor failures
+publish neither endpoint and close their partial resources.
+
+For live integration, Root must bind that instance to the admitted profile,
+journal and original held starter ProcessFD/invocation before exporting the
+writer. Use a reply to the authenticated selected starter; keep all inbound-FD
+method-call denials in place. The primitive does not authenticate or register a
+starter by itself. A future starter must authenticate the current Root reply and
+its operation/runtime/profile, then validate and duplicate the borrowed writer
+before freeing the message. The issuer must close its local writer after appending
+it, including on send failure. The transport's temporary copy and the starter's
+message copy also need to disappear. Only the trusted starter keeps a writer;
+exec closes it and the target must never receive it. An unknown transfer result
+does not permit a fresh channel or repeated arm.
+
+This follows sd-bus v259's ownership contract: appending an h duplicates the
+descriptor; reading an h borrows it from the message. The actual guest test uses
+259.10 and a test interface on the existing user bus. The server pins the exact
+child's bus ProcessFD/name/UID/label before issuing the writer, and the client uses
+the independently supplied exact unique destination. The client duplicates the
+message FD, frees the reply, writes two fragments and closes it. The issuer's
+retained reader then receives the precise failure. This is actual transport/
+descriptor evidence, not an installed Root execution interface or its MAC policy.
+
+The existing AETHXER1 record remains exactly 16 bytes: eight-byte tag, phase
+u32 and positive errno u32, big endian. Supported phases are PROFILE through CALL;
+the numeric error slot accepts 1..4095. Each read call performs at most two
+nonblocking reads, retaining at most 17 bytes in total, including one overflow byte.
+
+| Reader state | Evidence and required treatment |
+| --- | --- |
+| PENDING | Writer still open, including a complete valid frame without EOF; no success/failure completion inferred |
+| UNKNOWN | Empty EOF; no reported failure, no proof of execution/readiness/drain |
+| FAILURE | Exactly one valid frame followed by EOF; preserve the admitted starter's phase/errno |
+| MALFORMED | Invalid, truncated or extra bytes; retain uncertainty, never reinterpret/reset as a new attempt |
+
+Terminal reports are stable and perform no further reads. Remove their event
+watch so unread malformed data cannot cause repeated wakeups. I/O errors leave
+the output unchanged and retain an already consumed prefix. No call blocks for
+EOF, consumes an unbounded stream, stops a process or releases a code/data lease.
+Closing a channel only closes this owned reader; external supervisor/process/
+image/readiness/drain obligations remain separate. Each channel is process-owned;
+inherited copies cannot use its API after fork.
+
+The ordinary native execution tests now use this reader for the actual one-way
+child, all reported fault phases and both exit-125 cases. An empty EOF is also
+observed while the executed payload is alive; actual executable observation is
+still required independently. linux.exec_channel additionally tests fragmented/
+duplicate/truncated frames, retained writer copies, named FIFO rejection, FD
+identity reuse, creator/flag changes, resource and I/O failures, inherited owner
+rejection and descriptor balance. linux.peer tests the actual sd-bus writer reply.
+
+The separate enforcing-domain probe passes with Release binaries. An initial
+Debug run failed in LeakSanitizer: the audit record denied its same-domain ptrace
+in aetheri_exec_setup_test_t. The known failed invocation was independently
+drained and retired using --cleanup before the Release probe. No permission was
+added to accommodate instrumentation. Keep ASan/UBSan in the normal native suite;
+use Release for this explicit policy probe. Its c33,c34 test data/domain are
+separate from the enrolled exec fixture's c35,c36. The new channel is not yet
+wired into live authority registration/arm, app readiness or drain.

@@ -2,6 +2,9 @@
 
 Not a production starter, default CTest, app admission or catalogue writer.
 Failure preserves its own fixture/module and every unresolved unit request.
+Use the Release binaries here. LeakSanitizer requires a same-domain ptrace
+permission intentionally absent from this confined test profile; exercise
+ASan/UBSan separately with the native CTest suite, without broadening policy.
 """
 import bz2
 import hashlib

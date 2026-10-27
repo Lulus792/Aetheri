@@ -3,22 +3,17 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The current C17 prototype runs in a dedicated Fedora/UEFI test VM. It has tested
-catalogue contracts, verified publication of a trusted test package, private-data
-ownership and two confined system/user services. A start request is now journaled
-before code reservation and can be withdrawn after the user service restarts,
-without losing track of the reservation. A short-lived setup service now connects
-that journal to private code/data mount views and independently checked teardown.
-This service deliberately cannot execute application code.
-Separate native execution primitives now drop credentials, seal inherited handles
-and execute an exact held ELF image. An isolated enforcing test verifies the real
-app-domain transition and current executable; integration into app starts is next.
-A separate compatible test package is now published and activated alongside the
-original, with its launch gate closed and all older package/history records retained.
-It now has a distinct user binding and private data allocation as well.
-Separate native execution transactions now record starter intent, binding,
-preparation and arm without replaying a possibly completed external effect.
-Their connection to a live executing starter remains in progress.
+The current C17 prototype runs in a dedicated Fedora/UEFI test VM. Two confined
+system/user services manage tested catalogues, verified test packages and separate
+private-data allocations. Native transactions record start reservations, starter
+binding, preparation and arm without repeating a possibly completed external effect.
+
+The installed setup helper prepares private code/data views and supports checked
+teardown; it cannot execute apps. A separate execution subsystem has tested
+credential dropping, handle sealing, exact ELF execution/image observation and
+an issuer-owned error channel with sd-bus writer transfer. An isolated enforcing
+test verifies the actual app-domain transition. Integration into live app starts
+is still in progress.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The

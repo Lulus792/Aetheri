@@ -17,7 +17,8 @@ struct ae_execute {
  * No shell/search/interpreter fallback. The global filesystem/loader remains a
  * trusted caller prerequisite; this is not a complete app sandbox or launcher.
  * Failure may follow irreversible credential/FD changes: always exits 125.
- * Error pipe must have one nonblocking CLOEXEC writer owned only by this process.
+ * Error pipe must be an anonymous pipe created by UID/GID 0, with one
+ * nonblocking CLOEXEC writer owned only by this process after transfer.
  * AETHXER1 + phase u32 + positive errno u32, big endian, at most one 16-byte write.
  * EOF/no record is UNKNOWN, never exec success/readiness or permission to release.
  * External supervisor/process/image/drain evidence remains mandatory. */

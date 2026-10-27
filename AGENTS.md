@@ -213,6 +213,16 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   is zero on every retry/lost acknowledgement. Its stage/generation step cannot
   use old no-exec stage/launch withdrawal. This is not a live starter/DispatchLaunch
   implementation or image/readiness/drain proof. Do not install/dispatch it as one.
+- linux/exec_channel.h now provides the process-owned bounded error reader and
+  checked anonymous writer. Only the issuer keeps the reader; future live Root
+  must bind it to the exact journal/held starter before exporting a writer reply.
+  Incoming-FD method-call denials remain. sd-bus append duplicates, read borrows:
+  close all issuer/message copies after transfer and seal the starter's writer.
+  UNKNOWN EOF is never execution/readiness/drain; unregister terminal watches.
+  The peer/execute tests use it, but no live Execution interface exists yet.
+  Run explicit test_execute_policy.py with Release; Debug LeakSanitizer needs a
+  same-domain ptrace permission deliberately absent from that test policy. Keep
+  ASan/UBSan in the normal native suite; do not weaken policy for instrumentation.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

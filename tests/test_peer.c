@@ -1,4 +1,5 @@
 #include "linux/peer.h"
+#include "linux/exec_channel.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -33,6 +34,7 @@ struct server {
     unsigned int calls;
     char label[512];
     struct ae_peer retained;
+    struct ae_exec_channel *error_channel;
 };
 
 static int descriptor_count(void)
@@ -85,10 +87,25 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
     ++state->calls;
     return sd_bus_reply_method_return(message, "i", result);
 }
+static int issue_writer(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    (void)error;
+    struct server *s=userdata; struct ae_peer current=AE_PEER_INIT;
+    CHECK(s->calls==3 && s->error_channel==NULL && sd_bus_message_at_end(message,1)==1);
+    CHECK(ae_peer_capture(message,&current)==0 && current.connection_pid==s->child && current.connection_uid==geteuid());
+    CHECK(strcmp(current.unique_name,s->retained.unique_name)==0 && strcmp(current.connection_label,s->label)==0);
+    CHECK(ae_peer_alive(&s->retained)==0); ae_peer_clear(&current);
+    int writer=-1; CHECK(ae_exec_channel_new(&s->error_channel,&writer)==0);
+    /* The issuer keeps only its reader. sd-bus duplicates the outbound writer;
+     * the local copy must close even if sending the reply fails. */
+    int r=sd_bus_reply_method_return(message,"h",writer); CHECK(close(writer)==0);
+    ++s->calls; return r;
+}
 
 static const sd_bus_vtable methods[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Check", "u", "i", check_call, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("IssueErrorWriter", "", "h", issue_writer, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END
 };
 
@@ -110,6 +127,14 @@ static void child_client(int input)
         sd_bus_message_unref(reply);
         sd_bus_error_free(&error);
     }
+    sd_bus_message *reply=NULL;
+    CHECK(sd_bus_call_method(bus,destination,"/org/aetheri/TestPeer","org.aetheri.TestPeer1","IssueErrorWriter",NULL,&reply,"")>=0);
+    int borrowed=-1;
+    CHECK(sd_bus_message_read(reply,"h",&borrowed)>0 && sd_bus_message_at_end(reply,1)==1);
+    CHECK(ae_exec_writer_check(borrowed,geteuid(),getegid())==0);
+    int writer=fcntl(borrowed,F_DUPFD_CLOEXEC,3); CHECK(writer>=3); sd_bus_message_unref(reply);
+    uint8_t record[16]={0}; memcpy(record,"AETHXER1",8); record[11]=AE_EXEC_UID; record[15]=EPERM;
+    CHECK(write(writer,record,7)==7 && write(writer,record+7,9)==9 && close(writer)==0);
     sd_bus_flush_close_unref(bus);
     _exit(0);
 }
@@ -153,7 +178,7 @@ int main(void)
 
     CHECK(write(channel[1], destination, sizeof destination) == (ssize_t)sizeof destination);
     CHECK(close(channel[1]) == 0);
-    while (state.calls < 3) {
+    while (state.calls < 4) {
         int result = sd_bus_process(bus, NULL);
         CHECK(result >= 0);
         if (result == 0) CHECK(sd_bus_wait(bus, UINT64_MAX) >= 0);
@@ -162,6 +187,9 @@ int main(void)
     int status = 0;
     CHECK(waitpid(state.child, &status, 0) == state.child);
     CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    struct ae_exec_report report={0};
+    CHECK(ae_exec_channel_read(state.error_channel,&report)==0 && report.state==AE_EXEC_CHANNEL_FAILURE && report.phase==AE_EXEC_UID && report.error==EPERM);
+    CHECK(ae_exec_channel_close(&state.error_channel)==0);
     CHECK(ae_peer_alive(&state.retained) == -ESRCH);
     int closed = state.retained.pidfd;
     ae_peer_clear(&state.retained);
@@ -169,6 +197,6 @@ int main(void)
     ae_peer_clear(&state.retained);
     sd_bus_slot_unref(slot);
     sd_bus_flush_close_unref(bus);
-    puts("peer: real sender UID/label/ProcessFD/bus binding, exit, provenance rejection and FD balance passed");
+    puts("peer: actual sender UID/label/ProcessFD/bus binding, issuer-only error-reader with sd-bus writer reply, exit/provenance/FD checks passed");
     return 0;
 }

@@ -66,8 +66,10 @@ exist with closed gates. The fixed exec data profile uses c35,c36, preserving
 original c33,c34; no dynamic category allocator is implied. Separate native
 execution-profile/fence and durable request/binding/preparation/arm transactions
 now exist, including explicit no-replayed-effect receipts. Next connect them to
-the live executing starter, authenticated error transport, process/image
-registration, readiness and drain. These are implementation gates, not requests to reopen the accepted
+the live executing starter, process/image registration, readiness and drain.
+The issuer-owned error channel and actual sd-bus writer reply now have native
+evidence; current Root reply/profile/runtime authentication and binding to the
+live journal/starter remain work. These are implementation gates, not requests to reopen the accepted
 architecture.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.

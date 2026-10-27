@@ -1,4 +1,5 @@
 #include "linux/execute.h"
+#include "linux/exec_channel.h"
 #include "linux/view.h"
 #include "core/digest.h"
 #include <errno.h>
@@ -206,12 +207,14 @@ int main(int argc,char **argv)
         puts("Bounded ELF/image admission rejects malformed headers, executable stack, foreign loader, aliases, set-ID and file capabilities before exec."); return 0;
     }
     struct ae_image marker,result; memset(&marker,0xa5,sizeof marker);
-    int errors[2],output[2]; CHECK(pipe2(errors,O_NONBLOCK|O_CLOEXEC)==0 && pipe2(output,O_CLOEXEC)==0);
+    struct ae_exec_channel *channel=NULL; int errors[2]={-1,-1},output[2];
+    CHECK(ae_exec_channel_new(&channel,&errors[1])==0 && pipe2(output,O_CLOEXEC)==0);
+    errors[0]=ae_exec_channel_fd(channel); CHECK(errors[0]>=3);
     /* Close before fork so the child cannot win a race against the reader's
      * disappearance: its reporting write necessarily encounters EPIPE. */
-    if (strcmp(scenario,"broken-reader")==0) { CHECK(close(errors[0])==0); errors[0]=-1; }
+    if (strcmp(scenario,"broken-reader")==0) { CHECK(ae_exec_channel_close(&channel)==0); errors[0]=-1; }
     pid_t pid=fork(); CHECK(pid>=0);
-    if (pid==0) { close(errors[0]); close(output[0]); child(argv[1],image,errors[1],output[1],label); }
+    if (pid==0) { if (errors[0]>=0) close(errors[0]); close(output[0]); child(argv[1],image,errors[1],output[1],label); }
     CHECK(close(errors[1])==0 && close(output[1])==0);
     struct ae_peer peer=AE_PEER_INIT; peer.pidfd=pidfd_open(pid,0); CHECK(peer.pidfd>=0);
     peer.connection_pid=pid; peer.connection_uid=1000; strcpy(peer.connection_label,label);
@@ -221,10 +224,13 @@ int main(int argc,char **argv)
         char ready[6]; ssize_t received=read(output[0],ready,sizeof ready);
         if (received!=6 || memcmp(ready,"ready\n",6)!=0) {
             int early; CHECK(waitpid(pid,&early,0)==pid);
-            uint8_t record[16]={0}; ssize_t length=read(errors[0],record,sizeof record);
-            fprintf(stderr,"child before ready: wait=%d record=%ld phase=%u error=%u\n",early,(long)length,(unsigned)record[11],(unsigned)record[15]);
+            struct ae_exec_report report={0}; CHECK(ae_exec_channel_read(channel,&report)==0);
+            fprintf(stderr,"child before ready: wait=%d channel=%d phase=%d error=%d\n",early,report.state,report.phase,report.error);
             CHECK(0);
         }
+        struct ae_exec_report report={0}; CHECK(ae_exec_channel_read(channel,&report)==0 && report.state==AE_EXEC_CHANNEL_UNKNOWN);
+        /* Empty CLOEXEC EOF also occurs while the payload is actually alive.
+         * It never replaces the following independent held-process/image test. */
         /* This message is deliberately insufficient on its own. Observe the
          * current kernel executable under the owned ProcessFD independently. */
         struct ae_image wrong=image; wrong.inode++;
@@ -259,19 +265,20 @@ int main(int argc,char **argv)
     }
     int status; CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && WEXITSTATUS(status)==(live ? 0 : 125));
     result=marker; CHECK(ae_image_match_process(&peer,1000,&image,&result)<0 && memcmp(&result,&marker,sizeof result)==0);
-    uint8_t bytes[32]={0}; ssize_t count=errors[0]>=0 ? read(errors[0],bytes,sizeof bytes) : 0;
-    if (live || strcmp(scenario,"fast-exit")==0 || strcmp(scenario,"before-exit")==0 || strcmp(scenario,"broken-reader")==0) CHECK(count==0);
+    struct ae_exec_report report={0}; if (channel) CHECK(ae_exec_channel_read(channel,&report)==0);
+    if (strcmp(scenario,"broken-reader")==0) CHECK(channel==NULL);
+    else if (live || strcmp(scenario,"fast-exit")==0 || strcmp(scenario,"before-exit")==0) CHECK(report.state==AE_EXEC_CHANNEL_UNKNOWN && !report.phase && !report.error);
     else {
-        CHECK(count==16 && memcmp(bytes,"AETHXER1",8)==0 && bytes[8]==0 && bytes[9]==0 && bytes[10]==0 && bytes[12]==0 && bytes[13]==0 && bytes[14]==0);
+        CHECK(report.state==AE_EXEC_CHANNEL_FAILURE);
         int phase=strcmp(scenario,"environment")==0 || strcmp(scenario,"nnp")==0 || strcmp(scenario,"too-many-arguments")==0 ? AE_EXEC_PROFILE : strcmp(scenario,"image")==0 || strcmp(scenario,"object")==0 ? AE_EXEC_IMAGE :
             strcmp(scenario,"context")==0 ? AE_EXEC_CONTEXT : strcmp(scenario,"descriptors")==0 ? AE_EXEC_DESCRIPTORS : strcmp(scenario,"caps")==0 ? AE_EXEC_CAPABILITIES :
             strcmp(scenario,"ambient")==0 || strcmp(scenario,"bounds")==0 || strcmp(scenario,"securebits")==0 ? AE_EXEC_CAPABILITIES :
             strcmp(scenario,"groups")==0 ? AE_EXEC_GROUPS : strcmp(scenario,"gid")==0 ? AE_EXEC_GID : strcmp(scenario,"uid")==0 ? AE_EXEC_UID :
             strcmp(scenario,"signals")==0 ? AE_EXEC_SIGNALS : AE_EXEC_CALL;
         int error=strcmp(scenario,"too-many-arguments")==0 ? E2BIG : phase==AE_EXEC_PROFILE ? EACCES : strcmp(scenario,"image")==0 ? EBADMSG : strcmp(scenario,"object")==0 ? ESTALE : phase==AE_EXEC_CALL ? ENOEXEC : EIO;
-        CHECK(bytes[11]==phase && bytes[15]==error);
+        CHECK((int)report.phase==phase && report.error==error);
     }
-    CHECK(close(output[0])==0); if (errors[0]>=0) CHECK(close(errors[0])==0);
+    CHECK(close(output[0])==0 && ae_exec_channel_close(&channel)==0);
     ae_peer_clear(&peer); close(base); close(code); close(image_fd); freecon(current);
     printf("execution boundary %s: actual child drained; no EOF-based exec inference\n",scenario); return 0;
 }

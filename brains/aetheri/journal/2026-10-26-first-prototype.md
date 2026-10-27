@@ -1415,3 +1415,63 @@ Next connect this journal to a distinct executing starter's authenticated error
 channel and held actual process/image. Follow with app readiness, independently
 proven drain and conservative recovery; never reuse no-exec teardown for that
 starter. The full OS/apps/desktop/image and hardware goals remain active.
+
+## Issuer-owned execution error channel — 27 October 2026
+
+The previous goal turn made verified progress in b64055e. This step implements
+the bounded Linux error channel needed to connect that journal to actual exec.
+The issuer creates an anonymous pipe and retains its process-owned reader; only
+the NONBLOCK/CLOEXEC writer is exported. The one-way boundary now shares the
+anonymous pipe/Root creator/mode/flag validator. No pipe pathname, persistent
+state file, background process, dependency, SQL/XML or policy grant is added.
+
+The reader retains at most 17 bytes and performs at most two nonblocking reads
+per call. A complete frame without EOF remains pending. Exact frame plus EOF
+preserves phase/errno; empty EOF stays unknown; invalid, truncated or extra bytes
+are terminal malformed evidence. Terminal reports perform no more reads, and
+their future event-loop watch must be disabled. I/O errors preserve outward
+output and the consumed prefix. No channel result releases a lease or claims
+target execution/readiness/drain.
+
+linux.peer now issues the writer in an actual sd-bus reply to the exact captured
+child ProcessFD/name/UID/label, with an independently delivered unique destination.
+It closes the issuer copy; the child checks and duplicates the borrowed message
+FD before unref, writes fragments and closes its copy. The retained reader gets
+the exact UID/EPERM failure. This user-bus test proves transport/FD lifetimes,
+not live Root execution admission. The native actual-exec harness uses the same
+reader, including while an executed payload is alive and after both exit-125
+cases. Independent image observation remains necessary.
+
+linux.exec_channel adds fragmentation/overflow/truncation, phase/error bounds,
+retained-writer EOF, flag/creator mismatch, named FIFO rejection, descriptor reuse,
+fork-owner rejection and closed-stdin cases. Allocator, pipe, fcntl, metadata,
+read and close faults retain outputs and balance resources. The first focused
+Debug peer/channel/exec checks passed 3/3 (1.61 s).
+
+An explicit policy probe was initially given the Debug binary. Its LeakSanitizer
+exit check failed: actual audit event 925 denied same-domain ptrace for
+aetheri_exec_setup_test_t. The controller retained state=failed, pending=null and
+the exact one known invocation/fixture/module. After independent process/cgroup/
+job drain, --cleanup verified identities/inventory/hashes and retired those
+objects. An ignored guest failure receipt plus audit/journal evidence remain.
+Release then passed; no instrumentation permission was added. The policy test's
+instructions now require Release while ordinary CTest retains ASan/UBSan.
+
+Final source passes 34/34 Debug ASan/UBSan (199.11 s) and 34/34 Release (176.38 s),
+29/29 migration/wire (39.113 s), 39/39 orchestration (0.612 s), 14/14 runtime vectors
+and 374 isolated constraint assertions. A final enforcing Release probe also
+passes all five actual target-domain cases with exact image, UID/GID 1000,
+empty capabilities, sealed FDs and unknown empty channel, then drains/resets only
+its known units and removes its temporary module. Timings are test-run evidence.
+
+Read-only verification under the stable carrier lock confirms systemd259.10,
+Enforcing, matching protected normal objects/configuration/policy, two closed
+install gates and two closed data gates, no pending/unresolved live dispatch or
+held lease, and absent temporary execution fixture/module. The normal authorities
+were not updated and no managed app was registered/dispatched.
+
+Next bind the issued channel to the live executing profile/journal, original
+held starter/invocation and authenticated current Root reply. Follow with actual
+target registration/image/readiness and independent drain. The no-exec proof
+still cannot settle an executable starter. Desktop/apps/image/hardware and the
+full OS goal remain active; UI/personal choices stay deferred to the user.

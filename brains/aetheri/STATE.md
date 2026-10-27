@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — native execution intent, starter binding and arm journal are tested; live executing-start integration remains next.
+27 October 2026 — issuer-owned execution error channel and sd-bus writer transfer tested; live executing-start integration remains next.
 
 ## Confirmed
 
@@ -13,6 +13,34 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The Linux execution subsystem now has a process-owned anonymous error pipe:
+the supervisor keeps its reader and exports only the checked NONBLOCK/CLOEXEC
+writer. The one-way boundary also requires an anonymous pipe created by UID/GID
+0. The bounded reader retains fragments, rejects invalid/duplicate/truncated
+records and treats empty EOF as unknown, including while an actual executed
+payload remains alive. Terminal channels need no further polling. Constructor/
+I/O/cleanup failures, FD identity/flags/creator, fork ownership and resource balance
+have native tests. The peer test now transfers only a writer in an actual sd-bus
+reply after exact kernel sender capture; message borrowing/duplication is exercised.
+
+The new code is used by the existing native execution tests, including a separate
+enforcing Release probe. An initial Debug policy probe hit LeakSanitizer's denied
+same-domain ptrace; its known drained failed test was retired before the Release
+run, with no policy broadening. Production authorities, SQL/XML and incoming-FD
+denials are unchanged. The new channel/transport test is not a live execution
+endpoint, registered app, readiness or drain implementation. Next bind it to the
+actual Root journal and selected starter, with authenticated current reply/runtime
+and original held process/invocation. See the [error-channel contract](../../spec/runtime.md#issuer-owned-execution-error-channel).
+
+Final suites pass 34/34 Debug ASan/UBSan (199.11 s) and 34/34 Release (176.38 s).
+Migration/wire passes 29/29 (39.113 s), orchestration 39/39 (0.612 s), runtime
+vectors 14/14 and isolated constraints 374 assertions. The final Release enforcing
+probe also passes all five cases and retires its owned units/module. Read-only
+verification then confirms Enforcing, unchanged protected installation inputs,
+both install/data gates closed, no pending/nonterminal live dispatch and no held
+code lease. These are scoped test results/timings, not OS benchmarks or hardware
+acceptance. No new authority binary/endpoint or resident service was installed.
 
 An internal AETHEXE1 execution profile now binds the exact run/p0/none request,
 Root/User runtimes, I/G/D/storage, operations, revisions, artifact, trusted starter
@@ -28,7 +56,7 @@ settling this operation, even if given its profile hash.
 The new catalogue.execution test covers canonical bytes against independent
 Python, statement/commit faults, byte-identical database rollback, actual owner
 exits before/after REQUEST/ARM commit, all-stage Root restart, User replacement,
-changed evidence, closed gates and overflow. Full suites pass 33/33 Debug
+changed evidence, closed gates and overflow. Previous journal checkpoint: 33/33 Debug
 ASan/UBSan (193.91 s) and 33/33 Release (177.66 s); the new focused test passed
 in 65.70 s. Host migration/wire 29/29 (34.240 s), orchestration 39/39 (0.320 s),
 runtime vectors 14/14 and isolated constraints 374 assertions also pass.

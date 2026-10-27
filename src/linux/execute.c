@@ -1,4 +1,5 @@
 #include "linux/execute.h"
+#include "linux/exec_channel.h"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -67,10 +68,7 @@ static int profile(const struct ae_execute *p)
     if (getuid()!=0 || geteuid()!=0 || getgid()!=0 || getegid()!=0 || security_getenforce()!=1 || prctl(PR_GET_NO_NEW_PRIVS,0L,0L,0L,0L)!=1) return -EACCES;
     int r=single_thread(); if (r==0) r=vectors(p->argv,9,0); if (r==0) r=vectors(p->envp,16,1);
     struct stat s; struct statvfs fs;
-    if (r==0 && fstat(p->error_fd,&s)!=0) r=-errno;
-    int flags=r==0 ? fcntl(p->error_fd,F_GETFL) : -1,descriptor=r==0 ? fcntl(p->error_fd,F_GETFD) : -1;
-    if (r==0 && (flags<0 || descriptor<0)) r=-errno;
-    if (r==0 && (!S_ISFIFO(s.st_mode) || (flags&O_ACCMODE)!=O_WRONLY || !(flags&O_NONBLOCK) || !(descriptor&FD_CLOEXEC))) r=-EINVAL;
+    if (r==0) r=ae_exec_writer_check(p->error_fd,0,0);
     if (r==0 && fstat(p->data_fd,&s)!=0) r=-errno;
     if (r==0 && (!S_ISDIR(s.st_mode) || s.st_uid!=p->uid || s.st_gid!=p->gid || (s.st_mode&07777)!=0700)) r=-EACCES;
     if (r==0 && fstatvfs(p->data_fd,&fs)!=0) r=-errno;
