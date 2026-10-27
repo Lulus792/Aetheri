@@ -164,6 +164,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   release. launch-check/cancel/reopen-check preserve fixed correlations/history.
   Private data gate admission is not view readiness; no actual app dispatch or
   public launch capability exists yet. Keep SQL v1/v2 and Runtime1 XML unchanged.
+- Native linux/view.h now clones exact code/data FDs into private mount views.
+  It is for fresh trusted single-threaded setup only, not a permanent authority.
+  Entry can change namespace on later failure; exit rather than fall back. Move
+  attempts are not retryable after uncertainty. Closing view/namespace handles is
+  not drain or lease release. Real kernel tests run as administrative unconfined_t
+  in the enforcing guest; deployed launcher/app policy and readiness integration
+  remain pending. Preserve the existing source/MAC/content admission requirements.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

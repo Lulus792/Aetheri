@@ -47,9 +47,15 @@ Authenticated system-to-user installation projection now exists for the protecte
 fixture. The persisted binding is only an observation. Explicit first data
 enrollment now binds a distinct protected allocation, DataEpoch and attachment
 with a closed gate. It preserves the unrelated retained storage fixture.
-Private native code reservation/status and pre-dispatch withdrawal now work over
-authenticated IPC. Next implement durable user launch acceptance/data readiness,
-supervised dispatch and target-exec evidence using those identities. General dynamic allocation/recovery and binding reconciliation after
+Private native code reservation/status and durable user acceptance/pre-dispatch
+withdrawal now survive broker replacement. Native FD-based private code/data mount
+views now have real Linux tests, but are not installed launch setup yet. Next
+connect journaled supervised setup/readiness, dispatch and target-exec evidence.
+The retained trusted fixture's declared action is run; older journal-only probes
+used synthetic main. New executable starts must resolve the actual manifest action
+and preserve old immutable tuples instead of interpreting main as run. This is an
+implementation gate, not a request to change the accepted product architecture.
+General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.
 

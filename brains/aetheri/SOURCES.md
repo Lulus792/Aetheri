@@ -918,3 +918,30 @@ terminal retries preserve database hashes. Orderly QEMU exit 0, PID absence and
 offline re-boot precede cross_boot_reopen=true with unchanged business history.
 This is pre-dispatch metadata recovery, not view/readiness, exec/drain, power-loss
 or complete app lifecycle evidence.
+
+## Private mount views — 27 October 2026
+
+- [open_tree(2)](https://man7.org/linux/man-pages/man2/open_tree.2.html): a detached
+  bind clone can be created from a held FD with AT_EMPTY_PATH/OPEN_TREE_CLONE;
+  recursive cloning requires an explicit extra flag. Closing a detached mount
+  handle is distinct from removing an attached mount or its remaining references.
+- [mount_setattr(2)](https://man7.org/linux/man-pages/man2/mount_setattr.2.html):
+  mount attributes can be added on a detached mount FD, with a separately chosen
+  propagation type. The implementation never clears preexisting restrictions.
+- [move_mount(2)](https://man7.org/linux/man-pages/man2/move_mount.2.html): source
+  and destination can be held FDs with the corresponding empty-path flags.
+- [systemd.exec 259](https://www.freedesktop.org/software/systemd/man/259/systemd.exec.html)
+  and [execveat(2)](https://man7.org/linux/man-pages/man2/execveat.2.html) were also
+  inspected for later starter/runtime integration; that integration is not claimed
+  from the mount primitive. The online 259 manual identifies itself as 259.6;
+  installed systemd is 259.10, so exact runtime acceptance remains separate.
+
+Implemented [view API](../../src/linux/view.h)/[source](../../src/linux/view.c),
+[actual native tests](../../tests/test_view.c) and
+[independent parent observer](../../tools/test_view_native.py). Real private
+namespace clones/attachments, inherited restrictions and fault handling are tested
+on the existing kernel 6.19.10/glibc 2.43 carrier. The administrative test context
+is unconfined_t with global SELinux Enforcing. No launcher-domain permission,
+target exec, catalogue readiness or complete sandbox is inferred. Executed results
+and next integration boundaries are in the
+[journal](journal/2026-10-26-first-prototype.md#native-private-mount-views--27-october-2026).

@@ -14,7 +14,8 @@ The later installed carrier and C17 owner/storage core now have executed evidenc
 in [state](../STATE.md). Two enforcing authority services now expose discovery,
 protected installation/data fixtures, private code reservation and durable user
 launch acceptance/withdrawal. User broker replacement retains and reconciles the
-original pre-dispatch obligation. Prepared views/readiness, actual app dispatch,
+original pre-dispatch obligation. Native private mount-view primitives now pass
+real kernel tests; their supervised setup/readiness integration, actual app dispatch,
 native document transport and complete lifecycle/removal remain pending. A
 temporary same-UID/MCS fixture supplies partial policy evidence; full app/run
 mapping and permanent confinement remain open. All P0 gates below define acceptance.

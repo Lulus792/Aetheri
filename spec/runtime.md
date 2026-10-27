@@ -1663,3 +1663,66 @@ preserves its protected identities in history, then provisions a distinct attemp
 The data enrollment regression preserves a later closed gate revision instead of
 assuming the original revision 2. Both unrelated data and publication fixtures stay
 owned and retained. Real code/data views, readiness, target exec and drain remain next.
+
+## Native private code/data views
+
+27 October 2026. [linux/view.h](../src/linux/view.h) implements the mount portion
+of trusted setup. It is not yet invoked by the installed authorities: no lifecycle
+capability, policy permission, launch readiness or actual app dispatch is added.
+The installed service pipeline still stops at the pre-dispatch journal above.
+
+Only a fresh, trusted, single-threaded setup process enters this API. It creates
+a new mount namespace and makes propagation recursively private; later failure
+requires that process to exit, never reuse a permanent authority or fall back to
+an unisolated launch. Source/target handles are opened and independently admitted
+inside that namespace. Catalogue intent and code/data holders must already exist.
+
+The helper clones the exact held source directory with open_tree, without recursive
+child mounts. It compares the full source identity before/after and the cloned
+backing object, while requiring a distinct unique mount ID for the new view.
+No source path is reinterpreted. CODE adds readonly/nodev/nosuid/nosymfollow and
+requires executable mounts; DATA adds noexec/nodev/nosuid/nosymfollow and requires
+writability. Existing noexec/readonly restrictions are never cleared. Runtime
+library/loader views need their own explicit contract; this strict P0 code/data
+profile does not silently permit symlinks needed by ordinary runtime libraries.
+
+Attachment accepts only the corresponding app/data slot under a held protected
+setup root. The exact empty root-owned 0700 target must match its expected identity
+on the parent's mount; links, replaced targets, foreign mount crossings, source
+aliases and unexpected contents fail. move_mount uses held source and target FDs.
+Before the move syscall, the local view becomes uncertain. Failure, including a
+lost success acknowledgement, cannot be repeated with the same attachment object.
+Post-move checks require the expected cloned mount at the named slot before marking
+attached. The caller still excludes concurrent privileged topology writers.
+
+All view/namespace objects are process scoped and hold CLOEXEC descriptors; fork
+or namespace changes reject later checks. Closing an object releases only its
+local handles. It does not remove attached mounts, drain an application or release
+a durable lease. The setup/app process and any descendant/FD/namespace holder must
+actually disappear before its durable obligation can be reconciled. The next
+integration must journal those external effects and bind the actual supervised
+setup invocation before dispatch/readiness, not treat this library as provenance.
+
+Before installing a caller, both authorities' withdrawal paths must account for
+journaled setup effects, including a setup process whose reply is missing. The
+current simple root withdrawal path only handles metadata reservations; it must
+not be used to release code after external view setup has begun.
+
+[Native tests](../tests/test_view.c) run only inside the dedicated Linux VM.
+The independent Python parent observes its untouched target directories while
+the child mounts remain live. Real kernel checks reject code writes, data exec
+and executable mappings, and device opens; symlinks are refused and foreign nested
+mounts are omitted. These tests use administrative unconfined_t under global
+SELinux Enforcing; the future launcher's MAC domain is not exercised here.
+Fault cases include namespace/private-propagation failure, clone/attribute failure,
+move failure before and after a real move, stale source/target identities, existing
+restrictions, wrong slots, unexpected entries, fork/namespace misuse and descriptor
+leaks. Closing all library objects demonstrably leaves the attached view present
+until explicit test unmount/process exit. Failed fixtures are retained for inspection.
+
+Primary API references inspected for this slice:
+[open_tree](https://man7.org/linux/man-pages/man2/open_tree.2.html),
+[mount_setattr](https://man7.org/linux/man-pages/man2/mount_setattr.2.html),
+[move_mount](https://man7.org/linux/man-pages/man2/move_mount.2.html).
+Their detached-mount/FD/attribute semantics are distinct from Aetheri's own ownership
+and recovery rules. Runtime tests use the existing kernel/glibc pins; no new library.

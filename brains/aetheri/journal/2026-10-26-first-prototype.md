@@ -1007,3 +1007,48 @@ Next: exact data/code view preparation, durable readiness and serialized dispatc
 supervisor target-exec evidence. Recovery/drain must account for external effects
 before their corresponding lease can be released. No public launch, physical
 power-loss/hardware, desktop or finished OS/app acceptance is claimed.
+
+## Native private mount views — 27 October 2026
+
+Added linux/view.h/c to the existing Linux module, with one native test and an
+independent parent observer. No new package/library, policy permission, schema,
+RPC or resident process. The previous turn was verified progress: committed user
+journal/recovery a39278f was present and clean; the same offline VM was live.
+
+The trusted setup primitive enters a fresh recursively private mount namespace,
+then clones exact admitted source directory handles without nested mounts. New
+unique mount IDs are compared to the same backing object. Code becomes readonly;
+data remains writable/noexec; both views are nodev/nosuid/nosymfollow. It never
+clears inherited restrictions. Exact empty root-owned setup targets are checked
+before attachment. A move attempt becomes uncertain before the syscall; ordinary
+and lost-success failures cannot be repeated. Objects reject fork/namespace misuse,
+use CLOEXEC descriptors and release only local handles. Closing them deliberately
+does not infer unmount/app drain or authorize durable lease release.
+
+Actual tests create detached mounts and attach them to owned disposable slots.
+While the views are live, a separate parent process verifies its original empty
+targets and nested underlay remain visible. Kernel checks reject code writes,
+symlink traversal, data exec, executable mmap and device opens. Inherited readonly/
+noexec restrictions are rejected rather than removed. A same-inode bind substituted
+at the target fails NO_XDEV; renamed/replaced targets, changed source metadata,
+unexpected entries and wrong slots fail. Namespace entry/private-propagation,
+clone and attribute failures, move failures before/after actual success, fork and
+namespace changes, output preservation and repeated descriptor cleanup are covered.
+All library objects can close while the view is still mounted; that remaining
+reference is demonstrated before explicit test unmounts. The Python harness retains
+failed fixtures, including any unknown child state, rather than recursively deleting.
+
+Complete native suites pass 30/30 Debug ASan/UBSan (113.06 s) and Release
+(101.14 s). Final expanded exec-mmap/target-bind cases pass focused Debug/Release
+repeats (0.18/0.09 s). Host orchestration 28/28 and isolated constraints 374
+assertions pass. These are test durations, not OS performance measurements.
+The guest is globally SELinux Enforcing, but these mount tests deliberately run
+as administrative unconfined_t. No deployed launcher/app-domain acceptance is
+claimed. Existing installed authority launch-history reopening and normal
+endpoint/app-denial checks still pass. Owned authority/probe units are stopped.
+
+Next: connect this component to a protected short-lived supervised starter,
+persist setup effects before making them, drop privileges/close handles, establish
+typed readiness and prove actual target execution. The retained fixture declares
+action run; old synthetic main reservations must remain immutable history, not be
+silently reinterpreted for execution. No public launch or complete app sandbox yet.

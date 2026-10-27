@@ -598,3 +598,23 @@ link after lost reply can be filled from that actual receipt. Existing exec,
 readiness, grants or further setup steps require richer reconciliation. Preserve
 terminal stamps/revisions and private data. No additional schema, process, library
 or policy permission is needed for this slice; public launch remains unsupported.
+
+## Prepare views from admitted handles — 27 October 2026
+
+Use Linux's FD-based mount API for the small trusted setup component. Clone only
+the admitted code/data mount, add restrictions without removing existing ones,
+then attach to exact empty protected app/data slots. Omit nested mounts rather
+than recursively importing another mounted tree. A dedicated child namespace with
+private propagation keeps setup effects out of the authority/host namespace.
+
+Do not put namespace entry into the permanent system or user authority. The new
+native primitive is for a fresh single-threaded setup process, to be connected to
+the durable launch journal/supervisor next. Source/MAC/content admission remains
+the caller's responsibility. Readonly code is a view property; other backing-file
+aliases still require immutable publication and policy against writers.
+
+A move attempt consumes the local attachment opportunity; uncertain results cannot
+be retried as new setup or used to infer drain. Closing a handle is not mount/app
+release. Test actual kernel enforcement and an independent parent observation
+while the mount exists. Keep SQL/private/public APIs and deployed policy unchanged
+until the process/journal/readiness integration accounts for those effects.

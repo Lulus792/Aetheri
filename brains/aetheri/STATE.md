@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — durable user launch journal and pre-dispatch broker recovery.
+27 October 2026 — native private code/data views; supervised setup remains next.
 
 ## Confirmed
 
@@ -13,6 +13,26 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Native [linux/view.h](../../src/linux/view.h) now creates private mount namespaces,
+clones exact admitted code/data directory handles and attaches them to checked
+empty setup slots. Code is readonly; data is writable/noexec; both are nodev,
+nosuid and nosymfollow. Existing restrictions are never removed. Move attempts
+with uncertain results cannot be repeated. Process/namespace identity and owned
+CLOEXEC handles are checked; closing them is not a claim of mount/app drain.
+
+This is a tested setup primitive, not yet a deployed starter or readiness/dispatch
+integration. It changes no policy permission, schema, IPC contract or dependency.
+Real privileged tests run as administrative unconfined_t in the existing enforcing
+guest, not the future launcher/app domain. They prove kernel mount boundaries,
+including readonly writes, actual exec and executable mmap refusal, device-open
+denial, omitted nested mounts, source/target replacement checks and no propagation
+to an independent parent while views are live. Full native suites pass 30/30
+Debug ASan/UBSan (113.06 s) and Release (101.14 s); final expanded mount cases
+also pass focused Debug/Release repeats. Host orchestration 28/28 and isolated
+constraints 374 assertions pass. Existing installed authority launch-history and
+endpoint/app-denial checks still pass; their service/probe units are stopped.
+See [runtime details](../../spec/runtime.md#native-private-codedata-views).
 
 The user writer now commits canonical launch intent, local operation, requested
 run/proposed code lease and immutable request fingerprint before system RPC.
@@ -44,7 +64,7 @@ Data/code view preparation, readiness, target dispatch/exec and real drain remai
 next; no app unit was created by these tests. Detailed executed results follow in
 the [session journal](journal/2026-10-26-first-prototype.md#durable-user-launch-journal--27-october-2026).
 
-Current native evidence: 29/29 Debug ASan/UBSan (134.29 s), then expanded admission
+Launch-journal baseline evidence: 29/29 Debug ASan/UBSan (134.29 s), then expanded admission
 faults in focused Debug (16.45 s); complete Release 29/29 (99.29 s) includes those
 cases. Final pre-RPC withdrawal eligibility and synthetic readiness/invocation/setup
 guards pass focused Debug/Release repeats (20.05/19.16 s) and a distinct enforcing

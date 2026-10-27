@@ -103,8 +103,9 @@ closed data gate. This does not implement app launch or general dynamic allocati
 The private system API now records exact code reservations and permits scoped
 status/withdrawal before dispatch. It is exercised over the real broker connection;
 durable user launch acceptance and pre-dispatch withdrawal after broker replacement
-also work for the fixed fixture. Prepared data/code views, readiness, public launch
-and process dispatch remain pending.
+also work for the fixed fixture. Native private code/data mount views now have
+real kernel tests; connecting them to supervised setup/readiness, public launch
+and process dispatch remains pending.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete
