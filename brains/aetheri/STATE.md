@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — journaled, sealed fixture-store publication.
+27 October 2026 — atomic first activation and retained installation receipts.
 
 ## Confirmed
 
@@ -49,8 +49,23 @@ file metadata or operation revision. Owner chmod and executable mmap are denied.
 Publication commits artifact verified/generation committed atomically, while
 install stays preparing, activated_once=0 and operation running/reconcile with
 activation_pending and no result/outcome/lease. Public capabilities are unchanged.
-General dynamic allocation, volume/publisher trust, activation/admission, launch,
+General dynamic allocation, volume/publisher trust, updates/admission, launch,
 document transport and complete recovery coordination remain pending.
+
+The separate first-activation path now verifies the already published object and
+protected AETHACT1 (publication hash, install/generation/closed-gate revisions and
+administrative stamp). One native SQLite transaction adds applied step 2, activates
+the original generation and completes the original install operation with InstallId.
+It requires current boot/runtime, exact scope and revisions, a cause-free closed
+gate and no conflicting leases/dependencies/dispatches. The gate stays closed;
+no app, data, grant or launch obligation is created. No new policy permission,
+dependency, schema/wire version or public capability.
+
+Completed retry returns the original history without changing current generation,
+gates or removal state. installation_active separately describes the current
+catalogue pointer. Receipt lookup is not code validation or launch authorization;
+first activation verifies the actual store, and fixture-store-check remains its
+current-object check. General update/rollback, receipt expiry and admission are pending.
 
 Actual native ELF stage/retry and cross-boot reopen pass. A same-filesystem copied
 source with identical bytes fails native ESTALE without changing the catalogue;
@@ -65,7 +80,7 @@ labels, original root objects, denied final mutations and unchanged publication
 revision pass again, followed by normal endpoint/app-denial and private storage
 checks. Use fixture-store-check now; the old stage path no longer exists.
 
-Native suites pass 23/23 Debug ASan/UBSan (77.94 s) and 23/23 Release (55.99 s),
+Native suites pass 23/23 Debug ASan/UBSan (72.63 s) and 23/23 Release (65.20 s),
 including publication rename/fsync faults, process exits, separate-process replay,
 unknown/copied roots, metadata conflicts and actual same-inode bind rejection.
 The extended journal tests inject before/after COMMIT failure at every publication
@@ -74,13 +89,27 @@ decoders cover byte bounds and missing/malformed object witnesses. Actual final
 owner-chmod denial probes were then built and exercised in the installed service.
 The strengthened copied-final-container case passes focused publication/mount
 repeats in Debug (12.00 s) and Release (10.77 s).
+Subsequent activation tests add before/after statement/COMMIT IO faults and process
+exit, stale revisions, open/closing/owned gates, missing runtime, live holders and
+completed receipts after a newer generation/removal/reclamation or later gate
+opening. Focused journal/config Debug/Release repeats pass (18.80/15.57 s).
+The independent Python encoder supplies the exact AETHACT1 digest. Config decoding
+covers lengths/ranges and unchanged output. Actual enforcing cap-zero
+first activation/retry preserves the published tree, retains the closed gate and
+retains the same completion/catalogue bytes on retry. The real fixture remains
+active with its gate closed; future lifecycle states are exercised only in tests.
+After graceful VM shutdown (QEMU exit 0, verified PID absence) and offline boot of
+the same disk, fixture-activation-check reports cross_boot_reopen=true with its
+original receipt and no dispatch. Store verification, normal endpoint/app-denial
+and retained private-allocation checks pass again. All owned service/probe units
+are stopped; the activated fixture and its closed gate remain.
 Thirty-one host guards pass (24 orchestration and seven cache/input checks);
-27 migration/wire tests pass (46.744 s). The isolated host validator passes
+27 migration/wire tests pass (31.065 s); 14 runtime-vector tests pass. The isolated host validator passes
 374 assertions on SQLite 3.53.1. Native guest SQLite remains pinned at 3.51.2.
 SQL/XML and frozen byte contracts and SDK
 pins are unchanged. New internal AETHFIC1 configuration, policy types and owned
 administrative binaries are documented in [runtime contracts](../../spec/runtime.md).
-Public methods/capabilities remain discovery-only. Activation, general recovery
+Public methods/capabilities remain discovery-only. Updates, general recovery
 coordination and app/run admission remain next.
 
 [Versioned contracts](../../spec/README.md): complete common/system/user v2 SQL,
@@ -370,7 +399,7 @@ No complete Aetheri launch/grant/revocation/purge, permanent
 confinement, power-loss, physical hardware or desktop acceptance. No original
 Aetheri image/UI.
 
-Next: activation/admission, app/run principal
+Next: admission, app/run principal
 mapping, protected read refs, launcher/target-exec and remaining recovery/policy.
 All P0 Linux gates must pass before expanding to the desktop/apps. The full
 daily-use Aetheri requirements, including user UI decisions, remain the objective.

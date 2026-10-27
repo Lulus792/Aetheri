@@ -348,8 +348,8 @@ artifact verified and generation committed. Install stays preparing with no acti
 generation; operation stays running/reconcile, reason activation_pending, with no
 outcome/result/lease. Applied publication cannot be downgraded by this API; later
 corruption must block admission. Lost COMMIT acknowledgement retains the original
-binding and requires recheck. General recovery coordination, activation, launching,
-document grants, package signatures and physical power-loss acceptance remain
+binding and requires recheck. First activation is implemented below. General
+recovery coordination, updates, launching, document grants, package signatures and physical power-loss acceptance remain
 separate work. No public API capability or schema/wire version changes.
 
 After a Release build/update-owned and successful fixture-check, run the root-only
@@ -358,6 +358,65 @@ uses separate native units for publication and exact replay; it checks content,
 labels, modes, original root inodes and unchanged operation/object metadata.
 Once publication starts, use fixture-store-check for reconciliation; the older
 fixture-check/rebind check addresses only the original staging location.
+
+### First fixture activation and completion
+
+First activation completes the original fixed P0 install intent. It does not
+allocate another InstallId/GenerationId or mutate the accepted plan/effects.
+Updates, rollback and a public activate-plan API remain separate work.
+
+The root controller's fixture-activation-prepare starts/stops the native endpoints
+to establish the actual catalogue boot/runtime and close bootstrap-open gates,
+then reads the expected install/generation/gate revisions. It writes no business
+rows. Seal intent precedes root-owned 0444 `registry/fixture-activation.conf`:
+
+```text
+"AETHACT1"[8]
+H publication_configuration_digest
+u64 install_revision, generation_revision, install_gate_revision, completed_unix_ms
+```
+
+This internal configuration is exactly 72 bytes. Its SHA-256 binds the prior
+AETHSTO1 evidence, revisions and administrative completion stamp. That stamp is
+not a measurement of SQLite COMMIT time. No new SQL/XML version or dependency.
+
+System `--fixture-activate` requires an already applied publication. Before first
+activation it repeats exact store object/hash/mode/label/flush and denial checks.
+The single native catalogue writer reconstructs AETHACT1 and requires matching
+evidence, active scope/UID/revision, current kernel/catalogue boot and a nonzero
+runtime. It compares install/generation/gate revisions, requires a closed gate
+without another operation's closing cause, and rejects live code leases,
+dependency edges or dispatch records. Unsupported providers remain rejected by
+the original fixture acceptance path.
+
+One SQLite transaction adds step 2 (activate/generation, applied, configuration
+hash), sets the original installation active with its exact generation, and
+completes the original operation (outcome applied, result InstallId). The existing
+trigger records activated_once and advances the generation revision; install,
+operation and catalogue revisions advance in that same commit. No external
+effect follows those writes, so there is no separately persisted executing phase
+for this pure metadata step. Errors/process exit before commit leave no partial
+activation. A lost acknowledgement after commit retains one original result.
+
+The install gate stays closed. No app process, code lease, user data, grant,
+integration or readiness is created. Source/configuration and carrier test
+infrastructure remain explicitly tracked; this is not a general installer or
+complete-removal implementation.
+
+A completed retry authenticates the retained original request/configuration and
+returns its historical receipt without reactivating, changing gates or rereading
+code as launch authorization. It survives a later generation switch or removal
+while those P0 registry/scope/receipt bindings are retained. installation_active
+separately reports whether that generation is still the current catalogue pointer.
+Historical publication/activation steps do not prove current file availability,
+policy, data readiness or permission to launch. Fresh admission must establish
+those facts again; receipt pruning/expiry and general recovery remain pending.
+
+fixture-activation-check uses separate native units for first execution/retry,
+checks the exact completion/generation/gate rows, unchanged published inode/mode/
+ctime and an unchanged catalogue hash on retry. fixture-store-check continues to
+verify the actual immutable object after activation. No public lifecycle capability
+is enabled by either administrative path.
 
 ## Private-root owner v1
 

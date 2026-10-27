@@ -707,16 +707,19 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
     if (count != 1) return -EEXIST;
     sqlite3_stmt *statement = NULL;
     result = fixture_statement(store, FIXTURE_INPUT
-        "SELECT s.state,s.evidence_digest,o.revision,o.phase,o.state,t.state,t.evidence_digest,a.store_state,g.publication_state FROM input r "
+        "SELECT s.state,s.evidence_digest,o.revision,o.phase,o.state,t.state,t.evidence_digest,a.store_state,g.publication_state,u.operation_id,u.evidence_digest,o.completed_unix_ms,"
+        "i.state='active' AND i.active_generation_id=r.generation AND g.publication_state='committed' AND a.store_state='verified' FROM input r "
         "JOIN operations o ON o.operation_id=r.op AND o.plan_id=r.plan AND o.actor_ref=r.actor AND o.request_key=r.retry AND o.intent_digest=r.digest AND o.accepted_unix_ms=r.accepted "
         "JOIN plans p ON p.plan_id=r.plan AND p.authority_epoch=r.authority AND p.actor_ref=r.actor AND p.scope_ref=r.scope AND p.kind='install' AND p.component_id=r.component AND p.artifact_ref=r.artifact AND p.intent_digest=r.digest AND p.boot_id=r.boot AND p.expires_boottime_ns=r.expires AND p.state='accepted' AND p.retention='none' "
         "JOIN components c ON c.component_id=r.component AND c.publisher_ref=r.publisher AND c.kind='app' AND c.protected=0 "
         "JOIN artifacts a ON a.artifact_id=r.artifact AND a.component_id=r.component AND a.version_label=r.version AND a.target=r.target "
-        "JOIN installs i ON i.install_id=r.install AND i.component_id=r.component AND i.scope_id=r.scope AND i.state='preparing' AND i.active_generation_id IS NULL "
-        "JOIN generations g ON g.generation_id=r.generation AND g.install_id=r.install AND g.component_id=r.component AND g.artifact_id=r.artifact AND g.activated_once=0 "
+        "JOIN installs i ON i.install_id=r.install AND i.component_id=r.component AND i.scope_id=r.scope "
+        "JOIN generations g ON g.generation_id=r.generation AND g.install_id=r.install AND g.component_id=r.component AND g.artifact_id=r.artifact "
         "JOIN operation_steps s ON s.operation_id=r.op AND s.step_no=0 AND s.action='stage' AND s.subject_kind='storage' AND s.subject_ref=r.slot "
         "LEFT JOIN operation_steps t ON t.operation_id=r.op AND t.step_no=1 AND t.action='publish' AND t.subject_kind='storage' AND t.subject_ref=r.artifact "
-        "WHERE o.state IN ('accepted','running','blocked','recovering') AND o.outcome IS NULL AND o.result_kind IS NULL "
+        "LEFT JOIN operation_steps u ON u.operation_id=r.op AND u.step_no=2 AND u.action='activate' AND u.subject_kind='generation' AND u.subject_ref=r.generation AND u.state='applied' "
+        "WHERE ((u.operation_id IS NULL AND o.state IN ('accepted','running','blocked','recovering') AND o.outcome IS NULL AND o.result_kind IS NULL AND i.state='preparing' AND i.active_generation_id IS NULL AND g.activated_once=0) "
+        "OR (u.operation_id IS NOT NULL AND o.state='completed' AND o.outcome='applied' AND o.result_kind='install' AND o.result_ref=r.install AND g.activated_once=1)) "
         "AND p.install_ref IS NULL AND p.generation_ref IS NULL AND p.data_epoch_ref IS NULL AND p.grant_ref IS NULL AND p.action_id IS NULL",
         values, &statement);
     struct ae_fixture_progress progress = {0};
@@ -733,13 +736,23 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
                 if (result==0) memcpy(progress.publication_evidence,sqlite3_column_blob(statement,6),32);
             }
             int published=progress.publication_present && progress.publication_step==AE_FIXTURE_READY;
+            if (result==0 && sqlite3_column_type(statement,9)!=SQLITE_NULL) {
+                if (!published || sqlite3_column_type(statement,10)!=SQLITE_BLOB || sqlite3_column_bytes(statement,10)!=32 ||
+                    sqlite3_column_type(statement,11)!=SQLITE_INTEGER || sqlite3_column_int64(statement,11)<0) result=-EUCLEAN;
+                else {
+                    progress.activation_present=1;
+                    memcpy(progress.activation_evidence,sqlite3_column_blob(statement,10),32);
+                    progress.completed_unix_ms=sqlite3_column_int64(statement,11);
+                }
+            }
             const unsigned char *phase=sqlite3_column_text(statement,3), *artifact_state=sqlite3_column_text(statement,7),
                 *generation_state=sqlite3_column_text(statement,8);
             const char *expected_phase=published ? "reconcile" : progress.step==AE_FIXTURE_PLANNED ? "validate" : progress.step==AE_FIXTURE_READY ? "publish" : "stage";
             if (result==0 && (phase==NULL || artifact_state==NULL || generation_state==NULL ||
                 strcmp((const char *)phase,expected_phase)!=0 ||
-                strcmp((const char *)artifact_state,published ? "verified" : "staged")!=0 ||
-                strcmp((const char *)generation_state,published ? "committed" : "staged")!=0)) result=-EUCLEAN;
+                (!progress.activation_present && (strcmp((const char *)artifact_state,published ? "verified" : "staged")!=0 ||
+                strcmp((const char *)generation_state,published ? "committed" : "staged")!=0)))) result=-EUCLEAN;
+            if (result==0) progress.installation_active=sqlite3_column_int(statement,12)==1;
             if (result == 0 && sqlite3_column_type(statement, 1) != SQLITE_NULL) {
                 if (sqlite3_column_type(statement, 1) != SQLITE_BLOB || sqlite3_column_bytes(statement, 1) != 32) result = -EUCLEAN;
                 else { memcpy(progress.evidence, sqlite3_column_blob(statement, 1), 32); progress.evidence_present = 1; }
@@ -759,7 +772,7 @@ static int fixture_row(struct ae_catalogue *store, const struct fixture_value va
         FIXTURE_INPUT "SELECT count(*) FROM plan_effects e,input r WHERE e.plan_id=r.plan AND e.component_id=r.component AND e.disposition='create' AND e.reason_code='fixture_prepare' AND ((e.effect_no=0 AND e.subject_kind='install' AND e.subject_ref=r.install) OR (e.effect_no=1 AND e.subject_kind='generation' AND e.subject_ref=r.generation) OR (e.effect_no=2 AND e.subject_kind='storage' AND e.subject_ref=r.slot))",
         FIXTURE_INPUT "SELECT count(*) FROM operation_steps s,input r WHERE s.operation_id=r.op"
     };
-    const int64_t expected[] = {1,1,3,3,progress.publication_present ? 2 : 1};
+    const int64_t expected[] = {1,1,3,3,progress.activation_present ? 3 : progress.publication_present ? 2 : 1};
     for (size_t n = 0; result == 0 && n < sizeof checks / sizeof checks[0]; ++n) {
         result = fixture_count(store, checks[n], values, &count);
         if (result == 0 && count != expected[n]) result = -ESTALE;
@@ -940,6 +953,110 @@ int ae_catalogue_fixture_publication(struct ae_catalogue *store,const struct ae_
     return result;
 }
 
+#define ACTIVATION_INPUT FIXTURE_INPUT ", activation(install_revision,generation_revision,gate_revision,stamp,evidence) AS (VALUES(?21,?22,?23,?24,?25)) "
+
+static int activation_statement(struct ae_catalogue *store,const char *sql,const struct fixture_value values[20],
+                                  const struct ae_fixture_activation *activation,sqlite3_stmt **output)
+{
+    sqlite3_stmt *statement=NULL;
+    int result=fixture_statement(store,sql,values,&statement);
+    if (result==0) result=failure(sqlite3_bind_int64(statement,21,activation->install_revision));
+    if (result==0) result=failure(sqlite3_bind_int64(statement,22,activation->generation_revision));
+    if (result==0) result=failure(sqlite3_bind_int64(statement,23,activation->gate_revision));
+    if (result==0) result=failure(sqlite3_bind_int64(statement,24,activation->completed_unix_ms));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,25,activation->expected_evidence,32,SQLITE_TRANSIENT));
+    if (result!=0) { sqlite3_finalize(statement); return result; }
+    *output=statement;
+    return 0;
+}
+
+static int activation_guard(struct ae_catalogue *store,const struct fixture_value values[20],
+                              const struct ae_fixture_activation *activation)
+{
+    sqlite3_stmt *statement=NULL;
+    int result=activation_statement(store,ACTIVATION_INPUT
+        "SELECT i.revision=x.install_revision,g.revision=x.generation_revision,f.revision=x.gate_revision,f.state='closed' AND f.closing_operation_id IS NULL,"
+        "(SELECT count(*) FROM generation_leases l WHERE l.generation_id=r.generation AND l.state<>'released'),"
+        "(SELECT count(*) FROM generation_edges e WHERE e.consumer_id=r.generation OR e.provider_id=r.generation),"
+        "(SELECT count(*) FROM launch_dispatches d WHERE d.generation_ref=r.generation) "
+        "FROM input r,activation x JOIN installs i ON i.install_id=r.install JOIN generations g ON g.generation_id=r.generation "
+        "JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=r.install",values,activation,&statement);
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -ESTALE : failure(code);
+        for (int column=0;result==0 && column<7;++column) {
+            if (sqlite3_column_type(statement,column)!=SQLITE_INTEGER) result=-EUCLEAN;
+            else if (sqlite3_column_int64(statement,column)!=(column<4 ? 1 : 0)) result=column<3 ? -ESTALE : -EBUSY;
+        }
+        if (result==0 && sqlite3_step(statement)!=SQLITE_DONE) result=-EUCLEAN;
+    }
+    int final=failure(sqlite3_finalize(statement));
+    return result!=0 ? result : final;
+}
+
+int ae_catalogue_fixture_activate(struct ae_catalogue *store,const struct ae_fixture_request *request,
+                                  const uint8_t *manifest,size_t size,const struct ae_fixture_activation *activation,
+                                  const uint8_t current_boot[16],struct ae_fixture_progress *output)
+{
+    if (output==NULL || current_boot==NULL || !nonzero(current_boot) || activation==NULL ||
+        activation->install_revision<1 || activation->generation_revision<1 || activation->gate_revision<1 ||
+        activation->completed_unix_ms<0) return -EINVAL;
+    if (activation->install_revision==INT64_MAX || activation->generation_revision==INT64_MAX) return -EOVERFLOW;
+    struct fixture_encoder encoder={0};
+    fixture_bytes(&encoder,"AETHACT1",8); fixture_bytes(&encoder,activation->publication_evidence,32);
+    fixture_number(&encoder,(uint64_t)activation->install_revision,8);
+    fixture_number(&encoder,(uint64_t)activation->generation_revision,8);
+    fixture_number(&encoder,(uint64_t)activation->gate_revision,8);
+    fixture_number(&encoder,(uint64_t)activation->completed_unix_ms,8);
+    uint8_t evidence[32];
+    int result=encoder.error;
+    if (result==0) result=ae_sha256_bytes(encoder.bytes,encoder.used,evidence);
+    if (result==0 && memcmp(evidence,activation->expected_evidence,32)!=0) result=-EBADMSG;
+    struct ae_fixture fixture;
+    uint8_t digest[32];
+    struct fixture_value values[20];
+    if (result==0) result=fixture_inputs(store,request,manifest,size,&fixture,digest,values);
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE");
+    if (result!=0) return result;
+    struct ae_fixture_progress progress;
+    result=fixture_scope(store,request);
+    if (result==0) result=fixture_row(store,values,&progress);
+    if (result==0 && (!progress.publication_present || progress.publication_step!=AE_FIXTURE_READY)) result=-EINVAL;
+    if (result==0 && memcmp(progress.publication_evidence,activation->publication_evidence,32)!=0) result=-ESTALE;
+    if (result==0 && progress.activation_present && (memcmp(progress.activation_evidence,evidence,32)!=0 ||
+        progress.completed_unix_ms!=activation->completed_unix_ms)) result=-ESTALE;
+    if (result==0 && !progress.activation_present) {
+        struct ae_catalogue_info info;
+        result=read_info(store,&info);
+        if (result==0 && (memcmp(info.boot_id,current_boot,16)!=0 || !nonzero(info.runtime_incarnation))) result=-ESTALE;
+        if (result==0 && (info.revision==INT64_MAX || progress.revision==INT64_MAX)) result=-EOVERFLOW;
+        if (result==0) result=activation_guard(store,values,activation);
+        const char *statements[]={
+            ACTIVATION_INPUT "INSERT INTO operation_steps(operation_id,step_no,action,subject_kind,subject_ref,state,evidence_digest) SELECT r.op,2,'activate','generation',r.generation,'applied',x.evidence FROM input r,activation x",
+            ACTIVATION_INPUT "UPDATE installs SET state='active',active_generation_id=(SELECT generation FROM input),revision=revision+1 WHERE install_id=(SELECT install FROM input)",
+            ACTIVATION_INPUT "UPDATE operations SET state='completed',phase='reconcile',reason_code='',outcome='applied',completed_unix_ms=(SELECT stamp FROM activation),result_kind='install',result_ref=(SELECT install FROM input),revision=revision+1 WHERE operation_id=(SELECT op FROM input)"
+        };
+        for (size_t n=0;result==0 && n<sizeof statements/sizeof statements[0];++n) {
+            sqlite3_stmt *statement=NULL;
+            result=activation_statement(store,statements[n],values,activation,&statement);
+            if (result==0) {
+                int code=sqlite3_step(statement);
+                result=code==SQLITE_DONE ? 0 : failure(code);
+                if (result==0 && sqlite3_changes(store->db)!=1) result=-EUCLEAN;
+            }
+            int final=failure(sqlite3_finalize(statement));
+            if (result==0) result=final;
+        }
+        if (result==0) result=exec_sql(store->db,"UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+        if (result==0) result=fixture_row(store,values,&progress);
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *output=progress;
+    return result;
+}
+
+#undef ACTIVATION_INPUT
 #undef FIXTURE_INPUT
 #undef FB
 #undef FT

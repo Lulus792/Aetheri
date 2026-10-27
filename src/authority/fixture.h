@@ -6,6 +6,7 @@
 
 enum { AE_FIXTURE_CONFIG_BYTES = 328, AE_FIXTURE_ROOT_BYTES = 36 };
 enum { AE_FIXTURE_STORE_CONFIG_BYTES = 112 };
+enum { AE_FIXTURE_ACTIVATION_CONFIG_BYTES = 72 };
 struct ae_fixture_store_config {
     uint8_t stage_digest[32];
     struct ae_root_identity store, container;
@@ -24,5 +25,11 @@ int ae_fixture_config_decode(const uint8_t *bytes, size_t size, struct ae_fixtur
 int ae_authority_fixture(struct ae_catalogue *catalogue, int observe, const uint8_t current_boot[16]);
 int ae_fixture_store_config_decode(const uint8_t *bytes,size_t size,struct ae_fixture_store_config *output);
 int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe);
+/* AETHACT1: publication-config hash, install/generation/closed-gate revisions,
+ * administrative completion stamp (four big-endian u64). Caller hashes the
+ * protected bytes into expected_evidence after decoding; decoder leaves it zero.
+ */
+int ae_fixture_activation_config_decode(const uint8_t *bytes,size_t size,struct ae_fixture_activation *output);
+int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t current_boot[16]);
 
 #endif

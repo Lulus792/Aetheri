@@ -85,6 +85,10 @@ struct ae_fixture_progress {
     int publication_present;
     enum ae_fixture_step publication_step;
     uint8_t publication_evidence[32];
+    int activation_present;
+    uint8_t activation_evidence[32];
+    int64_t completed_unix_ms;
+    int installation_active; /* Current pointer, unlike historical step evidence. */
 };
 /* Atomic intent/operation/preparing metadata acceptance before payload effects.
  * Exact replay returns the same operation/progress without revision advancement;
@@ -122,9 +126,10 @@ int ae_catalogue_fixture_get(struct ae_catalogue *catalogue,
  * then persist EXECUTING before external IO. The protected evidence binds the
  * stage configuration, store anchor and preallocated container object witnesses.
  * READY requires caller proof of sealed, fully flushed publication; atomically
- * sets artifact verified/generation committed, operation running/reconcile with
+ * initially sets artifact verified/generation committed, operation running/reconcile with
  * activation_pending. Install remains preparing, no activation/result/lease.
- * This only journals the caller's evidence, never performs filesystem/policy IO.
+ * Exact applied replay never resets later lifecycle state. This only journals
+ * the caller's evidence, never performs filesystem/policy IO.
  * Applied publication is terminal here: later corruption must block admission,
  * not silently roll metadata back. All failures preserve output and any commit.
  */
@@ -133,6 +138,31 @@ int ae_catalogue_fixture_publication(struct ae_catalogue *catalogue,
                                      const uint8_t *manifest, size_t size,
                                      enum ae_fixture_step step, const uint8_t evidence[32],
                                      struct ae_fixture_progress *output);
+struct ae_fixture_activation {
+    uint8_t publication_evidence[32], expected_evidence[32];
+    int64_t install_revision, generation_revision, gate_revision, completed_unix_ms;
+};
+/* Finish the first installation, never update/rearm an existing generation.
+ * Before first activation, caller verifies the exact immutable published object
+ * under the owner lock/MAC. Reconstruct AETHACT1 (publication evidence + four big-endian u64
+ * values) and compare expected_evidence before SQL. Require current kernel boot,
+ * an initialized catalogue runtime, exact scope/read revisions, a closed unowned
+ * gate and no outstanding code/dependency/dispatch holders. Atomically activate
+ * the original generation, add applied step 2, and complete this install operation
+ * with its original InstallId. Gate remains closed; no lease, run, process, user
+ * data or registration is created. This is not launch readiness or a public API.
+ * Exact completed replay retains revisions/timestamp/evidence after boot, a
+ * newer generation or removal; installation_active reports the current pointer,
+ * not historical success. No store/policy validation is implied by receipt lookup.
+ * A lost COMMIT acknowledgement never reactivates or replaces the generation.
+ * Completion timestamp is the protected administrative stamp, not COMMIT time.
+ */
+int ae_catalogue_fixture_activate(struct ae_catalogue *catalogue,
+                                  const struct ae_fixture_request *request,
+                                  const uint8_t *manifest, size_t size,
+                                  const struct ae_fixture_activation *activation,
+                                  const uint8_t current_boot[16],
+                                  struct ae_fixture_progress *output);
 /* Never carry SQLite connections across fork. These APIs reject a fork child;
  * callers must exec/_exit without using the inherited connection.
  */

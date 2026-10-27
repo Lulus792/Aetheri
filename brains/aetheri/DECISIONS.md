@@ -472,3 +472,24 @@ Publication leaves installation preparing and operation running/reconcile with
 activation_pending. It is not app activation, an installation result or a lease.
 Root-provisioned infrastructure exercises the boundary without silently claiming
 general allocation, package trust, registered volumes or complete recovery.
+
+## Complete first installation with closed admission — 27 October 2026
+
+Treat first activation as the last step of the fixed P0 install intent, keeping
+the original operation/install/generation identities. Bind the publication and
+expected install/generation/gate revisions in protected AETHACT1 evidence. Verify
+the immutable store before metadata effects and commit activation, its applied
+step and the original install result together in the single owner database.
+Do not add a second installer database or a partial cross-system commit protocol
+for a step whose only effects are SQL.
+
+Require current boot/runtime, an exact cause-free closed gate and no conflicting
+leases/dependencies/dispatches. Leave that gate closed; activation is not launch
+readiness or data admission. No registration effects are claimed by this fixture.
+Preserve failed/lost commit outcomes and immutable completion stamps/evidence.
+
+Completed retry returns history. It must not rearm a generation, restore an old
+active pointer, close a subsequently opened gate or undo removal. Separate the
+historical receipt from current installation_active and all future launch checks.
+Public activation/update/rollback, general recovery and real app launch remain
+distinct implementation gates.

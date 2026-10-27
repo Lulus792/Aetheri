@@ -91,7 +91,9 @@ system-domain administrative path now binds a trusted native fixture to its
 preallocated carrier slot and operation journal, including cross-boot reopening.
 The trusted fixture can now be published as one sealed manifest/payload object
 under its ArtifactId, with immutable operation evidence and exact retries.
-General dynamic allocation, activation and admission remain separate work.
+First activation now completes that original fixed installation atomically while
+leaving its launch gate closed. General dynamic allocation, updates and admission
+remain separate work.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete

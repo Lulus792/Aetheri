@@ -66,6 +66,25 @@ int main(void)
     }
     CHECK(ae_fixture_store_config_decode(NULL,AE_FIXTURE_STORE_CONFIG_BYTES,&store)==-EINVAL);
     CHECK(ae_fixture_store_config_decode(publication,AE_FIXTURE_STORE_CONFIG_BYTES,NULL)==-EINVAL);
+    uint8_t activation_bytes[AE_FIXTURE_ACTIVATION_CONFIG_BYTES+1U]={0};
+    memcpy(activation_bytes,"AETHACT1",8); memset(activation_bytes+8,0x78,32);
+    for (size_t n=0;n<4;++n) put(activation_bytes+40U+n*8U,n+1U,8);
+    struct ae_fixture_activation activation, original;
+    memset(&original,0xa5,sizeof original);
+    CHECK(ae_fixture_activation_config_decode(activation_bytes,AE_FIXTURE_ACTIVATION_CONFIG_BYTES,&activation)==0);
+    CHECK(activation.publication_evidence[0]==0x78 && activation.install_revision==1 && activation.generation_revision==2 && activation.gate_revision==3 && activation.completed_unix_ms==4);
+    for (size_t n=0;n<32;++n) CHECK(activation.expected_evidence[n]==0);
+    for (size_t size=0;size<=sizeof activation_bytes;++size) if (size!=AE_FIXTURE_ACTIVATION_CONFIG_BYTES) {
+        activation=original;
+        CHECK(ae_fixture_activation_config_decode(activation_bytes,size,&activation)==-EBADMSG && memcmp(&activation,&original,sizeof activation)==0);
+    }
+    for (size_t n=0;n<4;++n) {
+        put(activation_bytes+40U+n*8U,UINT64_MAX,8); activation=original;
+        CHECK(ae_fixture_activation_config_decode(activation_bytes,AE_FIXTURE_ACTIVATION_CONFIG_BYTES,&activation)==-EBADMSG && memcmp(&activation,&original,sizeof activation)==0);
+        put(activation_bytes+40U+n*8U,n+1U,8);
+    }
+    CHECK(ae_fixture_activation_config_decode(NULL,AE_FIXTURE_ACTIVATION_CONFIG_BYTES,&activation)==-EINVAL);
+    CHECK(ae_fixture_activation_config_decode(activation_bytes,AE_FIXTURE_ACTIVATION_CONFIG_BYTES,NULL)==-EINVAL);
     puts("Protected fixture configuration bounds, identities and object-witness decoding passed.");
     return 0;
 }

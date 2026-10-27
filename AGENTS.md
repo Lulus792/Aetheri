@@ -55,9 +55,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   spec/runtime.md's administrative stage journal and store publication. The trusted
   fixture now publishes a manifest/payload container through no-replace same-mount
   renames, immutable AETHSTO1 object evidence, full repeated flushes and final MAC
-  sealing. Published metadata is not activation: install preparing, operation
-  running/reconcile and no lease/run. General dynamic allocation, activation,
-  caller admission and complete recovery coordination remain pending. After moving
+  sealing. Publication alone leaves install preparing/running-reconcile; the
+  separate AETHACT1 first-activation path now atomically completes the original
+  install operation, with its gate closed and no lease/run. Completed receipts
+  are historical: never rearm/restore a generation, change later gates or undo
+  removal on retry. Read current STATE/runtime contracts. General dynamic allocation,
+  updates, caller admission and complete recovery coordination remain pending. After moving
   the payload use fixture-store-check, not the original stage/rebind checks.
   The slot ID is not a private-data StorageRef. Never adopt a candidate root from
   matching content/name; retain independent configuration/operation bindings.

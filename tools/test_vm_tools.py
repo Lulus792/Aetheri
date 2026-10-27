@@ -19,7 +19,7 @@ class VmTools(unittest.TestCase):
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
                   "pending": None, "units": [], "fixture": {key: "00000000000040008000000000000002" for key in services.FIXTURE_IDS}}
         record["fixture"]["artifact"] = "ab" * 32
-        for action in ("store-observe", "store-publish"):
+        for action in ("store-observe", "store-publish", "activate"):
             with patch.object(services, "save"), patch.object(services, "run", return_value="") as command:
                 unit = services.start_unit(record, "system", fixture=action)
                 arguments = command.call_args.args

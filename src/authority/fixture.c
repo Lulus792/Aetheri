@@ -89,6 +89,20 @@ int ae_fixture_store_config_decode(const uint8_t *bytes,size_t size,struct ae_fi
     return result;
 }
 
+int ae_fixture_activation_config_decode(const uint8_t *bytes,size_t size,struct ae_fixture_activation *output)
+{
+    if (bytes==NULL || output==NULL) return -EINVAL;
+    if (size!=AE_FIXTURE_ACTIVATION_CONFIG_BYTES || memcmp(bytes,"AETHACT1",8)!=0) return -EBADMSG;
+    struct ae_fixture_activation activation={0};
+    const uint64_t install=number(bytes+40,8),generation=number(bytes+48,8),gate=number(bytes+56,8),stamp=number(bytes+64,8);
+    if (install<1 || install>=INT64_MAX || generation<1 || generation>=INT64_MAX || gate<1 || gate>INT64_MAX || stamp>INT64_MAX) return -EBADMSG;
+    memcpy(activation.publication_evidence,bytes+8,32);
+    activation.install_revision=(int64_t)install; activation.generation_revision=(int64_t)generation;
+    activation.gate_revision=(int64_t)gate; activation.completed_unix_ms=(int64_t)stamp;
+    *output=activation;
+    return 0;
+}
+
 static int close_owned(int fd, int result)
 {
     if (fd >= 0 && close(fd) != 0 && result == 0) result = -errno;
@@ -485,10 +499,42 @@ int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
                 if (marked!=0) fprintf(stderr,"Fixture publication uncertainty acknowledgement failed: %d\n",marked);
             }
         }
-        if (result==0) puts("fixture-store verified; generation committed; install preparing; operation running/reconcile; activation pending");
+        if (result==0) puts(progress.activation_present ? "fixture-store verified; original install operation completed; current launch readiness not implied" :
+            "fixture-store verified; generation committed; install preparing; operation running/reconcile; activation pending");
     }
     result=close_owned(payload,result); result=close_owned(container,result);
     result=close_owned(store,result); result=close_owned(parent,result);
+    free(manifest);
+    return result;
+}
+
+int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t current_boot[16])
+{
+    uint8_t bytes[AE_FIXTURE_CONFIG_BYTES],store_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],activation_bytes[AE_FIXTURE_ACTIVATION_CONFIG_BYTES],store_digest[32];
+    uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES);
+    if (manifest==NULL) return -ENOMEM;
+    size_t config_size,size,store_size,activation_size;
+    struct ae_fixture_config config;
+    struct ae_fixture_activation activation;
+    struct ae_fixture_progress progress={0};
+    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&size);
+    if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,size,&progress);
+    if (result==0 && (!progress.publication_present || progress.publication_step!=AE_FIXTURE_READY)) result=-EINVAL;
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture-store.conf",store_bytes,sizeof store_bytes,&store_size);
+    if (result==0 && store_size!=sizeof store_bytes) result=-EBADMSG;
+    if (result==0) result=ae_sha256_bytes(store_bytes,store_size,store_digest);
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture-activation.conf",activation_bytes,sizeof activation_bytes,&activation_size);
+    if (result==0) result=ae_fixture_activation_config_decode(activation_bytes,activation_size,&activation);
+    if (result==0) result=ae_sha256_bytes(activation_bytes,activation_size,activation.expected_evidence);
+    if (result==0 && memcmp(activation.publication_evidence,store_digest,32)!=0) result=-ESTALE;
+    /* Before first activation, repeat exact object/label/mode/hash/denial/flush
+     * checks on already applied publication. Completed retries return the same
+     * historical receipt, even after a newer generation or removal; no rearm. */
+    if (result==0 && !progress.activation_present) result=ae_authority_fixture_publication(catalogue,0);
+    if (result==0) result=ae_catalogue_fixture_activate(catalogue,&config.request,manifest,size,&activation,current_boot,&progress);
+    if (result==0) puts("fixture-activation receipt verified; no app dispatched by this action; receipt is not launch readiness");
     free(manifest);
     return result;
 }

@@ -727,3 +727,45 @@ the retained published fixture; fixture-store-check replaces original stage/rebi
 checks after the move. Preserve private allocation and both journals. Personal UI/
 destructive choices remain deferred under the user's delegated recommendation rule;
 the full personal OS/apps goal is active.
+
+### Atomic first activation and retained receipts — 27 October
+
+Implemented first activation as step 2 of the original fixed install intent.
+Protected 72-byte AETHACT1 binds published-store evidence, install/generation/
+closed-gate revisions and an administrative completion stamp. The system role
+revalidates the exact immutable object before first activation. One SQLite commit
+activates the original generation and completes the original operation/result;
+existing triggers advance activated_once and its revision. The launch gate remains
+closed, with no app process, data epoch, grant or launch lease admitted. No new
+policy permission, dependency, schema/XML version or resident process.
+
+Completed retries return historical evidence. A separately reported current
+catalogue pointer prevents a past result from claiming present readiness. Tests
+switch to a new generation, remove/reclaim the old install/code, and open a later
+gate; retry of the old request changes none of those states. Those mutations are
+controlled database test fixtures, not production update/removal implementations.
+First activation rejects unpublished work, wrong scope/boot, missing runtime,
+stale revisions, open/closing/owned gates and live recovery/dependency references.
+
+Complete native suites pass 23/23 Debug ASan/UBSan (72.63 s) and Release (65.20 s).
+Expanded statement/COMMIT faults, fresh-process exits before/after COMMIT, retained
+receipts and malformed configuration then pass focused journal/config repeats in
+Debug 18.80 s and Release 15.57 s. The independent Python encoder supplies AETHACT1
+bytes/hash. Host guards pass 31/31, frozen runtime tests 14/14, migration/wire 27/27
+(31.065 s), isolated validator 374 assertions. No native or host SQLite pin changed.
+
+Actual enforcing cap-zero/NNP system units prepare, activate and replay with the
+original generation/result, closed gate, unchanged published inode/mode/ctime and
+unchanged catalogue hash on completed retry. Follow-up native store verification
+passes with activated/completed metadata. Normal endpoint/app-denial and existing
+private allocation checks pass. All owned units drain; graceful QEMU exit 0 and
+PID absence precede offline boot of the same disk. Activation then reports real
+cross_boot_reopen=true; its original receipt and gate persist with no dispatch.
+Store, endpoints/app denials and retained private storage pass after boot; units
+are stopped again. Carrier configurations and test infrastructure remain tracked.
+
+Next: actual app/run/data identity and launch admission, supervised dispatch and
+target-exec observation, then native document/revocation/removal P0 cases. Reuse
+the activated fixture and preserve historical receipts/private allocation. The
+full daily-use OS/apps goal stays active; no original desktop or bootable Aetheri
+image is claimed. Personal UI/destructive decisions still await the user.

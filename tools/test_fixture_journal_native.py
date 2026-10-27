@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import struct
 import sys
 import tempfile
 
@@ -26,11 +27,14 @@ def main():
     expired["expires"] = 0
     with tempfile.TemporaryDirectory(prefix="fixture-journal-", dir=build) as temporary:
         root = Path(temporary)
-        manifest, expected, catalogue = root / "manifest", root / "expected", root / "catalogue"
-        catalogue.mkdir(mode=0o700)
+        manifest, expected = root / "manifest", root / "expected"
         manifest.write_bytes(bytes.fromhex(frozen["hex"]))
-        expected.write_bytes(hashlib.sha256(reference.intent(intent)).digest() + hashlib.sha256(reference.intent(expired)).digest())
-        subprocess.run([executable, manifest, expected, catalogue], check=True, timeout=30)
+        activation=b"AETHACT1" + bytes([0x43])*32 + struct.pack(">QQQQ",1,2,6,123457000)
+        expected.write_bytes(hashlib.sha256(reference.intent(intent)).digest() + hashlib.sha256(reference.intent(expired)).digest() + hashlib.sha256(activation).digest())
+        for scenario in ("lost", "exit-before", "exit-after"):
+            catalogue=root / scenario
+            catalogue.mkdir(mode=0o700)
+            subprocess.run([executable, manifest, expected, catalogue, scenario], check=True, timeout=30)
 
 
 if __name__ == "__main__":

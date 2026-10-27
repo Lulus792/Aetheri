@@ -40,7 +40,9 @@ Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging
 now checks inventory/copied bytes and resyncs. Protected P0 administrative staging
 and its native journal are exercised across a guest boot. General dynamic
-allocation, publication, publisher trust and recovery coordination remain work.
+allocation, publisher trust and recovery coordination remain work. Journaled
+store publication and first fixture activation now exist; actual app admission,
+updates and launch remain separate gates.
 General distribution signing and key rotation still require release contracts.
 
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and

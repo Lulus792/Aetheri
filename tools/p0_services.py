@@ -81,7 +81,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -339,7 +339,8 @@ def fixture_paths(record):
     return dict(parent=parent, source=parent / "source", staging=parent / "staging",
                 config=ROOT / "registry/fixture.conf", manifest=ROOT / "registry/fixture.manifest",
                 container=parent / "publication", store=ROOT / "store/sha256",
-                target=ROOT / "store/sha256" / record["fixture"]["artifact"], store_config=ROOT / "registry/fixture-store.conf")
+                target=ROOT / "store/sha256" / record["fixture"]["artifact"], store_config=ROOT / "registry/fixture-store.conf",
+                activation_config=ROOT / "registry/fixture-activation.conf")
 
 
 def fixture_payload(record, paths):
@@ -419,6 +420,13 @@ def verify_fixture(record, allow_unfinished=False):
         if publication["state"] not in ("observing", "sealing"):
             owned_file(paths["store_config"], 0o444)
             if checksum(paths["store_config"]) != publication["config_sha256"]: raise RuntimeError("publication configuration changed")
+    if "fixture_activation" in record:
+        activation = record["fixture_activation"]
+        if activation["state"] not in ("sealing", "prepared", "executing", "applied"): raise RuntimeError("unrecognized activation provisioning state")
+        if paths["activation_config"].exists() or paths["activation_config"].is_symlink():
+            owned_file(paths["activation_config"], 0o444)
+            if checksum(paths["activation_config"]) != activation["config_sha256"]: raise RuntimeError("activation configuration changed")
+        elif activation["state"] != "sealing": raise RuntimeError("activation configuration missing")
 
 
 def fixture_prepare(record):
@@ -595,8 +603,17 @@ def fixture_store_check(record):
                               tuple(bytes.fromhex(fixture[key]) for key in ("artifact", "install", "generation", "operation"))).fetchone()
     start_unit(record, "system", fixture="store-publish")
     first = journal()
-    expected = ("running", "reconcile", None, first[3] if first else None, "applied", publication["config_sha256"], "verified", "preparing", "committed", 0, None, "activation_pending")
+    activated = first is not None and first[0] == "completed"
+    expected = ("completed" if activated else "running", "reconcile", "applied" if activated else None, first[3] if first else None,
+                "applied", publication["config_sha256"], "verified", "active" if activated else "preparing", "committed",
+                1 if activated else 0, bytes.fromhex(fixture["generation"]) if activated else None, "" if activated else "activation_pending")
     if first != expected: raise AssertionError(("publication journal differs", first))
+    if activated:
+        activation = record["fixture_activation"]
+        with sqlite3.connect(f"file:{state_path(record, 'system') / 'catalogue.sqlite3'}?mode=ro", uri=True) as db:
+            receipt = db.execute("SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE operation_id=? AND step_no=2 AND action='activate' AND subject_kind='generation' AND subject_ref=? AND state='applied'",
+                                 (bytes.fromhex(fixture["operation"]), bytes.fromhex(fixture["generation"]))).fetchall()
+        if receipt != [(activation["config_sha256"],)]: raise AssertionError("active publication has no matching activation receipt")
     paths = fixture_paths(record)
     container, payload = paths["target"], paths["target"] / "payload"
     if container.stat().st_ino != publication["objects"]["container"] or payload.stat().st_ino != fixture["objects"]["staging"][0]: raise AssertionError("publication copied/replaced an expected root")
@@ -618,10 +635,84 @@ def fixture_store_check(record):
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     first_boot = publication.setdefault("first_boot", boot)
     publication.update(state="published", check=dict(native_journal=True, original_root_inodes=True, sealed_types=True,
-                       exact_replay=True, cross_boot_reopen=first_boot != boot, store_setattr_denied=True, activated=False, operation_completed=False))
+                       exact_replay=True, cross_boot_reopen=first_boot != boot, store_setattr_denied=True, activated=activated, operation_completed=activated))
     save(record)
     verified(record)
     print(json.dumps(publication["check"]))
+
+
+def fixture_activation_prepare(record):
+    verified(record)
+    stop(record)
+    paths = fixture_paths(record)
+    if "fixture_activation" not in record:
+        if record["fixture_publication"]["state"] != "published": raise RuntimeError("verified publication is required first")
+        if paths["activation_config"].exists() or paths["activation_config"].is_symlink(): raise RuntimeError("unowned activation configuration exists")
+        # Reconcile the actual boot/runtime and close bootstrap-open gates through
+        # native normal startup, not Python business-row writes. No app is run.
+        start(record)
+        stop(record)
+        fixture = record["fixture"]
+        with sqlite3.connect(f"file:{state_path(record, 'system') / 'catalogue.sqlite3'}?mode=ro", uri=True) as db:
+            revisions = db.execute("SELECT i.revision,g.revision,f.revision,f.state,f.closing_operation_id,o.state,o.phase FROM installs i JOIN generations g ON g.generation_id=? JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=i.install_id JOIN operations o ON o.operation_id=? WHERE i.install_id=? AND i.state='preparing' AND i.active_generation_id IS NULL AND g.activated_once=0 AND g.publication_state='committed'",
+                                   tuple(bytes.fromhex(fixture[key]) for key in ("generation", "operation", "install"))).fetchone()
+        if revisions is None or revisions[3:] != ("closed", None, "running", "reconcile"): raise RuntimeError("installation cannot accept first activation")
+        stamp = time.time_ns() // 10**6
+        data = b"AETHACT1" + bytes.fromhex(record["fixture_publication"]["config_sha256"]) + struct.pack(">QQQQ", *revisions[:3], stamp)
+        record["fixture_activation"] = dict(state="sealing", config=data.hex(), config_sha256=hashlib.sha256(data).hexdigest(),
+                                             stamp=stamp, revisions=list(revisions[:3]))
+        save(record)  # Immutable administrative evidence before config publication.
+    activation = record["fixture_activation"]
+    if activation["state"] == "sealing":
+        data = bytes.fromhex(activation["config"])
+        if not paths["activation_config"].exists(): publish(paths["activation_config"], data, "aetheri_registry_t")
+        owned_file(paths["activation_config"], 0o444)
+        if paths["activation_config"].read_bytes() != data: raise RuntimeError("uncertain activation configuration differs")
+        flush_path(paths["activation_config"])
+        flush_path(ROOT / "registry", True)
+        activation["state"] = "prepared"
+        save(record)
+    verified(record)
+    print("First-activation evidence retained; provisioning itself performs no activation or launch.")
+
+
+def fixture_activation_check(record):
+    verified(record)
+    stop(record)
+    fixture, activation = record["fixture"], record["fixture_activation"]
+    if activation["state"] not in ("prepared", "executing", "applied"): raise RuntimeError("activation evidence is not sealed")
+    activation["state"] = "executing" if activation["state"] != "applied" else "applied"
+    save(record)
+    paths = fixture_paths(record)
+    container = paths["target"]
+    def snapshot():
+        return {p.relative_to(container).as_posix(): (p.stat().st_ino,p.stat().st_mode,p.stat().st_ctime_ns) for p in [container,*container.rglob("*")]}
+    before = snapshot()
+    def journal():
+        with sqlite3.connect(f"file:{state_path(record, 'system') / 'catalogue.sqlite3'}?mode=ro", uri=True) as db:
+            receipt = db.execute("SELECT o.state,o.outcome,o.result_kind,lower(hex(o.result_ref)),o.completed_unix_ms,o.revision,s.state,lower(hex(s.evidence_digest)),i.state,lower(hex(i.active_generation_id)),i.revision,g.activated_once,g.revision,f.state,f.revision,f.closing_operation_id FROM operations o JOIN operation_steps s USING(operation_id) JOIN installs i ON i.install_id=? JOIN generations g ON g.generation_id=? JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=i.install_id WHERE o.operation_id=? AND s.step_no=2",
+                                 tuple(bytes.fromhex(fixture[key]) for key in ("install", "generation", "operation"))).fetchone()
+            live = db.execute("SELECT (SELECT count(*) FROM generation_leases WHERE state<>'released')+(SELECT count(*) FROM launch_dispatches)").fetchone()[0]
+        if live: raise AssertionError("activation created/admitted launch obligations")
+        return receipt
+    start_unit(record, "system", fixture="activate")
+    first = journal()
+    install_revision, generation_revision, gate_revision = activation["revisions"]
+    expected = ("completed", "applied", "install", fixture["install"], activation["stamp"], first[5] if first else None,
+                "applied", activation["config_sha256"], "active", fixture["generation"], install_revision+1,
+                1, generation_revision+1, "closed", gate_revision, None)
+    if first != expected or snapshot() != before: raise AssertionError(("activation metadata/content differs", first))
+    database_hash = checksum(state_path(record, "system") / "catalogue.sqlite3")
+    start_unit(record, "system", fixture="activate")
+    if journal() != first or snapshot() != before or checksum(state_path(record, "system") / "catalogue.sqlite3") != database_hash: raise AssertionError("completed activation retry rewrote the receipt/object")
+    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    first_boot = activation.setdefault("first_boot", boot)
+    activation.update(state="applied", check=dict(native_transaction=True, exact_completed_replay=True, publication_unchanged=True,
+                       gate_closed=True, cross_boot_reopen=first_boot != boot, app_dispatched=False))
+    record["fixture_publication"]["check"].update(activated=True, operation_completed=True)
+    save(record)
+    verified(record)
+    print(json.dumps(activation["check"]))
 
 
 def fixture_rebind_check(record):
@@ -701,7 +792,7 @@ def publish_broker_slot(record, unit):
 
 
 def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None):
-    if fixture is not None and (fixture not in ("observe", "stage", "store-observe", "store-publish") or role != "system" or init or probe or enroll or storage):
+    if fixture is not None and (fixture not in ("observe", "stage", "store-observe", "store-publish", "activate") or role != "system" or init or probe or enroll or storage):
         raise ValueError("fixture administration requires only the system role")
     if fixture_source_override is not None and (fixture != "stage" or fixture_source_override != fixture_paths(record)["parent"] / "copied-source"):
         raise ValueError("only the owned fixed fixture substitution probe may bind a source")
@@ -738,7 +829,7 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else [])
-        if fixture in ("store-observe", "store-publish"):
+        if fixture in ("store-observe", "store-publish", "activate"):
             properties["ReadWritePaths"] = str(ROOT)
             properties["ReadOnlyPaths"] = str(fixture_paths(record)["source"])
         elif fixture:
@@ -1220,6 +1311,8 @@ def main():
         elif action == "fixture-check": fixture_check(record)
         elif action == "fixture-store-prepare": fixture_store_prepare(record)
         elif action == "fixture-store-check": fixture_store_check(record)
+        elif action == "fixture-activation-prepare": fixture_activation_prepare(record)
+        elif action == "fixture-activation-check": fixture_activation_check(record)
         elif action == "fixture-rebind-check": fixture_rebind_check(record)
         else: raise RuntimeError("unsupported controller action")
     finally:

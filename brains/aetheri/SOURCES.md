@@ -791,3 +791,49 @@ Publication is a trusted fixed administrative fixture, not general package trust
 dynamic allocation, registered-volume/clone authentication, activation, app launch,
 full recovery coordination or physical power-loss acceptance. No service, toolchain
 family or public capability is added.
+
+## First activation and historical completion — 27 October 2026
+
+- Existing v2 [activation/gate constraints](../../spec/schema/system-v2.sql),
+  [native API](../../src/catalogue/store.h) and
+  [SQLite transactions](https://www.sqlite.org/lang_transaction.html). Initial
+  activation, applied step and original install result commit in one owner
+  database; there are no post-write filesystem/supervisor effects in that step.
+  Existing record_activation advances activated_once/generation revision. The
+  install gate remains closed; this creates no launch/data grant or public method.
+- Protected [administrative path](../../src/authority/fixture.c): new internal
+  AETHACT1 is 72 bytes, binding publication evidence, three revisions and an
+  administrative completion stamp. Decoder preserves output on invalid length/
+  ranges. Before first activation, native publication checks repeat on the exact
+  sealed object. Completed retry verifies its immutable receipt without rereading
+  code as authorization or rearming a historical generation.
+- Expanded [journal tests](../../tests/test_fixture_journal.c) and independent
+  [Python projection](../../tools/test_fixture_journal_native.py): exact bytes/hash,
+  stale scope/boot/revisions, missing runtime, open/closing/owned gates and live
+  recovery/dependency references. Failures before/after the install update and
+  COMMIT acknowledgement preserve either no activation or one whole completion.
+  Separate fresh child connections exit before/after real COMMIT and reopen;
+  inherited SQLite connections are never used. Retrying after a newer generation,
+  removal/reclamation or later gate opening preserves that current state and returns
+  original evidence/result/stamp. Those future states are controlled unconfined
+  database fixtures, not implemented production update/removal APIs.
+- Native complete suites: 23/23 Debug ASan/UBSan (72.63 s), 23/23 Release (65.20 s).
+  Final expanded receipt/runtime cases and decoder checks then pass focused
+  journal/config repeats in Debug 18.80 s and Release 15.57 s. Host guards 31/31,
+  runtime vectors 14/14, migration/wire 27/27 (31.065 s), isolated validator 374
+  assertions/14 methods on host SQLite 3.53.1. Native SQLite remains 3.51.2.
+- Actual offline enforcing cap-zero system units: protected activation preparation,
+  first execution and separate completed retry pass with original IDs, exact
+  generation/receipt rows, unchanged published inode/mode/ctime and unchanged
+  catalogue hash on retry. A follow-up store check verifies actual sealed content
+  and reports activated/completed. Normal protocol/app-denial and retained private
+  allocation checks pass. No SELinux permission, dependency or resident service added.
+- After graceful QEMU exit 0, verified PID absence and an offline boot of the same
+  disk, fixture-activation-check reports cross_boot_reopen=true. The original
+  completion result, stamp, revisions and closed gate persist without dispatch.
+  Store verification still reports original sealed objects; normal endpoints/
+  app-denial and retained private allocation also pass. Owned units are stopped.
+
+This proves fixed-fixture first activation and retained receipts, not launch
+readiness, public installer/update/rollback, general recovery, physical power-loss
+or a finished Aetheri app/system image.
