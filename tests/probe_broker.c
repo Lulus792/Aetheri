@@ -79,8 +79,8 @@ int main(int argc, char **argv)
     CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1","TestFixtureReservation",&error,&reply,"")<0);
     CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
     sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
-    const char *launch_methods[]={"PrepareFixtureLaunch","CancelFixtureLaunch","PrepareFixtureSetup","CancelFixtureSetup"};
-    for (size_t n=0;n<4;++n) {
+    const char *launch_methods[]={"RefreshExecFixtureInstall","PrepareFixtureLaunch","CancelFixtureLaunch","PrepareFixtureSetup","CancelFixtureSetup"};
+    for (size_t n=0;n<5;++n) {
         CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1",launch_methods[n],&error,&reply,"")<0);
         CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
         sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;

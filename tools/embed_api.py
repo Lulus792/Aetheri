@@ -43,7 +43,7 @@ def main():
                 if name == "org.aetheri.Catalogue1":
                     callback = {"ResolveAppInstall": "method_resolve_app","GetReservationReceipt":"method_get_receipt"}[method.attrib["name"]]
                 if name == "org.aetheri.Development1":
-                    callback = {"RefreshFixtureInstall": "method_refresh_fixture","TestFixtureReservation":"method_test_reservation",
+                    callback = {"RefreshFixtureInstall": "method_refresh_fixture","RefreshExecFixtureInstall":"method_refresh_fixture","TestFixtureReservation":"method_test_reservation",
                                 "PrepareFixtureLaunch":"method_prepare_fixture_launch","CancelFixtureLaunch":"method_cancel_fixture_launch",
                                 "PrepareFixtureSetup":"method_fixture_setup","CancelFixtureSetup":"method_fixture_setup"}[method.attrib["name"]]
                 if name == "org.aetheri.Setup1":

@@ -2029,6 +2029,75 @@ return EINVAL; failed calls preserve output. This helper does not authenticate a
 publisher, open code, admit a run or prove execution. Its output still needs the
 Linux image/view checks and the durable Root/User launch contract.
 
-The next step must give the new installation its own projected binding and private
-DataEpoch/allocation, then connect real run dispatch, process registration/image
+The new installation now has its own projected binding and private data as
+described below. Next connect real run dispatch, process registration/image
 evidence, readiness and drain. No executing starter can use no-exec withdrawal.
+
+## Scoped execution-fixture projection and data
+
+Private Development1 1.4 adds only RefreshExecFixtureInstall, no inputs and the
+same aytt result as RefreshFixtureInstall. Existing methods keep their original
+selection and signatures. Both use the same protected controller-unit admission,
+actual bus ProcessFD/unit/invocation/boot checks, authenticated Root projection
+and owner-scoped user writer. The caller cannot supply an install/path/profile.
+An ordinary same-UID process, same-domain wrong unit or app-domain process cannot
+use the new trigger. Public versions/capabilities, Setup1, Runtime1 and SQL remain
+unchanged. The new user binding is a cached observation, not launch admission.
+
+The two compiled registry selections now also contain owner/data config paths and
+an exact raw data-object label. The original keeps app-data-owner.conf,
+app-data.conf and c33,c34. Exec uses exec-app-data-owner.conf,
+exec-app-data.conf and c35,c36. Both use aetheri_app_data_t at s0 with system_u and
+object_r; complete raw label equality, UID/GID and 0700 are checked before allocation
+publication or SQL enrollment. The independently protected selected fixture must
+agree on account, install and publisher. Type-only or caller-supplied labels do
+not authorize another category. These are fixed test profiles, not a dynamic MCS
+allocator or a user-selectable policy. Earlier isolated execution tests at c33,c34
+remain separate evidence; a real start of this second installation must use its
+own c35,c36 data/process profile.
+
+The new storage lifetime has fresh StorageRef, DataEpoch and allocation-operation
+IDs. AETHOWN1/AETHALC1/AETHDTA1 and all existing encodings are unchanged. Machine,
+volume and account remain intentionally shared. The ownership header's final ID
+is the allocation operation; it is not a MAC-policy ID. The controller rejects
+aliasing an existing private storage/data/allocation-operation tuple or attaching
+the selected data to another fixture's install/publisher.
+
+Shared user app-data and control/app-allocations parents must already be enrolled;
+they are verified and reused, never adopted/recreated for the new leaf. Each
+app-data/StorageRef contains its own owner header and private payload, and each
+control/app-allocations/StorageRef stores its own immutable allocation record.
+The controller tracks these under exec_fixture beside its package receipts.
+First-data preparation now checks absence for the selected component/publisher/
+account and installation, rather than demanding an empty entire user catalogue.
+Retained/detached matching data still needs a separate protocol.
+
+The native writer already scopes its transaction to the exact install/data/storage
+tuple. The second enrollment reuses it: commit data, attachment and closed data
+gate atomically, with the protected original baseline for a first insert. Exact
+retry never refreshes identities, gate revisions, later state or catalogue bytes.
+The check now observes only selected rows while independently retaining all
+unrelated data, attachments, gates, bindings and launch/grant/operation rows.
+No user SQL is read by Root and no Python controller writes business rows.
+
+First-time preparation in the registered enforcing guest:
+
+```text
+sudo python3 tools/p0_services.py exec-projection-check
+sudo python3 tools/p0_services.py exec-data-prepare
+sudo python3 tools/p0_services.py exec-data-check
+```
+
+After preparation, repeat the checks, not prepare with replacement IDs. The
+administrative native user actions --exec-data-observe and --exec-data-enroll
+use the fixed exec registry selection and existing cap-zero/NNP user domain.
+They do not become a broker, open a gate or execute an app. No new policy grant,
+dependency or resident process is required.
+
+Actual negative evidence: while all owned services were stopped and before first
+enrollment, Root changed only the independently known new empty payload to c37,c38.
+The native confined cap-zero user writer returned EACCES with no allocation record
+or catalogue change. After independently observed unit/job/process drain and
+checking the same payload inode, Root restored c35,c36. Normal enrollment and exact
+retries then passed. This proves rejection at this metadata boundary; it does not
+claim complete launched-app view isolation or production allocation recovery.

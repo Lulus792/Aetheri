@@ -15,6 +15,7 @@ and execute an exact held ELF image. An isolated enforcing test verifies the rea
 app-domain transition and current executable; integration into app starts is next.
 A separate compatible test package is now published and activated alongside the
 original, with its launch gate closed and all older package/history records retained.
+It now has a distinct user binding and private data allocation as well.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The

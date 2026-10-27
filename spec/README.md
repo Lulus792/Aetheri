@@ -18,7 +18,7 @@ lifecycle methods defined by these contracts.
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [broker-v1.xml](api/broker-v1.xml) | Private P0 broker identity bootstrap 1.0, independent of public wire 1.1; no launch capability |
-| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation/reservation receipts 1.1 and protected fixture tests 1.3; no public launch capability |
+| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation/reservation receipts 1.1 and protected fixture tests 1.4; no public launch capability |
 | [setup-v1.xml](api/setup-v1.xml), [setup.h](../src/catalogue/setup.h) | Private no-exec setup 1.0, protected profile and recoverable Root journal; separate from app dispatch |
 | [projection.h](../src/catalogue/projection.h), [wire codec](../src/authority/projection.h) | Separate system read/user write, bounded typed snapshot and exact retry |
 | [data.h](../src/catalogue/data.h), [data tests](../tests/test_data.c) | Explicit first P0 data enrollment, independent allocation witness and atomic closed-gate attachment |
@@ -46,8 +46,9 @@ lifecycle methods defined by these contracts.
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
-Catalogue1 is 1.1; Development1 is 1.3 with protected fixture reservation,
-launch and setup tests. Setup1 1.0 is a private no-exec prototype. Their
+Catalogue1 is 1.1; Development1 is 1.4 with the additive RefreshExecFixtureInstall
+projection beside the original fixture reservation, launch and setup tests.
+Setup1 1.0 is a private no-exec prototype. Their
 implementation and enforcing checks are described in [runtime.md](runtime.md#authenticated-installation-projection).
 The frozen management/documents/runtime/broker XML and canonical SQL are unchanged;
 the Development1 minor extension adds no public capability.

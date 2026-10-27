@@ -1285,3 +1285,84 @@ its own private DataEpoch, and connect durable target dispatch, actual registere
 process/image identity, readiness and independent drain/recovery. An executing
 starter needs a different contract from immutable no-exec setup withdrawal.
 The full OS, original desktop/apps/image and hardware acceptance goal stays active.
+
+## Separate execution data — 27 October 2026
+
+Added a no-input protected RefreshExecFixtureInstall method, private Development1
+1.4, using the same controller ProcessFD/unit/invocation/boot admission and typed
+authenticated Root projection as the original method. Original methods/signatures
+and their compiled selections remain unchanged. Only the selected user writer
+stores the second binding; Root never reads the user catalogue. Generated XML
+tables, probe helper, ordinary app and same-domain/wrong-unit denial cases include
+the new method. Public capabilities remain empty; SQL and other XML stay frozen.
+
+Extended the existing protected original/exec registry selection to separate
+owner/enrollment files and exact raw data contexts. Original data keeps c33,c34;
+the new installation receives its own c35,c36 profile and fresh StorageRef,
+DataEpoch and allocation-operation IDs. The final ownership field is allocation
+operation, not a MAC policy ID. Machine/volume/account and independently enrolled
+common app-data/app-allocations parents are reused. No parent or old private leaf
+is adopted/recreated. Fixed P0 categories do not implement general allocation.
+
+Native data administration now checks full raw label, UID/GID, 0700 and agreement
+with the protected selected fixture's account/install/publisher before publishing
+an allocation or entering SQL enrollment. Existing AETHOWN1/AETHALC1/AETHDTA1
+bytes and owner transaction are unchanged. Only the controller's global empty-user-
+catalogue restriction was removed: absence is scoped to the selected component/
+publisher/account/install. Checks now observe selected rows and independently
+retain unrelated data/attachments/gates, bindings and launch/grant/operation rows.
+
+The guarded owned update ran only after verified pending=None/setup withdrawn.
+Before it, exec-data-before.json in the ignored guest build captured all old
+system/user table rows except authority_meta and both packages/configurations plus
+the original private root/payload/header/config/allocation inode/mode/ctime/hash.
+Actual exec-projection-check persisted the second binding and proved exact retries
+and same-UID unselected-caller denial without data/gate or Root-catalogue effects.
+exec-data-prepare independently created/observed the distinct root and sealed its
+owner/enrollment configuration. It did not publish an allocation or enroll SQL.
+
+A newly added controller alias guard used policy instead of the frozen
+allocation_operation field. load rejected the prepared record before the negative
+test changed any object or submitted a unit. Corrected the field, added valid-owner,
+cross-install and alias regression cases, and reused the same prepared identities.
+No data/config recreation or native SQL repair occurred.
+
+Actual wrong-category test: with all services stopped, stable carrier lock held
+and allocation record absent, a recorded Root action changed only the known new
+empty payload to c37,c38. The cap-zero enforcing user-domain --exec-data-enroll
+returned native EACCES (-13). Catalogue bytes were identical and no allocation
+record existed. The exact failed unit independently drained; Root checked the
+same payload inode before restoring c35,c36. The passed probe remains in the
+controller record; only its observed drained failed unit was reset, with journal
+evidence preserved. No Enforcing exception or new policy permission was used.
+
+Normal exec-data-check then published the immutable allocation, atomically enrolled
+data/attachment/closed gate and proved byte/inode/revision-identical retries.
+Original data-check also passed with the second data present. Independent snapshot
+comparison found every old system/user row with identical columns and both
+packages plus old private objects unchanged in inode/mode/ctime/hash. Both apps
+have separate active attachments and closed data gates. No app dispatch occurred.
+
+Updated actual endpoint/app-denial checks and broker-check pass: copied identity,
+unconfined and same-domain wrong-unit calls cannot use the new method; departure
+reduces Root FDs 12 to 11; user replacement and Root-only restart pass. Owned
+authority/probe units were stopped, with Enforcing retained. No additional
+resident service, external dependency, schema or policy grant was added.
+
+Full native suites pass 32/32 Debug ASan/UBSan (136.26 s) and Release (120.78 s).
+Host migration/wire 29/29 (28.172 s), orchestration 39/39 (0.235 s), runtime
+vectors 14/14 and isolated constraints 374 assertions pass. These are test-run
+times, not OS benchmarks. Native code did not change after the full suites.
+
+After QMP powerdown, the original runner returned exit 0 and status verified PID
+absence before a new offline boot. exec-projection-check reports
+cross_boot_reopen=true and system_runtime_changed=true; exec-data-check and
+original data-check both report cross_boot_reopen=true with exact retries and
+closed gates. These are actual normal-reboot checks, not power-loss recovery.
+
+Next: durable executing dispatch and actual registered target/image/readiness/
+drain for the new exact I/G/D/storage/run tuple. Keep Root/User cap-zero and keep
+the executing setup boundary separate from the immutable no-exec helper/release
+proof. Public launch and DispatchLaunch remain unsupported. Original desktop,
+apps/image, document transport, complete removal/recovery and physical hardware
+acceptance remain required by the active full project goal.

@@ -61,9 +61,12 @@ and preserve old immutable tuples instead of interpreting main as run. The retai
 binary's c31,c32 expectation differs from enrolled data's c33,c34. A separate
 aetheri.p0.exec fixture is now published/activated with a closed gate; the old
 package/tuples remain unchanged. Exact manifest-action resolution now exists as
-an internal metadata helper. Next project the new installation, give it its own
-private data/allocation and integrate executing dispatch/readiness/drain. These
-are implementation gates, not requests to reopen the accepted architecture.
+an internal metadata helper. Its own user binding and private data/allocation now
+exist with closed gates. The fixed exec data profile uses c35,c36, preserving
+original c33,c34; no dynamic category allocator is implied. Next integrate the
+exact I/G/D/action with executing dispatch, process/image registration, readiness
+and drain. These are implementation gates, not requests to reopen the accepted
+architecture.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

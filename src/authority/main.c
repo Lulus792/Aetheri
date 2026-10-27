@@ -441,7 +441,8 @@ static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_
         strcmp(controller.unit,unit)!=0 || memcmp(controller.boot,authority->boot.bytes,16)!=0)) result=-EACCES;
     if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 controller unit required"); }
     struct ae_fixture_request selection;
-    result=ae_authority_fixture_request(AE_FIXTURE_ORIGINAL,&selection);
+    enum ae_fixture_selection profile=strcmp(sd_bus_message_get_member(message),"RefreshExecFixtureInstall")==0 ? AE_FIXTURE_EXEC : AE_FIXTURE_ORIGINAL;
+    result=ae_authority_fixture_request(profile,&selection);
     if (result==0 && memcmp(selection.scope,authority->identity.owner,16)!=0) result=-ESTALE;
     if (result==0) result=check_system(authority);
     struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM};
@@ -476,7 +477,7 @@ static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_
 }
 
 static int app_data_config(const char *path,uint8_t *bytes,size_t size);
-static int app_data_action(struct authority *authority,const char *control,int enroll);
+static int app_data_action(struct authority *authority,const char *control,int enroll,enum ae_fixture_selection selection);
 static int fixture_runtime_call(struct authority *authority,const char *method,const struct ae_launch_request *request,const uint8_t cause[16],sd_bus_message **reply)
 {
     sd_bus_message *call=NULL;
@@ -773,7 +774,7 @@ static int method_prepare_fixture_launch(sd_bus_message *message,void *userdata,
     if (r==0 && (length<0 || length>=(int)sizeof control)) r=-EOVERFLOW;
     /* Existing exact enrollment is read-only metadata; independently reopen and
      * verify its allocation, held payload identity and MAC before gate admission. */
-    if (r==0) r=app_data_action(a,control,1);
+    if (r==0) r=app_data_action(a,control,1,AE_FIXTURE_ORIGINAL);
     if (r==0) r=check_system(a);
     struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM};
     if (r==0) r=load_registry(&system,NULL);
@@ -965,18 +966,24 @@ static int app_data_config(const char *path,uint8_t *bytes,size_t size)
 /* Fixed root-provisioned P0 data infrastructure. No caller-supplied path, ID or
  * dynamic allocation/adoption. Observation freezes an independently held object
  * witness before any allocation publication or catalogue enrollment. */
-static int app_data_action(struct authority *authority,const char *control,int enroll)
+static int app_data_action(struct authority *authority,const char *control,int enroll,enum ae_fixture_selection selection)
 {
+    const struct ae_fixture_registry *profile=ae_fixture_registry(selection);
+    if (profile==NULL) return -EINVAL;
     uint8_t bytes[AE_DATA_CONFIG_BYTES],expected[AE_ALLOCATION_BYTES],actual[AE_ALLOCATION_BYTES];
     struct ae_owner owner;
-    int result=app_data_config(ROOT "/registry/app-data-owner.conf",bytes,AE_OWNER_BYTES);
+    int result=app_data_config(profile->data_owner,bytes,AE_OWNER_BYTES);
     if (result==0 && ae_owner_decode(bytes,AE_OWNER_BYTES,&owner)!=0) result=-EBADMSG;
     if (result==0 && memcmp(owner.id[AE_ACCOUNT],authority->identity.owner,16)!=0) result=-ESTALE;
     for (size_t n=0;result==0 && n<AE_OWNER_FIELDS;++n) if (!uuid4(owner.id[n])) result=-EBADMSG;
     struct ae_data_enrollment request;
-    if (result==0 && enroll) result=app_data_config(ROOT "/registry/app-data.conf",bytes,sizeof bytes);
+    if (result==0 && enroll) result=app_data_config(profile->data_config,bytes,sizeof bytes);
     if (result==0 && enroll) result=ae_data_enrollment_decode(bytes,sizeof bytes,&request);
     if (result==0 && enroll && !ae_owner_matches(&owner,&request.owner)) result=-ESTALE;
+    struct ae_fixture_request fixture;
+    if (result==0) result=ae_authority_fixture_request(selection,&fixture);
+    if (result==0 && (memcmp(fixture.scope,owner.id[AE_ACCOUNT],16)!=0 || (enroll &&
+        (memcmp(fixture.install,request.install,16)!=0 || memcmp(fixture.publisher,request.publisher,16)!=0)))) result=-ESTALE;
     if (result==0 && enroll) result=ae_allocation_encode(&request.allocation,expected,sizeof expected);
     char account[33],storage[33],anchor_path[256],root_path[320],registry_path[320];
     sd_id128_t id;
@@ -999,11 +1006,15 @@ static int app_data_action(struct authority *authority,const char *control,int e
         struct open_how how={.flags=O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC,
             .resolve=RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS|RESOLVE_NO_XDEV};
         do { payload=(int)syscall(SYS_openat2,root,"payload",&how,sizeof how); } while (payload<0 && errno==EINTR);
-        result=payload<0 ? -errno : labeled(payload,"aetheri_app_data_t");
+        result=payload<0 ? -errno : 0;
+        char *context=NULL;
+        if (result==0 && fgetfilecon_raw(payload,&context)<0) result=-errno;
+        if (result==0 && strcmp(context,profile->data_context)!=0) result=-EACCES;
+        freecon(context);
     }
     struct ae_root_identity payload_identity;
     if (result==0) result=ae_root_observe(payload,&payload_identity);
-    if (result==0 && (payload_identity.uid!=authority->uid || (payload_identity.mode&07777)!=0700)) result=-EACCES;
+    if (result==0 && (payload_identity.uid!=authority->uid || payload_identity.gid!=authority->uid || (payload_identity.mode&07777)!=0700)) result=-EACCES;
     struct ae_allocation observation;
     if (result==0) result=ae_allocation_capture(anchor,root,&owner,&observation);
     if (result==0) result=ae_allocation_encode(&observation,actual,sizeof actual);
@@ -1039,7 +1050,7 @@ int main(int argc, char **argv)
     enum ae_fixture_selection selection=AE_FIXTURE_ORIGINAL;
     const char *option=argc==3 ? argv[2] : "";
     char normalized[64];
-    if (strncmp(option,"--exec-fixture-",15)==0) {
+    if (strncmp(option,"--exec-fixture-",15)==0 || strncmp(option,"--exec-data-",12)==0) {
         int length=snprintf(normalized,sizeof normalized,"--%s",option+7);
         if (length<0 || length>=(int)sizeof normalized) return 2;
         selection=AE_FIXTURE_EXEC; option=normalized;
@@ -1079,7 +1090,7 @@ int main(int argc, char **argv)
         result = ae_authority_fixture_publication(selection,authority.catalogue, strcmp(option, "--fixture-store-observe") == 0);
     else if (result == 0 && system && argc == 3 && strncmp(option, "--fixture-", 10) == 0)
         result = ae_authority_fixture(selection,authority.catalogue, strcmp(option, "--fixture-observe") == 0, authority.boot.bytes);
-    if (result == 0 && !system && argc == 3 && strncmp(option,"--data-",7)==0) result=app_data_action(&authority,state_path,strcmp(option,"--data-enroll")==0);
+    if (result == 0 && !system && argc == 3 && strncmp(option,"--data-",7)==0) result=app_data_action(&authority,state_path,strcmp(option,"--data-enroll")==0,selection);
     else if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(option, "--storage-publish") == 0);
     if (argc == 3 && !admit) {
         int closed = ae_catalogue_close(&authority.catalogue);

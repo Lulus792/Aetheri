@@ -692,3 +692,28 @@ The compatible inert ELF is test infrastructure for the real start path, not an
 installed desktop app or proof of full launch. Give this installation its own user
 binding, DataEpoch/allocation and executing-starter recovery/drain contract next.
 No new dependency, policy grant, wire or schema version is needed for this step.
+
+## Bind the second installation to separate private data — 27 October 2026
+
+Reuse the authenticated projection and owner-scoped enrollment implementations
+for the second selected fixture. Add one no-input protected Development1 1.4
+method, RefreshExecFixtureInstall; preserve all original methods/selections and
+public versions/capabilities. Use distinct root-owned data/owner config files and
+fresh StorageRef, DataEpoch and allocation-operation IDs. Reuse only independently
+enrolled common parents and the machine/volume/account identity. Never adopt the
+old data from matching paths/content, rebind it or recreate the shared parents.
+
+Assign the exec data the separate fixed c35,c36 profile rather than sharing
+original c33,c34. The compatible payload can test that later process context.
+Check complete raw object context plus UID/GID/mode and selected account/install/
+publisher before allocation publication/SQL. Type-only checking did not bind the
+intended category. Keep category selection in the compiled protected test profile;
+no new general category allocator or policy grant is implied. Existing header,
+allocation, enrollment bytes and SQL remain unchanged.
+
+Remove only the controller's global first-data restriction: first enrollment is
+per selected component/publisher/account/install. Observe selected rows and retain
+all unrelated data/attachments/gates/business history during retries. An enrolled
+binding or closed data gate does not imply app admission/readiness. Connect the
+new exact tuple to a distinct executing-start contract next; the no-exec withdrawal
+proof remains limited to the immutable non-executing helper.

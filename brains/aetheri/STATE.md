@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — separate execution fixture published/activated; real app-start integration remains next.
+27 October 2026 — execution fixture has its own user binding/private data; real app-start integration remains next.
 
 ## Confirmed
 
@@ -13,6 +13,42 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The new execution fixture now has a separate authenticated user installation
+binding, StorageRef, DataEpoch and immutable allocation record. Private
+Development1 1.4 adds only RefreshExecFixtureInstall; its original methods keep
+their selection/signatures and the public capability list remains empty.
+The existing owner-scoped native transaction enrolls a second installation's
+data/attachment/closed gate without changing unrelated rows or allocation objects.
+Shared enrolled parents are reused; every private leaf/config/receipt is distinct.
+
+The fixed exec data profile is c35,c36, separate from original c33,c34. Native
+enrollment checks full raw label, UID/GID, 0700, selected account/install/publisher
+and independent allocation identity before publication or SQL. An actual confined
+cap-zero negative probe rejected c37,c38 with EACCES before any allocation record
+or catalogue change; the same known object was restored after verified drain.
+Normal enrollment and exact retries then passed for both installations. All old
+system/user business rows, both sealed packages and original private objects
+matched the independently captured before/after snapshot.
+
+Current tests: 32/32 Debug ASan/UBSan (136.26 s), 32/32 Release (120.78 s),
+migration/wire 29/29 (28.172 s), orchestration 39/39 (0.235 s), runtime vectors
+14/14 and isolated constraints 374 assertions. Actual new projection retries,
+same-UID/same-domain/app caller denials, broker departure FD cleanup, user
+replacement and Root-only restart pass. These are test timings, not benchmarks.
+No SQL version, dependency, policy grant or resident process was added. A controller
+field-name error was corrected before its planned negative-test mutation and is
+covered by owner-field/alias regression cases.
+
+Both data gates and install gates remain closed. No real app was dispatched.
+Next connect this exact new I/G/D/storage/action tuple to the executing starter's
+durable dispatch, process/image registration, readiness and independent drain.
+The original no-exec release proof must not be used for executable code. See the
+[scoped projection/data contract](../../spec/runtime.md#scoped-execution-fixture-projection-and-data).
+After orderly QEMU exit 0 and verified PID absence, an offline boot also passes
+new projection/data and original data checks with cross_boot_reopen=true. Exact
+allocation records, closed gates and old objects/history remain preserved; no
+app dispatch was made and owned authority/probe services are stopped.
 
 The compatible aetheri.p0.exec fixture now has its own installation, generation,
 artifact, preallocated slot and native installation operation in the existing
@@ -37,8 +73,8 @@ These timings are test evidence, not OS performance measurements.
 No new schema/wire version, dependency, policy permission or resident process was
 added. The installed authorities were updated only after verifying no unresolved
 setup/lease/dispatch; the no-exec helper still cannot run app code. The new fixture
-still needs an owner-scoped projected binding, its own private DataEpoch/allocation
-and the executing starter's durable dispatch/registration/readiness/drain contract.
+now has the projected binding and private DataEpoch/allocation described above;
+the executing starter's durable dispatch/registration/readiness/drain remains next.
 The existing live broker profile remains original-only. See the
 [fixture/action contract](../../spec/runtime.md#separate-execution-fixture-and-declared-actions).
 After verified old-process absence and an offline VM boot, publication and

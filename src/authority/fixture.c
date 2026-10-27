@@ -24,8 +24,10 @@
 const struct ae_fixture_registry *ae_fixture_registry(enum ae_fixture_selection selection)
 {
     static const struct ae_fixture_registry profiles[]={
-        {ROOT "/registry/fixture.conf",ROOT "/registry/fixture.manifest",ROOT "/registry/fixture-store.conf",ROOT "/registry/fixture-activation.conf",ROOT "/registry/admission.conf"},
-        {ROOT "/registry/exec-fixture.conf",ROOT "/registry/exec-fixture.manifest",ROOT "/registry/exec-fixture-store.conf",ROOT "/registry/exec-fixture-activation.conf",ROOT "/registry/exec-admission.conf"}
+        {ROOT "/registry/fixture.conf",ROOT "/registry/fixture.manifest",ROOT "/registry/fixture-store.conf",ROOT "/registry/fixture-activation.conf",ROOT "/registry/admission.conf",
+         ROOT "/registry/app-data-owner.conf",ROOT "/registry/app-data.conf","system_u:object_r:aetheri_app_data_t:s0:c33,c34"},
+        {ROOT "/registry/exec-fixture.conf",ROOT "/registry/exec-fixture.manifest",ROOT "/registry/exec-fixture-store.conf",ROOT "/registry/exec-fixture-activation.conf",ROOT "/registry/exec-admission.conf",
+         ROOT "/registry/exec-app-data-owner.conf",ROOT "/registry/exec-app-data.conf","system_u:object_r:aetheri_app_data_t:s0:c35,c36"}
     };
     return selection==AE_FIXTURE_ORIGINAL || selection==AE_FIXTURE_EXEC ? &profiles[selection] : NULL;
 }

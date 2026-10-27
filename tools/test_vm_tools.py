@@ -16,6 +16,53 @@ import test_execute_policy as execute
 
 
 class VmTools(unittest.TestCase):
+    def test_execution_data_owner_validation_uses_frozen_owner_fields(self):
+        def identity(n): return f"000000000000400080000000{n:08x}"
+        def fixture(n):
+            result={key:identity(n+i) for i,key in enumerate(services.FIXTURE_IDS)}
+            result.update(scope=identity(2),artifact=f"{n:064x}"); return result
+        def owner(n):
+            result={key:identity(n+i) for i,key in enumerate(services.runtime_contracts.OWNER_FIELDS.split())}
+            result.update(machine=identity(3),volume=identity(4),account=identity(2)); return result
+        def data(f,n):
+            return dict(owner=owner(n),install=f["install"],publisher=f["publisher"],system_epoch=identity(5),user_epoch=identity(6),install_revision=1,base_revision=1,schema_version=0)
+        original,new=fixture(20),fixture(40)
+        record=dict(token="00000000-0000-4000-8000-000000000001",owner=identity(2),epochs=dict(system=identity(5),user=identity(6)),
+            units=[],pending=None,fixture=original,fixture_publication={},storage=owner(60),app_data=data(original,80),exec_fixture=dict(fixture=new,app_data=data(new,100)))
+        services.validate_record(record)
+        for field in ("storage","data","allocation_operation"):
+            changed=json.loads(json.dumps(record)); changed["exec_fixture"]["app_data"]["owner"][field]=record["app_data"]["owner"][field]
+            with self.assertRaisesRegex(RuntimeError,"aliases existing private ownership"): services.validate_record(changed)
+        changed=json.loads(json.dumps(record));changed["exec_fixture"]["app_data"]["install"]=record["fixture"]["install"]
+        with self.assertRaisesRegex(RuntimeError,"another selected installation"): services.validate_record(changed)
+
+    def test_execution_data_has_independent_leaves_under_enrolled_shared_parents(self):
+        record={"owner":"account","app_data":{"owner":{"storage":"old-storage"}},
+                "exec_fixture":{"app_data":{"owner":{"storage":"new-storage"}}}}
+        old=services.app_data_paths(record); new=services.app_data_paths(record,"exec")
+        for key in ("anchor","registry"): self.assertEqual(old[key],new[key])
+        for key in ("root","allocation","payload","owner","owner_config","config"): self.assertNotEqual(old[key],new[key])
+        self.assertEqual(new["config"].name,"exec-app-data.conf")
+        self.assertEqual(old["config"].name,"app-data.conf")
+        with self.assertRaises(ValueError): services.app_data_paths(record,"arbitrary")
+
+    def test_execution_data_and_projection_keep_their_scoped_user_roles(self):
+        record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
+                "pending":None,"units":[]}
+        with patch.object(services,"save"),patch.object(services,"run",return_value="") as command,patch.object(services,"publish_broker_slot") as broker:
+            unit=services.start_unit(record,"user",data="enroll",data_profile="exec")
+            self.assertIn("-user-data-exec-enroll-",unit)
+            self.assertEqual(command.call_args.args[-1],"--exec-data-enroll")
+            self.assertIn("--property=CapabilityBoundingSet=",command.call_args.args)
+            broker.assert_not_called()
+        with patch.object(services,"save"),patch.object(services,"run",return_value="") as command,patch.object(services,"publish_projection_slot") as selected:
+            unit=services.start_unit(record,"user",probe="projection",launch_probe="exec-refresh")
+            selected.assert_called_once_with(record,unit)
+            self.assertEqual(command.call_args.args[-1],"--exec-refresh")
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            for role,kwargs in (("system",dict(data="enroll")),("user",{}),("user",dict(data="enroll",probe="projection"))):
+                with self.assertRaises(ValueError): services.start_unit(record,role,data_profile="exec",**kwargs)
+
     def test_execution_fixture_cannot_reuse_original_install_or_slot_identity(self):
         def fixture(offset):
             ids={key:f"000000000000400080000000{n+offset:08x}" for n,key in enumerate(services.FIXTURE_IDS,1)}

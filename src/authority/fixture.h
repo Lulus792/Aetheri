@@ -11,6 +11,7 @@ enum { AE_FIXTURE_ACTIVATION_CONFIG_BYTES = 72 };
 enum ae_fixture_selection { AE_FIXTURE_ORIGINAL, AE_FIXTURE_EXEC };
 struct ae_fixture_registry {
     const char *config,*manifest,*publication,*activation,*admission;
+    const char *data_owner,*data_config,*data_context;
 };
 const struct ae_fixture_registry *ae_fixture_registry(enum ae_fixture_selection selection);
 struct ae_fixture_store_config {

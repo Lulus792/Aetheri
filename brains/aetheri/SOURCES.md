@@ -1028,3 +1028,26 @@ two separate active committed installations with closed gates. No code launch or
 data rebinding is inferred. Details and command sequence are in the
 [runtime contract](../../spec/runtime.md#separate-execution-fixture-and-declared-actions)
 and [journal](journal/2026-10-26-first-prototype.md#compatible-execution-fixture--27-october-2026).
+
+## Scoped execution-fixture projection/data — 27 October 2026
+
+Original implementation evidence: additive [Development1 1.4](../../spec/api/development-v1.xml),
+[authority selection/context checks](../../src/authority/main.c),
+[fixed profiles](../../src/authority/fixture.c),
+[owner writer](../../src/catalogue/store.c),
+[controller](../../tools/p0_services.py) and
+[host guards](../../tools/test_vm_tools.py). Existing
+[policy](../../policy/p0-services.cil) constrains aetheri_app_t by MCS; no rule was
+changed. Existing carrier/toolchain/library pins apply; no external API/family
+was added. The ownership header's allocation-operation field is defined by
+[owner.h](../../src/core/owner.h) and frozen runtime bytes, not a policy identity.
+
+Actual Enforcing evidence: authenticated second projection with exact retries,
+confined cap-zero first/second data enrollments, closed gates, wrong raw category
+rejected with native EACCES before allocation/SQL, and identical old business rows/
+package/private objects in an independent before/after snapshot. Unconfined and
+same-domain wrong-unit/app callers are denied the new method. Broker replacement/
+Root-only restart also pass. These prove the scoped prototype boundary, not
+executing launch or complete isolation/recovery. Exact results and limits are in
+the [runtime contract](../../spec/runtime.md#scoped-execution-fixture-projection-and-data)
+and [journal](journal/2026-10-26-first-prototype.md#separate-execution-data--27-october-2026).

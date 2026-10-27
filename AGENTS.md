@@ -129,7 +129,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Cache tests mock context but use real name-loss/pidfd events; separate enforcing
   integration rejects unconfined and same-domain/wrong-unit impersonators.
 - Use English for project documentation. Conversation can remain German.
-- Private Catalogue1 1.1 / Development1 1.3 support a bounded authenticated install
+- Private Catalogue1 1.1 / Development1 1.4 support a bounded authenticated install
   observation and fixed-fixture refresh. Public capabilities remain empty. A user
   binding is not admission, storage ownership or current generation authority.
   projection-check uses a root-selected short-lived user-domain helper with actual
@@ -150,7 +150,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   profile is only the protected original I/G/D, main/p0/none. Never treat a lease
   receipt or gate observation as data readiness or process execution. Only a
   still-reserved tuple can be atomically withdrawn; uncertain/observed/dispatching
-  state requires reconciliation, never inferred drain. Development1 is now 1.3.
+  state requires reconciliation, never inferred drain. Development1 is now 1.4.
   Explicit system --admit-fixture rechecks the current sealed store using a
   boot/original-catalogue-baseline-bound AETHADM1 before opening reservation
   metadata. Ordinary startup stays closed; stale admission config must fail.
@@ -200,7 +200,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   exec_fixture subtree preserves the original. Normal broker/data/no-exec paths
   still select the original; no implicit main-to-run or DataEpoch rebinding.
   core/fixture's action resolver returns owned literal argv/file metadata only.
-  The new fixture needs its own projected binding/data and executing start contract.
+  Private Development1 1.4 now adds RefreshExecFixtureInstall. The new fixture has
+  its own projected binding/DataEpoch/allocation; both gates remain closed. Native
+  data enrollment checks the exact fixed raw MAC context, UID/GID and selected
+  install/publisher. Exec data uses c35,c36; original data keeps c33,c34. Never
+  reinterpret an allocation-operation ID as policy identity. Read spec/runtime.md's
+  scoped execution-fixture data section. Existing owner bytes/SQL stay unchanged.
+  Actual executing dispatch/registration/readiness/drain remains pending.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
