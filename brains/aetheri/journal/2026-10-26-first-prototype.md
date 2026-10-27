@@ -1052,3 +1052,87 @@ persist setup effects before making them, drop privileges/close handles, establi
 typed readiness and prove actual target execution. The retained fixture declares
 action run; old synthetic main reservations must remain immutable history, not be
 silently reinterpreted for execution. No public launch or complete app sandbox yet.
+
+## Supervised no-exec preparation — 27 October 2026
+
+Connected the private mount primitive to the original User/Root launch journal,
+through a short-lived C17 setup helper, protected AETHSUP1 profile and private
+Setup1 1.0 / Development1 1.3. No SQL version, Runtime1, dependency or package was
+changed. The helper links pure codecs rather than a SQLite writer. User's pending
+run holds D; Root owns the physical setup journal. Additional setup steps block
+the old simple reservation withdrawal.
+
+Root holds the actual authenticated setup ProcessFD, sender and observed
+InvocationID/cgroup/boot, plus a PID1 unit reference, before writing its binding.
+View preparation and READY remain separate from target exec/readiness. The helper
+has no app-exec, arbitrary command or privilege-changing path. It retains only
+SYS_ADMIN/DAC_READ_SEARCH for trusted namespace setup. Setup teardown requires
+held process death plus independently observed same-invocation inactive/failed
+unit, empty cgroup, MainPID 0 and no job. Native terminal receipt then releases
+the original code lease and lets User finish cancelled without touching D.
+
+The first real helper stopped before registration. The old Root service lacked
+the new early-failure recovery code, so a separately selected confined cap-zero
+native administrative writer recovered the same original runtime under its
+exclusive catalogue lock. It checked the retained failed PID1 invocation, exact
+protected no-exec image/unit/argv/context/restart/exit and independent drain.
+It recorded distinct supervisor-only AETHSTE1 evidence, never a held peer. The
+controller verified the durable receipt before replacing old executables; it
+never patched SQL, changed the failed helper or repeated its dispatch. Later
+early failures were reconciled through the live Root endpoint. General Root
+restart/boot or target-exec recovery is deliberately not enabled by this proof.
+
+Observed integration issues and repairs:
+
+- PID1 requires system/start for RefUnit. Actual audit and v259 source agree;
+  this broader permission is confined to trusted Root. Public unit management
+  remains absent. SELinuxContext is a mandatory (bs) tuple, not a string.
+- The policy refresher initially changed the .cil basename, creating a separate
+  owned module. After verifying both staged/installed hashes, the intended module
+  was updated and the unintended one removed. Staging now preserves the basename.
+  A diagnostic dontaudit rebuild was restored; enforcing mode never changed.
+- PID1's NNP/SELinux transition left SYS_ADMIN inheritable. The helper now drops
+  only allowed inherited bits and checks exact effective/permitted rights again,
+  before registration/effects. No SETPCAP or app permission was added.
+- Actual audit identified namespace-FD reads, private root propagation mounton
+  and the kernel-labeled notify socket. The responsible setup-only permissions
+  were added; code/data execute/map prohibitions remain.
+- Procfs's current label included one terminating NUL. Independently reconstructing
+  the context digest from the retained controller observation without that
+  terminator matched native evidence. The controller now accepts exactly the
+  expected bytes, with optional single NUL, rather than hashing it as label text.
+
+The final enforcing setup-check passed all reported checks: actual supervised
+views, independent live context digest, live-withdrawal denial before/after User
+replacement, observed drain, byte-identical terminal retry and removal of only
+the exact known empty scaffold. Target execution was false throughout. The old
+publication, private payload/allocation/owner and operation histories remain.
+The final normal endpoint/app-denial check also passed after updated installation.
+
+Complete native CTest suites pass 31/31 Debug ASan/UBSan (154.94 s) and Release
+(118.88 s). The profile test separately checks every truncation, UUID variant/version,
+signed-range boundary and unchanged failure output. The supervisor test rejects
+22 independent image/transport/unit/argv/context/restart/exit/drain faults. Native
+launch tests cover each mutating SQL step, failed/lost commits, exact retries,
+changed evidence, two revision overflows, terminal-only recovery and retained
+Root-restart uncertainty. Final bounds changes pass focused Debug/Release repeats
+(0.07/0.02 s).
+
+Host migration/wire 29/29 (50.747 s), orchestration 30/30 (0.235 s), frozen runtime
+vectors 14/14, cache guards 7/7 (0.091 s) and isolated constraints 374 assertions
+pass. A final added false-recovery-receipt guard passes its focused repeat. Test
+durations are not OS performance figures. Public capabilities remain empty.
+
+The final broker-check rejects copied identities from unconfined/same-domain
+wrong-unit callers, including the new Root setup and User development methods.
+Departure reduces Root FDs 12 to 11; replacement and Root-only restart with the
+User retained pass. launch-reopen-check reports terminal_history_preserved=true
+and cross_boot_reopen=false: this last check is a normal service restart, not a
+new guest-boot claim. All owned authority/probe/setup units were then stopped;
+getenforce still reports Enforcing. The dedicated offline VM and known fixtures
+remain for the next implementation step.
+
+Next: a compatible real-exec fixture and exact target-dispatch/privilege-drop/exec
+evidence. Preserve the old immutable main reservations and run/c31,c32 package;
+enrolled data uses c33,c34. Document transport, full recovery/removal, original
+desktop/apps/image and hardware acceptance remain part of the active full goal.

@@ -7,7 +7,9 @@ The current C17 prototype runs in a dedicated Fedora/UEFI test VM. It has tested
 catalogue contracts, verified publication of a trusted test package, private-data
 ownership and two confined system/user services. A start request is now journaled
 before code reservation and can be withdrawn after the user service restarts,
-without starting an app process or losing track of the reservation.
+without losing track of the reservation. A short-lived setup service now connects
+that journal to private code/data mount views and independently checked teardown.
+This service deliberately cannot execute application code.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The
@@ -108,9 +110,10 @@ limits are in [runtime contracts](spec/runtime.md).
 | Directory | Contents |
 | --- | --- |
 | src/core | Ownership/allocation records, fixture metadata, bounded storage, staging/publication and SHA-256 verification |
-| src/catalogue | SQLite v2 identity/runtime/account and fixture-operation transactions |
-| src/linux | Bus credentials and live process/unit/invocation checks; app/run admission remains pending |
+| src/catalogue | SQLite v2 identity, fixture, launch and setup transactions |
+| src/linux | Bus credentials, live process/unit checks and private FD-based mount views |
 | src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |
+| src/launcher | Short-lived no-exec view preparer; target execution and privilege dropping remain work |
 | policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |

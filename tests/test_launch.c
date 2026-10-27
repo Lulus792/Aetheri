@@ -1,4 +1,5 @@
 #include "catalogue/launch.h"
+#include "catalogue/setup.h"
 #include <errno.h>
 #include <sqlite3.h>
 #include <stdio.h>
@@ -82,6 +83,7 @@ int main(int argc,char **argv)
     CHECK(ae_catalogue_admit_launch_data(user,&q,&gate)==-EIO && gate==-777);
     CHECK(ae_catalogue_admit_launch_data(user,&q,&gate)==0 && gate==3 && ae_catalogue_admit_launch_data(user,&q,&gate)==0);
     q.data_gate_revision=3;
+    int setup=strncmp(argv[4],"setup",5)==0;
     int recovery=strcmp(argv[4],"recovery")==0 || strcmp(argv[4],"lost-root-reply")==0;
     int lost_reply=strcmp(argv[4],"lost-root-reply")==0;
     if (strcmp(argv[4],"faults")==0) {
@@ -92,7 +94,7 @@ int main(int argc,char **argv)
         }
         commit_fault=1; CHECK(ae_catalogue_accept_launch(user,&q,&output)==-EIO);
         commit_fault=2; CHECK(ae_catalogue_accept_launch(user,&q,&output)==-EIO);
-    } else if (!recovery) {
+    } else if (!recovery && !setup) {
         CHECK(ae_catalogue_close(&user)==0);
         pid_t child=fork(); CHECK(child>=0);
         if (child==0) {
@@ -136,6 +138,63 @@ int main(int argc,char **argv)
         CHECK(scalar(argv[1],"SELECT state='reserved' FROM generation_leases")==1);
         CHECK(ae_catalogue_accept_launch(user,&q,&output)==0 && strcmp(output.state,"recovery_required")==0);
         memcpy(rc.broker_runtime,replacement,16);
+    }
+    if (setup) {
+        struct ae_setup_profile p={.install_revision=2,.install_gate_revision=3,.data_gate_revision=3};
+        memcpy(p.system_epoch,r->system_epoch,16); memcpy(p.system_runtime,rc.system_runtime,16); memcpy(p.broker_epoch,r->broker_epoch,16);
+        memcpy(p.broker_runtime,r->broker_runtime,16); memcpy(p.boot,r->boot,16); memcpy(p.account,r->account,16); memcpy(p.install,r->install,16);
+        memcpy(p.generation,r->generation,16); memcpy(p.data,r->data,16); memcpy(p.storage,q.storage,16); memcpy(p.launch,r->launch,16);
+        memcpy(p.lease,r->lease,16); memcpy(p.root_operation,proposed.operation,16); memcpy(p.user_operation,q.local.operation,16);
+        uint8_t hash[32]={1},evidence[32]={2},invocation[16]; id(invocation,66);
+        struct ae_dispatch_snapshot before; memset(&before,0xa5,sizeof before);
+        CHECK(ae_catalogue_authorize_user_setup(user,&p)==0);
+        struct ae_setup_profile wrong_profile=p; wrong_profile.storage[15]++;
+        CHECK(ae_catalogue_authorize_user_setup(user,&wrong_profile)==-ESTALE);
+        CHECK(ae_catalogue_register_setup(root,&p,hash,invocation,evidence,&dispatch)==-ENOENT);
+        for (int stage=0;stage<4;++stage) {
+            if (stage==2 && strcmp(argv[4],"setup-terminal")==0) continue;
+            if (stage==3 && (strcmp(argv[4],"setup-dispatch-overflow")==0 || strcmp(argv[4],"setup-lease-overflow")==0)) {
+                edit(argv[1],strcmp(argv[4],"setup-dispatch-overflow")==0 ? "UPDATE launch_dispatches SET revision=9223372036854775807" :
+                    "UPDATE generation_leases SET revision=9223372036854775807");
+                dispatch=before;
+                CHECK(ae_catalogue_withdraw_setup(root,&p,hash,invocation,evidence,&rc,123500,&dispatch)==-EOVERFLOW);
+                CHECK(memcmp(&dispatch,&before,sizeof before)==0 && scalar(argv[1],"SELECT state='reserved' FROM generation_leases")==1);
+                CHECK(scalar(argv[1],"SELECT count(*) FROM operation_steps WHERE step_no=3")==0);
+                CHECK(ae_catalogue_close(&root)==0 && ae_catalogue_close(&user)==0); return 0;
+            }
+            int count=stage==0 || stage==1 ? 3 : stage==2 ? 4 : 7;
+            for (int n=1;n<=count;++n) {
+                step_fault=n; step_number=0; dispatch=before;
+                int result=stage==0 ? ae_catalogue_begin_setup(root,&p,hash,&rc,&dispatch) : stage==1 ?
+                    (strcmp(argv[4],"setup-terminal")==0 ? ae_catalogue_record_setup_exit(root,&p,hash,invocation,evidence,&dispatch) : ae_catalogue_register_setup(root,&p,hash,invocation,evidence,&dispatch)) :
+                    stage==2 ? ae_catalogue_prepared_setup(root,&p,hash,invocation,evidence,&dispatch) : ae_catalogue_withdraw_setup(root,&p,hash,invocation,evidence,&rc,123500,&dispatch);
+                CHECK(result==-EIO && step_fault==0 && memcmp(&dispatch,&before,sizeof before)==0);
+            }
+            for (int repeat=0;repeat<3;++repeat) {
+                commit_fault=repeat==0 ? 2 : 0;
+                int result=stage==0 ? ae_catalogue_begin_setup(root,&p,hash,&rc,&dispatch) : stage==1 ?
+                    (strcmp(argv[4],"setup-terminal")==0 ? ae_catalogue_record_setup_exit(root,&p,hash,invocation,evidence,&dispatch) : ae_catalogue_register_setup(root,&p,hash,invocation,evidence,&dispatch)) :
+                    stage==2 ? ae_catalogue_prepared_setup(root,&p,hash,invocation,evidence,&dispatch) : ae_catalogue_withdraw_setup(root,&p,hash,invocation,evidence,&rc,123500+repeat,&dispatch);
+                CHECK(result==(repeat==0 ? -EIO : 0));
+            }
+            if (stage<3) CHECK(ae_catalogue_cancel_reservation(root,r->lease,&rc,r->broker_epoch,q.local.operation,1,123500,&dispatch)==-EAGAIN);
+            if (stage==1 && strcmp(argv[4],"setup-terminal")==0) CHECK(scalar(argv[1],"SELECT reason_code='setup_exit_observed' FROM operations")==1);
+            uint8_t bad_hash[32]; memcpy(bad_hash,hash,32); bad_hash[0]^=1;
+            CHECK(ae_catalogue_begin_setup(root,&p,bad_hash,&rc,&dispatch)==-EEXIST);
+            if (stage>=1) {
+                uint8_t bad_invocation[16]; memcpy(bad_invocation,invocation,16); bad_invocation[15]++;
+                CHECK(ae_catalogue_register_setup(root,&p,hash,bad_invocation,evidence,&dispatch)==-EEXIST);
+                uint8_t bad_evidence[32]; memcpy(bad_evidence,evidence,32); bad_evidence[0]^=1;
+                CHECK(ae_catalogue_prepared_setup(root,&p,hash,invocation,bad_evidence,&dispatch)==-EEXIST);
+            }
+            if (stage==2 && strcmp(argv[4],"setup-restart")==0) {
+                id(rc.system_runtime,6); CHECK(ae_catalogue_begin_runtime(root,r->boot,rc.system_runtime)==0);
+                CHECK(ae_catalogue_withdraw_setup(root,&p,hash,invocation,evidence,&rc,123500,&dispatch)==-ESTALE);
+                CHECK(ae_catalogue_get_dispatch(root,r->lease,&rc,&dispatch)==0 && strcmp(dispatch.state,"uncertain")==0);
+                CHECK(scalar(argv[1],"SELECT state='reserved' FROM generation_leases")==1);
+                CHECK(ae_catalogue_close(&root)==0 && ae_catalogue_close(&user)==0); return 0;
+            }
+        }
     }
     CHECK(ae_catalogue_cancel_reservation(root,r->lease,&rc,r->broker_epoch,q.local.operation,1,123500,&dispatch)==0);
     CHECK(ae_catalogue_get_receipt(root,r->lease,&rc,&receipt)==0 && receipt.withdrawn && receipt.cause[15]==61);

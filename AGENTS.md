@@ -129,7 +129,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Cache tests mock context but use real name-loss/pidfd events; separate enforcing
   integration rejects unconfined and same-domain/wrong-unit impersonators.
 - Use English for project documentation. Conversation can remain German.
-- Private Catalogue1/Development1 v1.0 now support a bounded authenticated install
+- Private Catalogue1 1.1 / Development1 1.3 support a bounded authenticated install
   observation and fixed-fixture refresh. Public capabilities remain empty. A user
   binding is not admission, storage ownership or current generation authority.
   projection-check uses a root-selected short-lived user-domain helper with actual
@@ -150,7 +150,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   profile is only the protected original I/G/D, main/p0/none. Never treat a lease
   receipt or gate observation as data readiness or process execution. Only a
   still-reserved tuple can be atomically withdrawn; uncertain/observed/dispatching
-  state requires reconciliation, never inferred drain. Development1 is now 1.2.
+  state requires reconciliation, never inferred drain. Development1 is now 1.3.
   Explicit system --admit-fixture rechecks the current sealed store using a
   boot/original-catalogue-baseline-bound AETHADM1 before opening reservation
   metadata. Ordinary startup stays closed; stale admission config must fail.
@@ -169,8 +169,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Entry can change namespace on later failure; exit rather than fall back. Move
   attempts are not retryable after uncertainty. Closing view/namespace handles is
   not drain or lease release. Real kernel tests run as administrative unconfined_t
-  in the enforcing guest; deployed launcher/app policy and readiness integration
-  remain pending. Preserve the existing source/MAC/content admission requirements.
+  in the enforcing guest; the separate supervised no-exec setup path below now
+  exercises setup_t. App policy and target readiness remain pending. Preserve the
+  existing source/MAC/content admission requirements.
+- src/launcher and private Setup1 1.0 connect view setup to the original Root
+  journal. The fixed helper cannot execute app code. Root pins actual ProcessFD /
+  unit invocation and separately observes terminal unit/cgroup/job drain before
+  releasing this no-exec attempt. Read spec/runtime.md's supervised setup section.
+  Root's ordinary reservation withdrawal rejects additional setup steps. Early
+  failed helpers have a distinct supervisor-only proof, never a fabricated peer;
+  it depends on the unchanged protected image/unit and original Root runtime/boot.
+  Offline --recover-setup keeps that runtime under the exclusive catalogue lock.
+  Do not reuse this proof for a target-executing starter or uncertain dispatch.
+  Preserve old main tuples and the immutable run/c31,c32 fixture; actual target
+  exec needs a new compatible fixture for c33,c34 data. Public capabilities remain
+  empty. No production app launch, privilege dropping or complete removal yet.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

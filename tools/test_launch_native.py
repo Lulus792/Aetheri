@@ -17,7 +17,7 @@ def main():
         effects=[dict(number=0,kind="data",component="aetheri.probe",ref=identity(12),disposition="retain",reason="launch_data_reservation")])
     with tempfile.TemporaryDirectory(prefix="launch-",dir=build) as temporary:
         root=Path(temporary); expected=root/"expected"; expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
-        for scenario in ("faults","exit-before","exit-after","recovery","lost-root-reply"):
+        for scenario in ("faults","exit-before","exit-after","recovery","lost-root-reply","setup","setup-restart","setup-terminal","setup-dispatch-overflow","setup-lease-overflow"):
             case=root/scenario; case.mkdir(); system,user=case/"system",case/"user"
             system.mkdir(mode=0o700); user.mkdir(mode=0o700)
             subprocess.run([executable,system,user,expected,scenario],check=True,timeout=50)

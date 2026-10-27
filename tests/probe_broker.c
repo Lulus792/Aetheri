@@ -58,6 +58,17 @@ int main(int argc, char **argv)
     CHECK(sd_bus_call(bus,request,2000000,&error,&reply)<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
     CHECK(strcmp(error.message,"Active registered broker required")==0);
     sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply);
+    const char *setup_methods[]={"PrepareSetup","RegisterSetup","ReportPrepared","WithdrawSetup"};
+    uint8_t digest[32]={0};
+    for (size_t n=0;n<4;++n) {
+        request=NULL; reply=NULL;
+        CHECK(sd_bus_message_new_method_call(bus,&request,"org.aetheri.System1","/org/aetheri/Setup1","org.aetheri.Setup1",setup_methods[n])>=0);
+        CHECK(sd_bus_message_append_array(request,'y',ids[0],16)>=0);
+        if (n==0) CHECK(sd_bus_message_append(request,"t",UINT64_C(1))>=0);
+        CHECK(sd_bus_message_append_array(request,'y',n==3 ? ids[1] : digest,n==3 ? 16U : 32U)>=0);
+        CHECK(sd_bus_call(bus,request,2000000,&error,&reply)<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+        sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply);
+    }
     sd_bus *user=NULL;
     CHECK(sd_bus_new(&user)>=0 && sd_bus_set_address(user,argc==6 ? "unix:path=/run/user/1000/bus" : "unix:path=/var/lib/aetheri-p0/user-bus")>=0);
     CHECK(sd_bus_set_bus_client(user,1)>=0 && sd_bus_set_method_call_timeout(user,2000000)>=0 && sd_bus_start(user)>=0);
@@ -68,8 +79,8 @@ int main(int argc, char **argv)
     CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1","TestFixtureReservation",&error,&reply,"")<0);
     CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
     sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
-    const char *launch_methods[]={"PrepareFixtureLaunch","CancelFixtureLaunch"};
-    for (size_t n=0;n<2;++n) {
+    const char *launch_methods[]={"PrepareFixtureLaunch","CancelFixtureLaunch","PrepareFixtureSetup","CancelFixtureSetup"};
+    for (size_t n=0;n<4;++n) {
         CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1",launch_methods[n],&error,&reply,"")<0);
         CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
         sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;

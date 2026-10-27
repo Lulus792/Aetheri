@@ -38,7 +38,7 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
     DEPENDS tools/embed_schema.py tools/catalogue_contracts.py
             spec/schema/common-v2.sql spec/schema/system-v2.sql spec/schema/user-v2.sql
     VERBATIM)
-add_library(aetheri_catalogue STATIC src/catalogue/store.c "${AETHERI_SCHEMA_SOURCE}")
+add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
 target_compile_definitions(aetheri_catalogue PRIVATE _GNU_SOURCE)
 target_compile_options(aetheri_catalogue PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -56,13 +56,17 @@ if(AETHERI_LINUX_IPC)
     set(AETHERI_WIRE_TABLES "${CMAKE_CURRENT_BINARY_DIR}/generated/wire-tables.h")
     add_custom_command(OUTPUT "${AETHERI_WIRE_TABLES}"
         COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_api.py" "${AETHERI_WIRE_TABLES}"
-        DEPENDS tools/embed_api.py spec/api/management-v1.xml spec/api/documents-v1.xml spec/api/runtime-v1.xml spec/api/broker-v1.xml spec/api/catalogue-v1.xml spec/api/development-v1.xml
+        DEPENDS tools/embed_api.py spec/api/management-v1.xml spec/api/documents-v1.xml spec/api/runtime-v1.xml spec/api/broker-v1.xml spec/api/catalogue-v1.xml spec/api/development-v1.xml spec/api/setup-v1.xml
         VERBATIM)
-    add_executable(aetheri-authority src/authority/main.c src/authority/broker.c src/authority/fixture.c src/authority/projection.c src/authority/reservation.c "${AETHERI_WIRE_TABLES}")
+    add_executable(aetheri-authority src/authority/main.c src/authority/broker.c src/authority/fixture.c src/authority/projection.c src/authority/reservation.c src/authority/setup.c src/authority/setup_profile.c "${AETHERI_WIRE_TABLES}")
     target_include_directories(aetheri-authority PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
     target_compile_definitions(aetheri-authority PRIVATE _GNU_SOURCE)
     target_compile_options(aetheri-authority PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
     target_link_libraries(aetheri-authority PRIVATE aetheri_catalogue aetheri_linux PkgConfig::SELINUX)
+    add_executable(aetheri-setup src/launcher/main.c src/authority/setup_profile.c src/catalogue/setup.c src/catalogue/data.c)
+    target_compile_definitions(aetheri-setup PRIVATE _GNU_SOURCE)
+    target_compile_options(aetheri-setup PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    target_link_libraries(aetheri-setup PRIVATE aetheri_linux)
     if(AETHERI_POLICY_PROBES)
         add_executable(probe_projection tests/probe_projection.c)
         target_compile_definitions(probe_projection PRIVATE _GNU_SOURCE)
@@ -196,6 +200,14 @@ if(BUILD_TESTING)
     add_test(NAME core.storage COMMAND test_core storage "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(core.owner core.storage PROPERTIES TIMEOUT 10)
     if(AETHERI_LINUX_IPC)
+        add_executable(test_setup_supervisor tests/test_setup_supervisor.c src/authority/setup.c src/authority/setup_profile.c)
+        target_compile_definitions(test_setup_supervisor PRIVATE _GNU_SOURCE)
+        target_compile_options(test_setup_supervisor PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        target_link_options(test_setup_supervisor PRIVATE -Wl,--wrap=ae_setup_verify_image -Wl,--wrap=sd_bus_call_method
+            -Wl,--wrap=sd_bus_get_property -Wl,--wrap=sd_bus_get_property_string -Wl,--wrap=sd_bus_get_property_trivial)
+        target_link_libraries(test_setup_supervisor PRIVATE aetheri_catalogue aetheri_linux PkgConfig::SELINUX)
+        add_test(NAME authority.setup_supervisor COMMAND test_setup_supervisor)
+        set_tests_properties(authority.setup_supervisor PROPERTIES TIMEOUT 15)
         add_executable(test_reservation_wire tests/test_reservation_wire.c src/authority/reservation.c)
         target_compile_definitions(test_reservation_wire PRIVATE _GNU_SOURCE)
         target_compile_options(test_reservation_wire PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — native private code/data views; supervised setup remains next.
+27 October 2026 — supervised no-exec setup and verified teardown; target exec remains next.
 
 ## Confirmed
 
@@ -14,6 +14,42 @@ final Aetheri distribution or runtime acceptance.
 
 ## Implemented
 
+The short-lived [setup helper](../../src/launcher/main.c) now connects private
+code/data views to the original durable launch operation. It cannot execute app
+code. Root journals setup before dispatch, pins the actual bus ProcessFD and
+systemd invocation, and records preparation separately from target readiness.
+Live withdrawal is denied. After held process death and independent same-invocation
+unit/cgroup/job drain, Root may release this no-exec attempt; User completes from
+the authenticated terminal receipt. Broker replacement and exact terminal retries
+are supported. Root restart uncertainty still holds the obligation.
+
+An early failed helper has a separate supervisor-only recovery proof, with no
+invented peer identity. Its fixed protected no-exec image, exact unit/argv/context,
+exit evidence and independent drain are checked. A confined offline owner action
+also supports this proof without beginning a new catalogue runtime. It was used
+to recover the first failed attempt before updating the old authority. No SQL
+patching or repeat of a failed setup dispatch was used.
+
+The actual enforcing VM setup-check passed preparation, independent reconstruction
+of the native context digest, live withdrawal denial, broker replacement, observed
+drain, byte-identical terminal retries and removal of only the known empty scaffold.
+Private data, owner records and operation histories remain. Setup-only READY is
+not app readiness. The helper has a separate setup_t domain and two setup
+capabilities; no app can inherit them because this helper has no exec path.
+Private Setup1 1.0 and Development1 1.3 add no public capability or SQL version.
+See [runtime contract](../../spec/runtime.md#supervised-no-exec-setup).
+
+Complete native suites pass 31/31 Debug ASan/UBSan (154.94 s) and Release
+(118.88 s). Final bounds changes pass focused Debug/Release repeats (0.07/0.02 s).
+Host migration/wire tests pass 29/29 (50.747 s), orchestration 30/30 (0.235 s),
+runtime vectors 14/14 and isolated constraints 374 assertions. A final enforcing
+setup-check and endpoint/app-denial check pass after the updated authority install.
+These durations are test evidence, not OS performance measurements.
+Copied-identity/same-domain wrong-unit broker checks, departure FD cleanup,
+User replacement and Root-only restart pass with the new private methods. Normal
+restart preserves terminal launch history; this final check was not a guest reboot.
+Owned authority/probe/setup units are stopped, with SELinux still Enforcing.
+
 Native [linux/view.h](../../src/linux/view.h) now creates private mount namespaces,
 clones exact admitted code/data directory handles and attaches them to checked
 empty setup slots. Code is readonly; data is writable/noexec; both are nodev,
@@ -21,13 +57,12 @@ nosuid and nosymfollow. Existing restrictions are never removed. Move attempts
 with uncertain results cannot be repeated. Process/namespace identity and owned
 CLOEXEC handles are checked; closing them is not a claim of mount/app drain.
 
-This is a tested setup primitive, not yet a deployed starter or readiness/dispatch
-integration. It changes no policy permission, schema, IPC contract or dependency.
-Real privileged tests run as administrative unconfined_t in the existing enforcing
-guest, not the future launcher/app domain. They prove kernel mount boundaries,
+The original standalone view tests use administrative unconfined_t in the existing
+enforcing guest. The new setup integration above separately exercises setup_t.
+Those standalone tests prove kernel mount boundaries,
 including readonly writes, actual exec and executable mmap refusal, device-open
 denial, omitted nested mounts, source/target replacement checks and no propagation
-to an independent parent while views are live. Full native suites pass 30/30
+to an independent parent while views are live. The earlier full native baseline was 30/30
 Debug ASan/UBSan (113.06 s) and Release (101.14 s); final expanded mount cases
 also pass focused Debug/Release repeats. Host orchestration 28/28 and isolated
 constraints 374 assertions pass. Existing installed authority launch-history and
@@ -50,11 +85,11 @@ with start_failed/unavailable run and completed remote link. Root uncertainty,
 readiness, invocation, grants or additional setup effects block this narrow path.
 Historical retries preserve IDs, revisions and completion timestamps.
 
-Private Catalogue1 is now additive 1.1 (actual reservation receipts), Development1
-1.2 (protected fixed-fixture prepare/cancel). Original Runtime1 XML and all SQL
+The earlier metadata-only slice added Catalogue1 1.1 (actual reservation receipts)
+and Development1 1.2 (protected fixed-fixture prepare/cancel). Original Runtime1 XML and all SQL
 versions remain unchanged. Public capabilities stay empty; public launch and
 DispatchLaunch remain unsupported. No dependency, policy permission or resident
-process was added. See [runtime contract](../../spec/runtime.md#durable-user-launch-acceptance-and-withdrawal).
+process was added by that slice. See [runtime contract](../../spec/runtime.md#durable-user-launch-acceptance-and-withdrawal).
 
 Actual cap-zero/NNP enforcing prepare, user-service replacement, held original
 root lease, explicit withdrawal and byte-identical terminal retry pass. Independent

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Private no-exec setup prototype; not runtime.dispatch.v1 or an app API. -->
+<node name="/org/aetheri/Setup1">
+  <interface name="org.aetheri.Setup1">
+    <annotation name="org.aetheri.Contract.Version" value="1.0"/>
+    <annotation name="org.aetheri.Contract.Visibility" value="broker-or-selected-setup"/>
+    <method name="PrepareSetup">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="data_gate_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="in" name="profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+    <method name="RegisterSetup">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+    <method name="ReportPrepared">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+    <method name="WithdrawSetup">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="cause_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+  </interface>
+</node>

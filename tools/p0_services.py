@@ -81,7 +81,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)|data-(?:observe|enroll)))?|probe-(?:check|claim|broker|projection))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|recover-setup|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)|data-(?:observe|enroll)))?|probe-(?:check|claim|broker|projection))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -118,6 +118,12 @@ def validate_record(record):
             value = fixture[key]
             if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
                 raise RuntimeError("invalid fixture identity")
+    if "setup" in record:
+        setup=record["setup"]
+        for key in ("launch","lease","root_operation","user_operation"):
+            if re.fullmatch("[0-9a-f]{32}",setup[key]) is None or uuid.UUID(hex=setup[key]).version!=4: raise RuntimeError("invalid setup identity")
+        if setup["unit"]!="aetheri-app-"+setup["launch"]+".service": raise RuntimeError("foreign setup unit")
+        if setup["state"] not in ("prepared","starting","active","failed","drained","withdrawn"): raise RuntimeError("unknown setup state")
     return record
 
 
@@ -178,7 +184,13 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
         owned_file(ROOT / "registry/projection.conf",0o444)
         if (ROOT / "registry/projection.conf").read_text()!="AETHERI-P0-PROJECTION-1\nunit="+record["projection_unit"]+"\n": raise RuntimeError("projection controller slot changed")
     verify_app_data(record,allow_unreceipted_app_data)
-    for name in ("admission","reservation","launch"):
+    if "setup_sha256" in record:
+        owned_file(ROOT/"setup-helper",0o555)
+        if checksum(ROOT/"setup-helper")!=record["setup_sha256"]: raise RuntimeError("setup helper changed")
+    if "setup_recovery_sha256" in record:
+        owned_file(ROOT/"setup-recovery",0o555)
+        if checksum(ROOT/"setup-recovery")!=record["setup_recovery_sha256"]: raise RuntimeError("setup recovery image changed")
+    for name in ("admission","reservation","launch","setup"):
         if name+"_config_sha256" in record:
             path=ROOT/"registry"/(name+".conf")
             owned_file(path,0o444)
@@ -955,8 +967,10 @@ def publish_projection_slot(record,unit):
     record["projection_unit"]=unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None, admit=False, reservation_probe=False, launch_probe=None):
-    if launch_probe is not None and (launch_probe not in ("prepare","cancel") or role!="user" or probe!="projection" or reservation_probe):
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None, admit=False, reservation_probe=False, launch_probe=None, recover_setup=False):
+    if recover_setup and (role!="system" or init or probe or enroll or storage or fixture or data or admit or reservation_probe or launch_probe):
+        raise ValueError("setup recovery requires only the offline system administrative role")
+    if launch_probe is not None and (launch_probe not in ("prepare","cancel","setup-prepare","setup-cancel","setup-busy") or role!="user" or probe!="projection" or reservation_probe):
         raise ValueError("launch probe requires the selected fixed user controller")
     if reservation_probe and (role!="user" or probe!="projection"): raise ValueError("reservation probe requires selected user controller")
     if admit and (role!="system" or init or probe or enroll or storage or fixture or data):
@@ -973,7 +987,7 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
         raise ValueError("account enrollment requires only the system administrative role")
     if storage is not None and (storage not in ("publish", "verify") or role != "user" or init or probe or enroll):
         raise ValueError("storage administration requires only the user role")
-    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "-fixture-" + fixture if fixture else "-storage-" + storage if storage else "-data-"+data if data else "")
+    suffix = ("probe-" + probe) if probe else role + ("-recover-setup" if recover_setup else "-init" if init else "-enroll" if enroll else "-fixture-" + fixture if fixture else "-storage-" + storage if storage else "-data-"+data if data else "")
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
@@ -1007,10 +1021,11 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
             properties.pop("ReadWritePaths")
             command=[str(ROOT / "probe-projection")]
             if reservation_probe: command.append("--reserve")
-            if launch_probe: command.append("--launch-"+launch_probe)
+            if launch_probe: command.append("--"+launch_probe if launch_probe.startswith("setup-") else "--launch-"+launch_probe)
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else ["--data-"+data] if data else ["--admit-fixture"] if admit else [])
+        if recover_setup: command=[str(ROOT/"setup-recovery"),"system","--recover-setup"]
         if fixture in ("store-observe", "store-publish", "activate"):
             properties["ReadWritePaths"] = str(ROOT)
             properties["ReadOnlyPaths"] = str(fixture_paths(record)["source"])
@@ -1021,8 +1036,8 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     if role == "user" or probe:
         properties.update(BindsTo="user@1000.service", After="user@1000.service",
                           BindReadOnlyPaths="/run/user/1000/bus:" + str(ROOT / "user-bus"))
-    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll or storage or fixture or data else "notify")]
-    if init or probe or enroll or storage or fixture or data:
+    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll or storage or fixture or data or recover_setup else "notify")]
+    if init or probe or enroll or storage or fixture or data or recover_setup:
         arguments.append("--wait")
     arguments.extend("--property=" + key + "=" + value for key, value in properties.items())
     try:
@@ -1093,11 +1108,11 @@ def check(record):
             raise AssertionError("durable/protocol/runtime identity mismatch")
         if actual[1].lower() != Path("/proc/sys/kernel/random/boot_id").read_text().strip().replace("-", ""):
             raise AssertionError("catalogue is not bound to the real kernel boot")
-        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1", "/org/aetheri/Broker1", "/org/aetheri/Catalogue1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1", "/org/aetheri/Development1"]
+        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1", "/org/aetheri/Broker1", "/org/aetheri/Catalogue1","/org/aetheri/Setup1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1", "/org/aetheri/Development1"]
         name = "org.aetheri.System1" if role == "system" else "org.aetheri.User1"
         for path in paths:
             live = ET.fromstring(json.loads(bus(role, "--json=short", "call", name, path, "org.freedesktop.DBus.Introspectable", "Introspect"))["data"][0])
-            expected_file = {"Management1": "management-v1.xml", "Runtime1": "runtime-v1.xml", "Documents1": "documents-v1.xml", "Broker1": "broker-v1.xml", "Catalogue1": "catalogue-v1.xml", "Development1": "development-v1.xml"}[path.rsplit("/", 1)[1]]
+            expected_file = {"Management1": "management-v1.xml", "Runtime1": "runtime-v1.xml", "Documents1": "documents-v1.xml", "Broker1": "broker-v1.xml", "Catalogue1": "catalogue-v1.xml", "Development1": "development-v1.xml","Setup1":"setup-v1.xml"}[path.rsplit("/", 1)[1]]
             expected = ET.parse(SOURCE / "spec/api" / expected_file).getroot()
             for interface in expected.findall("interface"):
                 if interface.attrib["name"] == "org.aetheri.Subscription1" or (role == "system" and interface.attrib["name"] == "org.aetheri.User1"):
@@ -1264,6 +1279,9 @@ def launch_probe(record,action):
     output=run("journalctl","-u",unit,"--output=cat","--no-pager")
     replies=re.findall(r"^launch ([0-9a-f]{32}) ([0-9]+) ([0-9]+)$",output,re.M)
     stop_unit(unit); publish_projection_slot(record,"-"); save(record)
+    if action=="setup-busy":
+        if not re.search(r"^setup-busy$",output,re.M): raise AssertionError("live setup was not protected")
+        return None
     if len(replies)!=1 or replies[0][0]!=record["launch_intent"]["operation"]: raise AssertionError("local launch receipt missing")
     return tuple(int(value) for value in replies[0][1:])
 
@@ -1292,11 +1310,15 @@ def verify_launch_terminal(record):
         raise AssertionError("user journal not reconciled or data gate reopened")
     verify_reservation_intent(state_path(record,"system")/"catalogue.sqlite3",dispatch[6])
     verify_reservation_intent(state_path(record,"user")/"catalogue.sqlite3",ids["operation"])
-    if run("systemctl","show","aetheri-app-"+ids["launch"]+".service","--property=LoadState","--value")!="not-found":
-        raise AssertionError("journal-only test dispatched an app")
+    unit="aetheri-app-"+ids["launch"]+".service"
+    if run("systemctl","show",unit,"--property=LoadState","--value")!="not-found":
+        if record.get("setup",{}).get("launch")!=ids["launch"]: raise AssertionError("journal-only test dispatched an app")
+        facts=dict(line.split("=",1) for line in run("systemctl","show",unit,"--property=ActiveState,MainPID,ControlGroup").splitlines())
+        if facts.get("ActiveState") not in ("inactive","failed") or facts.get("MainPID")!="0" or facts.get("ControlGroup") or unit_has_job(unit):
+            raise AssertionError("known setup unit is not independently drained")
 
 
-def launch_check(record,fresh=False):
+def launch_check(record,fresh=False,prepare_only=False):
     verified(record); stop(record)
     previous=None
     if "launch_intent" in record:
@@ -1346,6 +1368,7 @@ def launch_check(record,fresh=False):
         row=db.execute("SELECT l.state,l.readiness,s.state,x.state FROM launches l JOIN operation_steps s USING(operation_id) JOIN operation_links x USING(operation_id) WHERE l.operation_id=? AND s.step_no=0 AND x.link_no=0",(bytes.fromhex(ids["operation"]),)).fetchone()
     if row!=("preparing","unknown","applied","accepted"): raise AssertionError("missing durable user/root acceptance")
     record["launch_state"]="reserved"; save(record)
+    if prepare_only: return
     stop_unit(record["active_units"]["user"])
     start(record)  # Root stays live; only the authenticated user incarnation changes.
     with sqlite3.connect(f"file:{user_database}?mode=ro",uri=True) as db:
@@ -1372,6 +1395,122 @@ def launch_reopen_check(record):
     if before!=launch_business(record): raise AssertionError("normal restart changed terminal launch history")
     record["launch_reopen_check"]=dict(terminal_history_preserved=True,cross_boot_reopen=Path("/proc/sys/kernel/random/boot_id").read_text().strip()!=record["launch_first_boot"])
     save(record); print(json.dumps(record["launch_reopen_check"]))
+
+
+def setup_cleanup_layout(record):
+    setup=record["setup"]; base=ROOT/"launches"/setup["launch"]
+    if setup["state"]!="withdrawn": raise RuntimeError("setup still holds its roots")
+    setup["layout_state"]="removing"; save(record)
+    for name in ("app","data",""):
+        path=base/name
+        if not path.exists() and not path.is_symlink(): continue
+        info=path.lstat()
+        if path.is_symlink() or not stat.S_ISDIR(info.st_mode) or info.st_uid!=0 or stat.S_IMODE(info.st_mode)!=0o700 or info.st_ino!=setup["objects"][name or "root"]:
+            raise RuntimeError("setup scaffold changed; preserve it")
+        if list(path.iterdir()): raise RuntimeError("unexplained setup scaffold entry; preserve it")
+        path.rmdir()  # Only these exact known empty directories, never recursive removal.
+    setup["layout_state"]="removed"; save(record)
+
+
+def setup_reconcile(record):
+    verified(record)
+    setup=record["setup"]
+    if setup["state"]=="starting": raise RuntimeError("unknown setup dispatch; inspect its live supervisor request first")
+    stop_unit(setup["unit"])
+    if setup["state"]!="withdrawn":
+        setup["state"]="drained"; save(record)
+        if "user" in record.get("active_units",{}): stop_unit(record["active_units"]["user"])
+        start(record)
+        revisions=launch_probe(record,"setup-cancel")
+        if revisions[1]!=2: raise AssertionError("setup root withdrawal missing")
+        setup["state"]="withdrawn"; record["launch_state"]="withdrawn"; save(record)
+    verify_launch_terminal(record)
+    hashes=[checksum(state_path(record,role)/"catalogue.sqlite3") for role in ("system","user")]
+    launch_probe(record,"setup-cancel")
+    if hashes!=[checksum(state_path(record,role)/"catalogue.sqlite3") for role in ("system","user")]: raise AssertionError("setup withdrawal retry changed a catalogue")
+    setup_cleanup_layout(record)
+    checks=setup.get("checks",{})
+    record["setup_check"]=dict(supervised_views=checks.get("views",False),kernel_peer_bound=checks.get("peer",False),
+        live_withdrawal_denied=checks.get("live_denied",False),broker_replacement=checks.get("replacement",False),
+        observed_drain=True,terminal_retry=True,scaffold_removed=True,target_executed=False)
+    save(record); print(json.dumps(record["setup_check"]))
+
+
+def setup_check(record):
+    verified(record)
+    old=record.get("setup")
+    if old is not None:
+        if old["state"]!="withdrawn": raise RuntimeError("reconcile the previous setup first; never replace its intent")
+        record.setdefault("setup_history",[]).append(dict(old)); save(record)
+    path=ROOT/"registry/setup.conf"
+    if old is None and (path.exists() or path.is_symlink()): raise RuntimeError("unregistered setup profile exists")
+    launch_check(record,fresh="launch_intent" in record,prepare_only=True)
+    ids=record["launch_intent"]; fixture=record["fixture"]; data=record["app_data"]
+    with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        row=db.execute("SELECT d.root_operation_id,d.install_gate_revision,d.broker_incarnation,m.runtime_incarnation,d.boot_id FROM launch_dispatches d,authority_meta m WHERE d.lease_id=?",(bytes.fromhex(ids["lease"]),)).fetchone()
+    with sqlite3.connect(f"file:{state_path(record,'user')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        gate=db.execute("SELECT revision FROM admission_gates WHERE subject_kind='data' AND state='open'").fetchone()[0]
+    values=[record["epochs"]["system"],row[3].hex(),record["epochs"]["user"],row[2].hex(),row[4].hex(),record["owner"],
+        fixture["install"],fixture["generation"],data["owner"]["data"],data["owner"]["storage"],ids["launch"],ids["lease"],row[0].hex(),ids["operation"]]
+    content=b"AETHSUP1"+b"".join(bytes.fromhex(v) for v in values)+struct.pack(">QQQ",data["install_revision"],row[1],gate)+bytes.fromhex(fixture["artifact"])+bytes.fromhex(record["setup_sha256"])
+    if len(content)!=320: raise AssertionError("setup profile size")
+    setup=dict(launch=ids["launch"],lease=ids["lease"],root_operation=row[0].hex(),user_operation=ids["operation"],unit="aetheri-app-"+ids["launch"]+".service",state="prepared")
+    record["setup"]=setup; save(record)
+    temporary=path.with_suffix(".next") if old is not None else path
+    publish(temporary,content,"aetheri_registry_t"); flush_path(temporary)
+    if old is not None: os.replace(temporary,path); flush_path(path)
+    record["setup_config_sha256"]=checksum(path); flush_path(path.parent,True); save(record)
+    launch_probe(record,"setup-prepare")
+    parent=ROOT/"launches"
+    if "launches_inode" not in record:
+        if parent.exists() or parent.is_symlink(): raise RuntimeError("unregistered launch scaffold parent")
+        directory(parent,"aetheri_setup_root_t",mode=0o700); record["launches_inode"]=parent.stat().st_ino; save(record)
+    if parent.is_symlink() or parent.stat().st_ino!=record["launches_inode"]: raise RuntimeError("launch scaffold parent replaced")
+    base=parent/setup["launch"]
+    setup["layout_state"]="creating"; save(record)
+    directory(base,"aetheri_setup_root_t",mode=0o700)
+    for slot in ("app","data"): directory(base/slot,"aetheri_setup_root_t",mode=0o700)
+    setup["objects"]={slot:(base/slot).stat().st_ino for slot in ("app","data")}; setup["objects"]["root"]=base.stat().st_ino
+    setup["layout_state"]="prepared"; save(record)
+    if run("systemctl","show",setup["unit"],"--property=LoadState","--value")!="not-found": raise RuntimeError("setup unit already exists; no dispatch")
+    properties={"User":"root","Group":"root","SELinuxContext":"system_u:system_r:aetheri_setup_t:s0","NoNewPrivileges":"yes",
+        "CapabilityBoundingSet":"CAP_SYS_ADMIN CAP_DAC_READ_SEARCH","RestrictNamespaces":"mnt","PrivateMounts":"yes","PrivateNetwork":"yes",
+        "PrivateDevices":"yes","ProtectSystem":"strict","ProtectHome":"yes","ProtectControlGroups":"yes","UMask":"0077",
+        "ReadWritePaths":str(app_data_paths(record)["payload"]),"MemoryMax":"64M","TasksMax":"1","KillMode":"control-group","SendSIGKILL":"no",
+        "TimeoutStartSec":"15s","TimeoutStopSec":"5s","RuntimeMaxSec":"35s","BindsTo":record["active_units"]["system"],"After":record["active_units"]["system"]}
+    setup["state"]="starting"; save(record)
+    try: run("systemd-run","--unit="+setup["unit"],"--service-type=notify",*("--property="+k+"="+v for k,v in properties.items()),str(ROOT/"setup-helper"),timeout=40)
+    except subprocess.CalledProcessError:
+        facts=dict(line.split("=",1) for line in run("systemctl","show",setup["unit"],"--property=MainPID,ControlGroup").splitlines())
+        if facts=={"MainPID":"0","ControlGroup":""} and not unit_has_job(setup["unit"]): setup["state"]="failed"; save(record)
+        raise
+    setup["state"]="active"; save(record)
+    pid=int(run("systemctl","show",setup["unit"],"--property=MainPID","--value"))
+    raw_label=Path(f"/proc/{pid}/attr/current").read_bytes()
+    label="system_u:system_r:aetheri_setup_t:s0"
+    if raw_label not in (label.encode(),label.encode()+b"\0"): raise AssertionError("actual setup label differs")
+    invocation=run("systemctl","show",setup["unit"],"--property=InvocationID","--value")
+    group=run("systemctl","show",setup["unit"],"--property=ControlGroup","--value")
+    cg=(Path("/sys/fs/cgroup")/group.lstrip("/")).stat().st_ino
+    evidence=b"AETHSPC1"+hashlib.sha256(content).digest()+row[4]+bytes.fromhex(invocation)+struct.pack(">QI",cg,0)
+    for value in (setup["unit"],label,group): raw=value.encode(); evidence+=struct.pack(">H",len(raw))+raw
+    with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        steps=db.execute("SELECT step_no,state,subject_ref,evidence_digest FROM operation_steps WHERE operation_id=? AND step_no>0 ORDER BY step_no",(row[0],)).fetchall()
+    setup["observation"]={"label":label,"invocation":invocation,"cgroup":group,"cgroup_inode":cg,"expected_evidence":hashlib.sha256(evidence).hexdigest()}; save(record)
+    if label!="system_u:system_r:aetheri_setup_t:s0" or steps!=[(1,"applied",bytes.fromhex(ids["launch"]),hashlib.sha256(content).digest()),(2,"applied",bytes.fromhex(invocation),hashlib.sha256(evidence).digest())]:
+        raise AssertionError("actual setup context/journal differs")
+    setup["checks"]={"peer":True}; save(record)
+    mounts={line.split()[4]:set(line.split()[5].split(",")) for line in Path(f"/proc/{pid}/mountinfo").read_text().splitlines()}
+    for slot,flags in (("app",{"ro","nodev","nosuid","nosymfollow"}),("data",{"rw","nodev","nosuid","noexec","nosymfollow"})):
+        if not flags<=mounts.get(str(base/slot),set()): raise AssertionError("actual setup view flags differ")
+        if list((base/slot).iterdir()): raise AssertionError("setup view propagated to controller")
+    setup["checks"]["views"]=True; save(record)
+    launch_probe(record,"setup-busy")
+    setup["checks"]["live_denied"]=True; save(record)
+    stop_unit(record["active_units"]["user"]); start(record)
+    launch_probe(record,"setup-busy")
+    setup["checks"]["replacement"]=True; save(record)
+    setup_reconcile(record)
 
 
 def launch_cancel(record):
@@ -1446,6 +1585,7 @@ def stop(record):
         raise RuntimeError("unacknowledged dispatch requires reconciliation")
     for unit in record["units"]:
         stop_unit(unit)
+    if "setup" in record: stop_unit(record["setup"]["unit"])
     record["state"] = "stopped"
     save(record)
     print("Owned authority/probe units stopped without SIGKILL escalation.")
@@ -1548,8 +1688,78 @@ def cleanup(record):
     print("Removed the enumerated empty P0 bootstrap, bus policies and owned SELinux module.")
 
 
+def root_setup_withdrawn(record):
+    setup=record["setup"]
+    with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        rows=db.execute("SELECT d.state,l.state,o.outcome,o.reason_code,d.invocation_ref,d.ready_data_gate_revision,d.close_cause_operation_ref,s.evidence_digest "
+            "FROM launch_dispatches d JOIN generation_leases l USING(lease_id) JOIN operations o ON o.operation_id=d.root_operation_id "
+            "JOIN operation_steps s ON s.operation_id=o.operation_id AND s.step_no=3 AND s.action='release' AND s.state='applied' "
+            "WHERE d.lease_id=? AND d.launch_id=? AND d.root_operation_id=?",tuple(bytes.fromhex(setup[k]) for k in ("lease","launch","root_operation"))).fetchall()
+    return rows==[("terminal","released","cancelled","setup_drained_without_exec",None,None,bytes.fromhex(setup["user_operation"]),bytes.fromhex(record["setup_config_sha256"]))]
+
+
+def refresh_owned_policy(record):
+    current=ROOT/(MODULE+".cil"); content=(SOURCE/"policy/p0-services.cil").read_bytes()
+    if hashlib.sha256(content).hexdigest()==record["policy_sha256"]: return
+    directory_path=ROOT/"policy-refresh"
+    directory(directory_path,"aetheri_root_t",mode=0o700)
+    # semodule uses the input basename as the module name. Preserve it even for
+    # staged policy replacement; a renamed .cil installs a different module.
+    temporary=directory_path/(MODULE+".cil")
+    publish(temporary,content,"aetheri_root_t",mode=0o644); flush_path(temporary)
+    run("semodule","-X","400","-i",str(temporary))
+    os.replace(temporary,current); flush_path(current.parent,True)
+    directory_path.rmdir()
+    record["policy_sha256"]=checksum(current); save(record)
+
+
+def recover_unbound_setup(record):
+    """Explicit owner recovery, never repeat the failed setup dispatch or edit SQL.
+
+    The native writer verifies the retained failed PID1 invocation and the exact
+    protected no-exec image before releasing anything. It runs without replacing
+    the old Root runtime, under the catalogue's exclusive writer lock.
+    """
+    verified(record)
+    setup=record["setup"]
+    if setup["state"] not in ("failed","drained"): raise RuntimeError("only a known failed unbound setup can use offline recovery")
+    if not setup.get("recovery_root_withdrawn"):
+        stop(record); refresh_owned_policy(record)
+        target=ROOT/"setup-recovery"
+        if "setup_recovery_sha256" not in record:
+            if target.exists() or target.is_symlink(): raise RuntimeError("unregistered recovery image")
+            publish(target,(BUILD/"aetheri-authority").read_bytes(),"aetheri_system_exec_t",mode=0o555)
+            record["setup_recovery_sha256"]=checksum(target); save(record)
+        elif checksum(BUILD/"aetheri-authority")!=record["setup_recovery_sha256"]:
+            # Old administrative invocations are independently stopped above;
+            # the failed setup image/profile and original Root runtime stay fixed.
+            temporary=ROOT/"setup-recovery.next"
+            publish(temporary,(BUILD/"aetheri-authority").read_bytes(),"aetheri_system_exec_t",mode=0o555)
+            os.replace(temporary,target)
+            record.setdefault("setup_recovery_images",[]).append(record["setup_recovery_sha256"])
+            record["setup_recovery_sha256"]=checksum(target); save(record)
+        unit=start_unit(record,"system",recover_setup=True)
+        stop_unit(unit)
+        if not root_setup_withdrawn(record): raise AssertionError("native terminal setup receipt missing")
+        setup["recovery_root_withdrawn"]=True; save(record)
+    if not root_setup_withdrawn(record): raise AssertionError("recorded recovery differs from native receipt")
+    if "setup_recovery_sha256" in record:
+        target=ROOT/"setup-recovery"; owned_file(target,0o555)
+        if checksum(target)!=record["setup_recovery_sha256"]: raise RuntimeError("recovery image changed")
+        target.unlink(); record.pop("setup_recovery_sha256"); save(record)
+    update_owned(record); start(record)
+    launch_probe(record,"cancel"); verify_launch_terminal(record)
+    setup["state"]="withdrawn"; record["launch_state"]="withdrawn"; save(record)
+    setup_cleanup_layout(record)
+    record["setup_recovery_check"]=dict(supervisor_only=True,held_peer=False,target_executed=False,native_receipt=True,private_data_preserved=True)
+    save(record); print(json.dumps(record["setup_recovery_check"]))
+
+
 def update_owned(record):
     verified(record, allow_new_probe=True, allow_unfinished_fixture=True, allow_new_projection=True)
+    if "setup" in record and record["setup"]["state"]!="withdrawn" and not (record["setup"].get("recovery_root_withdrawn") and root_setup_withdrawn(record)):
+        raise RuntimeError("reconcile the existing setup before replacing its authority/image")
+    if "setup_sha256" not in record and ((ROOT/"setup-helper").exists() or (ROOT/"setup-helper").is_symlink()): raise RuntimeError("unregistered setup helper exists")
     stop(record)
     record["state"] = "updating-owned-inputs"
     save(record)
@@ -1580,6 +1790,10 @@ def update_owned(record):
     temporary=ROOT / "probe-projection.next"
     publish(temporary,(BUILD / "probe_projection").read_bytes(),"aetheri_user_exec_t",mode=0o555)
     os.replace(temporary,ROOT / "probe-projection")
+    temporary=ROOT/"setup-helper.next"
+    publish(temporary,(BUILD/"aetheri-setup").read_bytes(),"aetheri_setup_exec_t",mode=0o555)
+    os.replace(temporary,ROOT/"setup-helper")
+    record["setup_sha256"]=checksum(ROOT/"setup-helper")
     if "projection_unit" not in record:
         if (ROOT / "registry/projection.conf").exists() or (ROOT / "registry/projection.conf").is_symlink(): raise RuntimeError("unregistered projection slot exists")
         publish_projection_slot(record,"-")
@@ -1773,6 +1987,9 @@ def main():
         elif action == "projection-check": projection_check(record)
         elif action == "launch-check": launch_check(record)
         elif action == "launch-new-check": launch_check(record,fresh=True)
+        elif action == "setup-check": setup_check(record)
+        elif action == "setup-reconcile": setup_reconcile(record)
+        elif action == "setup-recover-unbound": recover_unbound_setup(record)
         elif action == "launch-reopen-check": launch_reopen_check(record)
         elif action == "launch-cancel": launch_cancel(record)
         elif action == "reservation-check": reservation_check(record)

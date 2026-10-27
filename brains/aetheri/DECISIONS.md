@@ -618,3 +618,31 @@ be retried as new setup or used to infer drain. Closing a handle is not mount/ap
 release. Test actual kernel enforcement and an independent parent observation
 while the mount exists. Keep SQL/private/public APIs and deployed policy unchanged
 until the process/journal/readiness integration accounts for those effects.
+
+## Bind setup before implementing target execution — 27 October 2026
+
+Connect the view primitive through a short-lived, fixed no-exec helper first.
+Keep Root's physical setup journal separate from target dispatch InvocationRef and
+app readiness. User's existing pending run holds private D; Root's original code
+lease remains held while the helper or its effects may exist. A live ProcessFD,
+actual unit invocation/cgroup and independent terminal supervisor observation are
+different evidence, and none alone proves target execution.
+
+Retain the exact PID1 unit with RefUnit. On this carrier, PID1 authorizes that as
+system start; grant it only to trusted Root, explicitly acknowledging the broader
+MAC permission. Do not expose arbitrary unit management to apps/User. Use a
+separate setup domain for mount privileges and retain cap-zero authority/app rules.
+Clear allowed inherited capability bits before registration/effects. No app code
+may run under this setup domain or with these capabilities.
+
+For the known immutable no-exec helper's early failure, permit a separately tagged
+supervisor-only proof after checking exact image/unit/argv/exit, no automatic
+restart/extra commands and independent drain. It does not claim a registered peer.
+This narrow recovery depends on protected provisioning and the original Root
+runtime/boot. Unknown jobs, changed images, Root restart or a target-executing
+implementation require richer recovery; do not extend this proof by analogy.
+
+Keep SQL versions and Runtime1 frozen. Add private Setup1 1.0 and protected
+Development1 1.3 only. Preserve old main reservations and the run/c31,c32 fixture;
+the c33,c34 data profile needs a new compatible real-exec fixture next. No browser,
+desktop or personally important UI decision is implied by these technical choices.

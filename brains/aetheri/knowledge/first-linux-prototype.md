@@ -427,3 +427,15 @@ Primary sources inspected 26 October 2026:
 The Fedora Quick Docs SELinux getting-started URL returned an access-denied
 challenge; it is not evidence that a particular guest policy is installed/enforcing.
 Carrier suitability is a recommendation and must be verified inside the actual VM.
+
+## Current setup milestone — 27 October 2026
+
+The later [no-exec setup integration](../../../spec/runtime.md#supervised-no-exec-setup)
+now binds journaled preparation to a real short-lived setup-domain service. The
+enforcing VM test passes private views, actual ProcessFD/invocation/cgroup binding,
+live-withdrawal denial, User replacement, observed drain and terminal retry.
+Early failed setup has a distinct supervisor-only proof; it does not invent a
+registered peer. Unknown dispatch or Root runtime change preserves obligations.
+Only known empty setup scaffolding is removed; app data and histories remain.
+Target execution, compatible action/security profile and privilege dropping are
+the next gate. This does not reduce the full daily-use OS/app objective.

@@ -9,6 +9,7 @@
 #include "catalogue/data.h"
 #include "catalogue/launch.h"
 #include "authority/reservation.h"
+#include "authority/setup.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -41,6 +42,7 @@ struct authority {
     struct ae_broker broker;
     sd_id128_t system_runtime;
     int registered;
+    struct ae_setup_service setup;
 };
 
 static int context_is(const char *context, const char *type)
@@ -836,6 +838,52 @@ static int method_cancel_fixture_launch(sd_bus_message *message,void *userdata,s
     return launch_reply(message,&local,&receipt);
 }
 
+static int setup_broker(void *userdata,sd_bus_message *message,struct ae_launch_context *context)
+{
+    struct authority *a=userdata; struct ae_peer peer=AE_PEER_INIT;
+    int r=broker_current(a,&peer,message);
+    if (r==0) launch_context(a,&peer,context);
+    ae_peer_clear(&peer); return r;
+}
+static int method_setup_prepare(sd_bus_message *m,void *a,sd_bus_error *e) { return ae_setup_method_prepare(m,&((struct authority *)a)->setup,e); }
+static int method_setup_register(sd_bus_message *m,void *a,sd_bus_error *e) { return ae_setup_method_register(m,&((struct authority *)a)->setup,e); }
+static int method_setup_prepared(sd_bus_message *m,void *a,sd_bus_error *e) { return ae_setup_method_prepared(m,&((struct authority *)a)->setup,e); }
+static int method_setup_withdraw(sd_bus_message *m,void *a,sd_bus_error *e) { return ae_setup_method_withdraw(m,&((struct authority *)a)->setup,e); }
+static int method_fixture_setup(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *a=userdata; struct ae_peer peer=AE_PEER_INIT; struct ae_process_context controller; char unit[256];
+    int r=launch_controller(a,message,&peer,&controller,unit);
+    if (r!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 controller unit required"); }
+    struct ae_setup_profile p; uint8_t hash[32]; r=ae_setup_load(&p,hash);
+    if (r==0) r=check_system(a);
+    int cancel=strcmp(sd_bus_message_get_member(message),"CancelFixtureSetup")==0;
+    struct ae_user_launch_snapshot local;
+    if (r==0) r=ae_catalogue_get_user_launch(a->catalogue,p.user_operation,&local);
+    if (r==0 && (memcmp(p.broker_epoch,a->identity.authority_epoch,16)!=0 || memcmp(p.account,a->identity.owner,16)!=0 ||
+        memcmp(local.launch,p.launch,16)!=0 || memcmp(local.lease,p.lease,16)!=0 || memcmp(local.root_operation,p.root_operation,16)!=0 ||
+        memcmp(local.system_epoch,p.system_epoch,16)!=0)) r=-ESTALE;
+    if (r==0 && cancel && strcmp(local.state,"start_failed")!=0 && !local.pre_dispatch_withdrawable) r=-EAGAIN;
+    if (r==0 && !cancel) r=ae_catalogue_authorize_user_setup(a->catalogue,&p);
+    if (r==0) r=launch_controller_current(a,&peer,&controller,unit);
+    sd_bus_message *call=NULL,*reply=NULL;
+    if (r==0) r=sd_bus_message_new_method_call(a->system_bus,&call,"org.aetheri.System1","/org/aetheri/Setup1","org.aetheri.Setup1",cancel ? "WithdrawSetup" : "PrepareSetup");
+    if (r>=0) r=sd_bus_message_append_array(call,'y',p.lease,16);
+    if (r>=0 && cancel) r=sd_bus_message_append_array(call,'y',p.user_operation,16);
+    if (r>=0 && !cancel) r=sd_bus_message_append(call,"t",(uint64_t)p.data_gate_revision);
+    if (r>=0 && !cancel) r=sd_bus_message_append_array(call,'y',hash,32);
+    if (r>=0) r=sd_bus_call(a->system_bus,call,2000000,NULL,&reply);
+    struct ae_reservation_receipt receipt;
+    if (r>=0) r=fetch_receipt(a,p.lease,&receipt);
+    if (r==0 && cancel) {
+        int64_t stamp=0,expires=0; r=reservation_stamp(&stamp,&expires);
+        if (r==0) r=ae_catalogue_finish_withdrawn_operation(a->catalogue,p.user_operation,&receipt,stamp,&local);
+    }
+    if (r==0 && !cancel) r=ae_catalogue_get_user_launch(a->catalogue,p.user_operation,&local);
+    sd_bus_message_unref(call); sd_bus_message_unref(reply); ae_peer_clear(&peer);
+    if (r!=0) return reservation_error(error,r);
+    return launch_reply(message,&local,&receipt);
+}
+
 #include "wire-tables.h"
 
 static int storage_action(struct authority *authority, const char *control, int publish)
@@ -991,9 +1039,9 @@ int main(int argc, char **argv)
     int admit=argc==3 && strcmp(argv[1],"system")==0 && strcmp(argv[2],"--admit-fixture")==0;
     if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
         (argc == 3 && !admit && strcmp(argv[2], "--init") != 0 &&
-         !(strcmp(argv[1], "system") == 0 && (strcmp(argv[2], "--enroll-account") == 0 || strcmp(argv[2], "--fixture-observe") == 0 || strcmp(argv[2], "--fixture-stage") == 0 || strcmp(argv[2], "--fixture-store-observe") == 0 || strcmp(argv[2], "--fixture-store-publish") == 0 || strcmp(argv[2], "--fixture-activate") == 0)) &&
+         !(strcmp(argv[1], "system") == 0 && (strcmp(argv[2], "--recover-setup") == 0 || strcmp(argv[2], "--enroll-account") == 0 || strcmp(argv[2], "--fixture-observe") == 0 || strcmp(argv[2], "--fixture-stage") == 0 || strcmp(argv[2], "--fixture-store-observe") == 0 || strcmp(argv[2], "--fixture-store-publish") == 0 || strcmp(argv[2], "--fixture-activate") == 0)) &&
          !(strcmp(argv[1], "user") == 0 && (strcmp(argv[2], "--storage-publish") == 0 || strcmp(argv[2], "--storage-verify") == 0 || strcmp(argv[2],"--data-observe")==0 || strcmp(argv[2],"--data-enroll")==0)))) {
-        fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account|--fixture-observe|--fixture-stage|--fixture-store-observe|--fixture-store-publish|--fixture-activate; user --storage-publish|--storage-verify|--data-observe|--data-enroll\n", stderr); return 2;
+        fputs("Usage: aetheri-authority system|user [--init]; system --recover-setup|--enroll-account|--fixture-observe|--fixture-stage|--fixture-store-observe|--fixture-store-publish|--fixture-activate; user --storage-publish|--storage-verify|--data-observe|--data-enroll\n", stderr); return 2;
     }
     int initialize = argc == 3 && strcmp(argv[2], "--init") == 0;
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
@@ -1014,7 +1062,9 @@ int main(int argc, char **argv)
         if (result == 0) result = argc == 3 && (initialize || strcmp(argv[2], "--enroll-account") == 0) ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
                                             ae_catalogue_check_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid, &revision);
     }
-    if (result == 0 && system && argc == 3 && strcmp(argv[2],"--fixture-activate")==0)
+    if (result == 0 && system && argc == 3 && strcmp(argv[2],"--recover-setup")==0)
+        result=ae_setup_recover_unbound(authority.catalogue,authority.boot.bytes);
+    else if (result == 0 && system && argc == 3 && strcmp(argv[2],"--fixture-activate")==0)
         result = ae_authority_fixture_activate(authority.catalogue,authority.boot.bytes);
     else if (result == 0 && system && argc == 3 && strncmp(argv[2], "--fixture-store-", 16) == 0)
         result = ae_authority_fixture_publication(authority.catalogue, strcmp(argv[2], "--fixture-store-observe") == 0);
@@ -1052,6 +1102,8 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_bus_set_method_call_timeout(bus, 2000000);
     if (result >= 0) result = sd_bus_set_exit_on_disconnect(bus, 1);
     if (result >= 0) result = sd_bus_start(bus);
+    authority.setup=(struct ae_setup_service){.catalogue=authority.catalogue,.bus=bus,.owner=&authority,.broker=setup_broker,.peer=AE_PEER_INIT};
+    memcpy(authority.setup.epoch,authority.identity.authority_epoch,16); memcpy(authority.setup.runtime,authority.runtime.bytes,16); memcpy(authority.setup.boot,authority.boot.bytes,16);
     if (result >= 0 && !system) {
         result = sd_bus_new(&authority.system_bus);
         if (result >= 0) result = sd_bus_set_address(authority.system_bus, "unix:path=/run/dbus/system_bus_socket");
@@ -1074,6 +1126,7 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_notify(0, "READY=1\nSTATUS=Protocol endpoint available; lifecycle capabilities not implemented");
     if (result >= 0) result = sd_event_loop(event);
     if (result < 0) fprintf(stderr, "Authority startup/runtime failed: %d\n", result);
+    ae_setup_service_clear(&authority.setup);
     ae_broker_clear(&authority.broker);
     sd_bus_flush_close_unref(authority.system_bus);
     sd_bus_flush_close_unref(bus);

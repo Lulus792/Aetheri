@@ -945,3 +945,30 @@ is unconfined_t with global SELinux Enforcing. No launcher-domain permission,
 target exec, catalogue readiness or complete sandbox is inferred. Executed results
 and next integration boundaries are in the
 [journal](journal/2026-10-26-first-prototype.md#native-private-mount-views--27-october-2026).
+
+## Supervised no-exec setup — 27 October 2026
+
+Primary documentation: [systemd 259 D-Bus API](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.systemd1.html)
+(served page identifies 259.6), including RefUnit and SELinuxContext's (bs)
+signature. [systemd v259 dbus-unit.c](https://github.com/systemd/systemd/blob/v259/src/core/dbus-unit.c#L641)
+checks start authorization for RefUnit and tracks its bus sender; UnrefUnit removes
+that reference. These explain API semantics, not acceptance of Aetheri code.
+
+Actual carrier evidence uses installed systemd 259.10-1.fc44 and the existing
+kernel/glibc/library pins. Enforcing audit recorded RefUnit's denied system/start,
+the setup namespace FD/propagation and notification requirements. Rules were
+added only for the responsible trusted domains. PID1 left allowed SYS_ADMIN in
+the helper's inheritable set; the helper now drops it before registration/effects.
+The first policy refresh used a changed basename and installed a separate module;
+after byte/hash checks it was repaired and the unintended module removed. Staging
+now preserves the original basename. No enforcing-mode exception was used.
+
+The real procfs label included a terminating NUL. Python initially hashed that
+terminator while libselinux's C string excluded it. Reconstructing the hash from
+the retained observation after removing exactly that terminator matched native
+evidence; the controller now accepts only the exact expected label with optional
+single NUL. [Setup source](../../src/authority/setup.c),
+[supervisor rejection tests](../../tests/test_setup_supervisor.c),
+[controller](../../tools/p0_services.py) and
+[runtime contract](../../spec/runtime.md#supervised-no-exec-setup) delimit this
+same-runtime, fixed no-exec proof. It is not target-exec or production recovery.

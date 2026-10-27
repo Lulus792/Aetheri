@@ -1699,14 +1699,13 @@ All view/namespace objects are process scoped and hold CLOEXEC descriptors; fork
 or namespace changes reject later checks. Closing an object releases only its
 local handles. It does not remove attached mounts, drain an application or release
 a durable lease. The setup/app process and any descendant/FD/namespace holder must
-actually disappear before its durable obligation can be reconciled. The next
-integration must journal those external effects and bind the actual supervised
-setup invocation before dispatch/readiness, not treat this library as provenance.
+actually disappear before its durable obligation can be reconciled. The supervised
+no-exec integration below journals these effects and binds the setup invocation
+separately from target dispatch/readiness.
 
-Before installing a caller, both authorities' withdrawal paths must account for
-journaled setup effects, including a setup process whose reply is missing. The
-current simple root withdrawal path only handles metadata reservations; it must
-not be used to release code after external view setup has begun.
+Both authorities' withdrawal paths must account for journaled setup effects,
+including missing replies. Simple root withdrawal now rejects additional setup
+steps. Only the separate setup reconciliation may release this no-exec attempt.
 
 [Native tests](../tests/test_view.c) run only inside the dedicated Linux VM.
 The independent Python parent observes its untouched target directories while
@@ -1726,3 +1725,115 @@ Primary API references inspected for this slice:
 [move_mount](https://man7.org/linux/man-pages/man2/move_mount.2.html).
 Their detached-mount/FD/attribute semantics are distinct from Aetheri's own ownership
 and recovery rules. Runtime tests use the existing kernel/glibc pins; no new library.
+
+## Supervised no-exec setup
+
+The short-lived [aetheri-setup](../src/launcher/main.c) prepares code/data views for
+one protected P0 attempt. It has no app-exec, shell, plugin, arbitrary-argument or
+UID-changing path. It does not run the package's action or establish app readiness.
+The root-only development controller still submits its fixed systemd unit; there
+is no production starter or public launch capability. No new dependency or schema
+is introduced. Private Setup1 is 1.0; Development1 is additive 1.3. Frozen Runtime1
+and all SQL definitions remain unchanged.
+
+The existing User operation/run holds DataEpoch D before Root setup is requested.
+The user writer checks the exact attachment, allocation, current runtime, open
+data gate and original read fences. The authenticated broker asks Root to commit
+step 1 (stage launch L, executing, profile SHA-256) before the external unit request.
+Root's simple reservation withdrawal now refuses any additional setup step.
+
+The selected helper checks UID 0, Enforcing, NNP, exact setup_t:s0 and the two
+effective/permitted capabilities SYS_ADMIN and DAC_READ_SEARCH. Allowed inherited
+bits left by PID1 are dropped and checked again before registration. It hashes its
+own protected image against the profile. RegisterSetup authenticates the actual
+bus ProcessFD, UID/label, original boot and derived aetheri-app-L.service. Repeated
+live observations bind its actual InvocationID, cgroup path/inode and unique bus
+sender. Root holds that peer and a PID1 unit reference before committing step 2
+(verify integration invocation, executing, canonical context digest). A failed or
+lost SQL acknowledgement keeps this frame for exact reconciliation.
+
+The helper then enters a fresh private mount namespace. It verifies the published
+container witness, canonical manifest/ArtifactId and listed file hashes/modes/types,
+plus the protected allocation/owner header and private payload directory. The
+publication's writer exclusion remains a precondition; this is not a fresh general
+tree inventory or dynamic adoption. Held sources are cloned and attached through
+linux/view. Only after both views pass does ReportPrepared mark steps 1/2 applied.
+The following READY=1 means *setup* is ready. The target dispatch remains reserved,
+with NULL target InvocationRef and ready-data fence; user readiness stays unknown.
+
+The helper links pure data/setup codecs, core/Linux libraries, libcrypto, libsystemd
+and libselinux, without SQLite or a catalogue writer. It waits once on a signal FD
+with a 30-second upper bound, then exits. There is no polling service or permanent
+setup daemon. Timeout and connection loss do not prove drain. This first helper
+retains its two privileges for trusted setup only; executing untrusted code with
+them is impossible in this implementation. Privilege dropping and app exec require
+a separate implementation and evidence contract.
+
+WithdrawSetup requires the current registered broker of the same authority/account.
+For a registered helper, Root first observes its held ProcessFD dead. Independently,
+the retained same-invocation unit must be inactive/failed, MainPID 0, with empty
+ControlGroup and no Job. The original invocation must still match. Root then
+applies setup steps, writes step 3 (release L, profile digest), terminalizes the
+dispatch, releases the code lease and completes the original operation cancelled
+with reason setup_drained_without_exec. User finishes its original local operation
+from the exact authenticated Root receipt. A replaced User broker may do this;
+its closed data gate does not reopen. Exact terminal retries preserve database
+bytes, revisions and completion timestamps. Root restart/boot uncertainty remains
+held and cannot use this same-runtime shortcut.
+
+### Failure before registration
+
+A separate supervisor-only proof handles the fixed helper exiting with status 5
+before a ProcessFD was registered. It never invents a held peer. Root checks the
+unchanged protected helper digest, exact derived unit, Type=notify, root user/group,
+mandatory SELinuxContext tuple, NNP, private mounts, exact capability bound,
+Restart=no/NRestarts=0, empty auxiliary commands and exactly one fixed executable
+and argv entry. It requires actual exited-PID/timestamps/status plus the independent
+same-invocation drain above. Its evidence has a distinct AETHSTE1 tag. It records
+setup_exit_observed before ordinary setup withdrawal. This proof depends on trusted
+root provisioning preventing helper/unit replacement throughout the attempt; it
+cannot authorize release after a target-executing starter, unknown job or Root
+runtime change.
+
+The offline system --recover-setup administrative action supports the same proof
+under the exclusive catalogue writer lock without beginning a new runtime. It is
+for this development fixture only. The controller independently stops the old
+authorities, preserves the failed helper/profile, runs the confined cap-zero native
+writer, verifies its durable terminal receipt and only then replaces owned inputs.
+It never patches SQL, repeats setup dispatch or claims a live peer was observed.
+Unknown state or contradictory observations preserve all obligations and files.
+
+### Protected formats and policy
+
+AETHSUP1 is exactly 320 bytes: tag 8; fourteen UUIDv4 values (Root epoch/runtime,
+User epoch/original runtime, boot, account, install, generation, data, storage,
+launch, code lease, Root operation, User operation); three positive signed-range
+u64 revisions (install/install gate/data gate); ArtifactId 32; helper image SHA-256
+32. Integers use big endian. Registry setup.conf is root-owned 0444, no links.
+Decoded bytes grant no authority by themselves.
+
+The live AETHSPC1 evidence is tag 8, profile hash 32, boot 16, invocation 16,
+cgroup inode u64, UID u32, then unit/label/cgroup strings each prefixed by u16 byte
+length. AETHSTE1 is tag 8, profile hash 32, invocation 16, four u64 ExecStart
+timestamps (start real/monotonic, exit real/monotonic), exited PID/code/status u32.
+All integers are big endian. These are private development formats, not public
+stable token or authentication formats.
+
+setup_t is separate from the cap-zero authority/app attribute. It may read selected
+publication/registry/owner metadata, use mount namespace FDs, change private mount
+topology, mount onto protected setup slots and notify PID1. It cannot execute/map
+package code or app-data files. Its trusted owner-header code shares the existing
+user_state_t read permission; MAC alone does not distinguish that header from a
+user catalogue. It has no public path/SQL interface and opens no user catalogue.
+Production type separation remains work. The system authority gains PID1's system
+start permission because RefUnit uses that authorization class. This is
+broader than status inspection and belongs to the trusted Root boundary; apps and
+User receive none of it. Aetheri exposes no arbitrary unit-name management method.
+
+Only the exact known empty root-owned scaffold directories are removed after
+native terminal evidence; unknown entries/replaced objects are preserved. The
+private payload, allocation and histories remain. Complete app removal, document
+transport, target exec and production recovery are still pending. The old fixture
+declares action run and c31,c32; enrolled app data uses c33,c34. Old immutable main
+reservations cannot be reinterpreted into a successful real app start. A new,
+compatible fixture/generation and target-execution contract are needed next.

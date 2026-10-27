@@ -633,6 +633,19 @@ def wire_shape(root):
 
 
 class ApiContracts(unittest.TestCase):
+    def test_private_no_exec_setup(self):
+        node=ET.parse(ROOT/"spec/api/setup-v1.xml").getroot()
+        self.assertEqual(node.attrib["name"],"/org/aetheri/Setup1")
+        self.assertEqual(wire_shape(node),{"org.aetheri.Setup1":{
+            "PrepareSetup":("ay t ay","ay t"),"RegisterSetup":("ay ay","ay t"),
+            "ReportPrepared":("ay ay","ay t"),"WithdrawSetup":("ay ay","ay t")}})
+        annotations={a.attrib["name"]:a.attrib["value"] for a in node.find("interface").findall("annotation")}
+        self.assertEqual(annotations,{"org.aetheri.Contract.Version":"1.0","org.aetheri.Contract.Visibility":"broker-or-selected-setup"})
+        for arg in node.findall(".//arg"):
+            limits={a.attrib["name"].split(".")[-1]:a.attrib["value"] for a in arg.findall("annotation")}
+            self.assertEqual(limits,{"Bytes":"32" if arg.attrib["name"]=="profile_digest" else "16"} if arg.attrib["type"]=="ay" else
+                             {"Minimum":"1","Maximum":"9223372036854775807"})
+
     def test_private_install_projection_contracts(self):
         catalogue=ET.parse(ROOT / "spec/api/catalogue-v1.xml").getroot()
         development=ET.parse(ROOT / "spec/api/development-v1.xml").getroot()
@@ -642,10 +655,10 @@ class ApiContracts(unittest.TestCase):
             "ResolveAppInstall":("ay ay ay","ay ay ay ay s ay ay ay t ay ay t s t t"),
             "GetReservationReceipt":("ay","ay ay ay ay ay ay ay ay ay ay s t t b ay ay")}})
         self.assertEqual(wire_shape(development),{"org.aetheri.Development1":{name:("","ay t t") for name in
-            ("RefreshFixtureInstall","TestFixtureReservation","PrepareFixtureLaunch","CancelFixtureLaunch")}})
+            ("RefreshFixtureInstall","TestFixtureReservation","PrepareFixtureLaunch","CancelFixtureLaunch","PrepareFixtureSetup","CancelFixtureSetup")}})
         for node,visibility in ((catalogue,"broker-only"),(development,"protected-controller-only")):
             annotations={a.attrib["name"]:a.attrib["value"] for a in node.find("interface").findall("annotation")}
-            self.assertEqual(annotations["org.aetheri.Contract.Version"],"1.1" if node is catalogue else "1.2")
+            self.assertEqual(annotations["org.aetheri.Contract.Version"],"1.1" if node is catalogue else "1.3")
             self.assertEqual(annotations["org.aetheri.Contract.Visibility"],visibility)
             for arg in node.findall(".//arg"):
                 limits={a.attrib["name"].split(".")[-1]:a.attrib["value"] for a in arg.findall("annotation")}

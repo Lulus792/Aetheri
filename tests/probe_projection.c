@@ -11,7 +11,8 @@
  * it cannot choose another installation, SQL, path, policy or supervisor context. */
 int main(int argc,char **argv)
 {
-    CHECK(argc==1 || (argc==2 && (strcmp(argv[1],"--reserve")==0 || strcmp(argv[1],"--launch-prepare")==0 || strcmp(argv[1],"--launch-cancel")==0)));
+    CHECK(argc==1 || (argc==2 && (strcmp(argv[1],"--reserve")==0 || strcmp(argv[1],"--launch-prepare")==0 || strcmp(argv[1],"--launch-cancel")==0 ||
+        strcmp(argv[1],"--setup-prepare")==0 || strcmp(argv[1],"--setup-cancel")==0 || strcmp(argv[1],"--setup-busy")==0)));
     CHECK(geteuid()==1000);
     sd_bus *bus=NULL;
     CHECK(sd_bus_new(&bus)>=0 && sd_bus_set_address(bus,"unix:path=/var/lib/aetheri-p0/user-bus")>=0);
@@ -19,8 +20,13 @@ int main(int argc,char **argv)
     sd_bus_error error=SD_BUS_ERROR_NULL;
     sd_bus_message *reply=NULL;
     const char *method=argc==1 ? "RefreshFixtureInstall" : strcmp(argv[1],"--reserve")==0 ? "TestFixtureReservation" :
-        strcmp(argv[1],"--launch-prepare")==0 ? "PrepareFixtureLaunch" : "CancelFixtureLaunch";
+        strcmp(argv[1],"--launch-prepare")==0 ? "PrepareFixtureLaunch" : strcmp(argv[1],"--launch-cancel")==0 ? "CancelFixtureLaunch" :
+        strcmp(argv[1],"--setup-prepare")==0 ? "PrepareFixtureSetup" : "CancelFixtureSetup";
     int result=sd_bus_call_method(bus,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1",method,&error,&reply,"");
+    if (argc==2 && strcmp(argv[1],"--setup-busy")==0) {
+        CHECK(result<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NeedsRecovery"));
+        puts("setup-busy"); sd_bus_error_free(&error); sd_bus_message_unref(reply); sd_bus_flush_close_unref(bus); return 0;
+    }
     if (result<0) fprintf(stderr,"projection controller: %s\n",error.message==NULL ? "call failed" : error.message);
     CHECK(result>=0 && sd_bus_message_has_signature(reply,"aytt"));
     const void *id=NULL; size_t size=0;

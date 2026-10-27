@@ -14,6 +14,33 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_setup_requires_reconciliation_before_input_replacement_or_unknown_dispatch(self):
+        with patch.object(services,"verified"),patch.object(services,"stop",side_effect=AssertionError("replacement")):
+            for state in ("prepared","starting","active","failed","drained"):
+                with self.assertRaisesRegex(RuntimeError,"reconcile"):
+                    services.update_owned({"setup":{"state":state}})
+            with patch.object(services,"root_setup_withdrawn",return_value=False) as proof:
+                with self.assertRaisesRegex(RuntimeError,"reconcile"):
+                    services.update_owned({"setup":{"state":"failed","recovery_root_withdrawn":True}})
+                proof.assert_called_once()
+        with patch.object(services,"verified"),patch.object(services,"stop_unit",side_effect=AssertionError("unknown stop")):
+            with self.assertRaisesRegex(RuntimeError,"unknown setup dispatch"):
+                services.setup_reconcile({"setup":{"state":"starting"}})
+        with patch.object(services,"save",side_effect=AssertionError("cleanup")):
+            with self.assertRaisesRegex(RuntimeError,"holds its roots"):
+                services.setup_cleanup_layout({"setup":{"launch":"a"*32,"state":"drained"}})
+
+    def test_setup_selection_remains_short_lived_user_controller(self):
+        for action in ("setup-prepare","setup-cancel","setup-busy"):
+            record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
+                    "pending":None,"units":[]}
+            with patch.object(services,"save"),patch.object(services,"run",return_value="") as command, \
+                 patch.object(services,"publish_projection_slot") as selected,patch.object(services,"publish_broker_slot") as broker:
+                unit=services.start_unit(record,"user",probe="projection",launch_probe=action)
+                selected.assert_called_once_with(record,unit); broker.assert_not_called()
+                self.assertEqual(command.call_args.args[-1],"--"+action)
+                self.assertIn("--property=CapabilityBoundingSet=",command.call_args.args)
+
     def test_launch_controller_cannot_become_broker_or_widen_action(self):
         record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
                 "pending":None,"units":[]}

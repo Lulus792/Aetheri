@@ -1,4 +1,5 @@
 #include "authority/fixture.h"
+#include "catalogue/setup.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -10,8 +11,42 @@ static void put(uint8_t *bytes, uint64_t value, size_t size)
 {
     for (size_t n=0; n<size; ++n) { bytes[size-n-1U]=(uint8_t)value; value >>= 8; }
 }
+static void setup_profile(void)
+{
+    uint8_t bytes[AE_SETUP_BYTES+1U]={0};
+    memcpy(bytes,"AETHSUP1",8);
+    for (size_t n=0;n<14;++n) { bytes[8+16*n+6]=0x40; bytes[8+16*n+8]=0x80; bytes[8+16*n+15]=(uint8_t)(n+1); }
+    for (size_t n=0;n<3;++n) put(bytes+232+8*n,n+1,8);
+    memset(bytes+256,0x12,32); memset(bytes+288,0x34,32);
+    struct ae_setup_profile profile,marker; memset(&marker,0xa5,sizeof marker);
+    CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,&profile)==0);
+    CHECK(profile.system_epoch[15]==1 && profile.user_operation[15]==14 && profile.data_gate_revision==3);
+    CHECK(profile.artifact[31]==0x12 && profile.image_digest[0]==0x34);
+    for (size_t n=0;n<=sizeof bytes;++n) if (n!=AE_SETUP_BYTES) {
+        profile=marker; CHECK(ae_setup_decode(bytes,n,&profile)==-EBADMSG && memcmp(&profile,&marker,sizeof profile)==0);
+    }
+    for (size_t n=0;n<14;++n) for (size_t m=0;m<2;++m) {
+        size_t offset=8+16*n+(m==0 ? 6U : 8U); uint8_t original=bytes[offset]; bytes[offset]=0;
+        profile=marker; CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,&profile)==-EBADMSG && memcmp(&profile,&marker,sizeof profile)==0);
+        bytes[offset]=original;
+    }
+    for (size_t n=0;n<3;++n) {
+        const uint64_t invalid[]={0,UINT64_C(0x8000000000000000),UINT64_MAX};
+        for (size_t m=0;m<3;++m) {
+            put(bytes+232+8*n,invalid[m],8); profile=marker;
+            CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,&profile)==-EBADMSG && memcmp(&profile,&marker,sizeof profile)==0);
+        }
+        put(bytes+232+8*n,INT64_MAX,8); CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,&profile)==0);
+        put(bytes+232+8*n,n+1,8);
+    }
+    bytes[0]='x'; profile=marker;
+    CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,&profile)==-EBADMSG && memcmp(&profile,&marker,sizeof profile)==0);
+    CHECK(ae_setup_decode(NULL,AE_SETUP_BYTES,&profile)==-EINVAL);
+    CHECK(ae_setup_decode(bytes,AE_SETUP_BYTES,NULL)==-EINVAL);
+}
 int main(void)
 {
+    setup_profile();
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES+1U] = {0};
     memcpy(bytes,"AETHFIC1",8);
     for (size_t n=0; n<10; ++n) { bytes[8U+n*16U+6U]=0x40; bytes[8U+n*16U+8U]=0x80; bytes[8U+n*16U+15U]=(uint8_t)(n+1U); }

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     lines = ["/* Generated from the accepted XML contracts. Do not edit. */"]
     descriptors = []
-    for file in ("management-v1.xml", "documents-v1.xml", "runtime-v1.xml", "broker-v1.xml", "catalogue-v1.xml", "development-v1.xml"):
+    for file in ("management-v1.xml", "documents-v1.xml", "runtime-v1.xml", "broker-v1.xml", "catalogue-v1.xml", "development-v1.xml", "setup-v1.xml"):
         node = ET.parse(ROOT / "spec/api" / file).getroot()
         for interface in node.findall("interface"):
             name = interface.attrib["name"]
@@ -20,7 +20,7 @@ def main():
             identifier = "wire_" + name.replace(".", "_")
             roles = {"org.aetheri.Management1": 3, "org.aetheri.Runtime1": 1,
                      "org.aetheri.User1": 2, "org.aetheri.Documents1": 2, "org.aetheri.Broker1": 1,
-                     "org.aetheri.Catalogue1": 1, "org.aetheri.Development1": 2}
+                     "org.aetheri.Catalogue1": 1, "org.aetheri.Development1": 2,"org.aetheri.Setup1":1}
             if name not in roles:
                 raise ValueError("interface requires an explicit authority role")
             role = roles[name]
@@ -44,7 +44,10 @@ def main():
                     callback = {"ResolveAppInstall": "method_resolve_app","GetReservationReceipt":"method_get_receipt"}[method.attrib["name"]]
                 if name == "org.aetheri.Development1":
                     callback = {"RefreshFixtureInstall": "method_refresh_fixture","TestFixtureReservation":"method_test_reservation",
-                                "PrepareFixtureLaunch":"method_prepare_fixture_launch","CancelFixtureLaunch":"method_cancel_fixture_launch"}[method.attrib["name"]]
+                                "PrepareFixtureLaunch":"method_prepare_fixture_launch","CancelFixtureLaunch":"method_cancel_fixture_launch",
+                                "PrepareFixtureSetup":"method_fixture_setup","CancelFixtureSetup":"method_fixture_setup"}[method.attrib["name"]]
+                if name == "org.aetheri.Setup1":
+                    callback={"PrepareSetup":"method_setup_prepare","RegisterSetup":"method_setup_register","ReportPrepared":"method_setup_prepared","WithdrawSetup":"method_setup_withdraw"}[method.attrib["name"]]
                 fields = [json.dumps(method.attrib["name"]), json.dumps("".join(a.attrib["type"] for a in inputs)),
                           names(inputs), json.dumps("".join(a.attrib["type"] for a in outputs)), names(outputs),
                           callback, "SD_BUS_VTABLE_UNPRIVILEGED"]

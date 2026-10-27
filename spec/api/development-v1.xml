@@ -3,7 +3,7 @@
      fixture only; no arbitrary install/path, app enrollment or data allocation. -->
 <node name="/org/aetheri/Development1">
   <interface name="org.aetheri.Development1">
-    <annotation name="org.aetheri.Contract.Version" value="1.2"/>
+    <annotation name="org.aetheri.Contract.Version" value="1.3"/>
     <annotation name="org.aetheri.Contract.Visibility" value="protected-controller-only"/>
     <method name="RefreshFixtureInstall">
       <arg direction="out" name="install_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
@@ -21,6 +21,16 @@
       <arg direction="out" name="root_dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
     </method>
     <method name="CancelFixtureLaunch">
+      <arg direction="out" name="user_operation_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="user_launch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="root_dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+    <method name="PrepareFixtureSetup">
+      <arg direction="out" name="user_operation_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="user_launch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="root_dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+    <method name="CancelFixtureSetup">
       <arg direction="out" name="user_operation_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
       <arg direction="out" name="user_launch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
       <arg direction="out" name="root_dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>

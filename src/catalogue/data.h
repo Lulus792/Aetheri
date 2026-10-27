@@ -15,6 +15,7 @@ struct ae_data_enrollment {
  * UUIDv4 identities, independent object witness and signed SQL bounds required.
  * Outputs unchanged on failure. Does not inspect any filesystem object. */
 int ae_data_enrollment_decode(const uint8_t *bytes,size_t size,struct ae_data_enrollment *output);
+int ae_data_enrollment_valid(const struct ae_data_enrollment *request);
 /* Explicit P0 first enrollment of independently preallocated, flushed, verified
  * storage. Caller must verify the immutable allocation and enforcing policy
  * before entering this all-SQL transaction. Never adopts an existing epoch.

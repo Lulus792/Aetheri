@@ -49,11 +49,15 @@ enrollment now binds a distinct protected allocation, DataEpoch and attachment
 with a closed gate. It preserves the unrelated retained storage fixture.
 Private native code reservation/status and durable user acceptance/pre-dispatch
 withdrawal now survive broker replacement. Native FD-based private code/data mount
-views now have real Linux tests, but are not installed launch setup yet. Next
-connect journaled supervised setup/readiness, dispatch and target-exec evidence.
+views now have real Linux tests and an installed no-exec supervised setup path.
+Setup has separate journal/peer/invocation/drain evidence, including narrowly
+checked early-failure recovery. Target dispatch/exec, privilege dropping and
+actual app readiness remain next; setup READY is not app readiness.
 The retained trusted fixture's declared action is run; older journal-only probes
 used synthetic main. New executable starts must resolve the actual manifest action
-and preserve old immutable tuples instead of interpreting main as run. This is an
+and preserve old immutable tuples instead of interpreting main as run. The retained
+binary's c31,c32 expectation also differs from enrolled data's c33,c34; publish a
+new compatible fixture/generation rather than mutating the old package. This is an
 implementation gate, not a request to change the accepted product architecture.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
