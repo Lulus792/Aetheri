@@ -44,10 +44,12 @@ allocation, publisher trust and recovery coordination remain work. Journaled
 store publication and first fixture activation now exist; actual app admission,
 updates and launch remain separate gates.
 Authenticated system-to-user installation projection now exists for the protected
-fixture. The persisted binding is only an observation. Next implement a fresh
-app DataEpoch/allocation and its recoverable journal; preserve the separate retained
-storage fixture. Then implement actual run admission, dispatch and target-exec
-evidence. General binding reconciliation after install changes remains pending.
+fixture. The persisted binding is only an observation. Explicit first data
+enrollment now binds a distinct protected allocation, DataEpoch and attachment
+with a closed gate. It preserves the unrelated retained storage fixture.
+Next implement actual run admission, dispatch and target-exec evidence using those
+identities. General dynamic allocation/recovery and binding reconciliation after
+install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.
 
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and

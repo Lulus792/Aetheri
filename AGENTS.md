@@ -135,6 +135,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   projection-check uses a root-selected short-lived user-domain helper with actual
   process/unit/invocation/cgroup checks; clear its protected slot after use. Keep
   the retained private allocation fixture separate from future app DataEpochs.
+- The first app DataEpoch/StorageRef is now enrolled through a separate protected
+  P0 fixture, not adopted from the old storage fixture. Read catalogue/data.h and
+  spec/runtime.md's initial data enrollment. AETHDTA1 freezes both authority epochs,
+  exact binding/baseline and independent AETHALC1 object witness. data-check repeats
+  filesystem verification/publication then atomic native data+attachment+closed
+  gate enrollment. Retired/detached/conflicting data is never reactivated; a live
+  exact retry never changes later gate state. Root setup remains preallocated test
+  infrastructure, not a general allocation operation journal. Preserve both fixtures.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.

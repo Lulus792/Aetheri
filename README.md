@@ -22,6 +22,8 @@ with journaled retries. First fixture activation completes its installation with
 the launch gate closed; actual app admission and launch remain unfinished.
 The user service can now record an authenticated observation of that installation
 through a private system API. This creates no app data or permission to start it.
+The fixed P0 app now also has a separately verified private-data allocation and
+an atomic data attachment with its own gate closed. The app still cannot start.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·

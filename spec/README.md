@@ -20,6 +20,7 @@ lifecycle methods defined by these contracts.
 | [broker-v1.xml](api/broker-v1.xml) | Private P0 broker identity bootstrap 1.0, independent of public wire 1.1; no launch capability |
 | [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation observation and protected fixed-fixture trigger 1.0; no admission |
 | [projection.h](../src/catalogue/projection.h), [wire codec](../src/authority/projection.h) | Separate system read/user write, bounded typed snapshot and exact retry |
+| [data.h](../src/catalogue/data.h), [data tests](../tests/test_data.c) | Explicit first P0 data enrollment, independent allocation witness and atomic closed-gate attachment |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
 | [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation/opening, writer lifetime and startup-context transaction |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of canonical v2 statements; no runtime SQL-file loading |

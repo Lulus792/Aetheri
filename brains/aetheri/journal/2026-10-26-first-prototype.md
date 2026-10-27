@@ -812,3 +812,53 @@ Next: fresh app DataEpoch/allocation journal and actual admission/dispatch/exec
 evidence. Never adopt the unrelated retained private fixture. General binding
 reconciliation and public installation remain pending. Full OS/apps goal active;
 personal UI and destructive hardware choices deferred until the user returns.
+
+## 27 October — first app DataEpoch and closed attachment
+
+The fixed original app now has a separate private DataEpoch, StorageRef and
+AllocationId. The previous storage/read fixture is preserved. Root records fresh
+test identities/baseline, provisions a distinct protected anchor/root/payload and
+freezes the confined native object's independent AETHALC1 witness in AETHDTA1.
+The 368-byte internal configuration also binds the install/publisher, both
+authority epochs, install revision, original user catalogue baseline and schema.
+
+Native data enrollment verifies/publishes that exact allocation, then commits
+data+attachment+closed data gate through the single user SQLite writer. There is
+no filesystem effect inside the metadata transaction. Exact currently attached
+retry is read-only; detached/retained/purging/purged, changed or conflicting rows
+fail. Later open gates are not closed again by an old enrollment. An advanced
+baseline rejects recreation after pruning. This is explicit P0 preallocation and
+atomic metadata enrollment, not a general dynamic allocation operation journal,
+historical receipt or launch admission. Existing v2 SQL/XML, dependencies, policy
+permissions and public capabilities remain unchanged. No new resident process.
+
+The test-only native user-domain observe/enroll one-shots require enforcing
+SELinux, NNP and empty capabilities. They cannot be registered as the live user
+broker. The new payload uses fixed categories c33,c34; the old storage fixture
+keeps c31,c32. Same-UID app probes cannot open the new owner, allocation record,
+payload or protected configuration; ordinary public transport and previous raw
+system-bus/private-state denials still pass. Cleanup explicitly refuses app data.
+
+Complete native suites pass 26/26 Debug ASan/UBSan (83.90 s), 26/26 Release
+(76.33 s). Final expanded config-length/owner/epoch/retirement/overflow tests pass
+focused data repeats (4.13/3.02 s). Tests inject failures at each SQL mutation and
+before/after COMMIT acknowledgement; fresh child connections exit before/after
+real COMMIT and reopen with either no whole enrollment or one whole enrollment.
+Inherited connections are rejected. Future lifecycle states are controlled
+unconfined metadata fixtures, not implemented production removal APIs.
+
+Host migration/wire 28/28 (36.901 s), orchestration 26/26, cache guards 7/7,
+frozen runtime tests 14/14 and isolated constraints 374 assertions pass. Actual
+native allocation/enrollment/retry preserves database/record bytes on retry and
+the unrelated system catalogue/storage witness. Projection and endpoint/app-denial
+checks pass, followed by original store/activation/private-storage checks.
+Owned units drain normally; orderly shutdown yields QEMU exit 0 and verified PID
+absence before the same disk boots offline. data-check reports cross_boot_reopen=true
+with the same data identity, closed gate, preserved old allocation and no app
+dispatch. Projection, normal endpoint/denial and previous fixture checks pass
+again; owned units are stopped.
+
+Next: code/run reservation and actual data readiness, then supervised dispatch and
+target-exec evidence using the new existing data identity. Keep both test fixtures
+and deferred general allocation/volume/binding recovery explicit. Full original
+OS/apps goal stays active; personal UI/destructive choices still await the user.

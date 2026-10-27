@@ -1369,3 +1369,109 @@ Next: a fresh app DataEpoch and recoverable allocation journal, followed by run
 admission, supervised dispatch and target-exec observation. Preserve the independent
 retained private-storage fixture; never silently attach it to this installation.
 Public binding reconciliation, production recovery and full removal remain work.
+
+## Initial private-data enrollment
+
+The fixed installed app now has a private DataEpoch and StorageRef. These are
+fresh identities, with a fresh AllocationId and protected root, independent of the
+retained allocation/read test fixture. Both remain tracked. Carrier machine/volume
+references remain explicit P0 test identities, not authenticated production
+volume registration.
+
+The root controller first records the new identities and original metadata
+baseline, refuses existing paths and provisions a distinct app-data anchor,
+StorageRef root, owner header, empty payload and allocation registry. This remains
+trusted preallocated P0 infrastructure. A confined native user-domain observation
+captures its held/named inode, birth and filesystem witnesses. Root freezes those
+bytes in protected configuration before native allocation publication. Unknown
+or interrupted infrastructure is preserved for reconciliation, never adopted or
+automatically cleaned up. This is not a general dynamic allocation journal.
+
+The new paths inside the dedicated carrier are:
+
+- users/AccountId/app-data/StorageRef: broker-owned root and owner header; only
+  its payload/ child is the intended future app data view.
+- users/AccountId/control/app-allocations/StorageRef: immutable allocation witness,
+  separate from the old storage-test registry.
+- registry/app-data-owner.conf and registry/app-data.conf: protected owner
+  selection and complete independent enrollment evidence. They are retained test
+  infrastructure, excluded from Git with the VM disk and controller receipts.
+
+The internal AETHDTA1 configuration is exactly 368 bytes, all integers big-endian:
+
+| Offset | Bytes | Meaning |
+| --- | --- | --- |
+| 0 | 8 | AETHDTA1 |
+| 8 | 104 | Expected AETHOWN1 machine/volume/account/storage/data/allocation tuple |
+| 112 | 16 each | InstallId, publisher, system epoch, user epoch |
+| 176 | 8 each | Expected install revision, initial user catalogue revision, data schema version |
+| 200 | 168 | Independently expected AETHALC1 owner and persistent object witness |
+
+The decoder requires UUIDv4 references, distinct ownership IDs, exact matching
+owners in both encodings, positive signed-SQL revisions and a nonnegative schema
+version. It preserves output on malformed bounds/bytes. app-data-owner.conf is
+the independently selected owner used for the first native observation;
+app-data.conf is the frozen complete enrollment configuration. Both are root-owned
+0444 registry files; neither is an app-controlled request or public API.
+
+The native --data-enroll administrative mode checks the original protected owner,
+current root/header/payload/registry labels and account metadata. It uses no-follow
+openat2, rejects payload mount transitions, checks 0700 account ownership, compares
+the independently expected allocation witness, repeats required flushes and
+publishes/opens the immutable create-only AETHALC1 record. Only then does its owner
+SQLite writer enroll the data. No transaction spans filesystem effects. A lost
+publication acknowledgement leaves a named same-intent allocation for explicit
+data-check reconciliation; no replacement IDs or guessed allocation are allowed.
+
+The native [catalogue API](../src/catalogue/data.h) checks both authority epochs,
+account, exact active installation binding, publisher/revision and metadata schema.
+For first insertion it additionally requires the original protected catalogue
+baseline, current kernel boot and an initialized runtime. This conservative P0
+baseline rejects intervening changes rather than silently refreshing intent.
+One transaction inserts the active data row, closes its automatically created
+data gate and attaches it to the original install. The insertion trigger's open
+gate never commits: only the final closed gate at revision 2 becomes visible.
+Catalogue revision advances once. No install gate, run, launch lease, grant or
+operation changes, and the app gains no execution or document access.
+
+An exact currently attached retry writes no metadata and preserves later gate
+changes. A different schema, identity, attachment or binding, and detached,
+retained or purged data return an error. Missing data after an advanced original
+baseline cannot be recreated by an old request. This API returns current exact
+enrollment, not a historical operation receipt; future prune/retirement must keep
+the appropriate tombstones and configuration retirement. Generic filesystem
+allocation, public data adoption and full recovery remain separate work. Do not
+mislabel this all-SQL enrollment as a completed install or launch operation.
+
+The controller uses systemd Type=exec one-shots in aetheri_user_t, NNP and empty
+capabilities. They hold the normal catalogue writer lock, cannot register as the
+live user broker and add no resident service. The payload uses fixed P0 categories
+c33,c34; the unrelated storage probe retains c31,c32. These are test categories,
+not a general allocator. The existing app probe with the same Unix UID cannot
+open the new owner, payload, allocation record or protected configuration. Normal
+public IPC still works; raw-system-bus and private-database denials remain.
+
+Native tests use independently encoded Python configuration bytes and controlled
+unconfined database fixtures. They cover all configuration truncations/extra byte,
+identity/integer/owner errors, stale binding/baseline/boot, statement failures at
+each mutation, failed/lost COMMIT acknowledgement, fresh-process exits before/after
+real COMMIT, inherited-connection rejection and reopen/retry. Detachment/retention,
+later gate opening and metadata pruning are controlled test states; production
+retirement and removal APIs are not implemented by those tests.
+
+The separate enforcing data-check exercises actual allocation and metadata with
+the configured objects, exact retries and unchanged system catalogue/unrelated
+storage witness. It asserts the closed data gate and absence of app dispatch.
+Next: real run/code reservation, user readiness and supervised target-exec
+evidence using this data identity. Admission must recheck current system authority;
+the old cached install observation and a data attachment are insufficient.
+
+Executed on 27 October 2026: complete native suites pass 26/26 Debug ASan/UBSan
+(83.90 s) and Release (76.33 s). Final additional owner/epoch/retirement/overflow
+cases then pass focused data repeats (4.13/3.02 s). Host migration/wire tests
+28/28 (36.901 s), orchestration 26/26, cache guards 7/7, runtime vectors 14/14
+and isolated constraints 374 assertions pass. Actual enforcing data enrollment,
+exact repeat, projection, normal endpoint/app-denial and previous fixture checks
+pass. Orderly shutdown yields QEMU exit 0 and verified PID absence; the same disk
+boots offline and data-check reports cross_boot_reopen=true with the same data
+identity, closed gate, unchanged old storage and no dispatch.

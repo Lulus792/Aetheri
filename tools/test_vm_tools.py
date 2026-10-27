@@ -14,6 +14,26 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_data_administration_never_selects_broker_or_empty_cleanup(self):
+        record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
+                  "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
+                  "pending": None, "units": []}
+        for action in ("observe","enroll"):
+            with patch.object(services,"save"), patch.object(services,"run",return_value="") as command, patch.object(services,"publish_broker_slot") as slot:
+                unit=services.start_unit(record,"user",data=action)
+                slot.assert_not_called()
+                self.assertIn("--service-type=exec",command.call_args.args)
+                self.assertEqual(command.call_args.args[-2:],("user","--data-"+action))
+            self.assertEqual(services.validate_record(json.loads(json.dumps(record))),record)
+            record["active_units"]={"user":unit}
+            with self.assertRaisesRegex(RuntimeError,"cannot be an active authority"): services.validate_record(record)
+            record.pop("active_units")
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            with self.assertRaises(ValueError): services.start_unit(record,"system",data="enroll")
+            with self.assertRaises(ValueError): services.start_unit(record,"user",data="enroll",probe="broker")
+        with patch.object(services,"verified",side_effect=AssertionError("cleanup mutation")):
+            with self.assertRaisesRegex(RuntimeError,"not an empty bootstrap"): services.cleanup({"app_data":{}})
+
     def test_projection_controller_is_separate_from_broker_and_cannot_widen_slot(self):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},

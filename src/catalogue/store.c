@@ -1,6 +1,7 @@
 #include "catalogue/store.h"
 #include "catalogue/schema.h"
 #include "catalogue/projection.h"
+#include "catalogue/data.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -1212,6 +1213,120 @@ int ae_catalogue_cache_install(struct ae_catalogue *store,const struct ae_instal
     if (result==0) *local_revision=info.revision;
     return result;
 }
+
+static int data_request_valid(const struct ae_data_enrollment *request)
+{
+    if (request==NULL || request->install_revision<1 || request->base_revision<1 || request->schema_version<0) return -EINVAL;
+    const uint8_t *ids[]={request->install,request->publisher,request->system_epoch,request->user_epoch};
+    for (size_t n=0;n<4;++n) if (!projection_id(ids[n])) return -EBADMSG;
+    for (size_t n=0;n<AE_OWNER_FIELDS;++n) {
+        if (!projection_id(request->owner.id[n])) return -EBADMSG;
+        for (size_t m=0;m<n;++m) if (memcmp(request->owner.id[n],request->owner.id[m],16)==0) return -EBADMSG;
+    }
+    uint8_t bytes[AE_ALLOCATION_BYTES];
+    if (!ae_owner_matches(&request->owner,&request->allocation.owner) ||
+        ae_allocation_encode(&request->allocation,bytes,sizeof bytes)!=0) return -EBADMSG;
+    return 0;
+}
+
+int ae_data_enrollment_decode(const uint8_t *bytes,size_t size,struct ae_data_enrollment *output)
+{
+    if (bytes==NULL || output==NULL) return -EINVAL;
+    if (size!=AE_DATA_CONFIG_BYTES || memcmp(bytes,"AETHDTA1",8)!=0) return -EBADMSG;
+    struct ae_data_enrollment request={0};
+    if (ae_owner_decode(bytes+8,AE_OWNER_BYTES,&request.owner)!=0) return -EBADMSG;
+    memcpy(request.install,bytes+112,16); memcpy(request.publisher,bytes+128,16);
+    memcpy(request.system_epoch,bytes+144,16); memcpy(request.user_epoch,bytes+160,16);
+    int64_t *numbers[]={&request.install_revision,&request.base_revision,&request.schema_version};
+    for (size_t n=0;n<3;++n) {
+        uint64_t value=0;
+        for (size_t m=0;m<8;++m) value=(value<<8)|bytes[176+8*n+m];
+        if (value>INT64_MAX) return -EBADMSG;
+        *numbers[n]=(int64_t)value;
+    }
+    if (ae_allocation_decode(bytes+200,AE_ALLOCATION_BYTES,&request.allocation)!=0 || data_request_valid(&request)!=0) return -EBADMSG;
+    *output=request;
+    return 0;
+}
+
+#define DATA_INPUT "WITH r(i,p,a,s,d,se,ue,ir,base,version) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)) "
+static int data_statement(struct ae_catalogue *store,const struct ae_data_enrollment *request,const char *sql,sqlite3_stmt **output)
+{
+    sqlite3_stmt *statement=NULL;
+    int result=failure(sqlite3_prepare_v2(store->db,sql,-1,&statement,NULL));
+    const void *ids[]={request->install,request->publisher,request->owner.id[AE_ACCOUNT],request->owner.id[AE_STORAGE],
+        request->owner.id[AE_DATA],request->system_epoch,request->user_epoch};
+    for (int n=0;result==0 && n<7;++n) result=failure(sqlite3_bind_blob(statement,n+1,ids[n],16,SQLITE_TRANSIENT));
+    const int64_t numbers[]={request->install_revision,request->base_revision,request->schema_version};
+    for (int n=0;result==0 && n<3;++n) result=failure(sqlite3_bind_int64(statement,n+8,numbers[n]));
+    if (result!=0) { sqlite3_finalize(statement); return result; }
+    *output=statement;
+    return 0;
+}
+
+int ae_catalogue_enroll_data(struct ae_catalogue *store,const struct ae_data_enrollment *request,
+                             const uint8_t current_boot[16],int64_t *revision)
+{
+    if (revision==NULL || !projection_id(current_boot)) return -EINVAL;
+    int result=data_request_valid(request);
+    if (result==0) result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    if (result==0 && (memcmp(request->owner.id[AE_ACCOUNT],store->identity.owner,16)!=0 ||
+        memcmp(request->user_epoch,store->identity.authority_epoch,16)!=0)) result=-ESTALE;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE");
+    if (result!=0) return result;
+    struct ae_catalogue_info info;
+    result=read_info(store,&info);
+    sqlite3_stmt *statement=NULL;
+    if (result==0) result=data_statement(store,request,DATA_INPUT
+        "SELECT (SELECT count(*) FROM install_bindings b WHERE b.install_id=r.i AND b.publisher_ref=r.p AND b.owner_scope=r.a AND b.system_epoch=r.se AND b.install_revision=r.ir AND b.state='active'),"
+        "(SELECT count(*) FROM data_epochs d WHERE d.data_epoch_id=r.d OR d.storage_ref=r.s),"
+        "(SELECT count(*) FROM attachments a WHERE a.install_id=r.i OR a.data_epoch_id=r.d),"
+        "(SELECT count(*) FROM data_epochs d JOIN attachments a USING(data_epoch_id,component_id,publisher_ref,owner_scope) "
+        "JOIN install_bindings b USING(install_id,component_id,publisher_ref,owner_scope) "
+        "JOIN admission_gates g ON g.subject_kind='data' AND g.subject_ref=d.data_epoch_id "
+        "WHERE d.data_epoch_id=r.d AND d.storage_ref=r.s AND d.publisher_ref=r.p AND d.owner_scope=r.a AND d.state='active' "
+        "AND d.data_schema_version=r.version AND a.install_id=r.i) FROM r",&statement);
+    int existing=0;
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code);
+        else if (sqlite3_column_int(statement,0)!=1) result=-ESTALE;
+        else {
+            int data=sqlite3_column_int(statement,1),attachments=sqlite3_column_int(statement,2),exact=sqlite3_column_int(statement,3);
+            if (data==1 && attachments==1 && exact==1) existing=1;
+            else if (data!=0 || attachments!=0) result=-ESTALE;
+            if (result==0 && sqlite3_step(statement)!=SQLITE_DONE) result=-EUCLEAN;
+        }
+    }
+    int final=failure(sqlite3_finalize(statement));
+    if (result==0) result=final;
+    if (result==0 && !existing && (info.revision!=request->base_revision || memcmp(info.boot_id,current_boot,16)!=0 ||
+        !projection_id(info.runtime_incarnation))) result=-ESTALE;
+    if (result==0 && !existing && info.revision==INT64_MAX) result=-EOVERFLOW;
+    const char *statements[]={
+        DATA_INPUT "INSERT INTO data_epochs(data_epoch_id,component_id,publisher_ref,owner_scope,storage_ref,state,data_schema_version) SELECT r.d,b.component_id,r.p,r.a,r.s,'active',r.version FROM r JOIN install_bindings b ON b.install_id=r.i",
+        DATA_INPUT "UPDATE admission_gates SET state='closed',revision=revision+1 WHERE subject_kind='data' AND subject_ref=(SELECT d FROM r)",
+        DATA_INPUT "INSERT INTO attachments SELECT r.i,r.d,b.component_id,r.p,r.a FROM r JOIN install_bindings b ON b.install_id=r.i",
+        DATA_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1"
+    };
+    for (size_t n=0;result==0 && !existing && n<4;++n) {
+        statement=NULL;
+        result=data_statement(store,request,statements[n],&statement);
+        if (result==0) {
+            int code=sqlite3_step(statement);
+            result=code==SQLITE_DONE ? 0 : failure(code);
+            if (result==0 && sqlite3_changes(store->db)!=1) result=-EUCLEAN;
+        }
+        final=failure(sqlite3_finalize(statement));
+        if (result==0) result=final;
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *revision=info.revision+(existing ? 0 : 1);
+    return result;
+}
+#undef DATA_INPUT
 
 int ae_catalogue_close(struct ae_catalogue **output)
 {

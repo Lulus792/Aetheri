@@ -81,7 +81,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker|projection))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)|data-(?:observe|enroll)))?|probe-(?:check|claim|broker|projection))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -94,6 +94,15 @@ def validate_record(record):
         raise RuntimeError("unrecognized protected broker unit")
     if record.get("projection_unit","-")!="-" and (record["projection_unit"] not in record["units"] or re.search(r"-probe-projection-[0-9]+\.service$",record["projection_unit"]) is None):
         raise RuntimeError("unrecognized protected projection unit")
+    if "app_data" in record:
+        data=record["app_data"]
+        if set(data["owner"])!=set(runtime_contracts.OWNER_FIELDS.split()) or data["owner"]["account"]!=record["owner"]:
+            raise RuntimeError("invalid app data owner")
+        for value in [*data["owner"].values(),*(data[key] for key in ("install","publisher","system_epoch","user_epoch"))]:
+            if not isinstance(value,str) or re.fullmatch("[0-9a-f]{32}",value) is None or uuid.UUID(hex=value).version!=4:
+                raise RuntimeError("invalid app data identity")
+        if any(type(data[key]) is not int or not 1<=data[key]<2**63 for key in ("install_revision","base_revision")) or data["schema_version"]!=0:
+            raise RuntimeError("invalid app data revision")
     if "storage" in record:
         intent = record["storage"]
         if set(intent) != set(runtime_contracts.OWNER_FIELDS.split()) or intent["account"] != record["owner"]:
@@ -118,7 +127,7 @@ def module_bytes():
     return bz2.decompress(data) if data.startswith(b"BZh") else data
 
 
-def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, allow_unfinished_fixture=False, allow_new_projection=False):
+def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, allow_unfinished_fixture=False, allow_new_projection=False, allow_unreceipted_app_data=False):
     verify_fixture(record, allow_unfinished_fixture)
     if hashlib.sha256(module_bytes()).hexdigest() != record["policy_sha256"]:
         raise RuntimeError("installed module differs from owned policy")
@@ -168,6 +177,7 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
     if "projection_unit" in record:
         owned_file(ROOT / "registry/projection.conf",0o444)
         if (ROOT / "registry/projection.conf").read_text()!="AETHERI-P0-PROJECTION-1\nunit="+record["projection_unit"]+"\n": raise RuntimeError("projection controller slot changed")
+    verify_app_data(record,allow_unreceipted_app_data)
 
 
 def label(path, type_name, cats=""):
@@ -343,6 +353,123 @@ def storage_check(record):
     save(record)
     verify_storage(record)
     print(json.dumps(record["storage_check"]))
+
+
+def app_data_paths(record):
+    owner=record["app_data"]["owner"]
+    anchor=ROOT/"users"/record["owner"]/"app-data"
+    root=anchor/owner["storage"]
+    registry=state_path(record,"user")/"app-allocations"
+    return dict(anchor=anchor,root=root,registry=registry,allocation=registry/owner["storage"],
+        owner=root/"owner",payload=root/"payload",owner_config=ROOT/"registry/app-data-owner.conf",config=ROOT/"registry/app-data.conf")
+
+
+def app_data_config(data,witness):
+    result=(b"AETHDTA1"+runtime_contracts.owner(data["owner"])
+        +b"".join(bytes.fromhex(data[key]) for key in ("install","publisher","system_epoch","user_epoch"))
+        +struct.pack(">QQQ",data["install_revision"],data["base_revision"],data["schema_version"])+witness)
+    if len(result)!=368 or len(witness)!=168: raise ValueError("invalid app data configuration")
+    return result
+
+
+def verify_app_data(record,allow_unreceipted=False):
+    if "app_data" not in record: return
+    if record["app_data_state"] not in ("prepared","enrolled"): raise RuntimeError("interrupted app data preparation requires reconciliation")
+    paths=app_data_paths(record)
+    owner=runtime_contracts.owner(record["app_data"]["owner"])
+    for key in ("anchor","root","registry","payload"):
+        info=paths[key].lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid!=1000 or stat.S_IMODE(info.st_mode)!=0o700:
+            raise RuntimeError("app data directory changed")
+    for key,uid,mode,content in (("owner_config",0,0o444,owner),("owner",1000,0o600,owner),
+            ("config",0,0o444,app_data_config(record["app_data"],bytes.fromhex(record["app_data_witness"])))):
+        info=paths[key].lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=uid or stat.S_IMODE(info.st_mode)!=mode or paths[key].read_bytes()!=content:
+            raise RuntimeError("protected app data file changed")
+    entry=paths["allocation"]
+    if "app_data_allocation_sha256" in record:
+        info=entry.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=1000 or stat.S_IMODE(info.st_mode)!=0o600 or checksum(entry)!=record["app_data_allocation_sha256"]:
+            raise RuntimeError("app allocation receipt changed")
+    elif (entry.exists() or entry.is_symlink()) and not allow_unreceipted:
+        raise RuntimeError("unreceipted app allocation requires explicit data-check reconciliation")
+
+
+def data_prepare(record):
+    verified(record)
+    if "app_data" in record: raise RuntimeError("app data already selected; preserve its identities")
+    projection_check(record)
+    stop(record)
+    with sqlite3.connect(f"file:{state_path(record,'user')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        binding=db.execute("SELECT lower(hex(publisher_ref)),lower(hex(system_epoch)),install_revision FROM install_bindings WHERE install_id=? AND state='active'",(bytes.fromhex(record["fixture"]["install"]),)).fetchone()
+        baseline=db.execute("SELECT catalogue_revision FROM authority_meta").fetchone()[0]
+        if binding is None or db.execute("SELECT count(*) FROM data_epochs").fetchone()[0]!=0 or db.execute("SELECT count(*) FROM attachments").fetchone()[0]!=0:
+            raise RuntimeError("data preparation requires first projected installation and no existing data")
+    owner={key:uuid.uuid4().hex for key in runtime_contracts.OWNER_FIELDS.split()}
+    owner.update(account=record["owner"],machine=record["storage"]["machine"],volume=record["storage"]["volume"])
+    data=dict(owner=owner,install=record["fixture"]["install"],publisher=binding[0],system_epoch=binding[1],
+        user_epoch=record["epochs"]["user"],install_revision=binding[2],base_revision=baseline,schema_version=0)
+    candidate={**record,"app_data":data}
+    paths=app_data_paths(candidate)
+    if any(paths[key].exists() or paths[key].is_symlink() for key in ("anchor","registry","config","owner_config")):
+        raise RuntimeError("unknown app data infrastructure exists; no adoption")
+    record.update(app_data=data,app_data_state="preparing")
+    save(record)
+    directory(paths["registry"],"aetheri_allocation_t",uid=1000,mode=0o700)
+    for key in ("anchor","root"): directory(paths[key],"aetheri_user_state_t",uid=1000,mode=0o700)
+    directory(paths["payload"],"aetheri_app_data_t",uid=1000,mode=0o700,cats="c33,c34")
+    encoded=runtime_contracts.owner(owner)
+    publish(paths["owner_config"],encoded,"aetheri_registry_t")
+    publish(paths["owner"],encoded,"aetheri_user_state_t",mode=0o600)
+    os.chown(paths["owner"],1000,1000)
+    for key in ("owner","owner_config","payload","root","anchor","registry"): flush_path(paths[key],key not in ("owner","owner_config"))
+    for parent in (state_path(record,"user"),ROOT/"registry",ROOT/"users"/record["owner"]): flush_path(parent,True)
+    unit=start_unit(record,"user",data="observe")
+    output=run("journalctl","-u",unit,"--output=cat","--no-pager")
+    witnesses=re.findall(r"^data-witness=([0-9a-f]{336})$",output,re.M)
+    if len(witnesses)!=1: raise RuntimeError("native app data observation missing")
+    witness=bytes.fromhex(witnesses[0])
+    if witness[:112]!=b"AETHALC1"+encoded: raise RuntimeError("native app data owner differs")
+    publish(paths["config"],app_data_config(data,witness),"aetheri_registry_t")
+    flush_path(paths["config"]); flush_path(ROOT/"registry",True)
+    record.update(app_data_state="prepared",app_data_witness=witnesses[0])
+    save(record)
+    print("Prepared distinct protected app data fixture; no native allocation or metadata enrollment yet.")
+
+
+def data_check(record):
+    verified(record,allow_unreceipted_app_data=True)
+    stop(record)
+    paths=app_data_paths(record)
+    system_hash=checksum(state_path(record,"system")/"catalogue.sqlite3")
+    unrelated=(checksum(storage_paths(record)["record"]),storage_paths(record)["record"].stat().st_ino)
+    database=state_path(record,"user")/"catalogue.sqlite3"
+    def rows():
+        with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+            data=db.execute("SELECT lower(hex(data_epoch_id)),lower(hex(storage_ref)),state,data_schema_version,revision FROM data_epochs").fetchall()
+            attachment=db.execute("SELECT lower(hex(install_id)),lower(hex(data_epoch_id)) FROM attachments").fetchall()
+            gate=db.execute("SELECT state,revision,closing_operation_id FROM admission_gates").fetchall()
+            other={name:db.execute('SELECT * FROM "'+name+'" ORDER BY rowid').fetchall() for name in ("operations","launches","grants","access_leases")}
+            revision=db.execute("SELECT catalogue_revision FROM authority_meta").fetchone()[0]
+        return data,attachment,gate,other,revision
+    before=rows()
+    start_unit(record,"user",data="enroll")
+    first=rows()
+    owner=record["app_data"]["owner"]
+    expected=([(owner["data"],owner["storage"],"active",0,1)],[(record["app_data"]["install"],owner["data"])],[("closed",2,None)])
+    if first[:3]!=expected or first[3]!=before[3] or first[4]!=before[4]+(0 if before[0] else 1): raise AssertionError("native app data enrollment differs")
+    first_hash=checksum(database)
+    allocation=(checksum(paths["allocation"]),paths["allocation"].stat().st_ino)
+    if paths["allocation"].read_bytes()!=bytes.fromhex(record["app_data_witness"]): raise AssertionError("allocation differs from independent witness")
+    start_unit(record,"user",data="enroll")
+    if rows()!=first or checksum(database)!=first_hash or allocation!=(checksum(paths["allocation"]),paths["allocation"].stat().st_ino): raise AssertionError("data retry changed durable state")
+    if checksum(state_path(record,"system")/"catalogue.sqlite3")!=system_hash or unrelated!=(checksum(storage_paths(record)["record"]),storage_paths(record)["record"].stat().st_ino): raise AssertionError("unrelated system/storage fixture changed")
+    boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    initial=record.setdefault("app_data_first_boot",boot)
+    record.update(app_data_state="enrolled",app_data_allocation_sha256=allocation[0])
+    record["app_data_check"]=dict(native_separate_data=True,atomic_closed_gate=True,exact_retry=True,unrelated_storage_preserved=True,cross_boot_reopen=initial!=boot,app_dispatched=False)
+    save(record)
+    print(json.dumps(record["app_data_check"]))
 
 
 FIXTURE_IDS = ("plan", "operation", "actor", "request_key", "scope", "install", "generation", "slot", "publisher", "boot")
@@ -817,7 +944,9 @@ def publish_projection_slot(record,unit):
     record["projection_unit"]=unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None):
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None):
+    if data is not None and (data not in ("observe","enroll") or role!="user" or init or probe or enroll or storage or fixture):
+        raise ValueError("data administration requires only the user administrative role")
     if probe=="projection" and (role!="user" or init or enroll or storage or fixture):
         raise ValueError("projection controller requires only the user probe role")
     if fixture is not None and (fixture not in ("observe", "stage", "store-observe", "store-publish", "activate") or role != "system" or init or probe or enroll or storage):
@@ -828,11 +957,11 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
         raise ValueError("account enrollment requires only the system administrative role")
     if storage is not None and (storage not in ("publish", "verify") or role != "user" or init or probe or enroll):
         raise ValueError("storage administration requires only the user role")
-    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "-fixture-" + fixture if fixture else "-storage-" + storage if storage else "")
+    suffix = ("probe-" + probe) if probe else role + ("-init" if init else "-enroll" if enroll else "-fixture-" + fixture if fixture else "-storage-" + storage if storage else "-data-"+data if data else "")
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
-    if role == "user" and not init and probe is None and storage is None:
+    if role == "user" and not init and probe is None and storage is None and data is None:
         publish_broker_slot(record, unit)
     if probe=="projection":
         publish_projection_slot(record,unit)
@@ -852,6 +981,7 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
         command = [str(ROOT / "probe-service"), probe, record["owner"]]
         if "storage" in record:
             command.append(record["storage"]["storage"])
+            if "app_data" in record: command.append(record["app_data"]["owner"]["storage"])
         if probe == "broker":
             properties["SELinuxContext"] = "system_u:system_r:aetheri_user_t:s0"
             properties.pop("ReadWritePaths")
@@ -862,7 +992,7 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
             command=[str(ROOT / "probe-projection")]
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
-        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else [])
+        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else ["--data-"+data] if data else [])
         if fixture in ("store-observe", "store-publish", "activate"):
             properties["ReadWritePaths"] = str(ROOT)
             properties["ReadOnlyPaths"] = str(fixture_paths(record)["source"])
@@ -873,8 +1003,8 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     if role == "user" or probe:
         properties.update(BindsTo="user@1000.service", After="user@1000.service",
                           BindReadOnlyPaths="/run/user/1000/bus:" + str(ROOT / "user-bus"))
-    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll or storage or fixture else "notify")]
-    if init or probe or enroll or storage or fixture:
+    arguments = ["systemd-run", "--unit=" + unit, "--service-type=" + ("exec" if init or probe or enroll or storage or fixture or data else "notify")]
+    if init or probe or enroll or storage or fixture or data:
         arguments.append("--wait")
     arguments.extend("--property=" + key + "=" + value for key, value in properties.items())
     try:
@@ -1082,6 +1212,8 @@ def bootstrap_scopes(db, owner):
 
 def cleanup(record):
     """Remove only an empty, inspected development bootstrap, never app data."""
+    if "app_data" in record:
+        raise RuntimeError("enrolled app data is not an empty bootstrap; preserve its allocation and metadata")
     if record["pending"]:
         raise RuntimeError("unacknowledged dispatch requires reconciliation")
     verified(record)
@@ -1396,6 +1528,8 @@ def main():
         elif action == "account-check": account_check(record)
         elif action == "storage-prepare": storage_prepare(record)
         elif action == "storage-check": storage_check(record)
+        elif action == "data-prepare": data_prepare(record)
+        elif action == "data-check": data_check(record)
         elif action == "fixture-prepare": fixture_prepare(record)
         elif action == "fixture-check": fixture_check(record)
         elif action == "fixture-store-prepare": fixture_store_prepare(record)

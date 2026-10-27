@@ -516,3 +516,26 @@ active unit, invocation, context, cgroup and boot before the local write. Clear
 its protected selection after the controller drains it. Narrow read-only manager
 status and same-domain IPC permissions support that check, without a new service
 or app-domain system-bus access. This is test infrastructure, not a general app API.
+
+## Enroll the first app's private data explicitly — 27 October 2026
+
+Use fresh DataEpochId, StorageRef and AllocationId for the original installed P0
+app, with the fixed account and carrier machine/volume references. Preserve the
+independent retained storage fixture. Root preallocates the new protected carrier
+infrastructure and freezes an independently observed object witness before native
+allocation publication; do not infer ownership from a matching candidate header.
+
+The native user writer then inserts the data row, exact install attachment and
+closed data gate in one SQLite commit. The temporary open gate produced by the
+existing insertion trigger is closed inside that same transaction and never
+committed open. There is no external effect inside this transaction, so it needs
+neither a second database nor a fabricated install/launch operation. Keep the v2
+schema and public API unchanged. General dynamic allocation needs its own explicit
+recoverable protocol before production use; this P0 path does not claim one.
+
+Freeze the original user catalogue baseline in protected configuration for first
+creation. A changed baseline fails conservatively instead of guessing after
+unrelated work or pruning. Exact currently attached retries are read-only and
+preserve later gate changes. Detached, retained, purged, changed or conflicting
+rows fail; no retry reattaches or resurrects them. This is metadata enrollment,
+not a historical completion receipt or a replacement for live launch admission.

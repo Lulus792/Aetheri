@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — authenticated installation projection between separate owners.
+27 October 2026 — first app data enrollment with closed admission.
 
 ## Confirmed
 
@@ -13,6 +13,29 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The original P0 app now has a fresh private DataEpoch/StorageRef, separate from
+the retained storage test fixture. Root-preallocated carrier infrastructure is
+bound to an independently observed immutable allocation witness before native
+publication. The native user writer inserts data, exact attachment and a closed
+gate in one SQLite transaction. Failed/uncertain commits preserve one whole result
+or no result. Exact live retry changes nothing, including a later gate state;
+detached/retained/purged/conflicting rows fail rather than being restored.
+The protected original catalogue baseline also prevents recreation after pruning
+and revision advancement. This is explicit trusted P0 enrollment, not a dynamic
+allocator, allocation operation journal or live system admission. See
+[runtime contract](../../spec/runtime.md#initial-private-data-enrollment).
+
+Current data evidence: 26/26 native cases pass Debug ASan/UBSan (83.90 s) and
+Release (76.33 s), then final expanded data cases pass focused repeats
+(4.13/3.02 s). Host migration/wire tests 28/28 (36.901 s), orchestration 26/26,
+cache guards 7/7, frozen vectors 14/14 and isolated constraints 374 assertions pass.
+Actual enforcing cap-zero/NNP native enrollment and retry pass. The same-UID app
+cannot open the new owner, payload, allocation record or configuration. QEMU exits
+0 after orderly shutdown and its PID is verified absent before offline boot of
+the same disk. data-check then reports cross_boot_reopen=true, preserving the
+data identity, closed gate and old storage fixture. No app dispatched; general
+admission, allocation recovery and removal remain work.
 
 The user service now obtains one bounded, typed observation of an eligible active
 app from the authenticated system service. Its own SQLite writer stores an exact

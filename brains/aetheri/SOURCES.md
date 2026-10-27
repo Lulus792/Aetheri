@@ -4,6 +4,25 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## First app data enrollment — 27 October 2026
+
+- Original [native catalogue contract](../../src/catalogue/data.h),
+  [implementation](../../src/catalogue/store.c) and protected administrative mode
+  in [the authority](../../src/authority/main.c). Reuse the previously tested
+  AETHALC1/held-root primitives; no dependency, policy permission, SQL schema or
+  public protocol changed.
+- [Independent Python config encoder](../../tools/test_data_native.py) and
+  [native tests](../../tests/test_data.c): malformed bytes, closed-gate transaction,
+  statement/COMMIT faults, process exits before/after COMMIT, no reattachment or
+  resurrection and overflow. Controlled database future states are not installed
+  production lifecycle APIs.
+- [Carrier controller](../../tools/p0_services.py), data-prepare/data-check and
+  [same-UID app probe](../../tests/probe_service.c): actual preallocated object
+  binding, native publication/enrollment, exact retries, cross-boot reopening,
+  separate old storage fixture and enforced metadata/payload denials. Enforcing
+  policy, NNP and empty capabilities remain in force. This proves the fixed P0
+  fixture boundary, not general dynamic allocation or production volume trust.
+
 ## Typed installation observation — 27 October 2026
 
 - [systemd v259 message construction](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_bus_message_new.xml)
