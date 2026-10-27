@@ -896,3 +896,25 @@ family or public capability is added.
 This proves fixed-fixture first activation and retained receipts, not launch
 readiness, public installer/update/rollback, general recovery, physical power-loss
 or a finished Aetheri app/system image.
+
+## Durable user launch journal — 27 October 2026
+
+Primary implementation/evidence in this repository:
+[owner API](../../src/catalogue/launch.h), [root receipts](../../src/catalogue/reservation.h),
+[native owner implementation](../../src/catalogue/store.c),
+[actual authority path](../../src/authority/main.c),
+[independent launch tests](../../tools/test_launch_native.py),
+[mutation/recovery tests](../../tests/test_launch.c),
+[wire tests](../../tests/test_reservation_wire.c) and
+[guest controller](../../tools/p0_services.py). API versions and exact boundaries
+are in the [runtime contract](../../spec/runtime.md#durable-user-launch-acceptance-and-withdrawal).
+No new external dependency/version or policy rule was selected.
+
+The [journal](journal/2026-10-26-first-prototype.md#durable-user-launch-journal--27-october-2026)
+records executed native/host tests and real enforcing service recovery. Both owner
+intent digests are reconstructed independently from committed rows. Actual user
+broker replacement preserves the original root lease until explicit withdrawal;
+terminal retries preserve database hashes. Orderly QEMU exit 0, PID absence and
+offline re-boot precede cross_boot_reopen=true with unchanged business history.
+This is pre-dispatch metadata recovery, not view/readiness, exec/drain, power-loss
+or complete app lifecycle evidence.

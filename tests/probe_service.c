@@ -73,6 +73,12 @@ int main(int argc, char **argv)
         CHECK(sd_bus_call_method(bus,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1","TestFixtureReservation",&error,&reply,"")<0,66);
         CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"),67);
         sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
+        const char *launch_methods[]={"PrepareFixtureLaunch","CancelFixtureLaunch"};
+        for (size_t n=0;n<2;++n) {
+            CHECK(sd_bus_call_method(bus,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1",launch_methods[n],&error,&reply,"")<0,68);
+            CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"),69);
+            sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
+        }
         CHECK(sd_bus_call_method(bus, "org.aetheri.User1", "/org/aetheri/Management1", "org.aetheri.Management1",
                                  "GetProtocolInfo", &error, &reply, "s", "invalid signature") < 0, 34);
         CHECK(sd_bus_error_has_name(&error, SD_BUS_ERROR_INVALID_ARGS), 35);

@@ -150,12 +150,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   profile is only the protected original I/G/D, main/p0/none. Never treat a lease
   receipt or gate observation as data readiness or process execution. Only a
   still-reserved tuple can be atomically withdrawn; uncertain/observed/dispatching
-  state requires reconciliation, never inferred drain. Development1 is now 1.1.
+  state requires reconciliation, never inferred drain. Development1 is now 1.2.
   Explicit system --admit-fixture rechecks the current sealed store using a
   boot/original-catalogue-baseline-bound AETHADM1 before opening reservation
   metadata. Ordinary startup stays closed; stale admission config must fail.
   reservation-check/new-check/continue/replay-check preserve protected intent and
   terminal history. These are fixed P0 tests, not normal user launch acceptance.
+- Native catalogue/launch.h now journals user acceptance before root RPC, binds
+  actual root receipts (Catalogue1 minor 1.1), and reconciles proven withdrawal
+  after broker replacement. User startup marks unsettled runs recovery_required.
+  A current same-authority/account broker may withdraw an old still-reserved
+  tuple without rebinding it; root uncertainty/readiness/exec must never infer
+  release. launch-check/cancel/reopen-check preserve fixed correlations/history.
+  Private data gate admission is not view readiness; no actual app dispatch or
+  public launch capability exists yet. Keep SQL v1/v2 and Runtime1 XML unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

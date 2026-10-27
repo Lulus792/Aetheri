@@ -41,9 +41,10 @@ def main():
                 if name == "org.aetheri.Runtime1":
                     callback = {"ReserveLaunch":"method_reserve_launch","GetDispatch":"method_get_dispatch","CloseLaunch":"method_close_launch"}.get(method.attrib["name"],"method_unavailable")
                 if name == "org.aetheri.Catalogue1":
-                    callback = {"ResolveAppInstall": "method_resolve_app"}[method.attrib["name"]]
+                    callback = {"ResolveAppInstall": "method_resolve_app","GetReservationReceipt":"method_get_receipt"}[method.attrib["name"]]
                 if name == "org.aetheri.Development1":
-                    callback = {"RefreshFixtureInstall": "method_refresh_fixture","TestFixtureReservation":"method_test_reservation"}[method.attrib["name"]]
+                    callback = {"RefreshFixtureInstall": "method_refresh_fixture","TestFixtureReservation":"method_test_reservation",
+                                "PrepareFixtureLaunch":"method_prepare_fixture_launch","CancelFixtureLaunch":"method_cancel_fixture_launch"}[method.attrib["name"]]
                 fields = [json.dumps(method.attrib["name"]), json.dumps("".join(a.attrib["type"] for a in inputs)),
                           names(inputs), json.dumps("".join(a.attrib["type"] for a in outputs)), names(outputs),
                           callback, "SD_BUS_VTABLE_UNPRIVILEGED"]

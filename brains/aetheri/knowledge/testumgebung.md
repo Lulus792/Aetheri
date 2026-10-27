@@ -2,6 +2,15 @@
 
 25 October 2026. Separate observed host data from user-reported target hardware.
 
+Latest slice, 27 October: the offline enforcing guest now exercises durable user
+launch acceptance and authenticated code reservation, user-service replacement,
+explicit pre-dispatch withdrawal and unchanged terminal retry. After graceful
+QEMU exit 0/PID absence, the same disk boots offline and verifies unchanged terminal
+business history across BootId. No app unit or ready data/code view is created.
+See [current state](../STATE.md) and the
+[executed journal](../journal/2026-10-26-first-prototype.md#durable-user-launch-journal--27-october-2026)
+for checks and limits; earlier observations below remain historical.
+
 ## Development host: observed
 
 - Windows workstation: HP Z4 G4, Xeon W-2123, approximately 31.7 GiB RAM.

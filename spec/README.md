@@ -18,10 +18,11 @@ lifecycle methods defined by these contracts.
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [broker-v1.xml](api/broker-v1.xml) | Private P0 broker identity bootstrap 1.0, independent of public wire 1.1; no launch capability |
-| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation observation 1.0 and protected fixture tests 1.1; no public launch capability |
+| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation/reservation receipts 1.1 and protected fixture tests 1.2; no public launch capability |
 | [projection.h](../src/catalogue/projection.h), [wire codec](../src/authority/projection.h) | Separate system read/user write, bounded typed snapshot and exact retry |
 | [data.h](../src/catalogue/data.h), [data tests](../tests/test_data.c) | Explicit first P0 data enrollment, independent allocation witness and atomic closed-gate attachment |
 | [reservation.h](../src/catalogue/reservation.h), [reservation tests](../tests/test_reservation.c), [wire tests](../tests/test_reservation_wire.c) | Atomic private code reservation, scoped status and withdrawal before dispatch; no app execution |
+| [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
 | [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation/opening, writer lifetime and startup-context transaction |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of canonical v2 statements; no runtime SQL-file loading |

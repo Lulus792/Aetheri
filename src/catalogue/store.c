@@ -3,6 +3,7 @@
 #include "catalogue/projection.h"
 #include "catalogue/data.h"
 #include "catalogue/reservation.h"
+#include "catalogue/launch.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -474,6 +475,12 @@ int ae_catalogue_begin_runtime(struct ae_catalogue *store, const uint8_t boot_id
     int final = failure(sqlite3_finalize(statement));
     if (result == 0) result = final;
     if (result == 0 && sqlite3_changes(store->db) != 1) result = -EUCLEAN;
+    /* A new user broker must reconcile accepted runs; a previous process state
+     * or a reserved root lease is not evidence of a live/current application.
+     * Keep the original tuple, readiness and remote receipt for recovery. */
+    if (result == 0 && store->identity.kind == AE_CATALOGUE_USER) result = exec_sql(store->db,
+        "UPDATE launches SET state='recovery_required',revision=revision+1 "
+        "WHERE state NOT IN ('exited','start_failed','recovery_required')");
     if (result == 0) result = exec_sql(store->db, "COMMIT");
     if (result != 0 && store != NULL && store->process == getpid()) exec_sql(store->db, "ROLLBACK");
     return result;
@@ -1462,8 +1469,11 @@ static int reservation_execute(struct ae_catalogue *store,const struct reservati
     int final=failure(sqlite3_finalize(statement));
     return result==0 ? final : result;
 }
-static int reservation_fingerprint(const struct ae_launch_request *r,uint8_t digest[32])
+int ae_launch_fingerprint(const struct ae_launch_request *r,uint8_t digest[32])
 {
+    if (digest==NULL) return -EINVAL;
+    int result=ae_launch_request_valid(r);
+    if (result!=0) return result;
     struct fixture_encoder e={0}; fixture_bytes(&e,"AETHRSV1",8);
     const uint8_t *ids[]={r->system_epoch,r->lease,r->launch,r->broker_epoch,r->broker_runtime,r->account,r->install,r->generation,r->data,r->boot};
     for (size_t n=0;n<10;++n) fixture_bytes(&e,ids[n],16);
@@ -1502,7 +1512,7 @@ int ae_catalogue_reserve_launch(struct ae_catalogue *store,const struct ae_launc
         memcmp(r->broker_runtime,context->broker_runtime,16)!=0 || memcmp(r->account,context->account,16)!=0 || memcmp(r->boot,context->boot,16)!=0)) result=-ESTALE;
     if (result!=0) return result;
     uint8_t fingerprint[32],intent[32]={0};
-    result=reservation_fingerprint(r,fingerprint);
+    result=ae_launch_fingerprint(r,fingerprint);
     if (result!=0) return result;
     result=exec_sql(store->db,"BEGIN IMMEDIATE");
     if (result!=0) return result;
@@ -1592,6 +1602,49 @@ int ae_catalogue_reserve_launch(struct ae_catalogue *store,const struct ae_launc
 }
 #undef RESERVATION_INPUT
 
+int ae_catalogue_get_receipt(struct ae_catalogue *store,const uint8_t lease[16],const struct ae_launch_context *context,struct ae_reservation_receipt *output)
+{
+    if (!projection_id(lease) || output==NULL) return -EINVAL;
+    int result=reservation_context(store,context);
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN");
+    if (result!=0) return result;
+    struct ae_reservation_receipt receipt={0};
+    result=reservation_context(store,context);
+    if (result==0) result=dispatch_row(store,lease,context,&receipt.dispatch);
+    sqlite3_stmt *statement=NULL;
+    if (result==0) result=failure(sqlite3_prepare_v2(store->db,
+        "SELECT o.plan_id,o.intent_digest,s.evidence_digest,d.broker_incarnation,d.close_cause_epoch,d.close_cause_operation_ref,"
+        "d.state='terminal' AND l.state='released' AND o.state='completed' AND o.outcome='cancelled' AND o.result_kind='launch' AND o.result_ref=d.launch_id AND d.invocation_ref IS NULL AND d.ready_data_gate_revision IS NULL "
+        "FROM launch_dispatches d JOIN operations o ON o.operation_id=d.root_operation_id JOIN generation_leases l USING(lease_id) "
+        "JOIN operation_steps s ON s.operation_id=o.operation_id AND s.step_no=0 AND s.action='verify' AND s.subject_kind='launch' AND s.subject_ref=d.launch_id AND s.state='applied' "
+        "WHERE d.lease_id=:lease",-1,&statement,NULL));
+    if (result==0) result=reservation_bind(statement,":lease",lease,16);
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code);
+        else {
+            result=projection_blob(statement,0,receipt.plan,16);
+            if (result==0) result=projection_blob(statement,1,receipt.intent,32);
+            if (result==0) result=projection_blob(statement,2,receipt.fingerprint,32);
+            if (result==0) result=projection_blob(statement,3,receipt.broker_runtime,16);
+            receipt.cause_present=sqlite3_column_type(statement,4)!=SQLITE_NULL;
+            if (result==0 && receipt.cause_present) result=projection_blob(statement,4,receipt.cause_epoch,16);
+            if (result==0 && receipt.cause_present) result=projection_blob(statement,5,receipt.cause,16);
+            receipt.withdrawn=sqlite3_column_int(statement,6)==1;
+            if (result==0 && (sqlite3_step(statement)!=SQLITE_DONE || (receipt.withdrawn && !receipt.cause_present))) result=-EUCLEAN;
+        }
+    }
+    int final=failure(sqlite3_finalize(statement)); if (result==0) result=final;
+    if (result==0) {
+        memcpy(receipt.system_epoch,store->identity.authority_epoch,16); memcpy(receipt.system_runtime,context->system_runtime,16);
+        memcpy(receipt.boot,context->boot,16); memcpy(receipt.lease,lease,16);
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *output=receipt;
+    return result;
+}
+
 int ae_catalogue_cancel_reservation(struct ae_catalogue *store,const uint8_t lease[16],const struct ae_launch_context *context,
     const uint8_t cause_epoch[16],const uint8_t cause[16],int64_t expected_revision,int64_t completed_unix_ms,struct ae_dispatch_snapshot *output)
 {
@@ -1608,12 +1661,12 @@ int ae_catalogue_cancel_reservation(struct ae_catalogue *store,const uint8_t lea
     sqlite3_stmt *statement=NULL;
     if (result==0) result=failure(sqlite3_prepare_v2(store->db,
         "SELECT (d.state='terminal' AND l.state='released' AND o.state='completed' AND o.outcome='cancelled' AND d.close_cause_epoch=:epoch AND d.close_cause_operation_ref=:cause),"
-        "(d.state='reserved' AND l.state='reserved' AND o.state='running' AND d.broker_incarnation=:runtime AND d.boot_id=:boot "
+        "(d.state='reserved' AND l.state='reserved' AND o.state='running' AND d.boot_id=:boot "
         "AND d.invocation_ref IS NULL AND d.ready_data_gate_revision IS NULL AND d.close_cause_epoch IS NULL),l.revision,o.revision "
         "FROM launch_dispatches d JOIN generation_leases l USING(lease_id) JOIN operations o ON o.operation_id=d.root_operation_id WHERE d.lease_id=:lease",-1,&statement,NULL));
-    const char *names[]={":epoch",":cause",":runtime",":boot",":lease"};
-    const void *values[]={cause_epoch,cause,context->broker_runtime,context->boot,lease};
-    for (size_t n=0;result==0 && n<5;++n) result=reservation_bind(statement,names[n],values[n],16);
+    const char *names[]={":epoch",":cause",":boot",":lease"};
+    const void *values[]={cause_epoch,cause,context->boot,lease};
+    for (size_t n=0;result==0 && n<4;++n) result=reservation_bind(statement,names[n],values[n],16);
     if (result==0) {
         int code=sqlite3_step(statement);
         if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code);
@@ -1705,6 +1758,337 @@ int ae_catalogue_admit_install(struct ae_catalogue *store,const uint8_t install[
     }
     result=fixture_commit(store,result);
     if (result==0) *output=gate_revision+1;
+    return result;
+}
+
+#define UL_INPUT "WITH u(plan,op,actor,retry,ue,br,se,sr,boot,account,i,g,d,launch,lease,publisher,storage,component,action,session,seat,ir,dr,dgate,igate,stamp,expires,fp,intent,rplan,rop,rintent) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32)) "
+struct user_launch_parameters { const struct ae_user_launch *q; const uint8_t *fingerprint,*intent; const struct ae_reservation_receipt *receipt; };
+static int user_launch_inputs(struct ae_catalogue *store,const struct ae_user_launch *q)
+{
+    if (q==NULL || q->data_revision<1 || q->data_gate_revision<1 || q->local.accepted_unix_ms<0 || q->local.expires_boottime_ns<0) return -EINVAL;
+    int result=ae_launch_request_valid(&q->reservation);
+    if (result==0) result=ae_install_snapshot_valid(&q->source);
+    const uint8_t *ids[]={q->local.plan,q->local.operation,q->actor,q->request_key,q->storage};
+    for (size_t n=0;result==0 && n<5;++n) if (!projection_id(ids[n])) result=-EINVAL;
+    if (result==0) result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    const struct ae_launch_request *r=&q->reservation;
+    if (result==0 && (memcmp(r->broker_epoch,store->identity.authority_epoch,16)!=0 || memcmp(r->account,store->identity.owner,16)!=0 ||
+        memcmp(r->system_epoch,q->source.system_epoch,16)!=0 || memcmp(r->boot,q->source.boot,16)!=0 ||
+        memcmp(r->account,q->source.account,16)!=0 || memcmp(r->install,q->source.install,16)!=0 || memcmp(r->generation,q->source.generation,16)!=0 ||
+        r->install_revision!=q->source.install_revision || memcmp(r->system_epoch,r->broker_epoch,16)==0)) result=-ESTALE;
+    return result;
+}
+static int user_launch_statement(struct ae_catalogue *store,const struct user_launch_parameters *p,const char *sql,sqlite3_stmt **output)
+{
+    const struct ae_user_launch *q=p->q; const struct ae_launch_request *r=&q->reservation;
+    uint8_t zero[32]={0};
+    const void *ids[]={q->local.plan,q->local.operation,q->actor,q->request_key,r->broker_epoch,r->broker_runtime,r->system_epoch,q->source.system_runtime,
+        r->boot,r->account,r->install,r->generation,r->data,r->launch,r->lease,q->source.publisher,q->storage};
+    sqlite3_stmt *statement=NULL; int result=failure(sqlite3_prepare_v2(store->db,sql,-1,&statement,NULL));
+    for (int n=0;result==0 && n<17;++n) result=failure(sqlite3_bind_blob(statement,n+1,ids[n],16,SQLITE_TRANSIENT));
+    const char *texts[]={q->source.component,r->action,r->session,r->seat};
+    for (int n=0;result==0 && n<4;++n) result=failure(sqlite3_bind_text(statement,n+18,texts[n],-1,SQLITE_TRANSIENT));
+    const int64_t numbers[]={r->install_revision,q->data_revision,q->data_gate_revision,q->source.gate_revision,q->local.accepted_unix_ms,q->local.expires_boottime_ns};
+    for (int n=0;result==0 && n<6;++n) result=failure(sqlite3_bind_int64(statement,n+22,numbers[n]));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,28,p->fingerprint,32,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,29,p->intent,32,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,30,p->receipt ? p->receipt->plan : zero,16,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,31,p->receipt ? p->receipt->dispatch.operation : zero,16,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,32,p->receipt ? p->receipt->intent : zero,32,SQLITE_TRANSIENT));
+    if (result!=0) { sqlite3_finalize(statement); return result; }
+    *output=statement; return 0;
+}
+static int user_launch_execute(struct ae_catalogue *store,const struct user_launch_parameters *p,const char *sql)
+{
+    sqlite3_stmt *statement=NULL; int result=user_launch_statement(store,p,sql,&statement);
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        result=code==SQLITE_DONE ? 0 : (code==SQLITE_CONSTRAINT_UNIQUE || code==SQLITE_CONSTRAINT_PRIMARYKEY) ? -EEXIST : failure(code);
+        if (result==0 && sqlite3_changes(store->db)!=1) result=-EUCLEAN;
+    }
+    int final=failure(sqlite3_finalize(statement)); return result==0 ? final : result;
+}
+static int user_launch_count(struct ae_catalogue *store,const struct user_launch_parameters *p,const char *sql,int64_t *output)
+{
+    sqlite3_stmt *statement=NULL; int result=user_launch_statement(store,p,sql,&statement);
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code);
+        else { *output=sqlite3_column_int64(statement,0); if (sqlite3_step(statement)!=SQLITE_DONE) result=-EUCLEAN; }
+    }
+    int final=failure(sqlite3_finalize(statement)); return result==0 ? final : result;
+}
+static int user_launch_row(struct ae_catalogue *store,const uint8_t operation[16],struct ae_user_launch_snapshot *output)
+{
+    sqlite3_stmt *statement=NULL;
+    int result=failure(sqlite3_prepare_v2(store->db,
+        "SELECT l.launch_id,l.lease_ref,l.state,l.revision,l.readiness,o.state,o.revision,x.remote_operation_ref,s.evidence_digest,"
+        "(SELECT expected_revision FROM plan_reads WHERE plan_id=p.plan_id AND source_epoch=p.authority_epoch AND subject_kind='gate' AND subject_ref=l.data_epoch_id),"
+        "(SELECT expected_revision FROM plan_reads WHERE plan_id=p.plan_id AND source_epoch=l.system_epoch AND subject_kind='gate' AND subject_ref=l.install_id),l.system_epoch,"
+        "l.invocation_ref IS NULL AND l.readiness='unknown' AND l.state IN('requested','preparing','recovery_required') AND o.state<>'completed' "
+        "AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=l.launch_id) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=o.operation_id AND step_no>0) "
+        "FROM launches l JOIN operations o USING(operation_id) JOIN plans p USING(plan_id) "
+        "JOIN operation_steps s ON s.operation_id=o.operation_id AND s.step_no=0 AND s.subject_kind='launch' AND s.subject_ref=l.launch_id "
+        "LEFT JOIN operation_links x ON x.operation_id=o.operation_id AND x.link_no=0 WHERE o.operation_id=:op",-1,&statement,NULL));
+    if (result==0) result=reservation_bind(statement,":op",operation,16);
+    struct ae_user_launch_snapshot snapshot={0};
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -ENOENT : failure(code);
+        else {
+            memcpy(snapshot.operation,operation,16);
+            result=projection_blob(statement,0,snapshot.launch,16);
+            if (result==0) result=projection_blob(statement,1,snapshot.lease,16);
+            snapshot.revision=sqlite3_column_int64(statement,3); snapshot.operation_revision=sqlite3_column_int64(statement,6);
+            const int columns[]={2,4,5}; char *targets[]={snapshot.state,snapshot.readiness,snapshot.operation_state};
+            const size_t capacities[]={sizeof snapshot.state,sizeof snapshot.readiness,sizeof snapshot.operation_state};
+            for (size_t n=0;result==0 && n<3;++n) {
+                int size=sqlite3_column_bytes(statement,columns[n]);
+                if (sqlite3_column_type(statement,columns[n])!=SQLITE_TEXT || size<1 || (size_t)size>=capacities[n] || memchr(sqlite3_column_text(statement,columns[n]),0,(size_t)size)!=NULL) result=-EUCLEAN;
+                else memcpy(targets[n],sqlite3_column_text(statement,columns[n]),(size_t)size);
+            }
+            snapshot.root_link_present=sqlite3_column_type(statement,7)!=SQLITE_NULL;
+            if (result==0 && snapshot.root_link_present) result=projection_blob(statement,7,snapshot.root_operation,16);
+            if (result==0) result=projection_blob(statement,8,snapshot.fingerprint,32);
+            snapshot.data_gate_revision=sqlite3_column_int64(statement,9); snapshot.install_gate_revision=sqlite3_column_int64(statement,10);
+            if (result==0) result=projection_blob(statement,11,snapshot.system_epoch,16);
+            snapshot.pre_dispatch_withdrawable=sqlite3_column_int(statement,12)==1;
+            if (result==0 && (snapshot.revision<1 || snapshot.operation_revision<1 || snapshot.data_gate_revision<1 || snapshot.install_gate_revision<1 || sqlite3_step(statement)!=SQLITE_DONE)) result=-EUCLEAN;
+        }
+    }
+    int final=failure(sqlite3_finalize(statement)); if (result==0) result=final;
+    if (result==0) *output=snapshot;
+    return result;
+}
+int ae_catalogue_get_user_launch(struct ae_catalogue *store,const uint8_t operation[16],struct ae_user_launch_snapshot *output)
+{
+    if (!projection_id(operation) || output==NULL) return -EINVAL;
+    int result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN"); if (result!=0) return result;
+    struct ae_user_launch_snapshot snapshot;
+    result=user_launch_row(store,operation,&snapshot); result=fixture_commit(store,result);
+    if (result==0) *output=snapshot;
+    return result;
+}
+static int user_launch_intent(const struct ae_user_launch *q,uint8_t digest[32])
+{
+    const struct ae_launch_request *r=&q->reservation;
+    struct fixture_encoder e={0}; fixture_bytes(&e,"AETHINT1",8); fixture_bytes(&e,q->local.plan,16);
+    fixture_bytes(&e,r->broker_epoch,16); fixture_bytes(&e,q->actor,16); fixture_bytes(&e,r->account,16);
+    fixture_token(&e,"launch"); fixture_token(&e,q->source.component);
+    const uint8_t *refs[]={r->install,r->generation,r->data};
+    for (size_t n=0;n<3;++n) { fixture_number(&e,1,1); fixture_bytes(&e,refs[n],16); }
+    fixture_number(&e,0,1); fixture_number(&e,0,1); fixture_token(&e,"none"); fixture_number(&e,1,1); fixture_token(&e,r->action);
+    fixture_bytes(&e,r->boot,16); fixture_number(&e,(uint64_t)q->local.expires_boottime_ns,8); fixture_number(&e,4,4);
+    struct read { const uint8_t *epoch,*ref; const char *kind; int64_t revision; } reads[]={
+        {r->system_epoch,r->install,"gate",q->source.gate_revision},{r->system_epoch,r->install,"install",r->install_revision},
+        {r->broker_epoch,r->data,"data",q->data_revision},{r->broker_epoch,r->data,"gate",q->data_gate_revision}};
+    for (size_t n=0;n<4;++n) for (size_t m=n+1;m<4;++m) {
+        int order=memcmp(reads[n].epoch,reads[m].epoch,16);
+        if (order==0) order=strcmp(reads[n].kind,reads[m].kind);
+        if (order==0) order=memcmp(reads[n].ref,reads[m].ref,16);
+        if (order>0) { struct read temporary=reads[n]; reads[n]=reads[m]; reads[m]=temporary; }
+    }
+    for (size_t n=0;n<4;++n) { fixture_bytes(&e,reads[n].epoch,16); fixture_token(&e,reads[n].kind); fixture_text(&e,reads[n].ref,16); fixture_number(&e,(uint64_t)reads[n].revision,8); }
+    fixture_number(&e,1,4); fixture_number(&e,0,4); fixture_token(&e,"data"); fixture_token(&e,q->source.component);
+    fixture_text(&e,r->data,16); fixture_token(&e,"retain"); fixture_token(&e,"launch_data_reservation");
+    return e.error ? e.error : ae_sha256_bytes(e.bytes,e.used,digest);
+}
+#define UL_LIVE "SELECT count(*) FROM u JOIN authority_meta m ON m.singleton=1 AND m.authority_epoch=u.ue AND m.owner_scope_ref=u.account AND m.current_boot_id=u.boot AND m.runtime_incarnation=u.br JOIN install_bindings b ON b.install_id=u.i AND b.component_id=u.component AND b.publisher_ref=u.publisher AND b.owner_scope=u.account AND b.system_epoch=u.se AND b.install_revision=u.ir AND b.state='active' JOIN attachments a ON a.install_id=u.i AND a.data_epoch_id=u.d JOIN data_epochs d ON d.data_epoch_id=u.d AND d.component_id=u.component AND d.publisher_ref=u.publisher AND d.owner_scope=u.account AND d.storage_ref=u.storage AND d.state='active' AND d.revision=u.dr JOIN admission_gates f ON f.subject_kind='data' AND f.subject_ref=u.d "
+int ae_catalogue_admit_launch_data(struct ae_catalogue *store,const struct ae_user_launch *q,int64_t *output)
+{
+    if (output==NULL) return -EINVAL;
+    int result=user_launch_inputs(store,q);
+    if (result!=0) return result;
+    if (q->source.gate!=AE_INSTALL_GATE_OPEN) return -ESTALE;
+    if (q->data_gate_revision==INT64_MAX) return -EOVERFLOW;
+    uint8_t zero[32]={0}; struct user_launch_parameters p={q,zero,zero,NULL};
+    result=exec_sql(store->db,"BEGIN IMMEDIATE"); if (result!=0) return result;
+    int64_t count=0;
+    result=user_launch_count(store,&p,UL_INPUT UL_LIVE "WHERE f.state='open' AND f.revision=u.dgate+1 AND f.closing_operation_id IS NULL",&count);
+    if (result==0 && count==0) {
+        result=user_launch_count(store,&p,UL_INPUT UL_LIVE "WHERE f.state='closed' AND f.revision=u.dgate AND f.closing_operation_id IS NULL "
+            "AND NOT EXISTS(SELECT 1 FROM launches WHERE data_epoch_id=u.d AND state NOT IN('exited','start_failed')) "
+            "AND NOT EXISTS(SELECT 1 FROM grants WHERE data_epoch_id=u.d AND state NOT IN('revoked','expired'))",&count);
+        struct ae_catalogue_info info;
+        if (result==0 && count!=1) result=-ESTALE;
+        if (result==0) result=read_info(store,&info);
+        if (result==0 && (info.revision==INT64_MAX || q->data_gate_revision==INT64_MAX)) result=-EOVERFLOW;
+        if (result==0) result=user_launch_execute(store,&p,UL_INPUT "UPDATE admission_gates SET state='open',revision=revision+1 WHERE subject_kind='data' AND subject_ref=(SELECT d FROM u)");
+        if (result==0) result=user_launch_execute(store,&p,UL_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *output=q->data_gate_revision+1;
+    return result;
+}
+static int user_launch_match(struct ae_catalogue *store,const struct user_launch_parameters *p,struct ae_user_launch_snapshot *output)
+{
+    int64_t count=0;
+    int result=user_launch_count(store,p,UL_INPUT
+        "SELECT count(*) FROM u JOIN operations o ON o.operation_id=u.op AND o.plan_id=u.plan AND o.actor_ref=u.actor AND o.request_key=u.retry AND o.intent_digest=u.intent AND o.accepted_unix_ms=u.stamp "
+        "JOIN plans p ON p.plan_id=u.plan AND p.authority_epoch=u.ue AND p.scope_ref=u.account AND p.kind='launch' AND p.component_id=u.component AND p.install_ref=u.i AND p.generation_ref=u.g AND p.data_epoch_ref=u.d AND p.action_id=u.action AND p.boot_id=u.boot AND p.expires_boottime_ns=u.expires "
+        "JOIN launches l ON l.operation_id=u.op AND l.launch_id=u.launch AND l.install_id=u.i AND l.generation_ref=u.g AND l.data_epoch_id=u.d AND l.lease_ref=u.lease AND l.system_epoch=u.se AND l.boot_id=u.boot AND l.session_ref=u.session AND l.seat_ref=u.seat "
+        "JOIN operation_steps s ON s.operation_id=u.op AND s.step_no=0 AND s.subject_kind='launch' AND s.subject_ref=u.launch AND s.evidence_digest=u.fp",&count);
+    if (result==0 && count!=1) result=-EEXIST;
+    if (result==0) result=user_launch_row(store,p->q->local.operation,output);
+    return result;
+}
+int ae_catalogue_accept_launch(struct ae_catalogue *store,const struct ae_user_launch *q,struct ae_user_launch_snapshot *output)
+{
+    if (output==NULL) return -EINVAL;
+    int result=user_launch_inputs(store,q);
+    if (result!=0) return result;
+    uint8_t fingerprint[32],intent[32];
+    result=ae_launch_fingerprint(&q->reservation,fingerprint);
+    if (result==0) result=user_launch_intent(q,intent);
+    if (result!=0) return result;
+    struct user_launch_parameters p={q,fingerprint,intent,NULL};
+    result=exec_sql(store->db,"BEGIN IMMEDIATE"); if (result!=0) return result;
+    int64_t exists=0;
+    result=user_launch_count(store,&p,UL_INPUT "SELECT count(*) FROM operations o,u WHERE o.operation_id=u.op OR o.plan_id=u.plan OR (o.actor_ref=u.actor AND o.request_key=u.retry) OR o.operation_id IN (SELECT operation_id FROM launches WHERE launch_id=u.launch OR lease_ref=u.lease)",&exists);
+    if (result==0 && exists>1) result=-EEXIST;
+    if (result==0 && !exists) {
+        int64_t valid=0;
+        result=user_launch_count(store,&p,UL_INPUT UL_LIVE "WHERE f.state='open' AND f.revision=u.dgate AND f.closing_operation_id IS NULL",&valid);
+        if (result==0 && (valid!=1 || q->source.gate!=AE_INSTALL_GATE_OPEN)) result=-ESTALE;
+        struct timespec now;
+        if (result==0 && clock_gettime(CLOCK_BOOTTIME,&now)!=0) result=-errno;
+        if (result==0 && (now.tv_sec<0 || now.tv_sec>INT64_MAX/1000000000LL || (uint64_t)q->local.expires_boottime_ns<=(uint64_t)now.tv_sec*1000000000ULL+(uint64_t)now.tv_nsec)) result=-ETIMEDOUT;
+        struct ae_catalogue_info info;
+        if (result==0) result=read_info(store,&info);
+        if (result==0 && info.revision==INT64_MAX) result=-EOVERFLOW;
+        const char *sql[]={
+            UL_INPUT "INSERT INTO plans(plan_id,authority_epoch,actor_ref,scope_ref,kind,component_id,install_ref,generation_ref,data_epoch_ref,retention,action_id,intent_digest,boot_id,expires_boottime_ns) SELECT plan,ue,actor,account,'launch',component,i,g,d,'none',action,intent,boot,expires FROM u",
+            UL_INPUT "INSERT INTO plan_reads SELECT plan,se,'gate',i,igate FROM u",
+            UL_INPUT "INSERT INTO plan_reads SELECT plan,se,'install',i,ir FROM u",
+            UL_INPUT "INSERT INTO plan_reads SELECT plan,ue,'data',d,dr FROM u",
+            UL_INPUT "INSERT INTO plan_reads SELECT plan,ue,'gate',d,dgate FROM u",
+            UL_INPUT "INSERT INTO plan_effects SELECT plan,0,'data',component,d,'retain','launch_data_reservation' FROM u",
+            UL_INPUT "INSERT INTO operations(operation_id,plan_id,actor_ref,request_key,intent_digest,state,phase,reason_code,accepted_unix_ms) SELECT op,plan,actor,retry,intent,'running','stage','reserving_code',stamp FROM u",
+            UL_INPUT "INSERT INTO launches(launch_id,operation_id,install_id,data_epoch_id,generation_ref,lease_ref,system_epoch,boot_id,session_ref,seat_ref,supervisor_unit,state,readiness) SELECT launch,op,i,d,g,lease,se,boot,session,seat,'aetheri-app-'||lower(hex(launch))||'.service','requested','unknown' FROM u",
+            UL_INPUT "INSERT INTO operation_steps SELECT op,0,'verify','launch',launch,'executing',fp FROM u",
+            UL_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1"
+        };
+        for (size_t n=0;result==0 && n<sizeof sql/sizeof sql[0];++n) result=user_launch_execute(store,&p,sql[n]);
+    }
+    struct ae_user_launch_snapshot snapshot;
+    if (result==0) result=user_launch_match(store,&p,&snapshot);
+    result=fixture_commit(store,result);
+    if (result==0) *output=snapshot;
+    return result;
+}
+
+static int user_receipt_match(const struct ae_user_launch *q,const struct ae_reservation_receipt *receipt,const uint8_t fingerprint[32])
+{
+    if (receipt==NULL || memchr(receipt->dispatch.state,0,sizeof receipt->dispatch.state)==NULL || !projection_id(receipt->plan) || !projection_id(receipt->dispatch.operation) || !projection_id(receipt->system_runtime) ||
+        !projection_id(receipt->boot) || receipt->dispatch.revision<1 || receipt->dispatch.install_gate_revision!=q->source.gate_revision) return -EINVAL;
+    if (memcmp(receipt->system_epoch,q->reservation.system_epoch,16)!=0 || memcmp(receipt->fingerprint,fingerprint,32)!=0 ||
+        memcmp(receipt->lease,q->reservation.lease,16)!=0 || memcmp(receipt->dispatch.launch,q->reservation.launch,16)!=0 ||
+        memcmp(receipt->broker_runtime,q->reservation.broker_runtime,16)!=0) return -ESTALE;
+    return 0;
+}
+#define UL_LINK_MATCH "SELECT count(*) FROM operation_links x,u WHERE x.operation_id=u.op AND x.link_no=0 AND x.remote_epoch=u.se AND x.remote_plan_ref=u.rplan AND x.remote_intent_digest=u.rintent AND x.remote_request_key=u.lease AND x.remote_operation_ref=u.rop "
+#define UL_LINK_INSERT UL_INPUT "INSERT INTO operation_links SELECT op,0,se,rplan,rintent,lease,rop,'accepted' FROM u"
+static int user_link_state(struct ae_catalogue *store,const struct user_launch_parameters *p,int64_t *present)
+{
+    int64_t count=0;
+    int result=user_launch_count(store,p,UL_INPUT "SELECT count(*) FROM operation_links x,u WHERE x.operation_id=u.op AND x.link_no=0",present);
+    if (result==0 && *present) result=user_launch_count(store,p,UL_INPUT UL_LINK_MATCH,&count);
+    if (result==0 && *present && count!=1) result=-EEXIST;
+    return result;
+}
+static int user_revision_room(struct ae_catalogue *store,const struct ae_user_launch_snapshot *snapshot)
+{
+    struct ae_catalogue_info info; int result=read_info(store,&info);
+    if (result==0 && (info.revision==INT64_MAX || snapshot->revision==INT64_MAX || snapshot->operation_revision==INT64_MAX)) result=-EOVERFLOW;
+    return result;
+}
+int ae_catalogue_ack_launch(struct ae_catalogue *store,const struct ae_user_launch *q,const struct ae_reservation_receipt *receipt,struct ae_user_launch_snapshot *output)
+{
+    if (output==NULL) return -EINVAL;
+    int result=user_launch_inputs(store,q); uint8_t fingerprint[32],intent[32];
+    if (result==0) result=ae_launch_fingerprint(&q->reservation,fingerprint);
+    if (result==0) result=user_launch_intent(q,intent);
+    if (result==0) result=user_receipt_match(q,receipt,fingerprint);
+    if (result!=0) return result;
+    struct user_launch_parameters p={q,fingerprint,intent,receipt};
+    result=exec_sql(store->db,"BEGIN IMMEDIATE"); if (result!=0) return result;
+    struct ae_user_launch_snapshot snapshot;
+    result=user_launch_match(store,&p,&snapshot);
+    int64_t present=0;
+    if (result==0) result=user_link_state(store,&p,&present);
+    if (result==0 && !present) {
+        if (memcmp(receipt->system_runtime,q->source.system_runtime,16)!=0 || memcmp(receipt->boot,q->reservation.boot,16)!=0 ||
+            strcmp(receipt->dispatch.state,"reserved")!=0 || receipt->withdrawn || receipt->dispatch.revision!=1 ||
+            strcmp(snapshot.state,"requested")!=0 || strcmp(snapshot.readiness,"unknown")!=0) result=-ESTALE;
+        int64_t valid=0;
+        if (result==0) result=user_launch_count(store,&p,UL_INPUT UL_LIVE "WHERE f.state='open' AND f.revision=u.dgate AND f.closing_operation_id IS NULL",&valid);
+        if (result==0 && valid!=1) result=-ESTALE;
+        if (result==0) result=user_revision_room(store,&snapshot);
+        const char *sql[]={UL_LINK_INSERT,
+            UL_INPUT "UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM u) AND step_no=0 AND state='executing'",
+            UL_INPUT "UPDATE launches SET state='preparing',revision=revision+1 WHERE operation_id=(SELECT op FROM u)",
+            UL_INPUT "UPDATE operations SET reason_code='code_reserved',revision=revision+1 WHERE operation_id=(SELECT op FROM u)",
+            UL_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1"};
+        for (size_t n=0;result==0 && n<5;++n) result=user_launch_execute(store,&p,sql[n]);
+    }
+    if (result==0) result=user_launch_row(store,q->local.operation,&snapshot);
+    result=fixture_commit(store,result); if (result==0) *output=snapshot;
+    return result;
+}
+#undef UL_LINK_MATCH
+#undef UL_LINK_INSERT
+#undef UL_LIVE
+#undef UL_INPUT
+
+int ae_catalogue_finish_withdrawn_operation(struct ae_catalogue *store,const uint8_t operation[16],const struct ae_reservation_receipt *r,
+    int64_t stamp,struct ae_user_launch_snapshot *output)
+{
+    if (output==NULL || r==NULL || memchr(r->dispatch.state,0,sizeof r->dispatch.state)==NULL || !projection_id(operation) || !projection_id(r->plan) || !projection_id(r->dispatch.operation) || stamp<0) return -EINVAL;
+    int result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    if (result==0 && (!r->withdrawn || !r->cause_present || strcmp(r->dispatch.state,"terminal")!=0 || r->dispatch.invocation_present ||
+        memcmp(r->cause_epoch,store->identity.authority_epoch,16)!=0 || memcmp(r->cause,operation,16)!=0)) result=-EACCES;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE"); if (result!=0) return result;
+    struct ae_user_launch_snapshot snapshot;
+    result=user_launch_row(store,operation,&snapshot);
+    if (result==0 && (memcmp(snapshot.fingerprint,r->fingerprint,32)!=0 || memcmp(snapshot.lease,r->lease,16)!=0 ||
+        memcmp(snapshot.launch,r->dispatch.launch,16)!=0 || memcmp(snapshot.system_epoch,r->system_epoch,16)!=0 ||
+        snapshot.install_gate_revision!=r->dispatch.install_gate_revision)) result=-ESTALE;
+    int terminal=result==0 && strcmp(snapshot.operation_state,"completed")==0;
+    const char *sql[]={
+        "SELECT count(*) FROM operation_links WHERE operation_id=:op AND link_no=0 AND NOT(remote_epoch IS :epoch AND remote_plan_ref IS :plan AND remote_intent_digest IS :intent AND remote_request_key IS :lease AND remote_operation_ref IS :root)",
+        "SELECT count(*) FROM launches l JOIN operations o USING(operation_id) WHERE l.operation_id=:op AND ((o.state='completed' AND o.outcome='cancelled' AND o.result_kind='launch' AND o.result_ref=:launch AND l.state='start_failed' AND l.readiness='unavailable' AND EXISTS(SELECT 1 FROM operation_links WHERE operation_id=:op AND link_no=0 AND state='completed')) OR (o.state<>'completed' AND l.state IN('requested','preparing','recovery_required') AND l.readiness='unknown' AND l.invocation_ref IS NULL AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=:op AND step_no>0) AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=:launch)))",
+        "INSERT INTO operation_links SELECT :op,0,:epoch,:plan,:intent,:lease,:root,'accepted' WHERE NOT EXISTS(SELECT 1 FROM operation_links WHERE operation_id=:op AND link_no=0)",
+        "UPDATE operation_steps SET state='applied' WHERE operation_id=:op AND step_no=0",
+        "INSERT INTO operation_steps VALUES(:op,1,'release','launch',:launch,'applied',:fp)",
+        "UPDATE launches SET state='start_failed',readiness='unavailable',revision=revision+1 WHERE operation_id=:op",
+        "UPDATE operation_links SET state='completed' WHERE operation_id=:op AND link_no=0",
+        "UPDATE operations SET state='completed',phase='reconcile',reason_code='cancelled_before_dispatch',outcome='cancelled',completed_unix_ms=:stamp,result_kind='launch',result_ref=:launch,revision=revision+1 WHERE operation_id=:op",
+        "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1"};
+    for (size_t n=0;result==0 && n<9;++n) {
+        if (terminal && n>=2) break;
+        if (n==2) result=user_revision_room(store,&snapshot);
+        sqlite3_stmt *statement=NULL;
+        if (result==0) result=failure(sqlite3_prepare_v2(store->db,sql[n],-1,&statement,NULL));
+        const char *names[]={":op",":epoch",":plan",":intent",":lease",":root",":launch",":fp"};
+        const void *ids[]={operation,r->system_epoch,r->plan,r->intent,r->lease,r->dispatch.operation,r->dispatch.launch,r->fingerprint};
+        for (size_t m=0;result==0 && m<8;++m) if (sqlite3_bind_parameter_index(statement,names[m])) result=reservation_bind(statement,names[m],ids[m],m==3 || m==7 ? 32 : 16);
+        int index=result==0 ? sqlite3_bind_parameter_index(statement,":stamp") : 0;
+        if (index) result=failure(sqlite3_bind_int64(statement,index,stamp));
+        if (result==0) {
+            int code=sqlite3_step(statement);
+            if (n<2) { if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code); else if (sqlite3_column_int(statement,0)!=(n==0 ? 0 : 1)) result=n==0 ? -EEXIST : -EAGAIN; }
+            else { result=code==SQLITE_DONE ? 0 : failure(code); if (result==0 && n!=2 && sqlite3_changes(store->db)!=1) result=-EUCLEAN; }
+        }
+        int final=failure(sqlite3_finalize(statement)); if (result==0) result=final;
+    }
+    if (result==0) result=user_launch_row(store,operation,&snapshot);
+    result=fixture_commit(store,result); if (result==0) *output=snapshot;
     return result;
 }
 

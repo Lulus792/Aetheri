@@ -24,6 +24,10 @@ int main(int argc, char **argv)
     CHECK(sd_bus_call(bus, request, 2000000, &error, &reply) < 0);
     CHECK(sd_bus_error_has_name(&error, "org.aetheri.Error1.NotAuthorized"));
     sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply); reply = NULL;
+    CHECK(sd_bus_message_new_method_call(bus,&request,"org.aetheri.System1","/org/aetheri/Catalogue1","org.aetheri.Catalogue1","GetReservationReceipt")>=0);
+    CHECK(sd_bus_message_append_array(request,'y',ids[0],16)>=0);
+    CHECK(sd_bus_call(bus,request,2000000,&error,&reply)<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+    sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply); reply=NULL;
     CHECK(sd_bus_message_new_method_call(bus, &request, "org.aetheri.System1", "/org/aetheri/Catalogue1", "org.aetheri.Catalogue1", "ResolveAppInstall") >= 0);
     CHECK(sd_bus_message_append_array(request, 'y', ids[0], 16) >= 0);
     CHECK(sd_bus_message_append_array(request, 'y', ids[3], 16) >= 0);
@@ -63,7 +67,14 @@ int main(int argc, char **argv)
     sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
     CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1","TestFixtureReservation",&error,&reply,"")<0);
     CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
-    sd_bus_error_free(&error); sd_bus_message_unref(reply); sd_bus_flush_close_unref(user);
+    sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
+    const char *launch_methods[]={"PrepareFixtureLaunch","CancelFixtureLaunch"};
+    for (size_t n=0;n<2;++n) {
+        CHECK(sd_bus_call_method(user,"org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1",launch_methods[n],&error,&reply,"")<0);
+        CHECK(sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+        sd_bus_error_free(&error); sd_bus_message_unref(reply); reply=NULL;
+    }
+    sd_bus_flush_close_unref(user);
     sd_bus_flush_close_unref(bus);
     puts("broker: public transport works; copied identity cannot register/check/use runtime");
     return 0;

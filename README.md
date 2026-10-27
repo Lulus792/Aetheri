@@ -5,8 +5,9 @@ with its own desktop and applications, including required suspend/resume support
 
 The current C17 prototype runs in a dedicated Fedora/UEFI test VM. It has tested
 catalogue contracts, verified publication of a trusted test package, private-data
-ownership and two confined system/user services. Their private API can reserve
-code and withdraw that reservation without starting an app process.
+ownership and two confined system/user services. A start request is now journaled
+before code reservation and can be withdrawn after the user service restarts,
+without starting an app process or losing track of the reservation.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The

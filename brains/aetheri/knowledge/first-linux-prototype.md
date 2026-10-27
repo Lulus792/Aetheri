@@ -11,10 +11,13 @@ fixture/owner/intent byte references, frozen vectors and host tests. The
 [carrier input lock](../../../spec/vm-inputs.json) pins preparation downloads;
 neither addition alone implements Linux enforcement or completes the guest setup.
 The later installed carrier and C17 owner/storage core now have executed evidence
-in [state](../STATE.md). Aetheri authorities, app labels and lifecycle RPC remain
-unimplemented as deployed services. A temporary same-UID/MCS policy fixture now
-also passes; this is only partial A3, with bus/ptrace/FD-transfer and full runtime
-mapping still pending. The complete P0 gates below define acceptance.
+in [state](../STATE.md). Two enforcing authority services now expose discovery,
+protected installation/data fixtures, private code reservation and durable user
+launch acceptance/withdrawal. User broker replacement retains and reconciles the
+original pre-dispatch obligation. Prepared views/readiness, actual app dispatch,
+native document transport and complete lifecycle/removal remain pending. A
+temporary same-UID/MCS fixture supplies partial policy evidence; full app/run
+mapping and permanent confinement remain open. All P0 gates below define acceptance.
 
 ## Recommendation
 

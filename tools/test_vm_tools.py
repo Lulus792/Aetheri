@@ -14,6 +14,22 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_launch_controller_cannot_become_broker_or_widen_action(self):
+        record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
+                "pending":None,"units":[]}
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            for role,probe,action,reservation in (("system","projection","prepare",False),("user",None,"prepare",False),
+                    ("user","projection","arbitrary",False),("user","projection","cancel",True)):
+                with self.assertRaises(ValueError): services.start_unit(record,role,probe=probe,launch_probe=action,reservation_probe=reservation)
+        for action in ("prepare","cancel"):
+            with patch.object(services,"save"),patch.object(services,"run",return_value="") as command, \
+                 patch.object(services,"publish_projection_slot") as selected,patch.object(services,"publish_broker_slot") as broker:
+                unit=services.start_unit(record,"user",probe="projection",launch_probe=action)
+                selected.assert_called_once_with(record,unit); broker.assert_not_called()
+                self.assertEqual(command.call_args.args[-1],"--launch-"+action)
+                self.assertIn("--property=CapabilityBoundingSet=",command.call_args.args)
+                self.assertFalse(any(value.startswith("--property=ReadWritePaths=") for value in command.call_args.args))
+
     def test_explicit_admission_is_normal_system_service_and_never_user_or_probe(self):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},

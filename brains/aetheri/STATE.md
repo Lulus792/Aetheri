@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — private code reservation and withdrawal before dispatch.
+27 October 2026 — durable user launch journal and pre-dispatch broker recovery.
 
 ## Confirmed
 
@@ -14,35 +14,48 @@ final Aetheri distribution or runtime acceptance.
 
 ## Implemented
 
-Private Runtime1 ReserveLaunch/GetDispatch now run through the authenticated
-broker connection. CloseLaunch can atomically withdraw a still-reserved tuple,
-release its generation lease and complete the root operation cancelled. Exact
-retry keeps the original IDs/bytes; changed tuples conflict, and uncertain or
-potentially dispatched work is never inferred drained. Canonical AETHINT1 plans
-and a complete immutable request fingerprint are stored with the lease/dispatch
-in one owner transaction. GetDispatch is account/broker-authority scoped.
+The user writer now commits canonical launch intent, local operation, requested
+run/proposed code lease and immutable request fingerprint before system RPC.
+After independently rechecking the exact private allocation/MAC and current root
+snapshot it may open the metadata data gate. This is admission, not prepared
+storage/code views or readiness. Acknowledgement binds the actual root plan/op/
+intent returned by the authenticated system receipt API; readiness stays unknown.
 
-An explicit root-protected P0 startup profile rechecks the current sealed code
-before opening its reservation gate. Default startup keeps it closed; replay of
-the old boot/baseline-bound profile fails with ESTALE. The real broker test
-reserves, repeats, observes, withdraws, repeats and observes terminal state without
-creating an app unit or changing user data. Same-UID/same-domain wrong-unit callers
-remain denied. No new dependency, policy permission or resident process.
-Development1 is now additive 1.1; original Runtime1 XML and SQL v2 are unchanged.
-Public capabilities stay empty and DispatchLaunch remains unsupported. Normal
-durable user launch acceptance/data readiness, actual process dispatch and exec
-evidence remain next. See [runtime contract](../../spec/runtime.md#private-code-reservation-and-withdrawal).
+User runtime replacement marks unsettled runs recovery_required, closes open data
+gates and retains original remote obligations. A current eligible replacement
+broker may explicitly withdraw its authority/account's old still-reserved tuple;
+the original request is neither resent nor rebound. Proven root withdrawal with
+the exact local operation as cause completes the user release journal cancelled,
+with start_failed/unavailable run and completed remote link. Root uncertainty,
+readiness, invocation, grants or additional setup effects block this narrow path.
+Historical retries preserve IDs, revisions and completion timestamps.
 
-Current reservation evidence: complete native suites pass 28/28 Debug ASan/UBSan
-(104.93 s) and Release (82.47 s). Host migration/wire tests pass 28/28 (45.848 s),
-orchestration 27/27, cache guards 7/7, runtime vectors 14/14 and isolated constraints
-374 assertions. Actual cap-zero/NNP enforcing reservation/lookup/withdrawal and
-same-UID/same-domain wrong-unit denials pass, including exact cancellation cause,
-independent canonical digest reconstruction and no app unit. Stale admission
-replay fails closed. After orderly QEMU exit 0 and verified PID absence, the same
-disk boots offline; replay reports cross_boot_reopen=true with unchanged terminal
-history. Normal endpoints/denials, sealed store/original activation, app data and
-retained storage checks pass again. Owned service/probe units are stopped.
+Private Catalogue1 is now additive 1.1 (actual reservation receipts), Development1
+1.2 (protected fixed-fixture prepare/cancel). Original Runtime1 XML and all SQL
+versions remain unchanged. Public capabilities stay empty; public launch and
+DispatchLaunch remain unsupported. No dependency, policy permission or resident
+process was added. See [runtime contract](../../spec/runtime.md#durable-user-launch-acceptance-and-withdrawal).
+
+Actual cap-zero/NNP enforcing prepare, user-service replacement, held original
+root lease, explicit withdrawal and byte-identical terminal retry pass. Independent
+Python reconstruction agrees with both native intent digests. Normal endpoint,
+same-UID/same-domain wrong-unit denials and historical data enrollment checks pass.
+Data/code view preparation, readiness, target dispatch/exec and real drain remain
+next; no app unit was created by these tests. Detailed executed results follow in
+the [session journal](journal/2026-10-26-first-prototype.md#durable-user-launch-journal--27-october-2026).
+
+Current native evidence: 29/29 Debug ASan/UBSan (134.29 s), then expanded admission
+faults in focused Debug (16.45 s); complete Release 29/29 (99.29 s) includes those
+cases. Final pre-RPC withdrawal eligibility and synthetic readiness/invocation/setup
+guards pass focused Debug/Release repeats (20.05/19.16 s) and a distinct enforcing
+launch-new-check, preserving prior attempt history. Host migration/wire 28/28
+(48.137 s), orchestration 28/28, cache guards 7/7,
+runtime vectors 14/14 and isolated constraints 374 assertions pass. After graceful
+QEMU exit 0 and verified PID absence, offline boot of the same disk reports
+cross_boot_reopen=true with unchanged terminal launch business history. Normal
+endpoints/app denials, stale-profile rejection, original sealed publication/
+activation, app data and retained storage pass after that boot. Owned units are
+stopped; the dedicated VM and all owned fixtures remain available for further work.
 
 The original P0 app now has a fresh private DataEpoch/StorageRef, separate from
 the retained storage test fixture. Root-preallocated carrier infrastructure is

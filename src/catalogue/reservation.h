@@ -23,6 +23,17 @@ struct ae_dispatch_snapshot {
     char state[16],unit[80];
     int64_t revision,install_gate_revision;
 };
+struct ae_reservation_receipt {
+    uint8_t system_epoch[16],system_runtime[16],boot[16],plan[16],intent[32],fingerprint[32],broker_runtime[16];
+    struct ae_dispatch_snapshot dispatch;
+    uint8_t lease[16],cause_epoch[16],cause[16];
+    int cause_present,withdrawn;
+};
+/* Authenticated current source plus original immutable request/operation receipt.
+ * Caller still owes transport provenance; a struct is not a bearer capability. */
+int ae_catalogue_get_receipt(struct ae_catalogue *catalogue,const uint8_t lease[16],
+    const struct ae_launch_context *context,struct ae_reservation_receipt *output);
+int ae_launch_fingerprint(const struct ae_launch_request *request,uint8_t output[32]);
 int ae_launch_request_valid(const struct ae_launch_request *request);
 /* Trusted single-threaded owner API. Caller authenticates the CURRENT registered
  * broker/process and authorizes action/session/seat before entering SQLite. The
@@ -41,7 +52,9 @@ int ae_catalogue_get_dispatch(struct ae_catalogue *catalogue,const uint8_t lease
     const struct ae_launch_context *context,struct ae_dispatch_snapshot *output);
 /* Atomic withdrawal ONLY of a still-reserved, never-dispatched tuple. Freeze the
  * cause, terminate dispatch, release lease and complete root operation cancelled.
- * No stop/drain inference: dispatching/observed/uncertain require reconciliation.
+ * A replacement current broker of the same authority/account may withdraw an
+ * original still-reserved tuple; it never rebinds it. No stop/drain inference:
+ * dispatching/observed/uncertain require reconciliation.
  * Exact terminal retry preserves bytes; a changed cause conflicts. */
 int ae_catalogue_cancel_reservation(struct ae_catalogue *catalogue,const uint8_t lease[16],
     const struct ae_launch_context *context,const uint8_t cause_epoch[16],const uint8_t cause[16],

@@ -1524,12 +1524,14 @@ unit name, state/revisions and optional actual invocation. Empty invocation mean
 there is no target observation; it is never interpreted as a successful exec.
 
 CloseLaunch currently supports only withdrawal while dispatch and lease are both
-reserved, current original boot/broker incarnation still match and no ready-data
+reserved, the original boot still matches and no ready-data
 or invocation evidence exists. One transaction freezes the caller authority/cause,
 sets dispatch terminal, releases the lease and completes the root operation with
 outcome cancelled and result LaunchId. Repeated identical cause returns that state
 without rewriting the original completion timestamp. Different cause conflicts;
-dispatching, observed or uncertain requires reconciliation. This is not stop/drain
+dispatching, observed or uncertain requires reconciliation. A current authenticated
+replacement broker of the same authority/account may withdraw the old reserved
+tuple without rebinding its original incarnation. This is not stop/drain
 support for a process, and it never guesses from a missing bus name or timeout.
 
 The explicit system --admit-fixture startup profile is test administration.
@@ -1572,7 +1574,7 @@ Independent sd-bus bodies cover all truncations, array lengths, integer/token
 bounds, extra fields and output preservation. Those are separate from actual
 enforcing broker RPC and wrong-unit/app denial evidence.
 
-Next: durable user launch acceptance/data readiness, code/data view preparation,
+Next after user acceptance below: data readiness, code/data view preparation,
 serialized DispatchLaunch and supervisor/target-exec evidence. Recovery of potentially
 dispatched work and real stop/drain must precede any corresponding lease release.
 General session policy, production volume/allocation trust and the original full
@@ -1590,3 +1592,74 @@ the same disk; replay then reports cross_boot_reopen=true and unchanged terminal
 business history. Normal endpoint/app denials and original store/activation/data/
 storage checks pass again. Owned units are stopped; no physical power-loss,
 production launch readiness or actual Aetheri app execution is claimed.
+
+## Durable user launch acceptance and withdrawal
+
+27 October 2026. Internal [launch.h](../src/catalogue/launch.h) now uses the existing
+user v2 tables. No SQL version, dependency, resident process or policy permission
+is added. Public PrepareLaunch/ApplyPlan and DispatchLaunch remain unsupported;
+GetProtocolInfo still reports 1.1 with no capabilities.
+
+Before accepting a new fixed-fixture start, the user writer independently reopens
+the private allocation, verifies the protected witness, ownership, payload mode
+and MAC, and obtains a fresh authenticated system installation snapshot. Only
+then may it open the exact closed data gate. This is metadata admission; it does
+not prepare a namespace, map code, give an app storage access or declare readiness.
+
+Acceptance atomically stores a canonical AETHINT1 plan, four reads (system install/
+gate and user data/gate), a data-retention effect, running local operation, requested
+LaunchId, proposed LeaseId and executing step 0 with the complete AETHRSV1 request
+fingerprint. These are committed **before ReserveLaunch RPC**. The local actor/key,
+plan/op, tuple, timestamps and fingerprint are immutable correlation. Changed
+reuse conflicts; lost replies retain the original identities and obligation.
+
+Catalogue1's additive minor 1.1 GetReservationReceipt is current account/broker-
+authority scoped, with the same actual broker authentication as GetDispatch.
+Its typed response includes current system epoch/runtime/boot, original root
+plan/operation/intent digest, request fingerprint, original broker incarnation,
+LaunchId/LeaseId, dispatch state/revisions, and optional paired close cause.
+The withdrawn flag requires terminal dispatch, released lease, cancelled completed
+root operation with result LaunchId, and no invocation or ready-data evidence.
+These fields are read in one transaction. They are observations from an authenticated
+source, not bearer permissions or a replacement for supervisor evidence.
+
+The user acknowledges that actual root plan/op/digest in operation_links; it never
+invents the remote plan before RPC. Step 0 becomes applied and the local run becomes
+preparing with readiness unknown. A user runtime replacement marks unsettled runs
+recovery_required in the startup transaction; existing restart rules close open
+data gates. Original tuples, receipts and root leases survive. The replacement
+does not resend or rebind the old request.
+
+Withdrawal is deliberately limited to a root tuple still reserved without any
+dispatch/readiness observation. The current eligible replacement broker can close
+that exact lease using the user epoch/local operation as cause. Once the root
+receipt proves withdrawal, the user transaction records the actual remote receipt
+(including after a lost root reply), release step, start_failed/unavailable run,
+completed link and cancelled local operation. It checks the stored fingerprint,
+system epoch, LaunchId/LeaseId, install fence and exact cause. Local invocation,
+readiness, grants or additional setup effects block this narrow reconciliation.
+The owner snapshot checks those local conditions before any CloseLaunch RPC as
+well as inside final reconciliation; a local setup effect must not release code
+first and merely fail the later user commit.
+It never changes the data gate. Terminal retries preserve completion time/revisions.
+Root restart uncertainty remains a held obligation, not proof of withdrawal.
+
+Development1 minor 1.2 adds protected PrepareFixtureLaunch/CancelFixtureLaunch
+triggers using the existing selected short-lived controller unit. Root-owned 0444
+registry/launch.conf is AETHLNF1, exactly 136 bytes: tag (8), local plan/op/actor/
+retry key/LaunchId/LeaseId (six 16-byte UUIDv4 values), then data revision, expected
+closed data-gate revision, accepted Unix milliseconds and expiry boot nanoseconds
+(four big-endian u64 values within signed SQLite range). The driver persists all
+correlations before IPC. No arbitrary app/action/path/session is accepted.
+
+Guest controller launch-check prepares once, restarts only the user broker, verifies
+the original root lease remains reserved, then cancels and repeats cancellation
+with unchanged database hashes. launch-cancel reconciles that existing protected
+attempt without creating IDs or reserving again; unknown supervisor dispatch still
+blocks it, and root uncertainty refuses release. launch-reopen-check verifies
+terminal business history and canonical plans after normal/cross-boot reopening.
+launch-new-check requires the previous user/root attempt terminal/released,
+preserves its protected identities in history, then provisions a distinct attempt.
+The data enrollment regression preserves a later closed gate revision instead of
+assuming the original revision 2. Both unrelated data and publication fixtures stay
+owned and retained. Real code/data views, readiness, target exec and drain remain next.

@@ -40,4 +40,6 @@ are implemented. P0 fixture/owner/intent byte references and tests now follow in
 [runtime contracts](../../../spec/runtime.md). Document edits, bulk streams,
 direct/project/saved grants and UI follow. Full P0 completion is defined by all
 Linux acceptance gates rather than a date promise. The dedicated carrier now boots
-and runs native C17 core tests; Aetheri authority/app services are not installed yet.
+and runs native C17 core tests and two enforcing authority services. Private user
+launch acceptance/reservation/withdrawal survive broker replacement; real app
+dispatch/readiness, document access and full removal are still the next P0 work.

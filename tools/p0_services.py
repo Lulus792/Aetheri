@@ -178,7 +178,7 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
         owned_file(ROOT / "registry/projection.conf",0o444)
         if (ROOT / "registry/projection.conf").read_text()!="AETHERI-P0-PROJECTION-1\nunit="+record["projection_unit"]+"\n": raise RuntimeError("projection controller slot changed")
     verify_app_data(record,allow_unreceipted_app_data)
-    for name in ("admission","reservation"):
+    for name in ("admission","reservation","launch"):
         if name+"_config_sha256" in record:
             path=ROOT/"registry"/(name+".conf")
             owned_file(path,0o444)
@@ -461,7 +461,10 @@ def data_check(record):
     start_unit(record,"user",data="enroll")
     first=rows()
     owner=record["app_data"]["owner"]
-    expected=([(owner["data"],owner["storage"],"active",0,1)],[(record["app_data"]["install"],owner["data"])],[("closed",2,None)])
+    prior_gate=before[2] if before[0] else [("closed",2,None)]
+    if len(prior_gate)!=1 or prior_gate[0][0]!="closed" or prior_gate[0][1]<2 or prior_gate[0][2] is not None:
+        raise AssertionError("data enrollment retry requires a closed unowned gate")
+    expected=([(owner["data"],owner["storage"],"active",0,1)],[(record["app_data"]["install"],owner["data"])],prior_gate)
     if first[:3]!=expected or first[3]!=before[3] or first[4]!=before[4]+(0 if before[0] else 1): raise AssertionError("native app data enrollment differs")
     first_hash=checksum(database)
     allocation=(checksum(paths["allocation"]),paths["allocation"].stat().st_ino)
@@ -952,7 +955,9 @@ def publish_projection_slot(record,unit):
     record["projection_unit"]=unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None, admit=False, reservation_probe=False):
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None, admit=False, reservation_probe=False, launch_probe=None):
+    if launch_probe is not None and (launch_probe not in ("prepare","cancel") or role!="user" or probe!="projection" or reservation_probe):
+        raise ValueError("launch probe requires the selected fixed user controller")
     if reservation_probe and (role!="user" or probe!="projection"): raise ValueError("reservation probe requires selected user controller")
     if admit and (role!="system" or init or probe or enroll or storage or fixture or data):
         raise ValueError("fixture admission requires only the normal system service")
@@ -1002,6 +1007,7 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
             properties.pop("ReadWritePaths")
             command=[str(ROOT / "probe-projection")]
             if reservation_probe: command.append("--reserve")
+            if launch_probe: command.append("--launch-"+launch_probe)
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else ["--data-"+data] if data else ["--admit-fixture"] if admit else [])
@@ -1251,6 +1257,138 @@ def reservation_check(record,resume=False,fresh=False):
     record.update(reservation_state="withdrawn",reservation_operation=replies[0][0],reservation_first_boot=boot)
     save(record)
     print(json.dumps(record["reservation_check"]))
+
+
+def launch_probe(record,action):
+    unit=start_unit(record,"user",probe="projection",launch_probe=action)
+    output=run("journalctl","-u",unit,"--output=cat","--no-pager")
+    replies=re.findall(r"^launch ([0-9a-f]{32}) ([0-9]+) ([0-9]+)$",output,re.M)
+    stop_unit(unit); publish_projection_slot(record,"-"); save(record)
+    if len(replies)!=1 or replies[0][0]!=record["launch_intent"]["operation"]: raise AssertionError("local launch receipt missing")
+    return tuple(int(value) for value in replies[0][1:])
+
+
+def launch_business(record):
+    result={}
+    for role,tables in (("system",("operations","operation_steps","generation_leases","launch_dispatches")),
+                        ("user",("plans","plan_reads","plan_effects","operations","operation_steps","operation_links","launches"))):
+        with sqlite3.connect(f"file:{state_path(record,role)/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+            result[role]={name:db.execute('SELECT * FROM "'+name+'" ORDER BY rowid').fetchall() for name in tables}
+    return result
+
+
+def verify_launch_terminal(record):
+    ids=record["launch_intent"]
+    with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        dispatch=db.execute("SELECT state,revision,invocation_ref,ready_data_gate_revision,lower(hex(close_cause_epoch)),lower(hex(close_cause_operation_ref)),lower(hex(root_operation_id)) FROM launch_dispatches WHERE launch_id=? AND lease_id=?",
+            tuple(bytes.fromhex(ids[k]) for k in ("launch","lease"))).fetchone()
+        lease=db.execute("SELECT state,revision FROM generation_leases WHERE lease_id=?",(bytes.fromhex(ids["lease"]),)).fetchone()
+    if dispatch is None or dispatch[:6]!=("terminal",2,None,None,record["epochs"]["user"],ids["operation"]) or lease!=("released",2):
+        raise AssertionError("root withdrawal is not proven")
+    with sqlite3.connect(f"file:{state_path(record,'user')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        local=db.execute("SELECT l.state,l.readiness,l.invocation_ref,o.state,o.outcome,o.result_kind,lower(hex(o.result_ref)),x.state,lower(hex(x.remote_operation_ref)) FROM launches l JOIN operations o USING(operation_id) JOIN operation_links x USING(operation_id) WHERE l.operation_id=? AND x.link_no=0",(bytes.fromhex(ids["operation"]),)).fetchone()
+        gate=db.execute("SELECT state,closing_operation_id FROM admission_gates WHERE subject_kind='data' AND subject_ref=?",(bytes.fromhex(record["app_data"]["owner"]["data"]),)).fetchone()
+    if local!=("start_failed","unavailable",None,"completed","cancelled","launch",ids["launch"],"completed",dispatch[6]) or gate!=("closed",None):
+        raise AssertionError("user journal not reconciled or data gate reopened")
+    verify_reservation_intent(state_path(record,"system")/"catalogue.sqlite3",dispatch[6])
+    verify_reservation_intent(state_path(record,"user")/"catalogue.sqlite3",ids["operation"])
+    if run("systemctl","show","aetheri-app-"+ids["launch"]+".service","--property=LoadState","--value")!="not-found":
+        raise AssertionError("journal-only test dispatched an app")
+
+
+def launch_check(record,fresh=False):
+    verified(record); stop(record)
+    previous=None
+    if "launch_intent" in record:
+        if not fresh or record.get("launch_state")!="withdrawn": raise RuntimeError("a launch attempt already exists; inspect/reconcile it without replacing IDs")
+        verify_launch_terminal(record)
+        previous={key:record[key] for key in ("launch_intent","launch_state","launch_first_boot","launch_config_sha256","launch_check","launch_reopen_check") if key in record}
+    path=ROOT/"registry/launch.conf"
+    if (path.exists() or path.is_symlink()) and previous is None: raise RuntimeError("unregistered launch configuration exists")
+    fixture=record["fixture"]; database=state_path(record,"system")/"catalogue.sqlite3"
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        baseline=db.execute("SELECT catalogue_revision FROM authority_meta").fetchone()[0]
+        ir=db.execute("SELECT revision FROM installs WHERE install_id=? AND state='active'",(bytes.fromhex(fixture["install"]),)).fetchone()[0]
+        gate=db.execute("SELECT state,revision,closing_operation_id FROM admission_gates WHERE subject_kind='install' AND subject_ref=?",(bytes.fromhex(fixture["install"]),)).fetchone()
+        if gate[0] not in ("open","closed") or gate[2] is not None or db.execute("SELECT count(*) FROM generation_leases WHERE state<>'released'").fetchone()[0]:
+            raise RuntimeError("unreconciled root obligations; no new launch")
+    with sqlite3.connect(f"file:{state_path(record,'user')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        if db.execute("SELECT count(*) FROM launches WHERE state NOT IN('exited','start_failed')").fetchone()[0]: raise RuntimeError("unreconciled user launches")
+    boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    admission=(b"AETHADM1"+bytes.fromhex(record["epochs"]["system"])+uuid.UUID(boot).bytes+struct.pack(">Q",baseline)
+        +bytes.fromhex(fixture["install"])+bytes.fromhex(fixture["generation"])+struct.pack(">QQ",ir,gate[1]+(gate[0]=="open")))
+    target=ROOT/"registry/admission.conf"; temporary=ROOT/"registry/admission.next"
+    if "admission_config_sha256" not in record or checksum(target)!=record["admission_config_sha256"]: raise RuntimeError("unowned admission profile")
+    publish(temporary,admission,"aetheri_registry_t"); flush_path(temporary); os.replace(temporary,target); flush_path(target)
+    record["admission_config_sha256"]=checksum(target); save(record)
+    record.setdefault("active_units",{})["system"]=start_unit(record,"system",admit=True); save(record)
+    start(record)
+    user_database=state_path(record,"user")/"catalogue.sqlite3"
+    with sqlite3.connect(f"file:{user_database}?mode=ro",uri=True) as db:
+        dr=db.execute("SELECT revision FROM data_epochs WHERE data_epoch_id=? AND state='active'",(bytes.fromhex(record["app_data"]["owner"]["data"]),)).fetchone()[0]
+        data_gate=db.execute("SELECT state,revision,closing_operation_id FROM admission_gates WHERE subject_kind='data'").fetchone()
+        old_runtime=db.execute("SELECT runtime_incarnation FROM authority_meta").fetchone()[0]
+    if data_gate[0]!="closed" or data_gate[2] is not None: raise RuntimeError("data gate is not initially closed")
+    ids={key:uuid.uuid4().hex for key in ("plan","operation","actor","retry","launch","lease")}
+    stamp=time.time_ns()//1000000; expires=time.clock_gettime_ns(time.CLOCK_BOOTTIME)+60000000000
+    config=b"AETHLNF1"+b"".join(bytes.fromhex(ids[key]) for key in ("plan","operation","actor","retry","launch","lease"))+struct.pack(">QQQQ",dr,data_gate[1],stamp,expires)
+    if previous is not None: record.setdefault("launch_history",[]).append(previous)
+    record.update(launch_intent=ids,launch_state="preparing",launch_first_boot=boot)
+    for key in ("launch_check","launch_reopen_check"): record.pop(key,None)
+    save(record)
+    temporary=path.with_suffix(".next") if previous is not None else path
+    publish(temporary,config,"aetheri_registry_t"); flush_path(temporary)
+    if previous is not None: os.replace(temporary,path); flush_path(path)
+    flush_path(path.parent,True)
+    record["launch_config_sha256"]=checksum(path); save(record)
+    if launch_probe(record,"prepare")!=(2,1): raise AssertionError("launch preparation revisions differ")
+    with sqlite3.connect(f"file:{user_database}?mode=ro",uri=True) as db:
+        row=db.execute("SELECT l.state,l.readiness,s.state,x.state FROM launches l JOIN operation_steps s USING(operation_id) JOIN operation_links x USING(operation_id) WHERE l.operation_id=? AND s.step_no=0 AND x.link_no=0",(bytes.fromhex(ids["operation"]),)).fetchone()
+    if row!=("preparing","unknown","applied","accepted"): raise AssertionError("missing durable user/root acceptance")
+    record["launch_state"]="reserved"; save(record)
+    stop_unit(record["active_units"]["user"])
+    start(record)  # Root stays live; only the authenticated user incarnation changes.
+    with sqlite3.connect(f"file:{user_database}?mode=ro",uri=True) as db:
+        row=db.execute("SELECT state,readiness FROM launches WHERE operation_id=?",(bytes.fromhex(ids["operation"]),)).fetchone()
+        new_runtime=db.execute("SELECT runtime_incarnation FROM authority_meta").fetchone()[0]
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        held=db.execute("SELECT d.state,l.state,d.broker_incarnation FROM launch_dispatches d JOIN generation_leases l USING(lease_id) WHERE d.lease_id=?",(bytes.fromhex(ids["lease"]),)).fetchone()
+    if row!=("recovery_required","unknown") or old_runtime==new_runtime or held!=("reserved","reserved",old_runtime):
+        raise AssertionError("broker replacement rebound or released the old reservation")
+    if launch_probe(record,"cancel")!=(4,2): raise AssertionError("withdrawal revisions differ")
+    verify_launch_terminal(record)
+    hashes=[checksum(state_path(record,role)/"catalogue.sqlite3") for role in ("system","user")]
+    if launch_probe(record,"cancel")!=(4,2) or hashes!=[checksum(state_path(record,role)/"catalogue.sqlite3") for role in ("system","user")]:
+        raise AssertionError("terminal retry changed either authority")
+    record["launch_check"]=dict(user_journal=True,canonical_intents=True,authenticated_root_receipt=True,broker_replacement=True,
+        old_lease_held_until_explicit_withdrawal=True,terminal_retry=True,app_dispatched=False,data_ready=False)
+    record["launch_state"]="withdrawn"; save(record); print(json.dumps(record["launch_check"]))
+
+
+def launch_reopen_check(record):
+    verified(record)
+    if record.get("launch_state")!="withdrawn": raise RuntimeError("launch not reconciled; inspect preserved obligations")
+    before=launch_business(record); start(record); verify_launch_terminal(record)
+    if before!=launch_business(record): raise AssertionError("normal restart changed terminal launch history")
+    record["launch_reopen_check"]=dict(terminal_history_preserved=True,cross_boot_reopen=Path("/proc/sys/kernel/random/boot_id").read_text().strip()!=record["launch_first_boot"])
+    save(record); print(json.dumps(record["launch_reopen_check"]))
+
+
+def launch_cancel(record):
+    """Reconcile the existing fixed attempt only; never create/resend a reserve."""
+    verified(record)
+    if "launch_intent" not in record or "launch_config_sha256" not in record:
+        raise RuntimeError("no protected correlated launch to cancel")
+    if record["pending"]: raise RuntimeError("unknown dispatch; inspect before cancellation")
+    if "user" in record.get("active_units",{}): stop_unit(record["active_units"]["user"])
+    start(record)
+    # A restarted root marks outstanding dispatch uncertain; the native method
+    # then refuses release. Starting an endpoint never proves the old work drained.
+    revisions=launch_probe(record,"cancel")
+    if revisions[1]!=2: raise AssertionError("root withdrawal not terminal")
+    verify_launch_terminal(record)
+    record["launch_state"]="withdrawn"; save(record)
+    print("Existing fixed launch withdrawn; original identities and data preserved.")
 
 
 def reservation_replay_check(record):
@@ -1633,6 +1771,10 @@ def main():
         elif action == "idle-check": idle_check(record)
         elif action == "broker-check": broker_check(record)
         elif action == "projection-check": projection_check(record)
+        elif action == "launch-check": launch_check(record)
+        elif action == "launch-new-check": launch_check(record,fresh=True)
+        elif action == "launch-reopen-check": launch_reopen_check(record)
+        elif action == "launch-cancel": launch_cancel(record)
         elif action == "reservation-check": reservation_check(record)
         elif action == "reservation-continue": reservation_check(record,resume=True)
         elif action == "reservation-new-check": reservation_check(record,fresh=True)

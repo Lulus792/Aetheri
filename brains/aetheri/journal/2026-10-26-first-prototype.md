@@ -928,3 +928,82 @@ then serialize DispatchLaunch and verify supervised target exec. Potentially
 dispatched recovery and real stop/drain must precede release. Keep both data
 fixtures and reservation receipts; do not rearm old identities. Full OS/apps goal
 active; personal UI/destructive choices remain deferred to the user.
+
+## Durable user launch journal — 27 October 2026
+
+Implemented the next owner boundary, using existing v2 tables and the accepted
+C17/systemd/SQLite foundations. The user writer opens exact verified data admission,
+then atomically stores canonical intent, read set/effect, local operation, requested
+run/proposed code lease and complete root request fingerprint before RPC. Unknown
+root replies retain that obligation. An actual authenticated root receipt supplies
+the remote plan/op/digest for acknowledgement; readiness remains unknown.
+
+Catalogue1 gains additive minor 1.1 GetReservationReceipt. Development1 minor 1.2
+adds selected-controller PrepareFixtureLaunch/CancelFixtureLaunch. Public 1.1
+capabilities remain empty; Runtime1 XML and SQL v1/v2 are unchanged. Root withdrawal
+can now serve a replacement current same-authority/account broker only for an old
+still-reserved tuple without readiness/exec evidence on the original boot. It never
+rebinds or resends that request; root restart uncertainty stays held.
+
+User runtime startup now marks unsettled runs recovery_required in the same
+transaction that changes runtime/closes admission. Testing exposed the missing
+run marker in the former native startup, so this is an implemented correction,
+not an assumption about a schema trigger. Proven root withdrawal with the exact
+local-operation cause completes the release step, link, cancelled local operation
+and start_failed/unavailable run. It rejects local readiness/exec/grants/additional
+setup and never changes data admission. The initial duplicate request-based finish
+helper was removed; normal and recovery cancellation use one owner implementation.
+
+Native tests use an independent Python AETHINT1 digest, all two admission, ten
+acceptance, five acknowledgement and seven reconciliation mutation faults, failed/
+lost COMMIT replies, fresh-process exits before/after acceptance COMMIT, stable IDs,
+changed-tuple/cause/fingerprint rejection, historical retry and broker replacement
+with both acknowledged and lost root replies. Independent receipt wire bodies
+cover truncations, field lengths, optional-cause pairing, states, integer bounds,
+extra arguments and output preservation. A duplicate input/output argument name
+was caught by the wire contract test and corrected before installation.
+
+Complete suites pass 29/29 Debug ASan/UBSan (134.29 s) and 29/29 Release (99.29 s).
+After expanding admission faults, focused Debug launch repeats pass (16.45 s);
+Release includes those added cases. Host migration/wire passes 28/28 (48.137 s),
+orchestration guards 28/28, cache guards 7/7, frozen runtime vectors 14/14 and
+isolated constraints 374 assertions. These times describe test runs, not product
+performance budgets.
+
+Actual offline enforcing cap-zero/NNP services accept/reserve/acknowledge the fixed
+fixture, then replace only the user service. The original root reservation and
+broker incarnation remain held while the local run becomes recovery_required.
+The new broker explicitly withdraws it with the original local operation as cause;
+both journals complete and a repeat preserves both database hashes. Independent
+Python reconstruction agrees with both committed canonical plan digests. No app
+unit/view/readiness exists. Same-UID unconfined, same-domain wrong-unit and confined
+app controls cannot call the new protected methods; copied identity cannot read
+the new private root receipt. Normal endpoints/denials and later-gate data-enrollment
+retry pass. The installed binary was updated again after final native cleanup;
+explicit existing-attempt cancellation and endpoint checks pass.
+
+Root-protected AETHLNF1 stores fixed correlations before IPC. launch-cancel never
+creates another reserve; launch-reopen-check checks retained business rows. Unknown
+supervisor dispatch remains preserved and blocks automatic action. No new library,
+SELinux permission or resident process was added. Both independent data fixtures,
+sealed code and all historical reservation receipts are retained.
+
+After graceful QEMU exit 0 and verified PID absence, the same disk boots offline.
+launch-reopen-check reports cross_boot_reopen=true with unchanged business rows;
+normal endpoints/denials, stale-profile rejection, original sealed publication/
+activation, app data and retained storage reopen again. Owned units are stopped.
+
+Final native recovery guards also reject synthetic local readiness, invocation and
+additional setup, preserving the pending journal. The owner snapshot exposes the
+same pre-dispatch eligibility check before CloseLaunch RPC, so local setup cannot
+release root code before failing user reconciliation. Focused suites after this
+guard pass Debug ASan/UBSan (20.05 s) and Release (19.16 s). The driver now permits
+a distinct launch-new-check only after exact prior terminal/released evidence,
+retaining the previous protected attempt in history. The installed final guard
+also passes that new real enforcing prepare/broker-replacement/withdrawal attempt
+and normal endpoint/app-denial checks, without reusing old identities.
+
+Next: exact data/code view preparation, durable readiness and serialized dispatch/
+supervisor target-exec evidence. Recovery/drain must account for external effects
+before their corresponding lease can be released. No public launch, physical
+power-loss/hardware, desktop or finished OS/app acceptance is claimed.

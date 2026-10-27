@@ -568,3 +568,33 @@ admission closed; a stale profile cannot reopen it. This permits code reservatio
 not data readiness or execution: app executable mappings remain denied. The P0
 driver persists its test correlations before IPC; normal durable user launch
 acceptance and target dispatch remain separate implementation work.
+
+## Journal user acceptance before root RPC — 27 October 2026
+
+Use existing v2 plans/reads/effects, operations/steps/links and launches for the
+user side. Commit immutable local intent and proposed LaunchId/LeaseId before any
+ReserveLaunch call, so an unknown reply cannot erase the accepted obligation.
+Store the exact root request fingerprint in pending step 0; acknowledge the actual
+root plan/op/intent through the new private receipt method instead of inventing
+remote IDs before RPC. This avoids a second journal or cross-database transaction.
+
+Opening the exact verified private-data gate is separate from readiness. The
+original allocation, filesystem identity, mode and MAC must be checked first;
+no app view or executable mapping is implied. User startup explicitly marks live
+run records recovery_required while existing rules close open admission. Keep
+the old request and remote lease, and do not automatically retry a reservation
+under the new broker incarnation.
+
+Permit the current authenticated broker of the same authority/account to withdraw
+an old tuple only while root dispatch/lease remain reserved, on the original boot,
+without invocation or ready-data evidence. This is a metadata-only withdrawal
+before dispatch; original broker identity is not changed. It removes an otherwise
+unnecessary stranded reservation after user restart. Root restart uncertainty and
+potential process work still require separate recovery/drain evidence.
+
+Finish the user operation only from the exact authenticated withdrawn receipt,
+including matching stored fingerprint and local-operation cause. A missing root
+link after lost reply can be filled from that actual receipt. Existing exec,
+readiness, grants or further setup steps require richer reconciliation. Preserve
+terminal stamps/revisions and private data. No additional schema, process, library
+or policy permission is needed for this slice; public launch remains unsupported.
