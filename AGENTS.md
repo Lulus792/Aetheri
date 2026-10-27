@@ -145,6 +145,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   infrastructure, not a general allocation operation journal. Preserve both fixtures.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
+- Native catalogue/reservation.h and Runtime1 now reserve/query/withdraw code.
+  DispatchLaunch remains unsupported and public capabilities empty. The P0 wire
+  profile is only the protected original I/G/D, main/p0/none. Never treat a lease
+  receipt or gate observation as data readiness or process execution. Only a
+  still-reserved tuple can be atomically withdrawn; uncertain/observed/dispatching
+  state requires reconciliation, never inferred drain. Development1 is now 1.1.
+  Explicit system --admit-fixture rechecks the current sealed store using a
+  boot/original-catalogue-baseline-bound AETHADM1 before opening reservation
+  metadata. Ordinary startup stays closed; stale admission config must fail.
+  reservation-check/new-check/continue/replay-check preserve protected intent and
+  terminal history. These are fixed P0 tests, not normal user launch acceptance.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

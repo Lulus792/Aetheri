@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — first app data enrollment with closed admission.
+27 October 2026 — private code reservation and withdrawal before dispatch.
 
 ## Confirmed
 
@@ -13,6 +13,36 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Private Runtime1 ReserveLaunch/GetDispatch now run through the authenticated
+broker connection. CloseLaunch can atomically withdraw a still-reserved tuple,
+release its generation lease and complete the root operation cancelled. Exact
+retry keeps the original IDs/bytes; changed tuples conflict, and uncertain or
+potentially dispatched work is never inferred drained. Canonical AETHINT1 plans
+and a complete immutable request fingerprint are stored with the lease/dispatch
+in one owner transaction. GetDispatch is account/broker-authority scoped.
+
+An explicit root-protected P0 startup profile rechecks the current sealed code
+before opening its reservation gate. Default startup keeps it closed; replay of
+the old boot/baseline-bound profile fails with ESTALE. The real broker test
+reserves, repeats, observes, withdraws, repeats and observes terminal state without
+creating an app unit or changing user data. Same-UID/same-domain wrong-unit callers
+remain denied. No new dependency, policy permission or resident process.
+Development1 is now additive 1.1; original Runtime1 XML and SQL v2 are unchanged.
+Public capabilities stay empty and DispatchLaunch remains unsupported. Normal
+durable user launch acceptance/data readiness, actual process dispatch and exec
+evidence remain next. See [runtime contract](../../spec/runtime.md#private-code-reservation-and-withdrawal).
+
+Current reservation evidence: complete native suites pass 28/28 Debug ASan/UBSan
+(104.93 s) and Release (82.47 s). Host migration/wire tests pass 28/28 (45.848 s),
+orchestration 27/27, cache guards 7/7, runtime vectors 14/14 and isolated constraints
+374 assertions. Actual cap-zero/NNP enforcing reservation/lookup/withdrawal and
+same-UID/same-domain wrong-unit denials pass, including exact cancellation cause,
+independent canonical digest reconstruction and no app unit. Stale admission
+replay fails closed. After orderly QEMU exit 0 and verified PID absence, the same
+disk boots offline; replay reports cross_boot_reopen=true with unchanged terminal
+history. Normal endpoints/denials, sealed store/original activation, app data and
+retained storage checks pass again. Owned service/probe units are stopped.
 
 The original P0 app now has a fresh private DataEpoch/StorageRef, separate from
 the retained storage test fixture. Root-preallocated carrier infrastructure is

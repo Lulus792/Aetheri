@@ -47,8 +47,9 @@ Authenticated system-to-user installation projection now exists for the protecte
 fixture. The persisted binding is only an observation. Explicit first data
 enrollment now binds a distinct protected allocation, DataEpoch and attachment
 with a closed gate. It preserves the unrelated retained storage fixture.
-Next implement actual run admission, dispatch and target-exec evidence using those
-identities. General dynamic allocation/recovery and binding reconciliation after
+Private native code reservation/status and pre-dispatch withdrawal now work over
+authenticated IPC. Next implement durable user launch acceptance/data readiness,
+supervised dispatch and target-exec evidence using those identities. General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.
 

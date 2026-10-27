@@ -100,6 +100,9 @@ fresh run identities and admission checks.
 The explicit P0 administrative path now enrolls a fresh private DataEpoch and
 StorageRef for that installation, with an independently verified allocation and
 closed data gate. This does not implement app launch or general dynamic allocation.
+The private system API now records exact code reservations and permits scoped
+status/withdrawal before dispatch. It is exercised over the real broker connection;
+normal user launch acceptance, data readiness and process dispatch remain pending.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete

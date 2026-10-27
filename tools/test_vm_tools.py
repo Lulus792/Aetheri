@@ -14,6 +14,21 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_explicit_admission_is_normal_system_service_and_never_user_or_probe(self):
+        record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
+                  "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
+                  "pending": None, "units": []}
+        with patch.object(services,"save"), patch.object(services,"run",return_value="") as command:
+            unit=services.start_unit(record,"system",admit=True)
+            self.assertIn("--service-type=notify",command.call_args.args)
+            self.assertNotIn("--wait",command.call_args.args)
+            self.assertEqual(command.call_args.args[-2:],("system","--admit-fixture"))
+        record["active_units"]={"system":unit}
+        self.assertEqual(services.validate_record(json.loads(json.dumps(record))),record)
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            with self.assertRaises(ValueError): services.start_unit(record,"user",admit=True)
+            with self.assertRaises(ValueError): services.start_unit(record,"system",probe="projection",admit=True)
+
     def test_data_administration_never_selects_broker_or_empty_cleanup(self):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},

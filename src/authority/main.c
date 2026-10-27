@@ -7,6 +7,7 @@
 #include "authority/fixture.h"
 #include "authority/projection.h"
 #include "catalogue/data.h"
+#include "authority/reservation.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -24,6 +25,8 @@
 #include <systemd/sd-event.h>
 #include <systemd/sd-id128.h>
 #include <unistd.h>
+#include <limits.h>
+#include <time.h>
 
 #define ROOT "/var/lib/aetheri-p0"
 
@@ -469,6 +472,213 @@ static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_
     return result<0 ? result : 1;
 }
 
+static int app_data_config(const char *path,uint8_t *bytes,size_t size);
+static int fixture_runtime_call(struct authority *authority,const char *method,const struct ae_launch_request *request,const uint8_t cause[16],sd_bus_message **reply)
+{
+    sd_bus_message *call=NULL;
+    int result=sd_bus_message_new_method_call(authority->system_bus,&call,"org.aetheri.System1","/org/aetheri/Runtime1","org.aetheri.Runtime1",method);
+    if (result>=0 && strcmp(method,"ReserveLaunch")==0) result=ae_reservation_write(call,request);
+    else if (result>=0 && strcmp(method,"GetDispatch")==0) result=sd_bus_message_append_array(call,'y',request->lease,16);
+    else if (result>=0) {
+        const uint8_t *ids[]={request->system_epoch,request->lease,request->broker_epoch,cause};
+        for (size_t n=0;result>=0 && n<4;++n) result=sd_bus_message_append_array(call,'y',ids[n],16);
+        if (result>=0) result=sd_bus_message_append(call,"t",UINT64_C(1));
+    }
+    if (result>=0) result=sd_bus_call(authority->system_bus,call,2000000,NULL,reply);
+    sd_bus_message_unref(call); return result<0 ? result : 0;
+}
+static int fixture_dispatch_state(struct authority *authority,const struct ae_launch_request *request,const char *expected,uint64_t revision,uint64_t gate)
+{
+    sd_bus_message *reply=NULL;
+    int result=fixture_runtime_call(authority,"GetDispatch",request,NULL,&reply);
+    uint8_t launch[16]; const char *state=NULL,*unit=NULL; const void *invocation=NULL; size_t size=0;
+    uint64_t actual_revision=0,actual_gate=0;
+    if (result==0) result=read_id(reply,launch);
+    if (result==0 && sd_bus_message_read(reply,"ss",&state,&unit)<=0) result=-EBADMSG;
+    if (result==0 && sd_bus_message_read_array(reply,'y',&invocation,&size)<=0) result=-EBADMSG;
+    if (result==0 && sd_bus_message_read(reply,"tt",&actual_revision,&actual_gate)<=0) result=-EBADMSG;
+    char id[33],expected_unit[80]; sd_id128_t reference;
+    memcpy(reference.bytes,request->launch,16); sd_id128_to_string(reference,id);
+    snprintf(expected_unit,sizeof expected_unit,"aetheri-app-%s.service",id);
+    if (result==0 && (memcmp(launch,request->launch,16)!=0 || strcmp(state,expected)!=0 || strcmp(unit,expected_unit)!=0 || size!=0 ||
+        actual_revision!=revision || actual_gate!=gate || sd_bus_message_at_end(reply,1)!=1)) result=-ESTALE;
+    sd_bus_message_unref(reply); return result;
+}
+static int method_test_reservation(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata; struct ae_peer peer=AE_PEER_INIT;
+    int result=ae_peer_capture(message,&peer);
+    if (result==0 && (authority->identity.kind!=AE_CATALOGUE_USER || peer.connection_uid!=authority->uid || !context_is(peer.connection_label,"aetheri_user_t"))) result=-EACCES;
+    char unit[256]; struct ae_process_context controller;
+    if (result==0) result=ae_authority_projection_unit(unit);
+    if (result==0) result=ae_process_observe(&peer,authority->system_bus,&controller);
+    if (result==0 && (controller.uid!=authority->uid || !context_is(controller.label,"aetheri_user_t") || strcmp(controller.unit,unit)!=0 || memcmp(controller.boot,authority->boot.bytes,16)!=0)) result=-EACCES;
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 controller unit required"); }
+    uint8_t config[56],data_bytes[AE_DATA_CONFIG_BYTES];
+    result=app_data_config(ROOT "/registry/reservation.conf",config,sizeof config);
+    if (result==0 && memcmp(config,"AETHRSF1",8)!=0) result=-EBADMSG;
+    for (size_t n=0;result==0 && n<3;++n) if (!uuid4(config+8+16*n)) result=-EBADMSG;
+    struct ae_data_enrollment data;
+    if (result==0) result=app_data_config(ROOT "/registry/app-data.conf",data_bytes,sizeof data_bytes);
+    if (result==0) result=ae_data_enrollment_decode(data_bytes,sizeof data_bytes,&data);
+    if (result==0 && (memcmp(data.owner.id[AE_ACCOUNT],authority->identity.owner,16)!=0 || memcmp(data.user_epoch,authority->identity.authority_epoch,16)!=0)) result=-ESTALE;
+    if (result==0) result=check_system(authority);
+    struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM};
+    if (result==0) result=load_registry(&system,NULL);
+    struct ae_projection_context context={0};
+    if (result==0) {
+        memcpy(context.system_epoch,system.identity.authority_epoch,16); memcpy(context.system_runtime,authority->system_runtime.bytes,16);
+        memcpy(context.user_runtime,authority->runtime.bytes,16); memcpy(context.boot,authority->boot.bytes,16);
+    }
+    struct ae_install_snapshot install;
+    if (result==0) result=ae_projection_fetch(authority->system_bus,&context,authority->identity.owner,data.install,&install);
+    struct ae_launch_request request={0};
+    if (result==0) {
+        memcpy(request.system_epoch,context.system_epoch,16); memcpy(request.broker_epoch,authority->identity.authority_epoch,16);
+        memcpy(request.broker_runtime,authority->runtime.bytes,16); memcpy(request.account,authority->identity.owner,16); memcpy(request.boot,authority->boot.bytes,16);
+        memcpy(request.install,install.install,16); memcpy(request.generation,install.generation,16); memcpy(request.data,data.owner.id[AE_DATA],16);
+        memcpy(request.launch,config+8,16); memcpy(request.lease,config+24,16); request.install_revision=install.install_revision;
+        strcpy(request.action,"main"); strcpy(request.session,"p0"); strcpy(request.seat,"none");
+        result=ae_process_verify(&peer,authority->system_bus,&controller);
+    }
+    char selected[256];
+    if (result==0) result=ae_authority_projection_unit(selected);
+    if (result==0 && strcmp(unit,selected)!=0) result=-ESTALE;
+    uint8_t operation[16]={0}; uint64_t gate=0,revision=0;
+    for (int n=0;result==0 && n<2;++n) {
+        sd_bus_message *reply=NULL;
+        result=fixture_runtime_call(authority,"ReserveLaunch",&request,config+40,&reply);
+        uint8_t current[16]; uint64_t current_gate=0,current_revision=0;
+        if (result==0) result=read_id(reply,current);
+        if (result==0 && (sd_bus_message_read(reply,"tt",&current_gate,&current_revision)<=0 || current_gate<1 || current_gate>INT64_MAX || current_revision!=1 || sd_bus_message_at_end(reply,1)!=1)) result=-EBADMSG;
+        if (result==0 && n==0) { memcpy(operation,current,16); gate=current_gate; }
+        else if (result==0 && (memcmp(operation,current,16)!=0 || gate!=current_gate)) result=-ESTALE;
+        sd_bus_message_unref(reply);
+    }
+    if (result==0) result=fixture_dispatch_state(authority,&request,"reserved",1,gate);
+    for (int n=0;result==0 && n<2;++n) {
+        sd_bus_message *reply=NULL; const char *state=NULL;
+        result=fixture_runtime_call(authority,"CloseLaunch",&request,config+40,&reply);
+        if (result==0 && (sd_bus_message_read(reply,"st",&state,&revision)<=0 || strcmp(state,"terminal")!=0 || revision!=2 || sd_bus_message_at_end(reply,1)!=1)) result=-EBADMSG;
+        sd_bus_message_unref(reply);
+    }
+    if (result==0) result=fixture_dispatch_state(authority,&request,"terminal",2,gate);
+    ae_peer_clear(&peer);
+    if (result!=0) return sd_bus_error_set_const(error,"org.aetheri.Error1.NeedsRecovery","Protected reservation probe requires reconciliation");
+    sd_bus_message *reply=NULL;
+    result=sd_bus_message_new_method_return(message,&reply);
+    if (result>=0) result=sd_bus_message_append_array(reply,'y',operation,16);
+    if (result>=0) result=sd_bus_message_append(reply,"tt",gate,revision);
+    if (result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply); return result<0 ? result : 1;
+}
+
+static void launch_context(struct authority *authority,const struct ae_peer *peer,struct ae_launch_context *context)
+{
+    memcpy(context->system_runtime,authority->runtime.bytes,16); memcpy(context->broker_epoch,authority->broker.identity.epoch,16);
+    memcpy(context->broker_runtime,authority->broker.identity.runtime,16); memcpy(context->account,authority->broker.identity.account,16);
+    memcpy(context->boot,authority->boot.bytes,16); context->uid=(uint32_t)peer->connection_uid;
+}
+static int reservation_error(sd_bus_error *error,int result)
+{
+    const char *name=result==-EINVAL || result==-EBADMSG ? "org.aetheri.Error1.InvalidArgument" :
+        result==-EEXIST ? "org.aetheri.Error1.RequestConflict" : result==-ENOENT ? "org.aetheri.Error1.NotFound" :
+        result==-ESTALE ? "org.aetheri.Error1.StaleRevision" : "org.aetheri.Error1.NeedsRecovery";
+    return sd_bus_error_set_const(error,name,"Launch reservation unavailable or requires reconciliation");
+}
+static int reservation_stamp(int64_t *stamp,int64_t *expires)
+{
+    struct timespec real,boot;
+    if (clock_gettime(CLOCK_REALTIME,&real)!=0 || clock_gettime(CLOCK_BOOTTIME,&boot)!=0) return -errno;
+    if (real.tv_sec<0 || real.tv_sec>(INT64_MAX-999)/1000 || boot.tv_sec<0 || boot.tv_sec>(INT64_MAX-6000000000LL)/1000000000LL) return -EOVERFLOW;
+    *stamp=(int64_t)real.tv_sec*1000+real.tv_nsec/1000000;
+    *expires=(int64_t)boot.tv_sec*1000000000LL+boot.tv_nsec+5000000000LL;
+    return 0;
+}
+static int method_reserve_launch(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata;
+    struct ae_peer peer=AE_PEER_INIT;
+    int result=broker_current(authority,&peer,message);
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active registered broker required"); }
+    struct ae_launch_context context; launch_context(authority,&peer,&context);
+    struct ae_launch_request request;
+    result=ae_reservation_read(message,&request);
+    if (result!=0) { ae_peer_clear(&peer); return reservation_error(error,result); }
+    if (memcmp(request.system_epoch,authority->identity.authority_epoch,16)!=0 || memcmp(request.broker_epoch,context.broker_epoch,16)!=0 ||
+        memcmp(request.broker_runtime,context.broker_runtime,16)!=0 || memcmp(request.account,context.account,16)!=0 || memcmp(request.boot,context.boot,16)!=0) {
+        ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.StaleContext","Current registered launch context required");
+    }
+    /* P0 has one explicitly trusted headless action/session profile. Arbitrary
+     * caller claims are not logind authorization or general installed app policy. */
+    struct ae_fixture_request fixture;
+    if (strcmp(request.action,"main")!=0 || strcmp(request.session,"p0")!=0 || strcmp(request.seat,"none")!=0) result=-EACCES;
+    if (result==0) result=ae_authority_fixture_request(&fixture);
+    if (result==0 && (memcmp(request.install,fixture.install,16)!=0 || memcmp(request.generation,fixture.generation,16)!=0)) result=-EACCES;
+    uint8_t data_bytes[AE_DATA_CONFIG_BYTES]; struct ae_data_enrollment data;
+    if (result==0) result=app_data_config(ROOT "/registry/app-data.conf",data_bytes,sizeof data_bytes);
+    if (result==0) result=ae_data_enrollment_decode(data_bytes,sizeof data_bytes,&data);
+    if (result==0 && (memcmp(request.data,data.owner.id[AE_DATA],16)!=0 || memcmp(request.account,data.owner.id[AE_ACCOUNT],16)!=0 ||
+        memcmp(request.install,data.install,16)!=0 || memcmp(request.broker_epoch,data.user_epoch,16)!=0 || memcmp(request.system_epoch,data.system_epoch,16)!=0)) result=-EACCES;
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 action/session profile required"); }
+    struct ae_reservation_ids proposed;
+    sd_id128_t plan,operation;
+    result=sd_id128_randomize(&plan);
+    if (result==0) result=sd_id128_randomize(&operation);
+    if (result==0) { memcpy(proposed.plan,plan.bytes,16); memcpy(proposed.operation,operation.bytes,16); result=reservation_stamp(&proposed.accepted_unix_ms,&proposed.expires_boottime_ns); }
+    struct ae_dispatch_snapshot snapshot;
+    if (result==0) result=ae_catalogue_reserve_launch(authority->catalogue,&request,&context,&proposed,&snapshot);
+    ae_peer_clear(&peer);
+    if (result!=0) return reservation_error(error,result);
+    sd_bus_message *reply=NULL;
+    result=sd_bus_message_new_method_return(message,&reply);
+    if (result>=0) result=sd_bus_message_append_array(reply,'y',snapshot.operation,16);
+    if (result>=0) result=sd_bus_message_append(reply,"tt",(uint64_t)snapshot.install_gate_revision,(uint64_t)snapshot.revision);
+    if (result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply); return result<0 ? result : 1;
+}
+static int method_get_dispatch(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata; struct ae_peer peer=AE_PEER_INIT;
+    int result=broker_current(authority,&peer,message);
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active registered broker required"); }
+    struct ae_launch_context context; launch_context(authority,&peer,&context);
+    uint8_t lease[16]; result=read_id(message,lease);
+    struct ae_dispatch_snapshot snapshot;
+    if (result==0) result=ae_catalogue_get_dispatch(authority->catalogue,lease,&context,&snapshot);
+    ae_peer_clear(&peer);
+    if (result!=0) return reservation_error(error,result);
+    sd_bus_message *reply=NULL;
+    result=sd_bus_message_new_method_return(message,&reply);
+    if (result>=0) result=sd_bus_message_append_array(reply,'y',snapshot.launch,16);
+    if (result>=0) result=sd_bus_message_append(reply,"ss",snapshot.state,snapshot.unit);
+    if (result>=0) result=sd_bus_message_append_array(reply,'y',snapshot.invocation,snapshot.invocation_present ? 16U : 0U);
+    if (result>=0) result=sd_bus_message_append(reply,"tt",(uint64_t)snapshot.revision,(uint64_t)snapshot.install_gate_revision);
+    if (result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply); return result<0 ? result : 1;
+}
+static int method_close_launch(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata; struct ae_peer peer=AE_PEER_INIT;
+    int result=broker_current(authority,&peer,message);
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active registered broker required"); }
+    struct ae_launch_context context; launch_context(authority,&peer,&context);
+    uint8_t epoch[16],lease[16],cause_epoch[16],cause[16]; uint64_t revision=0;
+    result=read_id(message,epoch);
+    if (result==0) result=read_id(message,lease);
+    if (result==0) result=read_id(message,cause_epoch);
+    if (result==0) result=read_id(message,cause);
+    if (result==0) { int code=sd_bus_message_read(message,"t",&revision); if (code<=0 || revision<1 || revision>INT64_MAX) result=-EBADMSG; }
+    if (result==0 && memcmp(epoch,authority->identity.authority_epoch,16)!=0) result=-ESTALE;
+    int64_t stamp=0,expires=0;
+    if (result==0) result=reservation_stamp(&stamp,&expires);
+    struct ae_dispatch_snapshot snapshot;
+    if (result==0) result=ae_catalogue_cancel_reservation(authority->catalogue,lease,&context,cause_epoch,cause,(int64_t)revision,stamp,&snapshot);
+    ae_peer_clear(&peer);
+    if (result!=0) return reservation_error(error,result);
+    return sd_bus_reply_method_return(message,"st",snapshot.state,(uint64_t)snapshot.revision);
+}
+
 struct wire_interface { int roles; const char *path, *name; const sd_bus_vtable *vtable; };
 #include "wire-tables.h"
 
@@ -622,8 +832,9 @@ static int stop_signal(sd_event_source *source, const struct signalfd_siginfo *s
 
 int main(int argc, char **argv)
 {
+    int admit=argc==3 && strcmp(argv[1],"system")==0 && strcmp(argv[2],"--admit-fixture")==0;
     if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
-        (argc == 3 && strcmp(argv[2], "--init") != 0 &&
+        (argc == 3 && !admit && strcmp(argv[2], "--init") != 0 &&
          !(strcmp(argv[1], "system") == 0 && (strcmp(argv[2], "--enroll-account") == 0 || strcmp(argv[2], "--fixture-observe") == 0 || strcmp(argv[2], "--fixture-stage") == 0 || strcmp(argv[2], "--fixture-store-observe") == 0 || strcmp(argv[2], "--fixture-store-publish") == 0 || strcmp(argv[2], "--fixture-activate") == 0)) &&
          !(strcmp(argv[1], "user") == 0 && (strcmp(argv[2], "--storage-publish") == 0 || strcmp(argv[2], "--storage-verify") == 0 || strcmp(argv[2],"--data-observe")==0 || strcmp(argv[2],"--data-enroll")==0)))) {
         fputs("Usage: aetheri-authority system|user [--init]; system --enroll-account|--fixture-observe|--fixture-stage|--fixture-store-observe|--fixture-store-publish|--fixture-activate; user --storage-publish|--storage-verify|--data-observe|--data-enroll\n", stderr); return 2;
@@ -655,7 +866,7 @@ int main(int argc, char **argv)
         result = ae_authority_fixture(authority.catalogue, strcmp(argv[2], "--fixture-observe") == 0, authority.boot.bytes);
     if (result == 0 && !system && argc == 3 && strncmp(argv[2],"--data-",7)==0) result=app_data_action(&authority,state_path,strcmp(argv[2],"--data-enroll")==0);
     else if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(argv[2], "--storage-publish") == 0);
-    if (argc == 3) {
+    if (argc == 3 && !admit) {
         int closed = ae_catalogue_close(&authority.catalogue);
         if (result == 0) result = closed;
         if (result != 0) fprintf(stderr, "Authority administrative action failed: %d\n", result);
@@ -666,6 +877,7 @@ int main(int argc, char **argv)
     if (result == 0 && (!uuid4(authority.runtime.bytes) || !uuid4(authority.events.bytes) ||
                        memcmp(authority.runtime.bytes, authority.events.bytes, AE_ID_BYTES) == 0)) result = -EIO;
     if (result == 0) result = ae_catalogue_begin_runtime(authority.catalogue, authority.boot.bytes, authority.runtime.bytes);
+    if (result==0 && admit) result=ae_authority_fixture_admit(authority.catalogue,authority.boot.bytes,authority.runtime.bytes);
     sd_bus *bus = NULL;
     sd_event *event = NULL;
     sigset_t signals;

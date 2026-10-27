@@ -1475,3 +1475,118 @@ exact repeat, projection, normal endpoint/app-denial and previous fixture checks
 pass. Orderly shutdown yields QEMU exit 0 and verified PID absence; the same disk
 boots offline and data-check reports cross_boot_reopen=true with the same data
 identity, closed gate, unchanged old storage and no dispatch.
+
+## Private code reservation and withdrawal
+
+The original Runtime1 ReserveLaunch, GetDispatch and limited CloseLaunch now
+execute in the system service. Only the currently registered broker's held
+process, UID/context, active unit, invocation and cgroup can use them. Runtime1
+XML remains unchanged at 1.1. The capability runtime.dispatch.v1 remains absent:
+DispatchLaunch, normal user launch acceptance, data readiness and target dispatch
+are not implemented by this step.
+
+The wire profile is deliberately the protected original P0 I/G/D with action main,
+headless session p0 and seat none. These constants are a test authorization profile,
+not logind session/seat authorization or arbitrary app action selection. Root checks
+the protected data/account/authority references, never opens the user database and
+does not infer data readiness from those references. The registered broker identity
+still supplies actual account/UID and current runtime; caller UUIDs are references.
+
+One native owner transaction records an internal accepted canonical AETHINT1 launch
+plan, relevant scope/install/gate reads, a generation-retention effect, a running
+root operation, verified request step, reserved generation lease and reserved
+dispatch. Root plan/operation IDs and timestamps are generated for new acceptance;
+exact retry finds the original records regardless of new proposed IDs. The unit
+name derives only from LaunchId. No executable/path/environment/policy argument
+can select a process, and no supervisor call is made here.
+
+AETHRSV1 is an internal request fingerprint: eight-byte tag, ten wire-order 16-byte
+IDs, expected install revision as big-endian u64, then action/session/seat as
+big-endian u32 byte length plus bytes. The ten IDs are system epoch, lease, launch,
+broker epoch/incarnation, account, install, generation, data and boot. Its SHA-256
+is immutable step evidence. Canonical AETHINT1 separately binds the root plan and
+read/effect set. Positive signed-SQL revisions, UUIDv4 references and bounded
+tokens are required. The independent Python encoder checks both digests.
+
+New acceptance requires current root boot/runtime, active eligible account/UID,
+correct account or machine install scope, exact active I/G and revision, verified
+artifact metadata and open unowned gate. Reuse with changed context/identity is a
+conflict; a lost COMMIT acknowledgement never permits another lease or root ID.
+An existing reserved receipt can be acknowledged after its gate closes, without
+opening it again. That receipt is historical acceptance, not current dispatch
+permission. Root restart marks unfinished dispatch uncertain and keeps its holder;
+retry/withdrawal cannot turn that obligation into a fresh reservation or release.
+
+GetDispatch is scoped to the current eligible account and broker authority epoch.
+A replacement broker incarnation can inspect its authority's old records for
+recovery; it cannot rebind the immutable reservation tuple. Replies contain derived
+unit name, state/revisions and optional actual invocation. Empty invocation means
+there is no target observation; it is never interpreted as a successful exec.
+
+CloseLaunch currently supports only withdrawal while dispatch and lease are both
+reserved, current original boot/broker incarnation still match and no ready-data
+or invocation evidence exists. One transaction freezes the caller authority/cause,
+sets dispatch terminal, releases the lease and completes the root operation with
+outcome cancelled and result LaunchId. Repeated identical cause returns that state
+without rewriting the original completion timestamp. Different cause conflicts;
+dispatching, observed or uncertain requires reconciliation. This is not stop/drain
+support for a process, and it never guesses from a missing bus name or timeout.
+
+The explicit system --admit-fixture startup profile is test administration.
+Root-protected registry/admission.conf is AETHADM1, exactly 96 bytes: tag, system
+epoch (16), boot (16), original pre-start catalogue revision (u64), I (16), G (16),
+install revision and expected closed-gate revision (u64 each), all numbers
+big-endian. Native startup commits its new context, then requires exactly that
+baseline increment, current boot/runtime and original fixture. It checks current
+manifest/content/inventory, final labels/modes and independent store/container/
+payload witnesses, with repeated flushes and no sealing mutation, before opening
+only metadata reservation admission. It refuses holders/nonterminal dispatches.
+Ordinary startup never uses this profile and closes prior open gates. Replaying
+the old profile after runtime/catalogue advancement fails rather than refreshing
+its intent. App executable mappings remain denied throughout.
+
+The controller stores its fixed P0 test LaunchId/LeaseId/cause before IPC in
+registry/reservation.conf: AETHRSF1 plus three 16-byte UUIDs (56 bytes). These
+root-owned 0444 registry files and controller receipts stay inside the ignored VM,
+not Git. Development1's additive minor 1.1 TestFixtureReservation uses the existing
+root-selected, short-lived user-domain controller. It reserves twice, observes
+reserved state, withdraws twice and observes terminal state. The driver reconstructs
+canonical bytes from actual committed rows and verifies the released lease,
+cancelled operation, frozen cause, unchanged user database and absent app unit.
+This is a fixed system-reservation test with durable protected correlations; it
+does not claim the normal user plan/run/reservation pipeline exists yet.
+
+reservation-continue can retain a prepared intent after an observed terminal failed
+startup only if no matching dispatch or held lease was accepted. It refreshes an
+explicit admission attempt and preserves original launch/lease/cause. Unknown or
+accepted work blocks automatic continuation. reservation-new-check requires the
+previous tuple terminal/released and retains its historical receipt before making
+new test identities. reservation-replay-check deliberately rejects the stale
+profile and verifies closed admission with unchanged business history.
+
+Native tests exercise canonical bytes, every reservation SQL mutation failure,
+failed/lost COMMIT acknowledgement, fresh-process exits before/after real COMMIT,
+ID retention, conflicts, scoped lookup, gate closure after acceptance, withdrawal
+mutation/COMMIT faults, terminal retry and restart uncertainty with a held lease.
+Independent sd-bus bodies cover all truncations, array lengths, integer/token
+bounds, extra fields and output preservation. Those are separate from actual
+enforcing broker RPC and wrong-unit/app denial evidence.
+
+Next: durable user launch acceptance/data readiness, code/data view preparation,
+serialized DispatchLaunch and supervisor/target-exec evidence. Recovery of potentially
+dispatched work and real stop/drain must precede any corresponding lease release.
+General session policy, production volume/allocation trust and the original full
+desktop/apps goal remain open.
+
+Executed on 27 October 2026: native complete suites 28/28 Debug ASan/UBSan
+(104.93 s) and Release (82.47 s); host migration/wire 28/28 (45.848 s),
+orchestration 27/27, cache guards 7/7, frozen runtime vectors 14/14 and isolated
+constraints 374 assertions pass. Actual enforcing broker reservation/retry/status/
+withdrawal confirms the canonical digest independently, unchanged user DB and no
+app unit. Ordinary and same-domain wrong-unit callers are rejected by all three
+implemented Runtime1 handlers and the protected trigger. Stale-profile replay
+fails closed. Orderly QEMU exit 0 and verified PID absence precede offline boot of
+the same disk; replay then reports cross_boot_reopen=true and unchanged terminal
+business history. Normal endpoint/app denials and original store/activation/data/
+storage checks pass again. Owned units are stopped; no physical power-loss,
+production launch readiness or actual Aetheri app execution is claimed.

@@ -35,5 +35,6 @@ int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t c
  * root observation, catalogue mutation or installation status is inferred. */
 int ae_authority_fixture_request(struct ae_fixture_request *output);
 int ae_authority_projection_unit(char output[256]);
+int ae_authority_fixture_admit(struct ae_catalogue *catalogue,const uint8_t boot[16],const uint8_t runtime[16]);
 
 #endif

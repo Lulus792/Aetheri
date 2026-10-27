@@ -3,28 +3,14 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The project has executable contracts, native C17 manifest/storage/catalogue/process-identity code,
-and two tested, confined protocol services in a dedicated Fedora/UEFI guest. Their
-only working public method is protocol discovery; app lifecycle operations remain
-unimplemented. There is no original Aetheri image, installer, desktop or working
-Aetheri application yet.
-The prototype's internal broker registration now binds the user service to its
-protected account and supervised runtime; app admission remains unfinished.
-The system catalogue now persists that test account's UID binding and checks it
-on startup, broker registration and use. General account management remains pending.
-Native storage references check expected ownership and held directory/mount identity.
-Immutable allocation records now preserve object bindings across a tested guest boot.
-Native SHA-256 verifies canonical fixture metadata and held-file content using
-OpenSSL 3.5 LTS. The system's internal administrative path now stages a trusted
-native probe under a durable operation and reopens it after a guest boot.
-That trusted fixture can now be atomically published into a sealed managed store,
-with journaled retries. First fixture activation completes its installation with
-the launch gate closed; actual app admission and launch remain unfinished.
-The user service can now record an authenticated observation of that installation
-through a private system API. This creates no app data or permission to start it.
-The fixed P0 app now also has a separately verified private-data allocation and
-an atomic data attachment with its own gate closed. The app still cannot start.
-Volume authentication, allocation journals and app document transport remain unfinished.
+The current C17 prototype runs in a dedicated Fedora/UEFI test VM. It has tested
+catalogue contracts, verified publication of a trusted test package, private-data
+ownership and two confined system/user services. Their private API can reserve
+code and withdraw that reservation without starting an app process.
+
+Actual app launch, document access and the desktop remain in progress. There is
+no original Aetheri image, installer or working Aetheri application yet. The
+[current state](brains/aetheri/STATE.md) records exact implementation and test limits.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·

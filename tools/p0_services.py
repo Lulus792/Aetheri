@@ -178,6 +178,11 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
         owned_file(ROOT / "registry/projection.conf",0o444)
         if (ROOT / "registry/projection.conf").read_text()!="AETHERI-P0-PROJECTION-1\nunit="+record["projection_unit"]+"\n": raise RuntimeError("projection controller slot changed")
     verify_app_data(record,allow_unreceipted_app_data)
+    for name in ("admission","reservation"):
+        if name+"_config_sha256" in record:
+            path=ROOT/"registry"/(name+".conf")
+            owned_file(path,0o444)
+            if checksum(path)!=record[name+"_config_sha256"]: raise RuntimeError("protected "+name+" configuration changed")
 
 
 def label(path, type_name, cats=""):
@@ -833,15 +838,18 @@ def fixture_activation_check(record):
         with sqlite3.connect(f"file:{state_path(record, 'system') / 'catalogue.sqlite3'}?mode=ro", uri=True) as db:
             receipt = db.execute("SELECT o.state,o.outcome,o.result_kind,lower(hex(o.result_ref)),o.completed_unix_ms,o.revision,s.state,lower(hex(s.evidence_digest)),i.state,lower(hex(i.active_generation_id)),i.revision,g.activated_once,g.revision,f.state,f.revision,f.closing_operation_id FROM operations o JOIN operation_steps s USING(operation_id) JOIN installs i ON i.install_id=? JOIN generations g ON g.generation_id=? JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=i.install_id WHERE o.operation_id=? AND s.step_no=2",
                                  tuple(bytes.fromhex(fixture[key]) for key in ("install", "generation", "operation"))).fetchone()
-            live = db.execute("SELECT (SELECT count(*) FROM generation_leases WHERE state<>'released')+(SELECT count(*) FROM launch_dispatches)").fetchone()[0]
+            live = db.execute("SELECT (SELECT count(*) FROM generation_leases WHERE state<>'released')+(SELECT count(*) FROM launch_dispatches WHERE state<>'terminal')").fetchone()[0]
         if live: raise AssertionError("activation created/admitted launch obligations")
         return receipt
+    with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+        previous_gate=db.execute("SELECT state,revision,closing_operation_id FROM admission_gates WHERE subject_kind='install' AND subject_ref=?",(bytes.fromhex(fixture["install"]),)).fetchone()
+    if previous_gate[0]!="closed" or previous_gate[2] is not None or previous_gate[1]<activation["revisions"][2]: raise RuntimeError("activation receipt check requires current closed admission")
     start_unit(record, "system", fixture="activate")
     first = journal()
     install_revision, generation_revision, gate_revision = activation["revisions"]
     expected = ("completed", "applied", "install", fixture["install"], activation["stamp"], first[5] if first else None,
                 "applied", activation["config_sha256"], "active", fixture["generation"], install_revision+1,
-                1, generation_revision+1, "closed", gate_revision, None)
+                1, generation_revision+1, "closed", previous_gate[1], None)
     if first != expected or snapshot() != before: raise AssertionError(("activation metadata/content differs", first))
     database_hash = checksum(state_path(record, "system") / "catalogue.sqlite3")
     start_unit(record, "system", fixture="activate")
@@ -944,7 +952,10 @@ def publish_projection_slot(record,unit):
     record["projection_unit"]=unit
 
 
-def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None):
+def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None, data=None, admit=False, reservation_probe=False):
+    if reservation_probe and (role!="user" or probe!="projection"): raise ValueError("reservation probe requires selected user controller")
+    if admit and (role!="system" or init or probe or enroll or storage or fixture or data):
+        raise ValueError("fixture admission requires only the normal system service")
     if data is not None and (data not in ("observe","enroll") or role!="user" or init or probe or enroll or storage or fixture):
         raise ValueError("data administration requires only the user administrative role")
     if probe=="projection" and (role!="user" or init or enroll or storage or fixture):
@@ -990,9 +1001,10 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
             properties["SELinuxContext"]="system_u:system_r:aetheri_user_t:s0"
             properties.pop("ReadWritePaths")
             command=[str(ROOT / "probe-projection")]
+            if reservation_probe: command.append("--reserve")
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
-        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else ["--data-"+data] if data else [])
+        command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else ["--data-"+data] if data else ["--admit-fixture"] if admit else [])
         if fixture in ("store-observe", "store-publish", "activate"):
             properties["ReadWritePaths"] = str(ROOT)
             properties["ReadOnlyPaths"] = str(fixture_paths(record)["source"])
@@ -1162,6 +1174,104 @@ def projection_check(record):
         no_data_or_gate_effects=True,cross_boot_reopen=initial["boot"]!=boot,system_runtime_changed=initial["system_runtime"]!=system_runtime)
     save(record)
     print(json.dumps(record["projection_check"]))
+
+
+def verify_reservation_intent(database,operation):
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        db.row_factory=sqlite3.Row
+        row=db.execute("SELECT p.*,o.intent_digest AS accepted_digest FROM plans p JOIN operations o USING(plan_id) WHERE o.operation_id=?",(bytes.fromhex(operation),)).fetchone()
+        if row is None: raise AssertionError("reservation plan missing")
+        plan={key:row[column].hex() if row[column] is not None else None for key,column in
+            (("plan","plan_id"),("authority","authority_epoch"),("actor","actor_ref"),("scope","scope_ref"),("install","install_ref"),
+             ("generation","generation_ref"),("data","data_epoch_ref"),("artifact","artifact_ref"),("grant","grant_ref"),("boot","boot_id"))}
+        plan.update(kind=row["kind"],component=row["component_id"],retention=row["retention"],action=row["action_id"],expires=row["expires_boottime_ns"])
+        plan["reads"]=[dict(epoch=r[0].hex(),kind=r[1],ref=r[2].hex(),revision=r[3]) for r in db.execute("SELECT source_epoch,subject_kind,subject_ref,expected_revision FROM plan_reads WHERE plan_id=?",(row["plan_id"],))]
+        plan["effects"]=[dict(number=r[0],kind=r[1],component=r[2],ref=r[3].hex(),disposition=r[4],reason=r[5]) for r in db.execute("SELECT effect_no,subject_kind,component_id,subject_ref,disposition,reason_code FROM plan_effects WHERE plan_id=?",(row["plan_id"],))]
+        digest=hashlib.sha256(runtime_contracts.intent(plan)).digest()
+        if digest!=row["intent_digest"] or digest!=row["accepted_digest"]: raise AssertionError("canonical native reservation plan differs")
+
+
+def reservation_check(record,resume=False,fresh=False):
+    verified(record)
+    stop(record)
+    if "reservation_check" in record:
+        if not fresh: raise RuntimeError("reservation already exercised; preserve its receipt for replay checks")
+        with sqlite3.connect(f"file:{state_path(record,'system')/'catalogue.sqlite3'}?mode=ro",uri=True) as db:
+            old=record["reservation_intent"]
+            observed=db.execute("SELECT d.state,l.state,lower(hex(d.close_cause_operation_ref)) FROM launch_dispatches d JOIN generation_leases l USING(lease_id) WHERE d.lease_id=? AND d.launch_id=?",tuple(bytes.fromhex(old[key]) for key in ("lease","launch"))).fetchone()
+            if observed!=("terminal","released",old["cause"]): raise RuntimeError("previous reservation is not terminal/released")
+        record.setdefault("reservation_history",[]).append(dict(intent=old,operation=record["reservation_operation"],check=record["reservation_check"]))
+        record.pop("reservation_check")
+    paths={name:ROOT/"registry"/(name+".conf") for name in ("admission","reservation")}
+    if not resume and not fresh and any(path.exists() or path.is_symlink() for path in paths.values()): raise RuntimeError("unregistered reservation configuration exists")
+    if resume and record.get("reservation_state")!="preparing": raise RuntimeError("no prepared reservation to resume")
+    fixture=record["fixture"]
+    database=state_path(record,"system")/"catalogue.sqlite3"
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        baseline=db.execute("SELECT catalogue_revision FROM authority_meta").fetchone()[0]
+        ir=db.execute("SELECT revision FROM installs WHERE install_id=? AND state='active'",(bytes.fromhex(fixture["install"]),)).fetchone()[0]
+        gate=db.execute("SELECT state,revision,closing_operation_id FROM admission_gates WHERE subject_kind='install' AND subject_ref=?",(bytes.fromhex(fixture["install"]),)).fetchone()
+        if gate[0] not in ("open","closed") or gate[2] is not None or db.execute("SELECT count(*) FROM generation_leases WHERE state<>'released'").fetchone()[0]: raise RuntimeError("unreconciled admission state")
+        if resume and db.execute("SELECT count(*) FROM launch_dispatches WHERE lease_id=? OR launch_id=?",tuple(bytes.fromhex(record["reservation_intent"][key]) for key in ("lease","launch"))).fetchone()[0]: raise RuntimeError("accepted reservation requires reconciliation; no automatic repeat")
+    boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    admission=(b"AETHADM1"+bytes.fromhex(record["epochs"]["system"])+uuid.UUID(boot).bytes+struct.pack(">Q",baseline)
+        +bytes.fromhex(fixture["install"])+bytes.fromhex(fixture["generation"])+struct.pack(">QQ",ir,gate[1]+(gate[0]=="open")))
+    ids=record["reservation_intent"] if resume else {key:uuid.uuid4().hex for key in ("launch","lease","cause")}
+    reservation=b"AETHRSF1"+b"".join(bytes.fromhex(ids[key]) for key in ("launch","lease","cause"))
+    record.update(reservation_intent=ids,reservation_state="preparing")
+    save(record)
+    for name,content in (("admission",admission),("reservation",reservation)):
+        if resume and name=="reservation":
+            if paths[name].read_bytes()!=content: raise RuntimeError("prepared reservation identity changed")
+        elif resume or fresh:
+            temporary=ROOT/"registry"/(name+".next")
+            publish(temporary,content,"aetheri_registry_t"); flush_path(temporary); os.replace(temporary,paths[name])
+        else: publish(paths[name],content,"aetheri_registry_t")
+        flush_path(paths[name])
+        record[name+"_config_sha256"]=checksum(paths[name])
+    flush_path(ROOT/"registry",True); save(record)
+    unit=start_unit(record,"system",admit=True)
+    record.setdefault("active_units",{})["system"]=unit; save(record)
+    start(record)
+    user_hash=checksum(state_path(record,"user")/"catalogue.sqlite3")
+    unit=start_unit(record,"user",probe="projection",reservation_probe=True)
+    output=run("journalctl","-u",unit,"--output=cat","--no-pager")
+    replies=re.findall(r"^reservation ([0-9a-f]{32}) ([0-9]+) ([0-9]+)$",output,re.M)
+    if len(replies)!=1 or int(replies[0][2])!=2: raise AssertionError("reservation receipt missing")
+    stop_unit(unit); publish_projection_slot(record,"-"); save(record)
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        actual=db.execute("SELECT lower(hex(root_operation_id)),state,revision,install_gate_revision,invocation_ref,ready_data_gate_revision,lower(hex(close_cause_epoch)),lower(hex(close_cause_operation_ref)) FROM launch_dispatches WHERE lease_id=? AND launch_id=?",tuple(bytes.fromhex(ids[key]) for key in ("lease","launch"))).fetchone()
+        if actual!=(replies[0][0],"terminal",2,int(replies[0][1]),None,None,record["epochs"]["user"],ids["cause"]): raise AssertionError("dispatch withdrawal differs")
+        if db.execute("SELECT state,revision FROM generation_leases WHERE lease_id=?",(bytes.fromhex(ids["lease"]),)).fetchone()!=("released",2): raise AssertionError("code lease not released")
+        if db.execute("SELECT state,outcome,result_kind,lower(hex(result_ref)) FROM operations WHERE operation_id=?",(bytes.fromhex(replies[0][0]),)).fetchone()!=("completed","cancelled","launch",ids["launch"]): raise AssertionError("root operation not cancelled")
+    if checksum(state_path(record,"user")/"catalogue.sqlite3")!=user_hash: raise AssertionError("root reservation changed user metadata")
+    verify_reservation_intent(database,replies[0][0])
+    if run("systemctl","show","aetheri-app-"+ids["launch"]+".service","--property=LoadState","--value")!="not-found": raise AssertionError("reservation created an app unit")
+    record["reservation_check"]=dict(native_rpc=True,canonical_intent=True,exact_retry=True,terminal_withdrawal=True,code_lease_released=True,user_data_unchanged=True,app_dispatched=False)
+    record.update(reservation_state="withdrawn",reservation_operation=replies[0][0],reservation_first_boot=boot)
+    save(record)
+    print(json.dumps(record["reservation_check"]))
+
+
+def reservation_replay_check(record):
+    verified(record); stop(record)
+    database=state_path(record,"system")/"catalogue.sqlite3"
+    def business():
+        with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+            return {name:db.execute('SELECT * FROM "'+name+'" ORDER BY rowid').fetchall() for name in ("operations","operation_steps","generation_leases","launch_dispatches")}
+    before=business()
+    try: start_unit(record,"system",admit=True)
+    except subprocess.CalledProcessError:
+        failed=record["last_failure"]["unit"]
+        output=run("journalctl","-u",failed,"--output=cat","--no-pager")
+        if "Authority startup/runtime failed: -116" not in output: raise RuntimeError("stale startup did not fail with ESTALE")
+    else: raise AssertionError("old admission configuration reopened the gate")
+    with sqlite3.connect(f"file:{database}?mode=ro",uri=True) as db:
+        gate=db.execute("SELECT state,closing_operation_id FROM admission_gates WHERE subject_kind='install' AND subject_ref=?",(bytes.fromhex(record["fixture"]["install"]),)).fetchone()
+    if gate!=("closed",None) or business()!=before: raise AssertionError("stale admission changed reservation history")
+    boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    record["reservation_replay_check"]=dict(stale_profile_denied=True,gate_closed=True,terminal_history_preserved=True,cross_boot_reopen=boot!=record["reservation_first_boot"])
+    save(record); print(json.dumps(record["reservation_replay_check"]))
 
 
 def restart_check(record):
@@ -1523,6 +1633,10 @@ def main():
         elif action == "idle-check": idle_check(record)
         elif action == "broker-check": broker_check(record)
         elif action == "projection-check": projection_check(record)
+        elif action == "reservation-check": reservation_check(record)
+        elif action == "reservation-continue": reservation_check(record,resume=True)
+        elif action == "reservation-new-check": reservation_check(record,fresh=True)
+        elif action == "reservation-replay-check": reservation_replay_check(record)
         elif action == "update-owned": update_owned(record)
         elif action == "enroll-account": enroll_account(record)
         elif action == "account-check": account_check(record)

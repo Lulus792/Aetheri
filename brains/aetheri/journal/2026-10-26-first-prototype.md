@@ -862,3 +862,69 @@ Next: code/run reservation and actual data readiness, then supervised dispatch a
 target-exec evidence using the new existing data identity. Keep both test fixtures
 and deferred general allocation/volume/binding recovery explicit. Full original
 OS/apps goal stays active; personal UI/destructive choices still await the user.
+
+## 27 October — private code reservation, observation and withdrawal
+
+Implemented native root reservation and the existing Runtime1 ReserveLaunch/
+GetDispatch methods, plus CloseLaunch limited to withdrawal before dispatch.
+Current broker/process/account context is authenticated. The wire profile is
+explicitly the original protected P0 I/G/D and main/p0/none; it does not claim
+general action/logind policy. No arbitrary executable, UID, environment, mount or
+SELinux context enters these methods. Public capabilities remain empty and
+DispatchLaunch remains unsupported. Development1 adds a protected test at 1.1;
+original Runtime1/public XML and SQL v2 stay unchanged.
+
+One transaction records canonical AETHINT1 root plan/read/effect, operation, full
+AETHRSV1 request fingerprint, generation lease and reserved dispatch. Exact retry
+retains original root IDs/timestamps despite new proposals; changed tuples conflict.
+Acknowledging an existing reservation after gate closure never reopens it. Scoped
+GetDispatch returns actual state and optional invocation. Withdrawal requires an
+original current reserved tuple with no ready-data/exec evidence; terminal cause,
+released lease and cancelled operation commit together. Changed cause conflicts;
+uncertain or potentially dispatched work requires reconciliation and keeps its
+holder. Normal user launch acceptance/data readiness remains next.
+
+Explicit system --admit-fixture startup checks root-protected boot/baseline-bound
+AETHADM1, original active fixture and current sealed manifest/content/inventory/
+object witnesses before opening metadata reservation admission. Verify-only sealing
+checks cannot change labels/modes. Default startup closes admission; old profile
+replay fails ESTALE. Executable mappings remain denied. The first integration
+attempt found that the bounded small-document open helper rejects manifest's
+larger metadata bound; a direct no-follow held manifest open now checks its exact
+regular-file owner/mode/size and bounded bytes. No policy permission was broadened.
+
+The P0 driver persists launch/lease/cause before IPC. The selected user-domain
+helper invokes the registered user service, which reserves twice, queries reserved,
+withdraws twice and queries terminal. Actual committed canonical plan bytes are
+independently reconstructed in Python. Root lease is released, operation cancelled,
+cause exact, user DB unchanged and derived app unit absent. Same-UID unconfined and
+same-domain wrong-unit controls reach transport but are denied all three runtime
+handlers and the protected test. No new resident process/dependency/policy permission.
+Prepared failed startup can resume only before acceptance with the original IDs;
+new explicit tests require prior terminal/released evidence and retain history.
+
+Native complete suites pass 28/28 Debug ASan/UBSan (104.93 s), 28/28 Release
+(82.47 s). Tests cover all ten reservation mutations, all four withdrawal mutations,
+failed/lost COMMIT acknowledgement, fresh-process exits before/after real COMMIT,
+original IDs, canonical/fingerprint bytes, scoped reads, fence closure, terminal
+withdrawal and restart uncertainty with a nonreleased holder. Independent wire
+fixtures cover all field truncations, array lengths, numeric/token bounds, extras
+and unchanged error output. A final guard avoids converting rejected unsigned
+overflow values; focused wire repeats pass Debug 0.07 s and Release 0.02 s.
+Host migration/wire tests 28/28 (45.848 s), orchestration 27/27, cache guards 7/7,
+runtime vectors 14/14 and isolated constraints 374 assertions pass.
+
+Actual stale-profile replay fails closed with unchanged terminal business history.
+Original store/activation, app data and retained storage checks pass; activation's
+historical check now accounts for terminal reservation history while requiring
+unchanged current closed gate. After orderly shutdown/QEMU exit 0 and verified
+PID absence, the same disk boots offline. Replay reports cross_boot_reopen=true;
+normal endpoints/denials and original fixtures pass again. Final installed native
+codec build and endpoint/denial checks pass. Owned service/probe units are stopped.
+No hardware/power-loss or actual app execution/readiness acceptance is claimed.
+
+Next: persist normal user launch intent/run/data readiness, prepare exact views,
+then serialize DispatchLaunch and verify supervised target exec. Potentially
+dispatched recovery and real stop/drain must precede release. Keep both data
+fixtures and reservation receipts; do not rearm old identities. Full OS/apps goal
+active; personal UI/destructive choices remain deferred to the user.

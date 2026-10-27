@@ -18,9 +18,10 @@ lifecycle methods defined by these contracts.
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [broker-v1.xml](api/broker-v1.xml) | Private P0 broker identity bootstrap 1.0, independent of public wire 1.1; no launch capability |
-| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation observation and protected fixed-fixture trigger 1.0; no admission |
+| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation observation 1.0 and protected fixture tests 1.1; no public launch capability |
 | [projection.h](../src/catalogue/projection.h), [wire codec](../src/authority/projection.h) | Separate system read/user write, bounded typed snapshot and exact retry |
 | [data.h](../src/catalogue/data.h), [data tests](../tests/test_data.c) | Explicit first P0 data enrollment, independent allocation witness and atomic closed-gate attachment |
+| [reservation.h](../src/catalogue/reservation.h), [reservation tests](../tests/test_reservation.c), [wire tests](../tests/test_reservation_wire.c) | Atomic private code reservation, scoped status and withdrawal before dispatch; no app execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
 | [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation/opening, writer lifetime and startup-context transaction |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of canonical v2 statements; no runtime SQL-file loading |
@@ -42,9 +43,14 @@ lifecycle methods defined by these contracts.
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
-The two private projection interfaces are independently versioned 1.0. Their
+Catalogue1 remains 1.0; Development1 is now 1.1 with its additive protected
+TestFixtureReservation entry point. Their
 implementation and enforcing checks are described in [runtime.md](runtime.md#authenticated-installation-projection).
-They leave the old XML and SQL contracts unchanged and add no public capability.
+The frozen management/documents/runtime/broker XML and canonical SQL are unchanged;
+the Development1 minor extension adds no public capability.
+The existing private Runtime1 ReserveLaunch/GetDispatch methods now run, with
+CloseLaunch restricted to withdrawal of a still-reserved, never-dispatched tuple.
+DispatchLaunch remains unsupported, and runtime.dispatch.v1 is not advertised.
 Old management argument lists are unchanged. New interfaces require explicit
 documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce

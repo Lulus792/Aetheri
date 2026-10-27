@@ -3,6 +3,7 @@
 #include "core/fixture.h"
 #include "core/import.h"
 #include "core/publish.h"
+#include "catalogue/reservation.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -357,7 +358,7 @@ static int seal_node(int fd,const char *old_type,const char *final_type,mode_t m
     return result;
 }
 
-static int seal_publication(int container,int payload,const struct ae_fixture *fixture)
+static int seal_publication(int container,int payload,const struct ae_fixture *fixture,int verify_only)
 {
     for (uint32_t n=0;n<fixture->file_count;++n) {
         struct ae_fixture_text path=fixture->files[n].path;
@@ -371,19 +372,19 @@ static int seal_publication(int container,int payload,const struct ae_fixture *f
             int fd=(int)syscall(SYS_openat2,payload,name,&how,sizeof how);
             if (fd<0) return -errno;
             const char *type=file ? (fixture->files[n].mode==0555 ? "aetheri_store_code_t" : "aetheri_store_data_t") : "aetheri_store_dir_t";
-            int result=seal_node(fd,"aetheri_staging_t",type,file ? (mode_t)fixture->files[n].mode : 0555,0);
+            int result=seal_node(fd,verify_only ? type : "aetheri_staging_t",type,file ? (mode_t)fixture->files[n].mode : 0555,0);
             result=close_owned(fd,result);
             if (result!=0) return result;
         }
     }
-    int result=seal_node(payload,"aetheri_staging_t","aetheri_store_dir_t",0555,1);
+    int result=seal_node(payload,verify_only ? "aetheri_store_dir_t" : "aetheri_staging_t","aetheri_store_dir_t",0555,1);
     struct open_how how={.flags=O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK,
         .resolve=RESOLVE_BENEATH | RESOLVE_NO_XDEV | RESOLVE_NO_SYMLINKS | RESOLVE_NO_MAGICLINKS};
     int metadata=-1;
     if (result==0) { metadata=(int)syscall(SYS_openat2,container,"manifest",&how,sizeof how); if (metadata<0) result=-errno; }
-    if (result==0) result=seal_node(metadata,"aetheri_publication_t","aetheri_store_manifest_t",0444,0);
+    if (result==0) result=seal_node(metadata,verify_only ? "aetheri_store_manifest_t" : "aetheri_publication_t","aetheri_store_manifest_t",0444,0);
     result=close_owned(metadata,result);
-    if (result==0) result=seal_node(container,"aetheri_publication_t","aetheri_store_dir_t",0555,1);
+    if (result==0) result=seal_node(container,verify_only ? "aetheri_store_dir_t" : "aetheri_publication_t","aetheri_store_dir_t",0555,1);
     return result;
 }
 
@@ -474,7 +475,7 @@ int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
         if (result==0) {
             struct ae_fixture_publication publication={parent,parent,store,payload,container,"staging","publication"};
             result=ae_fixture_publish_namespace(&publication,manifest,size,config.request.artifact);
-            if (result==0) result=seal_publication(container,payload,&fixture);
+            if (result==0) result=seal_publication(container,payload,&fixture,0);
             if (result==0) result=ae_fixture_publish_namespace(&publication,manifest,size,config.request.artifact);
             for (uint32_t n=0;result==0 && n<fixture.file_count;++n) if (fixture.files[n].mode==0555)
                 result=no_executable_mapping(payload,&fixture.files[n]);
@@ -537,6 +538,67 @@ int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t c
     if (result==0) puts("fixture-activation receipt verified; no app dispatched by this action; receipt is not launch readiness");
     free(manifest);
     return result;
+}
+
+int ae_authority_fixture_admit(struct ae_catalogue *catalogue,const uint8_t boot[16],const uint8_t runtime[16])
+{
+    uint8_t admission[96],bytes[AE_FIXTURE_CONFIG_BYTES],store_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],digest[32];
+    uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES),*stored=malloc(AE_FIXTURE_MAX_BYTES);
+    if (manifest==NULL || stored==NULL) { free(manifest); free(stored); return -ENOMEM; }
+    size_t size,config_size,store_size,manifest_size;
+    int result=protected_bytes(ROOT "/registry/admission.conf",admission,sizeof admission,&size);
+    struct ae_catalogue_info info;
+    if (result==0) result=ae_catalogue_get_info(catalogue,&info);
+    uint64_t baseline=0,install_revision=0,gate_revision=0;
+    if (result==0 && size!=sizeof admission) result=-EBADMSG;
+    if (result==0) {
+        baseline=number(admission+40,8); install_revision=number(admission+80,8); gate_revision=number(admission+88,8);
+        if (memcmp(admission,"AETHADM1",8)!=0 || memcmp(admission+8,info.authority_epoch,16)!=0 || memcmp(admission+24,boot,16)!=0 ||
+            memcmp(info.boot_id,boot,16)!=0 || memcmp(info.runtime_incarnation,runtime,16)!=0 || baseline<1 || baseline>=INT64_MAX ||
+            info.revision!=(int64_t)baseline+1 || install_revision<1 || install_revision>INT64_MAX || gate_revision<1 || gate_revision>=INT64_MAX) result=-ESTALE;
+    }
+    struct ae_fixture_config config;
+    struct ae_fixture_store_config publication;
+    struct ae_fixture fixture;
+    struct ae_fixture_progress progress;
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
+    if (result==0 && (memcmp(config.request.install,admission+48,16)!=0 || memcmp(config.request.generation,admission+64,16)!=0)) result=-ESTALE;
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture-store.conf",store_bytes,sizeof store_bytes,&store_size);
+    if (result==0) result=ae_fixture_store_config_decode(store_bytes,store_size,&publication);
+    if (result==0) result=ae_sha256_bytes(bytes,config_size,digest);
+    if (result==0 && memcmp(digest,publication.stage_digest,32)!=0) result=-ESTALE;
+    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&manifest_size);
+    if (result==0) result=ae_fixture_verify_manifest(manifest,manifest_size,config.request.artifact,&fixture);
+    if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,manifest_size,&progress);
+    if (result==0) result=ae_sha256_bytes(store_bytes,store_size,digest);
+    if (result==0 && (!progress.installation_active || !progress.activation_present || !progress.publication_present || memcmp(progress.publication_evidence,digest,32)!=0)) result=-ESTALE;
+    char artifact[65],path[256];
+    for (size_t n=0;result==0 && n<32;++n) snprintf(artifact+2*n,3,"%02x",(unsigned int)config.request.artifact[n]);
+    if (result==0) snprintf(path,sizeof path,ROOT "/store/sha256/%s",artifact);
+    int store=-1,container=-1,payload=-1,metadata=-1;
+    if (result==0) { store=protected_directory(ROOT "/store/sha256",0700,"aetheri_store_parent_t"); if (store<0) result=store; }
+    if (result==0) { container=protected_directory(path,0555,"aetheri_store_dir_t"); if (container<0) result=container; }
+    struct open_how how={.flags=O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC,.resolve=RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS|RESOLVE_NO_XDEV};
+    if (result==0) { payload=(int)syscall(SYS_openat2,container,"payload",&how,sizeof how); if (payload<0) result=-errno; }
+    if (result==0) result=root_matches(store,&publication.store);
+    if (result==0) result=root_matches(container,&publication.container);
+    if (result==0) result=root_matches(payload,&config.staging);
+    if (result==0) result=seal_publication(container,payload,&fixture,1);
+    how.flags=O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK;
+    if (result==0) { metadata=(int)syscall(SYS_openat2,container,"manifest",&how,sizeof how); if (metadata<0) result=-errno; }
+    struct stat metadata_status;
+    if (result==0 && fstat(metadata,&metadata_status)!=0) result=-errno;
+    if (result==0 && (!S_ISREG(metadata_status.st_mode) || metadata_status.st_nlink!=1 || metadata_status.st_uid!=0 ||
+        (metadata_status.st_mode&07777)!=0444 || metadata_status.st_size!=(off_t)manifest_size)) result=-EACCES;
+    if (result==0 && (pread(metadata,stored,manifest_size,0)!=(ssize_t)manifest_size || memcmp(stored,manifest,manifest_size)!=0)) result=-EBADMSG;
+    if (result==0) result=ae_fixture_sync_payload(payload,0555,manifest,manifest_size,config.request.artifact);
+    if (result==0) result=root_matches(container,&publication.container);
+    if (result==0) result=root_matches(payload,&config.staging);
+    int64_t admitted;
+    if (result==0) result=ae_catalogue_admit_install(catalogue,config.request.install,config.request.generation,(int64_t)install_revision,(int64_t)gate_revision,boot,runtime,&admitted);
+    result=close_owned(metadata,result); result=close_owned(payload,result); result=close_owned(container,result); result=close_owned(store,result);
+    free(manifest); free(stored); return result;
 }
 
 int ae_authority_fixture_request(struct ae_fixture_request *output)

@@ -539,3 +539,32 @@ unrelated work or pruning. Exact currently attached retries are read-only and
 preserve later gate changes. Detached, retained, purged, changed or conflicting
 rows fail; no retry reattaches or resurrects them. This is metadata enrollment,
 not a historical completion receipt or a replacement for live launch admission.
+
+## Reserve exact code before process dispatch — 27 October 2026
+
+Use the existing root plans/operations/steps, generation_leases and launch_dispatches
+tables. One owner transaction records canonical AETHINT1 launch intent, a stable
+request fingerprint, one code lease and reserved dispatch. Stable broker/lease/run
+correlations retain the original root IDs on retry; new proposed IDs or timestamps
+cannot replace an accepted reservation. Changed tuples conflict. A runtime restart
+makes unfinished dispatch uncertain and keeps its holder accounted for.
+
+GetDispatch is account/broker-authority scoped. CloseLaunch currently withdraws
+only a reserved tuple with no ready-data/exec observation; cause, terminal state,
+released lease and cancelled operation commit together. It must refuse uncertain
+or potentially dispatched work. Later stop/drain support needs actual supervisor
+evidence. No timeout, lost bus name or metadata-only check proves process exit.
+
+Keep the original private Runtime1 signatures and SQL v2. Development1 gains the
+protected P0 test at minor 1.1. Do not advertise runtime.dispatch.v1 until the whole
+capability works. The wire profile is explicitly the original fixture with
+main/p0/none, not a claim of general action/logind-session authorization.
+
+For real enforcing tests, use an explicit system service startup profile with a
+root-protected AETHADM1 bound to current boot and original pre-start catalogue
+revision. Recheck exact sealed store witnesses, final labels/modes, inventory,
+manifest and content before opening its metadata gate. Ordinary startup keeps
+admission closed; a stale profile cannot reopen it. This permits code reservation,
+not data readiness or execution: app executable mappings remain denied. The P0
+driver persists its test correlations before IPC; normal durable user launch
+acceptance and target dispatch remain separate implementation work.

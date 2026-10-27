@@ -4,6 +4,28 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Private code reservation — 27 October 2026
+
+- Original [catalogue API](../../src/catalogue/reservation.h),
+  [owner implementation](../../src/catalogue/store.c),
+  [typed codec](../../src/authority/reservation.c) and service callbacks in
+  [main.c](../../src/authority/main.c). Uses existing reviewed SQLite/OpenSSL/
+  sd-bus/held-object primitives; no new dependency or policy permission.
+- [Independent canonical plan/request encoder](../../tools/test_reservation_native.py),
+  [native tests](../../tests/test_reservation.c) and
+  [independent wire fixtures](../../tests/test_reservation_wire.c): statement/
+  commit faults, fresh-process exits, exact retry/withdrawal, fence changes,
+  restart uncertainty, bounds and unchanged failure outputs.
+- [Enforcing controller](../../tools/p0_services.py): actual current-store startup
+  verification, registered broker RPC, canonical digest reconstruction from actual
+  committed rows, exact RootId/revision reuse, terminal cause/released lease,
+  unchanged user database, absent app unit and stale-profile denial. Source
+  inventory/labels remain sealed; this does not establish app dispatch or readiness.
+- Integration found the bounded small-document helper's 65536-byte maximum was
+  inappropriate for manifest metadata's larger independent bound. Admission now
+  opens/checks the exact regular manifest directly with no-follow openat2 and the
+  manifest limit; document transport's bound is unchanged. No policy relaxation.
+
 ## First app data enrollment — 27 October 2026
 
 - Original [native catalogue contract](../../src/catalogue/data.h),

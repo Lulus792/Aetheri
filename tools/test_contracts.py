@@ -639,10 +639,10 @@ class ApiContracts(unittest.TestCase):
         self.assertEqual(catalogue.attrib["name"],"/org/aetheri/Catalogue1")
         self.assertEqual(development.attrib["name"],"/org/aetheri/Development1")
         self.assertEqual(wire_shape(catalogue),{"org.aetheri.Catalogue1":{"ResolveAppInstall":("ay ay ay","ay ay ay ay s ay ay ay t ay ay t s t t")}})
-        self.assertEqual(wire_shape(development),{"org.aetheri.Development1":{"RefreshFixtureInstall":("","ay t t")}})
+        self.assertEqual(wire_shape(development),{"org.aetheri.Development1":{"RefreshFixtureInstall":("","ay t t"),"TestFixtureReservation":("","ay t t")}})
         for node,visibility in ((catalogue,"broker-only"),(development,"protected-controller-only")):
             annotations={a.attrib["name"]:a.attrib["value"] for a in node.find("interface").findall("annotation")}
-            self.assertEqual(annotations["org.aetheri.Contract.Version"],"1.0")
+            self.assertEqual(annotations["org.aetheri.Contract.Version"],"1.0" if node is catalogue else "1.1")
             self.assertEqual(annotations["org.aetheri.Contract.Visibility"],visibility)
             for arg in node.findall(".//arg"):
                 limits={a.attrib["name"].split(".")[-1]:a.attrib["value"] for a in arg.findall("annotation")}
