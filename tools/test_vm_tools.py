@@ -1,19 +1,55 @@
 """Host orchestration guards. No guest, installer or physical disk is executed."""
 import json
 import sqlite3
+import stat
 from pathlib import Path
 import tempfile
 import subprocess
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import provision_windows as provision
 import run_vm as vm
 import test_linux_policy as policy
 import p0_services as services
+import test_execute_policy as execute
 
 
 class VmTools(unittest.TestCase):
+    def test_execute_retirement_preserves_unacknowledged_dispatch(self):
+        root=MagicMock(spec=Path); marker=MagicMock(spec=Path)
+        root.__truediv__.return_value=marker
+        root.is_symlink.return_value=False; marker.is_symlink.return_value=False
+        root.lstat.return_value=type("Info",(),dict(st_mode=stat.S_IFDIR|0o700,st_uid=0))()
+        marker.lstat.return_value=type("Info",(),dict(st_mode=stat.S_IFREG|0o600,st_uid=0,st_nlink=1))()
+        marker.read_text.return_value=json.dumps(dict(pending="unacknowledged-unit"))
+        with patch.object(execute,"ROOT",root),patch.object(execute,"run",side_effect=AssertionError("policy mutation")), \
+             patch.object(execute,"drained",side_effect=AssertionError("unknown dispatch")):
+            with self.assertRaisesRegex(RuntimeError,"causal reconciliation"): execute.retire()
+        marker.unlink.assert_not_called(); root.rmdir.assert_not_called()
+
+    def test_execute_drain_requires_independent_process_cgroup_and_job_absence(self):
+        job=dict(type="a(usssoo)",data=[[]])
+        unit="aetheri-p0-execute-owned.service"
+        for state,pid,cgroup,jobs in (("inactive","0","",job),("failed","0","",job),
+                ("active","0","",job),("inactive","99","",job),("failed","0","/live",job),
+                ("inactive","0","",dict(type="a(usssoo)",data=[[[1,unit,"stop","running","/job","/unit"]]]))):
+            facts=f"ActiveState={state}\nMainPID={pid}\nControlGroup={cgroup}"
+            with patch.object(execute,"run",side_effect=[facts,json.dumps(jobs)]):
+                if state in ("inactive","failed") and pid=="0" and not cgroup and jobs is job:
+                    execute.drained(unit)
+                else:
+                    with self.assertRaisesRegex(RuntimeError,"independently drained"): execute.drained(unit)
+
+    def test_execute_resets_only_observed_drained_failed_units(self):
+        with patch.object(execute,"drained",side_effect=["inactive","failed"]) as observed,patch.object(execute,"run") as command:
+            execute.reset_drained_failures(["owned-a","owned-b"])
+            self.assertEqual(observed.call_count,2)
+            command.assert_called_once_with("systemctl","reset-failed","owned-b")
+        with patch.object(execute,"drained",side_effect=["failed",RuntimeError("live job")]),patch.object(execute,"run") as command:
+            with self.assertRaisesRegex(RuntimeError,"live job"): execute.reset_drained_failures(["owned-a","owned-b"])
+            command.assert_not_called()
+
     def test_setup_requires_reconciliation_before_input_replacement_or_unknown_dispatch(self):
         with patch.object(services,"verified"),patch.object(services,"stop",side_effect=AssertionError("replacement")):
             for state in ("prepared","starting","active","failed","drained"):

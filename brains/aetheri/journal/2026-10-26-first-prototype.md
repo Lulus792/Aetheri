@@ -1136,3 +1136,80 @@ Next: a compatible real-exec fixture and exact target-dispatch/privilege-drop/ex
 evidence. Preserve the old immutable main reservations and run/c31,c32 package;
 enrolled data uses c33,c34. Document transport, full recovery/removal, original
 desktop/apps/image and hardware acceptance remain part of the active full goal.
+
+## Native execution boundary — 27 October 2026
+
+Added internal linux/image and linux/execute, with separate owned-child tests,
+an inert post-exec payload and a temporary MAC test controller/policy. Only tests
+call the execution primitive. Installed authorities/helper, their catalogues and
+the original no-exec withdrawal proof are unchanged. No SQL/XML/public capability,
+external dependency or resident service was added. Runtime contracts describe the
+limited ELF profile, trusted caller prerequisites and unfinished launch integration.
+
+The primitive revalidates the held image/object/hash, selects the pending mandatory
+MAC label, seals every internal FD, clears supplementary groups and capability
+sets/bounding/ambient authority, locks securebits, changes all IDs, enters held
+private data as its owner and execs the held ELF. It never returns after failure.
+Its error frame records the actual phase and immediately saved errno. Tests change
+errno during successful reporting helpers and still recover the original ENOEXEC.
+The absent-reader case closes before fork, making EPIPE deterministic. Malformed
+ELF/capability/alias fixtures are inspected as data, never kernel-executed.
+
+An independent observer checks actual ProcessFD credentials/cgroup/label and the
+backing /proc executable, including exact object/hash and repeated observations.
+The real same-UID worker with zero effective/permitted/inheritable capabilities
+also passes this observation. Future production authority integration must preserve
+its own run/unit/invocation admission; this snapshot is not readiness or a claim
+of continuous image identity. No SYS_PTRACE/KILL was added to those authorities.
+
+Observed integration issues and scoped repairs:
+
+- Reopening source/target handles after namespace entry was necessary: inherited
+  directory FDs still referred to the parent's mounts and failed clone admission.
+- The owner-data CWD change belongs after final UID change, avoiding a need for
+  root DAC bypass after setup capability trimming.
+- PID1's protected namespace preparation needed mounton on the temporary data
+  type. Only the temporary policy gained that exact permission.
+- Actual setup capabilities lacked SETUID despite the configured bounding ceiling.
+  v259 source explains its conditional removal during seccomp setup. The trusted
+  test unit now explicitly retains ambient SETUID; the boundary clears it before
+  UID change. NNP and restricted namespaces were retained.
+- Actual execveat returned phase 10/EPERM; audit identified nosuid_transition on
+  the private code mount. The test policy now permits only the exact test source/
+  target pair for both NNP/nosuid transitions. No unconfined target fallback.
+- The real target and cap-zero observer succeeded before the parent harness failed
+  to signal its changed-UID child. Test-only KILL now permits owned-child shutdown;
+  it and the parent's test-only SYS_PTRACE are stripped before the exec boundary.
+
+Each known failed attempt was independently drained and retired through the
+controller's scoped cleanup after matching retained policy/image/inventory bytes.
+No failed dispatch was resubmitted under its old name. Unacknowledged dispatch
+continues to forbid cleanup/retry. Five known failed transient unit records were
+later reset only after independent drain; their journal/audit evidence remains.
+No broad reset-failed, recursive cleanup or original authority mutation was used.
+
+Final Release MAC controller result: Enforcing, real target domain c33,c34,
+UID/GID 1000, capability sets empty, FD seal and exact executable observation,
+private data read/write/unlink and executable data-mmap denial all pass. Five
+cases cover success, wrong image, explicit exec failure, pre-exec exit 125 and
+actual payload exit 125. Both empty-channel exit-125 cases remain unknown rather
+than accepted as exec/readiness. Every owned test unit drained; exact fixtures and
+the temporary module were removed. registered_app=false. A final check confirms
+module/fixture absence and Enforcing; installed authority/probe units remain stopped.
+
+Complete native CTest suites pass 32/32 Debug ASan/UBSan (237.03 s) and Release
+(223.30 s), including linux.execute (1.38/0.34 s respectively). These two builds
+ran concurrently in the same two-vCPU guest; timings are test-run evidence, not
+OS benchmarks or a comparison to earlier serial runs. The inert exec_payload
+does not use sanitizers so their own startup FDs cannot mask the inherited-FD test.
+Host migration/wire tests pass 29/29 (53.841 s), orchestration 33/33 (0.214 s),
+runtime vectors 14/14 and isolated constraints 374 assertions. Final cleanup-only
+guards also cover an unresolved dispatch, independent PID/cgroup/job drain and
+resetting only observed failed owned units; the latter ran against the five real
+retained failed units. No change to native code followed its complete test suites.
+
+Next: connect a new compatible real-exec fixture/action at c33,c34 to durable
+dispatch, actual target registration/image evidence and a ready-data fence.
+Use an executing starter with its own drain/recovery contract; do not extend the
+immutable no-exec helper's release shortcut. Preserve old main reservations,
+run/c31,c32 package, private data and all histories. The full OS/apps goal is active.

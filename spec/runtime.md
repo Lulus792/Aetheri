@@ -1837,3 +1837,128 @@ transport, target exec and production recovery are still pending. The old fixtur
 declares action run and c31,c32; enrolled app data uses c33,c34. Old immutable main
 reservations cannot be reinterpreted into a successful real app start. A new,
 compatible fixture/generation and target-execution contract are needed next.
+
+## Native one-way execution and image observation
+
+The internal [image](../src/linux/image.h) and [execute](../src/linux/execute.h)
+primitives are separate from the installed no-exec helper. Only the dedicated
+owned-child tests call execution today. No SQL/XML version, public capability,
+package enrollment or resident service is added. The earlier helper's release
+proof still applies only to that immutable no-exec implementation.
+
+The trusted caller must already admit the immutable code/data views, account,
+label, literal arguments, environment and exact stdio endpoints. It must journal
+dispatch before any external execution request. These primitives do not perform
+that journal or admission, build a complete root filesystem sandbox, enroll a
+publisher, resolve shared runtimes or establish app readiness. They use the
+existing carrier's trusted glibc loader/libraries. Writer exclusion and protection
+against hostile ptrace/concurrent credential or image changes are prerequisites.
+
+### Image profile
+
+ae_image_verify borrows a readable regular FD and independently expected SHA-256.
+It requires root UID/GID, mode 0555, one link, no file-capability xattr, birth time
+and bounded size (64 bytes through 16 MiB). A limited native little-endian x86-64
+ELF profile rejects foreign/script formats, malformed header/program-table bounds,
+writable executable load segments and missing/executable GNU_STACK. An optional
+single interpreter must be exactly /lib64/ld-linux-x86-64.so.2. Static ELF is also
+allowed. This is a P0 execution profile, not a complete ELF verifier or promise
+that every accepted file will load successfully.
+
+Metadata before/after hashing must agree. The private in-memory image witness
+contains device/inode, birth time, size/ownership/mode, change/modify times and
+content hash. It is not serialized, a bearer token or a replacement for protected
+manifest/artifact enrollment. Mount IDs may differ between the original and its
+private clone; backing object identity must agree. Failed calls preserve output.
+
+### Irreversible execution boundary
+
+ae_execute_target accepts a fresh single-threaded trusted root process only,
+global Enforcing and NoNewPrivileges already enabled. Code must be readonly,
+nodev/nosuid and executable; private owner data must be writable, nodev/nosuid/
+noexec and 0700. The bounded argv/environment allowlist never inherits environ
+or invokes a shell. Stdio must be approved pipe/socket/null endpoints, not regular
+privileged files. The caller is responsible for their exact identity and direction.
+
+It rechecks the held image, selects and reads back the mandatory pending SELinux
+exec label, and marks every FD from 3 upward CLOEXEC with close_range/UNSHARE.
+Only approved stdio survives exec. Core dumps are disabled. Required setup
+capabilities are SETUID, SETGID and SETPCAP; only SYS_ADMIN and DAC_READ_SEARCH
+may additionally be present. It clears inheritable/ambient rights, locks root and
+keep-caps behavior, empties the capability bounding set, clears supplementary
+groups and sets every real/effective/saved UID/GID to the selected non-root owner.
+After verifying empty capability sets it enters the held data directory as that
+owner, resets signal dispositions/mask and calls execveat on the held image FD.
+There is no return to privileged work, shell, alternate interpreter or fallback.
+
+Any failure exits 125, even after successful irreversible effects with a lost
+acknowledgement. The sole nonblocking CLOEXEC error-pipe writer can emit one
+16-byte record: AETHXER1, phase u32, positive errno u32, integers big endian.
+Phases 1..10 are profile, image, context, descriptors, capabilities, groups, GID,
+UID, signals and exec call. Syscall errno is saved immediately before reporting.
+SIGPIPE is blocked for the reporting write; a missing reader cannot turn failure
+into continued work. A full/broken/empty channel provides no success evidence.
+EOF plus exit 125 cannot distinguish a pre-exec exit from a real program returning
+125. Never use it to declare readiness, release a lease or repeat dispatch.
+
+### Current executable observation
+
+ae_image_match_process takes an already authenticated/owned held ProcessFD. It
+does not open a new pidfd from a caller-supplied PID. Kernel PID/TGID, all four
+UID/GID fields, nonzero cgroup identity and liveness must agree. Through a checked
+host procfs directory for that kernel PID it checks the raw MAC label and opens
+the current exe magic link. This deliberately opens the kernel's backing image,
+not the pathname returned by readlink. Its profile, SHA-256 and object witness
+must match; a second image open, credential/cgroup/label check and liveness check
+bound the observation. It is a snapshot, not an atomic history or guarantee that
+the process remains alive/unchanged afterward. Unit/invocation/run admission and
+the eventual ready-data fence remain separate integration requirements.
+
+### Executed test boundary
+
+linux.execute runs 21 owned-fixture scenarios: malformed image/profile checks,
+real exec and exact-image observation, wrong identity/image, credential/descriptor/
+signal faults, failures after bounding/securebits changes, precise ENOEXEC despite
+later errno changes, pre-exec/payload exit 125, and an absent error reader before
+fork. Malformed ELF bytes are verified as data, never passed to kernel binfmt.
+The inert payload checks all IDs, groups/capability sets, locked securebits, NNP,
+core limit, label, exact environment, signal reset, FD inventory and private data
+write/read/unlink. It also attempts a real executable mmap from noexec data.
+The Debug harness uses ASan/UBSan. exec_payload deliberately does not: instrumentation
+could add its own initial FDs and invalidate the inherited-FD inventory assertion.
+
+The explicit MAC check is separate from CTest:
+
+```text
+python tools/run_vm.py ssh 'sudo python3 /home/aetheri/source/tools/test_execute_policy.py /home/aetheri/build/release/test_execute /home/aetheri/build/release/exec_payload'
+```
+
+It accepts only the registered enforcing UEFI development guest. Its temporary
+p0-execute.cil defines separate test types; it changes no original authority,
+setup or app domain. Five supervised cases execute across the real transition to
+aetheri_exec_app_test_t:s0:c33,c34. The parent harness alone has SYS_PTRACE for
+cross-UID observation and KILL for signalling its child; both are removed before
+the execution primitive. An additional same-UID observer with empty capabilities
+verifies the real executable without SYS_PTRACE. This is not a deployed User API.
+
+The trusted test starter explicitly retains ambient SETUID because PID1's v259
+seccomp setup otherwise drops it despite the bounding ceiling. The primitive
+clears ambient/inheritable before the owner change. NNP and nosuid remain enabled;
+the policy allows only the exact test source/target transition at both gates.
+The target receives no setup capabilities and cannot fork, change execution
+context, write code or execute/map its data files.
+
+The controller records each fresh unit request before submission. Unknown dispatch
+preserves pending state and forbids cleanup/retry. Known termination still needs
+independent inactive/failed, MainPID 0, empty cgroup and no manager job. Only exact
+known inventories/ownership/modes/hashes are removed; changed objects remain.
+The module is removed only after all owned units drain and its installed hash
+agrees. Exact drained failed transient units are reset, preserving journal/audit
+evidence. A known failed/drained test can be retired with --cleanup after inspection;
+an unacknowledged request cannot. No retained private data, catalogue history or
+installed no-exec helper is modified by this test.
+
+The next integration needs a new compatible manifest/action and c33,c34 fixture,
+durable dispatch before execution, exact retained process/invocation observation,
+actual app registration/readiness and richer drain/recovery than no-exec withdrawal.
+Passing this primitive's tests does not satisfy those gates.

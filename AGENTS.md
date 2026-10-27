@@ -183,7 +183,16 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Do not reuse this proof for a target-executing starter or uncertain dispatch.
   Preserve old main tuples and the immutable run/c31,c32 fixture; actual target
   exec needs a new compatible fixture for c33,c34 data. Public capabilities remain
-  empty. No production app launch, privilege dropping or complete removal yet.
+  empty. No production app launch or complete removal yet.
+- linux/execute.h and image.h now provide isolated one-way execution and current
+  image observation. They are not wired into the installed helper/authority.
+  Read spec/runtime.md's execution section. EOF/exit 125 is never exec/readiness
+  evidence; never extend the no-exec withdrawal proof to an executing starter.
+  test_execute_policy.py installs only its separate temporary test domains and
+  retires them after exact fixture and independent unit/cgroup/job drain checks.
+  Unknown dispatch preserves pending state. Test-only SYS_PTRACE/KILL belong to
+  the parent harness; the exec boundary accepts neither. Actual app admission,
+  observation, recovery and drain integration require separate evidence.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

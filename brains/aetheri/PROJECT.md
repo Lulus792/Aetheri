@@ -147,5 +147,7 @@ Fedora 1:3.5.9-1.fc44 RPM/signature/license review. Existing foundational choice
 remain unchanged.
 
 Implementation in progress: contract tooling, dedicated Linux carrier and native
-C17 core, confined protocol endpoints and supervised no-exec setup. Full Linux app lifecycle, the desktop, an
+C17 core, confined endpoints, supervised no-exec setup and isolated one-way
+execution/image primitives. Their connection to real app starts remains next.
+Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

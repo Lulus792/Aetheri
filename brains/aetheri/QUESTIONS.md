@@ -51,8 +51,10 @@ Private native code reservation/status and durable user acceptance/pre-dispatch
 withdrawal now survive broker replacement. Native FD-based private code/data mount
 views now have real Linux tests and an installed no-exec supervised setup path.
 Setup has separate journal/peer/invocation/drain evidence, including narrowly
-checked early-failure recovery. Target dispatch/exec, privilege dropping and
-actual app readiness remain next; setup READY is not app readiness.
+checked early-failure recovery. Separate native privilege dropping, exec and exact
+current-image observation now pass isolated and temporary enforcing tests. Their
+durable target-dispatch integration and actual app readiness remain next; setup
+READY is not app readiness. The no-exec release proof cannot cover executing code.
 The retained trusted fixture's declared action is run; older journal-only probes
 used synthetic main. New executable starts must resolve the actual manifest action
 and preserve old immutable tuples instead of interpreting main as run. The retained

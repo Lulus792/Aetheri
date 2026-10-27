@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — supervised no-exec setup and verified teardown; target exec remains next.
+27 October 2026 — one-way execution/image primitives tested; app-start integration remains next.
 
 ## Confirmed
 
@@ -13,6 +13,36 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The internal [execution boundary](../../src/linux/execute.h) now verifies an exact
+held P0 ELF image, seals all internal descriptors, drops groups/IDs/capability sets,
+selects the mandatory SELinux exec label and calls execveat without a fallback.
+Failure exits immediately, including after an irreversible change. A bounded
+error record preserves the actual phase/errno; an empty channel remains unknown.
+The [image observer](../../src/linux/image.h) checks kernel-held process identity,
+current credentials/label/cgroup and the actual executable backing object/hash.
+This is a current observation, not app readiness or future liveness.
+
+The separate temporary enforcing test passed a real setup-to-app transition at
+c33,c34, UID/GID 1000, empty capabilities, descriptor/environment sealing, private
+data writes and denial of executable data mappings. A same-UID observer with no
+capabilities also verified the actual image. Pre-exec exit 125 and actual payload
+exit 125 both leave the empty error channel unknown. Every owned test unit was
+independently drained; its temporary policy and exact fixtures were removed.
+This test never registered an app or changed the retained authorities/catalogues.
+No public API, SQL version, dependency or resident service was added. The installed
+no-exec helper and its narrow withdrawal proof remain unchanged. Next connect a
+new compatible fixture to durable target dispatch/observation and real drain;
+never reinterpret the old main/run or c31,c32 records. See the
+[execution contract](../../spec/runtime.md#native-one-way-execution-and-image-observation).
+
+Current execution baseline: 32/32 Debug ASan/UBSan (237.03 s), 32/32 Release
+(223.30 s), host migration/wire 29/29 (53.841 s), orchestration 33/33 (0.214 s),
+runtime vectors 14/14 and isolated constraints 374 assertions. Native suites ran
+concurrently in the same guest; durations are not performance measurements. The
+five earlier failed test-unit records were reset only after independent drain,
+preserving their journals. Detailed boundaries/results are in the
+[journal](journal/2026-10-26-first-prototype.md#native-execution-boundary--27-october-2026).
 
 The short-lived [setup helper](../../src/launcher/main.c) now connects private
 code/data views to the original durable launch operation. It cannot execute app

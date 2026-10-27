@@ -10,6 +10,9 @@ before code reservation and can be withdrawn after the user service restarts,
 without losing track of the reservation. A short-lived setup service now connects
 that journal to private code/data mount views and independently checked teardown.
 This service deliberately cannot execute application code.
+Separate native execution primitives now drop credentials, seal inherited handles
+and execute an exact held ELF image. An isolated enforcing test verifies the real
+app-domain transition and current executable; integration into app starts is next.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The
@@ -111,9 +114,9 @@ limits are in [runtime contracts](spec/runtime.md).
 | --- | --- |
 | src/core | Ownership/allocation records, fixture metadata, bounded storage, staging/publication and SHA-256 verification |
 | src/catalogue | SQLite v2 identity, fixture, launch and setup transactions |
-| src/linux | Bus credentials, live process/unit checks and private FD-based mount views |
+| src/linux | Bus/process checks, private mount views and internal image/one-way execution primitives |
 | src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |
-| src/launcher | Short-lived no-exec view preparer; target execution and privilege dropping remain work |
+| src/launcher | Short-lived no-exec view preparer; real app-start integration remains work |
 | policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
 | tests | Native functional and private mount-namespace probes |
 | tools | Host preparation, source transfer and development checks; not resident OS services |

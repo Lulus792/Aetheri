@@ -646,3 +646,27 @@ Keep SQL versions and Runtime1 frozen. Add private Setup1 1.0 and protected
 Development1 1.3 only. Preserve old main reservations and the run/c31,c32 fixture;
 the c33,c34 data profile needs a new compatible real-exec fixture next. No browser,
 desktop or personally important UI decision is implied by these technical choices.
+
+## Build a one-way exec boundary before durable target dispatch — 27 October 2026
+
+Keep the installed no-exec helper and its withdrawal proof unchanged. Introduce
+small internal Linux image/execute primitives, tested with owned inert children
+and then a separate temporary enforcing policy. A fresh trusted starter verifies
+the admitted ELF/held backing object, seals all internal descriptors, removes
+credential/capability authority and selects the mandatory target MAC label before
+execveat. There is no privileged return or fallback after failure.
+
+Treat the error pipe as failure diagnostics only. EOF, including exit 125 before
+or after exec, remains unknown. Use a held ProcessFD and current kernel executable
+object/hash observation separately from readiness. Same-UID cap-zero observation
+is supported by the actual test; production User/Root integration still needs
+unit/run/invocation and durable outcome contracts. Do not add SYS_PTRACE or KILL to
+the authorities to copy the privileged test harness.
+
+Keep NNP/nosuid and the restricted namespace setup. The trusted test starter
+retains SETUID explicitly until the execution boundary; systemd's bounding set
+alone did not retain it under the selected v259 filters. Only exact temporary
+test source/target MAC transitions are permitted. All target capabilities and
+inherited internal handles are removed. No public API/SQL/new dependency is needed
+for this primitive. A new compatible fixture and richer executing-process drain/
+recovery are the next integration step; old immutable tuples stay historical.

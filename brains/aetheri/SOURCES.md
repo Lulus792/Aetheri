@@ -972,3 +972,42 @@ single NUL. [Setup source](../../src/authority/setup.c),
 [controller](../../tools/p0_services.py) and
 [runtime contract](../../spec/runtime.md#supervised-no-exec-setup) delimit this
 same-runtime, fixed no-exec proof. It is not target-exec or production recovery.
+
+## One-way exec and image observation — 27 October 2026
+
+Primary API references inspected:
+[execveat(2)](https://man7.org/linux/man-pages/man2/execveat.2.html),
+[execve(2)](https://man7.org/linux/man-pages/man2/execve.2.html),
+[proc_pid_exe(5)](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html),
+[close_range(2)](https://man7.org/linux/man-pages/man2/close_range.2.html),
+[setresuid(2)](https://man7.org/linux/man-pages/man2/setresuid.2.html),
+[capset(2)](https://man7.org/linux/man-pages/man2/capset.2.html),
+[PR_CAPBSET_DROP](https://man7.org/linux/man-pages/man2/PR_CAPBSET_DROP.2const.html)
+and [setexeccon(3)](https://man7.org/linux/man-pages/man3/setexeccon.3.html).
+The served man-pages family is 6.19; actual acceptance uses the existing carrier
+kernel 6.19.10-300.fc44/glibc 2.43-9 and installed libraries, not a new dependency.
+
+[systemd v259 exec-invoke.c](https://github.com/systemd/systemd/blob/v259/src/core/exec-invoke.c#L5588)
+conditionally drops SETUID under keep_seccomp_privileges unless selected ambient
+rights retain it. Actual PID1 259.10 test output showed effective/permitted
+0x280144 with SETUID absent despite the configured bounding ceiling. The trusted
+test starter now retains that one bit explicitly; the boundary clears ambient and
+inheritable before final UID change. BoundingSet is not an effective-rights grant.
+
+[Linux v6.19 SELinux exec hooks](https://github.com/torvalds/linux/blob/v6.19/security/selinux/hooks.c)
+separately check NNP/nosuid transitions. Actual enforcing audit first denied
+nosuid_transition for the exact test setup/app pair on the readonly/nosuid code
+view. The temporary policy now permits that pair at both gates. Reference kernel
+source explains the mechanism; actual Fedora runtime acceptance is separate.
+Neither NNP/nosuid nor Enforcing was disabled. A later parent signalling failure
+was resolved by test-only KILL, removed from the child before the primitive.
+
+Implemented [image observation](../../src/linux/image.c),
+[execution boundary](../../src/linux/execute.c),
+[owned-child tests](../../tests/test_execute.c),
+[inert payload](../../tests/exec_payload.c) and
+[temporary enforcing controller](../../tools/test_execute_policy.py).
+The test's exact executable checks also pass under same-UID cap-zero credentials;
+no SYS_PTRACE permission was added to a production authority. Tests and limitations
+are recorded in the [runtime contract](../../spec/runtime.md#native-one-way-execution-and-image-observation)
+and [journal](journal/2026-10-26-first-prototype.md#native-execution-boundary--27-october-2026).
