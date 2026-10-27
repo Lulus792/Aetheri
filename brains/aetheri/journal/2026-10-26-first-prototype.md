@@ -1213,3 +1213,75 @@ dispatch, actual target registration/image evidence and a ready-data fence.
 Use an executing starter with its own drain/recovery contract; do not extend the
 immutable no-exec helper's release shortcut. Preserve old main reservations,
 run/c31,c32 package, private data and all histories. The full OS/apps goal is active.
+
+## Compatible execution fixture — 27 October 2026
+
+The original fixed package expects c31,c32 and its synthetic main reservations
+cannot become declared run starts. Added a second compiled protected registry
+selection, independent exec-fixture config/manifest/store/activation inputs and
+a separate controller subtree. The new aetheri.p0.exec component uses a fresh
+install/generation/slot/artifact and native installation operation. Shared owner
+catalogue, content-addressed store and all existing stage/publication/activation
+code remain common. The controller never recreates the shared store for it and
+rejects old immutable identity/artifact reuse. No SQL/XML/version/library/policy
+change or additional resident process is introduced.
+
+Added ae_fixture_resolve_action: verify canonical bytes against an independently
+expected artifact, resolve the exact declared action, and copy owned executable,
+literal argv, file size and SHA-256. No shell/PATH expansion or main-to-run fallback.
+Native vector cases check all declared actions, limits, empty/Unicode arguments,
+hash mismatch, invalid/absent actions and unchanged failure output. This is metadata,
+not publisher enrollment, a code FD, a live broker admission or readiness.
+The exec boundary now accepts argv[0] plus eight literal manifest arguments. A real
+post-exec payload checks all nine argv entries unchanged; a tenth entry is rejected
+before exec. The payload also accepts its manifest-relative bin/probe argv[0].
+
+Before installing updated owned authorities, actual state showed pending=None,
+setup withdrawn and zero live generation leases/dispatches. An ignored guest-build
+snapshot, exec-original-before.json, captured every old install/generation/operation/
+step/dispatch/lease row and original config/store object inode/mode/ctime/hash.
+The guarded update-owned path then updated stopped authority/probe/helper images.
+The helper's implementation remains no-exec; terminal setup/profile history was
+not repurposed. No unacknowledged request, failed setup or catalogue was patched.
+
+Executed controller sequence: exec-fixture-prepare, exec-fixture-check,
+exec-fixture-store-prepare, exec-fixture-store-check, exec-fixture-activation-prepare
+and exec-fixture-activation-check. Native root observations bind independently
+preallocated objects. Staging is nonexecutable; publication retains exact container/
+payload inodes, seals MAC/modes/content and denies further setattr; first activation
+completes the original new operation atomically. Each check also repeats the exact
+accepted operation without changing receipt/content bytes or identities.
+
+Actual before/after comparison confirms every old business row remains present
+with identical column values, and all original protected config/publication objects
+retain inode/mode/ctime/hash. Both aetheri.p0.probe and aetheri.p0.exec are active,
+their generations committed and install gates closed. No live lease/dispatch is
+present. Original private data/bindings were not reassigned. The new package is an
+inert execution fixture, not an app run or new desktop feature. Its own private data
+and projected user binding do not exist yet; ordinary broker/data/setup selection
+still uses the original profile. Normal enforcing endpoint/app-denial checks pass
+after updating the authorities, and owned authority/probe units were stopped.
+
+Full native suites pass 32/32 Debug ASan/UBSan (137.62 s) and Release (125.85 s).
+After adding only maximum/overflow argument probes to tests, focused linux.execute
+passes Debug (1.52 s) and Release (0.31 s). Its 23 scenarios now include all eight
+literal extra arguments and deterministic ninth-extra-argument rejection. No
+production C code changed after the full suites. Host migration/wire tests pass
+29/29 (28.552 s), orchestration 36/36 (0.254 s), frozen runtime vectors 14/14 and
+isolated constraints 374 assertions. Timings are test evidence, not OS performance.
+
+After QMP system_powerdown, run_vm status verified recorded_process_alive=false
+and qmp_verified=false before a new offline boot. An initial SSH banner timeout
+was only a boot-readiness observation failure; the same live QEMU process/QMP
+remained verified and was not restarted. The subsequent SSH session succeeded.
+Normal enforcing endpoints/app denials passed on the new boot, then both owned
+services stopped. exec-fixture-store-check and exec-fixture-activation-check report
+cross_boot_reopen=true with original object inodes, sealed types, completed exact
+receipts, unchanged publication, closed gate and app_dispatched=false. This is
+normal reboot evidence, not power-loss recovery or target execution acceptance.
+
+Next: project the compatible installation into the user catalogue, allocate/enroll
+its own private DataEpoch, and connect durable target dispatch, actual registered
+process/image identity, readiness and independent drain/recovery. An executing
+starter needs a different contract from immutable no-exec setup withdrawal.
+The full OS, original desktop/apps/image and hardware acceptance goal stays active.

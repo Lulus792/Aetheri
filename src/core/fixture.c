@@ -195,3 +195,26 @@ int ae_fixture_decode(const uint8_t *bytes, size_t size, struct ae_fixture *outp
     *output = fixture;
     return 0;
 }
+
+int ae_fixture_resolve_action(const uint8_t *bytes,size_t size,const uint8_t expected[32],
+    const char *id,struct ae_fixture_command *output)
+{
+    if (id==NULL || output==NULL) return -EINVAL;
+    size_t length=strnlen(id,65);
+    if (length==0 || length>64) return -EINVAL;
+    for (size_t n=0;n<length;++n) if (!((id[n]>='a' && id[n]<='z') || (id[n]>='0' && id[n]<='9') || id[n]=='.' || id[n]=='_' || id[n]=='-')) return -EINVAL;
+    struct ae_fixture fixture;
+    int r=ae_fixture_verify_manifest(bytes,size,expected,&fixture);
+    if (r!=0) return r;
+    const struct ae_fixture_action *action=NULL;
+    for (uint32_t n=0;n<fixture.action_count;++n) if (fixture.actions[n].id.size==length && memcmp(fixture.actions[n].id.data,id,length)==0) action=&fixture.actions[n];
+    if (action==NULL) return -ENOENT;
+    const struct ae_fixture_file *file=&fixture.files[action->file_index];
+    struct ae_fixture_command command={.argc=action->argument_count+1,.file_size=file->size};
+    memcpy(command.sha256,file->sha256,32);
+    memcpy(command.executable,file->path.data,file->path.size);
+    memcpy(command.arguments[0],file->path.data,file->path.size);
+    for (uint32_t n=0;n<action->argument_count;++n) memcpy(command.arguments[n+1],action->arguments[n].data,action->arguments[n].size);
+    *output=command;
+    return 0;
+}

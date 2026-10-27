@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — one-way execution/image primitives tested; app-start integration remains next.
+27 October 2026 — separate execution fixture published/activated; real app-start integration remains next.
 
 ## Confirmed
 
@@ -13,6 +13,38 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The compatible aetheri.p0.exec fixture now has its own installation, generation,
+artifact, preallocated slot and native installation operation in the existing
+system catalogue. It passed staging, sealed no-replace publication and atomic
+first activation with exact retries. Its gate stays closed. Two compiled protected
+registry selections preserve the original fixture/configuration. The root controller
+tracks both and rejects reused immutable identities. All original package/config
+objects and old install/generation/operation/step/dispatch/lease rows matched the
+independent before/after snapshot. No private data was rebound or SQL patched.
+
+The core action resolver now copies an exact manifest-declared executable,
+literal argv and expected file size/hash from verified immutable metadata. It
+does not turn main into run or supply runtime admission. The execution boundary
+accepts argv[0] plus all eight manifest arguments, with actual maximum/overflow
+tests. Both full native suites pass 32/32 Debug ASan/UBSan (137.62 s) and Release
+(125.85 s); final expanded execution cases pass Debug/Release focused repeats
+(1.52/0.31 s). Host migration/wire tests pass 29/29 (28.552 s), orchestration 36/36
+(0.254 s), runtime vectors 14/14 and isolated constraints 374 assertions.
+Normal enforcing endpoint/app-denial checks also pass after the authority update.
+These timings are test evidence, not OS performance measurements.
+
+No new schema/wire version, dependency, policy permission or resident process was
+added. The installed authorities were updated only after verifying no unresolved
+setup/lease/dispatch; the no-exec helper still cannot run app code. The new fixture
+still needs an owner-scoped projected binding, its own private DataEpoch/allocation
+and the executing starter's durable dispatch/registration/readiness/drain contract.
+The existing live broker profile remains original-only. See the
+[fixture/action contract](../../spec/runtime.md#separate-execution-fixture-and-declared-actions).
+After verified old-process absence and an offline VM boot, publication and
+activation checks also report cross_boot_reopen=true with unchanged objects/
+completed receipts and gate closed. Normal enforcing endpoint/app-denial checks
+pass on that boot; owned services are stopped. No app run was dispatched.
 
 The internal [execution boundary](../../src/linux/execute.h) now verifies an exact
 held P0 ELF image, seals all internal descriptors, drops groups/IDs/capability sets,

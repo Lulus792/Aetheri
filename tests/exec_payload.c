@@ -21,7 +21,9 @@
 extern char **environ;
 int main(int argc,char **argv)
 {
-    CHECK(argc==1 && strcmp(argv[0],"aetheri-exec-probe")==0);
+    const char *scenario=getenv("AETHERI_SCENARIO"); CHECK(scenario!=NULL);
+    CHECK(argc==(strcmp(scenario,"arguments")==0 ? 9 : 1) && (strcmp(argv[0],"aetheri-exec-probe")==0 || strcmp(argv[0],"bin/probe")==0));
+    for (int n=1;n<argc;++n) CHECK(strcmp(argv[n],"literal;$HOME")==0);
     uid_t r,e,s; gid_t gr,ge,gs;
     CHECK(getresuid(&r,&e,&s)==0 && r==1000 && e==1000 && s==1000);
     CHECK(getresgid(&gr,&ge,&gs)==0 && gr==1000 && ge==1000 && gs==1000 && getgroups(0,NULL)==0);
@@ -54,7 +56,6 @@ int main(int argc,char **argv)
     CHECK(mmap(NULL,4096,PROT_READ|PROT_EXEC,MAP_PRIVATE,file,0)==MAP_FAILED && (errno==EACCES || errno==EPERM));
     CHECK(close(file)==0);
     CHECK(unlink("proof")==0);
-    const char *scenario=getenv("AETHERI_SCENARIO"); CHECK(scenario!=NULL);
     if (strcmp(scenario,"fast-exit")==0) return 125;
     sigemptyset(&mask); sigaddset(&mask,SIGTERM); CHECK(sigprocmask(SIG_BLOCK,&mask,NULL)==0);
     int signal_fd=signalfd(-1,&mask,SFD_CLOEXEC); CHECK(signal_fd>=0);

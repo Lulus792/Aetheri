@@ -193,6 +193,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Unknown dispatch preserves pending state. Test-only SYS_PTRACE/KILL belong to
   the parent harness; the exec boundary accepts neither. Actual app admission,
   observation, recovery and drain integration require separate evidence.
+- The separate aetheri.p0.exec fixture is now published/activated, gate closed.
+  Read spec/runtime.md's separate fixture/action section. Fixed original/exec
+  administrative registry selections share the existing store/catalogue but have
+  separate immutable inputs, slots, identities and receipts. The controller's
+  exec_fixture subtree preserves the original. Normal broker/data/no-exec paths
+  still select the original; no implicit main-to-run or DataEpoch rebinding.
+  core/fixture's action resolver returns owned literal argv/file metadata only.
+  The new fixture needs its own projected binding/data and executing start contract.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

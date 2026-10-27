@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 
-CASES=("formats","success","wrong-observation","environment","image","object","context","descriptors","caps","ambient","bounds","securebits","nnp","groups","gid","uid","signals","exec-error","before-exit","fast-exit","broken-reader")
+CASES=("formats","success","arguments","too-many-arguments","wrong-observation","environment","image","object","context","descriptors","caps","ambient","bounds","securebits","nnp","groups","gid","uid","signals","exec-error","before-exit","fast-exit","broken-reader")
 
 
 def fixture(root,payload):

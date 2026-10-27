@@ -179,12 +179,16 @@ static void child(const char *base_path,struct ae_image image,int error_fd,int o
     char context[560],case_value[128]; CHECK(snprintf(context,sizeof context,"AETHERI_EXPECTED_CONTEXT=%s",label)>0);
     CHECK(snprintf(case_value,sizeof case_value,"AETHERI_SCENARIO=%s",scenario)>0);
     char *arguments[]={"aetheri-exec-probe",NULL};
+    char *literal_arguments[11]={"aetheri-exec-probe"};
+    for (size_t n=1;n<10;++n) literal_arguments[n]="literal;$HOME";
+    if (strcmp(scenario,"arguments")==0) literal_arguments[9]=NULL;
     char *environment[]={"LANG=C.UTF-8",context,case_value,NULL};
     char *bad_environment[]={"LD_PRELOAD=/never/allowed",NULL};
     if (strcmp(scenario,"image")==0) image.digest[0]^=1;
     if (strcmp(scenario,"object")==0) image.inode++;
     struct ae_execute request={.image_fd=view,.data_fd=writable,.error_fd=error_fd,.uid=1000,.gid=1000,.image=&image,.label=label,
-        .argv=arguments,.envp=strcmp(scenario,"environment")==0 ? bad_environment : environment};
+        .argv=strcmp(scenario,"arguments")==0 || strcmp(scenario,"too-many-arguments")==0 ? literal_arguments : arguments,
+        .envp=strcmp(scenario,"environment")==0 ? bad_environment : environment};
     faults=1; ae_execute_target(&request);
 }
 int main(int argc,char **argv)
@@ -211,7 +215,7 @@ int main(int argc,char **argv)
     CHECK(close(errors[1])==0 && close(output[1])==0);
     struct ae_peer peer=AE_PEER_INIT; peer.pidfd=pidfd_open(pid,0); CHECK(peer.pidfd>=0);
     peer.connection_pid=pid; peer.connection_uid=1000; strcpy(peer.connection_label,label);
-    int live=strcmp(scenario,"success")==0 || strcmp(scenario,"wrong-observation")==0;
+    int live=strcmp(scenario,"success")==0 || strcmp(scenario,"wrong-observation")==0 || strcmp(scenario,"arguments")==0;
     if (live) {
         struct pollfd item={.fd=output[0],.events=POLLIN}; CHECK(poll(&item,1,9000)>0);
         char ready[6]; ssize_t received=read(output[0],ready,sizeof ready);
@@ -225,7 +229,7 @@ int main(int argc,char **argv)
          * current kernel executable under the owned ProcessFD independently. */
         struct ae_image wrong=image; wrong.inode++;
         result=marker;
-        CHECK(ae_image_match_process(&peer,1000,strcmp(scenario,"success")==0 ? &image : &wrong,&result)==(strcmp(scenario,"success")==0 ? 0 : -ESTALE));
+        CHECK(ae_image_match_process(&peer,1000,strcmp(scenario,"wrong-observation")==0 ? &wrong : &image,&result)==(strcmp(scenario,"wrong-observation")==0 ? -ESTALE : 0));
         if (strcmp(scenario,"success")==0) {
             CHECK(ae_image_equal(&result,&image));
             /* Also prove executable observation with final-owner credentials
@@ -249,7 +253,8 @@ int main(int argc,char **argv)
             result=marker; CHECK(ae_image_match_process(&peer,1001,&image,&result)==-EACCES && memcmp(&result,&marker,sizeof result)==0);
             mismatch=peer; strcpy(mismatch.connection_label,"unrelated"); result=marker;
             CHECK(ae_image_match_process(&mismatch,1000,&image,&result)==-ESTALE && memcmp(&result,&marker,sizeof result)==0);
-        } else CHECK(memcmp(&result,&marker,sizeof result)==0);
+        } else if (strcmp(scenario,"wrong-observation")==0) CHECK(memcmp(&result,&marker,sizeof result)==0);
+        else CHECK(ae_image_equal(&result,&image));
         CHECK(pidfd_send_signal(peer.pidfd,SIGTERM,NULL,0)==0);
     }
     int status; CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && WEXITSTATUS(status)==(live ? 0 : 125));
@@ -258,12 +263,12 @@ int main(int argc,char **argv)
     if (live || strcmp(scenario,"fast-exit")==0 || strcmp(scenario,"before-exit")==0 || strcmp(scenario,"broken-reader")==0) CHECK(count==0);
     else {
         CHECK(count==16 && memcmp(bytes,"AETHXER1",8)==0 && bytes[8]==0 && bytes[9]==0 && bytes[10]==0 && bytes[12]==0 && bytes[13]==0 && bytes[14]==0);
-        int phase=strcmp(scenario,"environment")==0 || strcmp(scenario,"nnp")==0 ? AE_EXEC_PROFILE : strcmp(scenario,"image")==0 || strcmp(scenario,"object")==0 ? AE_EXEC_IMAGE :
+        int phase=strcmp(scenario,"environment")==0 || strcmp(scenario,"nnp")==0 || strcmp(scenario,"too-many-arguments")==0 ? AE_EXEC_PROFILE : strcmp(scenario,"image")==0 || strcmp(scenario,"object")==0 ? AE_EXEC_IMAGE :
             strcmp(scenario,"context")==0 ? AE_EXEC_CONTEXT : strcmp(scenario,"descriptors")==0 ? AE_EXEC_DESCRIPTORS : strcmp(scenario,"caps")==0 ? AE_EXEC_CAPABILITIES :
             strcmp(scenario,"ambient")==0 || strcmp(scenario,"bounds")==0 || strcmp(scenario,"securebits")==0 ? AE_EXEC_CAPABILITIES :
             strcmp(scenario,"groups")==0 ? AE_EXEC_GROUPS : strcmp(scenario,"gid")==0 ? AE_EXEC_GID : strcmp(scenario,"uid")==0 ? AE_EXEC_UID :
             strcmp(scenario,"signals")==0 ? AE_EXEC_SIGNALS : AE_EXEC_CALL;
-        int error=phase==AE_EXEC_PROFILE ? EACCES : strcmp(scenario,"image")==0 ? EBADMSG : strcmp(scenario,"object")==0 ? ESTALE : phase==AE_EXEC_CALL ? ENOEXEC : EIO;
+        int error=strcmp(scenario,"too-many-arguments")==0 ? E2BIG : phase==AE_EXEC_PROFILE ? EACCES : strcmp(scenario,"image")==0 ? EBADMSG : strcmp(scenario,"object")==0 ? ESTALE : phase==AE_EXEC_CALL ? ENOEXEC : EIO;
         CHECK(bytes[11]==phase && bytes[15]==error);
     }
     CHECK(close(output[0])==0); if (errors[0]>=0) CHECK(close(errors[0])==0);

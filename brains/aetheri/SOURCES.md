@@ -1011,3 +1011,20 @@ The test's exact executable checks also pass under same-UID cap-zero credentials
 no SYS_PTRACE permission was added to a production authority. Tests and limitations
 are recorded in the [runtime contract](../../spec/runtime.md#native-one-way-execution-and-image-observation)
 and [journal](journal/2026-10-26-first-prototype.md#native-execution-boundary--27-october-2026).
+
+## Compatible fixture and action resolution — 27 October 2026
+
+This step changes original Aetheri code and uses the existing carrier/toolchain/
+library pins; it adopts no new external API or dependency. Authoritative sources:
+[fixed registry selection](../../src/authority/fixture.c),
+[controller](../../tools/p0_services.py),
+[owned action resolver](../../src/core/fixture.h),
+[native metadata cases](../../tests/test_fixture.c),
+[execution boundary cases](../../tests/test_execute.c) and
+[orchestration guards](../../tools/test_vm_tools.py).
+The enforcing guest's native transaction receipts, independent Python inventory/
+hash/inode checks and a before/after snapshot of all old business rows establish
+two separate active committed installations with closed gates. No code launch or
+data rebinding is inferred. Details and command sequence are in the
+[runtime contract](../../spec/runtime.md#separate-execution-fixture-and-declared-actions)
+and [journal](journal/2026-10-26-first-prototype.md#compatible-execution-fixture--27-october-2026).

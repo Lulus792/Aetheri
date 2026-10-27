@@ -670,3 +670,25 @@ test source/target MAC transitions are permitted. All target capabilities and
 inherited internal handles are removed. No public API/SQL/new dependency is needed
 for this primitive. A new compatible fixture and richer executing-process drain/
 recovery are the next integration step; old immutable tuples stay historical.
+
+## Keep compatible execution fixtures independent — 27 October 2026
+
+Use a separate aetheri.p0.exec component/install/generation/artifact and native
+operation, with independent protected registry files and a fresh preallocated
+slot. Reuse the proven stage/publication/activation implementation and existing
+content-addressed store/catalogue; do not fork their protocols or overwrite the
+original package, config, main reservations or private data. The two administrative
+profiles are compiled selections, never app-supplied paths. Keep both gates closed
+until their own admission prerequisites hold. Existing live broker/data/setup
+methods continue to select the original profile.
+
+Resolve an exact action from verified canonical manifest bytes into owned literal
+argv and expected file metadata. Preserve empty/UTF-8 arguments and allow the
+manifest's eight arguments plus argv[0] at the exec boundary. Unknown action means
+ENOENT, never main-to-run substitution or a shell fallback. This metadata helper
+does not confer publisher trust, filesystem/run admission or readiness.
+
+The compatible inert ELF is test infrastructure for the real start path, not an
+installed desktop app or proof of full launch. Give this installation its own user
+binding, DataEpoch/allocation and executing-starter recovery/drain contract next.
+No new dependency, policy grant, wire or schema version is needed for this step.

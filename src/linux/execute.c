@@ -65,7 +65,7 @@ static int profile(const struct ae_execute *p)
         p->image_fd==p->data_fd || p->image_fd==p->error_fd || p->data_fd==p->error_fd || p->uid==0 || p->uid==(uid_t)-1 || p->gid==0 || p->gid==(gid_t)-1 ||
         strnlen(p->label,512)==0 || strnlen(p->label,512)>=512) return -EINVAL;
     if (getuid()!=0 || geteuid()!=0 || getgid()!=0 || getegid()!=0 || security_getenforce()!=1 || prctl(PR_GET_NO_NEW_PRIVS,0L,0L,0L,0L)!=1) return -EACCES;
-    int r=single_thread(); if (r==0) r=vectors(p->argv,8,0); if (r==0) r=vectors(p->envp,16,1);
+    int r=single_thread(); if (r==0) r=vectors(p->argv,9,0); if (r==0) r=vectors(p->envp,16,1);
     struct stat s; struct statvfs fs;
     if (r==0 && fstat(p->error_fd,&s)!=0) r=-errno;
     int flags=r==0 ? fcntl(p->error_fd,F_GETFL) : -1,descriptor=r==0 ? fcntl(p->error_fd,F_GETFD) : -1;

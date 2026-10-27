@@ -51,4 +51,18 @@ int ae_fixture_verify_manifest(const uint8_t *bytes, size_t size,
  */
 int ae_fixture_verify_file(const struct ae_fixture_file *file, int fd);
 
+/* Owned metadata for one exact declared action. argv[0] is its manifest-relative
+ * executable, followed by at most eight literal arguments. No shell expansion,
+ * PATH lookup, environment, fallback action or filesystem authority. Manifest
+ * bytes must be immutable for the call; expected artifact is independently
+ * trusted. Output does not borrow those bytes and is unchanged on error. */
+struct ae_fixture_command {
+    char executable[257],arguments[AE_FIXTURE_ARGUMENTS+1][257];
+    uint32_t argc;
+    uint64_t file_size;
+    uint8_t sha256[32];
+};
+int ae_fixture_resolve_action(const uint8_t *bytes,size_t size,const uint8_t expected_artifact[32],
+    const char *action,struct ae_fixture_command *output);
+
 #endif

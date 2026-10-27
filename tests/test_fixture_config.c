@@ -46,6 +46,13 @@ static void setup_profile(void)
 }
 int main(void)
 {
+    const struct ae_fixture_registry *legacy_registry=ae_fixture_registry(AE_FIXTURE_ORIGINAL),*exec_registry=ae_fixture_registry(AE_FIXTURE_EXEC);
+    CHECK(legacy_registry!=NULL && exec_registry!=NULL && legacy_registry!=exec_registry);
+    CHECK(strcmp(legacy_registry->config,"/var/lib/aetheri-p0/registry/fixture.conf")==0 && strcmp(exec_registry->config,"/var/lib/aetheri-p0/registry/exec-fixture.conf")==0);
+    CHECK(ae_fixture_registry((enum ae_fixture_selection)-1)==NULL && ae_fixture_registry((enum ae_fixture_selection)2)==NULL);
+    CHECK(ae_authority_fixture((enum ae_fixture_selection)2,NULL,0,NULL)==-EINVAL);
+    CHECK(ae_authority_fixture_publication((enum ae_fixture_selection)2,NULL,0)==-EINVAL);
+    CHECK(ae_authority_fixture_activate((enum ae_fixture_selection)2,NULL,NULL)==-EINVAL);
     setup_profile();
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES+1U] = {0};
     memcpy(bytes,"AETHFIC1",8);

@@ -441,7 +441,7 @@ static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_
         strcmp(controller.unit,unit)!=0 || memcmp(controller.boot,authority->boot.bytes,16)!=0)) result=-EACCES;
     if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 controller unit required"); }
     struct ae_fixture_request selection;
-    result=ae_authority_fixture_request(&selection);
+    result=ae_authority_fixture_request(AE_FIXTURE_ORIGINAL,&selection);
     if (result==0 && memcmp(selection.scope,authority->identity.owner,16)!=0) result=-ESTALE;
     if (result==0) result=check_system(authority);
     struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM};
@@ -617,7 +617,7 @@ static int method_reserve_launch(sd_bus_message *message,void *userdata,sd_bus_e
      * caller claims are not logind authorization or general installed app policy. */
     struct ae_fixture_request fixture;
     if (strcmp(request.action,"main")!=0 || strcmp(request.session,"p0")!=0 || strcmp(request.seat,"none")!=0) result=-EACCES;
-    if (result==0) result=ae_authority_fixture_request(&fixture);
+    if (result==0) result=ae_authority_fixture_request(AE_FIXTURE_ORIGINAL,&fixture);
     if (result==0 && (memcmp(request.install,fixture.install,16)!=0 || memcmp(request.generation,fixture.generation,16)!=0)) result=-EACCES;
     uint8_t data_bytes[AE_DATA_CONFIG_BYTES]; struct ae_data_enrollment data;
     if (result==0) result=app_data_config(ROOT "/registry/app-data.conf",data_bytes,sizeof data_bytes);
@@ -1036,14 +1036,23 @@ static int stop_signal(sd_event_source *source, const struct signalfd_siginfo *s
 
 int main(int argc, char **argv)
 {
-    int admit=argc==3 && strcmp(argv[1],"system")==0 && strcmp(argv[2],"--admit-fixture")==0;
-    if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
-        (argc == 3 && !admit && strcmp(argv[2], "--init") != 0 &&
-         !(strcmp(argv[1], "system") == 0 && (strcmp(argv[2], "--recover-setup") == 0 || strcmp(argv[2], "--enroll-account") == 0 || strcmp(argv[2], "--fixture-observe") == 0 || strcmp(argv[2], "--fixture-stage") == 0 || strcmp(argv[2], "--fixture-store-observe") == 0 || strcmp(argv[2], "--fixture-store-publish") == 0 || strcmp(argv[2], "--fixture-activate") == 0)) &&
-         !(strcmp(argv[1], "user") == 0 && (strcmp(argv[2], "--storage-publish") == 0 || strcmp(argv[2], "--storage-verify") == 0 || strcmp(argv[2],"--data-observe")==0 || strcmp(argv[2],"--data-enroll")==0)))) {
-        fputs("Usage: aetheri-authority system|user [--init]; system --recover-setup|--enroll-account|--fixture-observe|--fixture-stage|--fixture-store-observe|--fixture-store-publish|--fixture-activate; user --storage-publish|--storage-verify|--data-observe|--data-enroll\n", stderr); return 2;
+    enum ae_fixture_selection selection=AE_FIXTURE_ORIGINAL;
+    const char *option=argc==3 ? argv[2] : "";
+    char normalized[64];
+    if (strncmp(option,"--exec-fixture-",15)==0) {
+        int length=snprintf(normalized,sizeof normalized,"--%s",option+7);
+        if (length<0 || length>=(int)sizeof normalized) return 2;
+        selection=AE_FIXTURE_EXEC; option=normalized;
     }
-    int initialize = argc == 3 && strcmp(argv[2], "--init") == 0;
+
+    int admit=argc==3 && strcmp(argv[1],"system")==0 && strcmp(option,"--admit-fixture")==0;
+    if ((argc != 2 && argc != 3) || (strcmp(argv[1], "system") != 0 && strcmp(argv[1], "user") != 0) ||
+        (argc == 3 && !admit && strcmp(option, "--init") != 0 &&
+         !(strcmp(argv[1], "system") == 0 && (strcmp(option, "--recover-setup") == 0 || strcmp(option, "--enroll-account") == 0 || strcmp(option, "--fixture-observe") == 0 || strcmp(option, "--fixture-stage") == 0 || strcmp(option, "--fixture-store-observe") == 0 || strcmp(option, "--fixture-store-publish") == 0 || strcmp(option, "--fixture-activate") == 0)) &&
+         !(strcmp(argv[1], "user") == 0 && (strcmp(option, "--storage-publish") == 0 || strcmp(option, "--storage-verify") == 0 || strcmp(option,"--data-observe")==0 || strcmp(option,"--data-enroll")==0)))) {
+        fputs("Usage: aetheri-authority system|user [--init]; system --recover-setup|--enroll-account|--fixture-observe|--fixture-stage|--fixture-store-observe|--fixture-store-publish|--fixture-activate; exec fixture actions use --exec-fixture-*; user --storage-publish|--storage-verify|--data-observe|--data-enroll\n", stderr); return 2;
+    }
+    int initialize = argc == 3 && strcmp(option, "--init") == 0;
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
                                   .uid = geteuid(), .broker = AE_BROKER_INIT};
     int system = authority.identity.kind == AE_CATALOGUE_SYSTEM;
@@ -1059,19 +1068,19 @@ int main(int argc, char **argv)
         struct authority account = {.uid = 1000, .identity.kind = AE_CATALOGUE_USER};
         int64_t revision;
         result = load_registry(&account, NULL);
-        if (result == 0) result = argc == 3 && (initialize || strcmp(argv[2], "--enroll-account") == 0) ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
+        if (result == 0) result = argc == 3 && (initialize || strcmp(option, "--enroll-account") == 0) ? ae_catalogue_enroll_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid) :
                                             ae_catalogue_check_account(authority.catalogue, account.identity.owner, (uint32_t)account.uid, &revision);
     }
-    if (result == 0 && system && argc == 3 && strcmp(argv[2],"--recover-setup")==0)
+    if (result == 0 && system && argc == 3 && strcmp(option,"--recover-setup")==0)
         result=ae_setup_recover_unbound(authority.catalogue,authority.boot.bytes);
-    else if (result == 0 && system && argc == 3 && strcmp(argv[2],"--fixture-activate")==0)
-        result = ae_authority_fixture_activate(authority.catalogue,authority.boot.bytes);
-    else if (result == 0 && system && argc == 3 && strncmp(argv[2], "--fixture-store-", 16) == 0)
-        result = ae_authority_fixture_publication(authority.catalogue, strcmp(argv[2], "--fixture-store-observe") == 0);
-    else if (result == 0 && system && argc == 3 && strncmp(argv[2], "--fixture-", 10) == 0)
-        result = ae_authority_fixture(authority.catalogue, strcmp(argv[2], "--fixture-observe") == 0, authority.boot.bytes);
-    if (result == 0 && !system && argc == 3 && strncmp(argv[2],"--data-",7)==0) result=app_data_action(&authority,state_path,strcmp(argv[2],"--data-enroll")==0);
-    else if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(argv[2], "--storage-publish") == 0);
+    else if (result == 0 && system && argc == 3 && strcmp(option,"--fixture-activate")==0)
+        result = ae_authority_fixture_activate(selection,authority.catalogue,authority.boot.bytes);
+    else if (result == 0 && system && argc == 3 && strncmp(option, "--fixture-store-", 16) == 0)
+        result = ae_authority_fixture_publication(selection,authority.catalogue, strcmp(option, "--fixture-store-observe") == 0);
+    else if (result == 0 && system && argc == 3 && strncmp(option, "--fixture-", 10) == 0)
+        result = ae_authority_fixture(selection,authority.catalogue, strcmp(option, "--fixture-observe") == 0, authority.boot.bytes);
+    if (result == 0 && !system && argc == 3 && strncmp(option,"--data-",7)==0) result=app_data_action(&authority,state_path,strcmp(option,"--data-enroll")==0);
+    else if (result == 0 && !system && argc == 3 && !initialize) result = storage_action(&authority, state_path, strcmp(option, "--storage-publish") == 0);
     if (argc == 3 && !admit) {
         int closed = ae_catalogue_close(&authority.catalogue);
         if (result == 0) result = closed;
@@ -1083,7 +1092,7 @@ int main(int argc, char **argv)
     if (result == 0 && (!uuid4(authority.runtime.bytes) || !uuid4(authority.events.bytes) ||
                        memcmp(authority.runtime.bytes, authority.events.bytes, AE_ID_BYTES) == 0)) result = -EIO;
     if (result == 0) result = ae_catalogue_begin_runtime(authority.catalogue, authority.boot.bytes, authority.runtime.bytes);
-    if (result==0 && admit) result=ae_authority_fixture_admit(authority.catalogue,authority.boot.bytes,authority.runtime.bytes);
+    if (result==0 && admit) result=ae_authority_fixture_admit(AE_FIXTURE_ORIGINAL,authority.catalogue,authority.boot.bytes,authority.runtime.bytes);
     sd_bus *bus = NULL;
     sd_event *event = NULL;
     sigset_t signals;

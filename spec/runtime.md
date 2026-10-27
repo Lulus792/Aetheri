@@ -1916,11 +1916,13 @@ the eventual ready-data fence remain separate integration requirements.
 
 ### Executed test boundary
 
-linux.execute runs 21 owned-fixture scenarios: malformed image/profile checks,
+linux.execute runs 23 owned-fixture scenarios: malformed image/profile checks,
 real exec and exact-image observation, wrong identity/image, credential/descriptor/
 signal faults, failures after bounding/securebits changes, precise ENOEXEC despite
 later errno changes, pre-exec/payload exit 125, and an absent error reader before
-fork. Malformed ELF bytes are verified as data, never passed to kernel binfmt.
+fork. The manifest limit of eight literal arguments plus argv[0] executes intact;
+a tenth argv entry fails with E2BIG. Malformed ELF bytes are verified as data,
+never passed to kernel binfmt.
 The inert payload checks all IDs, groups/capability sets, locked securebits, NNP,
 core limit, label, exact environment, signal reset, FD inventory and private data
 write/read/unlink. It also attempts a real executable mmap from noexec data.
@@ -1958,7 +1960,75 @@ evidence. A known failed/drained test can be retired with --cleanup after inspec
 an unacknowledged request cannot. No retained private data, catalogue history or
 installed no-exec helper is modified by this test.
 
-The next integration needs a new compatible manifest/action and c33,c34 fixture,
+The compatible fixture described below now exists. The next integration needs
 durable dispatch before execution, exact retained process/invocation observation,
 actual app registration/readiness and richer drain/recovery than no-exec withdrawal.
 Passing this primitive's tests does not satisfy those gates.
+
+## Separate execution fixture and declared actions
+
+The retained aetheri.p0.probe package is immutable and expects c31,c32; its old
+main reservations remain historical. A separate aetheri.p0.exec installation now
+uses a sealed copy of the inert exec payload. It accepts a manifest-relative
+argv[0] and checks its actual context against a trusted starter-supplied label,
+so it can test the planned c33,c34 execution profile. It is a development fixture,
+not a desktop application or a registered run. Its action is run, executable
+bin/probe, with no additional arguments. It also includes share/message.
+
+The new fixture has fresh install/generation/slot/artifact and operation identities.
+It follows the same native intent, stage, no-replace publication and first-activation
+transactions, in the existing owner catalogue and shared content-addressed store.
+It does not copy the old catalogue, relabel the old package, reinterpret old requests
+or attach the old private data to a different installation. Its gate stays closed;
+the existing live broker admission still selects the original protected profile.
+Public launch and DispatchLaunch remain unsupported.
+
+ae_fixture_registry accepts only two compiled administrative selections, original
+and exec. Each selects fixed protected config/manifest/publication/activation paths.
+The latter use registry/exec-fixture.conf, exec-fixture.manifest,
+exec-fixture-store.conf and exec-fixture-activation.conf. The existing binary formats
+and integrity checks are unchanged. The matching exec-admission.conf path is
+reserved for later integration; no such file or admission is created here. Arbitrary
+registry paths and profile claims from apps are not accepted. The store remains
+store/sha256/ArtifactId; each preallocated fixtures/slot belongs to its own intent.
+
+The root-only controller keeps the second fixture's receipts under exec_fixture
+in its existing record. Shared identities, unit inventory, pending-dispatch guard
+and stable carrier lock remain common. Every verification checks both fixture
+trees. The controller rejects reused original plan/operation/request/install/
+generation/slot identities and artifacts. It reuses the independently enrolled
+store root and never recreates it for a second package. Existing cleanup refuses
+either prepared installation. This is still preallocated P0 infrastructure, not
+general package selection, dynamic allocation or a production update protocol.
+
+Explicit guest controller actions (each takes the existing record/lock):
+
+```text
+python3 tools/p0_services.py exec-fixture-prepare
+python3 tools/p0_services.py exec-fixture-check
+python3 tools/p0_services.py exec-fixture-store-prepare
+python3 tools/p0_services.py exec-fixture-store-check
+python3 tools/p0_services.py exec-fixture-activation-prepare
+python3 tools/p0_services.py exec-fixture-activation-check
+```
+
+Run as root only in the registered guest, with reviewed built inputs and stopped
+owned authorities. System-domain administrative units use --exec-fixture-observe,
+--exec-fixture-stage, --exec-fixture-store-observe, --exec-fixture-store-publish or
+--exec-fixture-activate. These exit without becoming a protocol endpoint. Unknown
+dispatch still preserves its original unit and pending request; no retry is inferred.
+Completed package receipts are never refreshed into a new intent on retry.
+
+ae_fixture_resolve_action is an internal metadata helper for future start admission.
+It verifies immutable manifest bytes against an independently expected artifact,
+finds the exact declared action and returns owned executable/argv/file-size/hash
+metadata. argv[0] is the manifest path, followed by at most eight literal arguments;
+empty arguments and UTF-8 text remain intact. No shell expansion, PATH search or
+main-to-run fallback occurs. Undeclared actions return ENOENT; invalid action tokens
+return EINVAL; failed calls preserve output. This helper does not authenticate a
+publisher, open code, admit a run or prove execution. Its output still needs the
+Linux image/view checks and the durable Root/User launch contract.
+
+The next step must give the new installation its own projected binding and private
+DataEpoch/allocation, then connect real run dispatch, process registration/image
+evidence, readiness and drain. No executing starter can use no-exec withdrawal.

@@ -149,5 +149,7 @@ remain unchanged.
 Implementation in progress: contract tooling, dedicated Linux carrier and native
 C17 core, confined endpoints, supervised no-exec setup and isolated one-way
 execution/image primitives. Their connection to real app starts remains next.
+An independent compatible execution fixture is now published/activated alongside
+the original. Its own data/binding and durable target-start integration remain next.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

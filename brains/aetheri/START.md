@@ -1,7 +1,7 @@
 # Start here
 
 Aetheri is a planned Linux-based personal desktop OS with original applications.
-Updated 27 October 2026 after isolated native execution and enforcing domain tests.
+Updated 27 October 2026 after publishing a separate compatible execution fixture.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

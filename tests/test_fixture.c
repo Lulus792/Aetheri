@@ -1,4 +1,5 @@
 #include "core/fixture.h"
+#include "core/digest.h"
 
 #include <errno.h>
 #include <inttypes.h>
@@ -75,6 +76,23 @@ int main(int argc, char **argv)
         if (accepted) {
             CHECK(result == 0);
             dump(&fixture);
+            uint8_t hash[32]; CHECK(ae_sha256_bytes(bytes,size,hash)==0);
+            struct ae_fixture_command command,marker; memset(&marker,0xa5,sizeof marker);
+            for (uint32_t action=0;action<fixture.action_count;++action) {
+                const struct ae_fixture_action *declared=&fixture.actions[action];
+                char id[65]={0}; memcpy(id,declared->id.data,declared->id.size);
+                CHECK(ae_fixture_resolve_action(bytes,size,hash,id,&command)==0);
+                const struct ae_fixture_file *file=&fixture.files[declared->file_index];
+                CHECK(command.argc==declared->argument_count+1 && command.file_size==file->size && memcmp(command.sha256,file->sha256,32)==0);
+                CHECK(strlen(command.executable)==file->path.size && memcmp(command.executable,file->path.data,file->path.size)==0 && strcmp(command.arguments[0],command.executable)==0);
+                for (uint32_t arg=0;arg<declared->argument_count;++arg) CHECK(strlen(command.arguments[arg+1])==declared->arguments[arg].size && memcmp(command.arguments[arg+1],declared->arguments[arg].data,declared->arguments[arg].size)==0);
+            }
+            command=marker;
+            CHECK(ae_fixture_resolve_action(bytes,size,hash,"action-not-declared-0123456789",&command)==-ENOENT && memcmp(&command,&marker,sizeof command)==0);
+            CHECK(ae_fixture_resolve_action(bytes,size,hash,"run;echo",&command)==-EINVAL && memcmp(&command,&marker,sizeof command)==0);
+            CHECK(ae_fixture_resolve_action(bytes,size,hash,"",&command)==-EINVAL && memcmp(&command,&marker,sizeof command)==0);
+            hash[0]^=1;
+            CHECK(ae_fixture_resolve_action(bytes,size,hash,"run",&command)==-EBADMSG && memcmp(&command,&marker,sizeof command)==0);
             if (n == 0) {
                 for (size_t prefix = 0; prefix < size; ++prefix) {
                     memcpy(&fixture, &unchanged, sizeof fixture);

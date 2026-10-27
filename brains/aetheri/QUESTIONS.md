@@ -58,9 +58,12 @@ READY is not app readiness. The no-exec release proof cannot cover executing cod
 The retained trusted fixture's declared action is run; older journal-only probes
 used synthetic main. New executable starts must resolve the actual manifest action
 and preserve old immutable tuples instead of interpreting main as run. The retained
-binary's c31,c32 expectation also differs from enrolled data's c33,c34; publish a
-new compatible fixture/generation rather than mutating the old package. This is an
-implementation gate, not a request to change the accepted product architecture.
+binary's c31,c32 expectation differs from enrolled data's c33,c34. A separate
+aetheri.p0.exec fixture is now published/activated with a closed gate; the old
+package/tuples remain unchanged. Exact manifest-action resolution now exists as
+an internal metadata helper. Next project the new installation, give it its own
+private data/allocation and integrate executing dispatch/readiness/drain. These
+are implementation gates, not requests to reopen the accepted architecture.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

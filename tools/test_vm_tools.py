@@ -16,6 +16,47 @@ import test_execute_policy as execute
 
 
 class VmTools(unittest.TestCase):
+    def test_execution_fixture_cannot_reuse_original_install_or_slot_identity(self):
+        def fixture(offset):
+            ids={key:f"000000000000400080000000{n+offset:08x}" for n,key in enumerate(services.FIXTURE_IDS,1)}
+            ids["scope"]="00000000000040008000000000000002"
+            ids["artifact"]=f"{offset:064x}"; return ids
+        record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
+                "epochs":{"system":"00000000000040008000000000000003","user":"00000000000040008000000000000004"},
+                "units":[],"pending":None,"fixture":fixture(30),"fixture_publication":{},"exec_fixture":{"fixture":fixture(60)}}
+        services.validate_record(record)
+        for key in ("plan","operation","request_key","install","generation","slot","artifact"):
+            changed=json.loads(json.dumps(record)); changed["exec_fixture"]["fixture"][key]=record["fixture"][key]
+            with self.assertRaisesRegex(RuntimeError,"aliases"): services.validate_record(changed)
+
+    def test_execution_fixture_keeps_original_selection_and_paths(self):
+        record={"fixture":{"slot":"original-slot","artifact":"original-artifact"},
+                "exec_fixture":{"fixture":{"slot":"new-slot","artifact":"new-artifact"}}}
+        before=json.dumps(record,sort_keys=True)
+        old=services.fixture_paths(record); new=services.fixture_paths(record,"exec")
+        self.assertEqual(old["store"],new["store"])
+        for name in ("parent","source","staging","container","target","config","manifest","store_config","activation_config"):
+            self.assertNotEqual(old[name],new[name])
+        self.assertEqual(old["config"].name,"fixture.conf"); self.assertEqual(new["config"].name,"exec-fixture.conf")
+        self.assertEqual(json.dumps(record,sort_keys=True),before)
+        with self.assertRaises(ValueError): services.fixture_paths(record,"../arbitrary")
+
+    def test_execution_fixture_action_is_offline_system_administration(self):
+        record={"token":"00000000-0000-4000-8000-000000000001","owner":"00000000000040008000000000000002",
+                "epochs":{"system":"00000000000040008000000000000003","user":"00000000000040008000000000000004"},
+                "pending":None,"units":[],"exec_fixture":{"fixture":{"slot":"new-slot","artifact":"new-artifact"}}}
+        with patch.object(services,"save"),patch.object(services,"run",return_value="") as command:
+            unit=services.start_unit(record,"system",fixture="store-publish",fixture_profile="exec")
+            self.assertIn("-system-fixture-exec-store-publish-",unit)
+            self.assertEqual(command.call_args.args[-1],"--exec-fixture-store-publish")
+            self.assertIn("--service-type=exec",command.call_args.args)
+            self.assertIn("--property=CapabilityBoundingSet=",command.call_args.args)
+            self.assertIn("--property=ReadOnlyPaths="+str(services.fixture_paths(record,"exec")["source"]),command.call_args.args)
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            for kwargs in (dict(),dict(fixture="stage",role="user"),dict(fixture="stage",admit=True),dict(fixture="arbitrary")):
+                role=kwargs.pop("role","system")
+                with self.assertRaises(ValueError): services.start_unit(record,role,fixture_profile="exec",**kwargs)
+
     def test_execute_retirement_preserves_unacknowledged_dispatch(self):
         root=MagicMock(spec=Path); marker=MagicMock(spec=Path)
         root.__truediv__.return_value=marker

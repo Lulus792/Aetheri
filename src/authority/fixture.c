@@ -21,6 +21,15 @@
 
 #define ROOT "/var/lib/aetheri-p0"
 
+const struct ae_fixture_registry *ae_fixture_registry(enum ae_fixture_selection selection)
+{
+    static const struct ae_fixture_registry profiles[]={
+        {ROOT "/registry/fixture.conf",ROOT "/registry/fixture.manifest",ROOT "/registry/fixture-store.conf",ROOT "/registry/fixture-activation.conf",ROOT "/registry/admission.conf"},
+        {ROOT "/registry/exec-fixture.conf",ROOT "/registry/exec-fixture.manifest",ROOT "/registry/exec-fixture-store.conf",ROOT "/registry/exec-fixture-activation.conf",ROOT "/registry/exec-admission.conf"}
+    };
+    return selection==AE_FIXTURE_ORIGINAL || selection==AE_FIXTURE_EXEC ? &profiles[selection] : NULL;
+}
+
 static uint64_t number(const uint8_t *bytes, size_t size)
 {
     uint64_t value = 0;
@@ -242,17 +251,19 @@ static int no_executable_mapping(int root, const struct ae_fixture_file *file)
     return close_owned(fd, result);
 }
 
-int ae_authority_fixture(struct ae_catalogue *catalogue, int observe, const uint8_t current_boot[16])
+int ae_authority_fixture(enum ae_fixture_selection selection,struct ae_catalogue *catalogue, int observe, const uint8_t current_boot[16])
 {
+    const struct ae_fixture_registry *registry=ae_fixture_registry(selection);
+    if (registry==NULL) return -EINVAL;
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES];
     uint8_t *manifest = malloc(AE_FIXTURE_MAX_BYTES);
     if (manifest == NULL) return -ENOMEM;
     size_t size, config_size;
     struct ae_fixture_config config;
     struct ae_fixture fixture;
-    int result = protected_bytes(ROOT "/registry/fixture.conf", bytes, sizeof bytes, &config_size);
+    int result = protected_bytes(registry->config, bytes, sizeof bytes, &config_size);
     if (result == 0) result = ae_fixture_config_decode(bytes, config_size, &config);
-    if (result == 0) result = protected_bytes(ROOT "/registry/fixture.manifest", manifest, AE_FIXTURE_MAX_BYTES, &size);
+    if (result == 0) result = protected_bytes(registry->manifest, manifest, AE_FIXTURE_MAX_BYTES, &size);
     if (result == 0) result = ae_fixture_verify_manifest(manifest, size, config.request.artifact, &fixture);
     if (result == 0 && memcmp(fixture.publisher, config.request.publisher, 16) != 0) result = -ESTALE;
     char slot[33], parent_path[256], source_path[288], stage_path[288];
@@ -397,8 +408,10 @@ static int no_store_setattr(int root,mode_t mode)
     return errno==EACCES || errno==EPERM ? 0 : -errno;
 }
 
-int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
+int ae_authority_fixture_publication(enum ae_fixture_selection selection,struct ae_catalogue *catalogue,int observe)
 {
+    const struct ae_fixture_registry *registry=ae_fixture_registry(selection);
+    if (registry==NULL) return -EINVAL;
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES],publication_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],stage_digest[32],evidence[32];
     uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES);
     if (manifest==NULL) return -ENOMEM;
@@ -407,14 +420,14 @@ int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
     struct ae_fixture_store_config publication_config;
     struct ae_fixture fixture;
     struct ae_fixture_progress progress={0};
-    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    int result=protected_bytes(registry->config,bytes,sizeof bytes,&config_size);
     if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
     if (result==0) result=ae_sha256_bytes(bytes,sizeof bytes,stage_digest);
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&size);
+    if (result==0) result=protected_bytes(registry->manifest,manifest,AE_FIXTURE_MAX_BYTES,&size);
     if (result==0) result=ae_fixture_verify_manifest(manifest,size,config.request.artifact,&fixture);
     if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,size,&progress);
     if (result==0 && (progress.step!=AE_FIXTURE_READY || !progress.evidence_present || memcmp(progress.evidence,stage_digest,32)!=0)) result=-ESTALE;
-    if (result==0 && !observe) result=protected_bytes(ROOT "/registry/fixture-store.conf",publication_bytes,sizeof publication_bytes,&publication_size);
+    if (result==0 && !observe) result=protected_bytes(registry->publication,publication_bytes,sizeof publication_bytes,&publication_size);
     if (result==0 && !observe) result=ae_fixture_store_config_decode(publication_bytes,publication_size,&publication_config);
     if (result==0 && !observe && memcmp(publication_config.stage_digest,stage_digest,32)!=0) result=-ESTALE;
     if (result==0 && !observe) result=ae_sha256_bytes(publication_bytes,sizeof publication_bytes,evidence);
@@ -509,8 +522,10 @@ int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
     return result;
 }
 
-int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t current_boot[16])
+int ae_authority_fixture_activate(enum ae_fixture_selection selection,struct ae_catalogue *catalogue,const uint8_t current_boot[16])
 {
+    const struct ae_fixture_registry *registry=ae_fixture_registry(selection);
+    if (registry==NULL) return -EINVAL;
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES],store_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],activation_bytes[AE_FIXTURE_ACTIVATION_CONFIG_BYTES],store_digest[32];
     uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES);
     if (manifest==NULL) return -ENOMEM;
@@ -518,35 +533,37 @@ int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t c
     struct ae_fixture_config config;
     struct ae_fixture_activation activation;
     struct ae_fixture_progress progress={0};
-    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    int result=protected_bytes(registry->config,bytes,sizeof bytes,&config_size);
     if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&size);
+    if (result==0) result=protected_bytes(registry->manifest,manifest,AE_FIXTURE_MAX_BYTES,&size);
     if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,size,&progress);
     if (result==0 && (!progress.publication_present || progress.publication_step!=AE_FIXTURE_READY)) result=-EINVAL;
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture-store.conf",store_bytes,sizeof store_bytes,&store_size);
+    if (result==0) result=protected_bytes(registry->publication,store_bytes,sizeof store_bytes,&store_size);
     if (result==0 && store_size!=sizeof store_bytes) result=-EBADMSG;
     if (result==0) result=ae_sha256_bytes(store_bytes,store_size,store_digest);
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture-activation.conf",activation_bytes,sizeof activation_bytes,&activation_size);
+    if (result==0) result=protected_bytes(registry->activation,activation_bytes,sizeof activation_bytes,&activation_size);
     if (result==0) result=ae_fixture_activation_config_decode(activation_bytes,activation_size,&activation);
     if (result==0) result=ae_sha256_bytes(activation_bytes,activation_size,activation.expected_evidence);
     if (result==0 && memcmp(activation.publication_evidence,store_digest,32)!=0) result=-ESTALE;
     /* Before first activation, repeat exact object/label/mode/hash/denial/flush
      * checks on already applied publication. Completed retries return the same
      * historical receipt, even after a newer generation or removal; no rearm. */
-    if (result==0 && !progress.activation_present) result=ae_authority_fixture_publication(catalogue,0);
+    if (result==0 && !progress.activation_present) result=ae_authority_fixture_publication(selection,catalogue,0);
     if (result==0) result=ae_catalogue_fixture_activate(catalogue,&config.request,manifest,size,&activation,current_boot,&progress);
     if (result==0) puts("fixture-activation receipt verified; no app dispatched by this action; receipt is not launch readiness");
     free(manifest);
     return result;
 }
 
-int ae_authority_fixture_admit(struct ae_catalogue *catalogue,const uint8_t boot[16],const uint8_t runtime[16])
+int ae_authority_fixture_admit(enum ae_fixture_selection selection,struct ae_catalogue *catalogue,const uint8_t boot[16],const uint8_t runtime[16])
 {
+    const struct ae_fixture_registry *registry=ae_fixture_registry(selection);
+    if (registry==NULL) return -EINVAL;
     uint8_t admission[96],bytes[AE_FIXTURE_CONFIG_BYTES],store_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],digest[32];
     uint8_t *manifest=malloc(AE_FIXTURE_MAX_BYTES),*stored=malloc(AE_FIXTURE_MAX_BYTES);
     if (manifest==NULL || stored==NULL) { free(manifest); free(stored); return -ENOMEM; }
     size_t size,config_size,store_size,manifest_size;
-    int result=protected_bytes(ROOT "/registry/admission.conf",admission,sizeof admission,&size);
+    int result=protected_bytes(registry->admission,admission,sizeof admission,&size);
     struct ae_catalogue_info info;
     if (result==0) result=ae_catalogue_get_info(catalogue,&info);
     uint64_t baseline=0,install_revision=0,gate_revision=0;
@@ -561,14 +578,14 @@ int ae_authority_fixture_admit(struct ae_catalogue *catalogue,const uint8_t boot
     struct ae_fixture_store_config publication;
     struct ae_fixture fixture;
     struct ae_fixture_progress progress;
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&config_size);
+    if (result==0) result=protected_bytes(registry->config,bytes,sizeof bytes,&config_size);
     if (result==0) result=ae_fixture_config_decode(bytes,config_size,&config);
     if (result==0 && (memcmp(config.request.install,admission+48,16)!=0 || memcmp(config.request.generation,admission+64,16)!=0)) result=-ESTALE;
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture-store.conf",store_bytes,sizeof store_bytes,&store_size);
+    if (result==0) result=protected_bytes(registry->publication,store_bytes,sizeof store_bytes,&store_size);
     if (result==0) result=ae_fixture_store_config_decode(store_bytes,store_size,&publication);
     if (result==0) result=ae_sha256_bytes(bytes,config_size,digest);
     if (result==0 && memcmp(digest,publication.stage_digest,32)!=0) result=-ESTALE;
-    if (result==0) result=protected_bytes(ROOT "/registry/fixture.manifest",manifest,AE_FIXTURE_MAX_BYTES,&manifest_size);
+    if (result==0) result=protected_bytes(registry->manifest,manifest,AE_FIXTURE_MAX_BYTES,&manifest_size);
     if (result==0) result=ae_fixture_verify_manifest(manifest,manifest_size,config.request.artifact,&fixture);
     if (result==0) result=ae_catalogue_fixture_get(catalogue,&config.request,manifest,manifest_size,&progress);
     if (result==0) result=ae_sha256_bytes(store_bytes,store_size,digest);
@@ -601,13 +618,15 @@ int ae_authority_fixture_admit(struct ae_catalogue *catalogue,const uint8_t boot
     free(manifest); free(stored); return result;
 }
 
-int ae_authority_fixture_request(struct ae_fixture_request *output)
+int ae_authority_fixture_request(enum ae_fixture_selection selection,struct ae_fixture_request *output)
 {
+    const struct ae_fixture_registry *registry=ae_fixture_registry(selection);
+    if (registry==NULL) return -EINVAL;
     if (output==NULL) return -EINVAL;
     uint8_t bytes[AE_FIXTURE_CONFIG_BYTES];
     size_t size;
     struct ae_fixture_config config;
-    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&size);
+    int result=protected_bytes(registry->config,bytes,sizeof bytes,&size);
     if (result==0) result=ae_fixture_config_decode(bytes,size,&config);
     if (result==0) *output=config.request;
     return result;
