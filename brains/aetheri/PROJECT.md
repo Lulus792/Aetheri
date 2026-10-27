@@ -151,6 +151,7 @@ C17 core, confined endpoints, supervised no-exec setup and isolated one-way
 execution/image primitives. Their connection to real app starts remains next.
 An independent compatible execution fixture is now published/activated alongside
 the original. Its separate user binding/private data are now enrolled with closed
-gates; durable target-start integration remains next.
+gates. Separate native execution intent/binding/preparation/arm transactions are
+now implemented and tested; live target-start integration remains next.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

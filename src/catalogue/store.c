@@ -5,6 +5,7 @@
 #include "catalogue/reservation.h"
 #include "catalogue/launch.h"
 #include "catalogue/setup.h"
+#include "catalogue/execution.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -2215,6 +2216,145 @@ int ae_catalogue_prepared_setup(struct ae_catalogue *s,const struct ae_setup_pro
 { if (p==NULL) return -EINVAL; struct ae_launch_context c=setup_context(p); return setup_action(s,p,h,i,e,&c,0,2,o); }
 int ae_catalogue_withdraw_setup(struct ae_catalogue *s,const struct ae_setup_profile *p,const uint8_t h[32],const uint8_t i[16],const uint8_t e[32],const struct ae_launch_context *c,int64_t t,struct ae_dispatch_snapshot *o)
 { return setup_action(s,p,h,i,e,c,t,3,o); }
+
+#define EXEC_INPUT "WITH p(se,sr,be,br,boot,account,i,g,d,storage,launch,lease,op,uop,ir,igate,dgate,hash,inv,evidence,artifact,fp) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22)) "
+static int execution_statement(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],
+    const struct ae_execution_evidence *e,const char *sql,int64_t *value)
+{
+    const uint8_t *ids[]={p->system_epoch,p->system_runtime,p->broker_epoch,p->broker_runtime,p->boot,p->account,p->install,p->generation,
+        p->data,p->storage,p->launch,p->lease,p->root_operation,p->user_operation};
+    sqlite3_stmt *s=NULL; int result=failure(sqlite3_prepare_v2(store->db,sql,-1,&s,NULL));
+    for (int n=0;result==0 && n<14;++n) result=failure(sqlite3_bind_blob(s,n+1,ids[n],16,SQLITE_TRANSIENT));
+    const int64_t numbers[]={p->install_revision,p->install_gate_revision,p->data_gate_revision};
+    for (int n=0;result==0 && n<3;++n) result=failure(sqlite3_bind_int64(s,n+15,numbers[n]));
+    uint8_t zero[32]={0};
+    const uint8_t *digests[]={hash,e ? e->invocation : zero,e ? e->context_digest : zero,p->artifact,p->request_digest};
+    for (int n=0;result==0 && n<5;++n) result=failure(sqlite3_bind_blob(s,n+18,digests[n],n==1 ? 16 : 32,SQLITE_TRANSIENT));
+    if (result==0) {
+        int code=sqlite3_step(s);
+        if (value!=NULL) {
+            if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -EUCLEAN : failure(code);
+            else if (sqlite3_column_type(s,0)!=SQLITE_INTEGER) result=-EUCLEAN;
+            else { *value=sqlite3_column_int64(s,0); if (sqlite3_step(s)!=SQLITE_DONE) result=-EUCLEAN; }
+        } else { result=code==SQLITE_DONE ? 0 : failure(code); if (result==0 && sqlite3_changes(store->db)!=1) result=-EUCLEAN; }
+    }
+    int final=failure(sqlite3_finalize(s)); return result==0 ? final : result;
+}
+#define EXEC_TUPLE "FROM p JOIN authority_meta m ON m.singleton=1 AND m.authority_epoch=p.se AND m.runtime_incarnation=p.sr AND m.current_boot_id=p.boot " \
+    "JOIN launch_dispatches d ON d.lease_id=p.lease AND d.launch_id=p.launch AND d.root_operation_id=p.op AND d.broker_epoch=p.be AND d.broker_incarnation=p.br AND d.account_scope_ref=p.account " \
+    "AND d.install_ref=p.i AND d.generation_ref=p.g AND d.data_epoch_ref=p.d AND d.boot_id=p.boot AND d.install_gate_revision=p.igate AND d.action_id='run' AND d.session_ref='p0' AND d.seat_ref='none' " \
+    "JOIN operations o ON o.operation_id=p.op JOIN plans a ON a.plan_id=o.plan_id AND a.authority_epoch=p.se AND a.scope_ref=p.account " \
+    "JOIN plan_reads r ON r.plan_id=a.plan_id AND r.source_epoch=p.se AND r.subject_kind='install' AND r.subject_ref=p.i AND r.expected_revision=p.ir " \
+    "JOIN generation_leases l ON l.lease_id=p.lease JOIN generations gen ON gen.generation_id=p.g AND gen.artifact_id=p.artifact " \
+    "JOIN operation_steps z ON z.operation_id=p.op AND z.step_no=0 AND z.action='verify' AND z.subject_kind='launch' AND z.subject_ref=p.launch AND z.state='applied' AND z.evidence_digest=p.fp "
+int ae_catalogue_authorize_user_execution(struct ae_catalogue *store,const struct ae_execution_profile *p)
+{
+    uint8_t hash[32]; int result=ae_execution_digest(p,hash);
+    if (result==0) result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN"); if (result!=0) return result;
+    int64_t match=0;
+    result=execution_statement(store,p,hash,NULL,EXEC_INPUT
+        "SELECT count(*) FROM p JOIN authority_meta m ON m.singleton=1 AND m.authority_epoch=p.be AND m.owner_scope_ref=p.account AND m.current_boot_id=p.boot AND m.runtime_incarnation=p.br "
+        "JOIN launches l ON l.operation_id=p.uop AND l.launch_id=p.launch AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.boot_id=p.boot AND l.session_ref='p0' AND l.seat_ref='none' "
+        "JOIN operations o ON o.operation_id=p.uop AND o.state='running' JOIN plans a ON a.plan_id=o.plan_id AND a.action_id='run' "
+        "JOIN operation_links x ON x.operation_id=p.uop AND x.link_no=0 AND x.state='accepted' AND x.remote_epoch=p.se AND x.remote_operation_ref=p.op "
+        "JOIN operation_steps z ON z.operation_id=p.uop AND z.step_no=0 AND z.action='verify' AND z.subject_kind='launch' AND z.subject_ref=p.launch AND z.state='applied' AND z.evidence_digest=p.fp "
+        "JOIN data_epochs d ON d.data_epoch_id=p.d AND d.storage_ref=p.storage AND d.state='active' JOIN attachments t ON t.install_id=p.i AND t.data_epoch_id=p.d "
+        "JOIN install_bindings b ON b.install_id=p.i AND b.state='active' AND b.system_epoch=p.se AND b.install_revision=p.ir "
+        "JOIN admission_gates f ON f.subject_kind='data' AND f.subject_ref=p.d AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.dgate "
+        "WHERE l.state='preparing' AND l.readiness='unknown' AND l.invocation_ref IS NULL "
+        "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.se AND subject_kind='gate' AND subject_ref=p.i AND expected_revision=p.igate) "
+        "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.se AND subject_kind='install' AND subject_ref=p.i AND expected_revision=p.ir) "
+        "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.be AND subject_kind='gate' AND subject_ref=p.d AND expected_revision=p.dgate) "
+        "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.be AND subject_kind='data' AND subject_ref=p.d AND expected_revision=d.revision) "
+        "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>0) AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch)",&match);
+    if (result==0 && match!=1) result=-ESTALE;
+    return fixture_commit(store,result);
+}
+int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_launch_context *context,
+    enum ae_execution_stage stage,const struct ae_execution_evidence *e,struct ae_execution_result *output)
+{
+    if (output==NULL || stage<AE_EXECUTION_REQUEST || stage>AE_EXECUTION_ARM ||
+        (stage!=AE_EXECUTION_REQUEST && (e==NULL || !nonzero(e->invocation)))) return -EINVAL;
+    uint8_t hash[32]; int result=ae_execution_digest(p,hash); if (result!=0) return result;
+    result=reservation_context(store,context);
+    if (result==0 && (memcmp(p->system_epoch,store->identity.authority_epoch,16)!=0 || memcmp(p->system_runtime,context->system_runtime,16)!=0 ||
+        memcmp(p->boot,context->boot,16)!=0 || memcmp(p->broker_epoch,context->broker_epoch,16)!=0 ||
+        memcmp(p->broker_runtime,context->broker_runtime,16)!=0 || memcmp(p->account,context->account,16)!=0)) result=-ESTALE;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE"); if (result!=0) return result;
+    int64_t match=0,one=0,two=0,three=0,steps=0,prepared=0;
+#define EQ(sql,out) execution_statement(store,p,hash,e,EXEC_INPUT sql,out)
+    result=EQ("SELECT count(*) " EXEC_TUPLE,&match);
+    if (result==0 && match!=1) result=-ESTALE;
+    if (result==0) result=EQ("SELECT count(*) " EXEC_TUPLE "WHERE o.state='running' AND d.state IN ('reserved','dispatching') AND d.close_cause_epoch IS NULL",&match);
+    if (result==0 && match!=1) result=-EAGAIN;
+    if (result==0) result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=1",&one);
+    if (result==0 && one) {
+        result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=1 AND action='stage' AND subject_kind='generation' AND subject_ref=p.g AND evidence_digest=p.hash AND state IN ('executing','applied')",&match);
+        if (result==0 && match!=1) result=-EEXIST;
+    }
+    if (result==0 && stage>AE_EXECUTION_REQUEST && !one) result=-ENOENT;
+    if (result==0) result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=2",&two);
+    if (result==0 && stage>AE_EXECUTION_REQUEST && two) {
+        result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=2 AND action='verify' AND subject_kind='integration' AND subject_ref=p.inv AND evidence_digest=p.evidence AND state IN ('executing','applied')",&match);
+        if (result==0 && match!=1) result=-EEXIST;
+    }
+    if (result==0 && stage>AE_EXECUTION_BIND && !two) result=-ENOENT;
+    if (result==0) result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=3",&three);
+    if (result==0) result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no IN (1,2) AND state='applied'",&prepared);
+    if (result==0) result=EQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no>0",&steps);
+    if (result==0 && steps!=one+two+three) result=-EAGAIN;
+    if (result==0 && three) {
+        result=EQ("SELECT count(*) " EXEC_TUPLE "JOIN operation_steps s ON s.operation_id=p.op AND s.step_no=3 AND s.action='activate' AND s.subject_kind='launch' AND s.subject_ref=p.launch AND s.evidence_digest=p.hash AND s.state='executing' "
+            "WHERE d.state='dispatching' AND l.state='running' AND d.invocation_ref=(SELECT subject_ref FROM operation_steps WHERE operation_id=p.op AND step_no=2) AND d.ready_data_gate_revision=p.dgate",&match);
+        if (result==0 && (match!=1 || prepared!=2)) result=-EAGAIN;
+    }
+    int mutation=result==0 && ((stage==AE_EXECUTION_REQUEST && !one) || (stage==AE_EXECUTION_BIND && !two) ||
+        (stage==AE_EXECUTION_PREPARE && prepared!=2) || (stage==AE_EXECUTION_ARM && !three));
+    if (result==0 && mutation) {
+        result=EQ("SELECT count(*) " EXEC_TUPLE "WHERE d.state='reserved' AND l.state='reserved' AND d.invocation_ref IS NULL AND d.ready_data_gate_revision IS NULL",&match);
+        if (result==0 && match!=1) result=-EAGAIN;
+        if (result==0 && (steps!=(stage==AE_EXECUTION_REQUEST ? 0 : stage==AE_EXECUTION_BIND ? 1 : 2) ||
+            (stage==AE_EXECUTION_ARM && prepared!=2) || (stage==AE_EXECUTION_PREPARE && prepared!=0))) result=-EAGAIN;
+        if (result==0 && (stage==AE_EXECUTION_REQUEST || stage==AE_EXECUTION_ARM)) {
+            result=EQ("SELECT count(*) FROM installs i,admission_gates f,p WHERE i.install_id=p.i AND i.state='active' AND i.active_generation_id=p.g AND i.revision=p.ir AND f.subject_kind='install' AND f.subject_ref=p.i AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.igate",&match);
+            if (result==0 && match!=1) result=-ESTALE;
+        }
+        struct ae_catalogue_info info;
+        if (result==0) result=read_info(store,&info);
+        if (result==0 && info.revision==INT64_MAX) result=-EOVERFLOW;
+        if (result==0) result=EQ("SELECT max(o.revision,d.revision,l.revision) " EXEC_TUPLE,&match);
+        if (result==0 && match==INT64_MAX) result=-EOVERFLOW;
+        if (result==0 && stage==AE_EXECUTION_REQUEST) result=EQ("INSERT INTO operation_steps SELECT op,1,'stage','generation',g,'executing',hash FROM p",NULL);
+        if (result==0 && stage==AE_EXECUTION_BIND) result=EQ("INSERT INTO operation_steps SELECT op,2,'verify','integration',inv,'executing',evidence FROM p",NULL);
+        if (result==0 && stage==AE_EXECUTION_PREPARE) {
+            result=EQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM p) AND step_no=1",NULL);
+            if (result==0) result=EQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM p) AND step_no=2",NULL);
+        }
+        if (result==0 && stage==AE_EXECUTION_ARM) {
+            result=EQ("INSERT INTO operation_steps SELECT op,3,'activate','launch',launch,'executing',hash FROM p",NULL);
+            if (result==0) result=EQ("UPDATE launch_dispatches SET state='dispatching',invocation_ref=(SELECT inv FROM p),ready_data_gate_revision=(SELECT dgate FROM p),revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL);
+            if (result==0) result=EQ("UPDATE generation_leases SET state='running',revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL);
+        }
+        const char *update=stage==AE_EXECUTION_REQUEST ? EXEC_INPUT "UPDATE operations SET reason_code='exec_requested',revision=revision+1 WHERE operation_id=(SELECT op FROM p)" :
+            stage==AE_EXECUTION_BIND ? EXEC_INPUT "UPDATE operations SET reason_code='exec_bound',revision=revision+1 WHERE operation_id=(SELECT op FROM p)" :
+            stage==AE_EXECUTION_PREPARE ? EXEC_INPUT "UPDATE operations SET reason_code='exec_prepared',revision=revision+1 WHERE operation_id=(SELECT op FROM p)" :
+            EXEC_INPUT "UPDATE operations SET reason_code='exec_armed',revision=revision+1 WHERE operation_id=(SELECT op FROM p)";
+        if (result==0) result=execution_statement(store,p,hash,e,update,NULL);
+        if (result==0) result=EQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    struct ae_execution_result receipt={0};
+    if (result==0) result=dispatch_row(store,p->lease,context,&receipt.dispatch);
+    receipt.effect_required=mutation && (stage==AE_EXECUTION_REQUEST || stage==AE_EXECUTION_ARM);
+    result=fixture_commit(store,result); if (result==0) *output=receipt;
+#undef EQ
+    return result;
+}
+#undef EXEC_INPUT
+#undef EXEC_TUPLE
 
 int ae_catalogue_close(struct ae_catalogue **output)
 {

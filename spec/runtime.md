@@ -2101,3 +2101,73 @@ or catalogue change. After independently observed unit/job/process drain and
 checking the same payload inode, Root restored c35,c36. Normal enrollment and exact
 retries then passed. This proves rejection at this metadata boundary; it does not
 claim complete launched-app view isolation or production allocation recovery.
+
+## Durable execution intent and arm
+
+The internal [execution profile](../src/catalogue/execution.h) and owner APIs now
+separate a potentially executing starter from the no-exec setup helper. They are
+tested native catalogue code, not an installed starter or implemented DispatchLaunch
+endpoint. No executable process, pipe, D-Bus message or systemd request is created
+by these transactions. The public capability list remains empty.
+
+AETHEXE1 is exactly 384 bytes. Integers use unsigned big-endian representation,
+restricted to 1..INT64_MAX; IDs use the existing UUIDv4 representation. The codec
+rejects another purpose, extra bytes, invalid IDs/revisions and a request digest
+that does not match the exact run/p0/none reservation. Its whole canonical byte
+sequence is hashed internally, rather than accepting a caller's profile hash.
+
+| Offset | Bytes | Binding |
+| --- | --- | --- |
+| 0 | 8 | AETHEXE1 purpose/version |
+| 8 | 224 | System epoch/runtime, broker epoch/runtime, boot, account, I/G/D, storage, launch, lease, Root operation, User operation |
+| 232 | 24 | Install, install-gate and data-gate revisions |
+| 256 | 32 | Artifact digest |
+| 288 | 32 | Independently admitted trusted starter image digest |
+| 320 | 32 | Canonical AETHRSV1 request digest |
+| 352 | 32 | Independently verified immutable allocation-record digest |
+
+These bindings are not capabilities. The future live authority still owes
+protected profile provisioning, current authenticated broker/Root provenance,
+verified manifest/action/code/data/allocation/raw MAC checks and a held process
+plus independently checked supervisor invocation. A hash supplied by an app is
+not such evidence. User authorization reads only its own catalogue: exact accepted
+run/Root receipt, current user runtime, active binding/data/attachment, storage,
+unchanged plan reads and open data gate, with no readiness or additional effects.
+Root never reads that database. The live User must mediate revocation and supply
+its current fence at arm; the Root SQL API cannot independently discover a change
+in private User state.
+
+The Root operation uses existing v2 journal vocabulary:
+
+| Call | Durable change | External effect allowed after fresh successful commit |
+| --- | --- | --- |
+| REQUEST | Step 1: stage/generation/G, executing, whole-profile hash | Request the fixed supervised starter |
+| BIND | Step 2: verify/integration/actual invocation, executing, observed-context digest | None |
+| PREPARE | Steps 1 and 2 applied; dispatch/lease remain reserved | None |
+| ARM | Step 3: activate/launch/L, executing; dispatching with frozen invocation/data fence; lease running | Release that same prepared starter to exec |
+
+Step 1 deliberately targets generation rather than the old setup journal's launch.
+Even passing the execution hash to the old no-exec withdrawal API cannot match
+this journal. Ordinary pre-dispatch cancellation also rejects any of these extra
+steps. An arm requires both preparation records, the original current broker/boot/
+Root runtime, exact active I/G and unchanged open install gate. Root restart leaves
+the dispatch uncertain and lease held; broker replacement cannot rebind the run.
+
+The result's effect_required flag is one only for a freshly committed REQUEST or
+ARM. Exact retries return zero and preserve revisions, including after a commit
+that succeeded but whose acknowledgement was reported lost. Errors leave output
+untouched. The caller may send the external effect only for the fresh result;
+it must retain uncertainty after an error or lost outward reply. This chooses
+at-most-once initiation with explicit reconciliation over silently repeating a
+possibly successful request. It does not promise eventual start or exactly-once
+execution. There is no release/completion API in this slice: an arm is neither
+actual image observation nor app readiness, and it never permits reclaiming code.
+
+`catalogue.execution` exercises independent Python canonical bytes/hash, all
+mutating-statement failures with byte-identical database rollback, both commit
+acknowledgement outcomes, real owner-process exits before/after REQUEST and ARM
+commit, replay of earlier stages, changed evidence, closed gates, overflow, Root
+restart at every stage, User replacement and rejection by no-exec withdrawal.
+These isolated owner-store tests do not exercise a live executing starter. The
+next integration must bind an authenticated error channel and actual target image,
+then readiness and independently proven drain; EOF is still unknown.

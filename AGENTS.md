@@ -207,6 +207,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   reinterpret an allocation-operation ID as policy identity. Read spec/runtime.md's
   scoped execution-fixture data section. Existing owner bytes/SQL stay unchanged.
   Actual executing dispatch/registration/readiness/drain remains pending.
+- catalogue/execution.h now defines the distinct AETHEXE1 native execution
+  profile and owner request/bind/prepare/arm journal. Read spec/runtime.md's
+  durable execution section; run catalogue.execution. Fresh-only effect_required
+  is zero on every retry/lost acknowledgement. Its stage/generation step cannot
+  use old no-exec stage/launch withdrawal. This is not a live starter/DispatchLaunch
+  implementation or image/readiness/drain proof. Do not install/dispatch it as one.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

@@ -717,3 +717,20 @@ all unrelated data/attachments/gates/business history during retries. An enrolle
 binding or closed data gate does not imply app admission/readiness. Connect the
 new exact tuple to a distinct executing-start contract next; the no-exec withdrawal
 proof remains limited to the immutable non-executing helper.
+
+## Journal execution separately and never replay an unknown effect — 27 October 2026
+
+Use a distinct AETHEXE1 profile and a stage/generation step for the potentially
+executing starter. The old stage/launch no-exec proof cannot match it. Bind the
+entire canonical profile, exact declared run request and independent allocation
+digest; do not reinterpret main or accept caller-selected paths/labels. Reuse v2
+SQL vocabulary with native owner transactions rather than adding another database
+or service. User reads its own accepted run/data fence; Root owns only its journal.
+
+Only a fresh successful REQUEST/ARM result permits its next external effect.
+Retries after a lost acknowledgement observe the receipt and never repeat that
+effect. This can leave an unstarted run needing reconciliation, but avoids
+silently executing a possibly started run twice. Preserve leases and uncertainty
+through replacement. Profile bytes/digests are not authority or actual process
+evidence. Native journal tests establish this internal behavior; live starter,
+error channel, actual image/readiness and drain integration remain separate work.

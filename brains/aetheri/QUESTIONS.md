@@ -63,9 +63,11 @@ aetheri.p0.exec fixture is now published/activated with a closed gate; the old
 package/tuples remain unchanged. Exact manifest-action resolution now exists as
 an internal metadata helper. Its own user binding and private data/allocation now
 exist with closed gates. The fixed exec data profile uses c35,c36, preserving
-original c33,c34; no dynamic category allocator is implied. Next integrate the
-exact I/G/D/action with executing dispatch, process/image registration, readiness
-and drain. These are implementation gates, not requests to reopen the accepted
+original c33,c34; no dynamic category allocator is implied. Separate native
+execution-profile/fence and durable request/binding/preparation/arm transactions
+now exist, including explicit no-replayed-effect receipts. Next connect them to
+the live executing starter, authenticated error transport, process/image
+registration, readiness and drain. These are implementation gates, not requests to reopen the accepted
 architecture.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.

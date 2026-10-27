@@ -16,6 +16,9 @@ app-domain transition and current executable; integration into app starts is nex
 A separate compatible test package is now published and activated alongside the
 original, with its launch gate closed and all older package/history records retained.
 It now has a distinct user binding and private data allocation as well.
+Separate native execution transactions now record starter intent, binding,
+preparation and arm without replaying a possibly completed external effect.
+Their connection to a live executing starter remains in progress.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The

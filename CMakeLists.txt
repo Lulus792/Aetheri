@@ -38,7 +38,7 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
     DEPENDS tools/embed_schema.py tools/catalogue_contracts.py
             spec/schema/common-v2.sql spec/schema/system-v2.sql spec/schema/user-v2.sql
     VERBATIM)
-add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c "${AETHERI_SCHEMA_SOURCE}")
+add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
 target_compile_definitions(aetheri_catalogue PRIVATE _GNU_SOURCE)
 target_compile_options(aetheri_catalogue PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -98,6 +98,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.launch COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(catalogue.launch PROPERTIES TIMEOUT 120)
+    add_test(NAME catalogue.execution COMMAND Python3::Interpreter
+             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" execution)
+    set_tests_properties(catalogue.execution PROPERTIES TIMEOUT 180)
     add_executable(test_reservation tests/test_reservation.c)
     target_compile_definitions(test_reservation PRIVATE _GNU_SOURCE)
     target_compile_options(test_reservation PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

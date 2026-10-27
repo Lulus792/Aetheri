@@ -1051,3 +1051,21 @@ Root-only restart also pass. These prove the scoped prototype boundary, not
 executing launch or complete isolation/recovery. Exact results and limits are in
 the [runtime contract](../../spec/runtime.md#scoped-execution-fixture-projection-and-data)
 and [journal](journal/2026-10-26-first-prototype.md#separate-execution-data--27-october-2026).
+
+## Durable execution intent/arm — 27 October 2026
+
+Original implementation: [profile/owner API](../../src/catalogue/execution.h),
+[canonical codec](../../src/catalogue/execution.c), [owner transactions](../../src/catalogue/store.c),
+[native fault/crash tests](../../tests/test_launch.c) and independent
+[Python canonical reference](../../tools/test_launch_native.py). The distinct
+purpose and journal target prevent reuse of no-exec withdrawal; retries never
+request another external effect. No external library or SQL/XML release changed.
+
+Primary SQLite [transaction documentation](https://www.sqlite.org/lang_transaction.html)
+and [get_autocommit contract](https://www.sqlite.org/c3ref/get_autocommit.html),
+read 27 October 2026: a transaction error need not undo the whole transaction;
+the owner checks autocommit and explicitly rolls back when still active. The
+existing native commit helper is reused. Lost acknowledgement handling and
+fresh-only effect receipts are Aetheri's conservative protocol, exercised by
+controlled pre/post-commit errors and owner-process exits. These tests establish
+owner-store behavior, not power-loss durability, live execution or app readiness.

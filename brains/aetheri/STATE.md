@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — execution fixture has its own user binding/private data; real app-start integration remains next.
+27 October 2026 — native execution intent, starter binding and arm journal are tested; live executing-start integration remains next.
 
 ## Confirmed
 
@@ -13,6 +13,32 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+An internal AETHEXE1 execution profile now binds the exact run/p0/none request,
+Root/User runtimes, I/G/D/storage, operations, revisions, artifact, trusted starter
+and independent allocation digests. The native owner APIs authorize the accepted
+User data fence and journal Root REQUEST, BIND, PREPARE and ARM. ARM freezes the
+supervisor invocation/data fence and changes dispatch/lease to dispatching/running;
+it does not claim executed code or app readiness. All extra effects are journaled
+before an external request, with a fresh-only effect flag that is zero on retries,
+including after a lost commit acknowledgement. Root restart retains uncertainty
+and the lease. A different journal target prevents old no-exec withdrawal from
+settling this operation, even if given its profile hash.
+
+The new catalogue.execution test covers canonical bytes against independent
+Python, statement/commit faults, byte-identical database rollback, actual owner
+exits before/after REQUEST/ARM commit, all-stage Root restart, User replacement,
+changed evidence, closed gates and overflow. Full suites pass 33/33 Debug
+ASan/UBSan (193.91 s) and 33/33 Release (177.66 s); the new focused test passed
+in 65.70 s. Host migration/wire 29/29 (34.240 s), orchestration 39/39 (0.320 s),
+runtime vectors 14/14 and isolated constraints 374 assertions also pass.
+These are test-run times, not performance benchmarks. The new cases are isolated
+native owner-store tests, with no live starter or endpoint/policy installation.
+Read-only controller verification passes with Enforcing, both install/data gates
+closed, no pending request and no unreleased lease/nonterminal live dispatch.
+Existing SQL/XML and dependency families are unchanged. Next bind authenticated error
+transport and actual target-image registration, readiness and independent drain.
+See the [execution journal contract](../../spec/runtime.md#durable-execution-intent-and-arm).
 
 The new execution fixture now has a separate authenticated user installation
 binding, StorageRef, DataEpoch and immutable allocation record. Private
@@ -31,7 +57,7 @@ Normal enrollment and exact retries then passed for both installations. All old
 system/user business rows, both sealed packages and original private objects
 matched the independently captured before/after snapshot.
 
-Current tests: 32/32 Debug ASan/UBSan (136.26 s), 32/32 Release (120.78 s),
+Previous projection/data checkpoint: 32/32 Debug ASan/UBSan (136.26 s), 32/32 Release (120.78 s),
 migration/wire 29/29 (28.172 s), orchestration 39/39 (0.235 s), runtime vectors
 14/14 and isolated constraints 374 assertions. Actual new projection retries,
 same-UID/same-domain/app caller denials, broker departure FD cleanup, user

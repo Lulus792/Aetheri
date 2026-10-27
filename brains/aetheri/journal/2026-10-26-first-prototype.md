@@ -1366,3 +1366,52 @@ the executing setup boundary separate from the immutable no-exec helper/release
 proof. Public launch and DispatchLaunch remain unsupported. Original desktop,
 apps/image, document transport, complete removal/recovery and physical hardware
 acceptance remain required by the active full project goal.
+
+## Durable execution intent and arm — 27 October 2026
+
+Implemented a distinct 384-byte AETHEXE1 profile/codec and native owner APIs for
+the exact run/p0/none reservation. The profile freezes both authority runtimes,
+boot/account, I/G/D/storage, operations, revisions and artifact/starter/request/
+allocation digests. User reads its own accepted run, Root receipt and current
+private-data fence. Root journals REQUEST, actual-invocation BIND, PREPARE and
+ARM without any external effect inside SQLite. ARM freezes the invocation/data
+fence and holds the running code lease; it does not record actual target readiness.
+
+The new stage/generation journal cannot match the no-exec stage/launch proof,
+even if its hash is passed deliberately to the old API. Ordinary cancellation
+also refuses its extra steps. Fresh successful REQUEST/ARM returns effect_required=1;
+all retries return zero, including a completed commit reported as failed. An
+unknown outward result stays held for reconciliation rather than resending.
+The live caller must enforce these preconditions; profile/digest bytes grant no
+authority and Root cannot read a private User gate. No release/completion path
+or live DispatchLaunch implementation was added.
+
+The new catalogue.execution case runs 16 isolated scenarios: independent Python
+canonical profile/hash, every mutating-statement failure with identical whole-DB
+bytes afterward, pre/post-commit errors, actual store-owner exits before/after
+REQUEST and ARM commit, exact earlier-stage retries, changed evidence, no-exec
+withdrawal rejection, closed install gate, four revision overflows, all-stage
+Root-runtime restart and User replacement. Controlled owner-file reopen tests
+preserve their registered runtime; the distinct runtime-restart tests reject
+reuse and retain uncertainty/leases. No power-loss test is claimed.
+
+An initial C build found an invalid SQL macro/string concatenation at the reason
+update. Prefixing each literal before selecting it fixed that compiler error;
+the next build and focused execution test passed. No test failure was concealed.
+The complete suites then passed 33/33 Debug ASan/UBSan (193.91 s) and 33/33 Release
+(177.66 s). Host migration/wire: 29/29 (34.240 s); orchestration: 39/39 (0.320 s);
+runtime vectors: 14/14; isolated constraints: 374 assertions. These are test times.
+
+Read-only controller verification under the stable carrier lock passed after
+both suites: installed protected objects/configuration/policy match the owned
+record, Enforcing, no pending request, both installation and data gates closed,
+all existing live dispatches terminal and leases released. The compiled new API
+was not installed into the authorities; the normal fixtures/catalogues were not
+used for these new journal tests. No schema/XML release, dependency, policy grant
+or resident service changed. Reviewed source/documentation is published separately
+from ignored guest build/test logs and generated canonical vectors.
+
+Next connect this journal to a distinct executing starter's authenticated error
+channel and held actual process/image. Follow with app readiness, independently
+proven drain and conservative recovery; never reuse no-exec teardown for that
+starter. The full OS/apps/desktop/image and hardware goals remain active.
