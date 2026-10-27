@@ -244,6 +244,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   keeps gates closed. Never install it as a real dispatch profile. Shared pure
   fixture config codecs now live in fixture_profile.c. core/import's check_payload
   has no fsync; preserve publication sync/durability behavior.
+- launcher/execution.h now supplies the native executing-starter client. It pins
+  actual Root discovery/process/unit/invocation/context and verifies same-owner
+  correlated replies plus exact binding/revision before accepting writer/release.
+  Registration/prepared each run at most once; no owner replacement or retries.
+  peer_capture_reply requires the retained sent unique-destination request and
+  matching bus/cookies; capture outputs must start empty. Execution1 1.0 generates
+  a separate client header only, not default installed method tables. Read the
+  authenticated-client section in spec/runtime.md. Explicit test_execution_client.py
+  uses a Release producer in the actual Root domain; optional Debug client stays
+  outside it. Temporary pipe/bus-write grants retire only after exact owned drain;
+  never grant the bus read access to Root's reader or ptrace for instrumentation.
+  The synthetic producer has no catalogue/views/target exec. Actual starter,
+  protected Root unit/profile provisioning, producer admission/ARM handlers and
+  target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

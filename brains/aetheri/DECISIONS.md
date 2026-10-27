@@ -785,3 +785,25 @@ no-fsync entry point; preserve publication repeat flushes. The shared 0700 store
 parent is distinct from sealed 0555 packages. Reserve a separately labeled/hash-
 bound starter and execution.conf, but do not provision/advertise them before live
 protocol/policy/supervisor integration. No new dependency, database or process.
+
+## Pin the original Root before accepting starter replies — 27 October 2026
+
+Resolve the trusted system bus owner once, then send only to that unique name.
+Correlate method returns to the retained request by bus/sender/cookie/type; require
+bus-authenticated ProcessFD/UID/PID/full label and the independently selected
+active Root unit/invocation/cgroup/boot. Compare discovery epoch/runtime against
+AETHEXE1 and recheck original context on each operational reply. Never follow
+a replacement or repeat an uncertain registration/release request.
+
+Use a separate private Execution1 1.0 contract, generated only for the native
+client/test producer until actual handlers are ready. Registration transfers one
+checked anonymous writer; prepared release repeats the full binding with an
+advanced revision. The producer must hold that reply until fresh durable ARM.
+Do not reinterpret authenticated receipt as app execution/readiness or reuse
+no-exec drain. Keep two/five-second bounded calls and retain uncertainty on timeout.
+
+The explicit protocol fixture reuses the actual Root domain with temporary Root
+pipe and bus-daemon write permissions. Root retains its reader; no daemon read
+grant, permissive mode or ptrace broadening. Remove only after independently
+observed exact process/unit/cgroup/job drain. This tests the consumer, not the
+future producer's catalogue/admission logic or the actual starter domain.

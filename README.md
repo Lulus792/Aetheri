@@ -11,6 +11,9 @@ The native coordinator now connects that journal to a held starter/error channel
 and records distinct terminal diagnostics; its live service adapters remain in progress.
 Native read-only source checks now bind the selected sealed program, literal arguments
 and independently recorded private-data allocation before mount preparation.
+The executing-starter client now authenticates the current system process and
+binding/release replies; its confined protocol fixture has passed. Installed
+authority handlers and the actual executing starter still need integration.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

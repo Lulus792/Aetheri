@@ -72,6 +72,8 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
         CHECK((fcntl(peer.pidfd, F_GETFD) & FD_CLOEXEC) != 0);
         CHECK(ae_peer_alive(&peer) == 0);
         state->retained = peer;
+        struct ae_peer occupied=peer;
+        CHECK(ae_peer_capture(message,&occupied)==-EINVAL && memcmp(&occupied,&peer,sizeof peer)==0);
         /* Repeated real credential queries must release every transient FD. */
         int baseline = descriptor_count();
         for (unsigned int n = 0; n < 128; ++n) {
@@ -118,17 +120,40 @@ static void child_client(int input)
     CHECK(close(input) == 0);
     sd_bus *bus = NULL;
     CHECK(sd_bus_open_user(&bus) >= 0);
+    sd_bus_message *first_request=NULL;
     for (uint32_t mode = 0; mode < 3; ++mode) {
         sd_bus_error error = SD_BUS_ERROR_NULL;
         sd_bus_message *reply = NULL;
-        CHECK(sd_bus_call_method(bus, destination, "/org/aetheri/TestPeer", "org.aetheri.TestPeer1",
-                                 "Check", &error, &reply, "u", mode) >= 0);
+        sd_bus_message *request=NULL;
+        CHECK(sd_bus_message_new_method_call(bus,&request,destination,"/org/aetheri/TestPeer","org.aetheri.TestPeer1","Check")>=0);
+        CHECK(sd_bus_message_append(request,"u",mode)>=0 && sd_bus_call(bus,request,2000000,&error,&reply)>=0);
+        struct ae_peer remote=AE_PEER_INIT,sentinel=remote;
+        CHECK(ae_peer_capture(reply,&remote)==-EPROTO);
+        if (mode>0) CHECK(ae_peer_capture_reply(reply,first_request,&remote)==-EPROTO && memcmp(&remote,&sentinel,sizeof remote)==0);
+        credential_source=mode;
+        int captured=ae_peer_capture_reply(reply,request,&remote);
+        CHECK(captured==(mode==0 ? 0 : -ENODATA)); credential_source=0;
+        if (mode==0) {
+            CHECK(remote.connection_pid==getppid() && remote.connection_uid==geteuid() && strcmp(remote.unique_name,destination)==0);
+            int baseline=descriptor_count();
+            for (unsigned int n=0;n<128;++n) {
+                struct ae_peer another=AE_PEER_INIT; CHECK(ae_peer_capture_reply(reply,request,&another)==0);
+                CHECK(another.connection_pid==remote.connection_pid && strcmp(another.connection_label,remote.connection_label)==0);
+                ae_peer_clear(&another);
+            }
+            CHECK(descriptor_count()==baseline);
+            struct ae_peer occupied=remote;
+            CHECK(ae_peer_capture_reply(reply,request,&occupied)==-EINVAL && memcmp(&occupied,&remote,sizeof remote)==0);
+            first_request=sd_bus_message_ref(request); ae_peer_clear(&remote);
+        } else CHECK(memcmp(&remote,&sentinel,sizeof remote)==0);
         int32_t status = 1;
         CHECK(sd_bus_message_read(reply, "i", &status) > 0);
         CHECK(status == (mode == 0 ? 0 : -ENODATA));
         sd_bus_message_unref(reply);
+        sd_bus_message_unref(request);
         sd_bus_error_free(&error);
     }
+    sd_bus_message_unref(first_request);
     sd_bus_message *reply=NULL;
     CHECK(sd_bus_call_method(bus,destination,"/org/aetheri/TestPeer","org.aetheri.TestPeer1","IssueErrorWriter",NULL,&reply,"")>=0);
     int borrowed=-1;

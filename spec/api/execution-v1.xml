@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Private selected-starter contract. Native client implemented; installed
+     authority handlers/policy/provisioning remain pending. Not public dispatch. -->
+<node name="/org/aetheri/Execution1">
+  <interface name="org.aetheri.Execution1">
+    <annotation name="org.aetheri.Contract.Version" value="1.0"/>
+    <annotation name="org.aetheri.Contract.Visibility" value="selected-starter-only"/>
+    <method name="RegisterStarter">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="system_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_runtime" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="boot_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="bound_lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="bound_profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="error_writer" type="h"/>
+    </method>
+    <!-- Producer retains the original call and replies only after fresh durable
+         ARM. Prepared views/EOF/timeout alone cannot authorize this reply. -->
+    <method name="ReportPrepared">
+      <arg direction="in" name="lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="system_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_runtime" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="boot_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="bound_lease_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="root_operation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="bound_profile_digest" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="dispatch_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+  </interface>
+</node>

@@ -26,6 +26,14 @@ struct ae_peer {
  * supervised invocation/cgroup, registry, policy and admission under this pin.
  */
 int ae_peer_capture(sd_bus_message *message, struct ae_peer *output);
+/* Capture only a successful actual sd_bus_call reply to a retained sent request
+ * on the same trusted bus connection. Request must address an independently
+ * resolved UNIQUE name and expect a reply; sender/cookie/type must agree.
+ * Does not consume the body or authenticate service purpose, current context,
+ * catalogue epoch/runtime or claimed results. No method errors, signals,
+ * well-known destinations, local/proc augmentation or PID fallback. Same output
+ * ownership/error rules as capture; request/reply remain borrowed. */
+int ae_peer_capture_reply(sd_bus_message *reply,sd_bus_message *request,struct ae_peer *output);
 /* Zero-time liveness observation, not a promise of future life or exec identity. */
 int ae_peer_alive(const struct ae_peer *peer);
 /* Clear an initialized capture. Does not stop/signal the process. */

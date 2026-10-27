@@ -48,8 +48,12 @@ lifecycle methods defined by these contracts.
 Schema user_version=2 and protocol major/minor 1.1 are independent.
 Catalogue1 is 1.1; Development1 is 1.4 with the additive RefreshExecFixtureInstall
 projection beside the original fixture reservation, launch and setup tests.
-Setup1 1.0 is a private no-exec prototype. Their
-implementation and enforcing checks are described in [runtime.md](runtime.md#authenticated-installation-projection).
+Setup1 1.0 is a private no-exec prototype. Their implementation and enforcing
+checks are described in [runtime.md](runtime.md#authenticated-installation-projection).
+Execution1 1.0 now defines the selected executing-starter exchange, with a native
+authenticated client and an explicit confined reply fixture; it has no installed
+authority producer or public capability. It is generated separately from the
+default service tables. See [runtime.md](runtime.md#authenticated-executing-starter-client).
 The frozen management/documents/runtime/broker XML and canonical SQL are unchanged;
 the Development1 minor extension adds no public capability.
 The existing private Runtime1 ReserveLaunch/GetDispatch methods now run, with

@@ -24,13 +24,13 @@ void ae_peer_clear(struct ae_peer *peer)
     peer->pidfd = -1;
 }
 
-int ae_peer_capture(sd_bus_message *message, struct ae_peer *output)
+static int capture(sd_bus_message *message,uint8_t expected_type,struct ae_peer *output)
 {
-    if (message == NULL || output == NULL) return -EINVAL;
+    if (message == NULL || output == NULL || output->pidfd>=0) return -EINVAL;
     uint8_t type = 0;
     int result = sd_bus_message_get_type(message, &type);
     if (result < 0) return result;
-    if (type != SD_BUS_MESSAGE_METHOD_CALL) return -EPROTO;
+    if (type != expected_type) return -EPROTO;
     sd_bus *bus = sd_bus_message_get_bus(message);
     if (bus == NULL || sd_bus_is_bus_client(bus) <= 0) return -EPROTO;
     const char *sender = sd_bus_message_get_sender(message);
@@ -79,4 +79,23 @@ done:
     sd_bus_creds_unref(credentials);
     ae_peer_clear(&temporary);
     return result;
+}
+
+int ae_peer_capture(sd_bus_message *message,struct ae_peer *output)
+{ return capture(message,SD_BUS_MESSAGE_METHOD_CALL,output); }
+
+int ae_peer_capture_reply(sd_bus_message *reply,sd_bus_message *request,struct ae_peer *output)
+{
+    if (reply==NULL || request==NULL || output==NULL || output->pidfd>=0) return -EINVAL;
+    uint8_t type=0; int r=sd_bus_message_get_type(request,&type);
+    if (r<0) return r;
+    if (type!=SD_BUS_MESSAGE_METHOD_CALL || sd_bus_message_get_expect_reply(request)!=1 ||
+        sd_bus_message_get_bus(request)==NULL || sd_bus_message_get_bus(request)!=sd_bus_message_get_bus(reply)) return -EPROTO;
+    const char *destination=sd_bus_message_get_destination(request),*sender=sd_bus_message_get_sender(reply);
+    if (destination==NULL || destination[0]!=':' || !sd_bus_service_name_is_valid(destination) ||
+        sender==NULL || strcmp(destination,sender)!=0) return -EPROTO;
+    uint64_t call_cookie=0,reply_cookie=0;
+    if (sd_bus_message_get_cookie(request,&call_cookie)<0 || sd_bus_message_get_reply_cookie(reply,&reply_cookie)<0 ||
+        call_cookie==0 || call_cookie!=reply_cookie) return -EPROTO;
+    return capture(reply,SD_BUS_MESSAGE_METHOD_RETURN,output);
 }

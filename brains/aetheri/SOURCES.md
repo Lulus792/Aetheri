@@ -1158,3 +1158,37 @@ expectations for file/payload links were corrected to the actual EBADMSG/ENOTDIR
 paths, without weakening production checks. Starter absence/wrong-purpose labels
 are tested; actual positive starter policy/image admission remains untested and
 unprovisioned. Exact executed results are in STATE/journal.
+
+## Authenticated starter-client replies — 27 October 2026
+
+Original [client contract](../../src/launcher/execution.h),
+[implementation](../../src/launcher/execution.c), [private XML](../../spec/api/execution-v1.xml),
+[reply capture](../../src/linux/peer.c), [actual peer roundtrip](../../tests/test_peer.c),
+[confined protocol fixture](../../tests/probe_execution_client.c) and
+[owned controller](../../tools/test_execution_client.py). The default method-table
+generator does not expose the unfinished production Execution1 server.
+
+Installed systemd-devel-259.10-1.fc44 headers/man pages were read in the pinned
+guest: sd_bus_query_sender_creds, sd_bus_get_name_creds,
+sd_bus_message_get_cookie/get_reply_cookie and sd_bus_negotiate_fds.
+They document sender-credential ownership/augmentation, unique-name resolution,
+call/reply correlation and negotiated bidirectional descriptor support.
+Exact-version online pages returned 403/cache misses; no different release was
+adopted. Actual return-message queries require the existing non-augmented
+UID/PID/label/ProcessFD mask and pass real transport tests.
+
+Upstream [Linux v6.19 SELinux file_receive](https://github.com/torvalds/linux/blob/v6.19/security/selinux/hooks.c#L3897)
+calls file_has_perm for received file access. This is a source cross-check, not
+an assertion that Fedora's patched source is byte-identical. Actual enforcing
+VM audit records identified system_dbusd_t write denial on the Root-domain pipe;
+the broker reset the sender connection. The corrected temporary module grants
+only that daemon write access, plus Root's own pipe operations, and is removed
+after independently observed original process/unit/cgroup/job drain. No reader,
+permissive or ptrace grant was added. Incidental denied certificate-directory
+search stayed denied; hashing/protocol tests did not require another rule.
+
+The 28-case probe uses actual Root process/domain/supervisor observations and
+real descriptor transport, with synthetic producer replies and no catalogue/
+target execution. Both Release client and a Debug ASan/UBSan client pass against
+the protected Release producer. This is consumer authentication/protocol evidence,
+not production ARM/admission, starter-domain permission or app readiness.

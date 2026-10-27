@@ -2405,3 +2405,87 @@ without root mapping and preserve catalogues/protected inputs. This is Root
 administrative read-side evidence, not admission in the selected starter domain.
 Live authenticated replies/wire/supervisor adapters, starter provisioning/policy,
 target registration/readiness and independent drain remain work.
+
+## Authenticated executing-starter client
+
+`launcher/execution.[ch]` now implements the starter side of private
+[Execution1 1.0](api/execution-v1.xml). The installed authority does not expose
+that interface yet. The actual executing starter binary, protected Root unit/
+profile selection and production handlers/adapters/policy still need integration.
+The existing setup-only helper remains unchanged and cannot execute app code.
+
+The caller is a fresh trusted single-threaded UID/GID-0 starter with the trusted
+host system bus, independently protected AETHEXE1 and selected current Root unit.
+It cannot take those values from an app. Constructor discovery resolves System1
+once through the trusted bus, addresses that unique owner and retains its actual
+ProcessFD. It requires UID 0, complete `system_u:system_r:aetheri_system_t:s0`,
+the selected active service unit/invocation/cgroup/boot, protocol major 1/minor at
+least 1, and the profile's Root epoch/runtime. Discovery capabilities are bounded
+to 16 strings of at most 128 bytes. No subsequent call follows a replacement owner.
+
+`ae_peer_capture_reply` first correlates an actual return to its retained sent
+request: same bus connection, unique destination/sender, nonzero matching call/
+reply cookies, reply-expected method call and METHOD_RETURN. It preserves the
+method-call capture's bus-authenticated UID/PID/label/ProcessFD requirements and
+rejects missing/augmented credentials. It does not consume the body. Both capture
+APIs now reject an already occupied output rather than overwrite a held pin.
+Correlation alone does not establish service purpose or current process context.
+
+The client then rechecks the original Root pin and current supervisor context on
+each exchange. Peer/bus/name/PID/UID/full label must remain the same. Observed
+errors are retained; constructor failure leaves no client, and each operational
+method can be attempted only once. Close frees only local resources, not any
+dispatch, process or persistent lease.
+This is a per-client guard, not durable duplicate prevention. Never reconstruct
+a client to retry an unknown outcome; issuer journal/profile checks remain
+authoritative across client objects/processes and Root replacement.
+
+Both methods send the exact 16-byte lease and 32-byte whole-profile digest.
+`RegisterStarter` returns Root epoch/runtime/boot, bound lease, root operation,
+bound profile digest, dispatch revision and one anonymous error writer. The
+client compares all fields, requires a signed-SQL-range positive revision,
+validates Root:Root ownership, pipe identity/mode and NONBLOCK/CLOEXEC flags,
+duplicates the borrowed writer before unrefing its message, and returns sole
+local ownership to its caller. The client object keeps no writer copy; closing
+it does not close a transferred writer. Root keeps the reader.
+
+After independently verified mount/image preparation, `ReportPrepared` sends
+the same input tuple. The future producer must retain that original request and
+reply only after fresh durable ARM. Its receipt repeats the same six fields and
+has a revision strictly newer than the bound revision. No FD is returned. The
+client accepts only the exact signature/fields/current original Root context.
+Registration waits at most two seconds and prepared release five seconds.
+Timeout, malformed/error reply or lost connection never permits retry or exec.
+An authenticated release is still not app execution, registration or readiness.
+
+`embed_api.py --execution-client` generates names/signatures for client and test
+producer from XML into the ignored build header. It does not add Execution1 to
+the default authority method tables. Existing SQL/public/private contracts stay
+unchanged; no new dependency family or resident process is introduced.
+
+The explicit `test_execution_client.py` probe uses a protected Release test
+producer in the actual existing Root domain under a recorded notify service,
+NNP, empty capabilities and a one-task limit. It serves synthetic replies only:
+no catalogue, launcher, views, target exec or app registration. An optional Debug
+client runs outside that domain with ASan/UBSan; no LeakSanitizer ptrace grant is
+added to the producer. Its 28 cases verify actual process/unit/invocation/cgroup,
+binding fields, revisions, unsuitable descriptors, errors/timeouts, non-repeated
+effects, writer ownership/FD balance, fork ownership, non-Root denial and original
+Root departure. They prove consumer-side authentication and protocol handling,
+not the future producer's journal/admission implementation.
+
+The probe temporarily permits Root's anonymous pipes and the actual bus daemon's
+write access needed to receive the writer through SCM_RIGHTS. It grants the bus
+no read access to Root's reader. An initial run failed because that daemon write
+permission was missing; an actual system_dbusd_t-to-aetheri_system_t fifo_file
+write AVC identified the cause. Failed owned fixtures were independently drained
+and retired before the corrected run. No permissive mode or broad policy grant
+was used. The temporary module/files are removed only after original-process,
+unit/cgroup/job drain and owned-input checks. Unknown dispatch preserves state.
+
+Run explicitly in the registered carrier, with normal System1 unowned:
+
+```sh
+sudo python3 tools/test_execution_client.py /home/aetheri/build/release/probe_execution_client
+sudo python3 tools/test_execution_client.py /home/aetheri/build/release/probe_execution_client /home/aetheri/build/debug/probe_execution_client
+```

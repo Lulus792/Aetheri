@@ -1,0 +1,6 @@
+; MIT. Temporary reply-client fixture permission, removed after exact unit drain.
+; Existing aetheri_system_t is reused; no starter/app domain or exec admission.
+(allow aetheri_system_t self (fifo_file (create read write open getattr)))
+; SCM_RIGHTS receive in the actual system bus daemon needs write permission on
+; this writer. Do not grant it read access to Root's error reader.
+(allow system_dbusd_t aetheri_system_t (fifo_file (write)))

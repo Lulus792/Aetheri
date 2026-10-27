@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — protected source binding joins sealed program/action and private allocation; actual starter/live adapters remain next.
+27 October 2026 — executing-starter client authenticates original Root and binding/release replies; actual producer/starter remain next.
 
 ## Confirmed
 
@@ -13,6 +13,38 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The native executing-starter client now pins the actual Root discovery/process/
+active unit/invocation/cgroup/boot and checks profile epoch/runtime. A correlated
+reply capture requires the retained sent request's unique destination, bus and
+matching cookies plus unaugmented UID/PID/label/ProcessFD. Each operational call
+addresses the original owner and runs at most once per client; timeout, drift,
+bad binding/revision or unsuitable writer cannot authorize execution or retry.
+The returned writer is separately owned and outlives client close. Duplicate
+prevention across objects/processes still belongs to the issuer journal/profile.
+
+Private Execution1 1.0 names/signatures generate a separate client header; default
+authority tables, installed services, public capability set, SQL and older XML
+remain unchanged. Actual starter, protected Root unit/profile provisioning and
+journal-backed producer handlers/adapters remain work. An authenticated fixture
+release does not establish actual app execution, registration or readiness.
+
+The explicit 28-case protocol fixture passes with actual confined Root supervisor
+and descriptor transport, both with Release and an external Debug ASan/UBSan
+client. The producer serves synthetic replies only: no catalogue/views/target
+exec. A missing bus-daemon pipe-write permission initially reset its connection;
+an actual AVC identified the cause. Corrected temporary Root pipe/bus-write
+permissions retire only after original process/unit/cgroup/job drain; no daemon
+read, permissive or instrumentation ptrace grant. Full regression passes 36/36
+Debug ASan/UBSan (305.47 s) and 36/36 Release (249.52 s), followed by another
+successful confined Release protocol probe. Migration/wire passes 30/30
+(52.959 s), orchestration 39/39 (0.258 s), runtime vectors 14/14 and constraints
+374 assertions. These are test timings, not OS benchmarks.
+Final read-only verification confirms Enforcing, unchanged normal protected
+inputs, both install/data gates closed (two each), no pending/unsettled launch/
+lease, no reply/exec temporary fixture/module and System1 unowned. No normal
+authority/helper/profile was updated or managed app dispatched.
+See [client protocol](../../spec/runtime.md#authenticated-executing-starter-client).
 
 Read-only execution-profile/source loading now binds the compiled EXEC selection
 to protected config/publication witnesses, exact manifest inventory and declared
@@ -34,7 +66,7 @@ only its initial anchor path is redirected. An explicit Root read-only probe als
 opens the actual retained exec code/private data eight times with no mapping.
 Protected inputs/catalogues stay unchanged, gates closed and no live dispatch/
 lease exists. Its synthetic build-local request IDs are not a launch profile.
-Full regression passes 36/36 Debug ASan/UBSan (305.95 s) and 36/36 Release
+Previous source-binding checkpoint: 36/36 Debug ASan/UBSan (305.95 s) and 36/36 Release
 (251.79 s). After final review added explicit account-scope binding and a
 publication-consistent negative case, the affected group passes again with all
 35 fixtures: Debug 7.66 s, Release 2.48 s. The final actual-installation observation

@@ -9,6 +9,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    if len(sys.argv)==3 and sys.argv[2]=="--execution-client":
+        node=ET.parse(ROOT/"spec/api/execution-v1.xml").getroot()
+        interface=node.find("interface")
+        lines=["/* Generated private execution-client contract; not installed method tables. */",
+               "#ifndef AETHERI_EXECUTION_WIRE_H","#define AETHERI_EXECUTION_WIRE_H",
+               "#define AE_EXECUTION_PATH "+json.dumps(node.attrib["name"]),
+               "#define AE_EXECUTION_INTERFACE "+json.dumps(interface.attrib["name"])]
+        for method in interface.findall("method"):
+            prefix={"RegisterStarter":"AE_EXECUTION_REGISTER","ReportPrepared":"AE_EXECUTION_PREPARED"}[method.attrib["name"]]
+            lines.append("#define "+prefix+"_METHOD "+json.dumps(method.attrib["name"]))
+            for direction,suffix in (("in","_INPUT"),("out","_OUTPUT")):
+                signature="".join(a.attrib["type"] for a in method.findall("arg") if a.get("direction","in")==direction)
+                lines.append("#define "+prefix+suffix+" "+json.dumps(signature))
+        lines.append("#endif")
+        destination=Path(sys.argv[1]); destination.parent.mkdir(parents=True,exist_ok=True)
+        destination.write_text("\n".join(lines)+"\n",encoding="utf-8",newline="\n")
+        return
     lines = ["/* Generated from the accepted XML contracts. Do not edit. */"]
     descriptors = []
     for file in ("management-v1.xml", "documents-v1.xml", "runtime-v1.xml", "broker-v1.xml", "catalogue-v1.xml", "development-v1.xml", "setup-v1.xml"):

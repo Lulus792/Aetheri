@@ -633,6 +633,28 @@ def wire_shape(root):
 
 
 class ApiContracts(unittest.TestCase):
+    def test_private_execution_client_contract(self):
+        node=ET.parse(ROOT/"spec/api/execution-v1.xml").getroot()
+        self.assertEqual(node.attrib["name"],"/org/aetheri/Execution1")
+        self.assertEqual(wire_shape(node),{"org.aetheri.Execution1":{
+            "RegisterStarter":("ay ay","ay ay ay ay ay ay t h"),
+            "ReportPrepared":("ay ay","ay ay ay ay ay ay t")}})
+        annotations={a.attrib["name"]:a.attrib["value"] for a in node.find("interface").findall("annotation")}
+        self.assertEqual(annotations,{"org.aetheri.Contract.Version":"1.0","org.aetheri.Contract.Visibility":"selected-starter-only"})
+        for arg in node.findall(".//arg"):
+            limits={a.attrib["name"].split(".")[-1]:a.attrib["value"] for a in arg.findall("annotation")}
+            expected={"Bytes":"32" if arg.attrib["name"] in ("profile_digest","bound_profile_digest") else "16"} if arg.attrib["type"]=="ay" else {
+                "Minimum":"1","Maximum":"9223372036854775807"} if arg.attrib["type"]=="t" else {}
+            self.assertEqual(limits,expected)
+            if arg.attrib["type"]=="h": self.assertEqual(arg.attrib["direction"],"out")
+        # Default authority tables deliberately do not expose an unimplemented
+        # producer; the separate client/header generation follows this XML.
+        with tempfile.TemporaryDirectory() as directory:
+            header=Path(directory)/"execution-wire.h"
+            subprocess.run([sys.executable,ROOT/"tools/embed_api.py",header,"--execution-client"],check=True)
+            self.assertIn('#define AE_EXECUTION_REGISTER_OUTPUT "ayayayayayayth"',header.read_text())
+            self.assertIn('#define AE_EXECUTION_PREPARED_OUTPUT "ayayayayayayt"',header.read_text())
+
     def test_private_no_exec_setup(self):
         node=ET.parse(ROOT/"spec/api/setup-v1.xml").getroot()
         self.assertEqual(node.attrib["name"],"/org/aetheri/Setup1")

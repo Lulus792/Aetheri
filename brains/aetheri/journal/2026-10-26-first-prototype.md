@@ -1613,3 +1613,72 @@ Final read-only verification under the stable carrier lock confirms Enforcing,
 unchanged owned inputs, no pending request, two closed install gates and two
 closed data gates, no unsettled live dispatch/lease, no temporary execution
 module/fixture and no execution.conf/execution-starter provisioned.
+
+## Authenticated executing-starter client — 27 October 2026
+
+Implemented the native client in launcher/execution.[ch], private Execution1 1.0
+XML and separate build-generated names/signatures. Default authority method
+tables, installed binaries, public capabilities, SQL and older XML remain
+unchanged. The actual executing starter and journal-backed producer are not
+installed or implemented by this consumer/fixture step.
+
+Constructor discovery resolves System1 once, then pins actual reply UID/PID/
+full Root domain and active selected unit/invocation/cgroup/boot. It compares
+Root epoch/runtime against protected AETHEXE1. New peer_capture_reply binds an
+actual METHOD_RETURN to its retained sent unique-destination call by bus, sender
+and cookies, without consuming the body or accepting augmented/missing process
+credentials. Both capture APIs refuse occupied outputs. Current original Root
+context is rechecked before/after exchanges; no replacement owner is followed.
+
+Registration compares all binding fields/revision and validates/duplicates only
+the borrowed anonymous Root writer. Client close cannot close that transferred
+writer, stop a process or settle a lease. Prepared release accepts only an exact
+same-owner receipt with advanced revision; the future producer must hold that
+reply until fresh durable ARM. Each call runs once per client with bounded two/
+five-second waits. This is not durable duplicate prevention: callers must not
+reconstruct to retry uncertainty, and the issuer journal/profile stays authoritative.
+Receipt acceptance does not prove target exec, registration, readiness or drain.
+
+The explicit probe uses a protected Release synthetic producer in the actual
+existing Root domain, NNP, cap-zero, selected notify unit and one-task limit.
+It has no catalogue, mount setup, target exec or app registration path. Its 28
+protocol cases cover field/revision errors, unsuitable writers, method errors,
+unknown timeout, exact call counts/no retry, output/FD ownership, original peer
+departure, fork ownership and non-Root constructor denial. A separate Debug
+ASan/UBSan client also passes against that producer without extending confined
+LeakSanitizer ptrace permissions. The normal peer test separately exercises
+actual correlated replies, mismatched call cookies, missing/augmented credentials,
+occupied output and repeated-query descriptor balance.
+
+Two initial protocol attempts reset the Root producer connection on the first
+writer transfer. Added focused diagnostics rather than broad permissions. Actual
+VM AVCs identify system_dbusd_t write denial on the aetheri_system_t pipe; upstream
+Linux6.19 file_receive corroborates received-file permission checks. Temporary
+policy now permits Root's own pipe operations and daemon write only, with no
+reader grant. The corrected probe passes. Incidental certificate-directory search
+remains denied; no crypto/TLS permission was needed. Known failed processes/
+unit/cgroup/jobs were independently checked before retirement; their failed unit
+metadata was reset only after drain, with logs retained under ignored builds.
+The first XML contract test also caught duplicate input/output argument names;
+bound output names now remain unambiguous without changing wire types.
+
+Final native regression passes 36/36 Debug ASan/UBSan (305.47 s) and 36/36
+Release (249.52 s). The final explicit Release protocol probe passes after those
+suites and removes its owned module/files after original PIDFD death and unit/
+cgroup/job drain. Host migration/wire passes 30/30 (52.959 s), orchestration
+39/39 (0.258 s), runtime vectors 14/14 and constraints 374 assertions. Timings
+are test durations, not OS performance measurements. No new dependency family
+or permanent policy grant/resident process was introduced.
+
+Final read-only carrier verification confirms Enforcing, unchanged normal owned
+inputs, no pending request, two closed install gates/two closed data gates, no
+unsettled dispatch/lease, no temporary reply/exec fixture/module and System1
+unowned. execution.conf/execution-starter remain unprovisioned. Other projects,
+host storage, hardware and ordinary installed authority/helper were untouched.
+
+Next provision the independently protected Root unit/profile and actual selected
+executing starter, implement the journal-backed Root handlers and native request/
+release adapters, then bind actual target image/registration/readiness and
+independent executing drain/recovery. Keep the old non-exec helper/proofs separate.
+The full OS/apps/desktop/image/hardware goal remains active; no user product/UI
+decision blocks the next backend work.
