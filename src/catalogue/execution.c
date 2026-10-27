@@ -2,6 +2,7 @@
 #include "core/digest.h"
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
 
 static int valid(const struct ae_execution_profile *p)
@@ -59,4 +60,27 @@ int ae_execution_digest(const struct ae_execution_profile *p,uint8_t output[32])
     if (output==NULL) return -EINVAL;
     uint8_t bytes[AE_EXECUTION_BYTES]; int result=ae_execution_encode(p,bytes);
     return result==0 ? ae_sha256_bytes(bytes,sizeof bytes,output) : result;
+}
+int ae_execution_diagnostic_encode(const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_execution_diagnostic *d,uint8_t output[32],char reason[64])
+{
+    if (e==NULL || d==NULL || output==NULL || reason==NULL) return -EINVAL;
+    unsigned int nonzero=0; for (size_t n=0;n<16;++n) nonzero|=e->invocation[n];
+    if (!nonzero || d->kind<AE_EXECUTION_DIAGNOSTIC_UNKNOWN || d->kind>AE_EXECUTION_DIAGNOSTIC_OBSERVER) return -EINVAL;
+    if (d->kind==AE_EXECUTION_DIAGNOSTIC_FAILURE) {
+        if (d->phase<1 || d->phase>AE_EXECUTION_PHASE_MAX || d->error<1 || d->error>4095) return -EINVAL;
+    } else if (d->phase || (d->kind==AE_EXECUTION_DIAGNOSTIC_OBSERVER ? d->error<1 || d->error>4095 : d->error!=0)) return -EINVAL;
+    uint8_t bytes[100]={0},hash[32]; char text[64]={0}; memcpy(bytes,"AETHEXD1",8);
+    int r=ae_execution_digest(p,bytes+8); if (r!=0) return r;
+    memcpy(bytes+40,e->invocation,16); memcpy(bytes+56,e->context_digest,32);
+    uint32_t fields[]={(uint32_t)d->kind,d->phase,d->error};
+    for (size_t n=0;n<3;++n) for (size_t m=0;m<4;++m) bytes[88+4*n+m]=(uint8_t)(fields[n]>>(24-8*m));
+    int size=d->kind==AE_EXECUTION_DIAGNOSTIC_UNKNOWN ? snprintf(text,sizeof text,"exec_channel_unknown") :
+        d->kind==AE_EXECUTION_DIAGNOSTIC_MALFORMED ? snprintf(text,sizeof text,"exec_channel_malformed") :
+        d->kind==AE_EXECUTION_DIAGNOSTIC_OBSERVER ? snprintf(text,sizeof text,"exec_observer_e%u",d->error) :
+        snprintf(text,sizeof text,"exec_failure_p%u_e%u",d->phase,d->error);
+    if (size<1 || size>=(int)sizeof text) return -EOVERFLOW;
+    r=ae_sha256_bytes(bytes,sizeof bytes,hash);
+    if (r==0) { memcpy(output,hash,32); memcpy(reason,text,sizeof text); }
+    return r;
 }

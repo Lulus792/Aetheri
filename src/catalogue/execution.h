@@ -24,6 +24,16 @@ int ae_catalogue_authorize_user_execution(struct ae_catalogue *,const struct ae_
 
 enum ae_execution_stage { AE_EXECUTION_REQUEST=1,AE_EXECUTION_BIND,AE_EXECUTION_PREPARE,AE_EXECUTION_ARM };
 struct ae_execution_evidence { uint8_t invocation[16],context_digest[32]; };
+enum ae_execution_diagnostic_kind {
+    AE_EXECUTION_DIAGNOSTIC_UNKNOWN=1,AE_EXECUTION_DIAGNOSTIC_FAILURE,
+    AE_EXECUTION_DIAGNOSTIC_MALFORMED,AE_EXECUTION_DIAGNOSTIC_OBSERVER
+};
+/* Canonical internal AETHXER1 phase numbers, not a dependency on Linux APIs.
+ * OBSERVER errors originate in Root's observation path, not the app/starter. */
+enum { AE_EXECUTION_PHASE_MAX=10 };
+struct ae_execution_diagnostic { enum ae_execution_diagnostic_kind kind; uint32_t phase,error; };
+int ae_execution_diagnostic_encode(const struct ae_execution_profile *,const struct ae_execution_evidence *,
+    const struct ae_execution_diagnostic *,uint8_t digest[32],char reason[64]);
 struct ae_execution_result {
     struct ae_dispatch_snapshot dispatch;
     /* One only on the successful fresh REQUEST/ARM transaction. Zero on every
@@ -45,5 +55,15 @@ struct ae_execution_result {
  * own actual evidence. Outputs stay unchanged on every error. */
 int ae_catalogue_execution(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_launch_context *,enum ae_execution_stage,const struct ae_execution_evidence *,
+    struct ae_execution_result *);
+/* Root observed its own issued channel under the original held starter pin.
+ * Record immutable integration step 4 (invocation + AETHEXD1 digest) and bounded
+ * canonical reason, atomically. This also permits reporting after an ambiguous
+ * BIND commit: the original REQUEST must exist, and an existing BIND must match.
+ * Never executes/closes a dispatch, completes the operation or releases a lease.
+ * Exact retry preserves revisions; changed evidence conflicts. Current original
+ * Root runtime/boot required. Caller owes actual process/channel provenance. */
+int ae_catalogue_execution_report(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,const struct ae_execution_diagnostic *,
     struct ae_execution_result *);
 #endif

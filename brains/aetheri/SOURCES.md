@@ -1096,3 +1096,34 @@ known failed unit/fixture was independently verified and retired before Release.
 Audit/journal evidence and an ignored guest failure receipt remain. No extra
 ptrace rule was added. This is a scoped test-instrumentation limit, not app
 readiness, a production execution interface or physical hardware acceptance.
+
+## Native execution coordination/diagnostics — 27 October 2026
+
+Original [coordinator contract](../../src/authority/execution.h) and
+[implementation](../../src/authority/execution.c) connect existing owner transactions,
+original process pins and the issued channel/event source. The [diagnostic codec](../../src/catalogue/execution.c)
+and [owner writer](../../src/catalogue/store.c) add immutable AETHEXD1 step-4
+evidence plus canonical reasons, without changing SQL/XML versions. Tests in
+[test_execution_service.c](../../tests/test_execution_service.c) use actual SQL,
+owned-child ProcessFDs and sd-event/pipes with controlled process/PID1/effect
+adapters. These do not prove live unit/domain admission. Independent
+[Python diagnostic vectors](../../tools/test_launch_native.py) and native fault/
+restart cases cover encoding and atomic persistence.
+
+Primary installed systemd-devel259.10-1.fc44 headers and man pages
+sd_event_add_io(3), sd_event_source_set_enabled(3) and sd_event_source_unref(3)
+were read in the guest: event registration borrows the descriptor, reference
+release detaches at zero, and explicit SD_EVENT_OFF prevents later dispatch/
+wakeups while references remain. The online v259 pages/raw-source fetches were
+unavailable in this run. The current official [I/O event documentation](https://www.freedesktop.org/software/systemd/man/latest/sd_event_add_io.html)
+renders262 and independently describes the same ownership/disable requirements;
+it is not adoption or runtime evidence for262. Actual259.10 event-loop tests
+confirm terminal disable even with unread malformed data.
+
+The [channel pristine query](../../src/linux/exec_channel.h) and coordinator's
+immediate pre-arm sample reject an observed partial prefix before event dispatch.
+The [peer fixture](../../tests/test_peer.c) now observes terminal EOF under one
+monotonic deadline rather than assuming it immediately after child exit. The
+reader's pending/unknown contract is unchanged. Exact results/limits are in the
+[runtime contract](../../spec/runtime.md#native-execution-coordinator-and-durable-diagnostics)
+and [journal](journal/2026-10-26-first-prototype.md).

@@ -1475,3 +1475,73 @@ held starter/invocation and authenticated current Root reply. Follow with actual
 target registration/image/readiness and independent drain. The no-exec proof
 still cannot settle an executable starter. Desktop/apps/image/hardware and the
 full OS goal remain active; UI/personal choices stay deferred to the user.
+
+## Native execution coordination and durable diagnostics — 27 October 2026
+
+Implemented authority/execution as a Root UID/GID 0 native library joining the
+existing journal, original starter pin/context, unit reference, issued pipe and
+sd-event watch. It copies one protected/admitted profile; live caller capture,
+image/unit/profile provisioning and current User data admission remain adapter
+obligations. The reserved starter type has no installed policy yet. The archive
+libaetheri_execution_service.a is a build artifact, not another resident service.
+
+Compiled request/release adapters run after fresh commits, outside SQLite, once.
+Unknown results never reissue them. A genuine original starter may resolve an
+unknown request through binding; it gets one writer only after successful BIND.
+Ambiguous binds retain pins/reader but issue no replacement. Re-observation under
+the unit reference binds AETHEXC1 context evidence, and observed drift remains
+quarantined even if later restored. The pre-arm channel sample requires pristine
+observed state; queued EOF or partial bytes block release before event dispatch.
+Callbacks cannot destroy their own coordinator: close returns EBUSY while active.
+
+Terminal event handlers disable their watch and atomically record AETHEXD1 in
+existing integration step 4 plus bounded canonical reason. Kind/phase/errno stay
+distinct for unknown, starter failure, malformed data and observer failure.
+The digest binds exactly 100 canonical bytes to the whole profile, actual
+invocation and observed context. Diagnostic acknowledgement can retry without
+another external effect, revision change or evidence replacement. Restart
+retains evidence and the lease; old-runtime reporters cannot write. Closing
+local objects never stops a process, completes an operation or releases a lease.
+Request/release/context error details are still local status; their persistent
+request/bind/arm remain unresolved. This is not complete production recovery.
+
+authority.execution_service uses real owner transactions, owned-child ProcessFDs,
+pipe/event dispatch and cleanup with controlled process/PID1/effect adapters.
+It covers 16 scenarios: wrong peers/contexts, inherited-owner/unprivileged creation
+denials, drift, request/bind/prepare/arm/report commit losses, callback timeout,
+early EOF/partial bytes and non-release on close. GetDispatch inside the effects
+starts a separate transaction, proving commit precedes the callback. Unread
+malformed data causes no further event dispatch; the child stays alive after
+coordinator close until the harness ends it. It proves no live unit/domain
+admission. Catalogue execution now covers 20 scenarios, including independent
+Python diagnostic bytes/hash/reasons, every diagnostic write/pre/post-commit fault,
+idempotence, changed-evidence rejection and restart retention.
+
+The initial coordinator group passed 13 cases in 46.11 s; the expanded owner/
+diagnostic groups then passed 2/2 (136.85 s). One compiler shadow-name error in
+the expanded test was corrected. A first full Debug run had 34/35 passes: the
+older peer fixture assumed its bounded reader reached terminal state immediately
+after child exit. It now waits for actual stream progress/EOF under one monotonic
+five-second deadline; transport references and bounded reads are not child-death
+evidence. The corrected peer passed 24 consecutive roundtrips; its reader's
+pending/unknown semantics were not relaxed. Focused service/peer/channel passes
+3/3 (64.06 s), including the new partial-data arm guard.
+
+Final suites pass 35/35 Debug ASan/UBSan (278.09 s) and 35/35 Release (250.86 s).
+Migration/wire passes 29/29 (38.208 s), orchestration 39/39 (0.433 s), runtime
+vectors 14/14 and constraints 374 assertions. The installed259.10 headers/man
+pages and actual event tests substantiate ownership/disable behavior; online
+version-specific fetches were unavailable, and the current262 page was only a
+cross-check. No new library version/family, schema/XML or policy grant was adopted.
+
+After both suites, read-only verification under the stable carrier lock confirms
+the normal protected executables/configuration/policy match the owned record,
+Enforcing, two closed install and two closed data gates, no pending/unsettled live
+dispatch or lease, and no temporary execution module/fixture. The normal authority
+binaries were not updated. No actual managed app was dispatched by this component.
+
+Next implement live wire/supervisor adapters, protected exec-profile/image/unit
+provisioning and the selected executing starter. Then bind actual target image/
+registration/readiness and independently proven drain/recovery. These remain
+implementation gates within the full OS/apps/desktop/image/hardware goal; no
+user product/UI decision blocks the remaining backend work.

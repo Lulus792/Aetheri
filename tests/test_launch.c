@@ -14,6 +14,10 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"user launch line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 static int commit_fault,step_fault,step_number,crash_mode;
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+void ae_test_execution_service(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
+void ae_test_execution_commit_fault(int value) { commit_fault=value; }
+#endif
 int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char **),void *,char **);
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
@@ -107,6 +111,24 @@ static void execution_codec(const struct ae_execution_profile *p,const char *exp
     struct ae_execution_profile invalid=*p; invalid.storage[6]=0; memset(bytes,0xa5,sizeof bytes);
     CHECK(ae_execution_encode(&invalid,bytes)==-EBADMSG);
     for (size_t n=0;n<sizeof bytes;++n) CHECK(bytes[n]==0xa5);
+    struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
+    CHECK(snprintf(path,sizeof path,"%s.diagnostics",expected)>0); file=fopen(path,"rb"); CHECK(file);
+    for (int kind=1;kind<=4;++kind) {
+        struct ae_execution_diagnostic d={.kind=(enum ae_execution_diagnostic_kind)kind,.phase=kind==2 ? 8U : 0U,.error=kind==2 ? 1U : kind==4 ? 5U : 0U};
+        uint8_t vector[96],actual[32]; char reason[64];
+        CHECK(fread(vector,1,sizeof vector,file)==sizeof vector && ae_execution_diagnostic_encode(p,&e,&d,actual,reason)==0);
+        CHECK(memcmp(vector,actual,32)==0 && memcmp(vector+32,reason,64)==0);
+    }
+    CHECK(fgetc(file)==EOF && fclose(file)==0);
+    const struct ae_execution_diagnostic bad[]={
+        {0,0,0},{5,0,0},{AE_EXECUTION_DIAGNOSTIC_FAILURE,0,1},{AE_EXECUTION_DIAGNOSTIC_FAILURE,11,1},
+        {AE_EXECUTION_DIAGNOSTIC_FAILURE,8,0},{AE_EXECUTION_DIAGNOSTIC_FAILURE,8,4096},
+        {AE_EXECUTION_DIAGNOSTIC_UNKNOWN,1,0},{AE_EXECUTION_DIAGNOSTIC_MALFORMED,0,1},
+        {AE_EXECUTION_DIAGNOSTIC_OBSERVER,1,1},{AE_EXECUTION_DIAGNOSTIC_OBSERVER,0,0}};
+    for (size_t n=0;n<sizeof bad/sizeof bad[0];++n) {
+        uint8_t actual[32],sentinel[32]; char reason[64],original[64]; memset(sentinel,0xa5,32); memcpy(actual,sentinel,32); memset(original,0xa5,64); memcpy(reason,original,64);
+        CHECK(ae_execution_diagnostic_encode(p,&e,&bad[n],actual,reason)==-EINVAL && memcmp(actual,sentinel,32)==0 && memcmp(reason,original,64)==0);
+    }
 }
 static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,const struct ae_catalogue_identity *identity,
     const struct ae_user_launch *q,struct ae_launch_context *c,const char *directory,const char *expected,const char *scenario)
@@ -220,6 +242,35 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,
     CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
     CHECK(scalar(directory,"SELECT state='running' FROM generation_leases")==1);
     CHECK(scalar(directory,"SELECT ready_data_gate_revision=3 FROM launch_dispatches")==1);
+    if (strstr(scenario,"exec-diagnostic-")) {
+        struct ae_execution_diagnostic d={.kind=AE_EXECUTION_DIAGNOSTIC_FAILURE,.phase=8,.error=1};
+        if (strstr(scenario,"unknown")) d=(struct ae_execution_diagnostic){.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+        if (strstr(scenario,"malformed")) d=(struct ae_execution_diagnostic){.kind=AE_EXECUTION_DIAGNOSTIC_MALFORMED};
+        if (strstr(scenario,"observer")) d=(struct ae_execution_diagnostic){.kind=AE_EXECUTION_DIAGNOSTIC_OBSERVER,.error=5};
+        struct ae_execution_result receipt,sentinel; memset(&sentinel,0xa5,sizeof sentinel); receipt=sentinel;
+        uint8_t before[32],after[32]; database_digest(directory,before);
+        for (int n=1;n<=3;++n) {
+            step_fault=n; step_number=0;
+            CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==-EIO && step_fault==0 && memcmp(&receipt,&sentinel,sizeof receipt)==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        }
+        commit_fault=1; CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==-EIO && memcmp(&receipt,&sentinel,sizeof receipt)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        commit_fault=2; CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==-EIO && memcmp(&receipt,&sentinel,sizeof receipt)==0);
+        CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==0 && !receipt.effect_required && strcmp(receipt.dispatch.state,"dispatching")==0);
+        database_digest(directory,before);
+        CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==0 && !receipt.effect_required);
+        struct ae_execution_diagnostic different={.kind=d.kind==AE_EXECUTION_DIAGNOSTIC_UNKNOWN ? AE_EXECUTION_DIAGNOSTIC_MALFORMED : AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+        receipt=sentinel;
+        CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&different,&receipt)==-EEXIST && memcmp(&receipt,&sentinel,sizeof receipt)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL AND reason_code LIKE 'exec_%' FROM operations")==1);
+        CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no=4 AND action='verify' AND subject_kind='integration' AND state='applied'")==1);
+        id(c->system_runtime,6); CHECK(ae_catalogue_begin_runtime(*root,p.boot,c->system_runtime)==0);
+        CHECK(ae_catalogue_execution_report(*root,&p,c,&e,&d,&receipt)==-ESTALE);
+        CHECK(scalar(directory,"SELECT state='uncertain' FROM launch_dispatches")==1 && scalar(directory,"SELECT state='running' FROM generation_leases")==1);
+        CHECK(scalar(directory,"SELECT reason_code LIKE 'exec_%' FROM operations")==1 && scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no=4 AND state='applied'")==1);
+    }
 }
 int main(int argc,char **argv)
 {
@@ -315,6 +366,12 @@ int main(int argc,char **argv)
         memcpy(rc.broker_runtime,replacement,16);
     }
     if (execution) {
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+        if (strncmp(argv[4],"exec-service-",13)==0) {
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            ae_test_execution_service(root,&p,&rc,argv[1],argv[4]);
+        } else
+#endif
         execution_test(&root,user,&ri,&q,&rc,argv[1],argv[3],argv[4]);
         CHECK(ae_catalogue_close(&root)==0 && ae_catalogue_close(&user)==0);
         puts("Execution journal: distinct purpose, exact run/fences, atomic intent/binding/preparation/arm, no replayed effects and retained obligations passed."); return 0;

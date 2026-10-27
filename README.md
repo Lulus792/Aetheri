@@ -7,6 +7,8 @@ The current C17 prototype runs in a dedicated Fedora/UEFI test VM. Two confined
 system/user services manage tested catalogues, verified test packages and separate
 private-data allocations. Native transactions record start reservations, starter
 binding, preparation and arm without repeating a possibly completed external effect.
+The native coordinator now connects that journal to a held starter/error channel
+and records distinct terminal diagnostics; its live service adapters remain in progress.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

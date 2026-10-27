@@ -71,6 +71,10 @@ The issuer-owned error channel and actual sd-bus writer reply now have native
 evidence; current Root reply/profile/runtime authentication and binding to the
 live journal/starter remain work. These are implementation gates, not requests to reopen the accepted
 architecture.
+Native journal/pin/channel coordination and durable diagnostic recording now
+have component tests with controlled process/PID1 adapters. Complete the live
+wire/provisioning/supervisor adapter and executing starter, then target readiness
+and independent drain. No user product decision blocks these implementation gates.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

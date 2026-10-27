@@ -57,6 +57,12 @@ int ae_exec_channel_fd(const struct ae_exec_channel *c)
     if (c==NULL) return -EINVAL;
     return c->owner==getpid() ? c->reader : -ECHILD;
 }
+int ae_exec_channel_pristine(const struct ae_exec_channel *c)
+{
+    if (c==NULL) return -EINVAL;
+    if (c->owner!=getpid()) return -ECHILD;
+    return c->used==0 && c->report.state==AE_EXEC_CHANNEL_PENDING;
+}
 static uint32_t number(const uint8_t *bytes)
 { uint32_t value=0; for (size_t n=0;n<4;++n) value=(value<<8)|bytes[n]; return value; }
 static int frame(const struct ae_exec_channel *c,struct ae_exec_report *r)

@@ -23,6 +23,9 @@ int ae_exec_channel_new(struct ae_exec_channel **output,int *writer);
 /* Borrow for event-loop polling ONLY. Do not read/close/duplicate/change flags
  * or export this reader. Each live channel belongs to its creating process. */
 int ae_exec_channel_fd(const struct ae_exec_channel *);
+/* One only while no bytes/EOF have been observed. This does not sample the
+ * kernel: admission must call read first, then require this pristine state. */
+int ae_exec_channel_pristine(const struct ae_exec_channel *);
 /* At most two nonblocking reads and 17 bytes per call, including overflow byte.
  * A complete frame stays PENDING until EOF; trailing/partial/invalid bytes are
  * MALFORMED. Empty EOF is UNKNOWN, never exec success/readiness/drain/release.

@@ -2239,3 +2239,90 @@ added to accommodate instrumentation. Keep ASan/UBSan in the normal native suite
 use Release for this explicit policy probe. Its c33,c34 test data/domain are
 separate from the enrolled exec fixture's c35,c36. The new channel is not yet
 wired into live authority registration/arm, app readiness or drain.
+
+## Native execution coordinator and durable diagnostics
+
+[authority/execution](../src/authority/execution.h) now connects the owner journal,
+original starter ProcessFD/invocation and issuer-owned error channel. It is a
+native Root-only library, not another resident service. It is not yet wired into
+the installed authority's methods or a new starter binary. The live adapter still
+owes protected profile/image/unit provisioning, fresh caller capture, current
+broker/data admission, an authenticated writer reply and actual supervisor control.
+The reserved starter context is system_u:system_r:aetheri_starter_t:s0; no policy
+definition or permission for it is installed by this work.
+
+The coordinator borrows the existing catalogue/system bus/event loop and copies
+one admitted AETHEXE1 profile. REQUEST commits before its compiled supervisor
+adapter runs. A retry or lost commit acknowledgement cannot invoke that adapter
+again. An unknown supervisor reply does not prohibit the genuine original starter
+from registering; it never permits another request. BIND requires the selected
+UID/domain/boot/derived unit, observes the actual process via PID1, retains a
+duplicate of the authenticated ProcessFD, references the unit and repeats the
+observation before journaling. AETHEXC1 hashes the profile and observed boot,
+invocation, cgroup identity, UID, unit, context and cgroup path. Only a successfully
+bound original starter gets the newly created channel writer. An ambiguous bind
+keeps its pins/reader and never issues a replacement writer.
+
+PREPARE rechecks that same connection and kernel context. ARM additionally samples
+the nonblocking channel immediately, so queued EOF/failure cannot be missed merely
+because its event callback has not run. Any already consumed prefix also blocks
+arm, even while the parser awaits EOF. The pristine query only describes observed
+state; it is not a replacement for sampling the kernel. Context drift stays quarantined even if
+later observations match again. Only a fresh ARM commit invokes the compiled
+release adapter; lost acknowledgement or callback timeout never repeats it.
+Neither adapter runs inside SQLite. Destroying the coordinator during one of
+these callbacks returns EBUSY, protecting its borrowed/profile lifetime.
+
+The event watch is disabled on terminal data or observation error. Its handler
+retains the error rather than terminating the event loop, and the owned reader
+closes only after its event-source reference is removed. Close releases local
+pins/references, never a persistent lease, operation or process. Actual drain
+still requires independent process, invocation, cgroup and job evidence.
+
+Terminal observations now have a native owner transaction. Step 4 is
+verify/integration/actual invocation, applied, with the AETHEXD1 digest. The same
+commit records a canonical bounded operation reason and increments owner/operation
+revisions. It changes no dispatch state, readiness, outcome or lease state.
+The original REQUEST/profile must match. An existing BIND must match its context;
+a missing BIND is allowed only for the same reserved original request with no
+arm, so an ambiguous binding commit can retain diagnostic evidence safely.
+
+| Kind | Phase/error fields | Canonical operation reason |
+| --- | --- | --- |
+| 1: unknown | 0 / 0 | exec_channel_unknown |
+| 2: reported failure | phase 1..10 / errno 1..4095 | exec_failure_pN_eM |
+| 3: malformed | 0 / 0 | exec_channel_malformed |
+| 4: observer failure | 0 / errno 1..4095 | exec_observer_eM |
+
+AETHEXD1 hashes exactly 100 bytes: its eight-byte tag, 32-byte whole-profile hash,
+16-byte actual invocation, 32-byte observed-context hash, then kind/phase/error as
+three big-endian u32 values. Exact retry is read-only/idempotent; a changed report
+conflicts. Root restart retains the stored reason/evidence and the unsettled
+lease; an old-runtime reporter cannot write again. A diagnostic acknowledgement
+may be retried explicitly without any process effect. Storage/acknowledgement
+failure remains visible separately from the observed starter/observer result.
+
+Status stage flags describe this coordinator's acknowledgements, not app execution.
+A lost commit may advance the persisted dispatch while a local flag remains false.
+Request/release/context error details are currently local status; their persistent
+intent/binding/arm and held lease remain the recovery obligation. Only terminal
+channel/observer diagnostics use step 4 here. This is not complete control-plane
+error history or production recovery.
+
+`authority.execution_service` exercises real SQLite transactions, owned-child
+ProcessFDs, pipes and sd-event dispatch with controlled process/PID1 adapters.
+The external request/release adapters deliberately simulate supervisor effects;
+this is not a live unit/domain admission test. Cases include repeated/unknown
+effects, wrong peers/contexts, context drift, Root/broker replacement, EOF before
+event dispatch, commit losses, diagnostic retry and non-release on close/error.
+Even unread malformed data produces no further event dispatch after disable.
+The actual child remains alive after coordinator close until the harness ends it.
+The separate native diagnostic tests use independent Python bytes/hash/reasons,
+all write/commit faults and restart checks. Live wire adapters, selected starter,
+actual target registration/readiness and independently proven drain remain next.
+
+The peer transport fixture now waits for actual terminal channel evidence under
+a single five-second monotonic deadline. A sender's exit is not synchronous
+retirement of every temporary transport FD copy, and a bounded parser need not
+finish in one call. This changes the test's observation timing, not the reader's
+unknown/pending semantics or any production admission timeout.

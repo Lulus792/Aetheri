@@ -156,5 +156,8 @@ now implemented and tested; live target-start integration remains next.
 The native execution tests now use an issuer-owned bounded error channel, with
 actual sd-bus writer transfer tested separately. Live journal/starter binding,
 target registration/readiness and independent drain remain pending.
+Native Root coordination now connects journal/pin/channel/event handling and
+durable diagnostics. Live wire/supervisor adapters and a selected executing
+starter still need integration and runtime acceptance.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

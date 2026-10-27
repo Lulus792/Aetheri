@@ -223,6 +223,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Run explicit test_execute_policy.py with Release; Debug LeakSanitizer needs a
   same-domain ptrace permission deliberately absent from that test policy. Keep
   ASan/UBSan in the normal native suite; do not weaken policy for instrumentation.
+- authority/execution.h now joins native journal/pin/channel/event handling in a
+  Root-only coordinator. Its compiled effect adapters run after fresh commits;
+  unknown request/release/bind never permits duplicate effects/writer issuance.
+  Re-observe original context; observed drift stays quarantined. Sample channel
+  before arm. sd-event terminal watches stop; close never frees a lease or stops
+  the process. Callback-time close is EBUSY. Run authority.execution_service;
+  its process/PID1/effect adapters are controlled fixtures, not live admission.
+  AETHEXD1 diagnostics persist immutable step 4 + bounded reason with no outcome/
+  lease change. Retry only acknowledgement. Read spec/runtime.md's coordinator
+  section. This library has no installed wire/provisioning/starter policy yet;
+  do not claim runtime/target readiness or use no-exec drain to settle it.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

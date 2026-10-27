@@ -70,6 +70,7 @@ static void stream(const uint8_t *bytes,size_t size,enum ae_exec_channel_state e
 {
     struct ae_exec_channel *c=NULL; int writer=-1;
     CHECK(ae_exec_channel_new(&c,&writer)==0);
+    CHECK(ae_exec_channel_pristine(c)==1);
     CHECK(ae_exec_writer_check(writer,geteuid(),getegid())==0);
     observe(c,AE_EXEC_CHANNEL_PENDING);
     if (size) CHECK(write(writer,bytes,size)==(ssize_t)size);
@@ -77,7 +78,7 @@ static void stream(const uint8_t *bytes,size_t size,enum ae_exec_channel_state e
     struct ae_exec_report r=observe(c,expected);
     if (expected==AE_EXEC_CHANNEL_FAILURE) CHECK((uint32_t)r.phase==bytes[11] && r.error==(int)(((uint32_t)bytes[14]<<8)|bytes[15]));
     int fd=ae_exec_channel_fd(c); CHECK(fd>=3);
-    r=observe(c,expected); CHECK(reads==0);
+    r=observe(c,expected); CHECK(reads==0 && ae_exec_channel_pristine(c)==0);
     CHECK(ae_exec_channel_close(&c)==0 && c==NULL && fcntl(fd,F_GETFD)==-1 && errno==EBADF);
 }
 int main(int argc,char **argv)
@@ -95,7 +96,7 @@ int main(int argc,char **argv)
     stream(bytes,17,AE_EXEC_CHANNEL_MALFORMED); stream(bytes,32,AE_EXEC_CHANNEL_MALFORMED);
     struct ae_exec_channel *c=NULL; int writer=-1;
     CHECK(ae_exec_channel_new(&c,&writer)==0);
-    for (size_t n=0;n<16;++n) { CHECK(write(writer,bytes+n,1)==1); observe(c,AE_EXEC_CHANNEL_PENDING); }
+    for (size_t n=0;n<16;++n) { CHECK(write(writer,bytes+n,1)==1); observe(c,AE_EXEC_CHANNEL_PENDING); CHECK(ae_exec_channel_pristine(c)==0); }
     CHECK(close(writer)==0); observe(c,AE_EXEC_CHANNEL_FAILURE); CHECK(ae_exec_channel_close(&c)==0);
     CHECK(ae_exec_channel_new(&c,&writer)==0 && write(writer,bytes,16)==16); observe(c,AE_EXEC_CHANNEL_PENDING);
     CHECK(write(writer,bytes,1)==1); observe(c,AE_EXEC_CHANNEL_MALFORMED);

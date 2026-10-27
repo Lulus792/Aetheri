@@ -20,8 +20,14 @@ def main():
         root=Path(temporary); expected=root/"expected"
         scenarios=("exec-fresh","exec-lost","exec-crash-request-before","exec-crash-request-after","exec-crash-arm-before","exec-crash-arm-after",
                          "exec-restart-1","exec-restart-2","exec-restart-3","exec-restart-4","exec-user-restart","exec-closed-gate",
-                         "exec-overflow-lease","exec-overflow-dispatch","exec-overflow-operation","exec-overflow-catalogue") if len(sys.argv)==4 and sys.argv[3]=="execution" else (
+                         "exec-overflow-lease","exec-overflow-dispatch","exec-overflow-operation","exec-overflow-catalogue",
+                         "exec-diagnostic-failure","exec-diagnostic-unknown","exec-diagnostic-malformed","exec-diagnostic-observer") if len(sys.argv)==4 and sys.argv[3]=="execution" else (
                          "faults","exit-before","exit-after","recovery","lost-root-reply","setup","setup-restart","setup-terminal","setup-dispatch-overflow","setup-lease-overflow")
+        if len(sys.argv)==4 and sys.argv[3]=="service":
+            scenarios=tuple("exec-service-"+case for case in (
+                "failure","unknown","malformed","request-timeout","request-commit-lost","bind-commit-lost",
+                "prepare-commit-lost","arm-commit-lost","release-timeout","context-drift","root-restart","broker-replacement","early-eof",
+                "observer-error","report-commit-lost","early-data"))
         for scenario in scenarios:
             plan["action"]="run" if scenario.startswith("exec-") else "main"
             expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
@@ -32,6 +38,13 @@ def main():
                 profile+=struct.pack(">QQQ",2,3,3)+bytes(32)+bytes([0x34])*32+hashlib.sha256(request).digest()+bytes([0x56])*32
                 assert len(profile)==384
                 expected.with_name(expected.name+".execution").write_bytes(profile+hashlib.sha256(profile).digest())
+                diagnostics=bytearray()
+                for kind,phase,error,reason in ((1,0,0,"exec_channel_unknown"),(2,8,1,"exec_failure_p8_e1"),
+                                               (3,0,0,"exec_channel_malformed"),(4,0,5,"exec_observer_e5")):
+                    record=b"AETHEXD1"+hashlib.sha256(profile).digest()+bytes.fromhex(identity(66))+bytes([2])*32+struct.pack(">III",kind,phase,error)
+                    assert len(record)==100
+                    diagnostics+=hashlib.sha256(record).digest()+reason.encode().ljust(64,b"\0")
+                expected.with_name(expected.name+".diagnostics").write_bytes(diagnostics)
             case=root/scenario; case.mkdir(); system,user=case/"system",case/"user"
             system.mkdir(mode=0o700); user.mkdir(mode=0o700)
             subprocess.run([executable,system,user,expected,scenario],check=True,timeout=50)

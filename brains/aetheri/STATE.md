@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — issuer-owned execution error channel and sd-bus writer transfer tested; live executing-start integration remains next.
+27 October 2026 — native execution coordinator connects journal/pin/channel with durable diagnostics; live adapters/starter remain next.
 
 ## Confirmed
 
@@ -13,6 +13,44 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+A new native Root coordinator now joins the existing execution journal, original
+starter ProcessFD/invocation, issuer-owned pipe and sd-event watch. Request and
+release adapters run only after fresh commits, outside SQLite, and never repeat
+after uncertainty. Binding pins/refers/reobserves the exact starter before its
+writer is issued. Context drift is retained; ARM samples queued channel state
+before any release. Terminal watches stop, and coordinator close cannot free a
+lease or imply process drain. Callback-time close returns EBUSY.
+
+Canonical AETHEXD1 diagnostics now persist actual invocation/context/profile,
+observation kind and phase/errno through an atomic step-4/reason transaction.
+Unknown EOF, starter failure, malformed input and observer failure stay distinct.
+Exact acknowledgement retry is safe and cannot repeat an external effect; Root
+restart preserves evidence/held obligations. No schema, XML, library family,
+resident process or policy grant changed.
+
+The coordinator tests use real owner SQL, ProcessFDs, pipes and sd-event with
+controlled process/PID1/effect adapters. They do not prove live starter/domain
+admission. The library is not connected to the installed authority/wire or a new
+starter binary yet. Protected profile/image/unit provisioning, current authenticated
+reply/broker/data mediation, actual target readiness and independent drain remain
+work. See the [coordinator/diagnostic contract](../../spec/runtime.md#native-execution-coordinator-and-durable-diagnostics).
+
+Final suites pass 35/35 Debug ASan/UBSan (278.09 s) and 35/35 Release (250.86 s).
+The coordinator group covers 16 scenarios; catalogue execution covers 20, with
+four independent diagnostic vectors. Migration/wire passes 29/29 (38.208 s),
+orchestration 39/39 (0.433 s), runtime vectors 14/14 and isolated constraints
+374 assertions. These are test timings, not OS benchmarks. A full-suite peer
+fixture failure exposed its immediate-EOF assumption; it now waits for actual
+terminal evidence under one deadline and passed 24 consecutive roundtrips.
+Known partial error data also blocks arm before event dispatch.
+
+Read-only protected-input verification passes afterward: Enforcing, no temporary
+execution fixture/module or pending request, both install/data gates closed and
+no unsettled live dispatch/lease. No new authority binary, interface, helper,
+policy grant or resident process was installed. Callback/context error details
+remain local status while their durable intent/arm/lease obligations remain held;
+complete control-plane history/recovery and live integration are still work.
 
 The Linux execution subsystem now has a process-owned anonymous error pipe:
 the supervisor keeps its reader and exports only the checked NONBLOCK/CLOEXEC
@@ -33,7 +71,7 @@ endpoint, registered app, readiness or drain implementation. Next bind it to the
 actual Root journal and selected starter, with authenticated current reply/runtime
 and original held process/invocation. See the [error-channel contract](../../spec/runtime.md#issuer-owned-execution-error-channel).
 
-Final suites pass 34/34 Debug ASan/UBSan (199.11 s) and 34/34 Release (176.38 s).
+Previous error-channel checkpoint: 34/34 Debug ASan/UBSan (199.11 s) and 34/34 Release (176.38 s).
 Migration/wire passes 29/29 (39.113 s), orchestration 39/39 (0.612 s), runtime
 vectors 14/14 and isolated constraints 374 assertions. The final Release enforcing
 probe also passes all five cases and retires its owned units/module. Read-only

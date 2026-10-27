@@ -751,3 +751,21 @@ outcomes. Empty EOF is never execution/readiness/drain. Remove terminal watches;
 do not introduce a polling process. Keep the explicit enforcing execution probe
 on Release binaries, with ASan/UBSan in the separate normal native suite. An
 observed LeakSanitizer same-domain ptrace denial does not justify broader policy.
+
+## Coordinate effects after commit and retain terminal diagnostics — 27 October 2026
+
+Use one native Root coordinator around the existing owner journal, held original
+starter and sd-event channel watch. Compiled request/release adapters run only
+after fresh commits; a lost acknowledgement never authorizes a second effect.
+Re-observe the selected UID/domain/boot/unit/invocation under the ProcessFD and
+unit reference. Quarantine observed drift permanently within that coordinator.
+Sample the channel before arm, not just when its queued event is dispatched.
+
+Record normalized terminal evidence as AETHEXD1 in existing v2 operation step 4
+and a bounded canonical reason, atomically. Distinguish unknown, reported failure,
+malformed data and observer failure. Keep dispatch/lease/outcome unchanged until
+actual observation/readiness/drain contracts permit a transition. Explicitly
+retry only a diagnostic acknowledgement, never a process effect. Releasing local
+memory/FD/unit references is not a persistent operation or lease release.
+These are implemented native component choices; live wire, provisioning, starter
+policy/runtime and target readiness/drain acceptance remain separate work.

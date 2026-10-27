@@ -5,10 +5,12 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "line %d: %s\n", __LINE__, #x); exit(1); } } while (0)
@@ -188,7 +190,21 @@ int main(void)
     CHECK(waitpid(state.child, &status, 0) == state.child);
     CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0);
     struct ae_exec_report report={0};
-    CHECK(ae_exec_channel_read(state.error_channel,&report)==0 && report.state==AE_EXEC_CHANNEL_FAILURE && report.phase==AE_EXEC_UID && report.error==EPERM);
+    struct timespec started,now; CHECK(clock_gettime(CLOCK_MONOTONIC,&started)==0);
+    for (;;) {
+        CHECK(ae_exec_channel_read(state.error_channel,&report)==0);
+        if (report.state!=AE_EXEC_CHANNEL_PENDING) break;
+        /* The child's exit does not synchronously retire every bus transport
+         * writer copy. Wait for actual stream progress/EOF within one deadline. */
+        CHECK(clock_gettime(CLOCK_MONOTONIC,&now)==0);
+        int64_t elapsed=(int64_t)(now.tv_sec-started.tv_sec)*1000+(now.tv_nsec-started.tv_nsec)/1000000;
+        CHECK(elapsed>=0 && elapsed<5000);
+        struct pollfd item={.fd=ae_exec_channel_fd(state.error_channel),.events=POLLIN|POLLHUP|POLLERR};
+        int ready=poll(&item,1,(int)(5000-elapsed));
+        if (ready<0 && errno==EINTR) continue;
+        CHECK(ready>0);
+    }
+    CHECK(report.state==AE_EXEC_CHANNEL_FAILURE && report.phase==AE_EXEC_UID && report.error==EPERM);
     CHECK(ae_exec_channel_close(&state.error_channel)==0);
     CHECK(ae_peer_alive(&state.retained) == -ESRCH);
     int closed = state.retained.pidfd;
