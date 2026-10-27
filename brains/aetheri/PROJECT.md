@@ -159,5 +159,8 @@ target registration/readiness and independent drain remain pending.
 Native Root coordination now connects journal/pin/channel/event handling and
 durable diagnostics. Live wire/supervisor adapters and a selected executing
 starter still need integration and runtime acceptance.
+Read-only source opening now verifies selected sealed code, declared action/ELF
+and independent private-data allocation/owner/context. Existing-installation
+observation retains closed gates; actual starter/profile/policy remain unprovisioned.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

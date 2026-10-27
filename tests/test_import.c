@@ -137,7 +137,8 @@ int main(int argc, char **argv)
     off_t source_offset = lseek(source_fd, 0, SEEK_CUR), stage_offset = lseek(stage_fd, 0, SEEK_CUR);
     unsigned int descriptors = descriptor_count();
     fault = argv[6];
-    int result = strcmp(argv[1], "sync") == 0 ? ae_fixture_sync_staged_payload(stage_fd, manifest, size, expected) :
+    int result = strcmp(argv[1], "check") == 0 ? ae_fixture_check_payload(source_fd,manifest,size,expected) :
+        strcmp(argv[1], "sync") == 0 ? ae_fixture_sync_staged_payload(stage_fd, manifest, size, expected) :
         ae_fixture_stage_payload(source_fd, stage_fd, manifest, size, expected);
     fault = "none";
     CHECK(descriptor_count() == descriptors);

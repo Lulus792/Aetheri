@@ -234,6 +234,16 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   lease change. Retry only acknowledgement. Read spec/runtime.md's coordinator
   section. This library has no installed wire/provisioning/starter policy yet;
   do not claim runtime/target readiness or use no-exec drain to settle it.
+- authority/execution_profile.h now binds protected config/publication/manifest/
+  ELF and private owner/allocation/context into held sources. Read spec/runtime.md's
+  protected execution-profile section. The 0700 store parent is not a sealed 0555
+  package. Source checks are read-only, not launch/view/volume/runtime admission.
+  execution.conf/execution-starter and aetheri_starter_exec_t remain reserved and
+  unprovisioned; positive starter admission still needs actual policy/image tests.
+  The optional --live-read-only probe uses synthetic build-local request IDs and
+  keeps gates closed. Never install it as a real dispatch profile. Shared pure
+  fixture config codecs now live in fixture_profile.c. core/import's check_payload
+  has no fsync; preserve publication sync/durability behavior.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.

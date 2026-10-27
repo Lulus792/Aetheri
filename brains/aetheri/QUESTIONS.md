@@ -75,6 +75,9 @@ Native journal/pin/channel coordination and durable diagnostic recording now
 have component tests with controlled process/PID1 adapters. Complete the live
 wire/provisioning/supervisor adapter and executing starter, then target readiness
 and independent drain. No user product decision blocks these implementation gates.
+Protected source opening now has actual kernel/file-context tests and a read-only
+existing-installation observation. Positive starter image/domain admission and
+current authenticated Root replies/data/launch mediation remain integration work.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

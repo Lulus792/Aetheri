@@ -2326,3 +2326,82 @@ a single five-second monotonic deadline. A sender's exit is not synchronous
 retirement of every temporary transport FD copy, and a bounded parser need not
 finish in one call. This changes the test's observation timing, not the reader's
 unknown/pending semantics or any production admission timeout.
+
+## Protected execution profile and source opening
+
+`authority/execution_profile.h` now implements read-only filesystem checks for
+the fixed executing P0 fixture. The root anchor is `/var/lib/aetheri-p0`; callers
+cannot select registry paths, action, UID or categories. This is a starter
+prerequisite, not launch admission.
+
+`ae_execution_profile_load` reads canonical AETHEXE1 from reserved
+`registry/execution.conf`. Root/registry directories require exact ownership,
+mode and raw SELinux context; the file is root:root, 0444, singly linked and
+exactly 384 bytes. `ae_execution_starter_open` similarly reserves
+`execution-starter`, requiring root:root 0555, full `aetheri_starter_exec_t:s0`
+object context and an ELF matching the profile's starter digest. Neither file
+nor that starter type is installed. Tests reject absence and a binary labeled
+for the different setup purpose; positive starter admission remains work.
+
+`ae_execution_sources_open` uses only the compiled EXEC registry selection:
+
+- Decode protected AETHFIC1; match account/I/G/artifact and hash the complete config
+  against AETHSTO1. Compare independent store-parent/container filesystem, inode
+  and birth witnesses. The shared store parent is root:root 0700
+  `aetheri_store_parent_t:s0`; sealed containers/code directories are 0555
+  `aetheri_store_dir_t:s0`.
+- Verify the sealed manifest/artifact, fixed `aetheri.p0.exec` component and
+  selected publisher. Resolve the exact declared `run` action into owned literal
+  arguments, including empty ones. No `main` alias, shell or PATH fallback.
+- Check the complete inventory, file contents and repeated metadata through new
+  `ae_fixture_check_payload`. This reuses import validation without writes, chmod
+  or fsync; publication still repeats its required flushes. Normal read-atime
+  updates remain possible. Require each declared file and directory prefix's
+  complete raw label, UID/GID and exact mode. Hold and verify the resolved ELF
+  under that same code root.
+- Match selected AETHDTA1's account/I/D/storage, both authority epochs, publisher
+  and install revision. Require its AETHALC1 digest, actual allocation-registry
+  bytes, independently protected owner config, actual owner header and anchor/
+  root object witnesses to agree. The payload requires UID/GID 1000, 0700 and
+  exactly `system_u:object_r:aetheri_app_data_t:s0:c35,c36`.
+
+Success returns three distinct owned CLOEXEC FDs: code root, private payload and
+image. Errors leave output unchanged. Clear only closes local resources; it
+cannot settle operations, revoke access or release leases. Config/code/private
+metadata resolution forbids links, magic links and mount crossings under held
+roots. Only the selected payload leaf allows a supervisor-provided writable bind.
+Trusted namespace topology and policy excluding future mutation/relabel/rename
+remain caller obligations. These observations do not enroll publishers/volumes,
+prove active I/G/D or current broker admission. The caller still owes current
+catalogue/User fences, private-view creation/checks and final held-image recheck
+at one-way exec. Source data is not yet a noexec mount. No gates/SQL/processes
+are changed by the loader.
+
+`fixture_profile.c` shares the existing compiled registry selections and unchanged
+pure AETHFIC1/AETHSTO1/AETHACT1 decoders, avoiding administrative staging/publication
+effects in a future starter. No byte/schema/wire version, dependency family or
+resident service changed; installed protected binaries are unchanged.
+
+`authority.execution_profile` exercises 35 owned enforcing-guest fixtures with
+real openat2/statx/inventory/image and file-context checks. Only the fixed initial
+root pathname is mapped to scratch space; child resolution/MAC are not mocked.
+Repeated successes/failures verify unchanged outputs, FD balance and tree
+metadata/content. Cases cover wrong generation/publication/component/action/ELF,
+extra entries, ownership/labels/categories, links, data headers and allocation
+record/witness/digest. Import tests also assert zero file/directory syncs on the
+read-only path.
+
+The optional existing-installation observation is:
+
+```sh
+sudo python3 tools/test_execution_profile.py --live-read-only \
+    /home/aetheri/build/release/test_execution_profile /home/aetheri/build/release
+```
+
+It locks the carrier, verifies protected inputs, requires closed gates and no
+unsettled dispatch/lease, and writes only a build-local observation profile with
+synthetic request IDs. Eight checks open the actual retained code/private data
+without root mapping and preserve catalogues/protected inputs. This is Root
+administrative read-side evidence, not admission in the selected starter domain.
+Live authenticated replies/wire/supervisor adapters, starter provisioning/policy,
+target registration/readiness and independent drain remain work.

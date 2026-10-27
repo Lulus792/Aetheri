@@ -1545,3 +1545,71 @@ provisioning and the selected executing starter. Then bind actual target image/
 registration/readiness and independently proven drain/recovery. These remain
 implementation gates within the full OS/apps/desktop/image/hardware goal; no
 user product/UI decision blocks the remaining backend work.
+
+## Protected execution-profile/source binding — 27 October 2026
+
+Implemented authority/execution_profile.[ch] for the fixed EXEC selection. It
+reads canonical AETHEXE1 from a reserved protected path, reserves a separately
+labeled/hash-bound starter ELF, and joins the witnessed store publication,
+verified manifest/complete inventory/exact declared run image and independent
+private allocation/owner/root witnesses/full c35,c36 object context. Successful
+source output owns three CLOEXEC FDs. Failure leaves output unchanged and closes
+temporary handles. There is no SQL/gate/process effect or lease release.
+
+Moved unchanged pure registry selections and AETHFIC1/AETHSTO1/AETHACT1 decoders
+to fixture_profile.c, allowing reuse without administrative staging/publication
+entry points. A review compared all four relocated definitions byte-for-byte
+with HEAD. Added a no-write/no-fsync inventory check through the existing import
+validator; existing sync/publication durability paths retain their flushes.
+No new library family, schema/XML version, policy grant or resident process.
+
+Tests use Root administrative access in the enforcing carrier, real openat2/
+statx/inventory/ELF/digest and actual file-context observations. Only the initial
+fixed root path is redirected to owned scratch fixtures. They do not prove the
+future starter domain's policy permissions. Repeated successful/failing calls
+check output preservation, FD balance and unchanged tree metadata/content.
+Positive starter admission remains untested: its reserved file/type/profile are
+not provisioned. Absence and a binary labeled for the different setup purpose
+are rejected. Source checks still owe live catalogue/User admission, protected
+topology/mutation exclusion and private noexec view preparation before exec.
+
+Two initial test expectations confused different link-rejection paths: the
+inventory classifies an O_PATH final link as EBADMSG, while O_DIRECTORY payload
+opening returns ENOTDIR. Both expectations were corrected without weakening the
+production checks. Failed scratch trees/logs remain under ignored guest builds.
+An initial actual-installation source check also caught an incorrect new loader/
+test assumption: the shared store parent is 0700 aetheri_store_parent_t, distinct
+from sealed 0555 package containers. Direct metadata and existing provisioning
+code established that shape; corrected source checks then pass on actual paths.
+
+Full regression passes 36/36 Debug ASan/UBSan (305.95 s) and 36/36 Release
+(251.79 s). A final review added an explicit fixture account-scope comparison;
+scope/generation negatives keep the publication digest consistent so that only
+the tuple guard rejects them. The affected native group then passes with all
+35 fixtures on final code: Debug 7.66 s, Release 2.48 s. A test-only vararg wrapper
+also now retrieves the exact struct open_how pointer type. No production change
+followed those targeted runs. Core import tests verify zero file/directory syncs
+for read-only checking, while existing publication/resync tests still pass.
+Host migration/wire 29/29 (46.893 s), orchestration 39/39 (0.386 s), runtime vectors
+14/14 and isolated constraints 374 assertions also pass. Times are test-run
+durations, not OS performance benchmarks.
+
+The explicit --live-read-only probe locks the carrier, verifies original owned
+inputs, requires closed gates/no unsettled launch/lease, and creates only a
+build-local observation profile with synthetic request IDs. The final Release
+binary opens the actual retained EXEC code/private data eight times without root
+mapping; catalogues/protected inputs remain unchanged and Enforcing. No normal
+authority/helper was updated, gate opened, new protected config/image installed
+or managed app dispatched.
+
+Next connect the source/profile prerequisites to actual authenticated Root
+replies and the distinct executing starter, with reviewed protected unit/profile/
+image/policy provisioning and native coordinator adapters. Preserve original
+no-exec contracts. Target image registration/readiness, independent executing
+drain/recovery and full OS/apps/desktop/image/hardware acceptance remain work.
+No personal product/UI choice blocks these next backend steps.
+
+Final read-only verification under the stable carrier lock confirms Enforcing,
+unchanged owned inputs, no pending request, two closed install gates and two
+closed data gates, no unsettled live dispatch/lease, no temporary execution
+module/fixture and no execution.conf/execution-starter provisioned.

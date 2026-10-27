@@ -54,4 +54,11 @@ int ae_fixture_sync_payload(int root_fd, unsigned int root_mode,
                             const uint8_t *manifest, size_t manifest_size,
                             const uint8_t expected_artifact[32]);
 
+/* Read-only exact inventory/hash/metadata recheck of an independently admitted
+ * 0555 store payload. No copies, chmod, writes or fsync; normal read-atime updates
+ * may occur. Same owner/namespace/MAC/immutable-input prerequisites as above.
+ * This observation does not replace publication durability or launch admission. */
+int ae_fixture_check_payload(int root_fd,const uint8_t *manifest,size_t manifest_size,
+                             const uint8_t expected_artifact[32]);
+
 #endif

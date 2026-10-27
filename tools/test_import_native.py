@@ -104,6 +104,8 @@ def main():
         item = setup()
         assert item[2].read_bytes().hex() == frozen["hex"] and item[3] == frozen["sha256"]
         original_source = snapshot(item[0])
+        assert invoke(item,action="check")[1:3] == (0,0)
+        assert snapshot(item[0]) == original_source
         invoke(item)
         assert snapshot(item[0]) == original_source
         checked(item)
@@ -132,6 +134,13 @@ def main():
             before_sync = snapshot(root)
             invoke(item, action="sync", expected=None)
             assert snapshot(root) == before_sync
+            # The same exact-inventory admission must reject a corrupted sealed
+            # tree without writes or any durability operation.
+            source_item=(root,item[0],item[2],item[3],item[4],item[5])
+            root.chmod(0o555)
+            before_check=snapshot(root)
+            report=invoke(source_item,action="check",expected=None)
+            assert report[1:3] == (0,0) and snapshot(root)==before_check
 
         for fault in ("read-eintr", "read-short", "write-eintr", "write-short"):
             item = setup()

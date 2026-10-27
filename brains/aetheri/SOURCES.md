@@ -1127,3 +1127,34 @@ monotonic deadline rather than assuming it immediately after child exit. The
 reader's pending/unknown contract is unchanged. Exact results/limits are in the
 [runtime contract](../../spec/runtime.md#native-execution-coordinator-and-durable-diagnostics)
 and [journal](journal/2026-10-26-first-prototype.md).
+
+## Protected execution-source opening — 27 October 2026
+
+Original [contract](../../src/authority/execution_profile.h),
+[loader](../../src/authority/execution_profile.c), shared
+[pure fixture profiles](../../src/authority/fixture_profile.c),
+[read-only inventory checker](../../src/core/import.c),
+[native tests](../../tests/test_execution_profile.c) and
+[carrier controller](../../tools/test_execution_profile.py). Real kernel/file-context
+checks use owned scratch fixtures, with only the fixed initial anchor redirected.
+The optional existing-installation probe uses actual source paths and preserves
+closed gates/protected inputs/catalogues. It supplies no live launch admission.
+Both use Root administrative access in the enforcing guest; they do not establish
+the future confined starter's policy permissions or target process transition.
+
+Primary Linux man-pages [openat2](https://man7.org/linux/man-pages/man2/openat2.2.html)
+and [statx](https://man7.org/linux/man-pages/man2/statx.2.html), read 27 October 2026:
+NO_XDEV rejects bind-mount crossings; O_PATH/NOFOLLOW can return a final symlink
+itself despite NO_SYMLINKS, so classify the held object before content opening.
+Required statx fields must be checked in the returned mask. These observations
+are bounded and require controlled namespace/content writers. No newly documented
+kernel flags were adopted. The actual guest is still the pinned 6.19 carrier.
+
+An initial actual-source read rejected EACCES because the new loader/test model
+incorrectly treated the shared store parent as a sealed container. Direct native
+metadata and the existing provisioning code showed 0700 aetheri_store_parent_t;
+the corrected loader retains separate 0555 sealed-package checks. Initial test
+expectations for file/payload links were corrected to the actual EBADMSG/ENOTDIR
+paths, without weakening production checks. Starter absence/wrong-purpose labels
+are tested; actual positive starter policy/image admission remains untested and
+unprovisioned. Exact executed results are in STATE/journal.

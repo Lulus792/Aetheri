@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — native execution coordinator connects journal/pin/channel with durable diagnostics; live adapters/starter remain next.
+27 October 2026 — protected source binding joins sealed program/action and private allocation; actual starter/live adapters remain next.
 
 ## Confirmed
 
@@ -13,6 +13,40 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Read-only execution-profile/source loading now binds the compiled EXEC selection
+to protected config/publication witnesses, exact manifest inventory and declared
+run ELF, and independently recorded private allocation/owner/full c35,c36 context.
+Success owns three CLOEXEC source FDs; failures retain output and close temporary
+handles. It performs no SQL/gate/process effects. Source data still needs private
+noexec views; current catalogue/User admission and mutation-excluding policy are
+separate caller obligations. See [source-opening contract](../../spec/runtime.md#protected-execution-profile-and-source-opening).
+
+Existing pure registry/config decoders moved to fixture_profile.c. The shared
+inventory checker now also has a no-write/no-fsync entry point; publication
+durability is unchanged. The reserved execution.conf/execution-starter/type are
+not provisioned. Positive starter image/domain admission is still untested;
+absence/wrong-purpose labels are rejected. No installed binary, schema/XML,
+policy grant, dependency family or resident process changed.
+
+The new native group covers 35 owned fixtures with real kernel/file-context checks;
+only its initial anchor path is redirected. An explicit Root read-only probe also
+opens the actual retained exec code/private data eight times with no mapping.
+Protected inputs/catalogues stay unchanged, gates closed and no live dispatch/
+lease exists. Its synthetic build-local request IDs are not a launch profile.
+Full regression passes 36/36 Debug ASan/UBSan (305.95 s) and 36/36 Release
+(251.79 s). After final review added explicit account-scope binding and a
+publication-consistent negative case, the affected group passes again with all
+35 fixtures: Debug 7.66 s, Release 2.48 s. The final actual-installation observation
+also passes. Migration/wire 29/29 (46.893 s), orchestration 39/39 (0.386 s), runtime
+vectors 14/14 and constraints 374 assertions pass. These are scoped test timings,
+not OS performance measurements. Earlier evidence below belongs to its stated
+checkpoint. Actual starter/wire/supervisor mediation, target registration/readiness
+and independent drain remain work.
+Final read-only carrier verification confirms Enforcing, no pending request,
+both install gates and both data gates closed, no unsettled live dispatch/lease,
+unchanged protected inputs, no temporary execution module/fixture and no reserved
+starter/profile file provisioned.
 
 A new native Root coordinator now joins the existing execution journal, original
 starter ProcessFD/invocation, issuer-owned pipe and sd-event watch. Request and
@@ -36,7 +70,7 @@ starter binary yet. Protected profile/image/unit provisioning, current authentic
 reply/broker/data mediation, actual target readiness and independent drain remain
 work. See the [coordinator/diagnostic contract](../../spec/runtime.md#native-execution-coordinator-and-durable-diagnostics).
 
-Final suites pass 35/35 Debug ASan/UBSan (278.09 s) and 35/35 Release (250.86 s).
+Previous coordinator checkpoint: 35/35 Debug ASan/UBSan (278.09 s) and 35/35 Release (250.86 s).
 The coordinator group covers 16 scenarios; catalogue execution covers 20, with
 four independent diagnostic vectors. Migration/wire passes 29/29 (38.208 s),
 orchestration 39/39 (0.433 s), runtime vectors 14/14 and isolated constraints

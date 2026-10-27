@@ -295,7 +295,7 @@ static int finish_directories(int root, struct inventory *inventory, int seal)
     return 0;
 }
 
-int ae_fixture_sync_payload(int staging_fd, unsigned int root_mode, const uint8_t *manifest, size_t size, const uint8_t expected[32])
+static int verify_payload(int staging_fd, unsigned int root_mode, const uint8_t *manifest, size_t size, const uint8_t expected[32],int sync)
 {
     if (staging_fd < 0 || (root_mode != 0700 && root_mode != 0555)) return -EINVAL;
     struct inventory inventory = {0};
@@ -305,13 +305,19 @@ int ae_fixture_sync_payload(int staging_fd, unsigned int root_mode, const uint8_
     if (result == 0) result = scan(staging_fd, (mode_t)root_mode, &inventory);
     for (uint32_t n = 0; result == 0 && n < inventory.fixture.file_count; ++n) {
         result = ae_fixture_verify_file(&inventory.fixture.files[n], inventory.files[n].fd);
-        if (result == 0 && fsync(inventory.files[n].fd) != 0) result = -errno;
+        if (result == 0 && sync && fsync(inventory.files[n].fd) != 0) result = -errno;
     }
     if (result == 0) result = recheck(staging_fd, &inventory);
-    if (result == 0) result = finish_directories(staging_fd, &inventory, 0);
+    if (result == 0 && sync) result = finish_directories(staging_fd, &inventory, 0);
     if (result == 0) result = root_unchanged(staging_fd, &root);
     return dispose(&inventory, result);
 }
+
+int ae_fixture_check_payload(int root,const uint8_t *manifest,size_t size,const uint8_t expected[32])
+{ return verify_payload(root,0555,manifest,size,expected,0); }
+
+int ae_fixture_sync_payload(int root,unsigned int mode,const uint8_t *manifest,size_t size,const uint8_t expected[32])
+{ return verify_payload(root,mode,manifest,size,expected,1); }
 
 int ae_fixture_sync_staged_payload(int staging_fd, const uint8_t *manifest, size_t size, const uint8_t expected[32])
 {

@@ -769,3 +769,19 @@ retry only a diagnostic acknowledgement, never a process effect. Releasing local
 memory/FD/unit references is not a persistent operation or lease release.
 These are implemented native component choices; live wire, provisioning, starter
 policy/runtime and target readiness/drain acceptance remain separate work.
+
+## Bind the executing starter to protected sources — 27 October 2026
+
+Use the compiled EXEC selection and AETHEXE1 rather than app-supplied paths/action/
+labels. Join the independently witnessed publication, exact manifest inventory/
+declared run ELF and private allocation digest/record/owner/root witnesses/full
+c35,c36 context. Return held CLOEXEC sources for private views and one-way exec;
+active catalogue/User admission and exclusion of future mutation remain separate
+caller obligations. File observations do not grant those rights.
+
+Share pure registry/config decoders in fixture_profile.c, excluding administrative
+write/effect code from the future starter. Reuse import checking with a read-only
+no-fsync entry point; preserve publication repeat flushes. The shared 0700 store
+parent is distinct from sealed 0555 packages. Reserve a separately labeled/hash-
+bound starter and execution.conf, but do not provision/advertise them before live
+protocol/policy/supervisor integration. No new dependency, database or process.
