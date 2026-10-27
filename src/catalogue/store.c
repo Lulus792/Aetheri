@@ -1,5 +1,6 @@
 #include "catalogue/store.h"
 #include "catalogue/schema.h"
+#include "catalogue/projection.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -1061,6 +1062,156 @@ int ae_catalogue_fixture_activate(struct ae_catalogue *store,const struct ae_fix
 #undef FB
 #undef FT
 #undef FI
+
+static int projection_id(const uint8_t id[16])
+{
+    return id!=NULL && (id[6]>>4)==4 && (id[8]&0xc0)==0x80;
+}
+
+int ae_install_snapshot_valid(const struct ae_install_snapshot *snapshot)
+{
+    if (snapshot==NULL) return -EINVAL;
+    const uint8_t *ids[]={snapshot->system_epoch,snapshot->system_runtime,snapshot->boot,snapshot->install,
+        snapshot->publisher,snapshot->account,snapshot->scope,snapshot->generation};
+    for (size_t n=0;n<sizeof ids/sizeof ids[0];++n) if (!projection_id(ids[n])) return -EBADMSG;
+    size_t size=strnlen(snapshot->component,sizeof snapshot->component);
+    if (size==0 || size>=sizeof snapshot->component) return -EBADMSG;
+    for (size_t n=0;n<size;++n) {
+        unsigned char c=(unsigned char)snapshot->component[n];
+        if (!((c>='a' && c<='z') || (c>='0' && c<='9') || c=='.' || c=='_' || c=='-')) return -EBADMSG;
+    }
+    if (snapshot->install_revision<1 || snapshot->generation_revision<1 || snapshot->gate_revision<1 ||
+        snapshot->catalogue_revision<1 || snapshot->gate<AE_INSTALL_GATE_OPEN || snapshot->gate>AE_INSTALL_GATE_CLOSED) return -EBADMSG;
+    return 0;
+}
+
+static int projection_blob(sqlite3_stmt *statement,int column,uint8_t *output,int size)
+{
+    if (sqlite3_column_type(statement,column)!=SQLITE_BLOB || sqlite3_column_bytes(statement,column)!=size) return -EUCLEAN;
+    memcpy(output,sqlite3_column_blob(statement,column),(size_t)size);
+    return 0;
+}
+
+int ae_catalogue_resolve_app(struct ae_catalogue *store,const uint8_t account[16],uint32_t os_uid,
+                             const uint8_t install[16],const uint8_t boot[16],const uint8_t runtime[16],
+                             struct ae_install_snapshot *output)
+{
+    if (output==NULL || !projection_id(account) || !projection_id(install) || !projection_id(boot) ||
+        !projection_id(runtime) || os_uid==UINT32_MAX) return -EINVAL;
+    int result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_SYSTEM) result=-EPERM;
+    if (result==0) result=exec_sql(store->db,"BEGIN");
+    if (result!=0) return result;
+    struct ae_catalogue_info info;
+    int64_t account_revision;
+    result=read_info(store,&info);
+    if (result==0 && (memcmp(info.boot_id,boot,16)!=0 || memcmp(info.runtime_incarnation,runtime,16)!=0)) result=-ESTALE;
+    if (result==0) result=account_row(store,account,os_uid,&account_revision);
+    sqlite3_stmt *statement=NULL;
+    if (result==0) result=failure(sqlite3_prepare_v2(store->db,
+        "SELECT c.component_id,c.publisher_ref,i.scope_id,i.revision,g.generation_id,g.artifact_id,g.revision,f.state,f.revision "
+        "FROM installs i JOIN scopes s ON s.scope_id=i.scope_id JOIN components c ON c.component_id=i.component_id "
+        "JOIN generations g ON g.generation_id=i.active_generation_id AND g.install_id=i.install_id AND g.component_id=i.component_id "
+        "JOIN artifacts a ON a.artifact_id=g.artifact_id AND a.component_id=i.component_id "
+        "JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=i.install_id "
+        "WHERE i.install_id=?1 AND i.state='active' AND c.kind='app' AND s.state='active' "
+        "AND (s.kind='machine' OR (s.kind='account' AND s.scope_id=?2)) "
+        "AND g.publication_state='committed' AND g.activated_once=1 AND a.store_state='verified'",-1,&statement,NULL));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,1,install,16,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_blob(statement,2,account,16,SQLITE_TRANSIENT));
+    struct ae_install_snapshot snapshot={0};
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code!=SQLITE_ROW) result=code==SQLITE_DONE ? -ENOENT : failure(code);
+        else {
+            int length=sqlite3_column_bytes(statement,0);
+            if (sqlite3_column_type(statement,0)!=SQLITE_TEXT || length<1 || length>128 ||
+                memchr(sqlite3_column_text(statement,0),0,(size_t)length)!=NULL) result=-EUCLEAN;
+            else memcpy(snapshot.component,sqlite3_column_text(statement,0),(size_t)length);
+            if (result==0) result=projection_blob(statement,1,snapshot.publisher,16);
+            if (result==0) result=projection_blob(statement,2,snapshot.scope,16);
+            if (result==0) result=projection_blob(statement,4,snapshot.generation,16);
+            if (result==0) result=projection_blob(statement,5,snapshot.artifact,32);
+            snapshot.install_revision=sqlite3_column_int64(statement,3);
+            snapshot.generation_revision=sqlite3_column_int64(statement,6);
+            snapshot.gate_revision=sqlite3_column_int64(statement,8);
+            const unsigned char *gate=sqlite3_column_text(statement,7);
+            if (gate==NULL) result=-EUCLEAN;
+            else if (strcmp((const char *)gate,"open")==0) snapshot.gate=AE_INSTALL_GATE_OPEN;
+            else if (strcmp((const char *)gate,"closing")==0) snapshot.gate=AE_INSTALL_GATE_CLOSING;
+            else if (strcmp((const char *)gate,"closed")==0) snapshot.gate=AE_INSTALL_GATE_CLOSED;
+            else result=-EUCLEAN;
+            if (result==0 && sqlite3_step(statement)!=SQLITE_DONE) result=-EUCLEAN;
+        }
+    }
+    int final=failure(sqlite3_finalize(statement));
+    if (result==0) result=final;
+    if (result==0) {
+        memcpy(snapshot.system_epoch,info.authority_epoch,16); memcpy(snapshot.system_runtime,info.runtime_incarnation,16);
+        memcpy(snapshot.boot,info.boot_id,16); memcpy(snapshot.install,install,16); memcpy(snapshot.account,account,16);
+        snapshot.catalogue_revision=info.revision;
+        result=ae_install_snapshot_valid(&snapshot);
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *output=snapshot;
+    return result;
+}
+
+int ae_catalogue_cache_install(struct ae_catalogue *store,const struct ae_install_snapshot *snapshot,
+                               const struct ae_projection_context *context,int64_t *local_revision)
+{
+    if (local_revision==NULL || context==NULL || !projection_id(context->system_epoch) ||
+        !projection_id(context->system_runtime) || !projection_id(context->boot) || !projection_id(context->user_runtime)) return -EINVAL;
+    int result=ae_install_snapshot_valid(snapshot);
+    if (result==0) result=still_named(store);
+    if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
+    if (result==0 && (memcmp(snapshot->account,store->identity.owner,16)!=0 || memcmp(snapshot->system_epoch,context->system_epoch,16)!=0 ||
+        memcmp(snapshot->system_runtime,context->system_runtime,16)!=0 || memcmp(snapshot->boot,context->boot,16)!=0)) result=-ESTALE;
+    if (result!=0) return result;
+    result=exec_sql(store->db,"BEGIN IMMEDIATE");
+    if (result!=0) return result;
+    struct ae_catalogue_info info;
+    result=read_info(store,&info);
+    if (result==0 && (memcmp(info.boot_id,context->boot,16)!=0 || memcmp(info.runtime_incarnation,context->user_runtime,16)!=0)) result=-ESTALE;
+    sqlite3_stmt *statement=NULL;
+    if (result==0) result=failure(sqlite3_prepare_v2(store->db,
+        "SELECT component_id=?2 AND publisher_ref=?3 AND owner_scope=?4 AND system_epoch=?5 AND install_revision=?6 AND state='active' FROM install_bindings WHERE install_id=?1",-1,&statement,NULL));
+    const void *blobs[]={snapshot->install,snapshot->publisher,snapshot->account,snapshot->system_epoch};
+    const int indices[]={1,3,4,5};
+    for (size_t n=0;result==0 && n<4;++n) result=failure(sqlite3_bind_blob(statement,indices[n],blobs[n],16,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_text(statement,2,snapshot->component,-1,SQLITE_TRANSIENT));
+    if (result==0) result=failure(sqlite3_bind_int64(statement,6,snapshot->install_revision));
+    int absent=0;
+    if (result==0) {
+        int code=sqlite3_step(statement);
+        if (code==SQLITE_DONE) absent=1;
+        else if (code!=SQLITE_ROW) result=failure(code);
+        else if (sqlite3_column_int(statement,0)!=1) result=-ESTALE;
+        else if (sqlite3_step(statement)!=SQLITE_DONE) result=-EUCLEAN;
+    }
+    int final=failure(sqlite3_finalize(statement));
+    if (result==0) result=final;
+    if (result==0 && absent) {
+        if (info.revision==INT64_MAX) result=-EOVERFLOW;
+        statement=NULL;
+        if (result==0) result=failure(sqlite3_prepare_v2(store->db,
+            "INSERT INTO install_bindings VALUES(?1,?2,?3,?4,?5,?6,'active')",-1,&statement,NULL));
+        for (size_t n=0;result==0 && n<4;++n) result=failure(sqlite3_bind_blob(statement,indices[n],blobs[n],16,SQLITE_TRANSIENT));
+        if (result==0) result=failure(sqlite3_bind_text(statement,2,snapshot->component,-1,SQLITE_TRANSIENT));
+        if (result==0) result=failure(sqlite3_bind_int64(statement,6,snapshot->install_revision));
+        if (result==0) {
+            int code=sqlite3_step(statement);
+            result=code==SQLITE_DONE ? 0 : failure(code);
+        }
+        final=failure(sqlite3_finalize(statement));
+        if (result==0) result=final;
+        if (result==0) result=exec_sql(store->db,"UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+        if (result==0) ++info.revision;
+    }
+    result=fixture_commit(store,result);
+    if (result==0) *local_revision=info.revision;
+    return result;
+}
 
 int ae_catalogue_close(struct ae_catalogue **output)
 {

@@ -129,6 +129,15 @@
 (allow system_dbusd_t aetheri_user_t (dbus (send_msg)))
 (allow aetheri_user_t aetheri_system_t (dbus (send_msg)))
 (allow aetheri_system_t aetheri_user_t (dbus (send_msg)))
+; Observe only the root-selected transient metadata-controller invocation. User
+; UID/polkit still denies manager mutation; apps gain no raw system-bus access.
+(allow aetheri_user_t init_t (dbus (send_msg)))
+(allow init_t aetheri_user_t (dbus (send_msg)))
+(allow aetheri_user_t init_t (system (status)))
+(allow aetheri_user_t self (dbus (send_msg)))
+(allow aetheri_user_t self (process (getattr)))
+(allow aetheri_user_t cgroup_t (dir (search read open getattr)))
+(allow aetheri_user_t cgroup_t (filesystem (getattr)))
 (allow aetheri_system_t aetheri_system_service_t (dbus (acquire_svc)))
 (allow aetheri_user_t aetheri_user_service_t (dbus (acquire_svc)))
 (allow aetheri_system_t aetheri_system_state_t (dir (search read open getattr write add_name remove_name)))

@@ -633,6 +633,23 @@ def wire_shape(root):
 
 
 class ApiContracts(unittest.TestCase):
+    def test_private_install_projection_contracts(self):
+        catalogue=ET.parse(ROOT / "spec/api/catalogue-v1.xml").getroot()
+        development=ET.parse(ROOT / "spec/api/development-v1.xml").getroot()
+        self.assertEqual(catalogue.attrib["name"],"/org/aetheri/Catalogue1")
+        self.assertEqual(development.attrib["name"],"/org/aetheri/Development1")
+        self.assertEqual(wire_shape(catalogue),{"org.aetheri.Catalogue1":{"ResolveAppInstall":("ay ay ay","ay ay ay ay s ay ay ay t ay ay t s t t")}})
+        self.assertEqual(wire_shape(development),{"org.aetheri.Development1":{"RefreshFixtureInstall":("","ay t t")}})
+        for node,visibility in ((catalogue,"broker-only"),(development,"protected-controller-only")):
+            annotations={a.attrib["name"]:a.attrib["value"] for a in node.find("interface").findall("annotation")}
+            self.assertEqual(annotations["org.aetheri.Contract.Version"],"1.0")
+            self.assertEqual(annotations["org.aetheri.Contract.Visibility"],visibility)
+            for arg in node.findall(".//arg"):
+                limits={a.attrib["name"].split(".")[-1]:a.attrib["value"] for a in arg.findall("annotation")}
+                if arg.attrib["type"]=="ay": self.assertEqual(limits,{"Bytes":"32" if arg.attrib["name"]=="artifact_id" else "16"})
+                if arg.attrib["type"]=="t": self.assertEqual(limits,{"Minimum":"1","Maximum":"9223372036854775807"})
+                if arg.attrib["type"]=="s": self.assertEqual(limits,{"MaximumBytes":"128" if arg.attrib["name"]=="component_id" else "7"})
+
     def test_internal_broker_identity_contract(self):
         root = ET.parse(ROOT / "spec/api/broker-v1.xml").getroot()
         self.assertEqual(root.attrib["name"], "/org/aetheri/Broker1")

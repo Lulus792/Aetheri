@@ -493,3 +493,26 @@ active pointer, close a subsequently opened gate or undo removal. Separate the
 historical receipt from current installation_active and all future launch checks.
 Public activation/update/rollback, general recovery and real app launch remain
 distinct implementation gates.
+
+## Observe installations across owner boundaries — 27 October 2026
+
+Use one typed private system observation and the existing user install_bindings
+table, through its native owner writer. Do not share SQLite connections/files or
+add another metadata database. Bind source epoch/runtime/boot and recipient account;
+return actual install scope separately. Store only an exact active observation.
+Changed or revoked bindings require explicit reconciliation, including higher
+install revisions. Repeats after a lost commit acknowledgement must not duplicate
+the row or advance the revision again.
+
+Keep observations separate from admission: no data epoch, attachment, launch,
+grant or opened gate. Later launch/data work must recheck system authority.
+Private Catalogue1/Development1 are independently versioned 1.0; existing SQL/XML,
+public protocol/capabilities and dependency pins remain unchanged.
+
+For the fixed P0 trigger, use a root-selected short-lived UID-1000 user-domain
+helper. This carrier rejects root authentication on its user bus. Preserve the
+existing bus authentication and verify the selected helper's actual held process,
+active unit, invocation, context, cgroup and boot before the local write. Clear
+its protected selection after the controller drains it. Narrow read-only manager
+status and same-domain IPC permissions support that check, without a new service
+or app-domain system-bus access. This is test infrastructure, not a general app API.

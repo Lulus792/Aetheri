@@ -81,7 +81,7 @@ def validate_record(record):
     for value in [record["owner"], *record["epochs"].values()]:
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{32}", value) is None or uuid.UUID(hex=value).version != 4:
             raise RuntimeError("invalid fixed registry identity")
-    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker))-[0-9]+\.service"
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-(?:system(?:-(?:init|enroll|fixture-(?:observe|stage|activate|store-(?:observe|publish))))?|user(?:-(?:init|storage-(?:publish|verify)))?|probe-(?:check|claim|broker|projection))-[0-9]+\.service"
     if any(not isinstance(unit, str) or re.fullmatch(pattern, unit) is None for unit in record["units"]):
         raise RuntimeError("foreign unit in owned record")
     if record["pending"] is not None and record["pending"] not in record["units"]:
@@ -92,6 +92,8 @@ def validate_record(record):
         raise RuntimeError("administrative/probe unit cannot be an active authority")
     if record.get("broker_unit") is not None and (record["broker_unit"] not in record["units"] or re.search(r"-user-[0-9]+\.service$", record["broker_unit"]) is None):
         raise RuntimeError("unrecognized protected broker unit")
+    if record.get("projection_unit","-")!="-" and (record["projection_unit"] not in record["units"] or re.search(r"-probe-projection-[0-9]+\.service$",record["projection_unit"]) is None):
+        raise RuntimeError("unrecognized protected projection unit")
     if "storage" in record:
         intent = record["storage"]
         if set(intent) != set(runtime_contracts.OWNER_FIELDS.split()) or intent["account"] != record["owner"]:
@@ -116,7 +118,7 @@ def module_bytes():
     return bz2.decompress(data) if data.startswith(b"BZh") else data
 
 
-def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, allow_unfinished_fixture=False):
+def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, allow_unfinished_fixture=False, allow_new_projection=False):
     verify_fixture(record, allow_unfinished_fixture)
     if hashlib.sha256(module_bytes()).hexdigest() != record["policy_sha256"]:
         raise RuntimeError("installed module differs from owned policy")
@@ -157,6 +159,15 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
             raise RuntimeError("broker probe changed")
     if "storage" in record:
         verify_storage(record, allow_unreceipted_storage)
+    projection_probe=ROOT / "probe-projection"
+    if allow_new_projection and "projection_probe_sha256" not in record:
+        if projection_probe.exists() or projection_probe.is_symlink(): raise RuntimeError("unregistered projection probe exists")
+    else:
+        owned_file(projection_probe,0o555)
+        if checksum(projection_probe)!=record["projection_probe_sha256"]: raise RuntimeError("projection probe changed")
+    if "projection_unit" in record:
+        owned_file(ROOT / "registry/projection.conf",0o444)
+        if (ROOT / "registry/projection.conf").read_text()!="AETHERI-P0-PROJECTION-1\nunit="+record["projection_unit"]+"\n": raise RuntimeError("projection controller slot changed")
 
 
 def label(path, type_name, cats=""):
@@ -189,6 +200,7 @@ def prepare():
               "authority_sha256": checksum(BUILD / "aetheri-authority"),
               "probe_sha256": checksum(BUILD / "probe_service"),
               "broker_probe_sha256": checksum(BUILD / "probe_broker"),
+              "projection_probe_sha256": checksum(BUILD / "probe_projection"), "projection_unit":"-",
               "config_sha256": {role: checksum(SOURCE / ("policy/org.aetheri." + ("System1" if role == "system" else "User1") + ".conf")) for role in CONFIGS},
               "units": [], "pending": None, "state": "preparing"}
     save(record)
@@ -199,6 +211,7 @@ def prepare():
     label(ROOT, "aetheri_root_t")
     directory(ROOT / "registry", "aetheri_registry_t")
     publish(ROOT / "registry/broker.conf", b"AETHERI-P0-BROKER-1\nunit=-\n", "aetheri_registry_t")
+    publish(ROOT / "registry/projection.conf", b"AETHERI-P0-PROJECTION-1\nunit=-\n", "aetheri_registry_t")
     directory(ROOT / "system", "aetheri_system_state_t", mode=0o700)
     directory(ROOT / "users", "aetheri_root_t")
     directory(ROOT / "users" / record["owner"], "aetheri_root_t")
@@ -217,6 +230,7 @@ def prepare():
         run("restorecon", str(CONFIGS[role]))
     publish(ROOT / "probe-service", (BUILD / "probe_service").read_bytes(), "aetheri_app_exec_t", mode=0o555)
     publish(ROOT / "probe-broker", (BUILD / "probe_broker").read_bytes(), "aetheri_user_exec_t", mode=0o555)
+    publish(ROOT / "probe-projection", (BUILD / "probe_projection").read_bytes(), "aetheri_user_exec_t", mode=0o555)
     for role in ("system", "user"):
         bus(role, "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReloadConfig")
     record["state"] = "prepared"
@@ -791,7 +805,21 @@ def publish_broker_slot(record, unit):
     record["broker_unit"] = unit
 
 
+def publish_projection_slot(record,unit):
+    pattern="aetheri-p0-"+record["token"].replace("-","")+r"-probe-projection-[0-9]+\.service"
+    if unit!="-" and re.fullmatch(pattern,unit) is None:
+        raise ValueError("projection slot requires an owned projection unit")
+    temporary=ROOT / "registry/projection.next"
+    publish(temporary,("AETHERI-P0-PROJECTION-1\nunit="+unit+"\n").encode(),"aetheri_registry_t")
+    flush_path(temporary)
+    os.replace(temporary,ROOT / "registry/projection.conf")
+    flush_path(ROOT / "registry",True)
+    record["projection_unit"]=unit
+
+
 def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, storage=None, fixture=None, fixture_source_override=None):
+    if probe=="projection" and (role!="user" or init or enroll or storage or fixture):
+        raise ValueError("projection controller requires only the user probe role")
     if fixture is not None and (fixture not in ("observe", "stage", "store-observe", "store-publish", "activate") or role != "system" or init or probe or enroll or storage):
         raise ValueError("fixture administration requires only the system role")
     if fixture_source_override is not None and (fixture != "stage" or fixture_source_override != fixture_paths(record)["parent"] / "copied-source"):
@@ -806,6 +834,8 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
     if role == "user" and not init and probe is None and storage is None:
         publish_broker_slot(record, unit)
+    if probe=="projection":
+        publish_projection_slot(record,unit)
     if unit not in record["units"]:
         record["units"].append(unit)
     record["pending"] = unit
@@ -826,6 +856,10 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
             properties["SELinuxContext"] = "system_u:system_r:aetheri_user_t:s0"
             properties.pop("ReadWritePaths")
             command = [str(ROOT / "probe-broker"), *claims]
+        if probe == "projection":
+            properties["SELinuxContext"]="system_u:system_r:aetheri_user_t:s0"
+            properties.pop("ReadWritePaths")
+            command=[str(ROOT / "probe-projection")]
     else:
         properties.update(SELinuxContext="system_u:system_r:aetheri_" + role + "_t:s0", ReadWritePaths=str(state_path(record, role)))
         command = [str(ROOT / (role + "-authority")), role] + (["--init"] if init else ["--enroll-account"] if enroll else ["--fixture-" + fixture] if fixture else ["--storage-" + storage] if storage else [])
@@ -911,11 +945,11 @@ def check(record):
             raise AssertionError("durable/protocol/runtime identity mismatch")
         if actual[1].lower() != Path("/proc/sys/kernel/random/boot_id").read_text().strip().replace("-", ""):
             raise AssertionError("catalogue is not bound to the real kernel boot")
-        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1", "/org/aetheri/Broker1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1"]
+        paths = ["/org/aetheri/Management1", "/org/aetheri/Runtime1", "/org/aetheri/Broker1", "/org/aetheri/Catalogue1"] if role == "system" else ["/org/aetheri/Management1", "/org/aetheri/Documents1", "/org/aetheri/Development1"]
         name = "org.aetheri.System1" if role == "system" else "org.aetheri.User1"
         for path in paths:
             live = ET.fromstring(json.loads(bus(role, "--json=short", "call", name, path, "org.freedesktop.DBus.Introspectable", "Introspect"))["data"][0])
-            expected_file = {"Management1": "management-v1.xml", "Runtime1": "runtime-v1.xml", "Documents1": "documents-v1.xml", "Broker1": "broker-v1.xml"}[path.rsplit("/", 1)[1]]
+            expected_file = {"Management1": "management-v1.xml", "Runtime1": "runtime-v1.xml", "Documents1": "documents-v1.xml", "Broker1": "broker-v1.xml", "Catalogue1": "catalogue-v1.xml", "Development1": "development-v1.xml"}[path.rsplit("/", 1)[1]]
             expected = ET.parse(SOURCE / "spec/api" / expected_file).getroot()
             for interface in expected.findall("interface"):
                 if interface.attrib["name"] == "org.aetheri.Subscription1" or (role == "system" and interface.attrib["name"] == "org.aetheri.User1"):
@@ -947,11 +981,57 @@ def check(record):
         user_run("python3", "-c", "from pathlib import Path; p=Path('" + str(storage_paths(record)["record"]) + "'); assert p.open('rb').read(8)==b'AETHALC1'")
     start_unit(record, "user", probe="check")
     claims = [record["epochs"]["system"], record["owner"], record["epochs"]["user"], report["user"]["runtime"]]
-    user_run(str(BUILD / "probe_broker"), *claims)
+    user_run(str(BUILD / "probe_broker"), *claims, "--direct-user-bus")
     start_unit(record, "user", probe="broker", claims=claims)
     record["report"] = report
     save(record)
     print(json.dumps({"confined_endpoints": 2, "live_xml": True, "real_boot": True, "app_public_ipc_and_denials": True}))
+
+
+def projection_check(record):
+    verified(record)
+    start(record)
+    fixture=record["fixture"]
+    user_database=state_path(record,"user") / "catalogue.sqlite3"
+    def state():
+        with sqlite3.connect(f"file:{user_database}?mode=ro",uri=True) as db:
+            binding=db.execute("SELECT component_id,lower(hex(publisher_ref)),lower(hex(owner_scope)),lower(hex(system_epoch)),install_revision,state FROM install_bindings WHERE install_id=?",(bytes.fromhex(fixture["install"]),)).fetchall()
+            revision=db.execute("SELECT catalogue_revision FROM authority_meta").fetchone()[0]
+            other={name:db.execute('SELECT * FROM "'+name+'" ORDER BY rowid').fetchall() for name in ("data_epochs","attachments","launches","grants","access_leases","admission_gates")}
+        return binding,revision,other
+    before=state()
+    system_database=state_path(record,"system") / "catalogue.sqlite3"
+    system_hash=checksum(system_database)
+    with sqlite3.connect(f"file:{system_database}?mode=ro",uri=True) as db:
+        root_revision=db.execute("SELECT revision FROM installs WHERE install_id=? AND state='active'",(bytes.fromhex(fixture["install"]),)).fetchone()[0]
+        system_runtime=db.execute("SELECT lower(hex(runtime_incarnation)) FROM authority_meta").fetchone()[0]
+    def refresh():
+        unit=start_unit(record,"user",probe="projection")
+        output=run("journalctl","-u",unit,"--output=cat","--no-pager")
+        replies=re.findall(r"^projection ([0-9a-f]{32}) ([0-9]+) ([0-9]+)$",output,re.M)
+        if len(replies)!=1 or replies[0][0]!=fixture["install"] or int(replies[0][1])!=root_revision: raise AssertionError("native projection reply differs")
+        stop_unit(unit)
+        publish_projection_slot(record,"-")
+        save(record)
+        return int(replies[0][2])
+    local_revision=refresh()
+    first=state()
+    expected=[(fixture["manifest"]["component"],fixture["publisher"],record["owner"],record["epochs"]["system"],root_revision,"active")]
+    if first[0]!=expected or first[1]!=local_revision or first[1]!=before[1]+(0 if before[0] else 1) or first[2]!=before[2]: raise AssertionError("user binding/projection effects differ")
+    first_hash=checksum(user_database)
+    if refresh()!=local_revision or state()!=first or checksum(user_database)!=first_hash or checksum(system_database)!=system_hash: raise AssertionError("projection retry rewrote owner data")
+    try:
+        user_run("busctl","--user","call","org.aetheri.User1","/org/aetheri/Development1","org.aetheri.Development1","RefreshFixtureInstall")
+    except subprocess.CalledProcessError as error:
+        if "Protected P0 controller unit required" not in error.stderr: raise
+    else: raise AssertionError("same-UID process invoked the protected development trigger")
+    if checksum(user_database)!=first_hash or checksum(system_database)!=system_hash: raise AssertionError("rejected projection caller changed a catalogue")
+    boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    initial=record.setdefault("projection_first_context",dict(boot=boot,system_runtime=system_runtime))
+    record["projection_check"]=dict(native_rpc=True,separate_owner_writer=True,exact_retry=True,protected_controller=True,
+        no_data_or_gate_effects=True,cross_boot_reopen=initial["boot"]!=boot,system_runtime_changed=initial["system_runtime"]!=system_runtime)
+    save(record)
+    print(json.dumps(record["projection_check"]))
 
 
 def restart_check(record):
@@ -1022,6 +1102,8 @@ def cleanup(record):
              ROOT / "registry/system.conf": (0, 0o444), ROOT / "registry/user-1000.conf": (0, 0o444)}
     files[ROOT / "registry/broker.conf"] = (0, 0o444)
     files[ROOT / "probe-broker"] = (0, 0o555)
+    files[ROOT / "probe-projection"] = (0, 0o555)
+    if "projection_unit" in record: files[ROOT / "registry/projection.conf"]=(0,0o444)
     for role in ("system", "user"):
         directory = state_path(record, role)
         uid = 0 if role == "system" else 1000
@@ -1087,7 +1169,7 @@ def cleanup(record):
 
 
 def update_owned(record):
-    verified(record, allow_new_probe=True, allow_unfinished_fixture=True)
+    verified(record, allow_new_probe=True, allow_unfinished_fixture=True, allow_new_projection=True)
     stop(record)
     record["state"] = "updating-owned-inputs"
     save(record)
@@ -1115,6 +1197,12 @@ def update_owned(record):
     temporary = ROOT / "probe-broker.next"
     publish(temporary, (BUILD / "probe_broker").read_bytes(), "aetheri_user_exec_t", mode=0o555)
     os.replace(temporary, ROOT / "probe-broker")
+    temporary=ROOT / "probe-projection.next"
+    publish(temporary,(BUILD / "probe_projection").read_bytes(),"aetheri_user_exec_t",mode=0o555)
+    os.replace(temporary,ROOT / "probe-projection")
+    if "projection_unit" not in record:
+        if (ROOT / "registry/projection.conf").exists() or (ROOT / "registry/projection.conf").is_symlink(): raise RuntimeError("unregistered projection slot exists")
+        publish_projection_slot(record,"-")
     for role, target in CONFIGS.items():
         source = SOURCE / ("policy/org.aetheri." + ("System1" if role == "system" else "User1") + ".conf")
         if checksum(source) != record["config_sha256"][role]:
@@ -1127,7 +1215,7 @@ def update_owned(record):
             record["config_sha256"][role] = checksum(target)
             bus(role, "call", "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReloadConfig")
     record.update(authority_sha256=checksum(BUILD / "aetheri-authority"), probe_sha256=checksum(BUILD / "probe_service"),
-                  broker_probe_sha256=checksum(BUILD / "probe_broker"), state="prepared")
+                  broker_probe_sha256=checksum(BUILD / "probe_broker"),projection_probe_sha256=checksum(BUILD / "probe_projection"), state="prepared")
     save(record)
     print("Updated verified stopped owned policy/executables; registry and catalogues preserved.")
 
@@ -1302,6 +1390,7 @@ def main():
         elif action == "lifecycle-check": lifecycle_check(record)
         elif action == "idle-check": idle_check(record)
         elif action == "broker-check": broker_check(record)
+        elif action == "projection-check": projection_check(record)
         elif action == "update-owned": update_owned(record)
         elif action == "enroll-account": enroll_account(record)
         elif action == "account-check": account_check(record)

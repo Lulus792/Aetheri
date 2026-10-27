@@ -538,3 +538,32 @@ int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t c
     free(manifest);
     return result;
 }
+
+int ae_authority_fixture_request(struct ae_fixture_request *output)
+{
+    if (output==NULL) return -EINVAL;
+    uint8_t bytes[AE_FIXTURE_CONFIG_BYTES];
+    size_t size;
+    struct ae_fixture_config config;
+    int result=protected_bytes(ROOT "/registry/fixture.conf",bytes,sizeof bytes,&size);
+    if (result==0) result=ae_fixture_config_decode(bytes,size,&config);
+    if (result==0) *output=config.request;
+    return result;
+}
+
+int ae_authority_projection_unit(char output[256])
+{
+    if (output==NULL) return -EINVAL;
+    uint8_t bytes[256]; size_t size;
+    const char prefix[]="AETHERI-P0-PROJECTION-1\nunit=";
+    int result=protected_bytes(ROOT "/registry/projection.conf",bytes,sizeof bytes,&size);
+    if (result!=0) return result;
+    if (size<=sizeof prefix || bytes[size-1U]!='\n' || memchr(bytes,0,size)!=NULL || memcmp(bytes,prefix,sizeof prefix-1U)!=0) return -EBADMSG;
+    bytes[size-1U]=0;
+    const char *unit=(const char *)bytes+sizeof prefix-1U;
+    size_t length=strlen(unit);
+    if (length<20 || length>=256 || strncmp(unit,"aetheri-p0-",11)!=0 || strstr(unit,"-probe-projection-")==NULL || strcmp(unit+length-8U,".service")!=0) return -ENODATA;
+    for (size_t n=0;n<length;++n) if (!((unit[n]>='a' && unit[n]<='z') || (unit[n]>='0' && unit[n]<='9') || unit[n]=='-' || unit[n]=='.')) return -EBADMSG;
+    memcpy(output,unit,length+1U);
+    return 0;
+}

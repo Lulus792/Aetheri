@@ -129,6 +129,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Cache tests mock context but use real name-loss/pidfd events; separate enforcing
   integration rejects unconfined and same-domain/wrong-unit impersonators.
 - Use English for project documentation. Conversation can remain German.
+- Private Catalogue1/Development1 v1.0 now support a bounded authenticated install
+  observation and fixed-fixture refresh. Public capabilities remain empty. A user
+  binding is not admission, storage ownership or current generation authority.
+  projection-check uses a root-selected short-lived user-domain helper with actual
+  process/unit/invocation/cgroup checks; clear its protected slot after use. Keep
+  the retained private allocation fixture separate from future app DataEpochs.
 - Distinguish confirmed requirements, architecture proposals, implementation and
   test evidence. No runtime function exists merely because it is documented.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.

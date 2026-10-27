@@ -1,7 +1,25 @@
 # Sources
 
-Inspected 25 October 2026. Live branches can change. Candidate inventories do not
-prove selected versions, current security status, complete license compliance or runtime acceptance.
+Initial inspection: 25 October 2026; later entries are dated individually. Live
+branches can change. Candidate inventories do not prove selected versions,
+current security status, complete license compliance or runtime acceptance.
+
+## Typed installation observation — 27 October 2026
+
+- [systemd v259 message construction](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_bus_message_new.xml)
+  and [message sealing](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_bus_message_seal.xml):
+  primary API reference for connected-bus message construction, ownership and
+  immutable local test bodies. Installed carrier systemd remains 259.10.
+- Original implementation: [catalogue projection](../../src/catalogue/projection.h),
+  [wire codec](../../src/authority/projection.c), [service callbacks](../../src/authority/main.c),
+  [native catalogue tests](../../tests/test_projection.c),
+  [wire tests](../../tests/test_projection_wire.c) and
+  [enforcing controller](../../tools/p0_services.py). Test mocks establish bounded
+  failures; real VM evidence establishes the distinct transport/owner boundary.
+- Actual carrier evidence: UID-0 user-bus authentication rejection; explicit
+  self-domain messaging denial; systemd USER_AVC status denial for GetUnitByPIDFD.
+  Narrow policy adjustments preserve enforced confinement and empty capabilities.
+  No upstream implementation code copied or dependency version changed.
 
 ## User requirements and project structure
 

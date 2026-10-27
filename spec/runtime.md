@@ -1272,3 +1272,100 @@ the grammar and active-role boundary were corrected with a roundtrip regression.
 SDK/dependency/policy versions are unchanged. General account eligibility,
 Linux-account retirement coordination, machine/volume registration, fixture
 publication and full app/run admission remain separate implementation work.
+
+## Authenticated installation projection
+
+An active installation in the system catalogue must become known to the user
+authority before that authority can manage app data. Keep the two database owners
+separate: the system service reads its own consistent snapshot and the user
+service writes only its own binding. Neither opens the other owner's SQLite file.
+This step implements that observation for the fixed trusted P0 fixture. It does
+not create app data or admit a launch.
+
+The new private [Catalogue1](api/catalogue-v1.xml) interface is version 1.0,
+independent of public protocol 1.1. ResolveAppInstall requires the already
+registered broker's current process and supervised invocation, expected system
+epoch and broker incarnation. The account/UID comes from that registration,
+never an app-supplied account or filesystem path. One read transaction requires
+an active enrolled account, an active app installation in its account or an active
+machine scope, a committed/previously activated current generation, verified
+artifact metadata and an install gate. Verification here refers to catalogue
+state; this query does not rehash code or authorize execution.
+
+The reply contains system epoch/incarnation, boot, install, component, publisher,
+recipient account, actual install scope, install revision, active generation,
+artifact, generation revision, gate state/revision and catalogue revision. Keeping
+recipient and install scope distinct supports a machine installation observed by
+an eligible account. UUID references are 16 bytes, ArtifactId 32 bytes, component
+an ASCII token of 1–128 bytes, revisions 1 through INT64_MAX and gate one of
+open/closing/closed. The native codec rejects malformed/truncated/extra fields and
+preserves output on failure. One fixed-endpoint call has a two-second timeout;
+there is no automatic retry of an uncertain projection request.
+
+The user writer checks source epoch/runtime/boot, recipient account and its own
+current boot/runtime before inserting install_bindings and advancing its catalogue
+revision in one transaction. An exact active binding is a no-write retry. Different
+identity, epoch or install revision, including a newer revision, and a revoked
+binding return ESTALE for explicit reconciliation. No silent rebinding or
+reactivation. A lost COMMIT acknowledgement can leave the whole binding committed;
+an exact retry finds it without another revision increment.
+
+The persisted binding contains the last authenticated installation observation,
+not a durable permission. Generation, artifact and gate observations do not become
+user-owned admission authority. A restart or concurrent change can immediately
+outdate a snapshot; future admission must ask the system authority again. No SQL
+transaction spans IPC or service-manager calls. No DataEpoch, attachment, grant,
+launch, access lease or admission gate is added by this path.
+
+The new private [Development1](api/development-v1.xml) version 1.0 provides only
+RefreshFixtureInstall(), with no caller-selected install, data or path. It reads
+the original root-protected fixture selection and verifies the returned publisher,
+artifact and generation before caching. This is a P0 test entry point, not a public
+installer or a production app API. Public capabilities remain empty and lifecycle
+methods remain UnsupportedCapability.
+
+Root selects one unique transient helper unit in protected registry/projection.conf.
+That reviewed helper runs as UID 1000 in aetheri_user_t, with NoNewPrivileges,
+empty Linux capabilities and no writable path exception. The user authority pins
+its actual bus peer and checks UID/context, current active system unit, invocation,
+cgroup identity and boot. It repeats process verification and protected unit
+selection before the local transaction. The controller drains the helper and
+replaces its slot with '-' after success. Unknown or uncertain work is preserved.
+The helper exits; no resident process or polling loop is introduced.
+
+The enforcing policy permits user-domain self IPC, process metadata and read-only
+systemd/cgroup status observations. It adds no manager mutation, capabilities or
+app-domain system-bus access. Actual integration first established that UID 0
+cannot use this carrier's user-bus authentication. The fixed UID-1000 helper uses
+the existing transport; it does not relax bus authentication. Subsequent denials
+identified self-domain messaging and systemd's status check, each addressed with
+the corresponding narrow permission. Same UID or SELinux domain alone is never
+sufficient application authorization.
+
+Native catalogue tests exercise account/machine scope, wrong owner/UID/context,
+inactive/unverified state, exact retry/reopen, failed/lost commit acknowledgement,
+revision overflow, fork guards and conflicts requiring reconciliation. Machine
+scope is a controlled database fixture, not an installed machine-wide runtime app.
+Wire tests use actual sealed sd-bus message bodies for independent malformed-field
+cases and a mocked call boundary for source-context/timeout checks. The separate
+enforcing VM probe exercises real system-to-user IPC and each owner's live writer.
+Its reports check the exact binding, unchanged system database, no data/gate
+effects, stable retry bytes and denied ordinary/same-domain wrong-unit callers.
+broker-check exercises a replacement user service and a root-only restart with
+the user service retained; projection-check then observes the new system runtime.
+
+Executed results on 27 October 2026: native complete suites 25/25 Debug ASan/UBSan
+(99.02 s) and Release (72.47 s), then a final Debug build and six focused identity/
+projection/config checks (6.21 s). Host migration/wire 28/28 (40.352 s), 25
+orchestration plus seven cache guards, 14 frozen-vector tests and 374 isolated
+constraints pass. Actual projection and endpoint/denial checks pass with SELinux
+Enforcing, NNP and empty capabilities. After orderly shutdown, QEMU exit 0 and
+verified PID absence, the same disk boots offline; projection reports
+cross_boot_reopen=true and system_runtime_changed=true. Exact binding/retry bytes,
+sealed-store/current activation checks and the separate retained allocation pass
+again. Owned units are stopped. No physical power-loss/hardware acceptance.
+
+Next: a fresh app DataEpoch and recoverable allocation journal, followed by run
+admission, supervised dispatch and target-exec observation. Preserve the independent
+retained private-storage fixture; never silently attach it to this installation.
+Public binding reconciliation, production recovery and full removal remain work.

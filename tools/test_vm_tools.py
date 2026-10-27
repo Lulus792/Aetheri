@@ -14,6 +14,33 @@ import p0_services as services
 
 
 class VmTools(unittest.TestCase):
+    def test_projection_controller_is_separate_from_broker_and_cannot_widen_slot(self):
+        record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
+                  "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
+                  "pending": None, "units": [], "projection_unit": "-"}
+        with patch.object(services,"save"), patch.object(services,"run",return_value="") as command, \
+             patch.object(services,"publish_projection_slot") as slot, patch.object(services,"publish_broker_slot") as broker:
+            unit=services.start_unit(record,"user",probe="projection")
+            slot.assert_called_once_with(record,unit)
+            broker.assert_not_called()
+            self.assertIn("--property=SELinuxContext=system_u:system_r:aetheri_user_t:s0",command.call_args.args)
+            self.assertIn("--property=CapabilityBoundingSet=",command.call_args.args)
+            self.assertFalse(any(value.startswith("--property=ReadWritePaths=") for value in command.call_args.args))
+            self.assertEqual(command.call_args.args[-1],str(services.ROOT/"probe-projection"))
+        record["projection_unit"]=unit
+        self.assertEqual(services.validate_record(json.loads(json.dumps(record))),record)
+        record["active_units"]={"user":unit}
+        with self.assertRaisesRegex(RuntimeError,"cannot be an active authority"): services.validate_record(record)
+        record.pop("active_units")
+        with patch.object(services,"publish",side_effect=AssertionError("mutation")):
+            for wrong in (unit.replace("-probe-projection-","-user-"),unit.replace("000000000001","000000000002"),"../unit"):
+                with self.assertRaises(ValueError): services.publish_projection_slot(record,wrong)
+        with patch.object(services,"publish"), patch.object(services,"flush_path"), patch.object(services.os,"replace"):
+            services.publish_projection_slot(record,"-")
+        self.assertEqual(record["projection_unit"],"-")
+        with patch.object(services,"save",side_effect=AssertionError("mutation")):
+            with self.assertRaises(ValueError): services.start_unit(record,"system",probe="projection")
+
     def test_publication_uses_one_writable_mount_ancestor_and_administrative_identity(self):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},

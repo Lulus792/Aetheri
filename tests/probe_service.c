@@ -64,6 +64,12 @@ int main(int argc, char **argv)
         sd_bus_error_free(&error);
         sd_bus_message_unref(reply);
         reply = NULL;
+          CHECK(sd_bus_call_method(bus, "org.aetheri.User1", "/org/aetheri/Development1", "org.aetheri.Development1",
+                                   "RefreshFixtureInstall", &error, &reply, "") < 0, 60);
+          CHECK(sd_bus_error_has_name(&error, "org.aetheri.Error1.NotAuthorized"), 61);
+          sd_bus_error_free(&error);
+          sd_bus_message_unref(reply);
+          reply = NULL;
         CHECK(sd_bus_call_method(bus, "org.aetheri.User1", "/org/aetheri/Management1", "org.aetheri.Management1",
                                  "GetProtocolInfo", &error, &reply, "s", "invalid signature") < 0, 34);
         CHECK(sd_bus_error_has_name(&error, SD_BUS_ERROR_INVALID_ARGS), 35);

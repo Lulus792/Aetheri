@@ -769,3 +769,46 @@ target-exec observation, then native document/revocation/removal P0 cases. Reuse
 the activated fixture and preserve historical receipts/private allocation. The
 full daily-use OS/apps goal stays active; no original desktop or bootable Aetheri
 image is claimed. Personal UI/destructive decisions still await the user.
+
+## 27 October — authenticated installation observation
+
+Implemented private Catalogue1/Development1 v1.0 and bounded C17 wire handling.
+System resolves one eligible active app/current committed generation in a read
+transaction. User caches only its own authenticated install binding in its own
+transaction. The system database is never opened by the user service. Exact retry
+does not rewrite; changed/revoked bindings require reconciliation. Observations
+are not launch/data authority. Existing SQL/XML, public protocol/capabilities and
+dependency pins stay unchanged.
+
+The fixed-fixture trigger uses a root-selected transient UID-1000 user-domain
+helper with NNP, no capabilities and no writable path exception. Actual held peer,
+unit, invocation, UID/context, cgroup and boot are checked and rechecked before
+writing. Controller drains it and clears the protected selector. No new resident.
+Real testing rejected UID-0 user-bus authentication; retained existing transport
+and used the scoped helper. Evidence then identified missing self-domain IPC and
+systemd status permission. Added only those and read-only context observations.
+Ordinary and same-domain wrong-unit callers remain denied, including copied real
+broker IDs; app raw-system-bus and protected-file denials remain.
+
+Complete native suites passed 25/25 Debug ASan/UBSan (99.02 s) and Release (72.47 s).
+After final integration, fresh Debug build and six focused projection/codec/config/
+peer/broker/process cases pass (6.21 s). Host migration/wire 28/28 (40.352 s),
+orchestration 25/25, cache guards 7/7, frozen runtime vectors 14/14 and isolated
+constraints 374 assertions pass. New native tests cover exact retry/reopen,
+failed/lost COMMIT acknowledgement, revision/identity conflicts, account/machine
+scope, wrong contexts and unchanged error outputs. Wire fixtures independently
+cover truncations, lengths, integer limits, tokens, enum and extra fields; mocked
+request tests are explicitly separate from actual enforcing transport evidence.
+
+Actual projection-check verifies separate native writers, exact unchanged retry
+hashes and no data/attachment/grant/launch/gate effects. Broker replacement/root-only
+restart pass and projection sees the new system runtime. All owned units drain;
+graceful QEMU exit 0 and verified PID absence precede offline boot of the same disk.
+Projection reports cross_boot_reopen=true and system_runtime_changed=true. Normal
+endpoint/app-denial, original sealed-store/activation and retained-allocation
+checks pass again. Owned units are stopped, both tracked fixtures remain.
+
+Next: fresh app DataEpoch/allocation journal and actual admission/dispatch/exec
+evidence. Never adopt the unrelated retained private fixture. General binding
+reconciliation and public installation remain pending. Full OS/apps goal active;
+personal UI and destructive hardware choices deferred until the user returns.

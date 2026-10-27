@@ -43,6 +43,11 @@ and its native journal are exercised across a guest boot. General dynamic
 allocation, publisher trust and recovery coordination remain work. Journaled
 store publication and first fixture activation now exist; actual app admission,
 updates and launch remain separate gates.
+Authenticated system-to-user installation projection now exists for the protected
+fixture. The persisted binding is only an observation. Next implement a fresh
+app DataEpoch/allocation and its recoverable journal; preserve the separate retained
+storage fixture. Then implement actual run admission, dispatch and target-exec
+evidence. General binding reconciliation after install changes remains pending.
 General distribution signing and key rotation still require release contracts.
 
 A1. Architecture is approved: B, wlroots, selected systemd components, SQLite and

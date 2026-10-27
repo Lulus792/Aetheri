@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — atomic first activation and retained installation receipts.
+27 October 2026 — authenticated installation projection between separate owners.
 
 ## Confirmed
 
@@ -13,6 +13,32 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The user service now obtains one bounded, typed observation of an eligible active
+app from the authenticated system service. Its own SQLite writer stores an exact
+installation binding; it never reads the system database. Repeats change no rows,
+and changed identities/revisions or revoked bindings require reconciliation.
+The protected development trigger selects only the original trusted fixture.
+Root chooses a short-lived cap-zero user-domain helper; held process identity,
+UID, SELinux context, active unit, invocation, cgroup and boot are checked before
+the operation and rechecked before the local write. No new resident service.
+The binding is a last authenticated observation, never launch or file authority.
+No data epoch, attachment, grant, lease or gate is created/opened by this step.
+See [runtime contract](../../spec/runtime.md#authenticated-installation-projection)
+for implementation, test scope and the remaining admission boundary.
+
+Projection evidence: complete native suites pass 25/25 Debug ASan/UBSan (99.02 s)
+and Release (72.47 s). After the final protected-controller integration, the six
+projection/codec/config/peer/broker/process cases pass Debug again (6.21 s).
+Host migration/wire tests pass 28/28 (40.352 s), orchestration/cache guards 32/32,
+runtime vectors 14/14 and isolated constraints 374 assertions. Actual offline
+enforcing checks pass with real separate writers, unchanged retry hashes, no
+data/gate effects and denied ordinary/same-domain wrong-unit callers. Broker
+replacement and root-only restart pass; projection observes the changed system
+runtime. Graceful QEMU exit 0 and verified PID absence precede an offline boot of
+the same disk. Projection then reports cross_boot_reopen=true, followed by normal
+endpoint/app denials, sealed-store/activation and retained-allocation checks.
+Owned service/probe units are stopped. No schema or dependency pin changed.
 
 [Payload staging](../../src/core/import.h) now validates an independently expected
 ArtifactId and complete trusted synthetic source inventory, then creates exclusive

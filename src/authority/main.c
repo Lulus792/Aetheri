@@ -5,6 +5,7 @@
 #include "core/allocation.h"
 #include "core/fixture.h"
 #include "authority/fixture.h"
+#include "authority/projection.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -388,6 +389,83 @@ static int method_unavailable(sd_bus_message *message, void *userdata, sd_bus_er
     ae_peer_clear(&peer);
     if (result < 0) return internal ? sd_bus_error_set_const(error, "org.aetheri.Error1.NotAuthorized", "Active registered broker required") : result;
     return sd_bus_error_set_const(error, "org.aetheri.Error1.UnsupportedCapability", "This authority does not implement that capability yet");
+}
+
+static int method_resolve_app(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata;
+    struct ae_peer peer=AE_PEER_INIT;
+    int result=broker_current(authority,&peer,message);
+    if (result<0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active registered broker required"); }
+    uint8_t epoch[16],runtime[16],install[16];
+    result=read_id(message,epoch);
+    if (result==0) result=read_id(message,runtime);
+    if (result==0) result=read_id(message,install);
+    if (result==0 && sd_bus_message_at_end(message,1)!=1) result=-EBADMSG;
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.InvalidArgument","Three UUIDv4 references required"); }
+    if (memcmp(epoch,authority->identity.authority_epoch,16)!=0 || memcmp(runtime,authority->broker.identity.runtime,16)!=0) {
+        ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.StaleContext","Broker/system context changed");
+    }
+    struct ae_install_snapshot snapshot;
+    result=ae_catalogue_resolve_app(authority->catalogue,authority->broker.identity.account,(uint32_t)peer.connection_uid,
+        install,authority->boot.bytes,authority->runtime.bytes,&snapshot);
+    ae_peer_clear(&peer);
+    if (result!=0) return sd_bus_error_set_const(error,result==-ENOENT ? "org.aetheri.Error1.NotFound" : "org.aetheri.Error1.NeedsRecovery","Current eligible app installation unavailable");
+    sd_bus_message *reply=NULL;
+    result=sd_bus_message_new_method_return(message,&reply);
+    if (result>=0) result=ae_projection_write(reply,&snapshot);
+    if (result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply);
+    return result<0 ? result : 1;
+}
+
+static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    struct authority *authority=userdata;
+    struct ae_peer peer=AE_PEER_INIT;
+    int result=ae_peer_capture(message,&peer);
+    if (result==0 && (authority->identity.kind!=AE_CATALOGUE_USER || peer.connection_uid!=authority->uid ||
+        !context_is(peer.connection_label,"aetheri_user_t"))) result=-EACCES;
+    char unit[256];
+    struct ae_process_context controller;
+    if (result==0) result=ae_authority_projection_unit(unit);
+    if (result==0) result=ae_process_observe(&peer,authority->system_bus,&controller);
+    if (result==0 && (controller.uid!=authority->uid || !context_is(controller.label,"aetheri_user_t") ||
+        strcmp(controller.unit,unit)!=0 || memcmp(controller.boot,authority->boot.bytes,16)!=0)) result=-EACCES;
+    if (result!=0) { ae_peer_clear(&peer); return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Protected P0 controller unit required"); }
+    struct ae_fixture_request selection;
+    result=ae_authority_fixture_request(&selection);
+    if (result==0 && memcmp(selection.scope,authority->identity.owner,16)!=0) result=-ESTALE;
+    if (result==0) result=check_system(authority);
+    struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM};
+    if (result==0) result=load_registry(&system,NULL);
+    struct ae_projection_context context={0};
+    if (result==0) {
+        memcpy(context.system_epoch,system.identity.authority_epoch,16);
+        memcpy(context.system_runtime,authority->system_runtime.bytes,16);
+        memcpy(context.boot,authority->boot.bytes,16); memcpy(context.user_runtime,authority->runtime.bytes,16);
+    }
+    struct ae_install_snapshot snapshot;
+    if (result==0) result=ae_projection_fetch(authority->system_bus,&context,authority->identity.owner,selection.install,&snapshot);
+    if (result==0 && (memcmp(snapshot.publisher,selection.publisher,16)!=0 || memcmp(snapshot.artifact,selection.artifact,32)!=0 ||
+        memcmp(snapshot.generation,selection.generation,16)!=0 || !authority->registered)) result=-ESTALE;
+    if (result==0) result=ae_process_verify(&peer,authority->system_bus,&controller);
+    char current_unit[256];
+    if (result==0) result=ae_authority_projection_unit(current_unit);
+    if (result==0 && strcmp(current_unit,unit)!=0) result=-ESTALE;
+    struct ae_catalogue_info info;
+    if (result==0) result=authority_info(authority,&info);
+    int64_t revision;
+    if (result==0) result=ae_catalogue_cache_install(authority->catalogue,&snapshot,&context,&revision);
+    ae_peer_clear(&peer);
+    if (result!=0) return sd_bus_error_set_const(error,"org.aetheri.Error1.NeedsRecovery","Protected fixture projection requires reconciliation");
+    sd_bus_message *reply=NULL;
+    result=sd_bus_message_new_method_return(message,&reply);
+    if (result>=0) result=sd_bus_message_append_array(reply,'y',snapshot.install,16);
+    if (result>=0) result=sd_bus_message_append(reply,"tt",(uint64_t)snapshot.install_revision,(uint64_t)revision);
+    if (result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply);
+    return result<0 ? result : 1;
 }
 
 struct wire_interface { int roles; const char *path, *name; const sd_bus_vtable *vtable; };

@@ -94,6 +94,9 @@ under its ArtifactId, with immutable operation evidence and exact retries.
 First activation now completes that original fixed installation atomically while
 leaving its launch gate closed. General dynamic allocation, updates and admission
 remain separate work.
+The user authority can now observe this active fixture over authenticated private
+IPC and persist an owner-scoped installation binding. It still cannot start the
+app or attach private data; those require fresh identities and admission checks.
 Retained private-root references join expected owner headers with current
 held/named filesystem identity. Immutable allocation object records now persist
 that binding and reopen after a guest boot. Genuine volume enrollment and complete

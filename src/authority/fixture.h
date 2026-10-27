@@ -31,5 +31,9 @@ int ae_authority_fixture_publication(struct ae_catalogue *catalogue,int observe)
  */
 int ae_fixture_activation_config_decode(const uint8_t *bytes,size_t size,struct ae_fixture_activation *output);
 int ae_authority_fixture_activate(struct ae_catalogue *catalogue,const uint8_t current_boot[16]);
+/* Read only the fixed protected administrative selection; no fixture enrollment,
+ * root observation, catalogue mutation or installation status is inferred. */
+int ae_authority_fixture_request(struct ae_fixture_request *output);
+int ae_authority_projection_unit(char output[256]);
 
 #endif

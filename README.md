@@ -20,6 +20,8 @@ native probe under a durable operation and reopens it after a guest boot.
 That trusted fixture can now be atomically published into a sealed managed store,
 with journaled retries. First fixture activation completes its installation with
 the launch gate closed; actual app admission and launch remain unfinished.
+The user service can now record an authenticated observation of that installation
+through a private system API. This creates no app data or permission to start it.
 Volume authentication, allocation journals and app document transport remain unfinished.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·

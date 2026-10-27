@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Private typed system observation; no launch/admission capability. -->
+<node name="/org/aetheri/Catalogue1">
+  <interface name="org.aetheri.Catalogue1">
+    <annotation name="org.aetheri.Contract.Version" value="1.0"/>
+    <annotation name="org.aetheri.Contract.Visibility" value="broker-only"/>
+    <method name="ResolveAppInstall">
+      <arg direction="in" name="expected_system_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="broker_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="in" name="install_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_epoch" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="system_incarnation" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="boot_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="resolved_install_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="component_id" type="s"><annotation name="org.aetheri.Contract.MaximumBytes" value="128"/></arg>
+      <arg direction="out" name="publisher_ref" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="account_scope" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="install_scope" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="install_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="active_generation_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="16"/></arg>
+      <arg direction="out" name="artifact_id" type="ay"><annotation name="org.aetheri.Contract.Bytes" value="32"/></arg>
+      <arg direction="out" name="generation_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="install_gate_state" type="s"><annotation name="org.aetheri.Contract.MaximumBytes" value="7"/></arg>
+      <arg direction="out" name="install_gate_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+      <arg direction="out" name="catalogue_revision" type="t"><annotation name="org.aetheri.Contract.Minimum" value="1"/><annotation name="org.aetheri.Contract.Maximum" value="9223372036854775807"/></arg>
+    </method>
+  </interface>
+</node>

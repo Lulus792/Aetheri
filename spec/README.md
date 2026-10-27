@@ -18,6 +18,8 @@ lifecycle methods defined by these contracts.
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
 | [runtime-v1.xml](api/runtime-v1.xml) | Four new broker-only runtime methods |
 | [broker-v1.xml](api/broker-v1.xml) | Private P0 broker identity bootstrap 1.0, independent of public wire 1.1; no launch capability |
+| [catalogue-v1.xml](api/catalogue-v1.xml), [development-v1.xml](api/development-v1.xml) | Private installation observation and protected fixed-fixture trigger 1.0; no admission |
+| [projection.h](../src/catalogue/projection.h), [wire codec](../src/authority/projection.h) | Separate system read/user write, bounded typed snapshot and exact retry |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
 | [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation/opening, writer lifetime and startup-context transaction |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of canonical v2 statements; no runtime SQL-file loading |
@@ -39,6 +41,9 @@ lifecycle methods defined by these contracts.
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 Schema user_version=2 and protocol major/minor 1.1 are independent.
+The two private projection interfaces are independently versioned 1.0. Their
+implementation and enforcing checks are described in [runtime.md](runtime.md#authenticated-installation-projection).
+They leave the old XML and SQL contracts unchanged and add no public capability.
 Old management argument lists are unchanged. New interfaces require explicit
 documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
