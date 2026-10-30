@@ -3000,3 +3000,103 @@ the owned fixture. The payload's fixed test bus-name calls are not an authentica
 general-purpose app SDK. Normal session admission, Root observation settlement,
 executing recovery/drain, documents and complete removal remain implementation
 work; no public launch capability is enabled.
+
+## Root execution observation journal
+
+`ae_catalogue_observe_execution` records actual target-execution evidence after
+ARM. It does not interpret a successful StartUnit reply, helper readiness, error
+channel EOF or User READY alone as execution. The caller must join its original
+held starter process to the current app connection/unit/invocation/cgroup and
+the original authenticated User owner's independently verified image/registration
+evidence. An app digest without that provenance grants nothing. Root still never
+opens User SQLite or private storage.
+
+The native Root transaction requires the full original profile, owner/runtime/
+boot/account, exact launch/reservation tuple and original request fingerprint.
+It verifies applied REQUEST/PREPARE binding steps1/2, the original starter
+invocation/context digest and ARM step3. A fresh observation additionally requires
+dispatching, the running generation lease, original invocation/data-gate fence,
+active exact installation/generation/revision and the open original install gate.
+Unknown later steps or a malformed optional diagnostic step4 reject mutation.
+
+| Record | Atomic fresh mutation |
+| --- | --- |
+| operation_steps | Step5 verify/launch/exact LaunchId/applied with app-observation digest |
+| operation_steps | ARM step3 becomes applied |
+| launch_dispatches | dispatching becomes observed; increment revision |
+| operations | Preserve an existing step4 diagnostic reason, otherwise set exec_observed; increment revision and retain running/no outcome |
+| authority_meta | Increment catalogue revision |
+
+No generation-lease state or revision changes, no process/IPC effect occurs and
+effect_required is always zero. Overflow of any incremented revision rejects
+before mutation. Error/unknown COMMIT acknowledgement leaves caller output
+unchanged. The five writes and both commit boundaries are tested independently.
+
+An exact existing step5 retry returns the current historical dispatch, including
+later closing/terminal/uncertain state, without changing file bytes/revisions or
+reopening a gate. A later terminal/released tuple is only a receipt: this API
+does not create that drain result. Different app evidence conflicts. Original
+profile/starter context/owner identity must still match; owner restart requires
+separate recovery. The old REQUEST/ARM/no-exec paths cannot reuse this journal.
+Actual closure and operation-result acknowledgement remain separate work.
+
+A late terminal channel diagnostic can now record immutable step4 while the
+dispatch is observed. Its bounded diagnostic reason remains in the operation;
+step5 and the dispatch state separately retain actual execution observation.
+EOF remains UNKNOWN; recording it before or after a real execution
+observation neither establishes nor undoes that observation. It never releases
+the generation lease or completes an operation.
+
+### Connected fixed-fixture confirmation
+
+The explicit live test adds PinApp and ConfirmApp only to its compiled test
+interfaces. After User registration, the app's fresh original connection calls
+Root PinApp. Root checks current UID/MCS and independently joins it to its held
+original starter process, boot, actual service invocation/unit and cgroup. This
+does not yet acknowledge execution or release the administrative observer.
+
+After User has rechecked its original app/image/private-data context and committed
+READY, that original User connection sends the bounded AETHACK1 test envelope:
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHACK1 |
+| 8 | 32 | Complete canonical AETHEXE1 SHA-256 |
+| 40 | 16 | Actual invocation |
+| 56 | 16 | App connection's actual bus GUID |
+| 72 | 2 | Big-endian unique-name byte length |
+| 74 | 1..255 | Exact app unique name |
+| 74 + name length | 32 | User's original AETHAPP1 observation digest |
+
+The test message is 106 + name length bytes, at most361. Root authenticates the
+original currently registered User process/unit/connection, compares profile,
+invocation, bus GUID and unique name to its own app pin, re-verifies that live
+app context and original starter liveness, then hashes the complete envelope
+for native step5. Its independent producer of the existing AETHEXC1 starter
+context binding must match the original native BIND record. User authenticates
+the original Root reply and exact operation/observed state. No incoming app FD,
+asserted PID, arbitrary unit/path or User database is accepted as authority.
+
+The app repeats REGISTER/READY through the original connection. AppSource can
+return the same admitted image after Root's observed transition; it still checks
+current code/gates. ConfirmApp exact retries preserve native history. A deliberate
+wrong bus GUID is rejected as NeedsRecovery before any step5 mutation. The test
+payload finally calls Observe on its same Root connection; only then can the
+administrative driver observe/terminate the exact app and retire the owned fixture.
+This final test-driver handoff is not a production readiness or drain API.
+
+The controller requires Root observed plus steps0..5/applied, User running/ready
+with that exact invocation, both operations still running and Root's lease still
+running before archiving them. Exact administrative test drain/retirement does
+not settle those native obligations. No normal service, policy, dependency,
+SQL/XML version or public capability changes.
+
+`catalogue.execution_observation` covers fourteen scenarios: fresh/lost reply,
+actual child exits before/after COMMIT, closed admission, Root restart, each of
+three revision overflows, early/late channel diagnostics and historical retries after
+simulated closing/terminal/uncertain states. It also checks missing ARM, wrong
+owner/input/profile/invocation/starter evidence/broker runtime, changed app digest,
+every write fault, output preservation and byte-stable retries. The simulated
+later states are receipt tests, not execution-drain evidence. Normal owner/session
+provisioning, launch-result completion, executing recovery/drain/lease settlement,
+documents/revocation and complete removal remain work.

@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — actual User-mediated app registration and explicit readiness.
+31 October 2026 — Root execution observation joined to actual User app evidence.
 
 ## Confirmed
 
@@ -13,6 +13,50 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Root now separately journals actual target execution as step5 and an observed
+dispatch. The original full profile, starter invocation/context, current owner/
+account/gates and running generation lease must match. ARM becomes applied; both
+launch operations and the lease remain running. Exact retries preserve later
+closing/terminal/uncertain state without reopening gates or repeating effects.
+Channel diagnostics remain independent: their bounded reason survives whether
+recorded before or after the separate actual-observation step/state.
+See [Root observation](../../spec/runtime.md#root-execution-observation-journal).
+
+The enforcing fixed fixture now joins Root's actual held starter/app process,
+current service/invocation/cgroup/MCS and original app connection to actual User's
+independently checked image/registration/READY evidence. User authenticates Root's
+observed receipt. A deliberately wrong bus GUID rejects before mutation; exact
+valid retries preserve history. The successful live run archives Root steps0..5
+applied and User running/ready while preserving both incomplete operations and
+the running Root lease. No normal API/profile/policy/capability is enabled.
+
+The initial thirteen focused observation scenarios pass (55.58 s). Baseline native
+regression passes 42/42 Debug ASan/UBSan (497.98 s) and 42/42 Release (432.28 s)
+before the final diagnostic-retention correction. Host orchestration passes 45/45
+(2.526 s). After that correction, the final fourteen-case observation and affected
+coordinator groups pass 2/2 Debug (120.05 s) and 2/2 Release (112.04 s). Tests include
+all five write faults, commit uncertainty/actual child exits, restart/closed gate,
+revision overflows, both diagnostic orderings and later-state receipt preservation.
+The first connected negative probe expected the wrong existing error name;
+its unsettled histories were inspected/archived before exact test retirement,
+then the corrected connected run passed. A final live repeat confirms Root observed
+with steps0..5/applied while preserving its bounded channel diagnostic reason,
+User running/ready, both incomplete operations and the running generation lease.
+Final read-only checks confirm Enforcing, unchanged normal inputs, pending=None,
+two closed install/two closed data gates, no unsettled normal dispatch/lease,
+test names unowned and temporary inputs retired. Normal executing profile/starter/
+scaffold/Root unit remain absent. All 161 actual guest source hashes match the
+current host inventory; 437 local Markdown targets pass. This is not production
+executing recovery, launch-result completion, removal or OS/hardware acceptance.
+
+Next implement launch-result completion independently of lifetime/lease release,
+then executing recovery/drain, native documents/revocation and complete removal.
+Normal session provisioning, dynamic allocation and mutation fencing remain.
+The full desktop/apps/image/hardware objective stays active; no user choice blocks
+this backend work.
+
+Previous actual User registration/readiness checkpoint (30 October 2026):
 
 The actual User owner in the isolated enforcing fixture now authenticates the
 executing app's original bus connection/ProcessFD, service/invocation/cgroup/MCS

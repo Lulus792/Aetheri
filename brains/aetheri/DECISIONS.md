@@ -934,3 +934,24 @@ establish protocol readiness only; UI responsiveness, general apps and owner
 recovery/drain remain separate acceptance. Archive unresolved owner operations
 and Root's running lease after exact test drain. No new dependency, schema/XML,
 resident service or normal launch capability is introduced.
+
+## Persist Root's actual execution observation separately — 30 October 2026
+
+Record a separate Root step5 only after original held starter/app process context
+and the original authenticated User image/registration evidence agree. Move the
+native dispatch from dispatching to observed and mark ARM applied, keeping the
+generation lease and launch operation running. Reuse v2 without schema/XML changes.
+An old exact receipt must preserve later closing/terminal/uncertain states and
+closed gates; it cannot become another start or a release authorization.
+
+Permit late immutable channel diagnostics after actual observation. Preserve the
+bounded diagnostic reason regardless of ordering; the separate dispatch state/
+step5 retains observation. Channel EOF and actual target evidence answer different questions.
+Keep their journal steps separate. Bind the live proof through the original local
+connections and pins; a packet/digest or self-declared PID alone is insufficient.
+
+Use test-only PinApp/ConfirmApp in the explicit enforcing fixture before exposing
+a normal API. The actual User READY record precedes the Root confirmation; losing
+that reply retains both obligations for later query/recovery. General launch-result
+acknowledgement and eventual executing drain remain separate implementation gates.
+No product/UI or destructive hardware choice is needed for this internal step.

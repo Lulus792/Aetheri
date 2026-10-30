@@ -2051,3 +2051,93 @@ pins/unknown replies, exact retry preservation and independent test retirement.
 No normal app, host hardware or other project changed. Next implement Root
 observation settlement and independently proven executing recovery/drain/lease
 settlement before removal; the full OS/apps/UI/image/hardware goal stays active.
+
+## Root observed-execution checkpoint — 30 October 2026
+
+Added native ae_catalogue_observe_execution. It verifies the complete original
+Root profile/runtime/account/tuple, actual starter invocation/context binding,
+applied preparation and ARM. A fresh transaction requires current exact install/
+generation/gate admission and a running lease. It inserts step5 with the app-
+observation digest, applies ARM, marks dispatch observed and advances only dispatch,
+operation/catalogue revisions. Both owner operations and Root's lease stay running.
+An exact historical retry never restores later closing/terminal/uncertain state
+or closed gates, changes bytes/revisions or permits another process effect.
+
+Late immutable channel diagnostics now work after observed. Their bounded reason
+must survive independently of dispatch state/step5; EOF remains UNKNOWN and
+neither creates nor undoes actual execution
+evidence. No schema/XML version, dependency, resident service or normal capability
+changes. A successful launch-result acknowledgement remains separate future work
+from eventual run closure/drain and generation-lease release.
+
+Connected the explicit enforcing fixture through test-only PinApp/ConfirmApp.
+Root independently pins the actual post-exec app connection and joins it to its
+original starter PIDFD/unit/invocation/cgroup/MCS. After actual User commits READY
+from its original independently checked app/image/allocation context, User sends
+AETHACK1 with the complete profile hash, invocation, actual app bus GUID/unique
+name and original User observation digest. Original User broker provenance is
+rechecked at Root; the current app/original starter pin must still agree. The
+full envelope digest binds native Root step5. User authenticates the original
+Root observed reply. Final app Observe remains a separate test-driver handoff
+after exact retries, so administrative retirement cannot race the handshake.
+
+Focused native observation passes thirteen scenarios (55.58 s): every five-write
+fault, precommit/lost acknowledgement, child exits around COMMIT, stale gate/Root
+restart, three overflow counters, late diagnostics and simulated later-state
+historical retries. Missing ARM, wrong owner/profile/invocation/starter evidence/
+broker context and changed app digest reject. These are native transaction/receipt
+tests, not proof that a real executing group has drained.
+
+The initial build rejected a test-local shadowed variable; the first focused
+run exposed a duplicate SQL alias from the shared tuple. Both were corrected,
+then all thirteen scenarios passed. The first connected negative probe correctly
+rejected its wrong bus GUID, but asserted NotAuthorized instead of the existing
+NeedsRecovery error. User exited after committing READY; Root stayed dispatching
+with step3/executing and its running lease. Actual original invocations, absent
+processes, independent unit/cgroup/job drain and the complete owned tree/static
+inputs were inspected. A protected copy of the entire failed fixture and both
+unsettled catalogues is retained at
+`/home/aetheri/build/observation-correlation-rejected-c04926e4103b4682815ddcee53276fe7`.
+Purely administrative fixture retirement did not release any native obligation.
+The corrected connected run passes; its controller requires Root observed,
+steps0..5/applied and User running/ready for the same invocation, while preserving
+both incomplete operations and Root's running generation lease in the archive.
+
+Review caught that setting the operation reason to exec_observed could erase
+the existing bounded diagnostic reason. Observation now preserves that reason
+when step4 exists; a late diagnostic writes its reason while independent step5/
+dispatch state retain observed. A fourteenth scenario checks early diagnostics
+alongside the existing late case. This is a retention fix, not reinterpretation
+of EOF as execution or release evidence.
+
+Host orchestration passes 45/45 (2.526 s). The baseline full native suites pass
+42/42 Debug ASan/UBSan (497.98 s), 42/42 Release (432.28 s), before the final
+diagnostic-retention correction. The affected final observation/coordinator groups
+are separately rerun in both configurations, followed by the actual live test.
+Final results and protected-carrier/source verification follow below.
+
+Final verification — 31 October 2026: after the diagnostic-retention correction,
+catalogue.execution_observation (fourteen scenarios) and the affected
+authority.execution_service group pass 2/2 Debug ASan/UBSan (120.05 s) and 2/2
+Release (112.04 s). The preceding 42/42 full suites cover the baseline before
+that final correction; they are not relabelled as a final full-suite result.
+The final actual enforcing live run passes and retires its exact owned fixture.
+Evidence remains at
+`/home/aetheri/build/release/live-execution-67d2565400174ca9b500387923237fad`.
+Root is observed with steps0..5/applied, User is running/ready with the exact
+same invocation, and both incomplete operations/Root running lease remain.
+Root's bounded exec_channel_unknown reason is retained alongside the independent
+execution observation, not overwritten or interpreted as execution proof.
+
+Final read-only carrier verification confirms Enforcing, verified unchanged normal
+inputs, pending=None, two closed install/two closed data gates, no unsettled normal
+dispatch/lease, System1/test User name unowned and temporary root/config/module/
+unit slots retired. Normal executing profile/starter/scaffold record/Root unit
+remain unprovisioned. All 161 actual guest source hashes match the current host
+inventory; 437 local Markdown targets pass. Review includes current admission,
+historical retry preservation, canonical connection correlation, retained pins,
+unknown commit outcomes, diagnostic retention and exact administrative retirement.
+No normal app, host hardware or other project changed. Next implement launch-
+result completion independently of run lifetime, then executing recovery/drain/
+lease settlement and native documents/removal. Full OS/apps/UI/image/hardware
+scope remains active.

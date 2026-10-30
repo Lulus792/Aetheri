@@ -97,4 +97,16 @@ int ae_catalogue_execution(struct ae_catalogue *,const struct ae_execution_profi
 int ae_catalogue_execution_report(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_launch_context *,const struct ae_execution_evidence *,const struct ae_execution_diagnostic *,
     struct ae_execution_result *);
+/* Root-owner observation of actual target execution, distinct from channel EOF
+ * and starter preparation. Caller joins its ORIGINAL held starter/app process,
+ * current unit/invocation/cgroup and authenticated original User's independently
+ * verified current-image/registration evidence. app_digest binds those actual
+ * observations; it is not caller admission or a bearer proof. No external effect.
+ * Fresh commit marks dispatch observed and ARM applied, retaining the running
+ * generation lease and incomplete launch operation. Exact historical retry
+ * never restores later state/gates, changes revisions or permits another arm.
+ * Wrong profile/context/evidence rejects; outputs unchanged on all errors. */
+int ae_catalogue_observe_execution(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,const uint8_t app_digest[32],
+    struct ae_execution_result *);
 #endif

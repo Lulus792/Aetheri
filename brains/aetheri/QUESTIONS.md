@@ -113,7 +113,10 @@ Normal session/owner provisioning, mutation/revocation fencing and production
 registration/readiness/recovery remain work. The isolated fixture now
 proves actual User-mediated app registration and explicit readiness, including
 the live current-image check and original-connection requirement. Root observation
-settlement and independently proven executing drain/lease recovery remain next.
+settlement is now implemented for the isolated fixture: Root joins its original
+starter/app context to original User confirmation and persists observed without
+releasing the lease. Launch-result completion and independently proven executing
+drain/lease recovery remain next.
 No personal product choice blocks
 the next backend integration; UI/browser/shell decisions remain with the user.
 General dynamic allocation/recovery and binding reconciliation after

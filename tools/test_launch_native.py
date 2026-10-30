@@ -80,6 +80,11 @@ def main():
             scenarios=tuple("exec-user-observe-"+case for case in (
                 "fresh","lost-register","lost-ready","crash-register-before","crash-register-after",
                 "crash-ready-before","crash-ready-after","restart","gate","overflow-launches","overflow-operations","overflow-authority_meta"))
+        if len(sys.argv)==4 and sys.argv[3]=="observation":
+            scenarios=tuple("exec-observation-"+case for case in (
+                "fresh","lost","crash-before","crash-after","closed-gate","restart",
+                "overflow-dispatch","overflow-operation","overflow-catalogue","early-diagnostic","late-diagnostic",
+                "later-closing","later-terminal","later-uncertain"))
         if len(sys.argv)==4 and sys.argv[3]=="wire":
             scenarios=tuple("exec-wire-"+case for case in (
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",

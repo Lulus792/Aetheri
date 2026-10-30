@@ -12,6 +12,9 @@ executable registration and explicit readiness. Its
 [native journal and observation bytes](runtime.md#user-mediated-application-registration-and-readiness)
 reuse v2 without changing frozen SQL/XML. Both owner operations and Root's lease
 remain unsettled; no normal app/session registration API is installed.
+Root now also records an [actual execution observation](runtime.md#root-execution-observation-journal)
+after its original process evidence matches authenticated User confirmation.
+Historical retries preserve later states and the generation lease remains held.
 
 ## Files and versions
 
@@ -189,6 +192,7 @@ No SQL/XML source or protocol version changed for this addition.
 | ae_catalogue_enroll_account | System owner only: explicitly persist a trusted account/UID and advance catalogue revision atomically; exact active retry is unchanged; never rebind/reactivate a scope |
 | ae_catalogue_check_account | Require the exact active system-account/UID row and return its revision; not a process proof or future admission fence |
 | ae_catalogue_prepare_user_execution | Persist exact User execution preparation before external submission; fresh-only submit flag, immutable full-profile binding and retained recovery obligation; no ARM/readiness/drain proof |
+| ae_catalogue_observe_execution | Record actual execution evidence as Root step5/observed while retaining the running lease/operation; historical retries never rearm or restore later state |
 | ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
 
 The caller supplies an already protected, stable absolute directory and identity

@@ -44,7 +44,8 @@ static struct ae_peer starter=AE_PEER_INIT,app=AE_PEER_INIT;
 static struct ae_process_context starter_context,app_context;
 static sd_bus_message *waiting;
 static sd_event_source *arm_source;
-static int begun,armed,user_begun;
+static int begun,armed,user_begun,app_confirmed,app_reported;
+static struct ae_execution_evidence bound_evidence;
 enum { OBSERVATION_BYTES=168 };
 static struct ae_peer user_app=AE_PEER_INIT;
 static struct ae_process_context user_app_context;
@@ -112,7 +113,7 @@ static int info(sd_bus_message *m,void *userdata,sd_bus_error *error)
 }
 static int return_app(void)
 {
-    if (waiting==NULL || app.pidfd<0) return 0;
+    if (waiting==NULL || app.pidfd<0 || !app_confirmed || !app_reported) return 0;
     struct ae_execution_endpoint_status status; CHECK(ae_execution_endpoint_status(endpoint,&broker,&status)==0 && status.execution.armed && armed);
     CHECK(ae_peer_alive(&starter)==0 && ae_peer_alive(&app)==0 && starter.connection_pid==app.connection_pid);
     sd_bus_message *reply=NULL; int r=sd_bus_message_new_method_return(waiting,&reply);
@@ -136,14 +137,18 @@ static int control(sd_bus_message *m,void *userdata,sd_bus_error *error)
 }
 static int observe(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
-    (void)userdata; (void)error; CHECK(app.pidfd<0 && starter.pidfd>=0 && armed);
+    (void)userdata; (void)error; int pin=strcmp(sd_bus_message_get_member(m),"PinApp")==0;
+    CHECK(starter.pidfd>=0 && armed && (pin ? app.pidfd<0 : app.pidfd>=0 && app_confirmed));
     struct ae_peer peer=AE_PEER_INIT; CHECK(ae_peer_capture(m,&peer)==0);
     CHECK(peer.connection_uid==1000 && strcmp(peer.connection_label,AE_STARTER_TARGET_CONTEXT)==0 &&
         peer.connection_pid==starter.connection_pid && ae_peer_alive(&starter)==0);
-    CHECK(ae_process_observe(&peer,bus,&app_context)==0 && app_context.uid==1000 &&
-        memcmp(app_context.boot,p.boot,16)==0 && memcmp(app_context.invocation,starter_context.invocation,16)==0 &&
-        strcmp(app_context.unit,starter_context.unit)==0 && app_context.cgroup_id==starter_context.cgroup_id);
-    app=peer; CHECK(sd_bus_reply_method_return(m,"")>=0 && return_app()>=0); return 1;
+    struct ae_process_context actual;
+    CHECK(ae_process_observe(&peer,bus,&actual)==0 && actual.uid==1000 &&
+        memcmp(actual.boot,p.boot,16)==0 && memcmp(actual.invocation,starter_context.invocation,16)==0 &&
+        strcmp(actual.unit,starter_context.unit)==0 && actual.cgroup_id==starter_context.cgroup_id);
+    if (pin) { app=peer; peer.pidfd=-1; app_context=actual; }
+    else { CHECK(memcmp(peer.bus_id,app.bus_id,16)==0 && strcmp(peer.unique_name,app.unique_name)==0 && ae_peer_alive(&app)==0 && ae_process_context_equal(&actual,&app_context)); app_reported=1; }
+    ae_peer_clear(&peer); CHECK(sd_bus_reply_method_return(m,"")>=0 && return_app()>=0); return 1;
 }
 static int arm(sd_event_source *source,void *userdata)
 {
@@ -160,6 +165,16 @@ static int filter(sd_bus_message *m,void *userdata,sd_bus_error *error)
         CHECK(starter.pidfd<0 && ae_peer_capture(m,&starter)==0 && starter.connection_uid==0 &&
             strcmp(starter.connection_label,"system_u:system_r:aetheri_starter_t:s0")==0);
         CHECK(ae_process_observe_registration(&starter,bus,&starter_context)==0);
+        /* Independent test producer of the existing AETHEXC1 context binding. */
+        uint8_t bytes[2048],hash[32]; size_t used=0; CHECK(ae_execution_digest(&p,hash)==0);
+#define BIND_COPY(v,n) do { memcpy(bytes+used,v,n); used+=(n); } while (0)
+        BIND_COPY("AETHEXC1",8); BIND_COPY(hash,32); BIND_COPY(starter_context.boot,16); BIND_COPY(starter_context.invocation,16);
+        for (size_t n=0;n<8;++n) bytes[used++]=(uint8_t)(starter_context.cgroup_id>>(56-8*n));
+        for (size_t n=0;n<4;++n) bytes[used++]=(uint8_t)((uint32_t)starter_context.uid>>(24-8*n));
+        const char *texts[]={starter_context.unit,starter_context.label,starter_context.cgroup};
+        for (size_t n=0;n<3;++n) { size_t size=strlen(texts[n]); CHECK(used+size+2<=sizeof bytes); bytes[used++]=(uint8_t)(size>>8); bytes[used++]=(uint8_t)size; BIND_COPY(texts[n],size); }
+#undef BIND_COPY
+        memcpy(bound_evidence.invocation,starter_context.invocation,16); CHECK(ae_sha256_bytes(bytes,used,bound_evidence.context_digest)==0);
     }
     if (sd_bus_message_is_method_call(m,"org.aetheri.Execution1","ReportPrepared")) {
         CHECK(arm_source==NULL && sd_event_add_defer(event,&arm_source,arm,NULL)>=0);
@@ -215,7 +230,7 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
     } else if (strcmp(method,"AppSource")==0) {
         struct ae_dispatch_snapshot d;
         r=ae_catalogue_get_dispatch(store,p.lease,&broker,&d);
-        if (r==0 && (strcmp(d.state,"dispatching")!=0 || !d.invocation_present || memcmp(d.operation,p.root_operation,16)!=0)) r=-ESTALE;
+        if (r==0 && ((strcmp(d.state,"dispatching")!=0 && strcmp(d.state,"observed")!=0) || !d.invocation_present || memcmp(d.operation,p.root_operation,16)!=0)) r=-ESTALE;
         struct ae_execution_sources sources=AE_EXECUTION_SOURCES_INIT; uint8_t publisher[16],record[OBSERVATION_BYTES];
         if (r==0) r=ae_execution_code_open(&p,&sources,publisher);
         if (r==0) { memcpy(record,"AETHOBS1",8); r=ae_execution_digest(&p,record+8); memcpy(record+40,d.invocation,16); }
@@ -226,6 +241,27 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (r==0 && (current.gate!=AE_INSTALL_GATE_OPEN || current.install_revision!=p.install_revision || current.gate_revision!=p.install_gate_revision || memcmp(current.generation,p.generation,16)!=0 || memcmp(current.artifact,p.artifact,32)!=0)) r=-ESTALE;
         if (r==0) r=sd_bus_message_new_method_return(m,&reply);
         if (r>=0) r=sd_bus_message_append_array(reply,'y',record,sizeof record);
+    } else if (strcmp(method,"ConfirmApp")==0) {
+        const void *raw=NULL; size_t length=0; uint8_t hash[32],app_hash[32];
+        r=sd_bus_message_read_array(m,'y',&raw,&length)>0 && sd_bus_message_at_end(m,1)==1 ? 0 : -EPROTO;
+        if (r==0 && (length<106 || length>361 || app.pidfd<0 || !armed)) r=-EACCES;
+        if (r==0) r=ae_execution_digest(&p,hash);
+        const uint8_t *bytes=raw; size_t name=0;
+        if (r==0) {
+            name=((size_t)bytes[72]<<8)|bytes[73];
+            if (length!=106+name || name!=strlen(app.unique_name) || memcmp(bytes,"AETHACK1",8)!=0 || memcmp(bytes+8,hash,32)!=0 ||
+                memcmp(bytes+40,app_context.invocation,16)!=0 || memcmp(bytes+56,app.bus_id,16)!=0 || memcmp(bytes+74,app.unique_name,name)!=0) r=-ESTALE;
+        }
+        if (r==0) r=ae_peer_alive(&starter);
+        if (r==0) r=ae_process_verify(&app,bus,&app_context);
+        if (r==0 && (app.connection_pid!=starter.connection_pid || app_context.cgroup_id!=starter_context.cgroup_id)) r=-ESTALE;
+        if (r==0) r=ae_sha256_bytes(bytes,length,app_hash);
+        struct ae_execution_result observed;
+        if (r==0) r=ae_catalogue_observe_execution(store,&p,&broker,&bound_evidence,app_hash,&observed);
+        if (r==0 && (observed.effect_required || strcmp(observed.dispatch.state,"observed")!=0)) r=-ESTALE;
+        if (r==0) { app_confirmed=1; r=sd_bus_message_new_method_return(m,&reply); }
+        if (r>=0) r=sd_bus_message_append_array(reply,'y',p.root_operation,16);
+        if (r>=0) r=sd_bus_message_append(reply,"st",observed.dispatch.state,(uint64_t)observed.dispatch.revision);
     } else {
         CHECK(strcmp(method,"Dispatch")==0);
         if (admission==NULL || begun) r=-EALREADY;
@@ -249,9 +285,10 @@ static const sd_bus_vtable broker_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Reserve","ayayayayayayayayayaytsss","",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Receipt","","ayayayayayayayayayaysttbayay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("AppSource","","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("ConfirmApp","ay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Dispatch","ayay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",control,SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+    SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("PinApp","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static void serve(void)
 {
     char *label=NULL; CHECK(getcon_raw(&label)==0 && strcmp(label,"system_u:system_r:aetheri_system_t:s0")==0 && security_getenforce()==1 && prctl(PR_GET_NO_NEW_PRIVS,0L,0L,0L,0L)==1); freecon(label);
@@ -263,20 +300,47 @@ static void serve(void)
     CHECK(sd_bus_request_name(bus,"org.aetheri.System1",0)>=0 && sd_notify(0,"READY=1\nSTATUS=Isolated native execution fixture")>0);
     CHECK(sd_event_loop(event)>=0);
 }
-static sd_bus_message *root_call(const char *method,const struct ae_launch_request *q,int dispatch)
+static sd_bus_message *root_reply(sd_bus_message *call)
 {
-    sd_bus_message *call=NULL,*reply=NULL;
-    CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1",method)>=0);
-    if (q!=NULL) CHECK(ae_reservation_write(call,q)==0);
-    if (dispatch) { uint8_t hash[32]; CHECK(ae_execution_digest(&p,hash)==0 && sd_bus_message_append_array(call,'y',p.lease,16)>=0 && sd_bus_message_append_array(call,'y',hash,32)>=0); }
+    sd_bus_message *reply=NULL;
     sd_bus_error error=SD_BUS_ERROR_NULL; int r=sd_bus_call(bus,call,5000000,&error,&reply);
-    if (r<0) fprintf(stderr,"User Root %s: %d %s\n",method,r,error.message ? error.message : "-");
+    if (r<0) fprintf(stderr,"User Root %s: %d %s\n",sd_bus_message_get_member(call),r,error.message ? error.message : "-");
     CHECK(r>=0); struct ae_peer peer=AE_PEER_INIT; struct ae_process_context context;
     CHECK(ae_peer_capture_reply(reply,call,&peer)==0 && peer.connection_uid==0 && strcmp(peer.connection_label,"system_u:system_r:aetheri_system_t:s0")==0);
     CHECK(ae_process_observe(&peer,bus,&context)==0 && strcmp(context.unit,AE_STARTER_ROOT_UNIT)==0 && memcmp(context.boot,p.boot,16)==0);
     if (root_pin.pidfd<0) { root_pin=peer; peer.pidfd=-1; root_context=context; }
     else CHECK(ae_peer_alive(&root_pin)==0 && peer.connection_pid==root_pin.connection_pid && ae_process_context_equal(&root_context,&context));
     ae_peer_clear(&peer); sd_bus_message_unref(call); sd_bus_error_free(&error); return reply;
+}
+static sd_bus_message *root_call(const char *method,const struct ae_launch_request *q,int dispatch)
+{
+    sd_bus_message *call=NULL;
+    CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1",method)>=0);
+    if (q!=NULL) CHECK(ae_reservation_write(call,q)==0);
+    if (dispatch) { uint8_t hash[32]; CHECK(ae_execution_digest(&p,hash)==0 && sd_bus_message_append_array(call,'y',p.lease,16)>=0 && sd_bus_message_append_array(call,'y',hash,32)>=0); }
+    return root_reply(call);
+}
+static void confirm_application(void)
+{
+    uint8_t bytes[361],hash[32]; size_t name=strlen(user_app.unique_name); CHECK(name<=255 && ae_execution_digest(&p,hash)==0);
+    memcpy(bytes,"AETHACK1",8); memcpy(bytes+8,hash,32); memcpy(bytes+40,user_app_context.invocation,16); memcpy(bytes+56,user_app.bus_id,16);
+    bytes[72]=(uint8_t)(name>>8); bytes[73]=(uint8_t)name; memcpy(bytes+74,user_app.unique_name,name); memcpy(bytes+74+name,user_app_evidence.context_digest,32);
+    static int rejected;
+    if (!rejected) {
+        sd_bus_message *call=NULL,*answer=NULL; sd_bus_error error=SD_BUS_ERROR_NULL;
+        bytes[56]^=1;
+        CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","ConfirmApp")>=0 && sd_bus_message_append_array(call,'y',bytes,106+name)>=0);
+        int denied=sd_bus_call(bus,call,2000000,&error,&answer);
+        if (denied>=0 || !sd_bus_error_has_name(&error,"org.aetheri.Error1.NeedsRecovery")) fprintf(stderr,"wrong-app correlation: %d %s\n",denied,error.name ? error.name : "-");
+        CHECK(denied<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NeedsRecovery"));
+        sd_bus_error_free(&error); sd_bus_message_unref(call); sd_bus_message_unref(answer); bytes[56]^=1; rejected=1;
+    }
+    sd_bus_message *call=NULL;
+    CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","ConfirmApp")>=0 && sd_bus_message_append_array(call,'y',bytes,106+name)>=0);
+    sd_bus_message *reply=root_reply(call); const void *operation=NULL; size_t length=0; const char *state=NULL; uint64_t revision=0;
+    CHECK(sd_bus_message_read_array(reply,'y',&operation,&length)>0 && length==16 && memcmp(operation,p.root_operation,16)==0 &&
+        sd_bus_message_read(reply,"st",&state,&revision)>0 && strcmp(state,"observed")==0 && revision>0 && sd_bus_message_at_end(reply,1)==1);
+    sd_bus_message_unref(reply);
 }
 static void source_matches(const struct ae_install_snapshot *s)
 {
@@ -378,6 +442,7 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
     if (r!=0) return application_error(error,r);
     CHECK((strcmp(state.state,"running")==0 && strcmp(state.readiness,"ready")==0) ||
         (!ready && strcmp(state.state,"starting")==0 && strcmp(state.readiness,"unknown")==0));
+    if (ready) confirm_application();
     return sd_bus_reply_method_return(m,"");
 }
 static const sd_bus_vtable user_methods[]={SD_BUS_VTABLE_START(0),

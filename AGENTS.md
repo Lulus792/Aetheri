@@ -259,6 +259,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/execution.h now has ae_catalogue_observe_execution: original Root
+  profile/starter binding plus independently authenticated app/User evidence
+  records step5 and observed dispatch, retaining the running lease/operation.
+  Read spec/runtime.md's Root observation section; run catalogue.execution_observation.
+  A digest is not process/IPC proof. Historical exact retries preserve later
+  closing/terminal/uncertain state and gates; never rearm or infer lease release.
+  Preserve the bounded step4 diagnostic reason in either ordering; dispatch state/
+  step5 separately retain actual observation. The explicit
+  live fixture adds PinApp/ConfirmApp only in test interfaces; no installed API/
+  capability/policy change. Keep actual original pins/unique connections and User
+  current-image/private-data checks. Launch-result completion and executing drain/
+  recovery remain pending; administrative failed-test retirement preserves both
+  unsettled catalogues and is never a no-exec release or production recovery.
 - catalogue/execution.h now separately journals User REGISTER and READY through
   ae_catalogue_observe_user_execution. Read spec/runtime.md's User-mediated app
   registration section; run catalogue.user_readiness. Original process/Root/

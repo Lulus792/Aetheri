@@ -70,6 +70,8 @@ int main(int argc,char **argv)
         sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
         CHECK(sd_bus_call_method(bus,user,path,iface,"Register",&error,&reply,"")>=0);
         sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
+        CHECK(sd_bus_call_method(bus,"org.aetheri.System1","/org/aetheri/P0ExecutionTest1","org.aetheri.P0ExecutionTest1","PinApp",&error,&reply,"")>=0);
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
         sd_bus *foreign=NULL; CHECK(sd_bus_open_system(&foreign)>=0);
         CHECK(sd_bus_call_method(foreign,user,path,iface,"Ready",&error,&reply,"")<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
         sd_bus_error_free(&error); reply=sd_bus_message_unref(reply); sd_bus_flush_close_unref(foreign);

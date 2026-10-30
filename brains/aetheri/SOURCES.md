@@ -1388,3 +1388,30 @@ the later state. Root/User operations and the running generation lease remain
 unsettled after independent exact test drain; historical catalogues are retained.
 This establishes the inert fixture's protocol readiness, not production SDK/
 session provisioning, UI responsiveness, complete recovery or removal.
+
+## Root execution observation — 30 October 2026
+
+Original [native observation API](../../src/catalogue/execution.h),
+[transaction](../../src/catalogue/store.c),
+[fault/retry tests](../../tests/test_launch.c) and
+[actual connected probe](../../tests/probe_execution_runtime.c) add step5/observed
+without releasing a lease or completing a launch operation. The enforcing test
+joins Root's actual original starter/app ProcessFD and service context to User's
+independent current-image/registration proof. Their original unique connections
+and broker process admission remain necessary; the test envelope is not authority.
+
+Initial compilation caught a test-local shadowed variable. The first focused
+transaction run rejected a duplicate SQL alias shared with the existing tuple;
+distinct arm aliases repaired the query, then all thirteen scenarios passed.
+The first actual connected run rejected the wrong bus GUID correctly but its
+negative test expected NotAuthorized instead of the existing NeedsRecovery mapping.
+The User test exited; its READY record and Root dispatching/running lease remained.
+Actual original service invocations, absent processes, unit/cgroup/job drain and
+the complete owned tree/static inputs were independently inspected before purely
+administrative test retirement. Both unresolved catalogues and original fixture
+evidence were archived; no no-exec release or production recovery was applied.
+The corrected negative assertion then passed the actual connected live run.
+Review then identified bounded diagnostic-reason loss when setting exec_observed.
+The final transaction preserves an existing step4 reason; a late diagnostic
+keeps its own reason while independent dispatch state/step5 retain observed.
+Both orders are covered in the final fourteen-scenario native group.

@@ -20,6 +20,9 @@ User now verifies the running app's actual process, invocation and executable
 before recording registration, then accepts an explicit readiness report from
 that same connection. Readiness leaves both operations and Root's lease open;
 general app/session provisioning and executing recovery remain work.
+Root also records an observed dispatch only after its original process evidence
+matches that User confirmation. Historical retries preserve later states and
+keep the program's generation lease held.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

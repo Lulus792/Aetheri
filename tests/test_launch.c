@@ -295,6 +295,77 @@ static void user_observe_test(struct ae_catalogue *root,struct ae_catalogue **us
     CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
     CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no BETWEEN 1 AND 3 AND state='applied'")==3);
 }
+static void root_observe_test(struct ae_catalogue **root,const struct ae_catalogue_identity *identity,const struct ae_execution_profile *p,
+    struct ae_launch_context *c,const struct ae_execution_evidence *e,const char *directory,const char *scenario)
+{
+    uint8_t app_digest[32]; memset(app_digest,0x87,sizeof app_digest);
+    struct ae_execution_result output,marker; memset(&marker,0xa5,sizeof marker); output=marker;
+    if (strstr(scenario,"early-diagnostic")) {
+        struct ae_execution_diagnostic d={.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+        CHECK(ae_catalogue_execution_report(*root,p,c,e,&d,&output)==0); output=marker;
+    }
+    uint8_t before[32],after[32]; database_digest(directory,before);
+    for (int n=1;n<=5;++n) {
+        step_fault=n; step_number=0;
+        CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EIO && step_fault==0 && memcmp(&output,&marker,sizeof marker)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    commit_fault=1; CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    if (strstr(scenario,"closed-gate")) {
+        edit(directory,"UPDATE admission_gates SET state='closed',revision=revision+1");
+        CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EAGAIN); return;
+    }
+    if (strstr(scenario,"restart")) {
+        uint8_t runtime[16]; id(runtime,6); CHECK(ae_catalogue_begin_runtime(*root,p->boot,runtime)==0);
+        CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-ESTALE);
+        CHECK(scalar(directory,"SELECT state='uncertain' FROM launch_dispatches")==1 && scalar(directory,"SELECT state='running' FROM generation_leases")==1); return;
+    }
+    if (strstr(scenario,"overflow-")) {
+        edit(directory,strstr(scenario,"dispatch") ? "UPDATE launch_dispatches SET revision=9223372036854775807" :
+            strstr(scenario,"operation") ? "UPDATE operations SET revision=9223372036854775807" : "UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EOVERFLOW && memcmp(&output,&marker,sizeof marker)==0); return;
+    }
+    if (strstr(scenario,"crash")) {
+        CHECK(ae_catalogue_close(root)==0); pid_t child=fork(); CHECK(child>=0); int first=strstr(scenario,"before")!=NULL;
+        if (child==0) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(directory,identity,&fresh)==0); crash_mode=first ? 1 : 2; (void)ae_catalogue_observe_execution(fresh,p,c,e,app_digest,&output); _exit(90); }
+        int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(first ? 71 : 72));
+        CHECK(ae_catalogue_open(directory,identity,root)==0);
+    } else if (strstr(scenario,"lost")) {
+        commit_fault=2; CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+    }
+    CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==0 && !output.effect_required && strcmp(output.dispatch.state,"observed")==0);
+    CHECK(scalar(directory,"SELECT state='running' FROM generation_leases")==1 && scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
+    CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no=3 AND state='applied'")==1);
+    database_digest(directory,before);
+    struct ae_execution_profile wrong=*p; wrong.starter_digest[0]^=1; output=marker;
+    CHECK(ae_catalogue_observe_execution(*root,&wrong,c,e,app_digest,&output)==-ESTALE && memcmp(&output,&marker,sizeof marker)==0);
+    struct ae_execution_evidence bad=*e; bad.context_digest[0]^=1;
+    CHECK(ae_catalogue_observe_execution(*root,p,c,&bad,app_digest,&output)==-ESTALE);
+    bad=*e; bad.invocation[15]^=1; CHECK(ae_catalogue_observe_execution(*root,p,c,&bad,app_digest,&output)==-ESTALE);
+    app_digest[0]^=1; CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==-EEXIST); app_digest[0]^=1;
+    struct ae_launch_context replacement=*c; id(replacement.broker_runtime,52);
+    CHECK(ae_catalogue_observe_execution(*root,p,&replacement,e,app_digest,&output)==-ESTALE);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    if (strstr(scenario,"late-diagnostic")) {
+        struct ae_execution_diagnostic d={.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+        CHECK(ae_catalogue_execution_report(*root,p,c,e,&d,&output)==0 && !output.effect_required && strcmp(output.dispatch.state,"observed")==0);
+        CHECK(scalar(directory,"SELECT reason_code='exec_channel_unknown' FROM operations")==1);
+    }
+    if (strstr(scenario,"early-diagnostic")) CHECK(scalar(directory,"SELECT reason_code='exec_channel_unknown' FROM operations")==1);
+    if (strstr(scenario,"later-")) {
+        edit(directory,"UPDATE admission_gates SET state='closed',revision=revision+1");
+        edit(directory,strstr(scenario,"terminal") ? "UPDATE launch_dispatches SET state='terminal',revision=revision+1; UPDATE generation_leases SET state='released',revision=revision+1" :
+            strstr(scenario,"uncertain") ? "UPDATE launch_dispatches SET state='uncertain',revision=revision+1" : "UPDATE launch_dispatches SET state='closing',revision=revision+1");
+    }
+    database_digest(directory,before);
+    for (int n=0;n<3;++n) {
+        CHECK(ae_catalogue_observe_execution(*root,p,c,e,app_digest,&output)==0 && !output.effect_required);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    CHECK(ae_catalogue_execution(*root,p,c,AE_EXECUTION_ARM,e,&output)<0);
+    CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no=5 AND state='applied'")==1);
+}
 static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,const struct ae_catalogue_identity *identity,
     const struct ae_user_launch *q,struct ae_launch_context *c,const char *directory,const char *expected,const char *scenario)
 {
@@ -310,7 +381,17 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,
     CHECK(ae_catalogue_execution(*root,&p,c,(enum ae_execution_stage)0,&e,&result)==-EINVAL);
     CHECK(ae_catalogue_execution(*root,&p,c,AE_EXECUTION_BIND,NULL,&result)==-EINVAL);
     int lost=strcmp(scenario,"exec-lost")==0;
+    if (strncmp(scenario,"exec-observation-",17)==0) {
+        uint8_t app_hash[32]={0};
+        CHECK(ae_catalogue_observe_execution(user,&p,c,&e,app_hash,&result)==-EPERM);
+        CHECK(ae_catalogue_observe_execution(*root,&p,c,NULL,app_hash,&result)==-EINVAL);
+        CHECK(ae_catalogue_observe_execution(*root,&p,c,&e,NULL,&result)==-EINVAL);
+    }
     for (int stage=AE_EXECUTION_REQUEST;stage<=AE_EXECUTION_ARM;++stage) {
+        if (strncmp(scenario,"exec-observation-",17)==0) {
+            struct ae_execution_result untouched=marker; uint8_t app_hash[32]={0};
+            CHECK(ae_catalogue_observe_execution(*root,&p,c,&e,app_hash,&untouched)==-ESTALE && memcmp(&untouched,&marker,sizeof marker)==0);
+        }
         /* All mutating statements roll back atomically; both COMMIT failure
          * directions leave the outward result untouched. */
         int count=stage==AE_EXECUTION_PREPARE ? 4 : stage==AE_EXECUTION_ARM ? 5 : 3;
@@ -407,6 +488,9 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,
     CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
     CHECK(scalar(directory,"SELECT state='running' FROM generation_leases")==1);
     CHECK(scalar(directory,"SELECT ready_data_gate_revision=3 FROM launch_dispatches")==1);
+    if (strncmp(scenario,"exec-observation-",17)==0) {
+        root_observe_test(root,identity,&p,c,&e,directory,scenario); return;
+    }
     if (strstr(scenario,"exec-diagnostic-")) {
         struct ae_execution_diagnostic d={.kind=AE_EXECUTION_DIAGNOSTIC_FAILURE,.phase=8,.error=1};
         if (strstr(scenario,"unknown")) d=(struct ae_execution_diagnostic){.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};

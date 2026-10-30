@@ -2480,7 +2480,7 @@ int ae_catalogue_execution_report(struct ae_catalogue *store,const struct ae_exe
         if (r==0 && match!=1) r=-EEXIST;
     }
     if (r==0 && !present) {
-        r=DQ("SELECT count(*) " EXEC_TUPLE "WHERE o.state='running' AND o.outcome IS NULL AND d.state IN ('reserved','dispatching') AND l.state IN ('reserved','running') AND d.close_cause_epoch IS NULL AND (d.invocation_ref IS NULL OR d.invocation_ref=p.inv)",&match);
+        r=DQ("SELECT count(*) " EXEC_TUPLE "WHERE o.state='running' AND o.outcome IS NULL AND d.state IN ('reserved','dispatching','observed') AND l.state IN ('reserved','running') AND d.close_cause_epoch IS NULL AND (d.invocation_ref IS NULL OR d.invocation_ref=p.inv)",&match);
         if (r==0 && match!=1) r=-EAGAIN;
         if (r==0) r=DQ("SELECT max(m.catalogue_revision,o.revision) " EXEC_TUPLE,&match);
         if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
@@ -2492,6 +2492,53 @@ int ae_catalogue_execution_report(struct ae_catalogue *store,const struct ae_exe
     if (r==0) r=dispatch_row(store,p->lease,c,&result.dispatch);
     r=fixture_commit(store,r); if (r==0) *output=result;
 #undef DQ
+    return r;
+}
+int ae_catalogue_observe_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const uint8_t app_digest[32],struct ae_execution_result *output)
+{
+    if (output==NULL || e==NULL || !nonzero(e->invocation) || app_digest==NULL) return -EINVAL;
+    uint8_t hash[32]; int r=ae_execution_digest(p,hash);
+    if (r==0) r=reservation_context(store,c);
+    if (r==0 && (memcmp(p->system_epoch,store->identity.authority_epoch,16)!=0 || memcmp(p->system_runtime,c->system_runtime,16)!=0 ||
+        memcmp(p->boot,c->boot,16)!=0 || memcmp(p->broker_epoch,c->broker_epoch,16)!=0 ||
+        memcmp(p->broker_runtime,c->broker_runtime,16)!=0 || memcmp(p->account,c->account,16)!=0)) r=-ESTALE;
+    if (r!=0) return r;
+    r=exec_sql(store->db,"BEGIN IMMEDIATE"); if (r!=0) return r;
+    int64_t match=0,present=0;
+#define OQ(sql,out) execution_statement_extra(store,p,hash,e,app_digest,NULL,EXEC_INPUT sql,out)
+    r=OQ("SELECT count(*) " EXEC_TUPLE "JOIN operation_steps s ON s.operation_id=p.op AND s.step_no=1 AND s.action='stage' AND s.subject_kind='generation' AND s.subject_ref=p.g AND s.state='applied' AND s.evidence_digest=p.hash "
+        "JOIN operation_steps b ON b.operation_id=p.op AND b.step_no=2 AND b.action='verify' AND b.subject_kind='integration' AND b.subject_ref=p.inv AND b.state='applied' AND b.evidence_digest=p.evidence "
+        "JOIN operation_steps arm ON arm.operation_id=p.op AND arm.step_no=3 AND arm.action='activate' AND arm.subject_kind='launch' AND arm.subject_ref=p.launch AND arm.state IN ('executing','applied') AND arm.evidence_digest=p.hash "
+        "WHERE d.invocation_ref=p.inv AND d.ready_data_gate_revision=p.dgate",&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=OQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=5",&present);
+    if (r==0 && present) {
+        r=OQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=5 AND action='verify' AND subject_kind='launch' AND subject_ref=p.launch AND state='applied' AND evidence_digest=p.rhash",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+        if (r==0) r=OQ("SELECT count(*) " EXEC_TUPLE "JOIN operation_steps arm ON arm.operation_id=p.op AND arm.step_no=3 AND arm.state='applied' WHERE d.state IN ('observed','closing','terminal','uncertain') AND (l.state='running' OR (l.state='released' AND d.state='terminal'))",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+    }
+    if (r==0 && !present) {
+        r=OQ("SELECT count(*) " EXEC_TUPLE "JOIN installs i ON i.install_id=p.i AND i.state='active' AND i.active_generation_id=p.g AND i.revision=p.ir "
+            "JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=p.i AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.igate "
+            "JOIN operation_steps arm ON arm.operation_id=p.op AND arm.step_no=3 AND arm.state='executing' "
+            "WHERE o.state='running' AND o.outcome IS NULL AND d.state='dispatching' AND d.close_cause_epoch IS NULL AND l.state='running' "
+            "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>4) "
+            "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no=4 AND (action<>'verify' OR subject_kind<>'integration' OR subject_ref<>p.inv OR state<>'applied' OR evidence_digest IS NULL))",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=OQ("SELECT max(m.catalogue_revision,o.revision,d.revision) " EXEC_TUPLE,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=OQ("INSERT INTO operation_steps SELECT op,5,'verify','launch',launch,'applied',rhash FROM p",NULL);
+        if (r==0) r=OQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM p) AND step_no=3",NULL);
+        if (r==0) r=OQ("UPDATE launch_dispatches SET state='observed',revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL);
+        if (r==0) r=OQ("UPDATE operations SET reason_code=CASE WHEN EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=(SELECT op FROM p) AND step_no=4) THEN reason_code ELSE 'exec_observed' END,revision=revision+1 WHERE operation_id=(SELECT op FROM p)",NULL);
+        if (r==0) r=OQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    struct ae_execution_result result={0};
+    if (r==0) r=dispatch_row(store,p->lease,c,&result.dispatch);
+    r=fixture_commit(store,r); if (r==0) *output=result;
+#undef OQ
     return r;
 }
 #undef EXEC_INPUT

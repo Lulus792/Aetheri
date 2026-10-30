@@ -180,3 +180,8 @@ owner operations and Root's lease. This is tested fixed-fixture behavior, not
 normal session/app provisioning, UI responsiveness or executing recovery.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.
+Root now also persists the actual observed execution after matching its original
+starter/app pin and service context to the original User's image/registration
+confirmation. Both owner operations and the running generation lease remain;
+launch-result completion and eventual lifetime/drain are separate upcoming steps.
+Historical retries preserve later states instead of becoming another start.
