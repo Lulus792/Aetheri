@@ -15,6 +15,7 @@
 #include <sys/resource.h>
 #include <sys/signalfd.h>
 #include <sys/syscall.h>
+#include <systemd/sd-bus.h>
 #include <unistd.h>
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"exec payload line %d\n",__LINE__); return 80; } } while (0)
@@ -59,6 +60,15 @@ int main(int argc,char **argv)
     if (strcmp(scenario,"fast-exit")==0) return 125;
     sigemptyset(&mask); sigaddset(&mask,SIGTERM); CHECK(sigprocmask(SIG_BLOCK,&mask,NULL)==0);
     int signal_fd=signalfd(-1,&mask,SFD_CLOEXEC); CHECK(signal_fd>=0);
+    if (strcmp(scenario,"p0")==0) {
+        /* Isolated live-starter probe only. A fresh post-exec connection supplies
+         * actual app credentials; this is not production app registration. */
+        sd_bus *bus=NULL; sd_bus_error error=SD_BUS_ERROR_NULL; sd_bus_message *reply=NULL;
+        CHECK(sd_bus_open_system(&bus)>=0);
+        int observed=sd_bus_call_method(bus,"org.aetheri.System1","/org/aetheri/P0ExecutionTest1","org.aetheri.P0ExecutionTest1","Observe",&error,&reply,"");
+        if (observed<0) fprintf(stderr,"p0 Observe: %d %s\n",observed,error.message ? error.message : "-");
+        CHECK(observed>=0); sd_bus_error_free(&error); sd_bus_message_unref(reply); sd_bus_flush_close_unref(bus);
+    }
     CHECK(write(STDOUT_FILENO,"ready\n",6)==6);
     struct pollfd item={.fd=signal_fd,.events=POLLIN}; int result=poll(&item,1,5000);
     CHECK(result==1 && (item.revents&POLLIN)); CHECK(close(signal_fd)==0); return 0;

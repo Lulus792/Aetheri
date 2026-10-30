@@ -848,3 +848,26 @@ retry or fallback. EOF/exit125 remains unknown; an executing image always needs
 independent executing drain/recovery, even when a particular error occurred early.
 Actual protected provisioning/Root publication and positive starter-domain tests
 remain gates. No library family, schema/XML change or resident process is added.
+
+## Prove the connected runtime in a separate owned fixture — 30 October 2026
+
+Join the actual native Root journal/endpoint, PID1 dispatch, unchanged starter,
+private mounts and target exec before changing normal authority provisioning.
+Use a separate private root bound only into those two units, new authority/runtime
+epochs and a controlled administrative broker/data context. Never reinterpret
+the old normal catalogue/immutable package as this test's state.
+
+Select a separate aetheri_exec_app_t MCS domain. The old app test domain forbids
+store execution and Root messaging; preserve those boundaries. The compiled
+target context changes the starter digest and is bound by the protected profile.
+Scope actual PID1 status/start access to a dedicated temporary unit-file type.
+Keep the five-capability starter and cap-zero Root; cross-UID image observation
+and exact process termination belong only to the administrative test driver.
+
+Use a fresh post-exec bus connection for current credentials and join it to the
+original held starter process/invocation. Observe the actual running ELF rather
+than interpreting error-channel EOF as success. Independently drain exact owned
+processes/units/cgroups/jobs before test retirement, archive the native unresolved
+lease/operation and never apply the old no-exec release proof. Unknown starts
+preserve fixture/policy/intent. This evidence does not complete production
+admission, readiness, lease recovery or removal, and enables no public capability.

@@ -54,6 +54,11 @@ Execution1 1.0 now defines the selected executing-starter exchange, with a nativ
 authenticated client and an explicit confined reply fixture; it has no installed
 authority producer or public capability. It is generated separately from the
 default service tables. See [runtime.md](runtime.md#authenticated-executing-starter-client).
+An explicit isolated enforcing-carrier test now joins the native producer, actual
+starter/private mounts and target ELF observation. Its private test-control
+methods are not installed contracts or public launch capabilities. Normal owner
+inputs remain closed; admission/readiness/recovery are still implementation work.
+See the [live test boundary](runtime.md#isolated-live-rootstarterexecution-test).
 The frozen management/documents/runtime/broker XML and canonical SQL are unchanged;
 the Development1 minor extension adds no public capability.
 The existing private Runtime1 ReserveLaunch/GetDispatch methods now run, with

@@ -271,6 +271,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   No normal starter/profile/scaffold record/policy is installed. Flow adapters
   are controlled; actual confined positive admission, Root provisioning/live
   request/data mediation and executing target readiness/drain still remain.
+- An explicit tools/test_execution_runtime.py now joins actual native Root journal/
+  PID1 request, unchanged starter/private views and UID1000 executing target in
+  the enforcing disposable carrier. Read spec/runtime.md's isolated live test
+  section. It uses a separate privately bound root and controlled broker/data
+  fixture admission, never normal installed inputs. Temporary aetheri_exec_app_t
+  preserves old app-domain denials; compiled target SID changes the profile-bound
+  starter digest. Root/starter get no SYS_PTRACE/KILL; only the administrative
+  driver checks the actual running ELF and terminates the exact app pidfd. Fresh
+  post-exec credentials join the original held process/invocation/cgroup. Unknown
+  starts preserve intent/fixture/policy. Exact process/unit/cgroup/job drain and
+  full owned-input/tree checks precede test retirement; archive native unresolved
+  lease/operation history, never use no-exec withdrawal or infer release from EOF.
+  No production admission/readiness/recovery/removal or public capability follows.
 - authority/execution_wire.h now supplies the separate journal-backed Execution1
   producer component. Read spec/runtime.md's endpoint section. It retains one
   original prepared call until fresh native ARM, consumes before send and checks

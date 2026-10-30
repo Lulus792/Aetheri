@@ -79,6 +79,56 @@ def live_read_only(executable,build):
         os.close(lock)
 
 
+def prepare_fixture(root,expected,image,observe,*,component="aetheri.p0.exec",action="run",arguments=("--literal",""),identity_fn=identity,starter_digest=None):
+    """Create only a new owned explicit test tree; never adopt/reuse a root."""
+    identity=identity_fn
+    def witness(path): return struct.pack(">Q8sQQI",*observe(path))
+    def directory(path,kind="aetheri_root_t",uid=0,mode=0o755,categories=""):
+        path.mkdir(mode=mode); os.chown(path,uid,uid); path.chmod(mode); label(path,kind,categories)
+    def file(path,value,kind="aetheri_registry_t",uid=0,mode=0o444):
+        path.write_bytes(value); os.chown(path,uid,uid); path.chmod(mode); label(path,kind)
+    directory(root)
+    directory(root/"registry","aetheri_registry_t")
+    directory(root/"store",mode=0o700); directory(root/"store/sha256","aetheri_store_parent_t",mode=0o700)
+    manifest=dict(component=component,publisher=identity(21).hex(),version="p0-exec",target="x86_64-linux-gnu",
+        files=[dict(path="bin/probe",mode=0o555,size=len(image),sha256=sha(image).hex()),
+               dict(path="share/message",mode=0o444,size=6,sha256=sha(b"hello\n").hex())],
+        actions=[dict(id=action,executable="bin/probe",arguments=list(arguments))],dependencies=[])
+    encoded=reference.fixture(manifest); artifact=sha(encoded)
+    container=root/"store/sha256"/artifact.hex(); directory(container,"aetheri_store_dir_t",mode=0o555)
+    file(container/"manifest",encoded,"aetheri_store_manifest_t")
+    code=container/"payload"; directory(code,"aetheri_store_dir_t",mode=0o555)
+    for name in ("bin","share"): directory(code/name,"aetheri_store_dir_t",mode=0o555)
+    file(code/"bin/probe",image,"aetheri_store_code_t",mode=0o555)
+    file(code/"share/message",b"hello\n","aetheri_store_data_t")
+    fic=b"AETHFIC1"+b"".join(identity(n) for n in (60,61,62,63,2,10,14,64,21,4))+artifact+struct.pack(">QQQ",1,0,0)+bytes(72)+bytes(32)
+    assert len(fic)==328
+    file(root/"registry/exec-fixture.conf",fic)
+    file(root/"registry/exec-fixture-store.conf",b"AETHSTO1"+sha(fic)+witness(root/"store/sha256")+witness(container))
+    directory(root/"users"); account=root/"users"/identity(2).hex(); directory(account)
+    directory(account/"control","aetheri_user_state_t",1000,0o700)
+    directory(account/"control/app-allocations","aetheri_allocation_t",1000,0o700)
+    anchor=account/"app-data"; directory(anchor,"aetheri_user_state_t",1000,0o700)
+    data_root=anchor/identity(13).hex(); directory(data_root,"aetheri_user_state_t",1000,0o700)
+    owner=b"AETHOWN1"+b"".join(identity(n) for n in (70,71,2,13,12,72))
+    file(data_root/"owner",owner,"aetheri_user_state_t",1000,0o600)
+    directory(data_root/"payload","aetheri_app_data_t",1000,0o700,"c35,c36")
+    a=observe(anchor); b=observe(data_root)
+    allocation=b"AETHALC1"+owner+struct.pack(">Q8sQQIQQI",a[0],a[1],*a[2:],*b[2:])
+    assert len(allocation)==168 and a[:2]==b[:2]
+    file(account/"control/app-allocations"/identity(13).hex(),allocation,"aetheri_allocation_t",1000,0o600)
+    enrollment=b"AETHDTA1"+owner+b"".join(identity(n) for n in (10,21,1,50))+struct.pack(">QQQ",2,2,0)+allocation
+    file(root/"registry/exec-app-data.conf",enrollment)
+    file(root/"registry/exec-app-data-owner.conf",owner)
+    request=b"AETHRSV1"+b"".join(identity(n) for n in (1,32,31,50,51,2,10,14,12,4))+struct.pack(">Q",2)
+    for value in (b"run",b"p0",b"none"): request+=struct.pack(">I",len(value))+value
+    profile=b"AETHEXE1"+b"".join(identity(n) for n in (1,5,50,51,4,2,10,14,12,13,31,32,41,61))
+    profile+=struct.pack(">QQQ",2,3,3)+artifact+(starter_digest if starter_digest is not None else sha(image))+sha(request)+sha(allocation)
+    assert len(profile)==384
+    file(root/"registry/execution.conf",profile)
+    expected.write_bytes(profile)
+    return dict(root=root,expected=expected,code=code,container=container,data=data_root,account=account)
+
 def main():
     if sys.platform!="linux" or os.geteuid()!=0 or Path("/sys/class/dmi/id/product_name").read_text().strip()!="Aetheri P0 disposable VM" or subprocess.check_output(["getenforce"],text=True).strip()!="Enforcing":
         raise RuntimeError("requires the registered enforcing disposable carrier")
@@ -99,48 +149,9 @@ def main():
     cases=0
     def fixture(component="aetheri.p0.exec",action="run",image=None):
         nonlocal cases
-        cases+=1; root=temporary/str(cases); directory(root)
-        directory(root/"registry","aetheri_registry_t")
-        directory(root/"store",mode=0o700); directory(root/"store/sha256","aetheri_store_parent_t",mode=0o700)
-        image=payload.read_bytes() if image is None else image
-        manifest=dict(component=component,publisher=identity(21).hex(),version="p0-exec",target="x86_64-linux-gnu",
-            files=[dict(path="bin/probe",mode=0o555,size=len(image),sha256=sha(image).hex()),
-                   dict(path="share/message",mode=0o444,size=6,sha256=sha(b"hello\n").hex())],
-            actions=[dict(id=action,executable="bin/probe",arguments=["--literal",""])],dependencies=[])
-        encoded=reference.fixture(manifest); artifact=sha(encoded)
-        container=root/"store/sha256"/artifact.hex(); directory(container,"aetheri_store_dir_t",mode=0o555)
-        file(container/"manifest",encoded,"aetheri_store_manifest_t")
-        code=container/"payload"; directory(code,"aetheri_store_dir_t",mode=0o555)
-        for name in ("bin","share"): directory(code/name,"aetheri_store_dir_t",mode=0o555)
-        file(code/"bin/probe",image,"aetheri_store_code_t",mode=0o555)
-        file(code/"share/message",b"hello\n","aetheri_store_data_t")
-        fic=b"AETHFIC1"+b"".join(identity(n) for n in (60,61,62,63,2,10,14,64,21,4))+artifact+struct.pack(">QQQ",1,0,0)+bytes(72)+bytes(32)
-        assert len(fic)==328
-        file(root/"registry/exec-fixture.conf",fic)
-        file(root/"registry/exec-fixture-store.conf",b"AETHSTO1"+sha(fic)+witness(root/"store/sha256")+witness(container))
-        directory(root/"users"); account=root/"users"/identity(2).hex(); directory(account)
-        directory(account/"control","aetheri_user_state_t",1000,0o700)
-        directory(account/"control/app-allocations","aetheri_allocation_t",1000,0o700)
-        anchor=account/"app-data"; directory(anchor,"aetheri_user_state_t",1000,0o700)
-        data_root=anchor/identity(13).hex(); directory(data_root,"aetheri_user_state_t",1000,0o700)
-        owner=b"AETHOWN1"+b"".join(identity(n) for n in (70,71,2,13,12,72))
-        file(data_root/"owner",owner,"aetheri_user_state_t",1000,0o600)
-        directory(data_root/"payload","aetheri_app_data_t",1000,0o700,"c35,c36")
-        a=observe(anchor); b=observe(data_root)
-        allocation=b"AETHALC1"+owner+struct.pack(">Q8sQQIQQI",a[0],a[1],*a[2:],*b[2:])
-        assert len(allocation)==168 and a[:2]==b[:2]
-        file(account/"control/app-allocations"/identity(13).hex(),allocation,"aetheri_allocation_t",1000,0o600)
-        enrollment=b"AETHDTA1"+owner+b"".join(identity(n) for n in (10,21,1,50))+struct.pack(">QQQ",2,2,0)+allocation
-        file(root/"registry/exec-app-data.conf",enrollment)
-        file(root/"registry/exec-app-data-owner.conf",owner)
-        request=b"AETHRSV1"+b"".join(identity(n) for n in (1,32,31,50,51,2,10,14,12,4))+struct.pack(">Q",2)
-        for value in (b"run",b"p0",b"none"): request+=struct.pack(">I",len(value))+value
-        profile=b"AETHEXE1"+b"".join(identity(n) for n in (1,5,50,51,4,2,10,14,12,13,31,32,41,61))
-        profile+=struct.pack(">QQQ",2,3,3)+artifact+sha(image)+sha(request)+sha(allocation)
-        assert len(profile)==384
-        file(root/"registry/execution.conf",profile)
-        expected=temporary/(str(cases)+".expected"); expected.write_bytes(profile)
-        return dict(root=root,expected=expected,code=code,container=container,data=data_root,account=account)
+        cases+=1
+        return prepare_fixture(temporary/str(cases),temporary/(str(cases)+".expected"),
+            payload.read_bytes() if image is None else image,observe,component=component,action=action)
     def invoke(f,mode="sources",expected=0,repeat=1):
         before=snapshot(f["root"])
         subprocess.run([executable,f["root"],f["expected"],mode,str(expected),str(repeat)],check=True,timeout=35)

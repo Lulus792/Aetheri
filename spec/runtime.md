@@ -2578,7 +2578,9 @@ PATH lookup, interpreter fallback or pre-exec READY notification.
 The fixed inert EXEC fixture receives manifest-owned literal argv and exactly
 LANG=C.UTF-8, its c35,c36 expected-context value and AETHERI_SCENARIO=p0. No host
 environment, HOME, PATH, loader, bus or supervisor-notify variables are inherited.
-The target is UID/GID1000 in `aetheri_app_t:s0:c35,c36`. General application
+The target is UID/GID1000 in `aetheri_exec_app_t:s0:c35,c36`. This separate
+executing-fixture domain preserves the old non-executing app domain's denials.
+General application
 environment/account/category policy remains separate work. Existing one-way exec
 seals descriptors and drops groups/capabilities/credentials; the borrowed target
 handles remain alive through that call. A pre-exec failure after writer issuance
@@ -2633,7 +2635,93 @@ errors, nonempty slots, fork ownership, unchanged parent namespace and a later
 replacement mount. Separate starter flow tests inject component faults to verify
 ordering, original release gating, exact argv/environment and actual error frames.
 Those flow adapters do not authenticate a live starter/Root or execute a target.
-Actual confined positive starter admission, protected provisioning/live supervisor
-request, target image/registration/readiness and independent executing drain/
-recovery remain required. The old setup helper has no execution path and remains
-unchanged; its no-exec withdrawal proof never applies to this new executable.
+The separate explicit integration below now exercises real confined starter/Root
+admission, supervisor request and target image observation with isolated inputs.
+Normal provisioning/current broker-data admission, production registration/
+readiness and executing recovery remain required. The old setup helper has no
+execution path and remains unchanged; its no-exec withdrawal proof never applies
+to this new executable.
+
+## Isolated live Root/starter/execution test
+
+`tools/test_execution_runtime.py` is an explicit root-only test on the registered
+disposable enforcing UEFI carrier. It is outside CTest/default installation. Build
+`probe_execution_runtime`, `aetheri-execution-starter`, `exec_payload` and
+`test_execution_profile` with AETHERI_POLICY_PROBES enabled, then run:
+
+```sh
+sudo -n python3 tools/test_execution_runtime.py \
+  /home/aetheri/build/release/probe_execution_runtime \
+  /home/aetheri/build/release/aetheri-execution-starter \
+  /home/aetheri/build/release/exec_payload \
+  /home/aetheri/build/release/test_execution_profile
+```
+
+Release binaries keep instrumentation permissions outside the confined services.
+No package/dependency family was added. The inert test payload now links the
+already selected libsystemd for its fresh post-exec connection; the immutable
+normal package is not rebuilt or replaced by this test.
+
+The controller holds the carrier lock, verifies normal protected inputs and
+requires normal gates closed, no pending request, no unsettled normal dispatch/
+lease and no System1 owner. It refuses existing test roots, modules, configuration
+or unit slots. Its separate `/var/lib/aetheri-p0-execution-runtime-test` contains
+a new owner catalogue, random authority/runtime epochs, actual boot ID, trusted
+package, independent private allocation and profile-bound scaffold. Both service
+units privately bind that root at the fixed anchor; normal protected files and
+catalogues are never selected. Creation/enrollment and broker/data fences here
+are controlled administrative test inputs, not general allocation or User admission.
+
+| Part | Actual evidence |
+| --- | --- |
+| Root | Confined cap-zero/NNP process, native catalogue/runtime/reservation and Execution1 endpoint under the fixed Root unit |
+| REQUEST | Fresh native commit calls real PID1 StartUnit for the journal-selected unit; caller supplies no unit/path |
+| BIND/PREPARE/ARM | Original starter ProcessFD, current service/invocation/cgroup/context, actual writer reply and retained original prepared release |
+| Starter | Unmodified production starter binary, protected current ELF/profile, private witnessed code/data mounts and one-way credential/descriptor drop |
+| Target | Fresh UID/GID1000 `aetheri_exec_app_t:s0:c35,c36` connection, same still-held process pin and original invocation/cgroup, actual running ELF matching manifest Artifact |
+| Retirement | Administrative exact pidfd termination/death, independent unit/cgroup/job drain and original Root pidfd death, then full owned-tree/static-input checks |
+
+The private test-only P0ExecutionTest1 Begin/Wait/Observe methods are compiled
+only in `tests/probe_execution_runtime.c`. They are not installed API contracts,
+normal registration, app readiness or public capabilities. The target's fresh
+connection supplies actual current bus credentials after exec; no old starter
+UID/label snapshot is rewritten. Root retains its original starter pin and checks
+the new connection against that process and unit invocation. A correlated Root
+reply forwards the actual app ProcessFD to the administrative driver. That driver
+rechecks original Root identity, tuple and current app context, then performs the
+cross-UID current-image check and pidfd termination. Neither Root nor starter
+receives SYS_PTRACE or KILL. The resulting process termination is test retirement,
+not a production removal/recovery protocol.
+
+Temporary `policy/p0-execution-runtime.cil` defines the exact five-capability
+starter and a separate MCS-constrained executing-fixture app domain. The old
+`aetheri_app_t` deliberately denies store execution and Root messaging; weakening
+it would merge incompatible fixtures. Changing the compiled target label also
+changes the starter digest bound by AETHEXE1. The new domain cannot execute/map
+private data, inherit authority descriptors, read owner metadata or add privileges.
+Its fresh bus call is restricted to Observe. Root and starter can query only a
+dedicated test unit-file type, with Root start access on that type. The daemon
+can write the issued Root pipe for descriptor transfer, never read its reader.
+The test adds no grants to the normal app domain. Enforcing remains enabled.
+
+Controller acknowledgement is saved before each external start. A timeout/lost
+reply preserves the fixture, policy and pending intent; rerunning never redispatches.
+Successful retirement requires exact owned inputs and independently observed
+process/unit/cgroup/job drain. Unknown files or changed objects stop cleanup.
+`--retire` only retries an already passed, non-pending test; it cannot settle an
+uncertain execution. Interrupted administrative teardown requires inspection.
+Object tree witnesses and policy/config/unit digests are local test evidence,
+not clone authentication or a complete power-loss journal.
+
+The native catalogue deliberately retains a running lease and incomplete operation
+after the app exits. Steps REQUEST/BIND/PREPARE/ARM and a separate diagnostic are
+archived with `historical-test-catalogue.sqlite3` and `report.json` in a protected
+`live-execution-<token>` directory beside the driver binary. Channel UNKNOWN/EOF
+does not establish execution or drain; only the independent image observation
+establishes what this test actually executed. No no-exec withdrawal/release is used.
+
+Actual evidence covers this one fixed inert action/account on the pinned carrier.
+Normal Root/User provisioning, current admission and mutation fences, dynamic
+category/scaffold allocation, genuine target registration/readiness, executing
+recovery/lease settlement and complete removal remain work. Both normal install/
+data gates remain closed; DispatchLaunch/public capabilities stay unchanged.

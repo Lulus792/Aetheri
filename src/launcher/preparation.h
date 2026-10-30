@@ -4,7 +4,7 @@
 
 #define AE_STARTER_ROOT_UNIT "aetheri-p0-execution-root.service"
 /* The fixed EXEC fixture only; no category/UID/environment selection by apps. */
-#define AE_STARTER_TARGET_CONTEXT "system_u:system_r:aetheri_app_t:s0:c35,c36"
+#define AE_STARTER_TARGET_CONTEXT "system_u:system_r:aetheri_exec_app_t:s0:c35,c36"
 /* Fresh single-threaded UID/GID-0 starter, enforcing/NNP and exact five setup/
  * credential-drop capabilities. Drops allowed inheritable/ambient bits only.
  * No domain transition, capability addition, profile admission or process proof. */

@@ -7,23 +7,20 @@ The current C17 prototype runs in a dedicated Fedora/UEFI test VM. Two confined
 system/user services manage tested catalogues, verified test packages and separate
 private-data allocations. Native transactions record start reservations, starter
 binding, preparation and arm without repeating a possibly completed external effect.
-The native coordinator now connects that journal to a held starter/error channel
-and records distinct terminal diagnostics; its live service adapters remain in progress.
-Native read-only source checks now bind the selected sealed program, literal arguments
-and independently recorded private-data allocation before mount preparation.
-The executing-starter client now authenticates the current system process and
-binding/release replies; its confined protocol fixture has passed. A separate
-producer component now joins those replies to the durable journal and holds
-prepared requests until a fresh arm. A separate starter now connects that client
-to verified private code/data views and one-way execution. Protected service/
-policy integration and actual managed app starts remain in progress.
+An explicit enforcing-VM test now connects the real Root journal, authenticated
+starter, private code/data mounts and one-way execution. It observes a fresh
+post-exec app connection and the actual running ELF under UID/GID1000 in a
+separate constrained domain. This uses isolated test inputs; normal user admission,
+app readiness and recovery are still in progress. The test preserves historical
+lease obligations rather than treating process exit as permission to release them.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested
 credential dropping, handle sealing, exact ELF execution/image observation and
-an issuer-owned error channel with sd-bus writer transfer. An isolated enforcing
-test verifies the actual app-domain transition. Integration into live app starts
-is still in progress.
+an issuer-owned error channel with sd-bus writer transfer. The
+[isolated live execution test](spec/runtime.md#isolated-live-rootstarterexecution-test)
+also checks the actual starter-to-app transition without changing normal installed
+profiles or opening their gates.
 
 Actual app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The

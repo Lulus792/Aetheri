@@ -1801,3 +1801,67 @@ Root admission, protected provisioning/live supervisor request and fresh broker/
 data mediation remain next, then actual target image/registration/readiness and
 independent executing drain/recovery. The full OS/apps/UI/image/hardware objective
 remains active; no personal product decision blocks that backend work.
+
+## Isolated live native execution — 30 October 2026
+
+Connected actual native Root catalogue/reservation/Execution1 endpoint, real PID1
+StartUnit, unchanged executing starter, original authenticated replies and
+witnessed private views to one-way target exec in the enforcing guest. The target
+opens a fresh connection after credential/domain transition. Root joins the real
+current credentials/ProcessFD to the original held starter/invocation/cgroup.
+The administrative driver authenticates the original Root and correlated tuple,
+checks the actual manifest-bound running ELF and terminates only its exact pidfd.
+No SYS_PTRACE/KILL grants were added to Root/starter. The target checks UID/GID1000,
+zero caps/groups and no leaked authority descriptors before its observation call.
+
+Added a separate temporary aetheri_exec_app_t MCS domain; old app-domain store/
+Root-message denials remain intact. A narrow temporary unit-file type supplies
+actual PID1 status/start access. The unchanged starter's compiled target label
+changes its digest/profile binding. Only test payload libsystemd linkage is new
+within the existing selected family. Private test-control methods are not normal
+installed contracts. No SQL/XML/public capability change.
+
+The controller builds a separate owner root with new authority/runtime epochs
+and actual boot, binds it privately into only the Root/app units, and preserves
+normal protected inputs/closed gates. Trusted package/catalogue/private allocation/
+scaffold and broker/data context are controlled setup, not production admission.
+Complete input/tree verification and independent original process/unit/cgroup/job
+drain precede removal of owned test files, units, config and module. The isolated
+native running lease/incomplete operation are archived as history, never released
+from EOF/process exit or the old no-exec proof. Unknown starts preserve intent and
+the whole fixture for manual causal reconciliation.
+
+Preparation failures exposed an invalid activation seed, binary snapshot JSON
+encoding, duplicate .service suffix and a real PID1 unit-status denial. Corrected
+only those test causes; preserved failed fixture evidence and independently
+checked original process/unit/job and immutable owned inputs before retirement.
+No executing/uncertain lease was withdrawn. The generic SELinux status grant was
+avoided by a dedicated unit-file type. Controller JSON is now serialized before
+creating its exclusive acknowledgement temporary file. Host regressions cover
+these cases and unchanged normal gate/holder preconditions. Windows rejection
+testing also caught SQLite connection lifetime on exception; explicit closing
+fixes it; the new database scratch directory stays in the workspace.
+
+The first complete live run passes and retires its exact fixture; actual native
+steps include REQUEST/BIND/preparation/ARM plus a separate UNKNOWN diagnostic.
+Image observation is independent of that diagnostic. This is fixed inert-fixture
+evidence, not normal User admission, target readiness, production recovery/removal
+or a working Aetheri desktop. Next integrate current owner/data fences and protected
+normal provisioning, then genuine target registration/readiness and independent
+executing recovery/lease settlement. Full OS/apps/UI/image/hardware remains active.
+
+Full native Debug ASan/UBSan passes 38/38 (388.84 s), Release 38/38 (337.97 s).
+The explicit older enforcing execution probe passes five scenarios after the
+inert payload's existing-family libsystemd link. A final live integration repeat
+with the normal-state guards also passes and retires its fixture. Host migration/
+wire passes 30/30 (50.281 s), orchestration 43/43 (2.428 s), runtime vectors15/15
+and constraints374. Durations are tests, not OS performance measurements.
+
+Final read-only carrier verification confirms Enforcing, verified unchanged
+normal protected inputs, pending=None, two closed install/two closed data gates,
+no unsettled normal dispatch/held lease, System1 unowned and test roots/config/
+module/unit files absent. Normal starter/profile/scaffold/Root unit remain absent.
+No normal app was launched or host hardware/other project changed. Review covered
+actual versus controlled admission, original reply/process correlation, private
+mount/image/context binding, privilege/FD lifetime, unknown dispatch preservation
+and exact retirement. No production recovery/readiness claim is made.

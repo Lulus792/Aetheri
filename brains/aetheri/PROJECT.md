@@ -153,20 +153,15 @@ An independent compatible execution fixture is now published/activated alongside
 the original. Its separate user binding/private data are now enrolled with closed
 gates. Separate native execution intent/binding/preparation/arm transactions are
 now implemented and tested; live target-start integration remains next.
-The native execution tests now use an issuer-owned bounded error channel, with
-actual sd-bus writer transfer tested separately. Live journal/starter binding,
-target registration/readiness and independent drain remain pending.
-Native Root coordination now connects journal/pin/channel/event handling and
-durable diagnostics. Live wire/supervisor adapters and a selected executing
-starter still need integration and runtime acceptance.
-Read-only source opening now verifies selected sealed code, declared action/ELF
-and independent private-data allocation/owner/context. Existing-installation
-observation retains closed gates; actual starter/profile/policy remain unprovisioned.
-The native executing-starter client now authenticates original Root process/
-supervisor/discovery and exact binding/release replies. Its real confined protocol
-fixture passes. A separate native producer now joins binding/deferred release to
-the journal. A separate executing starter now joins the client, witnessed private
-views and one-way exec. Live authority/starter provisioning and launch admission
-remain work; controlled flow tests are not positive starter-domain acceptance.
+An explicit enforcing-carrier integration now joins the real native Root journal,
+supervisor request, authenticated starter, witnessed private mounts and target
+exec. A fresh post-exec connection supplies actual credentials and a separate
+administrative driver checks the running ELF. Its isolated trusted package,
+allocation, catalogue and broker/data context remain controlled test inputs.
+Actual original process/unit/cgroup/job drain permits exact test retirement;
+native unresolved lease/operation history is archived without claiming release.
+Normal installed inputs/gates remain unchanged and closed. Normal Root/User
+provisioning, current admission, target registration/readiness and executing
+recovery/removal remain work. The old non-executing helper/proofs stay separate.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

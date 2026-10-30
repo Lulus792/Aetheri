@@ -90,6 +90,16 @@ The temporary scaffold has its own profile-bound AETHVWS1 witnesses; publishing
 these from independently admitted/flushed Root setup and integrating actual
 starter-domain/Root unit supervision remain implementation gates. No extra user
 product decision is needed for these fixed P0 internal choices.
+The subsequent isolated live test now connects actual Root journal/PID1 dispatch,
+starter/profile/self-image admission, private views and target exec. Fresh target
+credentials and running ELF are observed independently; exact test process/unit/
+cgroup/job drain retires only that fixture and archives its unresolved lease.
+This supersedes the earlier missing-integration observations for the explicit
+controlled fixture only. Normal Root/User provisioning, current broker/data
+admission, dynamic scaffold/category allocation, actual app registration/readiness
+and production executing recovery/lease settlement remain next. These are
+implementation gates, not user product questions. No normal launch capability
+has been enabled; UI/browser/shell choices above remain deferred to the user.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

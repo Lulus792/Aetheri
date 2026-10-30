@@ -1,5 +1,6 @@
 """Host orchestration guards. No guest, installer or physical disk is executed."""
 import json
+from contextlib import closing
 import sqlite3
 import stat
 from pathlib import Path
@@ -13,9 +14,46 @@ import run_vm as vm
 import test_linux_policy as policy
 import p0_services as services
 import test_execute_policy as execute
+import test_execution_runtime as execution_runtime
 
 
 class VmTools(unittest.TestCase):
+    def test_live_probe_keeps_normal_gates_and_holders_quiescent(self):
+        with tempfile.TemporaryDirectory(dir=self.root) as directory:
+            paths={role:Path(directory)/role for role in ('system','user')}
+            for role,path in paths.items():
+                path.mkdir()
+                with closing(sqlite3.connect(path/'catalogue.sqlite3')) as db, db:
+                    db.executescript("CREATE TABLE admission_gates(state TEXT); INSERT INTO admission_gates VALUES('closed'); CREATE TABLE launch_dispatches(state TEXT); CREATE TABLE generation_leases(state TEXT);")
+            with patch.object(execution_runtime.normal,'verified'), patch.object(execution_runtime.normal,'state_path',side_effect=lambda r,role:paths[role]):
+                execution_runtime.quiet_normal({'pending':None})
+                for role,table,state in (('user','admission_gates','open'),('system','launch_dispatches','reserved'),('system','generation_leases','running')):
+                    with closing(sqlite3.connect(paths[role]/'catalogue.sqlite3')) as db, db: db.execute('INSERT INTO '+table+' VALUES(?)',(state,))
+                    with self.assertRaises(RuntimeError): execution_runtime.quiet_normal({'pending':None})
+                    with closing(sqlite3.connect(paths[role]/'catalogue.sqlite3')) as db, db: db.execute('DELETE FROM '+table+' WHERE state=?',(state,))
+                with self.assertRaises(RuntimeError): execution_runtime.quiet_normal({'pending':'unknown'})
+
+    def test_live_execution_unit_file_uses_the_exact_wire_unit_name(self):
+        for name in ('aetheri-p0-execution-root.service','aetheri-app-0000000000004000800000000000001f.service'):
+            self.assertEqual(execution_runtime.unit_file(name).name,name)
+        for invalid in ('../foreign.service','service','wrong.service.service'):
+            with self.assertRaises(ValueError): execution_runtime.unit_file(invalid)
+
+    def test_live_execution_snapshot_persists_binary_labels_and_digests(self):
+        captured={'code':(17,0,0,0o100555,1,12,100,200,b'system_u:object_r:aetheri_store_code_t:s0',bytes(range(32))),
+                  'data':(18,1000,1000,0o40700,2,0,100,200,b'system_u:object_r:aetheri_app_data_t:s0:c35,c36',None)}
+        with patch.object(execution_runtime,'snapshot',return_value=captured): result=execution_runtime.capture(Path('fixture'))
+        restored=json.loads(json.dumps(result))
+        self.assertEqual(restored,result)
+        self.assertEqual(bytes.fromhex(restored['code'][9]),bytes(range(32)))
+        self.assertEqual(bytes.fromhex(restored['data'][8]),captured['data'][8])
+        self.assertIsNone(restored['data'][9])
+
+    def test_live_execution_bad_record_does_not_create_a_partial_ack_file(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(execution_runtime,'ROOT',Path(directory)):
+            with self.assertRaises(TypeError): execution_runtime.save({'unpersistable':b'raw'})
+            self.assertEqual(list(Path(directory).iterdir()),[])
+
     def test_execution_data_owner_validation_uses_frozen_owner_fields(self):
         def identity(n): return f"000000000000400080000000{n:08x}"
         def fixture(n):

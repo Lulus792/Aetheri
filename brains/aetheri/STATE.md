@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — separate executing starter and profile-bound private views; live provisioning/admission remain next.
+30 October 2026 — isolated live native Root/starter/target integration; normal admission and recovery remain next.
 
 ## Confirmed
 
@@ -13,6 +13,54 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+An explicit enforcing-carrier test now runs the actual native Root journal and
+Execution1 endpoint, real PID1 StartUnit, unchanged executing starter, authenticated
+writer/prepared release, witnessed private mounts and UID/GID1000 target exec.
+A fresh post-exec connection supplies actual current credentials; Root joins it
+to its still-held starter process pin and original unit/invocation/cgroup. The
+administrative driver authenticates Root and independently checks the actual
+running ELF against the manifest Artifact before exact pidfd termination.
+Root/starter receive neither SYS_PTRACE nor KILL. The target checks zero caps,
+empty supplementary groups and absence of inherited authority descriptors.
+
+Temporary policy uses a new MCS-constrained aetheri_exec_app_t:s0:c35,c36 target,
+preserving the old non-executing app domain's store/Root-messaging denials. A
+dedicated unit-file type grants only the actual fixture status/start needs.
+The separate native test root has new authority/runtime epochs and actual boot;
+both units privately bind it to the fixed anchor. Broker/data admission, trusted
+package/catalogue/allocation/scaffold setup are controlled test inputs. No normal
+Root/User launch path or public capability is enabled.
+
+The successful test independently observes original app/Root process death and
+unit/cgroup/job drain, verifies exact inputs and the complete owned tree, archives
+the native incomplete operation/running lease, and retires only its fixture,
+unit files, bus config and policy. Process exit/EOF never releases that lease.
+Unknown dispatch preserves the complete pending fixture for inspection. This is
+test retirement, not production execution recovery or complete app removal.
+See [live test contract](../../spec/runtime.md#isolated-live-rootstarterexecution-test).
+
+Full native Debug ASan/UBSan passes 38/38 (388.84 s), Release 38/38 (337.97 s).
+The earlier explicit enforcing execution-policy probe also passes all five
+scenarios with the payload's added libsystemd linkage. The final live integration
+repeat passes with the completed normal-state guards and retires its fixture.
+Host migration/wire passes 30/30 (50.281 s), orchestration 43/43 (2.428 s), runtime
+vectors 15/15 and constraints 374 assertions. These are test timings, not OS
+performance measurements.
+
+Final read-only observation confirms Enforcing, unchanged verified normal inputs,
+pending=None, two closed install/two closed data gates, no unsettled normal
+dispatch/held lease, System1 unowned and temporary execution roots/config/module/
+units retired. Normal starter/profile/scaffold/Root unit remain unprovisioned.
+No normal managed app, hardware installation or other project was changed.
+
+Normal authority/starter provisioning, fresh current User/private-data admission,
+mutation exclusion, dynamic category/scaffold allocation, genuine registration/
+readiness and executing recovery/lease settlement remain implementation gates.
+The full OS/apps/UI/image/hardware objective remains active; no user decision
+blocks the next backend work.
+
+Previous starter/scaffold checkpoint (30 October 2026):
 
 The separate aetheri-execution-starter now joins protected profile/self-image
 checks, the authenticated Root client, private code/data views and one-way exec.

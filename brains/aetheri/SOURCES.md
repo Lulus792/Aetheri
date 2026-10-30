@@ -1256,3 +1256,38 @@ with125 and arguments with2 before any profile/RPC. Those are negative entry
 observations, not positive full-context or target-exec evidence. Controlled flow
 faults preserve real failure-frame transport but replace admission/views/exec;
 separate private mount fixtures retain actual filesystem/MAC/kernel checks.
+
+## Isolated live native execution — 30 October 2026
+
+Original [native test producer/driver](../../tests/probe_execution_runtime.c),
+[controller](../../tools/test_execution_runtime.py),
+[temporary policy](../../policy/p0-execution-runtime.cil) and
+[fresh-connection inert target](../../tests/exec_payload.c) now exercise the real
+journal, PID1 dispatch, unchanged starter/private views and actual target ELF.
+The private Begin/Wait/Observe interface is test-only; owner/source/allocation
+setup and broker/data admission remain controlled fixture input. Exact scope is
+in the [runtime contract](../../spec/runtime.md#isolated-live-rootstarterexecution-test).
+
+Actual enforcing audit evidence rejected Root's GetUnitByPIDFD status check on a
+generic systemd_unit_file_t object. The correction uses a dedicated temporary
+unit-file type and grants status/start only on that type. Fedora's official
+[f44 systemd policy interfaces](https://raw.githubusercontent.com/fedora-selinux/selinux-policy/f44/policy/modules/system/systemd.if)
+define systemd_unit_file using systemd_unit_file_type and files_type. This is a
+branch-source cross-check, not proof of byte identity with the installed RPM.
+The existing pinned carrier supplied the actual positive admission evidence.
+
+The original non-executing app domain deliberately denies Root messaging and
+store execution; a separate aetheri_exec_app_t MCS domain preserves those denials.
+The starter's compiled context/digest changes accordingly. No new dependency
+family/version is adopted; the inert payload reuses selected libsystemd to open
+its fresh post-exec connection. Root/starter receive no SYS_PTRACE/KILL. Only the
+administrative driver observes the actual running image and terminates its exact
+pidfd. Channel EOF/UNKNOWN is not used as image/readiness/drain evidence.
+
+Earlier preparation attempts rejected activation seed state, non-JSON byte
+snapshots, a duplicated service suffix and missing scoped PID1 status permission.
+Each preserved fixture was reconciled using original intent/process/unit/job and
+owned-input evidence; unresolved native lease history was archived, never released
+through the no-exec proof. Host guards now cover unit naming, binary snapshot
+serialization, pre-serialization before acknowledgement-file creation and normal
+gate/holder quiescence. SQLite connections close on rejection, including Windows.
