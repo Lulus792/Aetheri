@@ -150,6 +150,13 @@ int ae_execution_endpoint_new(struct ae_catalogue *store,sd_bus *bus,sd_event *e
     if (r<0) { (void)ae_execution_service_close(&e->service); free(e); return r; }
     *output=e; return 0;
 }
+int ae_execution_endpoint_check_profile(struct ae_execution_endpoint *e,const struct ae_execution_profile *p)
+{
+    int r=enter(e); if (r!=0) return r;
+    uint8_t digest[32]; r=ae_execution_digest(p,digest);
+    if (r==0 && memcmp(digest,e->digest,32)!=0) r=-ESTALE;
+    e->busy=0; return r;
+}
 int ae_execution_endpoint_request(struct ae_execution_endpoint *e,const struct ae_launch_context *c,struct ae_execution_result *output)
 {
     int r=enter(e); if (r!=0) return r;

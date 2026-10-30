@@ -79,7 +79,7 @@ def live_read_only(executable,build):
         os.close(lock)
 
 
-def prepare_fixture(root,expected,image,observe,*,component="aetheri.p0.exec",action="run",arguments=("--literal",""),identity_fn=identity,starter_digest=None):
+def prepare_fixture(root,expected,image,observe,*,component="aetheri.p0.exec",action="run",arguments=("--literal",""),identity_fn=identity,starter_digest=None,data_baseline=2):
     """Create only a new owned explicit test tree; never adopt/reuse a root."""
     identity=identity_fn
     def witness(path): return struct.pack(">Q8sQQI",*observe(path))
@@ -117,7 +117,7 @@ def prepare_fixture(root,expected,image,observe,*,component="aetheri.p0.exec",ac
     allocation=b"AETHALC1"+owner+struct.pack(">Q8sQQIQQI",a[0],a[1],*a[2:],*b[2:])
     assert len(allocation)==168 and a[:2]==b[:2]
     file(account/"control/app-allocations"/identity(13).hex(),allocation,"aetheri_allocation_t",1000,0o600)
-    enrollment=b"AETHDTA1"+owner+b"".join(identity(n) for n in (10,21,1,50))+struct.pack(">QQQ",2,2,0)+allocation
+    enrollment=b"AETHDTA1"+owner+b"".join(identity(n) for n in (10,21,1,50))+struct.pack(">QQQ",2,data_baseline,0)+allocation
     file(root/"registry/exec-app-data.conf",enrollment)
     file(root/"registry/exec-app-data-owner.conf",owner)
     request=b"AETHRSV1"+b"".join(identity(n) for n in (1,32,31,50,51,2,10,14,12,4))+struct.pack(">Q",2)

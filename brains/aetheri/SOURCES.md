@@ -1322,3 +1322,41 @@ EBADMSG before any owner check. The corrected negative controls recompute that
 fingerprint, then exercise the intended stale owner/launch fences. The production
 codec was unchanged. Independent allocation/MAC/current Root provenance remain
 caller obligations, not facts inferred from a profile hash or stored journal.
+
+## Connected User/Root execution — 30 October 2026
+
+Original [admission adapter](../../src/authority/execution_admission.c),
+[contract](../../src/authority/execution_admission.h),
+[split source readers](../../src/authority/execution_profile.c),
+[controlled lifetime tests](../../tests/test_execution_admission.c) and
+[actual owner fixture](../../tests/probe_execution_runtime.c) connect real User
+preparation/registered-peer admission to Root request/arm. Root does not read User
+SQLite. Actual cap-zero-role opens prove code/private-data separation; target
+credentials and running ELF are observed independently in the enforcing carrier.
+Normal session provisioning, mutation/revocation and executing recovery remain open.
+
+The official [D-Bus configuration reference](https://dbus.freedesktop.org/doc/dbus-daemon.1.html)
+describes SELinux name association and acquire_svc checks. Without an association,
+the bus context is used as the name's target. Actual USER_AVC denied the new test
+User name against system_dbusd_t; mapping that name to the existing
+aetheri_user_service_t resolved the failure. No wildcard acquire permission or
+connection-domain change was added. Runtime uses the pinned dbus-broker, while
+this source describes compatible configuration/SELinux semantics; actual success
+and audit evidence establish the carrier result.
+
+Startup acknowledgement initially compared a native inherited SELinux xattr to
+the helper-written non-NUL form. The actual expected label contained one terminal
+NUL. The controller accepts only those two exact encodings and retains observed
+bytes in its complete tree witness. Host negative controls reject added files,
+wrong owner/context/replaced objects, wrong independent runtime and unrequested
+catalogue lifecycle work. No native label check or permission was relaxed.
+
+The next fixture exposed a closed FD number reused as a nonempty output slot;
+resetting that test variable preserves the library's strict ownership guard.
+The administrative observer then addressed User by a well-known name, which the
+existing peer_capture_reply guard rejects before capture: it requires the retained
+sent unique-destination request. The observer now resolves once and retains that
+exact destination; the production guard is unchanged. Failed fixtures were inspected
+against original process/unit/job and immutable input evidence, then archived with
+their native state. In the last case both unresolved operations/running Root lease
+were preserved; no no-exec settlement or executing release was performed.

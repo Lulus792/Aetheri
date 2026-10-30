@@ -59,6 +59,11 @@ starter/private mounts and target ELF observation. Its private test-control
 methods are not installed contracts or public launch capabilities. Normal owner
 inputs remain closed; admission/readiness/recovery are still implementation work.
 See the [live test boundary](runtime.md#isolated-live-rootstarterexecution-test).
+That fixture now connects an actual registered User process, its own catalogue/
+private-data checks and durable preparation to Root request/arm. The reusable
+native admission adapter retains and rechecks the original peer. These private
+test envelopes do not install normal Runtime1 dispatch or public capabilities.
+See [connected owners](runtime.md#connected-user-and-root-execution-admission).
 The frozen management/documents/runtime/broker XML and canonical SQL are unchanged;
 the Development1 minor extension adds no public capability.
 The existing private Runtime1 ReserveLaunch/GetDispatch methods now run, with

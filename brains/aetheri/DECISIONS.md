@@ -892,3 +892,23 @@ ARM grant or readiness/drain proof. Current Root/broker/reservation provenance,
 independent allocation/MAC checks and mutation exclusion remain required before
 the caller uses it. No new schema/wire/dependency/policy/service is needed for
 this internal intent boundary; actual User admission wiring remains next.
+
+## Connect owners through the original registered process — 30 October 2026
+
+Replace the isolated synthetic broker context with a real UID1000 confined User
+service and its own native catalogue. Keep Root out of User SQLite. Split code
+and private-allocation readers so each owner can check its own boundary; retain
+the combined reader for the five-capability starter. Code must remain inaccessible
+to User, private metadata inaccessible to cap-zero Root, with no tracing grants.
+
+Bind the executing endpoint's complete profile to a Root admission adapter. Hold
+an independent original broker ProcessFD before REQUEST, and re-verify its current
+connection/unit/invocation and profile identity before ARM. Unknown submission
+never permits another request; replacement cannot inherit delegation. Root trusts
+the protected User code to perform User intent/data checks, not an app-supplied hash.
+
+Keep live control in the explicit disposable fixture. Preallocated package/data/
+scaffold and the fixed test system-scope User unit do not establish normal session
+or dynamic allocation policy. Acknowledge fresh User files only after independent
+slot/context/ownership checks; archive both unresolved catalogues after exact
+test drain. No no-exec release proof, public capability or normal profile change.

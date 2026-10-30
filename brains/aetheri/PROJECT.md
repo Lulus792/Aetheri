@@ -168,5 +168,10 @@ records the complete profile before a possible Root executing request, with no
 submission permission on exact retries. Startup retains the obligation, and the
 old pre-dispatch User withdrawal path refuses it. Actual authenticated owner
 wiring and executing recovery remain work; no installed launch is enabled.
+The subsequent enforcing fixture connects the actual registered User owner,
+authenticated Root projection/receipt, independent allocation checks and native
+preparation to Root request/arm and exact target ELF observation. Root keeps its
+original broker pin; normal owner/session provisioning, mutation/revocation and
+executing recovery remain separate gates. No normal launch capability is enabled.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

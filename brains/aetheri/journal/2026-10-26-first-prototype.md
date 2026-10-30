@@ -1923,3 +1923,72 @@ bindings, retained User intent and unknown outcomes. Do not read User SQLite fro
 Root or enable normal DispatchLaunch before that path is proven. Executing target
 registration/readiness, recovery/drain/lease settlement, document access and
 complete removal remain; desktop/apps/image/hardware remain the full active goal.
+
+## Connected actual User and Root admission — 30 October 2026
+
+Replaced the isolated synthetic broker context with an actual UID1000 confined
+User service and separate native catalogue. The trusted administrative fixture
+still preallocates package/data/scaffold/profile, but actual User code performs
+runtime/bootstrap registration, authenticated Root projection/cache, independent
+allocation/MAC checks, first data enrollment/admission, launch acceptance before
+Root reservation, original receipt binding and durable execution preparation.
+Only its fresh original submission reaches Root. Root never opens User SQLite.
+The User is a fixed test system-scope service, not normal login-manager admission.
+
+Split source opening into code-only and private-data readers; the combined starter
+path retains both. Actual cap-zero Root opens verified code/starter but is denied
+User private storage; actual User opens its exact private data but is denied code.
+Publisher substitution fails without changing outputs. Root still checks package
+bytes against the protected trusted fixture, not general publisher/distribution
+trust. No caller-selected path, UID, action or unit was introduced.
+
+Added a process-owned Root execution admission adapter. It checks complete endpoint/
+profile equality, verifies the active registered peer and identity before REQUEST,
+retains an independent original ProcessFD and rechecks it before ARM. Unknown
+request outcomes never authorize another attempt; replaced/lost broker context
+does not inherit delegation. Local close is not process/lease settlement. Callback
+close and fork ownership are guarded. The original context is built from actual
+registration, not filled from a synthetic UID/profile alone.
+
+Actual enforcing controls reject the same UID/domain under the wrong unit, a new
+connection from the original User process, and the same-UID target's privileged
+broker Resolve. Actual target exec still uses original starter binding/prepared
+release, private mounts, credential/FD drop and independent current-ELF observation.
+The complete connected run passes and retires exact test processes/units/config/
+policy after independent drain, archiving both native incomplete operations and
+the running Root lease. No readiness, production recovery or complete removal claim.
+
+Three preparation/observer faults were reconciled separately. Missing SELinux
+association rejected User's temporary bus name; mapping it to the existing User
+service type fixed the actual USER_AVC without an acquire wildcard. Native inherited
+labels included one terminal NUL; acknowledge only exact expected encodings.
+A closed local test FD number needed reset before reuse. Finally, the observer's
+well-known destination hit the unchanged strict reply-capture guard; resolve once
+to the unique destination. The first archive has no lifecycle rows, the second
+only User binding/data enrollment, and the third retains both running operations/
+Root lease after actual arm. Original owned processes/units/jobs and full source
+tree were checked before retiring temporary policy/config/unit files. No unknown
+dispatch was repeated and no no-exec release proof was used.
+
+Added controlled native adapter tests with real pidfds for error output, original
+FD lifetime, changed/lost context, unknown-request retry exclusion, callback close
+and fork use. Host bootstrap guards cover exact additions/context/ownership and
+unexpected lifecycle rows. They are scoped control/lifetime tests, not actual
+identity/policy proof; the separate enforcing run provides that evidence.
+Focused Debug ASan/UBSan 3/3 passes (11.01 s); full Debug 40/40 (390.60 s) passes.
+Full Release 40/40 passes (359.30 s). Host migration/wire 30/30 (53.310 s),
+orchestration 45/45 (3.726 s), runtime vectors 15/15 and 374 constraint assertions
+pass. Durations are tests, not OS performance measurements.
+
+Final connected live repeat passes with the completed controller guards. It
+observes Root/User CapInh/CapPrm/CapEff/CapBnd/CapAmb directly from the kernel as
+empty, verifies both incomplete owner histories and retires its exact fixture.
+Final read-only carrier check confirms Enforcing, unchanged verified normal
+protected inputs, pending=None, two closed install/two closed data gates, no
+unsettled normal dispatch/held lease, System1/test User name unowned and temporary
+execution inputs absent. Normal executing profile/starter/scaffold/Root unit
+remain absent. Review covered original peer/profile binding, callback/FD lifetime,
+source/data privilege separation, unknown outcomes and exact retirement. No normal
+app, host hardware or other project changed. Native target registration/readiness,
+executing recovery/drain/lease settlement and documents/removal remain; full OS,
+apps/UI/image/hardware stays the goal.

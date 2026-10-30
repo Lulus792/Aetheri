@@ -105,15 +105,53 @@ void ae_execution_sources_clear(struct ae_execution_sources *s)
     for (size_t n=0;n<3;++n) if (fds[n]>=0) close(fds[n]);
     *s=(struct ae_execution_sources)AE_EXECUTION_SOURCES_INIT;
 }
-int ae_execution_sources_open(const struct ae_execution_profile *p,struct ae_execution_sources *output)
+int ae_execution_data_open(const struct ae_execution_profile *p,const uint8_t publisher[16],int *payload,struct ae_data_enrollment *output)
 {
-    if (p==NULL || output==NULL || output->code_fd>=0 || output->data_fd>=0 || output->image_fd>=0) return -EINVAL;
+    if (p==NULL || publisher==NULL || payload==NULL || *payload>=0 || output==NULL) return -EINVAL;
+    uint8_t hash[32],data_bytes[AE_DATA_CONFIG_BYTES]; int r=ae_execution_digest(p,hash);
+    const struct ae_fixture_registry *selected=ae_fixture_registry(AE_FIXTURE_EXEC);
+    struct ae_data_enrollment data; int root=-1,anchor=-1,data_root=-1,fd=-1;
+    if (r==0) { root=root_open(); if (root<0) r=root; }
+    if (r==0) r=registry(root,selected->data_config,data_bytes,sizeof data_bytes);
+    if (r==0) r=ae_data_enrollment_decode(data_bytes,sizeof data_bytes,&data);
+    if (r==0 && (memcmp(data.owner.id[AE_ACCOUNT],p->account,16)!=0 || memcmp(data.owner.id[AE_DATA],p->data,16)!=0 ||
+        memcmp(data.owner.id[AE_STORAGE],p->storage,16)!=0 || memcmp(data.install,p->install,16)!=0 ||
+        memcmp(data.system_epoch,p->system_epoch,16)!=0 || memcmp(data.user_epoch,p->broker_epoch,16)!=0 ||
+        memcmp(data.publisher,publisher,16)!=0 || data.install_revision!=p->install_revision)) r=-ESTALE;
+    if (r==0) r=ae_sha256_bytes(data_bytes+200,AE_ALLOCATION_BYTES,hash);
+    if (r==0 && memcmp(hash,p->allocation_digest,32)!=0) r=-ESTALE;
+    uint8_t expected[AE_OWNER_BYTES],actual[AE_OWNER_BYTES];
+    if (r==0 && ae_owner_encode(&data.owner,expected,sizeof expected)!=0) r=-EBADMSG;
+    if (r==0) r=registry(root,selected->data_owner,actual,sizeof actual);
+    if (r==0 && memcmp(actual,expected,sizeof actual)!=0) r=-ESTALE;
+    char account[33],storage[33],path[256]; hex_id(p->account,account); hex_id(p->storage,storage);
+    uint8_t allocation[AE_ALLOCATION_BYTES];
+    snprintf(path,sizeof path,"users/%s/control/app-allocations/%s",account,storage);
+    if (r==0) r=bytes(root,path,1000,0600,LABEL("aetheri_allocation_t"),allocation,sizeof allocation);
+    if (r==0 && memcmp(allocation,data_bytes+200,sizeof allocation)!=0) r=-ESTALE;
+    snprintf(path,sizeof path,"users/%s/app-data",account);
+    if (r==0) { anchor=opened(root,path,1,1000,0700,LABEL("aetheri_user_state_t"),0); r=anchor<0 ? anchor : allocated(anchor,&data.allocation,&data.allocation.anchor); }
+    if (r==0) { data_root=opened(anchor,storage,1,1000,0700,LABEL("aetheri_user_state_t"),0); r=data_root<0 ? data_root : allocated(data_root,&data.allocation,&data.allocation.root); }
+    if (r==0) r=bytes(data_root,"owner",1000,0600,LABEL("aetheri_user_state_t"),actual,sizeof actual);
+    if (r==0 && memcmp(actual,expected,sizeof actual)!=0) r=-ESTALE;
+    /* Only this authority-selected payload may be a supervisor-provided writable
+     * bind mount. Its ancestry/owner/witness/header and full MCS label are checked;
+     * arbitrary mount traversal inside code/config/private metadata is denied. */
+    if (r==0) { fd=opened(data_root,"payload",1,1000,0700,selected->data_context,1); if (fd<0) r=fd; }
+    int fds[]={root,anchor,data_root};
+    for (size_t n=0;n<sizeof fds/sizeof fds[0];++n) if (fds[n]>=0 && close(fds[n])!=0 && r==0) r=-errno;
+    if (r==0) { *payload=fd; *output=data; } else if (fd>=0) close(fd);
+    return r;
+}
+int ae_execution_code_open(const struct ae_execution_profile *p,struct ae_execution_sources *output,uint8_t publisher[16])
+{
+    if (p==NULL || output==NULL || publisher==NULL || output->code_fd>=0 || output->data_fd>=0 || output->image_fd>=0) return -EINVAL;
     uint8_t hash[32]; int r=ae_execution_digest(p,hash);
     const struct ae_fixture_registry *selected=ae_fixture_registry(AE_FIXTURE_EXEC);
     struct ae_execution_sources result=AE_EXECUTION_SOURCES_INIT;
-    int root=-1,store=-1,container=-1,manifest=-1,anchor=-1,data_root=-1;
-    uint8_t config_bytes[AE_FIXTURE_CONFIG_BYTES],pub_bytes[AE_FIXTURE_STORE_CONFIG_BYTES],data_bytes[AE_DATA_CONFIG_BYTES];
-    struct ae_fixture_config config; struct ae_fixture_store_config publication; struct ae_data_enrollment data;
+    int root=-1,store=-1,container=-1,manifest=-1;
+    uint8_t config_bytes[AE_FIXTURE_CONFIG_BYTES],pub_bytes[AE_FIXTURE_STORE_CONFIG_BYTES];
+    struct ae_fixture_config config; struct ae_fixture_store_config publication;
     uint8_t *input=NULL; struct stat status;
     if (r==0) { root=root_open(); if (root<0) r=root; }
     if (r==0) r=registry(root,selected->config,config_bytes,sizeof config_bytes);
@@ -154,35 +192,20 @@ int ae_execution_sources_open(const struct ae_execution_profile *p,struct ae_exe
     }
     if (r==0) { result.image_fd=opened(result.code_fd,result.command.executable,0,0,0555,LABEL("aetheri_store_code_t"),0); if (result.image_fd<0) r=result.image_fd; }
     if (r==0) r=ae_image_verify(result.image_fd,result.command.sha256,&result.image);
-    if (r==0) r=registry(root,selected->data_config,data_bytes,sizeof data_bytes);
-    if (r==0) r=ae_data_enrollment_decode(data_bytes,sizeof data_bytes,&data);
-    if (r==0 && (memcmp(data.owner.id[AE_ACCOUNT],p->account,16)!=0 || memcmp(data.owner.id[AE_DATA],p->data,16)!=0 ||
-        memcmp(data.owner.id[AE_STORAGE],p->storage,16)!=0 || memcmp(data.install,p->install,16)!=0 ||
-        memcmp(data.system_epoch,p->system_epoch,16)!=0 || memcmp(data.user_epoch,p->broker_epoch,16)!=0 ||
-        memcmp(data.publisher,fixture.publisher,16)!=0 || data.install_revision!=p->install_revision)) r=-ESTALE;
-    if (r==0) r=ae_sha256_bytes(data_bytes+200,AE_ALLOCATION_BYTES,hash);
-    if (r==0 && memcmp(hash,p->allocation_digest,32)!=0) r=-ESTALE;
-    uint8_t expected[AE_OWNER_BYTES],actual[AE_OWNER_BYTES];
-    if (r==0 && ae_owner_encode(&data.owner,expected,sizeof expected)!=0) r=-EBADMSG;
-    if (r==0) r=registry(root,selected->data_owner,actual,sizeof actual);
-    if (r==0 && memcmp(actual,expected,sizeof actual)!=0) r=-ESTALE;
-    char account[33],storage[33],path[256]; hex_id(p->account,account); hex_id(p->storage,storage);
-    uint8_t allocation[AE_ALLOCATION_BYTES];
-    snprintf(path,sizeof path,"users/%s/control/app-allocations/%s",account,storage);
-    if (r==0) r=bytes(root,path,1000,0600,LABEL("aetheri_allocation_t"),allocation,sizeof allocation);
-    if (r==0 && memcmp(allocation,data_bytes+200,sizeof allocation)!=0) r=-ESTALE;
-    snprintf(path,sizeof path,"users/%s/app-data",account);
-    if (r==0) { anchor=opened(root,path,1,1000,0700,LABEL("aetheri_user_state_t"),0); r=anchor<0 ? anchor : allocated(anchor,&data.allocation,&data.allocation.anchor); }
-    if (r==0) { data_root=opened(anchor,storage,1,1000,0700,LABEL("aetheri_user_state_t"),0); r=data_root<0 ? data_root : allocated(data_root,&data.allocation,&data.allocation.root); }
-    if (r==0) r=bytes(data_root,"owner",1000,0600,LABEL("aetheri_user_state_t"),actual,sizeof actual);
-    if (r==0 && memcmp(actual,expected,sizeof actual)!=0) r=-ESTALE;
-    /* Only this authority-selected payload may be a supervisor-provided writable
-     * bind mount. Its ancestry/owner/witness/header and full MCS label are checked;
-     * arbitrary mount traversal inside code/config/private metadata is denied. */
-    if (r==0) { result.data_fd=opened(data_root,"payload",1,1000,0700,selected->data_context,1); if (result.data_fd<0) r=result.data_fd; }
-    int fds[]={root,store,container,manifest,anchor,data_root};
+    int fds[]={root,store,container,manifest};
     for (size_t n=0;n<sizeof fds/sizeof fds[0];++n) if (fds[n]>=0 && close(fds[n])!=0 && r==0) r=-errno;
     free(input);
+    if (r==0) { *output=result; memcpy(publisher,fixture.publisher,16); } else ae_execution_sources_clear(&result);
+    return r;
+}
+
+int ae_execution_sources_open(const struct ae_execution_profile *p,struct ae_execution_sources *output)
+{
+    if (output==NULL || output->code_fd>=0 || output->data_fd>=0 || output->image_fd>=0) return -EINVAL;
+    struct ae_execution_sources result=AE_EXECUTION_SOURCES_INIT;
+    uint8_t publisher[16]; struct ae_data_enrollment data;
+    int r=ae_execution_code_open(p,&result,publisher);
+    if (r==0) r=ae_execution_data_open(p,publisher,&result.data_fd,&data);
     if (r==0) *output=result; else ae_execution_sources_clear(&result);
     return r;
 }

@@ -20,6 +20,8 @@ int ae_execution_endpoint_new(struct ae_catalogue *,sd_bus *,sd_event *,
     const struct ae_execution_profile *,const struct ae_launch_context *,
     ae_execution_effect request,void *request_owner,struct ae_execution_endpoint **);
 int ae_execution_endpoint_request(struct ae_execution_endpoint *,const struct ae_launch_context *,struct ae_execution_result *);
+/* Internal owner-side equality check; no permission or process observation. */
+int ae_execution_endpoint_check_profile(struct ae_execution_endpoint *,const struct ae_execution_profile *);
 /* Caller owes fresh broker/private-data admission. No pending original prepared
  * call or an expired local deadline means no ARM. Calls do not repeat effects. */
 int ae_execution_endpoint_arm(struct ae_execution_endpoint *,const struct ae_launch_context *,struct ae_execution_result *);

@@ -13,6 +13,9 @@ post-exec app connection and the actual running ELF under UID/GID1000 in a
 separate constrained domain. This uses isolated test inputs; normal user admission,
 app readiness and recovery are still in progress. The test preserves historical
 lease obligations rather than treating process exit as permission to release them.
+The test now includes a real User process with its own catalogue, private-data
+checks and durable start preparation. Root verifies that original registered
+connection before request and release; it never reads the User database.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

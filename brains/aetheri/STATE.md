@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — durable User execution preparation; live owner admission/recovery remain next.
+30 October 2026 — connected actual User/Root execution admission in the isolated enforcing fixture.
 
 ## Confirmed
 
@@ -13,6 +13,50 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The isolated enforcing test now connects an actual registered UID1000 User
+process to Root dispatch. User owns a separate native catalogue/runtime, verifies
+authenticated original Root replies and private allocation/MAC, then performs
+native projection/cache, first data enrollment/admission, launch acceptance,
+Root receipt binding and durable execution preparation. Its original connection
+submits the exact profile to Root. Root never reads User SQLite. Root code and
+User private-data readers are separated; actual cross-boundary opens are denied.
+
+The new native execution admission adapter retains the original registered peer
+before REQUEST and re-verifies it before ARM. Account/epoch/runtime/boot drift,
+departure and replacement cannot inherit delegation; unknown request outcomes
+cannot create another attempt. Complete endpoint/profile equality is checked.
+Close is local cleanup only. Controlled native tests cover replacement/lost-
+request/fork/callback and independent pidfd lifetime; actual enforcing negatives
+reject the wrong unit, another connection from the same User process and the
+same-UID app's privileged broker call.
+
+The connected live run passes actual starter/private-view/target ELF observation
+and exact app/User/Root process/unit/cgroup/job retirement. Both unresolved owner
+catalogues are archived, preserving User preparation and Root running lease.
+Earlier startup/observer failures were reconciled and archived without releasing
+executing obligations. No normal capability or installed profile was enabled.
+This is one fixed system-scope UID1000 test broker, not normal session provisioning,
+general mutable admission, genuine app readiness or production recovery/removal.
+See [connected owners](../../spec/runtime.md#connected-user-and-root-execution-admission).
+
+Full Debug ASan/UBSan passes 40/40 (390.60 s), Release 40/40 (359.30 s).
+Host migration/wire passes 30/30 (53.310 s), orchestration 45/45 (3.726 s),
+runtime vectors 15/15 and 374 constraint assertions. Final live repeat passes
+with actual Root/User effective/permitted/inheritable/bounding/ambient capability
+sets observed empty. Both owner histories are archived; no lease/operation is
+settled from process death. These are test results, not OS performance metrics.
+
+Final read-only carrier verification confirms Enforcing, unchanged verified
+normal inputs, pending=None, two closed install/two closed data gates, no unsettled
+normal dispatch/held lease, System1/test User name unowned and temporary execution
+inputs retired. Normal executing profile/starter/scaffold/Root unit remain absent.
+Next implement genuine User-mediated target registration/readiness and executing
+recovery/drain/lease settlement, then native documents and complete removal.
+Normal session/owner provisioning and mutation/revocation remain required; full
+desktop/apps/image/hardware scope stays active. No user decision blocks that work.
+
+Previous User preparation checkpoint (30 October 2026):
 
 Native User execution preparation now atomically checks the accepted launch,
 original Root link and current binding/attached-data fences, then binds complete

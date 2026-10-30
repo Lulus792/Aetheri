@@ -18,6 +18,57 @@ import test_execution_runtime as execution_runtime
 
 
 class VmTools(unittest.TestCase):
+    def test_live_authority_capabilities_are_observed_not_only_configured(self):
+        fields=('CapInh','CapPrm','CapEff','CapBnd','CapAmb')
+        empty='\n'.join(key+':\t0000000000000000' for key in fields)
+        with patch.object(execution_runtime.Path,'read_text',return_value=empty):
+            self.assertEqual(set(execution_runtime.require_empty_capabilities(123)),set(fields))
+        for key in fields:
+            nonempty=empty.replace(key+':\t0000000000000000',key+':\t0000000000000001')
+            with patch.object(execution_runtime.Path,'read_text',return_value=nonempty):
+                with self.assertRaisesRegex(RuntimeError,'capabilities'): execution_runtime.require_empty_capabilities(123)
+        with patch.object(execution_runtime.Path,'read_text',return_value=empty.replace('CapAmb:', 'Missing:')):
+            with self.assertRaises(KeyError): execution_runtime.require_empty_capabilities(123)
+
+    def test_user_bootstrap_requires_exact_new_files_and_independent_context(self):
+        work=self.root/'bridge'; (work/'registry').mkdir(parents=True); control='users/account/control'; (work/control).mkdir(parents=True)
+        profile=bytearray(384)
+        for offset,n in ((40,50),(56,51),(72,4),(88,2)): profile[offset:offset+16]=execution_runtime.identity(n)
+        (work/'registry/execution.conf').write_bytes(profile)
+        path=work/control/'catalogue.sqlite3'
+        with closing(sqlite3.connect(path)) as db,db:
+            db.execute('CREATE TABLE authority_meta(kind,authority_epoch,owner_scope_ref,runtime_incarnation,current_boot_id,catalogue_revision)')
+            db.execute('INSERT INTO authority_meta VALUES(?,?,?,?,?,?)',('user',bytes(profile[40:56]),bytes(profile[88:104]),bytes(profile[56:72]),bytes(profile[72:88]),2))
+            for table in ('install_bindings','data_epochs','launches','operations'): db.execute('CREATE TABLE '+table+'(id)')
+        context=b'system_u:object_r:aetheri_user_state_t:s0'
+        before={control:[10,1000,1000,stat.S_IFDIR|0o700,2,0,1,1,context.hex(),None]}
+        database=control+'/catalogue.sqlite3'; lock=control+'/writer.lock'
+        for ending in (b'',b'\0'):
+            current=json.loads(json.dumps(before))
+            for n,name in enumerate((database,lock)):
+                current[name]=[20+n,1000,1000,stat.S_IFREG|0o600,1,32,2,2,(context+ending).hex(),'00'*32]
+            record=dict(tree=before,user_control_rel=control,user_catalogue_rel=database)
+            for kind in ('extra','owner','replaced','context'):
+                bad=json.loads(json.dumps(current))
+                if kind=='extra': bad[control+'/foreign']=[*bad[lock]]
+                elif kind=='owner': bad[database][1]=0
+                elif kind=='replaced': bad[control][0]+=1
+                else: bad[database][8]=(context+b':c1').hex()
+                with patch.object(execution_runtime,'capture',return_value=bad),patch.object(execution_runtime,'save') as saved:
+                    with self.assertRaises(RuntimeError): execution_runtime.acknowledge_user_start(record,work)
+                    saved.assert_not_called()
+            with patch.object(execution_runtime,'capture',return_value=current),patch.object(execution_runtime,'save') as saved:
+                with closing(sqlite3.connect(path)) as db,db: db.execute('INSERT INTO operations VALUES(1)')
+                with self.assertRaisesRegex(RuntimeError,'unrequested lifecycle'): execution_runtime.acknowledge_user_start(record,work)
+                with closing(sqlite3.connect(path)) as db,db: db.execute('DELETE FROM operations')
+                with closing(sqlite3.connect(path)) as db,db: db.execute('UPDATE authority_meta SET runtime_incarnation=zeroblob(16)')
+                with self.assertRaisesRegex(RuntimeError,'startup context'): execution_runtime.acknowledge_user_start(record,work)
+                with closing(sqlite3.connect(path)) as db,db: db.execute('UPDATE authority_meta SET runtime_incarnation=?',(bytes(profile[56:72]),))
+                saved.assert_not_called()
+                execution_runtime.acknowledge_user_start(record,work)
+                saved.assert_called_once_with(record)
+                self.assertEqual(record['tree'],current)
+
     def test_live_probe_keeps_normal_gates_and_holders_quiescent(self):
         with tempfile.TemporaryDirectory(dir=self.root) as directory:
             paths={role:Path(directory)/role for role in ('system','user')}

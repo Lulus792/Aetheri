@@ -65,6 +65,9 @@ int main(int argc,char **argv)
          * actual app credentials; this is not production app registration. */
         sd_bus *bus=NULL; sd_bus_error error=SD_BUS_ERROR_NULL; sd_bus_message *reply=NULL;
         CHECK(sd_bus_open_system(&bus)>=0);
+        int denied=sd_bus_call_method(bus,"org.aetheri.System1","/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","Resolve",&error,&reply,"");
+        CHECK(denied<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
         int observed=sd_bus_call_method(bus,"org.aetheri.System1","/org/aetheri/P0ExecutionTest1","org.aetheri.P0ExecutionTest1","Observe",&error,&reply,"");
         if (observed<0) fprintf(stderr,"p0 Observe: %d %s\n",observed,error.message ? error.message : "-");
         CHECK(observed>=0); sd_bus_error_free(&error); sd_bus_message_unref(reply); sd_bus_flush_close_unref(bus);

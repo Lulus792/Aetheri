@@ -2666,24 +2666,28 @@ The controller holds the carrier lock, verifies normal protected inputs and
 requires normal gates closed, no pending request, no unsettled normal dispatch/
 lease and no System1 owner. It refuses existing test roots, modules, configuration
 or unit slots. Its separate `/var/lib/aetheri-p0-execution-runtime-test` contains
-a new owner catalogue, random authority/runtime epochs, actual boot ID, trusted
-package, independent private allocation and profile-bound scaffold. Both service
-units privately bind that root at the fixed anchor; normal protected files and
-catalogues are never selected. Creation/enrollment and broker/data fences here
-are controlled administrative test inputs, not general allocation or User admission.
+separate system/User catalogues, random authority/runtime epochs, actual boot ID,
+trusted package, independent private allocation and profile-bound scaffold. The
+Root, User and starter units privately bind that root at the fixed anchor; normal
+protected files/catalogues are never selected. Package/allocation/scaffold setup
+remains controlled administrative input. Actual broker registration and User
+projection/enrollment/data admission/preparation now run in separate confined
+processes; see the connected-owner boundary below. The fixed UID1000 User is a
+test system-scope service, not production login-manager/session provisioning.
 
 | Part | Actual evidence |
 | --- | --- |
 | Root | Confined cap-zero/NNP process, native catalogue/runtime/reservation and Execution1 endpoint under the fixed Root unit |
+| User | Actual UID/GID1000 broker, its own native catalogue/runtime, authenticated Root replies, independent private-allocation checks and durable execution preparation |
 | REQUEST | Fresh native commit calls real PID1 StartUnit for the journal-selected unit; caller supplies no unit/path |
 | BIND/PREPARE/ARM | Original starter ProcessFD, current service/invocation/cgroup/context, actual writer reply and retained original prepared release |
 | Starter | Unmodified production starter binary, protected current ELF/profile, private witnessed code/data mounts and one-way credential/descriptor drop |
 | Target | Fresh UID/GID1000 `aetheri_exec_app_t:s0:c35,c36` connection, same still-held process pin and original invocation/cgroup, actual running ELF matching manifest Artifact |
-| Retirement | Administrative exact pidfd termination/death, independent unit/cgroup/job drain and original Root pidfd death, then full owned-tree/static-input checks |
+| Retirement | Administrative exact app pidfd termination/death, original User/Root pidfd death and independent unit/cgroup/job drain, then full owned-tree/static-input checks |
 
-The private test-only P0ExecutionTest1 Begin/Wait/Observe methods are compiled
-only in `tests/probe_execution_runtime.c`. They are not installed API contracts,
-normal registration, app readiness or public capabilities. The target's fresh
+The private P0ExecutionTest1, P0ExecutionBrokerTest1 and P0ExecutionUserTest1 methods
+are compiled only in `tests/probe_execution_runtime.c`. They are not installed API
+contracts, general registration, app readiness or public capabilities. The target's fresh
 connection supplies actual current bus credentials after exec; no old starter
 UID/label snapshot is rewritten. Root retains its original starter pin and checks
 the new connection against that process and unit invocation. A correlated Root
@@ -2699,8 +2703,10 @@ starter and a separate MCS-constrained executing-fixture app domain. The old
 it would merge incompatible fixtures. Changing the compiled target label also
 changes the starter digest bound by AETHEXE1. The new domain cannot execute/map
 private data, inherit authority descriptors, read owner metadata or add privileges.
-Its fresh bus call is restricted to Observe. Root and starter can query only a
-dedicated test unit-file type, with Root start access on that type. The daemon
+The target's successful protocol use is Observe; its attempted privileged broker
+Resolve is rejected. Root, User and starter query a dedicated test unit-file type,
+with Root start access on that type. User can observe Root's current process
+metadata for authenticated reply checks; neither receives SYS_PTRACE/KILL. The daemon
 can write the issued Root pipe for descriptor transfer, never read its reader.
 The test adds no grants to the normal app domain. Enforcing remains enabled.
 
@@ -2713,15 +2719,16 @@ uncertain execution. Interrupted administrative teardown requires inspection.
 Object tree witnesses and policy/config/unit digests are local test evidence,
 not clone authentication or a complete power-loss journal.
 
-The native catalogue deliberately retains a running lease and incomplete operation
-after the app exits. Steps REQUEST/BIND/PREPARE/ARM and a separate diagnostic are
-archived with `historical-test-catalogue.sqlite3` and `report.json` in a protected
+Both native catalogues retain incomplete operations after the app exits. Root's
+running lease, REQUEST/BIND/PREPARE/ARM and separate diagnostic, and User's
+execution-preparation step are archived with `historical-test-catalogue.sqlite3`,
+`historical-user-catalogue.sqlite3` and `report.json` in a protected
 `live-execution-<token>` directory beside the driver binary. Channel UNKNOWN/EOF
 does not establish execution or drain; only the independent image observation
 establishes what this test actually executed. No no-exec withdrawal/release is used.
 
 Actual evidence covers this one fixed inert action/account on the pinned carrier.
-Normal Root/User provisioning, current admission and mutation fences, dynamic
+Normal Root/User provisioning, general admission and mutation fences, dynamic
 category/scaffold allocation, genuine target registration/readiness, executing
 recovery/lease settlement and complete removal remain work. Both normal install/
 data gates remain closed; DispatchLaunch/public capabilities stay unchanged.
@@ -2793,3 +2800,80 @@ stability, full-profile conflict, wrong-owner/invalid input, and rejection of th
 old User withdrawal path. These are metadata/transaction tests, not live User
 process admission or power-loss testing. Existing execution/kernel tests retain
 their separately documented scopes.
+
+## Connected User and Root execution admission
+
+The isolated live test now replaces the synthetic broker context with an actual
+registered UID1000 `aetheri_user_t` process under the independently selected
+`aetheri-p0-execution-user.service`. Both owners use their own native catalogue;
+Root never opens User SQLite. The separate wrong-unit service runs the same
+protected binary/domain/UID and is rejected by actual broker registration.
+
+Root loads the protected profile, verifies current sealed code and starter image,
+then opens its install reservation gate. `ae_execution_code_open` checks code,
+manifest, inventory and ELF without touching private User storage. In the actual
+cap-zero Root unit, `ae_execution_data_open` is denied by the private owner boundary.
+The User process is denied code-store opening and separately succeeds in checking
+its exact allocation, owner, UID/GID/mode and raw MAC context. A substituted
+publisher is rejected with unchanged outputs. Combined starter source opening
+retains both checks; the five-capability starter still performs private setup.
+Returned FDs are internal held sources, not public app/document transport.
+
+The User bootstrap creates its catalogue with O_EXCL, begins its protected runtime,
+registers on Root's actual bus connection and reaches notify readiness. Root's
+existing broker module holds the bus-authenticated ProcessFD and original service/
+invocation/cgroup, with name/exit subscriptions. Registration may see activating;
+every later use requires active. User pins actual Root replies to their sent unique
+destination/cookies, Root UID/domain/unit/invocation/boot and original process pin.
+There is no owner-replacement fallback. Neither process acquires tracing privileges.
+
+On the administrative Begin request, User fetches an authenticated current Root
+installation projection, caches it natively, verifies/enrolls the independently
+allocated data, opens its data gate and journals launch acceptance before Root
+reservation. It binds the authenticated actual Root receipt, rechecks allocation/
+MAC, and commits `ae_catalogue_prepare_user_execution`. Only its fresh submit flag
+permits the original Dispatch request with the exact lease/profile digest.
+The private envelope is fixed-fixture control, not a new Runtime1 contract.
+
+`authority/execution_admission.[ch]` is a reusable Root-only process-owned adapter
+around the endpoint and registered broker. Construction checks complete profile
+equality with the endpoint. REQUEST re-observes the current registered connection,
+matches account/User epoch/runtime/boot, derives context from that binding and
+retains its own original ProcessFD before calling native REQUEST. Once attempted,
+an unknown result cannot trigger another request. Closing the local method-capture
+FD does not close that independent pin. ARM re-verifies the original connection
+against the still-current broker before native arm/release. Departure or replacement
+never inherits delegation. Callback-time close is EBUSY; fork use is ECHILD. Close
+only releases local resources, never a lease or a process obligation.
+
+Root trusts the independently protected User code/unit to perform its own journal
+and allocation checks; the profile hash alone proves neither. The original User
+request delegates only that fixed launch/profile/data fence. This test has no
+concurrent owner mutation or revocation; general closure/stop/recovery coordination
+still needs its protocol. Ordinary installed APIs and public capabilities remain
+unchanged, and normal gates remain closed.
+
+Actual enforcing negative controls reject a same-domain wrong unit, a new bus
+connection from the original User process, and the same-UID app's privileged
+Resolve attempt. Successful execution still requires original starter binding,
+prepared release, private mounts, credential/FD drop, fresh app credentials and
+independent running-ELF observation. The User and Root operations remain running;
+neither app exit nor channel EOF settles them.
+
+The controller journals each original start and preserves unknown dispatches.
+User's fresh catalogue/lock are acknowledged only in the independently inspected
+control slot, with exact expected new entries, object ownership/MAC and empty native
+startup context checked against the protected profile. Other changes reject.
+Native inherited SELinux xattrs may contain one terminal NUL; only the exact
+expected label with or without that terminator is accepted, and the observed bytes
+remain frozen afterward. It is not self-header adoption or a general allocator.
+After exact app/User/Root process and unit/cgroup/job drain, archive both unresolved
+catalogues, verify the whole owned tree and retire only the temporary fixture.
+
+`authority.execution_admission` checks controlled endpoint/broker ordering with real
+pidfd lifetime, replacement/lost-request guards, unchanged error output, callback-
+time close and fork ownership. Its actor/endpoint adapters are explicit mocks; the
+separate enforcing integration supplies actual identity/unit/policy evidence.
+No normal service/profile or production app registration/readiness/recovery is
+installed by either test. Dynamic allocation, session admission, executing drain/
+lease settlement, native documents and complete removal remain required.

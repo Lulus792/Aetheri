@@ -259,6 +259,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- authority/execution_admission.h now connects the original registered User peer
+  to native Root request/arm. Read spec/runtime.md's connected-owner section;
+  run authority.execution_admission and the explicit live fixture. It verifies
+  endpoint/profile equality, retains an independent original peer pin before any
+  request, and rechecks active broker identity/unit/context before ARM. Unknown
+  requests cannot repeat; replacement cannot inherit delegation. Caller still
+  owes protected User code/data and mutation/revocation coordination. Split code/
+  private-data readers retain combined starter checks; no User SQLite is read by
+  Root. The live fixture now uses an actual UID1000 system-scope User service and
+  its own native catalogue/preparation, not a normal login session. Its temporary
+  bus name must map to the existing User service type; inbound-FD denials remain.
+  Bootstrap acknowledgement requires exact independent slot/context/new-file
+  evidence; native SELinux xattrs may have one terminal NUL, frozen afterward.
+  Archive BOTH unresolved owner catalogues after exact original process/unit/
+  cgroup/job test drain. This is not production readiness, release or removal.
 - catalogue/execution.h now has ae_catalogue_prepare_user_execution. Read the User
   preparation section in spec/runtime.md; run catalogue.user_execution. It binds
   complete AETHEXE1 in User step1 before a possible Root execution request. Only
