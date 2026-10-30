@@ -163,5 +163,10 @@ native unresolved lease/operation history is archived without claiming release.
 Normal installed inputs/gates remain unchanged and closed. Normal Root/User
 provisioning, current admission, target registration/readiness and executing
 recovery/removal remain work. The old non-executing helper/proofs stay separate.
+The User owner now also has a native execution preparation transaction: it
+records the complete profile before a possible Root executing request, with no
+submission permission on exact retries. Startup retains the obligation, and the
+old pre-dispatch User withdrawal path refuses it. Actual authenticated owner
+wiring and executing recovery remain work; no installed launch is enabled.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

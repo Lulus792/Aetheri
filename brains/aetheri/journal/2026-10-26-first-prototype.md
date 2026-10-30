@@ -1865,3 +1865,61 @@ No normal app was launched or host hardware/other project changed. Review covere
 actual versus controlled admission, original reply/process correlation, private
 mount/image/context binding, privilege/FD lifetime, unknown dispatch preservation
 and exact retirement. No production recovery/readiness claim is made.
+
+## User execution preparation journal — 30 October 2026
+
+Added ae_catalogue_prepare_user_execution as an internal User-owner boundary
+before the first possible executing Root request. BEGIN IMMEDIATE checks current
+User epoch/runtime/boot/account, accepted exact launch/root link/fingerprint,
+active binding/attached data and original read/gate revisions. It atomically
+records step1 stage/data/executing with the full AETHEXE1 digest, advances launch/
+operation/catalogue revisions and leaves preparing/unknown/no invocation/outcome.
+Caller still authenticates current Root/broker/still-reserved receipt, independently
+checks private allocation/MAC and excludes owner mutation. No Root catalogue,
+filesystem, process or IPC proof is inferred from these bytes.
+
+Fresh successful commit alone returns submit_required=1. Exact current retries
+retain bytes/revisions and zero; lost COMMIT acknowledgement never returns new
+permission. Full-profile changes conflict. Runtime/gate drift fails while history
+remains. Existing read-only execution preflight rejects the new step; ordinary
+User withdrawal also refuses it after separate proven Root reservation cancellation.
+Startup preserves the step and marks the launch recovery_required. A future
+executing reconciliation must settle the User obligation explicitly. This is
+intent/retention, not cross-owner ARM rights, readiness, execution or drain.
+
+Reused current v2 rows/shared native parameter binding. The original preflight
+and new preparation share metadata checks inside their respective transactions;
+the preflight still rejects every later step. No SQL/XML/profile version, new
+dependency, policy, installed method, protected input or resident service changed.
+
+Nine native scenarios exercise fresh/lost reply, actual child exits before/after
+COMMIT, User restart, gate closure and all three revision overflow cases. Each
+also checks the four mutating-statement failures and precommit error, thirteen
+metadata-bound identity substitutions, exact retry stability, full-profile conflict,
+wrong owner/invalid input and the old withdrawal rejection. These are isolated
+metadata/process-crash tests, not actual User RPC or physical power-loss evidence.
+The first negative identity controls hit the existing canonical fingerprint guard
+with EBADMSG; recomputing the changed request's fingerprint makes them reach the
+intended stale owner checks. Production codec remained unchanged.
+
+Focused Debug ASan/UBSan passes (31.40 s), full native Debug 39/39 (399.86 s).
+Host migration/wire 30/30 (49.053 s), orchestration 43/43 (2.339 s), vectors 15/15
+and 374 constraint assertions pass. Timings describe tests, not OS performance.
+
+Full Release 39/39 also passes (339.37 s). Final read-only carrier verification
+confirms Enforcing, verified unchanged normal protected inputs, pending=None,
+two closed install/two closed data gates, no unsettled normal dispatch/held lease,
+System1 unowned and temporary execution/client/older-exec test inputs absent.
+Normal executing profile/starter/scaffold/Root unit remain absent. All 157 current
+source files match the tested guest snapshot. Reviewed transaction/commit ordering,
+output preservation, full-profile/owner fences, exact retry, startup retention
+and old withdrawal exclusion. No production data/start/hardware or other project
+was changed. No installed admission/readiness/recovery claim is made.
+
+Next connect a real registered User broker and its separate catalogue/private-
+allocation checks to Root dispatch in the isolated enforcing fixture. Preserve
+actual peer/unit/invocation checks on request and arm, original source/profile
+bindings, retained User intent and unknown outcomes. Do not read User SQLite from
+Root or enable normal DispatchLaunch before that path is proven. Executing target
+registration/readiness, recovery/drain/lease settlement, document access and
+complete removal remain; desktop/apps/image/hardware remain the full active goal.

@@ -177,6 +177,7 @@ No SQL/XML source or protocol version changed for this addition.
 | ae_catalogue_get_info | Return checked identity/current-context fields; never a readiness or holder-drain assertion |
 | ae_catalogue_enroll_account | System owner only: explicitly persist a trusted account/UID and advance catalogue revision atomically; exact active retry is unchanged; never rebind/reactivate a scope |
 | ae_catalogue_check_account | Require the exact active system-account/UID row and return its revision; not a process proof or future admission fence |
+| ae_catalogue_prepare_user_execution | Persist exact User execution preparation before external submission; fresh-only submit flag, immutable full-profile binding and retained recovery obligation; no ARM/readiness/drain proof |
 | ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
 
 The caller supplies an already protected, stable absolute directory and identity

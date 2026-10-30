@@ -259,6 +259,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/execution.h now has ae_catalogue_prepare_user_execution. Read the User
+  preparation section in spec/runtime.md; run catalogue.user_execution. It binds
+  complete AETHEXE1 in User step1 before a possible Root execution request. Only
+  fresh successful commit returns submit_required=1; retries/lost acknowledgements
+  never authorize replay. Old User withdrawal refuses the step; startup retains
+  it as recovery_required. Current Root/broker/still-reserved receipt provenance,
+  private allocation/MAC and mutation exclusion remain caller obligations. This
+  is not current owner RPC, filesystem admission, ARM/readiness/drain or a release
+  protocol. No SQL/XML/installed capability changed; preserve the normal inputs.
 - launcher/preparation.h and aetheri-execution-starter now join protected self/
   source checking, the authenticated client, private views and one-way exec. Read
   spec/runtime.md's separate starter section. AETHVWS1 (184 bytes, frozen vector)

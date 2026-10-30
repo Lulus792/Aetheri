@@ -1291,3 +1291,34 @@ owned-input evidence; unresolved native lease history was archived, never releas
 through the no-exec proof. Host guards now cover unit naming, binary snapshot
 serialization, pre-serialization before acknowledgement-file creation and normal
 gate/holder quiescence. SQLite connections close on rejection, including Windows.
+
+## User execution preparation — 30 October 2026
+
+Original [native contract](../../src/catalogue/execution.h),
+[owner implementation](../../src/catalogue/store.c),
+[native tests](../../tests/test_launch.c) and
+[scenario driver](../../tools/test_launch_native.py) add the User journal boundary
+before an executing Root request. The complete profile is bound in an existing
+v2 operation step. No SQL/XML/profile bytes, installed API or policy change.
+
+The official [SQLite transaction reference](https://www.sqlite.org/lang_transaction.html)
+describes BEGIN IMMEDIATE write admission and error-dependent transaction rollback.
+[sqlite3_get_autocommit](https://www.sqlite.org/c3ref/get_autocommit.html) distinguishes
+whether the connection still has a transaction after an error. The existing
+fixture_commit helper uses that state before rollback; it never treats an error
+acknowledgement as proof that no commit occurred. These source semantics are
+cross-checked against the pinned carrier's native tests, not a new SQLite release.
+
+Tests inject all four mutation failures, errors before/after a real COMMIT and
+actual child process exits on both sides of COMMIT. Exact retry preserves database
+bytes/revisions and never returns another submit flag; restart/gate closure keeps
+the obligation. The old User withdrawal refuses it even after an actual separate
+Root pre-request reservation cancellation. This is metadata/recovery-boundary
+evidence, not live User admission, machine power loss or completed execution drain.
+
+The initial identity-mutant test correctly failed at the existing profile codec:
+changing request fields without recomputing their canonical fingerprint produced
+EBADMSG before any owner check. The corrected negative controls recompute that
+fingerprint, then exercise the intended stale owner/launch fences. The production
+codec was unchanged. Independent allocation/MAC/current Root provenance remain
+caller obligations, not facts inferred from a profile hash or stored journal.

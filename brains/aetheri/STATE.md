@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — isolated live native Root/starter/target integration; normal admission and recovery remain next.
+30 October 2026 — durable User execution preparation; live owner admission/recovery remain next.
 
 ## Confirmed
 
@@ -13,6 +13,41 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Native User execution preparation now atomically checks the accepted launch,
+original Root link and current binding/attached-data fences, then binds complete
+AETHEXE1 in its own operation step1 before a possible executing Root request.
+Only a fresh confirmed commit returns submit_required=1. Exact retries retain
+bytes/revisions with zero; unknown commit replies expose no permission to replay.
+The launch remains preparing/unknown with no invocation. The step disables the
+old User pre-dispatch withdrawal path and survives restart as an unsettled
+recovery_required obligation. Changed profile and stale owner/data fences reject.
+
+The focused native Debug ASan/UBSan catalogue.user_execution group passes nine
+scenarios (31.40 s), including four write-statement faults, lost commit replies,
+actual process exits on both sides of COMMIT, restart/gate closure, overflow,
+identity substitutions, full-profile conflicts and byte-stable retries. These
+are owner transaction tests, not actual User RPC/process or power-loss evidence.
+No SQL/XML/dependency/policy or installed input changes. Current Root/broker/
+reservation admission, independent allocation/MAC and owner mutation exclusion
+remain caller obligations. This is not an ARM/readiness/drain capability.
+See [User preparation](../../spec/runtime.md#user-execution-preparation-journal).
+
+Full native Debug ASan/UBSan passes 39/39 (399.86 s), Release 39/39 (339.37 s).
+Host migration/wire 30/30 (49.053 s), orchestration 43/43 (2.339 s), runtime
+vectors 15/15 and 374 constraint assertions also pass. Timings are tests, not OS performance.
+Final read-only carrier verification confirms Enforcing, verified unchanged normal
+protected inputs, pending=None, two closed install/two closed data gates, no
+unsettled normal dispatch/held lease, System1 unowned and temporary execution
+inputs absent. Normal executing profile/starter/scaffold/Root unit remain absent.
+
+Next connect a real registered User broker and its independently checked private
+allocation to Root request/arm in the enforcing integration, preserving separate
+catalogue writers and current peer/unit/invocation evidence. Genuine target
+registration/readiness, executing recovery/lease settlement, documents and complete
+removal remain P0 work. The desktop/apps/image/hardware goal remains active.
+
+Previous live execution checkpoint (30 October 2026):
 
 An explicit enforcing-carrier test now runs the actual native Root journal and
 Execution1 endpoint, real PID1 StartUnit, unchanged executing starter, authenticated

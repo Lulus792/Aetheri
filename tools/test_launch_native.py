@@ -72,6 +72,10 @@ def main():
                 "failure","unknown","malformed","request-timeout","request-commit-lost","bind-commit-lost",
                 "prepare-commit-lost","arm-commit-lost","release-timeout","context-drift","root-restart","broker-replacement","early-eof",
                 "observer-error","report-commit-lost","early-data"))
+        if len(sys.argv)==4 and sys.argv[3]=="user-execution":
+            scenarios=tuple("exec-user-prepare-"+case for case in (
+                "fresh","lost","crash-before","crash-after","restart","gate",
+                "overflow-launches","overflow-operations","overflow-authority_meta"))
         if len(sys.argv)==4 and sys.argv[3]=="wire":
             scenarios=tuple("exec-wire-"+case for case in (
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",

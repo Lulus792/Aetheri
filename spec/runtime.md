@@ -2725,3 +2725,71 @@ Normal Root/User provisioning, current admission and mutation fences, dynamic
 category/scaffold allocation, genuine target registration/readiness, executing
 recovery/lease settlement and complete removal remain work. Both normal install/
 data gates remain closed; DispatchLaunch/public capabilities stay unchanged.
+
+## User execution preparation journal
+
+`ae_catalogue_prepare_user_execution` in `catalogue/execution.h` is the User-owner
+intent boundary before the first executing Root request. A read-only data check
+does not record whether that request might subsequently have been sent. This
+transaction binds the complete canonical AETHEXE1 to the already accepted User
+operation, so a lost reply/restart cannot erase that obligation.
+
+The caller first authenticates current Root/broker provenance and a still-reserved
+original Root receipt, and independently verifies private allocation/payload MAC
+and object identity. Those are caller obligations; this function does not read
+Root's catalogue or observe a process, filesystem or IPC reply. The trusted User
+writer must still exclude concurrent owner mutation around those observations.
+Profile shape/digest is not proof of their provenance.
+
+Inside one BEGIN IMMEDIATE transaction it checks current User epoch/runtime/boot/
+account, exact accepted LaunchId/lease/install/generation/DataEpoch, run/p0/none,
+original Root link and request fingerprint, active binding/attached data and the
+original install/data read revisions. The data gate must remain open at the exact
+revision. Readiness is unknown, invocation absent and the operation still running.
+Grants or additional journal steps reject preparation.
+
+| Record | Fresh mutation |
+| --- | --- |
+| operation_steps | Step1 stage/data/exact DataEpoch/executing, evidence is the full AETHEXE1 digest |
+| launches | Increment revision; keep preparing/unknown with no invocation |
+| operations | Set exec_preparing and increment revision; leave outcome absent |
+| authority_meta | Increment catalogue revision |
+
+There is no filesystem, bus or supervisor effect in the transaction. It reuses
+the current v2 schema and changes no frozen SQL/XML/profile bytes. Overflow of
+any incremented revision rejects before mutation. Output includes the current
+User launch snapshot and `submit_required`, one only after a successful fresh
+commit. On error the complete output remains untouched. A lost COMMIT reply can
+leave the step durable without returning permission to submit.
+
+An exact retry under the same current fences returns unchanged history/revisions
+and submit_required=0. It never permits another external submission or converts
+an unknown result into rollback. A different starter/allocation/Artifact/Root
+runtime changes the bound profile and conflicts with the existing step. Owner
+runtime/gate/data drift fails instead of refreshing old admission. The existing
+read-only `ae_catalogue_authorize_user_execution` remains a pre-preparation check;
+it rejects a prepared operation rather than interpreting the step as fresh rights.
+
+The new step makes the existing User snapshot's pre_dispatch_withdrawable false
+and blocks `ae_catalogue_finish_withdrawn_operation`, even if Root can separately
+prove its own reservation was withdrawn. User startup preserves the step and
+marks the unsettled launch recovery_required. A future executing reconciliation
+must join both owners' evidence; neither a historical Root receipt nor absent
+process may bypass this User obligation. No release/settlement API is added here.
+
+This is durable intent and retention evidence, not a cross-owner ARM capability,
+private-view readiness, target registration, app readiness or process drain.
+It does not freeze another owner, prevent a privileged database edit or install
+a User wire method. Actual current Root/User admission, mutation fencing and
+recovery coordination remain next. Normal installed launch methods/gates and
+public capabilities are unchanged.
+
+`catalogue.user_execution` uses actual native owner catalogues and nine isolated
+scenarios: fresh, lost reply, process exit before/after COMMIT, User restart, gate
+closure and each of the three revision overflows. It also checks all thirteen
+metadata-bound identity substitutions with valid recomputed request fingerprints,
+all four mutating-statement failures, precommit rollback, exact retry byte/revision
+stability, full-profile conflict, wrong-owner/invalid input, and rejection of the
+old User withdrawal path. These are metadata/transaction tests, not live User
+process admission or power-loss testing. Existing execution/kernel tests retain
+their separately documented scopes.

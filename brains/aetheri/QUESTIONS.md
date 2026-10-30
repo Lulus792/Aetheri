@@ -100,6 +100,12 @@ admission, dynamic scaffold/category allocation, actual app registration/readine
 and production executing recovery/lease settlement remain next. These are
 implementation gates, not user product questions. No normal launch capability
 has been enabled; UI/browser/shell choices above remain deferred to the user.
+User-side native execution preparation now persists intent before the first Root
+executing request. Fresh-only submission, exact profile binding and recovery/
+withdrawal guards are tested; these are not current RPC or filesystem admission.
+Next connect the actual registered broker, User private-data checks and native
+Root dispatch, retaining independent owner catalogues and existing closed normal
+inputs until that path has enforcing evidence. No extra user choice is required.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

@@ -871,3 +871,24 @@ processes/units/cgroups/jobs before test retirement, archive the native unresolv
 lease/operation and never apply the old no-exec release proof. Unknown starts
 preserve fixture/policy/intent. This evidence does not complete production
 admission, readiness, lease recovery or removal, and enables no public capability.
+
+## Persist User execution preparation before crossing owners — 30 October 2026
+
+Add a User-owned step1 binding the complete independently admitted execution
+profile to the accepted launch before its first executing Root request. Reuse
+the v2 operation journal rather than a parallel database or mutable config flag.
+Atomically recheck User metadata/data fences and record the obligation. Keep
+preparing/unknown/no invocation; durable intent is not evidence of execution.
+
+Only a fresh successful commit may return submit_required=1. Exact retries return
+zero and unchanged revisions; lost commit acknowledgement never permits replay.
+Runtime/gate/data drift rejects, while the existing step survives startup recovery.
+The old User pre-dispatch withdrawal path must refuse this operation, including
+when Root has independently withdrawn its own still-reserved tuple. Future
+executing reconciliation must settle the User record explicitly.
+
+Do not treat this record as a filesystem check, authenticated RPC, cross-owner
+ARM grant or readiness/drain proof. Current Root/broker/reservation provenance,
+independent allocation/MAC checks and mutation exclusion remain required before
+the caller uses it. No new schema/wire/dependency/policy/service is needed for
+this internal intent boundary; actual User admission wiring remains next.

@@ -1,6 +1,6 @@
 #ifndef AETHERI_CATALOGUE_EXECUTION_H
 #define AETHERI_CATALOGUE_EXECUTION_H
-#include "catalogue/reservation.h"
+#include "catalogue/launch.h"
 
 /* Separate purpose/tag from the immutable no-exec setup profile. This bounded
  * P0 profile selects the manifest action run in session p0 / seat none. The
@@ -21,6 +21,26 @@ int ae_execution_digest(const struct ae_execution_profile *,uint8_t output[32]);
  * authenticated Root receipt. Caller still reopens/verifies the independent
  * allocation and raw MAC context; SQLite is not filesystem/process evidence. */
 int ae_catalogue_authorize_user_execution(struct ae_catalogue *,const struct ae_execution_profile *);
+struct ae_user_execution_result {
+    struct ae_user_launch_snapshot launch;
+    /* One only after the fresh preparation commit. A retry, including after a
+     * lost acknowledgement, never permits a new external submission. */
+    int submit_required;
+};
+/* User-owner intent BEFORE the first executing Root request. Bind the complete
+ * independently verified profile to operation step 1 (stage/data/executing).
+ * The exact accepted launch/root receipt, active attached data and current open
+ * fence must still match. This disables ordinary pre-dispatch withdrawal without
+ * claiming Root dispatch, mount readiness, exec, application readiness or drain.
+ * Caller authenticates current Root/broker and its still-reserved original Root
+ * receipt, and verifies private allocation/MAC immediately before this call;
+ * this metadata journal neither observes the filesystem nor grants ARM rights.
+ * No RPC/effect inside SQLite. Outputs unchanged on all errors/unknown COMMIT.
+ * Exact current retries retain history/revisions with submit_required=0. Changed
+ * profile conflicts; runtime/gate/data drift cannot reauthorize old work. Startup
+ * recovery preserves the step; only a separate executing reconciliation may
+ * settle it. Never use no-exec cancellation after this preparation. */
+int ae_catalogue_prepare_user_execution(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_user_execution_result *);
 
 enum ae_execution_stage { AE_EXECUTION_REQUEST=1,AE_EXECUTION_BIND,AE_EXECUTION_PREPARE,AE_EXECUTION_ARM };
 struct ae_execution_evidence { uint8_t invocation[16],context_digest[32]; };
