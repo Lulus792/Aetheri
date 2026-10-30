@@ -93,6 +93,19 @@ def finish(value):
     return value
 
 
+def execution_views(value):
+    """Protected preallocated scaffold evidence; no allocation/admission effect."""
+    fields(value,"profile_sha256 objects")
+    output=b"AETHVWS1"+rawhex(value["profile_sha256"],32)
+    sequence(value["objects"],4,4)
+    for obj in value["objects"]:
+        fields(obj,"filesystem_type filesystem_id inode birth_seconds birth_nanoseconds")
+        output+=struct.pack(">Q",integer(obj["filesystem_type"]))+rawhex(obj["filesystem_id"],8)
+        output+=struct.pack(">QQI",integer(obj["inode"],minimum=1),integer(obj["birth_seconds"]),
+                            integer(obj["birth_nanoseconds"],maximum=999999999))
+    return finish(output)
+
+
 def fixture(value):
     fields(value, "component publisher version target files actions dependencies")
     require(value["target"] == "x86_64-linux-gnu", "P0 target")

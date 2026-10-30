@@ -1221,3 +1221,38 @@ This explains the observed user-scope ENOMEDIUM failure. System scope with the
 separate session-type Root-only test config works without installing or changing
 global bus policy. The system-bus-only initial test was rejected before handler
 entry; missing dbus-run-session was not solved by adding a package.
+
+## Separate starter and scaffold binding — 30 October 2026
+
+Original [entry](../../src/launcher/starter.c),
+[preparation contract](../../src/launcher/preparation.h),
+[implementation](../../src/launcher/preparation.c),
+[real mount/source checks](../../tests/test_execution_profile.c),
+[controlled flow faults](../../tests/test_starter.c) and
+[frozen scaffold vector](../../spec/vectors/scaffold-v1.json). The reference
+execution_views encoder is development serialization, not Root provisioning or
+an allocation journal. Normal protected inputs remain unprovisioned; no positive
+actual starter-domain or installed-launch claim follows from these tests.
+
+Primary Linux man-pages [open_tree](https://man7.org/linux/man-pages/man2/open_tree.2.html)
+and [move_mount](https://man7.org/linux/man-pages/man2/move_mount.2.html) were read:
+OPEN_TREE_CLONE creates an FD-bound detached mount; attaching it changes its
+lifetime, so close is not drain. The retained source/destination FD forms avoid
+new pathname selection at the actual move. No newer open_tree_attr or kernel
+flag was adopted. The actual mount tests run on the existing pinned6.19 carrier,
+not every release described by current man-pages.
+
+The official [systemd259 descriptor negotiation page](https://www.freedesktop.org/software/systemd/man/259/sd_bus_negotiate_fds.html)
+requires negotiation before sd_bus_start and describes bidirectional descriptor
+support. This online page renders259.6; the tested library remains the installed
+259.10, with the existing unaugmented sender credential/ProcessFD checks. No
+different library family/version was selected.
+
+Initial flow testing correctly rejected a child-side call to the process-owned
+channel FD accessor with ECHILD. The test now retains its raw inherited reader
+number before fork and closes it directly; the production guard is unchanged.
+Actual starter CLI probes reject unprivileged/default administrative contexts
+with125 and arguments with2 before any profile/RPC. Those are negative entry
+observations, not positive full-context or target-exec evidence. Controlled flow
+faults preserve real failure-frame transport but replace admission/views/exec;
+separate private mount fixtures retain actual filesystem/MAC/kernel checks.

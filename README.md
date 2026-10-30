@@ -14,8 +14,9 @@ and independently recorded private-data allocation before mount preparation.
 The executing-starter client now authenticates the current system process and
 binding/release replies; its confined protocol fixture has passed. A separate
 producer component now joins those replies to the durable journal and holds
-prepared requests until a fresh arm. Installed authority integration and the
-actual executing starter remain in progress.
+prepared requests until a fresh arm. A separate starter now connects that client
+to verified private code/data views and one-way execution. Protected service/
+policy integration and actual managed app starts remain in progress.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

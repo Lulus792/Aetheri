@@ -85,6 +85,11 @@ the synthetic reply fixture does not establish producer admission/readiness.
 The native journal-backed producer component now has isolated owner/bus tests,
 including deferred release and deadlines. Controlled actor/PID1 adapters do not
 establish actual starter policy or live current-data/broker admission.
+A separate starter now joins the authenticated client/private views/one-way exec.
+The temporary scaffold has its own profile-bound AETHVWS1 witnesses; publishing
+these from independently admitted/flushed Root setup and integrating actual
+starter-domain/Root unit supervision remain implementation gates. No extra user
+product decision is needed for these fixed P0 internal choices.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

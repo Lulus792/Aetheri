@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — separate journal-backed Execution1 producer; live starter/provisioning remain next.
+30 October 2026 — separate executing starter and profile-bound private views; live provisioning/admission remain next.
 
 ## Confirmed
 
@@ -13,6 +13,50 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The separate aetheri-execution-starter now joins protected profile/self-image
+checks, the authenticated Root client, private code/data views and one-way exec.
+Its fixed P0 Root unit is aetheri-p0-execution-root.service. Original registration
+precedes setup; the original release and a second target check precede exec.
+Literal manifest argv and three fixed inert-fixture environment entries replace
+inherited variables. Failures report through the issued channel and exit without
+retry/fallback. The old no-exec helper/proof is unchanged.
+
+AETHVWS1 independently binds the four temporary scaffold objects to the complete
+AETHEXE1 digest. The 184-byte contract has a frozen vector/reference encoder.
+Recreated directories and changed records are rejected, source observations are
+made inside the private namespace, and held/named mounts plus the actual image
+are checked before handoff. Closing local handles is never namespace/app drain.
+This is separate from persistent private-data allocation. Root's pre-dispatch
+scaffold creation/flush/publication journal remains to implement.
+
+Focused Debug ASan/UBSan source/view and flow/execute tests pass. Source fixtures
+now include 15 scaffold/mount cases in addition to the earlier35; only the initial
+fixed anchor is mapped, with actual file contexts/mounts/ELF checks. Flow faults
+use controlled context/client/views/execute adapters and real error channels;
+they are not live starter-domain or target-exec acceptance. Actual negative CLI
+probes reject unprivileged/default administrative contexts and extra arguments.
+Full Debug ASan/UBSan regression passes 38/38 (379.63 s), Release 38/38 (312.22 s).
+The flow group includes 13 ordering/fault cases and three direct failure-frame
+cases. Host migration/wire passes 30/30 (54.772 s), orchestration 39/39 (0.296 s),
+runtime/reference vectors 15/15 and constraints 374 assertions. These are test
+durations, not OS performance measurements.
+
+Final read-only carrier verification confirms Enforcing, unchanged verified normal
+protected inputs, no pending request, two closed install/two closed data gates,
+no unsettled dispatch/held lease, no temporary execution fixture/module/private
+broker and System1 unowned. Starter/profile/scaffold record and fixed Root unit
+remain unprovisioned. Release negative entry/argument probes also pass. No normal
+managed app was dispatched or hardware/storage installation performed.
+
+No starter/profile/execution-views record, Root unit or policy was installed.
+Positive confined starter/Root admission, protected provisioning/live supervisor
+request/current broker-data mediation, actual target registration/readiness and
+independent executing drain/recovery remain required. The full OS/apps/UI/image/
+hardware goal stays active; no user decision blocks the next backend work.
+See [starter/scaffold contract](../../spec/runtime.md#separate-executing-starter-and-witnessed-mount-scaffold).
+
+Previous endpoint checkpoint (30 October 2026):
 
 The separate native Execution1 producer now joins actual BIND/PREPARE/ARM owner
 transactions to correlated descriptor/deferred replies. It retains the original

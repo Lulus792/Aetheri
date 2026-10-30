@@ -30,6 +30,11 @@ static _Noreturn void failure(int fd,enum ae_exec_phase phase,int error)
     if (fd>=3) { ssize_t written; do { written=write(fd,bytes,sizeof bytes); } while (written<0 && errno==EINTR); }
     _exit(125);
 }
+_Noreturn void ae_execute_fail(int fd,enum ae_exec_phase phase,int error)
+{
+    if (phase<AE_EXEC_PROFILE || phase>AE_EXEC_CALL || error<1 || error>4095) { phase=AE_EXEC_PROFILE; error=EINVAL; }
+    failure(fd,phase,error);
+}
 static int vectors(char *const *v,size_t maximum,int environment)
 {
     if (v==NULL) return -EINVAL;

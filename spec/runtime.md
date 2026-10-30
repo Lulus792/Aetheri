@@ -2548,3 +2548,92 @@ catalogues are changed. No dbus-run-session package is required.
 Actual protected Root/starter provisioning, live request/supervisor adapters,
 target exec/registration/readiness and independent executing drain/recovery remain
 integration work. The older non-executing helper/proofs remain separate.
+
+## Separate executing starter and witnessed mount scaffold
+
+`aetheri-execution-starter` is a distinct executable built from
+`launcher/starter.c`, with `launcher/preparation.[ch]` supplying its read-only
+self/source checks and private views. It accepts no arguments or caller-selected
+paths, UID, action, environment, categories or Root unit. The compiled P0 Root
+unit is `aetheri-p0-execution-root.service`; actual protected provisioning of that
+unit/profile/image remains work. Neither this binary nor its missing starter
+domain is installed by the normal controller or the component tests.
+
+Entry requires real/effective UID/GID0, one thread, Enforcing, NNP and exactly
+SYS_ADMIN, DAC_READ_SEARCH, SETUID, SETGID and SETPCAP effective/permitted, with
+only those allowed inheritable bits. It clears inherited/ambient bits and
+rechecks capabilities. The complete current label must be
+`system_u:system_r:aetheri_starter_t:s0`. It loads the protected AETHEXE1 and
+compares its actual current ELF object/digest to the independently protected
+starter before making RPCs. No capability/domain is added by this entry check.
+
+The flow opens only the host-local system bus, negotiates descriptors before
+start, and uses the existing original-Root authenticated client. Registration
+must succeed before namespace/view setup. Views are checked before ReportPrepared;
+its original correlated release must succeed before a second target recheck and
+the one-way execute boundary. The starter closes its client/bus locally after
+that exchange; departure is not target drain. There is no retry, shell expansion,
+PATH lookup, interpreter fallback or pre-exec READY notification.
+
+The fixed inert EXEC fixture receives manifest-owned literal argv and exactly
+LANG=C.UTF-8, its c35,c36 expected-context value and AETHERI_SCENARIO=p0. No host
+environment, HOME, PATH, loader, bus or supervisor-notify variables are inherited.
+The target is UID/GID1000 in `aetheri_app_t:s0:c35,c36`. General application
+environment/account/category policy remains separate work. Existing one-way exec
+seals descriptors and drops groups/capabilities/credentials; the borrowed target
+handles remain alive through that call. A pre-exec failure after writer issuance
+uses the same bounded AETHXER1 PROFILE/error frame and exit125. Invalid internal
+report phase/errno normalizes to PROFILE/EINVAL. No writer means no report; neither
+that absence nor exit125 proves no target execution or permits lease release.
+
+The scaffold is a temporary runtime workspace, distinct from private DataEpoch/
+StorageRef allocations. A protected `registry/execution-views.conf` contains the
+184-byte AETHVWS1 record:
+
+| Offset | Field |
+| --- | --- |
+| 0 | Eight bytes AETHVWS1 |
+| 8 | SHA-256 of the complete canonical AETHEXE1, 32 bytes |
+| 40 | Independently recorded launches parent object, 36 bytes |
+| 76 | Exact LaunchId workspace object, 36 bytes |
+| 112 | Empty app attachment directory object, 36 bytes |
+| 148 | Empty data attachment directory object, 36 bytes |
+
+Each object is filesystem type u64, filesystem ID eight raw bytes, inode u64,
+birth seconds u64 and birth nanoseconds u32, all integers big-endian. Type/inode/
+seconds fit signed SQL range, inode is positive and nanoseconds below 1e9.
+These are bounded object witnesses, not volume/clone authentication or authority.
+The frozen [vector](vectors/scaffold-v1.json) and reference `execution_views`
+encoder cover this separate format without changing older vectors/SQL/XML.
+
+Root must independently create/admit/flush and journal these exact objects before
+dispatch, then publish the protected profile-bound record. That provisioning/
+operation journal is not implemented here. Never capture/adopt a candidate from
+its matching name or its own record during recovery. The reader requires the
+Root-owned fixed anchor/registry, a single-link 0444 registry file and 0700 Root-
+owned aetheri_setup_root_t directories under launches/LaunchId. Symlink and child
+mount crossings are rejected while joining the four independently witnessed
+objects; directory FDs stay held through attachment. Binding to the full profile
+also distinguishes Root/boot/run/image replacement. Existing no-exec scaffolds
+and their records cannot substitute for AETHVWS1.
+
+After entering a fresh private mount namespace, preparation reopens the already
+reviewed EXEC source inventory/private allocation there. It clones/attaches exact
+readonly executable code and writable noexec private data, then opens the image
+through that attached code view. The image must match the original admitted
+backing object/digest. Rechecks join held and named app/data mounts, exact data
+context and image; a replacement mount cannot select another tree. Closing view
+objects only closes handles. Failure can already have changed namespace/mounts:
+exit the process, never reuse it or attempt fallback/rollback. The caller still
+owes current broker/data fences and exclusion of content/topology mutation.
+
+Native profile tests now also exercise actual private mounts with independently
+recorded scaffold witnesses, including recreated directories, metadata/record
+errors, nonempty slots, fork ownership, unchanged parent namespace and a later
+replacement mount. Separate starter flow tests inject component faults to verify
+ordering, original release gating, exact argv/environment and actual error frames.
+Those flow adapters do not authenticate a live starter/Root or execute a target.
+Actual confined positive starter admission, protected provisioning/live supervisor
+request, target image/registration/readiness and independent executing drain/
+recovery remain required. The old setup helper has no execution path and remains
+unchanged; its no-exec withdrawal proof never applies to this new executable.

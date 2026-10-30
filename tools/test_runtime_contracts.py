@@ -26,6 +26,18 @@ class RuntimeContracts(unittest.TestCase):
                 self.assertEqual(actual.hex(), vector["hex"])
                 self.assertEqual(rc.digest(actual), vector["sha256"])
 
+    def test_frozen_execution_scaffold(self):
+        vector=rc.load_json((ROOT/"spec/vectors/scaffold-v1.json").read_bytes())
+        encoded=rc.execution_views(vector["input"])
+        self.assertEqual(len(encoded),184)
+        self.assertEqual(encoded.hex(),vector["hex"])
+        self.assertEqual(rc.digest(encoded),vector["sha256"])
+        for change in (lambda x:x.update(future=1),lambda x:x.update(profile_sha256="00"),
+                       lambda x:x["objects"].pop(),lambda x:x["objects"].append(x["objects"][0]),
+                       lambda x:x["objects"][0].update(inode=0),lambda x:x["objects"][1].update(birth_nanoseconds=1000000000),
+                       lambda x:x["objects"][2].update(filesystem_id="GG"*8),lambda x:x["objects"][3].update(birth_seconds=True)):
+            value=deepcopy(vector["input"]); change(value); self.rejects(rc.execution_views,value)
+
     def test_input_order_does_not_change_identity(self):
         for kind, key in (("fixture", "files"), ("intent", "reads"), ("intent", "effects")):
             a = self.example(kind)

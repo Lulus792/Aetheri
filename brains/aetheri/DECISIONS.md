@@ -828,3 +828,23 @@ only for the normal PID1 subscription. Actor/PID1 observations are explicit
 controlled adapters. Do not weaken global bus rules or mistake these tests for
 actual starter-domain/live-launch admission. Protected provisioning, live
 supervisor request and fresh broker/data mediation remain integration gates.
+
+## Use a separate executing image and independently witnessed workspace — 30 October 2026
+
+Build a distinct starter around the existing authenticated client, verified
+source loader, private mount primitives and one-way execute boundary. Keep the
+old no-exec helper/proofs unchanged. The fixed P0 Root unit and target UID/domain/
+environment are compiled technical fixture selections, never app-supplied paths
+or policy. General account/environment integration remains separate work.
+
+Bind preallocated runtime workspace objects independently through AETHVWS1 and
+the complete AETHEXE1 digest. A matching name/type/owner alone cannot justify
+adopting a recreated directory. Keep exact attachment FDs held, reopen sources
+inside the new namespace and recheck named/held mounts plus image after the
+original release. No fresh code/data/UID/context should be selected after it.
+
+Use the existing bounded error frame for pre-exec failures, then exit without
+retry or fallback. EOF/exit125 remains unknown; an executing image always needs
+independent executing drain/recovery, even when a particular error occurred early.
+Actual protected provisioning/Root publication and positive starter-domain tests
+remain gates. No library family, schema/XML change or resident process is added.

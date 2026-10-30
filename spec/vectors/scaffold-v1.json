@@ -1,0 +1,37 @@
+{
+  "input": {
+    "profile_sha256": "1212121212121212121212121212121212121212121212121212121212121212",
+    "objects": [
+      {
+        "filesystem_type": 61267,
+        "filesystem_id": "0123456789abcdef",
+        "inode": 100,
+        "birth_seconds": 1700000000,
+        "birth_nanoseconds": 123456789
+      },
+      {
+        "filesystem_type": 61267,
+        "filesystem_id": "0123456789abcdef",
+        "inode": 101,
+        "birth_seconds": 1700000001,
+        "birth_nanoseconds": 123456790
+      },
+      {
+        "filesystem_type": 61267,
+        "filesystem_id": "0123456789abcdef",
+        "inode": 102,
+        "birth_seconds": 1700000002,
+        "birth_nanoseconds": 123456791
+      },
+      {
+        "filesystem_type": 61267,
+        "filesystem_id": "0123456789abcdef",
+        "inode": 103,
+        "birth_seconds": 1700000003,
+        "birth_nanoseconds": 123456792
+      }
+    ]
+  },
+  "hex": "41455448565753311212121212121212121212121212121212121212121212121212121212121212000000000000ef530123456789abcdef0000000000000064000000006553f100075bcd15000000000000ef530123456789abcdef0000000000000065000000006553f101075bcd16000000000000ef530123456789abcdef0000000000000066000000006553f102075bcd17000000000000ef530123456789abcdef0000000000000067000000006553f103075bcd18",
+  "sha256": "85dff48deec490188d8a20e935052d38fa8ce4e62ff733aee090ecd65f773876"
+}

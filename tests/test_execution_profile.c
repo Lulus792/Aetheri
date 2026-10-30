@@ -1,4 +1,5 @@
 #include "authority/execution_profile.h"
+#include "launcher/preparation.h"
 #include "core/digest.h"
 #include "core/root.h"
 #include <dirent.h>
@@ -11,6 +12,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/mount.h>
+#include <sys/statvfs.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"execution profile line %d: %s errno=%d\n",__LINE__,#x,errno); exit(1); } } while (0)
@@ -40,6 +44,46 @@ static void read_profile(const char *path,struct ae_execution_profile *p)
     CHECK(fread(bytes,1,sizeof bytes,file)==AE_EXECUTION_BYTES && fclose(file)==0);
     CHECK(ae_execution_decode(bytes,AE_EXECUTION_BYTES,p)==0);
 }
+static void views(const struct ae_execution_profile *p,const char *mode,int expected)
+{
+    struct stat before,after; CHECK(stat("/proc/self/ns/mnt",&before)==0);
+    pid_t child=fork(); CHECK(child>=0);
+    if (child==0) {
+        int baseline=descriptors(); struct ae_starter_views *v=NULL;
+        CHECK(ae_starter_views_open(NULL,&v)==-EINVAL && ae_starter_views_open(p,NULL)==-EINVAL);
+        int r=ae_starter_views_open(p,&v);
+        if (r!=expected) fprintf(stderr,"starter views %s expected=%d actual=%d\n",mode,expected,r);
+        CHECK(r==expected);
+        if (r==0) {
+            CHECK(v!=NULL && ae_starter_views_open(p,&v)==-EINVAL);
+            struct ae_starter_target t,marker; memset(&marker,0xa5,sizeof marker);
+            int held=descriptors();
+            for (size_t n=0;n<8;++n) {
+                CHECK(ae_starter_views_target(v,&t)==0 && t.image_fd>=3 && t.data_fd>=3 && t.image_fd!=t.data_fd);
+                CHECK(strcmp(t.command.executable,"bin/probe")==0 && t.command.argc==3 && strcmp(t.command.arguments[1],"--literal")==0 && t.command.arguments[2][0]==0);
+                CHECK((fcntl(t.image_fd,F_GETFD)&FD_CLOEXEC) && (fcntl(t.data_fd,F_GETFD)&FD_CLOEXEC));
+                struct statvfs a,b; CHECK(fstatvfs(t.image_fd,&a)==0 && fstatvfs(t.data_fd,&b)==0);
+                CHECK((a.f_flag&(ST_RDONLY|ST_NODEV|ST_NOSUID))==(ST_RDONLY|ST_NODEV|ST_NOSUID) && !(a.f_flag&ST_NOEXEC));
+                CHECK((b.f_flag&(ST_NODEV|ST_NOSUID|ST_NOEXEC))==(ST_NODEV|ST_NOSUID|ST_NOEXEC) && !(b.f_flag&ST_RDONLY));
+                CHECK(descriptors()==held);
+            }
+            pid_t inherited=fork(); CHECK(inherited>=0);
+            if (inherited==0) { t=marker; CHECK(ae_starter_views_target(v,&t)==-ECHILD && memcmp(&t,&marker,sizeof t)==0 && ae_starter_views_close(&v)==-ECHILD && v); _exit(0); }
+            int status; CHECK(waitpid(inherited,&status,0)==inherited && WIFEXITED(status) && WEXITSTATUS(status)==0);
+            if (strcmp(mode,"views-replaced")==0) {
+                char source[4096],destination[4096],launch[33];
+                for (size_t n=0;n<16;++n) snprintf(launch+2*n,3,"%02x",p->launch[n]);
+                CHECK(snprintf(source,sizeof source,"%s/replacement",mapped_root)>0 && snprintf(destination,sizeof destination,"%s/launches/%s/app",mapped_root,launch)>0);
+                CHECK(mount(source,destination,NULL,MS_BIND,NULL)==0); t=marker;
+                CHECK(ae_starter_views_target(v,&t)==-ESTALE && memcmp(&t,&marker,sizeof t)==0);
+            }
+            CHECK(ae_starter_views_close(&v)==0 && v==NULL && ae_starter_views_close(&v)==0);
+        } else CHECK(v==NULL);
+        CHECK(descriptors()==baseline); _exit(0); /* Namespace drain, not a lease API. */
+    }
+    int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==0);
+    CHECK(stat("/proc/self/ns/mnt",&after)==0 && before.st_ino==after.st_ino && before.st_dev==after.st_dev);
+}
 int main(int argc,char **argv)
 {
     CHECK(getuid()==0 && geteuid()==0);
@@ -55,6 +99,7 @@ int main(int argc,char **argv)
     struct ae_execution_profile p; read_profile(argv[2],&p);
     const char *mode=argv[3]; int expected=(int)strtol(argv[4],NULL,10);
     unsigned int repeat=(unsigned int)strtoul(argv[5],NULL,10); CHECK(repeat>=1 && repeat<=128);
+    if (strncmp(mode,"views",5)==0) { CHECK(repeat==1); views(&p,mode,expected); return 0; }
     int count=descriptors();
     for (unsigned int n=0;n<repeat;++n) {
         int r;

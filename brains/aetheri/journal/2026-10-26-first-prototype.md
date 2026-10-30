@@ -1738,3 +1738,66 @@ confined starter/live-launch admission. Next connect protected Root/starter
 provisioning, native supervisor request and current broker/private-data admission,
 then actual target registration/readiness and independent executing drain/recovery.
 The non-executing helper/proofs remain separate. Full Aetheri remains the goal.
+
+## Separate executing starter and witnessed views — 30 October 2026
+
+Implemented a distinct aetheri-execution-starter image and a coherent preparation
+module. Startup checks Root UID/GID, single thread, Enforcing/NNP, complete starter
+domain and exact five setup/credential-drop effective/permitted capabilities,
+then clears inherited/ambient bits. Protected AETHEXE1/current ELF checks precede
+RPC. The original-Root authenticated client uses a compiled fixed P0 Root unit;
+it registers once before private setup, waits for the original release and
+rechecks target handles before the existing one-way exec boundary. No arguments,
+paths/UID/context/environment or Root unit come from an app or inherited variables.
+The old setup-only binary and its proof remain unchanged.
+
+Added AETHVWS1: 184 canonical bytes bind the complete profile digest to four
+independently recorded temporary scaffold objects. Witnesses use filesystem type/
+ID, inode and mandatory birth time, never durable mount IDs or filename adoption.
+The independently packed frozen vector and strict reference encoder cover the
+format without changing older vectors/SQL/XML. Native views retain exact directory
+FDs through attachment, reopen sources inside their private namespace and join
+held/named mounts plus image on recheck. A recreated directory or later replacement
+mount cannot supply another target. Closing handles cannot prove namespace drain.
+Root's admitted/flushed pre-dispatch scaffold publication/journal remains work;
+the reader is not a creator or recovery adoption path.
+
+The inert EXEC fixture receives exact manifest literals and three fixed variables,
+UID/GID1000 and c35,c36. Its eventual actual execution is still unaccepted. Starter
+failure uses the issued bounded AETHXER1 frame and exit125, with invalid internal
+phase/errno normalized to PROFILE/EINVAL. No writer/EOF/exit125 proves no execution;
+never extend the old no-exec withdrawal/drain proof to this image.
+
+Actual enforcing-guest filesystem tests cover the previous35 source fixtures plus
+15 new scaffold/private-mount cases, with only the initial anchor mapped. They
+check missing/bad records, exact profile/object binding, recreated directories,
+nonempty slots, private source/view flags, repeated FD balance, fork ownership,
+parent namespace isolation and a later replacement mount. Controlled flow tests
+cover 13 ordered success/fault cases plus three real frame/normalization cases;
+context/client/views/target execution are explicitly replaced there. The first
+flow test correctly hit the process-owned channel accessor's ECHILD guard after
+fork; preserving the raw reader number before fork fixed only that test.
+
+The actual Debug starter rejects unprivileged/default administrative contexts
+with125 and extra arguments with2, before profile/RPC. Those negative observations
+do not establish positive starter-domain/self-image admission. Focused Debug
+source/flow/execute groups pass (12.54 s); full Debug ASan/UBSan passes 38/38
+(379.63 s), Release 38/38 (312.22 s).
+Host migration/wire passes 30/30 (54.772 s), orchestration 39/39 (0.296 s), vectors
+15/15 and constraints 374 assertions. Timings are tests, not OS benchmarks.
+
+Final read-only observation confirms Enforcing, verified normal protected inputs,
+pending=None, two closed install/two closed data gates, no unsettled dispatch/held
+lease, no temporary execution fixture/module/private test broker and System1
+unowned. The starter image/profile/scaffold record/fixed Root unit remain absent
+from the normal installation. Release negative context/argument probes also pass.
+No normal authority/helper/profile was updated or managed app dispatched. No host
+storage/hardware or other project was changed.
+
+Reviewed unknown/failure paths, exact profile/scaffold binding, held descriptors,
+namespace changes and local-close semantics. No dependency family, policy grant,
+normal service/profile or public capability was added. Positive confined starter/
+Root admission, protected provisioning/live supervisor request and fresh broker/
+data mediation remain next, then actual target image/registration/readiness and
+independent executing drain/recovery. The full OS/apps/UI/image/hardware objective
+remains active; no personal product decision blocks that backend work.

@@ -259,6 +259,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- launcher/preparation.h and aetheri-execution-starter now join protected self/
+  source checking, the authenticated client, private views and one-way exec. Read
+  spec/runtime.md's separate starter section. AETHVWS1 (184 bytes, frozen vector)
+  binds four independently recorded scaffold objects to the entire AETHEXE1;
+  never adopt a recreated/matching-name directory or reuse the no-exec scaffold
+  proof. Source checks happen inside the private namespace; held/named mounts and
+  image are checked again after release. Failure must exit, with no retry/fallback.
+  The fixed P0 Root unit is aetheri-p0-execution-root.service; target UID/GID1000,
+  c35,c36, manifest literals and three fixed environment entries are fixture-only.
+  No normal starter/profile/scaffold record/policy is installed. Flow adapters
+  are controlled; actual confined positive admission, Root provisioning/live
+  request/data mediation and executing target readiness/drain still remain.
 - authority/execution_wire.h now supplies the separate journal-backed Execution1
   producer component. Read spec/runtime.md's endpoint section. It retains one
   original prepared call until fresh native ARM, consumes before send and checks

@@ -165,6 +165,8 @@ observation retains closed gates; actual starter/profile/policy remain unprovisi
 The native executing-starter client now authenticates original Root process/
 supervisor/discovery and exact binding/release replies. Its real confined protocol
 fixture passes. A separate native producer now joins binding/deferred release to
-the journal; live authority/starter provisioning and launch admission remain work.
+the journal. A separate executing starter now joins the client, witnessed private
+views and one-way exec. Live authority/starter provisioning and launch admission
+remain work; controlled flow tests are not positive starter-domain acceptance.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

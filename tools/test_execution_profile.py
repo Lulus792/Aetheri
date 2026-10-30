@@ -207,7 +207,37 @@ def main():
                     (f["account"]/"control/app-allocations"/identity(13).hex()).write_bytes(b[200:])
             elif change=="allocation-digest": p=f["expected"]; b=bytearray(p.read_bytes()); b[-1]^=1; p.write_bytes(b)
             invoke(f,expected=-error,repeat=8)
-        print(f"Execution profile: {cases} owned fixtures; exact source/owner/MAC binding, unchanged outputs and FD balance passed.")
+        for change,error in (("success",0),("replaced",0),("missing",errno.ENOENT),("magic",errno.EBADMSG),
+                ("profile",errno.ESTALE),("size",errno.EBADMSG),("mode",errno.EACCES),("label",errno.EACCES),
+                ("parent-witness",errno.ESTALE),("root-witness",errno.ESTALE),("app-witness",errno.ESTALE),("data-witness",errno.ESTALE),
+                ("invalid-witness",errno.EBADMSG),("recreated",errno.ESTALE),("nonempty",errno.ENOTEMPTY)):
+            f=fixture(); root=f["root"]; parent=root/"launches"; directory(parent,"aetheri_setup_root_t",mode=0o700)
+            workspace=parent/identity(31).hex(); directory(workspace,"aetheri_setup_root_t",mode=0o700)
+            for slot in ("app","data"): directory(workspace/slot,"aetheri_setup_root_t",mode=0o700)
+            directory(root/"replacement","aetheri_setup_root_t",mode=0o700)
+            objects=[]
+            for obj in (parent,workspace,workspace/"app",workspace/"data"):
+                kind,fsid,inode,seconds,ns=observe(obj)
+                objects.append(dict(filesystem_type=kind,filesystem_id=fsid.hex(),inode=inode,birth_seconds=seconds,birth_nanoseconds=ns))
+            value=reference.execution_views(dict(profile_sha256=sha(f["expected"].read_bytes()).hex(),objects=objects))
+            assert len(value)==184
+            path=root/"registry/execution-views.conf"; file(path,value)
+            if change=="missing": path.unlink()
+            elif change in ("magic","profile","parent-witness","root-witness","app-witness","data-witness","invalid-witness"):
+                value=bytearray(value)
+                if change=="invalid-witness": value[128:136]=bytes(8)
+                else:
+                    offset={"magic":0,"profile":8,"parent-witness":63,"root-witness":99,"app-witness":135,"data-witness":171}[change]
+                    value[offset]^=1
+                path.write_bytes(value)
+            elif change=="size": path.write_bytes(value+b"x")
+            elif change=="mode": path.chmod(0o644)
+            elif change=="label": label(path,"aetheri_root_t")
+            elif change=="recreated":
+                (workspace/"app").rename(workspace/"original-app"); directory(workspace/"app","aetheri_setup_root_t",mode=0o700)
+            elif change=="nonempty": file(workspace/"data/foreign",b"retain","aetheri_setup_root_t")
+            invoke(f,"views-replaced" if change=="replaced" else "views",-error)
+        print(f"Execution profile/views: {cases} owned fixtures; exact source/scaffold/MAC binding, private mounts, unchanged outputs and FD balance passed.")
     except BaseException:
         print(f"Preserved execution-profile fixtures: {temporary}",file=sys.stderr)
         raise

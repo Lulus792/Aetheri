@@ -23,4 +23,8 @@ struct ae_execute {
  * EOF/no record is UNKNOWN, never exec success/readiness or permission to release.
  * External supervisor/process/image/drain evidence remains mandatory. */
 _Noreturn void ae_execute_target(const struct ae_execute *);
+/* Trusted starter's pre-exec failure, after ownership of its issued writer was
+ * checked. One bounded AETHXER1 report and exit125; never a retry/readiness proof.
+ * Invalid phase/errno becomes PROFILE/EINVAL. fd<3 simply exits without report. */
+_Noreturn void ae_execute_fail(int fd,enum ae_exec_phase,int positive_errno);
 #endif
