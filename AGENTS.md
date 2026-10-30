@@ -259,6 +259,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- authority/execution_wire.h now supplies the separate journal-backed Execution1
+  producer component. Read spec/runtime.md's endpoint section. It retains one
+  original prepared call until fresh native ARM, consumes before send and checks
+  one four-second deadline before and after commit. Expiry/send uncertainty never
+  releases leases or proves drain. Run authority.execution_endpoint: real isolated
+  owner/bus/ProcessFD tests use controlled actor/PID1 adapters on an owned private
+  broker37 socket/config. No global bus/policy change or dbus-run-session dependency.
+  The launcher uses system scope for its own PID1 subscription only. This library
+  is not connected to the installed authority; actual Root/starter provisioning,
+  live supervisor request/current broker-data admission, target readiness and
+  independent executing drain/recovery remain pending. Keep normal inputs closed.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

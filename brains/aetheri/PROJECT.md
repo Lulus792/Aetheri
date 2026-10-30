@@ -164,6 +164,7 @@ and independent private-data allocation/owner/context. Existing-installation
 observation retains closed gates; actual starter/profile/policy remain unprovisioned.
 The native executing-starter client now authenticates original Root process/
 supervisor/discovery and exact binding/release replies. Its real confined protocol
-fixture passes; actual authority producer/starter and journal-backed launch remain work.
+fixture passes. A separate native producer now joins binding/deferred release to
+the journal; live authority/starter provisioning and launch admission remain work.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.

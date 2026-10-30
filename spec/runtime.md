@@ -2489,3 +2489,62 @@ Run explicitly in the registered carrier, with normal System1 unowned:
 sudo python3 tools/test_execution_client.py /home/aetheri/build/release/probe_execution_client
 sudo python3 tools/test_execution_client.py /home/aetheri/build/release/probe_execution_client /home/aetheri/build/debug/probe_execution_client
 ```
+
+## Journal-backed execution endpoint
+
+`authority/execution_wire.[ch]` now supplies the native producer component for
+private Execution1 1.0. It owns one execution coordinator, the method slots and
+at most one deferred prepared request for one independently admitted P0 profile.
+The caller supplies a compiled request adapter and borrows its owner catalogue,
+trusted bus and event loop. The component acquires no bus name and provisions no
+unit, image, policy or profile. It is not linked into the installed authority.
+Current broker/private-data admission and protected source admission remain
+caller obligations; no public launch capability is advertised.
+
+Both handlers require an actual reply-expected call on the selected bus, exact
+generated signatures and the fixed lease/profile digest. Fresh authenticated
+peer capture feeds the coordinator's original starter/process/unit/context checks.
+Registration issues its writer only after a successful native BIND. The return
+uses the actual journal revision and full binding, and closes the issuer's local
+writer after the outgoing message has taken its own copy. Root retains only the
+reader. A construction/send error after BIND is retained; the handler returns
+handled without asking sd-bus to attempt a second automatic response.
+
+Successful PREPARE retains a reference to the original method call and returns
+handled without replying. Only a fresh native ARM can consume that call and send
+its advanced-revision release. The producer owns this release callback; callers
+cannot replace it with an arbitrary transport effect. The pending call is consumed
+before reply allocation/send, including a send whose acknowledgement is lost.
+No duplicate or late release is attempted.
+
+One monotonic four-second timer bounds the local prepared wait inside the client's
+five-second timeout. ARM samples fresh time before its transaction and again in
+the release callback after commit. This also covers a slow commit crossing the
+deadline. Expiration consumes the request, detaches the timer and attempts one
+NeedsRecovery error. It never rolls back an ARM, completes the operation, frees
+its lease or proves drain. A post-commit deadline/send failure can therefore leave
+a dispatching/running obligation with no confirmed release. Preserve and reconcile
+that uncertainty. Endpoint close detaches local resources only and refuses during
+its active callbacks; it does not stop the starter or settle durable state.
+
+`authority.execution_endpoint` exercises the producer with real isolated owner
+catalogues, kernel process references, anonymous pipe/descriptor transport and
+correlated deferred replies. Actor labels and PID1 context/ref observations use
+explicit controlled adapters; these tests do not prove actual starter-domain or
+installed-service admission. The owned child stays alive after endpoint close,
+and the test verifies that its lease remains held. Cases cover wrong peer/tuple,
+lost BIND/PREPARE/ARM commits, pre-send and post-send errors, timer and sampled
+deadline expiry, context drift, broker replacement and Root runtime replacement.
+
+The test harness starts the carrier's existing dbus-broker 37 on one private
+socket under its mode-0700 scratch directory. Its configuration allows only Root
+and contains no activation entries or global policy includes. Socket activation
+passes a single inherited FD with the launcher's actual LISTEN_PID. The launcher
+uses system scope for its own normal PID1 subscription, while tested calls use
+only the private session-type bus. The owned launcher/broker group is terminated
+afterward. No system-bus rules, protected service inputs, gates or carrier
+catalogues are changed. No dbus-run-session package is required.
+
+Actual protected Root/starter provisioning, live request/supervisor adapters,
+target exec/registration/readiness and independent executing drain/recovery remain
+integration work. The older non-executing helper/proofs remain separate.

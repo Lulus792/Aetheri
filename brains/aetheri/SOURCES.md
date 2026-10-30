@@ -1192,3 +1192,32 @@ real descriptor transport, with synthetic producer replies and no catalogue/
 target execution. Both Release client and a Debug ASan/UBSan client pass against
 the protected Release producer. This is consumer authentication/protocol evidence,
 not production ARM/admission, starter-domain permission or app readiness.
+
+## Journal-backed execution replies — 30 October 2026
+
+Original [producer contract](../../src/authority/execution_wire.h),
+[implementation](../../src/authority/execution_wire.c),
+[component scenarios](../../tests/test_execution_service.c) and
+[owned test harness](../../tools/test_launch_native.py). They use real isolated
+owner transactions, ProcessFDs, descriptor transport and correlated replies, with
+explicit controlled actor-label/PID1 adapters. They are not installed launch or
+actual starter-domain acceptance.
+
+The pinned guest's systemd-devel-259.10-1.fc44 man pages sd_bus_add_object(3) and
+sd_event_add_time(3) were read directly. Upstream v259
+[method callbacks](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_bus_add_object.xml)
+and [timer API](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_event_add_time.xml)
+corroborate handled-positive deferred replies, automatic errors on callback
+failure, epoch-relative timer deadlines and one-shot behavior. The exact-version
+freedesktop HTML page returned403; no newer library was adopted. Tests exercise
+the deferred message reference and pre/post-commit deadline in actual259.10.
+
+Existing dbus-broker-37-8.fc44 provides the isolated bus. Upstream v37
+[launcher manual](https://github.com/bus1/dbus-broker/blob/v37/docs/dbus-broker-launch.rst)
+requires a single socket-activation FD; scope selects its systemd connection.
+Its [launcher_connect/run implementation](https://raw.githubusercontent.com/bus1/dbus-broker/v37/src/launch/launcher.c)
+also opens that manager bus and subscribes even without activation entries.
+This explains the observed user-scope ENOMEDIUM failure. System scope with the
+separate session-type Root-only test config works without installing or changing
+global bus policy. The system-bus-only initial test was rejected before handler
+entry; missing dbus-run-session was not solved by adding a package.

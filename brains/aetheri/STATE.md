@@ -1,6 +1,6 @@
 # State
 
-27 October 2026 — executing-starter client authenticates original Root and binding/release replies; actual producer/starter remain next.
+30 October 2026 — separate journal-backed Execution1 producer; live starter/provisioning remain next.
 
 ## Confirmed
 
@@ -13,6 +13,41 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The separate native Execution1 producer now joins actual BIND/PREPARE/ARM owner
+transactions to correlated descriptor/deferred replies. It retains the original
+prepared request and answers only from fresh ARM after commit. A four-second
+deadline is checked both before and after the transaction; expiry/send uncertainty
+never releases a lease or proves drain. Local close preserves process/durable
+obligations. Its vtable is not linked into the installed authority or default
+method tables; public capabilities, existing XML/SQL and normal protected inputs
+remain unchanged. No new dependency family, installed policy or resident service.
+
+The focused Debug ASan/UBSan group passes all 16 scenarios (67.52 s), using real
+isolated owner catalogues, ProcessFDs, pipes and bus transport with explicit
+controlled actor-label/PID1 adapters. The carrier's existing broker37 serves a
+private Root-only bus without activatable services. Its launcher uses system
+scope for its own PID1 subscription. Initial system-bus routing denial, absent
+dbus-run-session and user-scope manager connection failure were test-environment
+issues resolved without weakening global rules or adding a package. Full Debug
+ASan/UBSan regression passes 37/37 (370.85 s), Release 37/37 (314.36 s).
+Migration/wire passes 30/30 (52.400 s), orchestration 39/39 (0.399 s),
+runtime vectors 14/14 and constraints 374 assertions. These are test timings,
+not OS benchmarks. See the
+[endpoint contract](../../spec/runtime.md#journal-backed-execution-endpoint).
+
+Final read-only carrier verification confirms Enforcing, verified normal protected
+inputs, no pending request, two closed install gates/two closed data gates, no
+unsettled dispatch/held lease, no temporary execution fixture/module/private test
+broker and System1 unowned. execution.conf/execution-starter remain unprovisioned.
+No normal managed app was dispatched or hardware/storage installation performed.
+
+Actual protected Root unit/profile/starter provisioning, live supervisor request
+and current broker/private-data admission, target execution/registration/readiness
+and independent executing drain/recovery remain pending. No user product decision
+blocks that backend work. The full OS/apps/UI/image/hardware goal stays active.
+
+Previous authenticated-client checkpoint (27 October 2026):
 
 The native executing-starter client now pins the actual Root discovery/process/
 active unit/invocation/cgroup/boot and checks profile epoch/runtime. A correlated

@@ -80,8 +80,11 @@ existing-installation observation. Positive starter image/domain admission and
 live data/launch mediation remain integration work.
 The native consumer now verifies Root replies and original supervisor context,
 including actual confined-service tests. Complete protected Root unit/profile
-provisioning, journal-backed producer handlers and the actual executing starter;
+provisioning, live producer/supervisor wiring and the actual executing starter;
 the synthetic reply fixture does not establish producer admission/readiness.
+The native journal-backed producer component now has isolated owner/bus tests,
+including deferred release and deadlines. Controlled actor/PID1 adapters do not
+establish actual starter policy or live current-data/broker admission.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.
 General distribution signing and key rotation still require release contracts.

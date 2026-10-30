@@ -807,3 +807,24 @@ pipe and bus-daemon write permissions. Root retains its reader; no daemon read
 grant, permissive mode or ptrace broadening. Remove only after independently
 observed exact process/unit/cgroup/job drain. This tests the consumer, not the
 future producer's catalogue/admission logic or the actual starter domain.
+
+## Hold the original prepared call until fresh durable arm — 30 October 2026
+
+Add a separate native Execution1 producer around the existing coordinator. It
+owns release transport, so only fresh ARM after commit can consume the retained
+original prepared call. Bind replies use the actual journal binding/revision;
+no caller-selected paths, descriptors or release callbacks are accepted. Consume
+before send and retain send uncertainty rather than attempting another response.
+
+Use one four-second monotonic deadline inside the client's five-second wait,
+sampled both before ARM and after its commit. Expiration attempts one recovery
+error and leaves durable obligations intact, including a commit that crossed
+the deadline. No new database, dependency family, resident process or installed
+method table is needed. Close remains local cleanup, never starter drain.
+
+Test the real journal/transport component on the existing broker37 with an owned
+private socket/config and no activation entries. Its launcher uses system scope
+only for the normal PID1 subscription. Actor/PID1 observations are explicit
+controlled adapters. Do not weaken global bus rules or mistake these tests for
+actual starter-domain/live-launch admission. Protected provisioning, live
+supervisor request and fresh broker/data mediation remain integration gates.

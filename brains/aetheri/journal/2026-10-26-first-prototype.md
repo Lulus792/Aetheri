@@ -1682,3 +1682,59 @@ release adapters, then bind actual target image/registration/readiness and
 independent executing drain/recovery. Keep the old non-exec helper/proofs separate.
 The full OS/apps/desktop/image/hardware goal remains active; no user product/UI
 decision blocks the next backend work.
+
+## Journal-backed execution producer — 30 October 2026
+
+Added a separate native Execution1 endpoint around the existing owner coordinator.
+It borrows catalogue/bus/event, owns one deferred prepared call and permits only
+the compiled request effect. Registration sends the actual journal binding and
+one copied writer after BIND. Prepared retains the original request; fresh ARM
+after commit alone consumes it and sends release. Consume before allocation/send
+and return handled after uncertain sending, preventing an automatic second reply.
+
+One four-second monotonic timer fits inside the client's five-second timeout.
+Fresh time is checked before ARM and again after commit. Timeout/send uncertainty
+keeps dispatch/lease obligations, including a successful commit followed by an
+expired release. Closing the component cannot stop its starter, free a lease or
+complete an operation. Callback-time close is busy. No installed method table,
+normal service/policy, public capability, XML/SQL version or dependency changed.
+
+The component scenarios use actual isolated owner catalogues, ProcessFDs, pipes,
+descriptor transfer and correlated deferred replies. Actor label and PID1 context/
+reference observations are explicitly controlled adapters. The child remains
+alive and its lease held after component close. Lost BIND/PREPARE/ARM commit
+acknowledgements, pre/post-send failures, actual timer/pre/post-commit deadlines,
+wrong peer/tuple, drift and broker/Root replacement are covered.
+
+The initial system-bus test was rejected by routing policy before handler entry.
+dbus-run-session is absent. Reused existing dbus-broker37 on an owned private
+Root-only session-type socket/config without activation entries. An initial user-
+scope launcher failed ENOMEDIUM; actual source/man review shows it still opens
+the selected manager bus. System scope supplies its normal PID1 subscription;
+tested calls stay private. No global rules were weakened or package installed.
+The owned launcher/broker group is retired by the harness. Logs remain under
+ignored builds. The focused Debug ASan/UBSan group passes 16 scenarios (67.52 s).
+
+Full Debug ASan/UBSan regression passes 37/37 (370.85 s), Release 37/37 (314.36 s).
+Host migration/
+wire passes 30/30 (52.400 s), orchestration 39/39 (0.399 s), vectors 14/14 and
+constraints 374 assertions. These are test durations, not OS benchmarks. A host
+PowerShell final-line CR prevented the first Release CTest invocation; the corrected
+direct invocation passes, without a native-code change.
+
+Final read-only carrier observation confirms Enforcing, verified normal protected
+inputs, pending=None, two closed install gates/two closed data gates, no unsettled
+dispatch/held lease, no temporary execution fixture/module/private test broker and
+System1 unowned. No normal authority/helper/profile was updated or app dispatched.
+
+The dedicated VM was initially stopped. Verified its recorded PID was dead and
+the QEMU process inventory empty before removing only the orphan local QMP
+socket and booting the existing disk offline. No reinstall, host/other-project
+cleanup or hardware action. Normal protected execution inputs remain unprovisioned.
+
+Reviewed transaction/effect ordering, retained-message/FD/timer lifetime, fork/
+busy ownership and unknown-result paths. This is component evidence, not actual
+confined starter/live-launch admission. Next connect protected Root/starter
+provisioning, native supervisor request and current broker/private-data admission,
+then actual target registration/readiness and independent executing drain/recovery.
+The non-executing helper/proofs remain separate. Full Aetheri remains the goal.

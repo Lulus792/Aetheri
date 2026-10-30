@@ -1,6 +1,10 @@
 """Independent user launch canonical bytes; separate unconfined owner stores."""
 from pathlib import Path
+from contextlib import contextmanager, nullcontext
 import hashlib
+import os
+import signal
+import socket
 import struct
 import subprocess
 import sys
@@ -8,6 +12,46 @@ import tempfile
 import runtime_contracts as reference
 
 def identity(n): return "000000000000400080000000000000"+f"{n:02x}"
+
+@contextmanager
+def private_bus(root):
+    """Component bus only: no activatable services or installed policy changes."""
+    if os.geteuid()!=0:
+        raise RuntimeError("execution endpoint tests require the disposable root carrier")
+    config=root/"bus.conf"
+    config.write_text('''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig><type>session</type><auth>EXTERNAL</auth>
+<policy context="default"><allow user="root"/><allow own="*"/>
+<allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>
+''',encoding="utf-8")
+    # dbus-broker-launch v37 requires one socket-activation FD. The exec wrapper
+    # sets LISTEN_PID to its own preserved PID. Test calls use this private bus;
+    # system scope supplies only the launcher's normal PID1 subscription.
+    with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as listener, (root/"bus.log").open("wb") as log:
+        listener.bind(str(root/"bus")); listener.listen()
+        code="""import os,sys
+fd=int(sys.argv[1])
+if fd!=3: os.dup2(fd,3); os.close(fd)
+os.set_inheritable(3,True)
+os.environ.update(LISTEN_PID=str(os.getpid()),LISTEN_FDS='1')
+os.execv('/usr/bin/dbus-broker-launch',['dbus-broker-launch','--scope','system','--config-file',sys.argv[2]])
+"""
+        process=subprocess.Popen([sys.executable,"-c",code,str(listener.fileno()),str(config)],
+            pass_fds=(listener.fileno(),),stdout=log,stderr=log,start_new_session=True)
+        environment=dict(os.environ,DBUS_SESSION_BUS_ADDRESS="unix:path="+str(root/"bus"))
+        try:
+            yield environment
+        finally:
+            # This exact unreaped child owns a process group containing only the
+            # private launcher/broker. Configuration has no activation entries.
+            if process.poll() is None:
+                os.killpg(process.pid,signal.SIGTERM)
+                try: process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid,signal.SIGKILL); process.wait(timeout=5)
+            if process.returncode not in (0,-signal.SIGTERM):
+                print((root/"bus.log").read_text(encoding="utf-8",errors="replace"),file=sys.stderr)
 
 def main():
     executable,build=Path(sys.argv[1]).resolve(),Path(sys.argv[2]).resolve()
@@ -28,25 +72,31 @@ def main():
                 "failure","unknown","malformed","request-timeout","request-commit-lost","bind-commit-lost",
                 "prepare-commit-lost","arm-commit-lost","release-timeout","context-drift","root-restart","broker-replacement","early-eof",
                 "observer-error","report-commit-lost","early-data"))
-        for scenario in scenarios:
-            plan["action"]="run" if scenario.startswith("exec-") else "main"
-            expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
-            if scenario.startswith("exec-"):
-                request=b"AETHRSV1"+b"".join(bytes.fromhex(identity(n)) for n in (1,32,31,50,51,2,10,14,12,4))+struct.pack(">Q",2)
-                for value in (b"run",b"p0",b"none"): request+=struct.pack(">I",len(value))+value
-                profile=b"AETHEXE1"+b"".join(bytes.fromhex(identity(n)) for n in (1,5,50,51,4,2,10,14,12,13,31,32,41,61))
-                profile+=struct.pack(">QQQ",2,3,3)+bytes(32)+bytes([0x34])*32+hashlib.sha256(request).digest()+bytes([0x56])*32
-                assert len(profile)==384
-                expected.with_name(expected.name+".execution").write_bytes(profile+hashlib.sha256(profile).digest())
-                diagnostics=bytearray()
-                for kind,phase,error,reason in ((1,0,0,"exec_channel_unknown"),(2,8,1,"exec_failure_p8_e1"),
-                                               (3,0,0,"exec_channel_malformed"),(4,0,5,"exec_observer_e5")):
-                    record=b"AETHEXD1"+hashlib.sha256(profile).digest()+bytes.fromhex(identity(66))+bytes([2])*32+struct.pack(">III",kind,phase,error)
-                    assert len(record)==100
-                    diagnostics+=hashlib.sha256(record).digest()+reason.encode().ljust(64,b"\0")
-                expected.with_name(expected.name+".diagnostics").write_bytes(diagnostics)
-            case=root/scenario; case.mkdir(); system,user=case/"system",case/"user"
-            system.mkdir(mode=0o700); user.mkdir(mode=0o700)
-            subprocess.run([executable,system,user,expected,scenario],check=True,timeout=50)
+        if len(sys.argv)==4 and sys.argv[3]=="wire":
+            scenarios=tuple("exec-wire-"+case for case in (
+                "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",
+                "register-send-before","register-send-lost","release-send-before","release-send-lost",
+                "deadline-event","deadline-direct","release-deadline","context-drift","broker-replacement","root-restart"))
+        with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
+            for scenario in scenarios:
+                plan["action"]="run" if scenario.startswith("exec-") else "main"
+                expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
+                if scenario.startswith("exec-"):
+                    request=b"AETHRSV1"+b"".join(bytes.fromhex(identity(n)) for n in (1,32,31,50,51,2,10,14,12,4))+struct.pack(">Q",2)
+                    for value in (b"run",b"p0",b"none"): request+=struct.pack(">I",len(value))+value
+                    profile=b"AETHEXE1"+b"".join(bytes.fromhex(identity(n)) for n in (1,5,50,51,4,2,10,14,12,13,31,32,41,61))
+                    profile+=struct.pack(">QQQ",2,3,3)+bytes(32)+bytes([0x34])*32+hashlib.sha256(request).digest()+bytes([0x56])*32
+                    assert len(profile)==384
+                    expected.with_name(expected.name+".execution").write_bytes(profile+hashlib.sha256(profile).digest())
+                    diagnostics=bytearray()
+                    for kind,phase,error,reason in ((1,0,0,"exec_channel_unknown"),(2,8,1,"exec_failure_p8_e1"),
+                                                   (3,0,0,"exec_channel_malformed"),(4,0,5,"exec_observer_e5")):
+                        record=b"AETHEXD1"+hashlib.sha256(profile).digest()+bytes.fromhex(identity(66))+bytes([2])*32+struct.pack(">III",kind,phase,error)
+                        assert len(record)==100
+                        diagnostics+=hashlib.sha256(record).digest()+reason.encode().ljust(64,b"\0")
+                    expected.with_name(expected.name+".diagnostics").write_bytes(diagnostics)
+                case=root/scenario; case.mkdir(); system,user=case/"system",case/"user"
+                system.mkdir(mode=0o700); user.mkdir(mode=0o700)
+                subprocess.run([executable,system,user,expected,scenario],check=True,timeout=50,env=environment)
 
 if __name__=="__main__": main()

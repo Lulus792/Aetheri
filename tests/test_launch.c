@@ -16,6 +16,7 @@
 static int commit_fault,step_fault,step_number,crash_mode;
 #ifdef AETHERI_TEST_EXECUTION_SERVICE
 void ae_test_execution_service(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
+void ae_test_execution_wire(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
 void ae_test_execution_commit_fault(int value) { commit_fault=value; }
 #endif
 int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char **),void *,char **);
@@ -367,7 +368,10 @@ int main(int argc,char **argv)
     }
     if (execution) {
 #ifdef AETHERI_TEST_EXECUTION_SERVICE
-        if (strncmp(argv[4],"exec-service-",13)==0) {
+        if (strncmp(argv[4],"exec-wire-",10)==0) {
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            ae_test_execution_wire(root,&p,&rc,argv[1],argv[4]);
+        } else if (strncmp(argv[4],"exec-service-",13)==0) {
             struct ae_execution_profile p; execution_profile(&p,&q,&rc);
             ae_test_execution_service(root,&p,&rc,argv[1],argv[4]);
         } else
