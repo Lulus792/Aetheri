@@ -109,8 +109,12 @@ inputs until that path has enforcing evidence. No extra user choice is required.
 That fixed-fixture owner connection now has actual enforcing evidence: real User
 catalogue/process/registration, private-data checks and preparation feed Root
 request/arm; changed unit/connection and same-UID app impersonation are rejected.
-Normal session/owner provisioning, mutation/revocation fencing and executing
-registration/readiness/recovery remain work. No personal product choice blocks
+Normal session/owner provisioning, mutation/revocation fencing and production
+registration/readiness/recovery remain work. The isolated fixture now
+proves actual User-mediated app registration and explicit readiness, including
+the live current-image check and original-connection requirement. Root observation
+settlement and independently proven executing drain/lease recovery remain next.
+No personal product choice blocks
 the next backend integration; UI/browser/shell decisions remain with the user.
 General dynamic allocation/recovery and binding reconciliation after
 install changes remain pending; the P0 infrastructure is preallocated by root.

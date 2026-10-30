@@ -1992,3 +1992,62 @@ source/data privilege separation, unknown outcomes and exact retirement. No norm
 app, host hardware or other project changed. Native target registration/readiness,
 executing recovery/drain/lease settlement and documents/removal remain; full OS,
 apps/UI/image/hardware stays the goal.
+
+## Actual User-mediated app registration/readiness — 30 October 2026
+
+Added separate native User REGISTER and READY transactions using existing v2
+operation steps. The original preparation/full profile and current owner/data
+fences remain mandatory. Registration binds actual invocation/context and changes
+the launch to starting/unknown; explicit readiness changes it to running/ready.
+Neither owner operation completes and Root's running generation lease remains.
+Exact retries preserve history, including REGISTER after READY. Lost commit
+acknowledgements preserve outputs and obligations; stale runtime/gates or changed
+invocation/evidence reject. Old User preparation/withdrawal cannot reopen intent.
+
+Added AETHIMG1, a 112-byte canonical executable observation with independent
+Python/C frozen vector, full-width inode and signed modification/change times.
+It records an already checked object without granting provenance. Root's isolated
+AppSource response binds its current protected-code image to the original full
+execution profile and dispatch invocation. User authenticates the original Root
+reply/process/unit, then independently checks the actual app ProcessFD/current
+unit/invocation/cgroup/MCS and running ELF, reopens its private allocation/MAC and
+retains the app's original connection/pidfd before native registration.
+
+The first enforcing live run passed actual cap-zero User image checking and
+the handshake. Premature READY and another connection's READY were rejected.
+Temporary scoped proc/executable reads add no tracing capability or direct store
+traversal. Exact independent app/User/Root process/unit/cgroup/job drain retires
+only the owned fixture and archives both unsettled catalogues. The payload's
+fixed test name is not a production authenticated app SDK; readiness is a protocol
+declaration, not UI responsiveness. Root settlement, executing recovery/drain,
+normal session provisioning, documents/revocation and removal remain work.
+
+Focused native readiness/execute checks passed 2/2 (45.16 s). The readiness group
+covers twelve scenarios, all five/four write faults, unknown commit replies,
+actual child exits before/after each commit, restart/gate closure, revision
+overflows and stable retries. Full Debug ASan/UBSan passes 41/41 (450.68 s).
+Host migration/wire passes 30/30 (55.259 s), orchestration 45/45 (5.456 s), runtime
+vectors 16/16 and isolated constraints 374 assertions. Full Release passes 41/41
+(383.41 s). These timings are test evidence, not OS performance.
+
+The final live repeat passed with original-connection REGISTER/READY retries and
+the exact Root/User invocation match in the archived catalogues. The test-only
+AppSource installation-revision check was tightened after the full suites; that
+probe was rebuilt in Debug and Release and exercised in the final live run.
+Native core/journal bytes were unchanged after the full-suite snapshot. The final
+evidence is `/home/aetheri/build/release/live-execution-9be91157278043a89a2411216b65f757`.
+Its report preserves User steps0..3/applied, actual Root/User empty five capability
+sets and both incomplete operations/Root running lease. This is retained local
+carrier evidence, not a public app/session capability or release proof.
+
+Final read-only verification confirms Enforcing, verified unchanged normal inputs,
+pending=None, two closed install/two closed data gates, no unsettled normal
+dispatch/lease, System1/test User name unowned, and temporary root/config/module/
+unit slots retired. Normal executing profile/starter/scaffold record/Root unit
+remain absent. All 161 actual guest source hashes match the current host inventory;
+431 local Markdown targets were checked. Review covered canonical signed bytes,
+full owner/profile/current-source fences, transaction ordering/overflow, retained
+pins/unknown replies, exact retry preservation and independent test retirement.
+No normal app, host hardware or other project changed. Next implement Root
+observation settlement and independently proven executing recovery/drain/lease
+settlement before removal; the full OS/apps/UI/image/hardware goal stays active.

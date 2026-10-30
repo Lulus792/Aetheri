@@ -16,6 +16,16 @@ class InvalidContract(ValueError):
 MAX_RECORD = 131072
 MAX_INT = 2**63 - 1
 
+def image_record(value):
+    fields(value,"inode size device_major device_minor uid gid mode birth_seconds birth_ns mtime_seconds mtime_ns ctime_seconds ctime_ns digest")
+    require(value['uid']==0 and value['gid']==0 and value['mode']==0o100555,"image ownership/mode")
+    b=b'AETHIMG1'+struct.pack('>QQIIIII',integer(value['inode'],2**64-1,1),integer(value['size'],16*1024*1024,64),
+        *(integer(value[k],2**32-1) for k in ('device_major','device_minor','uid','gid','mode')))
+    b+=struct.pack('>qIqIqI',integer(value['birth_seconds']),integer(value['birth_ns'],999999999),
+        integer(value['mtime_seconds'],MAX_INT,-2**63),integer(value['mtime_ns'],999999999),
+        integer(value['ctime_seconds'],MAX_INT,-2**63),integer(value['ctime_ns'],999999999))
+    return b+rawhex(value['digest'],32)
+
 
 def require(condition, message):
     if not condition:

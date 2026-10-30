@@ -65,6 +65,20 @@ int main(int argc,char **argv)
          * actual app credentials; this is not production app registration. */
         sd_bus *bus=NULL; sd_bus_error error=SD_BUS_ERROR_NULL; sd_bus_message *reply=NULL;
         CHECK(sd_bus_open_system(&bus)>=0);
+        const char *user="org.aetheri.P0ExecutionUser1",*path="/org/aetheri/P0ExecutionUserTest1",*iface="org.aetheri.P0ExecutionUserTest1";
+        CHECK(sd_bus_call_method(bus,user,path,iface,"Ready",&error,&reply,"")<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
+        CHECK(sd_bus_call_method(bus,user,path,iface,"Register",&error,&reply,"")>=0);
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
+        sd_bus *foreign=NULL; CHECK(sd_bus_open_system(&foreign)>=0);
+        CHECK(sd_bus_call_method(foreign,user,path,iface,"Ready",&error,&reply,"")<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply); sd_bus_flush_close_unref(foreign);
+        CHECK(sd_bus_call_method(bus,user,path,iface,"Ready",&error,&reply,"")>=0);
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
+        CHECK(sd_bus_call_method(bus,user,path,iface,"Register",&error,&reply,"")>=0);
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
+        CHECK(sd_bus_call_method(bus,user,path,iface,"Ready",&error,&reply,"")>=0);
+        sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);
         int denied=sd_bus_call_method(bus,"org.aetheri.System1","/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","Resolve",&error,&reply,"");
         CHECK(denied<0 && sd_bus_error_has_name(&error,"org.aetheri.Error1.NotAuthorized"));
         sd_bus_error_free(&error); reply=sd_bus_message_unref(reply);

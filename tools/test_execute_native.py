@@ -1,6 +1,7 @@
 """Owned child-only exec/credential tests in the dedicated carrier; no app admission."""
 from pathlib import Path
 import os
+import json
 import stat
 import subprocess
 import sys
@@ -48,6 +49,9 @@ def main():
     payload=payload_path.read_bytes()
     root=Path(tempfile.mkdtemp(prefix="execute-",dir=build))
     try:
+        vector=json.loads((Path(__file__).resolve().parents[1]/'spec/vectors/image-v1.json').read_text())
+        record=root/'image.vector'; record.write_bytes(bytes.fromhex(vector['hex']))
+        subprocess.run([binary,'image-codec',record],check=True,timeout=10); record.unlink()
         for case in CASES:
             work=root/case; fixture(work,payload)
             subprocess.run([binary,work,case,"current"],check=True,timeout=15)

@@ -194,6 +194,20 @@ static void child(const char *base_path,struct ae_image image,int error_fd,int o
 }
 int main(int argc,char **argv)
 {
+    if (argc==3 && strcmp(argv[1],"image-codec")==0) {
+        FILE *file=fopen(argv[2],"rb"); uint8_t bytes[AE_IMAGE_BYTES+1],encoded[AE_IMAGE_BYTES];
+        CHECK(file && fread(bytes,1,sizeof bytes,file)==AE_IMAGE_BYTES && fclose(file)==0);
+        struct ae_image v,marker; memset(&marker,0xa5,sizeof marker);
+        CHECK(ae_image_decode(bytes,AE_IMAGE_BYTES,&v)==0 && v.inode==UINT64_C(0x0102030405060708) && v.size==8192 && v.mtime_seconds==-7 && v.birth_ns==123456789);
+        CHECK(ae_image_encode(&v,encoded)==0 && memcmp(bytes,encoded,AE_IMAGE_BYTES)==0);
+        for (size_t n=0;n<AE_IMAGE_BYTES;++n) { v=marker; CHECK(ae_image_decode(bytes,n,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); }
+        v=marker; CHECK(ae_image_decode(bytes,sizeof bytes,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0);
+        const size_t offsets[]={0,16,32,36,40,44,52,64,76};
+        for (size_t n=0;n<sizeof offsets/sizeof *offsets;++n) { uint8_t saved=bytes[offsets[n]]; bytes[offsets[n]]=0xff; v=marker; CHECK(ae_image_decode(bytes,AE_IMAGE_BYTES,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); bytes[offsets[n]]=saved; }
+        CHECK(ae_image_decode(bytes,AE_IMAGE_BYTES,&v)==0); v.uid=1000; memset(encoded,0xa5,sizeof encoded);
+        CHECK(ae_image_encode(&v,encoded)==-EBADMSG); for (size_t n=0;n<sizeof encoded;++n) CHECK(encoded[n]==0xa5);
+        puts("Frozen AETHIMG1 cross-language/signed-time/bounds/output-preservation checks passed."); return 0;
+    }
     CHECK(argc==4 && geteuid()==0);
     scenario=argv[2]; const char *label=argv[3]; char *current=NULL;
     if (strcmp(label,"current")==0) { CHECK(getcon_raw(&current)==0); label=current; }

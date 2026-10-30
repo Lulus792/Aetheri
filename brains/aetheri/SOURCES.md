@@ -1360,3 +1360,31 @@ exact destination; the production guard is unchanged. Failed fixtures were inspe
 against original process/unit/job and immutable input evidence, then archived with
 their native state. In the last case both unresolved operations/running Root lease
 were preserved; no no-exec settlement or executing release was performed.
+
+## Actual User registration/readiness — 30 October 2026
+
+Original [User journal](../../src/catalogue/execution.h),
+[transaction implementation](../../src/catalogue/store.c),
+[native fault tests](../../tests/test_launch.c),
+[image codec/observer](../../src/linux/image.c),
+[frozen independent vector](../../spec/vectors/image-v1.json) and
+[actual owner probe](../../tests/probe_execution_runtime.c) implement the bounded
+registration/readiness checkpoint. Native transaction faults include lost replies
+and actual process exits around both commits. The explicit enforcing live test
+supplies actual ProcessFD/unit/current-image/MAC evidence that SQLite cannot.
+
+The upstream Linux man-pages
+[proc_pid_exe(5)](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html), inspected
+30 October 2026, describes executable dereference and PTRACE_MODE_READ_FSCREDS.
+The cap-zero same-UID User read is an actual pinned-carrier result, not inferred
+support for arbitrary processes. Temporary scoped file/proc reads add no ptrace
+or Linux capability. The original negative direct-store opening remains denied.
+Root observation, registration and readiness retain their independent provenance;
+neither the canonical file bytes nor a context hash is a bearer credential.
+
+The actual app rejects premature READY and a second connection, then its original
+connection registers/reports readiness. Repeated REGISTER after READY preserves
+the later state. Root/User operations and the running generation lease remain
+unsettled after independent exact test drain; historical catalogues are retained.
+This establishes the inert fixture's protocol readiness, not production SDK/
+session provisioning, UI responsiveness, complete recovery or removal.

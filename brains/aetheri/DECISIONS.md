@@ -912,3 +912,25 @@ scaffold and the fixed test system-scope User unit do not establish normal sessi
 or dynamic allocation policy. Acknowledge fresh User files only after independent
 slot/context/ownership checks; archive both unresolved catalogues after exact
 test drain. No no-exec release proof, public capability or normal profile change.
+
+## Separate app registration from explicit readiness — 30 October 2026
+
+Use User-owned native journal steps for verified app registration and a subsequent
+explicit readiness report. Reuse v2, retain the full original preparation/profile
+and current owner/data fences, and never turn READY into lease release or operation
+completion. Exact retries preserve later ready state; changed evidence, another
+connection, stale gate or owner replacement cannot inherit registration.
+
+Have actual cap-zero User independently check the app's authenticated ProcessFD,
+current unit/invocation/cgroup/MCS and running executable against original Root's
+authenticated protected-code observation. Root remains outside private User data
+and User SQLite. AETHIMG1 encodes only the bounded file observation; process/Root
+provenance remains independent. Permit temporary proc/executable reads needed for
+this same-UID path, without ptrace, capabilities or direct store traversal.
+
+Keep AppSource/Register/Ready in the explicit isolated test before designing a
+normal app SDK/session registration API. The fixed test name and inert payload
+establish protocol readiness only; UI responsiveness, general apps and owner
+recovery/drain remain separate acceptance. Archive unresolved owner operations
+and Root's running lease after exact test drain. No new dependency, schema/XML,
+resident service or normal launch capability is introduced.

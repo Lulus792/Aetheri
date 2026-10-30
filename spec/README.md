@@ -7,6 +7,11 @@ SELinux policy, document transport or process supervision.
 The separate [C17 runtime prototype](runtime.md#confined-protocol-services) now
 implements confined system/user discovery endpoints. This does not enable the
 lifecycle methods defined by these contracts.
+The separate explicit live fixture now also proves User-mediated actual process/
+executable registration and explicit readiness. Its
+[native journal and observation bytes](runtime.md#user-mediated-application-registration-and-readiness)
+reuse v2 without changing frozen SQL/XML. Both owner operations and Root's lease
+remain unsettled; no normal app/session registration API is installed.
 
 ## Files and versions
 
@@ -31,6 +36,7 @@ lifecycle methods defined by these contracts.
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
+| [image.h](../src/linux/image.h), [image-v1.json](vectors/image-v1.json) | Bounded 112-byte AETHIMG1 executable observation codec; authenticated source and current-process matching are separate obligations |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
 | [fixture.h](../src/core/fixture.h), [fixture.c](../src/core/fixture.c), [native fixture tests](../tools/test_fixture_native.py) | Canonical C17 metadata decoding and field/bounds checks; no payload hashing, trust or importer |
 | [root.h](../src/core/root.h), [storage.h](../src/core/storage.h), [storage reference tests](../tests/test_storage_ref.c) | Runtime held/named mount identity and expected private-root binding; no durable volume enrollment or public grant transport |

@@ -11,6 +11,13 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_image_observation_vector(self):
+        v=rc.load_json((ROOT/'spec/vectors/image-v1.json').read_bytes())
+        encoded=rc.image_record(v['input'])
+        self.assertEqual(len(encoded),112); self.assertEqual(encoded.hex(),v['hex']); self.assertEqual(rc.digest(encoded),v['sha256'])
+        for key,value in (('inode',0),('size',63),('size',16*1024*1024+1),('uid',1000),('gid',1000),('mode',0o555),
+                          ('birth_seconds',-1),('birth_ns',1000000000),('mtime_ns',-1),('ctime_ns',1000000000),('digest','00'),('inode',True)):
+            bad=deepcopy(v['input']); bad[key]=value; self.rejects(rc.image_record,bad)
     def example(self, kind):
         return deepcopy(next(v["input"] for v in VECTORS if v["kind"] == kind))
 

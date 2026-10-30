@@ -10,12 +10,16 @@ binding, preparation and arm without repeating a possibly completed external eff
 An explicit enforcing-VM test now connects the real Root journal, authenticated
 starter, private code/data mounts and one-way execution. It observes a fresh
 post-exec app connection and the actual running ELF under UID/GID1000 in a
-separate constrained domain. This uses isolated test inputs; normal user admission,
-app readiness and recovery are still in progress. The test preserves historical
+separate constrained domain. This uses isolated test inputs; normal user admission
+and recovery are still in progress. The test preserves historical
 lease obligations rather than treating process exit as permission to release them.
 The test now includes a real User process with its own catalogue, private-data
 checks and durable start preparation. Root verifies that original registered
 connection before request and release; it never reads the User database.
+User now verifies the running app's actual process, invocation and executable
+before recording registration, then accepts an explicit readiness report from
+that same connection. Readiness leaves both operations and Root's lease open;
+general app/session provisioning and executing recovery remain work.
 
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested

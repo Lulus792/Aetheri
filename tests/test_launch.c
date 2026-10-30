@@ -231,6 +231,70 @@ static void user_execution_test(struct ae_catalogue *root,struct ae_catalogue **
     CHECK(ae_catalogue_finish_withdrawn_operation(*user,p.user_operation,&receipt,123600,&unsettled)==-EAGAIN);
     CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
 }
+static void user_observe_test(struct ae_catalogue *root,struct ae_catalogue **user,const struct ae_catalogue_identity *identity,
+    const struct ae_user_launch *q,struct ae_launch_context *context,const char *directory,const char *scenario)
+{
+    struct ae_execution_profile p; execution_profile(&p,q,context);
+    struct ae_execution_evidence e; id(e.invocation,66); memset(e.context_digest,0x78,32);
+    struct ae_user_launch_snapshot output,marker; memset(&marker,0xa5,sizeof marker); output=marker;
+    CHECK(ae_catalogue_observe_user_execution(root,&p,AE_USER_EXECUTION_REGISTER,&e,&output)==-EPERM && memcmp(&output,&marker,sizeof marker)==0);
+    CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)0,&e,&output)==-EINVAL);
+    struct ae_user_execution_result prepared; CHECK(ae_catalogue_prepare_user_execution(*user,&p,&prepared)==0 && prepared.submit_required);
+    CHECK(ae_catalogue_observe_user_execution(*user,&p,AE_USER_EXECUTION_READY,&e,&output)==-ENOENT);
+    for (int stage=AE_USER_EXECUTION_REGISTER;stage<=AE_USER_EXECUTION_READY;++stage) {
+        uint8_t before[32],after[32]; database_digest(directory,before);
+        for (int n=1;n<=(stage==AE_USER_EXECUTION_REGISTER ? 5 : 4);++n) {
+            step_fault=n; step_number=0; output=marker;
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&e,&output)==-EIO && step_fault==0 && memcmp(&output,&marker,sizeof marker)==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        }
+        commit_fault=1; output=marker;
+        CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&e,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        int selected=(stage==AE_USER_EXECUTION_REGISTER && strstr(scenario,"register")!=NULL) || (stage==AE_USER_EXECUTION_READY && strstr(scenario,"ready")!=NULL);
+        if (selected && strstr(scenario,"crash")!=NULL) {
+            CHECK(ae_catalogue_close(user)==0); pid_t child=fork(); CHECK(child>=0);
+            int before_commit=strstr(scenario,"before")!=NULL;
+            if (child==0) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(directory,identity,&fresh)==0); crash_mode=before_commit ? 1 : 2; (void)ae_catalogue_observe_user_execution(fresh,&p,(enum ae_user_execution_stage)stage,&e,&output); _exit(90); }
+            int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(before_commit ? 71 : 72));
+            CHECK(ae_catalogue_open(directory,identity,user)==0);
+        } else if (selected && strstr(scenario,"lost")!=NULL) {
+            commit_fault=2; output=marker;
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&e,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+        }
+        if (stage==AE_USER_EXECUTION_REGISTER && strstr(scenario,"overflow-")!=NULL) {
+            const char *table=strstr(scenario,"overflow-")+9; char sql[160];
+            CHECK(strcmp(table,"launches")==0 || strcmp(table,"operations")==0 || strcmp(table,"authority_meta")==0);
+            CHECK(snprintf(sql,sizeof sql,"UPDATE %s SET %s=9223372036854775807",table,strcmp(table,"authority_meta")==0 ? "catalogue_revision" : "revision")>0); edit(directory,sql);
+            output=marker; database_digest(directory,before);
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,AE_USER_EXECUTION_REGISTER,&e,&output)==-EOVERFLOW && memcmp(&output,&marker,sizeof marker)==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0); return;
+        }
+        CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&e,&output)==0);
+        CHECK(strcmp(output.state,stage==AE_USER_EXECUTION_REGISTER ? "starting" : "running")==0 && strcmp(output.readiness,stage==AE_USER_EXECUTION_REGISTER ? "unknown" : "ready")==0 && !output.pre_dispatch_withdrawable);
+        database_digest(directory,before); struct ae_user_launch_snapshot original=output;
+        for (int n=0;n<3;++n) {
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&e,&output)==0 && memcmp(&output,&original,sizeof output)==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        }
+        struct ae_execution_evidence wrong=e; wrong.context_digest[0]^=1; output=marker;
+        CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&wrong,&output)==-EEXIST && memcmp(&output,&marker,sizeof marker)==0);
+        wrong=e; wrong.invocation[15]^=1;
+        CHECK(ae_catalogue_observe_user_execution(*user,&p,(enum ae_user_execution_stage)stage,&wrong,&output)==-ESTALE);
+        if (stage==AE_USER_EXECUTION_REGISTER && strstr(scenario,"restart")!=NULL) {
+            uint8_t runtime[16]; id(runtime,52); CHECK(ae_catalogue_begin_runtime(*user,p.boot,runtime)==0);
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,AE_USER_EXECUTION_READY,&e,&output)==-ESTALE);
+            CHECK(ae_catalogue_get_user_launch(*user,p.user_operation,&output)==0 && strcmp(output.state,"recovery_required")==0 && !output.pre_dispatch_withdrawable); return;
+        }
+        if (stage==AE_USER_EXECUTION_REGISTER && strstr(scenario,"gate")!=NULL) {
+            edit(directory,"UPDATE admission_gates SET state='closed',revision=revision+1");
+            CHECK(ae_catalogue_observe_user_execution(*user,&p,AE_USER_EXECUTION_READY,&e,&output)==-ESTALE); return;
+        }
+    }
+    CHECK(ae_catalogue_observe_user_execution(*user,&p,AE_USER_EXECUTION_REGISTER,&e,&output)==0 && strcmp(output.state,"running")==0 && strcmp(output.readiness,"ready")==0);
+    CHECK(scalar(directory,"SELECT state='running' AND outcome IS NULL FROM operations")==1);
+    CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no BETWEEN 1 AND 3 AND state='applied'")==3);
+}
 static void execution_test(struct ae_catalogue **root,struct ae_catalogue *user,const struct ae_catalogue_identity *identity,
     const struct ae_user_launch *q,struct ae_launch_context *c,const char *directory,const char *expected,const char *scenario)
 {
@@ -467,7 +531,9 @@ int main(int argc,char **argv)
         memcpy(rc.broker_runtime,replacement,16);
     }
     if (execution) {
-        if (strncmp(argv[4],"exec-user-prepare-",18)==0) {
+        if (strncmp(argv[4],"exec-user-observe-",18)==0) {
+            user_observe_test(root,&user,&ui,&q,&rc,argv[2],argv[4]);
+        } else if (strncmp(argv[4],"exec-user-prepare-",18)==0) {
             user_execution_test(root,&user,&ui,&q,&rc,argv[2],argv[4]);
         } else
 #ifdef AETHERI_TEST_EXECUTION_SERVICE

@@ -199,7 +199,7 @@ def main():
         record['static_hashes']={str(path.relative_to(ROOT)):sha(path) for path in ROOT.rglob('*') if path.is_file() and path.name not in ('controller.json','catalogue.sqlite3','writer.lock')}
         xml='''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
 <busconfig><selinux><associate own="org.aetheri.P0ExecutionUser1" context="system_u:object_r:aetheri_user_service_t:s0"/></selinux><policy user="root"><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.Execution1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy>
-<policy user="aetheri"><allow own="org.aetheri.P0ExecutionUser1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionBrokerTest1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="Observe"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy><policy context="mandatory"><deny send_destination="org.aetheri.P0ExecutionUser1" send_type="method_call" min_fds="1"/></policy></busconfig>
+<policy user="aetheri"><allow own="org.aetheri.P0ExecutionUser1"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Register"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Ready"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionBrokerTest1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="Observe"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy><policy context="mandatory"><deny send_destination="org.aetheri.P0ExecutionUser1" send_type="method_call" min_fds="1"/></policy></busconfig>
 '''
         with CONFIG.open('x',encoding='utf-8') as out: out.write(xml)
         CONFIG.chmod(0o644); run('restorecon',str(CONFIG)); record['config_sha256']=sha(CONFIG); save(record)
@@ -261,13 +261,16 @@ UMask=0077
             if db.execute("SELECT state FROM generation_leases").fetchall()!=[('running',)] or db.execute("SELECT count(*) FROM operations WHERE state='completed'").fetchone()[0]: raise RuntimeError('unexpected lease settlement')
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('catalogue corruption')
             record['steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
+            record['app_invocation']=db.execute('SELECT lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()[0]
         evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
         shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
         user_database=work/record['user_catalogue_rel']
         with closing(sqlite3.connect('file:'+str(user_database)+'?mode=ro',uri=True)) as db:
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('User catalogue corruption')
-            if db.execute('SELECT state,readiness,invocation_ref FROM launches').fetchall()!=[('preparing','unknown',None)]: raise RuntimeError('unexpected User readiness')
-            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(0,'applied'),(1,'executing')]: raise RuntimeError('missing User execution intent')
+            if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('running','ready',record['app_invocation'])]: raise RuntimeError('missing User readiness/invocation')
+            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(0,'applied'),(1,'applied'),(2,'applied'),(3,'applied')]: raise RuntimeError('missing User registration/readiness evidence')
+            if db.execute('SELECT state,outcome FROM operations').fetchall()!=[('running',None)]: raise RuntimeError('User readiness settled an operation')
+            record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
         shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
         record.update(state='passed',evidence=str(evidence)); save(record)
         (evidence/'report.json').write_text(json.dumps(record,indent=2)+'\n')

@@ -44,6 +44,17 @@ int ae_catalogue_prepare_user_execution(struct ae_catalogue *,const struct ae_ex
 
 enum ae_execution_stage { AE_EXECUTION_REQUEST=1,AE_EXECUTION_BIND,AE_EXECUTION_PREPARE,AE_EXECUTION_ARM };
 struct ae_execution_evidence { uint8_t invocation[16],context_digest[32]; };
+enum ae_user_execution_stage { AE_USER_EXECUTION_REGISTER=1,AE_USER_EXECUTION_READY };
+/* User-owner observation journal. Caller independently authenticates current
+ * Root's dispatch/image observation and the app's actual ProcessFD/unit/current
+ * image, retains the original connection and rechecks private data/MAC. REGISTER
+ * binds that invocation/evidence before READY from the same live actor. No IPC,
+ * filesystem or process proof is created by SQLite. Exact retries preserve later
+ * state; changed evidence conflicts, stale gates/runtime reject. Readiness never
+ * settles Root's lease or either owner's operation; drain/recovery remain separate.
+ * Outputs unchanged on all errors, including an unknown COMMIT acknowledgement. */
+int ae_catalogue_observe_user_execution(struct ae_catalogue *,const struct ae_execution_profile *,
+    enum ae_user_execution_stage,const struct ae_execution_evidence *,struct ae_user_launch_snapshot *);
 enum ae_execution_diagnostic_kind {
     AE_EXECUTION_DIAGNOSTIC_UNKNOWN=1,AE_EXECUTION_DIAGNOSTIC_FAILURE,
     AE_EXECUTION_DIAGNOSTIC_MALFORMED,AE_EXECUTION_DIAGNOSTIC_OBSERVER

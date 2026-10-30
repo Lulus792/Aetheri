@@ -2259,10 +2259,10 @@ static int user_execution_begin(struct ae_catalogue *store,const struct ae_execu
     if (result==0 && store->identity.kind!=AE_CATALOGUE_USER) result=-EPERM;
     return result==0 ? exec_sql(store->db,write ? "BEGIN IMMEDIATE" : "BEGIN") : result;
 }
-static int user_execution_fence(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32])
+static int user_execution_fence(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],const struct ae_execution_evidence *e)
 {
     int64_t match=0;
-    int result=execution_statement(store,p,hash,NULL,EXEC_INPUT
+    int result=execution_statement(store,p,hash,e,EXEC_INPUT
         "SELECT count(*) FROM p JOIN authority_meta m ON m.singleton=1 AND m.authority_epoch=p.be AND m.owner_scope_ref=p.account AND m.current_boot_id=p.boot AND m.runtime_incarnation=p.br "
         "JOIN launches l ON l.operation_id=p.uop AND l.launch_id=p.launch AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.boot_id=p.boot AND l.session_ref='p0' AND l.seat_ref='none' "
         "JOIN operations o ON o.operation_id=p.uop AND o.state='running' JOIN plans a ON a.plan_id=o.plan_id AND a.action_id='run' "
@@ -2271,19 +2271,19 @@ static int user_execution_fence(struct ae_catalogue *store,const struct ae_execu
         "JOIN data_epochs d ON d.data_epoch_id=p.d AND d.storage_ref=p.storage AND d.state='active' JOIN attachments t ON t.install_id=p.i AND t.data_epoch_id=p.d "
         "JOIN install_bindings b ON b.install_id=p.i AND b.state='active' AND b.system_epoch=p.se AND b.install_revision=p.ir "
         "JOIN admission_gates f ON f.subject_kind='data' AND f.subject_ref=p.d AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.dgate "
-        "WHERE l.state='preparing' AND l.readiness='unknown' AND l.invocation_ref IS NULL "
+        "WHERE ((l.state='preparing' AND l.readiness='unknown' AND l.invocation_ref IS NULL) OR (p.inv<>zeroblob(16) AND l.invocation_ref=p.inv AND ((l.state='starting' AND l.readiness='unknown') OR (l.state='running' AND l.readiness='ready')))) "
         "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.se AND subject_kind='gate' AND subject_ref=p.i AND expected_revision=p.igate) "
         "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.se AND subject_kind='install' AND subject_ref=p.i AND expected_revision=p.ir) "
         "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.be AND subject_kind='gate' AND subject_ref=p.d AND expected_revision=p.dgate) "
         "AND EXISTS(SELECT 1 FROM plan_reads WHERE plan_id=a.plan_id AND source_epoch=p.be AND subject_kind='data' AND subject_ref=p.d AND expected_revision=d.revision) "
-        "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>1) AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch)",&match);
+        "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>3) AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch)",&match);
     return result==0 && match!=1 ? -ESTALE : result;
 }
 int ae_catalogue_authorize_user_execution(struct ae_catalogue *store,const struct ae_execution_profile *p)
 {
     uint8_t hash[32]; int result=user_execution_begin(store,p,hash,0);
     if (result!=0) return result;
-    result=user_execution_fence(store,p,hash);
+    result=user_execution_fence(store,p,hash,NULL);
     int64_t steps=0;
     if (result==0) result=execution_statement(store,p,hash,NULL,EXEC_INPUT
         "SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no>0",&steps);
@@ -2295,9 +2295,11 @@ int ae_catalogue_prepare_user_execution(struct ae_catalogue *store,const struct 
     if (output==NULL) return -EINVAL;
     uint8_t hash[32]; int result=user_execution_begin(store,p,hash,1);
     if (result!=0) return result;
-    result=user_execution_fence(store,p,hash);
+    result=user_execution_fence(store,p,hash,NULL);
     int64_t present=0,match=0;
 #define UQ(sql,out) execution_statement(store,p,hash,NULL,EXEC_INPUT sql,out)
+    if (result==0) result=UQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no>1",&match);
+    if (result==0 && match) result=-ESTALE;
     if (result==0) result=UQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=1",&present);
     if (result==0 && present) {
         result=UQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=1 AND action='stage' AND subject_kind='data' AND subject_ref=p.d AND state='executing' AND evidence_digest=p.hash",&match);
@@ -2317,6 +2319,54 @@ int ae_catalogue_prepare_user_execution(struct ae_catalogue *store,const struct 
     result=fixture_commit(store,result); if (result==0) *output=receipt;
 #undef UQ
     return result;
+}
+int ae_catalogue_observe_user_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,
+    enum ae_user_execution_stage stage,const struct ae_execution_evidence *e,struct ae_user_launch_snapshot *output)
+{
+    if (output==NULL || e==NULL || !nonzero(e->invocation) || stage<AE_USER_EXECUTION_REGISTER || stage>AE_USER_EXECUTION_READY) return -EINVAL;
+    uint8_t hash[32]; int r=user_execution_begin(store,p,hash,1); if (r!=0) return r;
+    r=user_execution_fence(store,p,hash,e);
+    int64_t match=0,two=0,three=0;
+#define AQ(sql,out) execution_statement(store,p,hash,e,EXEC_INPUT sql,out)
+    if (r==0) r=AQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=1 AND action='stage' AND subject_kind='data' AND subject_ref=p.d AND evidence_digest=p.hash AND state IN ('executing','applied')",&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=AQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=2",&two);
+    if (r==0) r=AQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=3",&three);
+    if (r==0 && two) {
+        r=AQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=2 AND action='verify' AND subject_kind='integration' AND subject_ref=p.inv AND state='applied' AND evidence_digest=p.evidence",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+    }
+    if (r==0 && three) {
+        r=AQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=3 AND action='activate' AND subject_kind='launch' AND subject_ref=p.launch AND state='applied' AND evidence_digest=p.evidence",&match);
+        if (r==0 && (match!=1 || !two)) r=-EEXIST;
+    }
+    if (r==0 && stage==AE_USER_EXECUTION_READY && !two) r=-ENOENT;
+    int mutation=r==0 && (stage==AE_USER_EXECUTION_REGISTER ? !two : !three);
+    if (r==0) {
+        r=AQ("SELECT count(*) FROM launches l,operation_steps s,p WHERE l.operation_id=p.uop AND s.operation_id=p.uop AND s.step_no=1 AND ((l.state='preparing' AND l.invocation_ref IS NULL AND l.readiness='unknown' AND s.state='executing' AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>1)) OR (l.invocation_ref=p.inv AND s.state='applied' AND ((l.state='starting' AND l.readiness='unknown' AND EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no=2) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no=3)) OR (l.state='running' AND l.readiness='ready' AND EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no=3)))))",&match);
+        if (r==0 && match!=1) r=-ESTALE;
+    }
+    if (r==0 && mutation) {
+        r=AQ("SELECT max(m.catalogue_revision,o.revision,l.revision) FROM p JOIN authority_meta m ON m.singleton=1 JOIN operations o ON o.operation_id=p.uop JOIN launches l ON l.operation_id=p.uop",&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0 && stage==AE_USER_EXECUTION_REGISTER) {
+            r=AQ("INSERT INTO operation_steps SELECT uop,2,'verify','integration',inv,'applied',evidence FROM p",NULL);
+            if (r==0) r=AQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT uop FROM p) AND step_no=1",NULL);
+            if (r==0) r=AQ("UPDATE launches SET state='starting',invocation_ref=(SELECT inv FROM p),revision=revision+1 WHERE operation_id=(SELECT uop FROM p)",NULL);
+        } else if (r==0) {
+            r=AQ("INSERT INTO operation_steps SELECT uop,3,'activate','launch',launch,'applied',evidence FROM p",NULL);
+            if (r==0) r=AQ("UPDATE launches SET state='running',readiness='ready',revision=revision+1 WHERE operation_id=(SELECT uop FROM p)",NULL);
+        }
+        const char *update=stage==AE_USER_EXECUTION_REGISTER ? EXEC_INPUT "UPDATE operations SET reason_code='app_registered',revision=revision+1 WHERE operation_id=(SELECT uop FROM p)" :
+            EXEC_INPUT "UPDATE operations SET reason_code='app_ready',revision=revision+1 WHERE operation_id=(SELECT uop FROM p)";
+        if (r==0) r=execution_statement(store,p,hash,e,update,NULL);
+        if (r==0) r=AQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    struct ae_user_launch_snapshot receipt;
+    if (r==0) r=user_launch_row(store,p->user_operation,&receipt);
+    r=fixture_commit(store,r); if (r==0) *output=receipt;
+#undef AQ
+    return r;
 }
 int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_launch_context *context,
     enum ae_execution_stage stage,const struct ae_execution_evidence *e,struct ae_execution_result *output)

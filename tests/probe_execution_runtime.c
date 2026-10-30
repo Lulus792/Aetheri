@@ -45,6 +45,11 @@ static struct ae_process_context starter_context,app_context;
 static sd_bus_message *waiting;
 static sd_event_source *arm_source;
 static int begun,armed,user_begun;
+enum { OBSERVATION_BYTES=168 };
+static struct ae_peer user_app=AE_PEER_INIT;
+static struct ae_process_context user_app_context;
+static struct ae_execution_evidence user_app_evidence;
+static uint8_t user_publisher[16],user_observation[OBSERVATION_BYTES];
 static void id(uint8_t out[16],uint8_t last) { memset(out,0,16); out[6]=0x40; out[8]=0x80; out[15]=last; }
 static void load(const char *root)
 {
@@ -207,6 +212,20 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         struct ae_reservation_receipt receipt; r=ae_catalogue_get_receipt(store,p.lease,&broker,&receipt);
         if (r==0) r=sd_bus_message_new_method_return(m,&reply);
         if (r>=0) r=ae_receipt_write(reply,&receipt);
+    } else if (strcmp(method,"AppSource")==0) {
+        struct ae_dispatch_snapshot d;
+        r=ae_catalogue_get_dispatch(store,p.lease,&broker,&d);
+        if (r==0 && (strcmp(d.state,"dispatching")!=0 || !d.invocation_present || memcmp(d.operation,p.root_operation,16)!=0)) r=-ESTALE;
+        struct ae_execution_sources sources=AE_EXECUTION_SOURCES_INIT; uint8_t publisher[16],record[OBSERVATION_BYTES];
+        if (r==0) r=ae_execution_code_open(&p,&sources,publisher);
+        if (r==0) { memcpy(record,"AETHOBS1",8); r=ae_execution_digest(&p,record+8); memcpy(record+40,d.invocation,16); }
+        if (r==0) r=ae_image_encode(&sources.image,record+56);
+        ae_execution_sources_clear(&sources);
+        struct ae_install_snapshot current;
+        if (r==0) r=ae_catalogue_resolve_app(store,p.account,broker.uid,p.install,p.boot,p.system_runtime,&current);
+        if (r==0 && (current.gate!=AE_INSTALL_GATE_OPEN || current.install_revision!=p.install_revision || current.gate_revision!=p.install_gate_revision || memcmp(current.generation,p.generation,16)!=0 || memcmp(current.artifact,p.artifact,32)!=0)) r=-ESTALE;
+        if (r==0) r=sd_bus_message_new_method_return(m,&reply);
+        if (r>=0) r=sd_bus_message_append_array(reply,'y',record,sizeof record);
     } else {
         CHECK(strcmp(method,"Dispatch")==0);
         if (admission==NULL || begun) r=-EALREADY;
@@ -229,6 +248,7 @@ static const sd_bus_vtable broker_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Resolve","","ayayayaysayayaytayaytstt",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Reserve","ayayayayayayayayayaytsss","",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Receipt","","ayayayayayayayayayaysttbayay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("AppSource","","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Dispatch","ayay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",control,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
@@ -271,6 +291,7 @@ static int user_begin(sd_bus_message *m,void *userdata,sd_bus_error *error)
     CHECK(ae_execution_code_open(&p,&forbidden,publisher)==-EACCES && forbidden.code_fd<0 && forbidden.data_fd<0 && forbidden.image_fd<0);
     struct ae_user_launch q={.local={.accepted_unix_ms=1,.expires_boottime_ns=INT64_MAX},.data_revision=1,.data_gate_revision=2};
     sd_bus_message *reply=root_call("Resolve",NULL,0); CHECK(ae_projection_read(reply,&q.source)==0); sd_bus_message_unref(reply); source_matches(&q.source);
+    memcpy(user_publisher,q.source.publisher,16);
     struct ae_projection_context context; memcpy(context.system_epoch,p.system_epoch,16); memcpy(context.system_runtime,p.system_runtime,16);
     memcpy(context.boot,p.boot,16); memcpy(context.user_runtime,p.broker_runtime,16);
     int64_t revision=0; CHECK(ae_catalogue_cache_install(store,&q.source,&context,&revision)==0 && revision==3);
@@ -307,7 +328,62 @@ static int user_begin(sd_bus_message *m,void *userdata,sd_bus_error *error)
     sd_bus_message_unref(reply); CHECK(close(payload)==0);
     return sd_bus_reply_method_return(m,"");
 }
-static const sd_bus_vtable user_methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",user_begin,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+static int application_error(sd_bus_error *error,int r)
+{ return sd_bus_error_setf(error,"org.aetheri.Error1.NotAuthorized","Exact admitted live app/image required: %d",r); }
+static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
+{
+    (void)userdata; int ready=strcmp(sd_bus_message_get_member(m),"Ready")==0;
+    struct ae_peer peer=AE_PEER_INIT; struct ae_process_context observed; struct ae_image image,actual;
+    int r=sd_bus_message_get_expect_reply(m)==1 ? ae_peer_capture(m,&peer) : -EPROTO;
+    if (r==0 && (!user_begun || peer.connection_uid!=1000 || strcmp(peer.connection_label,AE_STARTER_TARGET_CONTEXT)!=0 || (ready && user_app.pidfd<0))) r=-EACCES;
+    if (r==0 && user_app.pidfd>=0 && (memcmp(peer.bus_id,user_app.bus_id,16)!=0 || strcmp(peer.unique_name,user_app.unique_name)!=0 || peer.connection_pid!=user_app.connection_pid || ae_peer_alive(&user_app)!=0)) r=-EACCES;
+    if (r==0) r=ae_process_observe(&peer,bus,&observed);
+    char unit[80],hex[33]; sd_id128_t launch; memcpy(launch.bytes,p.launch,16); sd_id128_to_string(launch,hex);
+    CHECK(snprintf(unit,sizeof unit,"aetheri-app-%s.service",hex)>0);
+    if (r==0 && (observed.uid!=1000 || strcmp(observed.unit,unit)!=0 || memcmp(observed.boot,p.boot,16)!=0)) r=-EACCES;
+    uint8_t source[OBSERVATION_BYTES],hash[32]; sd_bus_message *reply=NULL;
+    if (r==0) {
+        reply=root_call("AppSource",NULL,0); const void *bytes=NULL; size_t length=0;
+        if (sd_bus_message_read_array(reply,'y',&bytes,&length)<=0 || length!=sizeof source || sd_bus_message_at_end(reply,1)!=1) r=-EPROTO;
+        else memcpy(source,bytes,sizeof source);
+        sd_bus_message_unref(reply); reply=NULL;
+    }
+    if (r==0) r=ae_execution_digest(&p,hash);
+    if (r==0 && (memcmp(source,"AETHOBS1",8)!=0 || memcmp(source+8,hash,32)!=0 || memcmp(source+40,observed.invocation,16)!=0)) r=-ESTALE;
+    if (r==0) r=ae_image_decode(source+56,AE_IMAGE_BYTES,&image);
+    if (r==0) r=ae_image_match_process(&peer,1000,&image,&actual);
+    if (r==0 && user_app.pidfd>=0 && (memcmp(source,user_observation,sizeof source)!=0 || !ae_process_context_equal(&observed,&user_app_context))) r=-ESTALE;
+    int payload=-1; struct ae_data_enrollment data;
+    if (r==0) r=ae_execution_data_open(&p,user_publisher,&payload,&data);
+    if (r==0) r=ae_process_verify(&peer,bus,&observed);
+    if (r==0 && user_app.pidfd<0) {
+        uint8_t evidence[2048]={0}; size_t used=0;
+#define APP_COPY(v,n) do { memcpy(evidence+used,v,n); used+=(n); } while (0)
+        APP_COPY("AETHAPP1",8); APP_COPY(source,sizeof source); APP_COPY(peer.bus_id,16);
+        APP_COPY(observed.boot,16); APP_COPY(observed.invocation,16);
+        for (size_t n=0;n<8;++n) evidence[used++]=(uint8_t)(observed.cgroup_id>>(56-8*n));
+        for (size_t n=0;n<4;++n) evidence[used++]=(uint8_t)((uint32_t)peer.connection_pid>>(24-8*n));
+        const char *texts[]={peer.unique_name,observed.unit,observed.label,observed.cgroup};
+        for (size_t n=0;n<4;++n) { size_t size=strlen(texts[n]); CHECK(size<=UINT16_MAX && used+size+2<=sizeof evidence); evidence[used++]=(uint8_t)(size>>8); evidence[used++]=(uint8_t)size; APP_COPY(texts[n],size); }
+        memcpy(user_app_evidence.invocation,observed.invocation,16); r=ae_sha256_bytes(evidence,used,user_app_evidence.context_digest);
+#undef APP_COPY
+        int pin=r==0 ? fcntl(peer.pidfd,F_DUPFD_CLOEXEC,3) : -1;
+        if (r==0 && pin<0) r=-errno;
+        if (r==0) { user_app=peer; user_app.pidfd=pin; user_app_context=observed; memcpy(user_observation,source,sizeof source); }
+    }
+    struct ae_user_launch_snapshot state;
+    if (r==0) r=ae_catalogue_observe_user_execution(store,&p,ready ? AE_USER_EXECUTION_READY : AE_USER_EXECUTION_REGISTER,&user_app_evidence,&state);
+    if (payload>=0) close(payload);
+    ae_peer_clear(&peer);
+    if (r!=0) return application_error(error,r);
+    CHECK((strcmp(state.state,"running")==0 && strcmp(state.readiness,"ready")==0) ||
+        (!ready && strcmp(state.state,"starting")==0 && strcmp(state.readiness,"unknown")==0));
+    return sd_bus_reply_method_return(m,"");
+}
+static const sd_bus_vtable user_methods[]={SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("Begin","","",user_begin,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Register","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Ready","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static void user_serve(int reject)
 {
     char *label=NULL; CHECK(getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && getcon_raw(&label)==0 &&

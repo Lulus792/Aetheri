@@ -12,6 +12,13 @@ struct ae_image {
     uint32_t birth_ns,mtime_ns,ctime_ns;
     uint8_t digest[32];
 };
+enum { AE_IMAGE_BYTES=112 };
+/* Canonical AETHIMG1 object observation, not native padding or bearer trust.
+ * Big endian; birth seconds nonnegative, mtime/ctime signed two's complement.
+ * Independent authenticated source and later held-process matching still owed.
+ * Outputs unchanged on error. */
+int ae_image_encode(const struct ae_image *,uint8_t output[AE_IMAGE_BYTES]);
+int ae_image_decode(const uint8_t *,size_t,struct ae_image *);
 int ae_image_verify(int fd,const uint8_t expected_digest[32],struct ae_image *output);
 int ae_image_equal(const struct ae_image *,const struct ae_image *);
 /* Current executable observation of an already authenticated/owned held

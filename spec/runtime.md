@@ -2687,7 +2687,8 @@ test system-scope service, not production login-manager/session provisioning.
 
 The private P0ExecutionTest1, P0ExecutionBrokerTest1 and P0ExecutionUserTest1 methods
 are compiled only in `tests/probe_execution_runtime.c`. They are not installed API
-contracts, general registration, app readiness or public capabilities. The target's fresh
+contracts, general registration or public capabilities. The subsequent fixed-fixture
+User registration/readiness handshake is described below. The target's fresh
 connection supplies actual current bus credentials after exec; no old starter
 UID/label snapshot is rewritten. Root retains its original starter pin and checks
 the new connection against that process and unit invocation. A correlated Root
@@ -2703,8 +2704,8 @@ starter and a separate MCS-constrained executing-fixture app domain. The old
 it would merge incompatible fixtures. Changing the compiled target label also
 changes the starter digest bound by AETHEXE1. The new domain cannot execute/map
 private data, inherit authority descriptors, read owner metadata or add privileges.
-The target's successful protocol use is Observe; its attempted privileged broker
-Resolve is rejected. Root, User and starter query a dedicated test unit-file type,
+The target uses the fixed User Register/Ready handshake and Root Observe; its
+attempted privileged broker Resolve is rejected. Root, User and starter query a dedicated test unit-file type,
 with Root start access on that type. User can observe Root's current process
 metadata for authenticated reply checks; neither receives SYS_PTRACE/KILL. The daemon
 can write the issued Root pipe for descriptor transfer, never read its reader.
@@ -2721,7 +2722,7 @@ not clone authentication or a complete power-loss journal.
 
 Both native catalogues retain incomplete operations after the app exits. Root's
 running lease, REQUEST/BIND/PREPARE/ARM and separate diagnostic, and User's
-execution-preparation step are archived with `historical-test-catalogue.sqlite3`,
+preparation/registration/readiness steps are archived with `historical-test-catalogue.sqlite3`,
 `historical-user-catalogue.sqlite3` and `report.json` in a protected
 `live-execution-<token>` directory beside the driver binary. Channel UNKNOWN/EOF
 does not establish execution or drain; only the independent image observation
@@ -2729,7 +2730,7 @@ establishes what this test actually executed. No no-exec withdrawal/release is u
 
 Actual evidence covers this one fixed inert action/account on the pinned carrier.
 Normal Root/User provisioning, general admission and mutation fences, dynamic
-category/scaffold allocation, genuine target registration/readiness, executing
+category/scaffold allocation, production target registration/readiness, executing
 recovery/lease settlement and complete removal remain work. Both normal install/
 data gates remain closed; DispatchLaunch/public capabilities stay unchanged.
 
@@ -2875,5 +2876,127 @@ pidfd lifetime, replacement/lost-request guards, unchanged error output, callbac
 time close and fork ownership. Its actor/endpoint adapters are explicit mocks; the
 separate enforcing integration supplies actual identity/unit/policy evidence.
 No normal service/profile or production app registration/readiness/recovery is
-installed by either test. Dynamic allocation, session admission, executing drain/
-lease settlement, native documents and complete removal remain required.
+installed by either test. The next section records the subsequent fixed-fixture
+app handshake. Dynamic allocation, session admission, executing drain/lease
+settlement, native documents and complete removal remain required.
+
+## User-mediated application registration and readiness
+
+The isolated live test now includes an actual post-exec app handshake with the
+actual User owner. It distinguishes a verified registered process from that
+process's explicit readiness report. Neither state completes the launch operation
+or releases Root's generation lease. Readiness here is a protocol declaration
+from this inert fixture, not a UI responsiveness or application-health measure.
+Normal service provisioning and public capabilities remain unchanged.
+
+Root's test-only AppSource method accepts only the original registered User
+connection. It rechecks the original native dispatch and invocation, reopens the
+protected code profile/manifest/ELF, and checks the active exact generation,
+Artifact and install gate/revision. The authenticated reply carries AETHOBS1:
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHOBS1 |
+| 8 | 32 | SHA-256 of the complete canonical AETHEXE1 profile |
+| 40 | 16 | Actual Root dispatch invocation |
+| 56 | 112 | AETHIMG1 expected executable observation |
+
+This 168-byte test envelope is not an installed XML API or a bearer capability.
+User authenticates the original Root reply/request cookies, unique connection,
+ProcessFD, service/invocation/boot and context before consuming it. Root never
+reads User SQLite or private allocation. A matching hash alone grants no access.
+
+### Executable observation bytes
+
+`linux/image.h` adds a padding-free AETHIMG1 codec. Its 112 bytes are:
+
+| Offset | Encoding | Field |
+| --- | --- | --- |
+| 0 | 8 literal bytes | AETHIMG1 |
+| 8, 16 | u64, u64 | Inode, file size |
+| 24, 28 | u32, u32 | Device major/minor |
+| 32, 36, 40 | u32, u32, u32 | UID, GID, complete mode |
+| 44, 52 | i64, u32 | Birth seconds/nanoseconds |
+| 56, 64 | i64, u32 | Modification seconds/nanoseconds |
+| 68, 76 | i64, u32 | Change seconds/nanoseconds |
+| 80 | 32 bytes | Content SHA-256 |
+
+All integers are big endian; signed times use two's complement. Inode is a
+nonzero full-width u64, size is 64 bytes through 16 MiB, ownership is root:root,
+mode is regular 0555, birth seconds are nonnegative and nanoseconds are below
+one billion. Modification/change seconds can be negative. Decode rejects trailing
+or short input and invalid shape; both directions preserve outputs on error.
+`spec/vectors/image-v1.json` freezes an independent Python/C round trip including
+a negative modification time. These bytes describe an already checked file;
+they do not authenticate a volume, publisher or process by themselves.
+
+### Actual User observation
+
+Test-only Register and Ready take no caller-selected IDs, paths, units or labels.
+User captures the actual app connection's ProcessFD and requires UID1000 and the
+exact compiled MCS context. `ae_process_observe` joins current process credentials
+to the derived original app unit, current boot, actual invocation and cgroup.
+User then authenticates Root's AppSource reply, checks the complete profile and
+invocation, and uses `ae_image_match_process` on the live app. It rechecks its own
+private allocation/owner/raw MAC and the current process context before the
+native journal transaction. The original connection/process pin is independently
+retained before registration commits, including an unknown commit outcome.
+
+The temporary User policy permits the required app metadata, executable-file and
+proc-link reads plus app/User messages. Direct code-store traversal remains
+denied by DAC. No execute/map, SYS_PTRACE, KILL or Linux capability is added to
+User. Linux documents `/proc/PID/exe` access under
+[PTRACE_MODE_READ_FSCREDS](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html);
+the pinned enforcing carrier proves this same-UID, exact-domain read path with
+User's permitted/effective/inheritable/bounding/ambient capability sets empty.
+It is not evidence for arbitrary processes, UIDs or hardware.
+
+The test's AETHAPP1 evidence digest covers its literal tag, authenticated complete
+Root envelope, bus GUID, actual boot/invocation/cgroup ID/PID and bounded
+length-prefixed unique name/unit/label/cgroup. It binds observations for this
+transaction, not durable PID authority. A second connection cannot inherit the
+first registration, even from the same actual process. Every Register/Ready use
+rechecks the original active actor and current source/data fences; no owner-
+replacement fallback or replay after restart is implemented.
+
+### Native User journal
+
+`ae_catalogue_observe_user_execution` reuses v2; no frozen SQL/XML/profile changes
+are needed. Caller-supplied evidence still requires all independent process,
+Root, filesystem and current-owner observations above. Inside BEGIN IMMEDIATE,
+the transaction checks the current User epoch/runtime/account/boot, exact accepted
+launch and original Root link, full profile-bound preparation, active binding,
+attached data, open exact data gate and original plan read revisions.
+
+| Transition | Atomic changes |
+| --- | --- |
+| REGISTER | Step2 verify/integration/actual invocation/applied with context digest; step1 preparation becomes applied; launch becomes starting/unknown with that invocation; operation reason app_registered; increment launch, operation and catalogue revisions |
+| READY | Require that exact registration; step3 activate/launch/applied with the same digest; launch becomes running/ready; operation reason app_ready; increment the same three revisions |
+
+READY before registration rejects. Exact retries preserve file bytes/revisions;
+REGISTER after READY returns the existing ready snapshot without downgrading it.
+Changed invocation/evidence, closed or revised gates, owner restart and conflicting
+steps reject. Revision overflow rejects before mutation. Error/unknown COMMIT
+acknowledgement leaves caller outputs unchanged. Old preparation/withdrawal paths
+cannot reinterpret registration as a new submission or a no-exec release proof.
+The current fixed P0 fence rejects existing grants; future grant integration must
+review retry semantics instead of silently weakening this boundary.
+
+`catalogue.user_readiness` runs twelve actual native transaction scenarios:
+fresh, lost REGISTER/READY replies, child exits before/after both commits, restart,
+gate closure and overflow of each incremented revision. It injects every five
+REGISTER/four READY write failure and commit boundaries, checks unchanged error
+outputs, byte-stable retries, invocation/evidence conflicts, wrong owner/stage
+and REGISTER after READY. These are transaction/restart tests, not power-loss or
+general runtime admission evidence.
+
+The live payload first attempts READY before REGISTER, then registers. Another
+connection's READY is rejected; the original connection reports READY and repeats
+both methods successfully. The controller checks the archived User running/ready
+invocation equals Root's actual dispatch invocation and User steps0..3 are applied.
+Both owner operations still run with no outcome and Root retains its running
+lease after independent exact test drain. Histories are archived before retiring
+the owned fixture. The payload's fixed test bus-name calls are not an authenticated
+general-purpose app SDK. Normal session admission, Root observation settlement,
+executing recovery/drain, documents and complete removal remain implementation
+work; no public launch capability is enabled.

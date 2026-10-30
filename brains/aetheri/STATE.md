@@ -1,6 +1,6 @@
 # State
 
-30 October 2026 — connected actual User/Root execution admission in the isolated enforcing fixture.
+30 October 2026 — actual User-mediated app registration and explicit readiness.
 
 ## Confirmed
 
@@ -13,6 +13,47 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The actual User owner in the isolated enforcing fixture now authenticates the
+executing app's original bus connection/ProcessFD, service/invocation/cgroup/MCS
+and running executable against original Root's authenticated current-code
+observation. User independently rechecks private allocation/MAC. It retains the
+original app pin before registration commits, including uncertain replies.
+The new bounded AETHIMG1 codec has an independent Python/C frozen vector and
+rejects malformed shape without changing outputs. No dependency was added.
+
+Native User REGISTER and READY transactions reuse v2: registration records the
+verified invocation and leaves readiness unknown; READY from that exact actor
+records running/ready. Exact retries preserve later state. Premature READY,
+another connection, changed evidence/invocation, stale gate/runtime and revision
+overflow reject. Every write/commit boundary and actual child exits around both
+commits are covered. Neither owner's operation completes and Root's lease remains
+running. Readiness is the inert app's protocol declaration, not UI responsiveness.
+See [registration/readiness](../../spec/runtime.md#user-mediated-application-registration-and-readiness).
+
+Full native Debug ASan/UBSan passes 41/41 (450.68 s), Release 41/41 (383.41 s).
+Host migration/wire passes 30/30 (55.259 s), orchestration 45/45 (5.456 s), runtime
+vectors 16/16 and 374 isolated constraint assertions. The twelve native readiness
+scenarios exercise all five REGISTER/four READY writes and commit boundaries.
+These are test results, not OS responsiveness or performance measurements.
+
+The final live repeat passed the actual cap-zero User current-image check and
+original-connection handshake, including REGISTER after READY and repeated READY.
+Root's test observation also checks the exact original installation revision.
+Temporary proc/executable reads add no ptrace or capability and direct code-store
+opening remains denied. Owned processes/units/config/policy were retired after
+independent drain, with both unsettled owner histories archived. Final read-only
+verification confirms Enforcing, unchanged normal protected inputs, pending=None,
+two closed install/two closed data gates, no unsettled normal dispatch/lease,
+System1/test User name unowned and temporary inputs retired. Normal executing
+profile/starter/scaffold/Root unit remain absent. All 161 actual guest source
+hashes match the current host transfer inventory. No normal capability is enabled.
+Normal SDK/session provisioning and executing recovery/drain/lease settlement
+remain work, followed by documents/revocation and complete removal. The full
+desktop/apps/image/hardware objective remains active; no personal choice blocks
+that backend work.
+
+Previous connected-owner checkpoint (30 October 2026):
 
 The isolated enforcing test now connects an actual registered UID1000 User
 process to Root dispatch. User owns a separate native catalogue/runtime, verifies

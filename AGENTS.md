@@ -259,6 +259,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/execution.h now separately journals User REGISTER and READY through
+  ae_catalogue_observe_user_execution. Read spec/runtime.md's User-mediated app
+  registration section; run catalogue.user_readiness. Original process/Root/
+  image/private-data evidence remains the caller's obligation. REGISTER binds
+  actual invocation/context; READY requires the same actor/evidence. Exact retries
+  preserve later state; restart/gate drift rejects. Neither completes operations
+  or releases Root's lease. The explicit live fixture exercises actual cap-zero
+  User process/current-image checks and rejects premature/foreign-connection READY.
+  AETHIMG1 is a 112-byte bounded observation codec, never provenance by itself;
+  AETHOBS1/AETHAPP1 are test-only Root-observation/context envelopes. The temporary
+  User policy allows exact proc/executable reads, no ptrace/capability or code-store
+  traversal. Normal SDK/session provisioning, Root settlement and executing drain/
+  recovery remain pending. Public capabilities and installed profiles stay closed.
 - authority/execution_admission.h now connects the original registered User peer
   to native Root request/arm. Read spec/runtime.md's connected-owner section;
   run authority.execution_admission and the explicit live fixture. It verifies
@@ -301,8 +314,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   section. It uses a separate privately bound root and controlled broker/data
   fixture admission, never normal installed inputs. Temporary aetheri_exec_app_t
   preserves old app-domain denials; compiled target SID changes the profile-bound
-  starter digest. Root/starter get no SYS_PTRACE/KILL; only the administrative
-  driver checks the actual running ELF and terminates the exact app pidfd. Fresh
+  starter digest. Root/starter get no SYS_PTRACE/KILL; the administrative
+  driver independently checks the running ELF and terminates the exact app pidfd. Fresh
   post-exec credentials join the original held process/invocation/cgroup. Unknown
   starts preserve intent/fixture/policy. Exact process/unit/cgroup/job drain and
   full owned-input/tree checks precede test retirement; archive native unresolved

@@ -173,5 +173,10 @@ authenticated Root projection/receipt, independent allocation checks and native
 preparation to Root request/arm and exact target ELF observation. Root keeps its
 original broker pin; normal owner/session provisioning, mutation/revocation and
 executing recovery remain separate gates. No normal launch capability is enabled.
+The fixed live fixture now also authenticates the actual app to User using its
+original connection/ProcessFD, unit/invocation/cgroup and Root-observed executable.
+Separate native registration and explicit readiness commits preserve both open
+owner operations and Root's lease. This is tested fixed-fixture behavior, not
+normal session/app provisioning, UI responsiveness or executing recovery.
 Full Linux app lifecycle, the desktop, an
 original bootable image and hardware/performance acceptance remain unimplemented.
