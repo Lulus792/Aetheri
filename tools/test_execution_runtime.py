@@ -199,7 +199,7 @@ def main():
         record['static_hashes']={str(path.relative_to(ROOT)):sha(path) for path in ROOT.rglob('*') if path.is_file() and path.name not in ('controller.json','catalogue.sqlite3','writer.lock')}
         xml='''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
 <busconfig><selinux><associate own="org.aetheri.P0ExecutionUser1" context="system_u:object_r:aetheri_user_service_t:s0"/></selinux><policy user="root"><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.Execution1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy>
-<policy user="aetheri"><allow own="org.aetheri.P0ExecutionUser1"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Register"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Ready"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionBrokerTest1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="Observe"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="PinApp"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy><policy context="mandatory"><deny send_destination="org.aetheri.P0ExecutionUser1" send_type="method_call" min_fds="1"/></policy></busconfig>
+<policy user="aetheri"><allow own="org.aetheri.P0ExecutionUser1"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Register"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Ready"/><allow send_destination="org.aetheri.P0ExecutionUser1" send_interface="org.aetheri.P0ExecutionUserTest1" send_member="Complete"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionBrokerTest1"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="Observe"/><allow send_destination="org.aetheri.System1" send_interface="org.aetheri.P0ExecutionTest1" send_member="PinApp"/><deny send_destination="org.aetheri.System1" send_type="method_call" min_fds="1"/></policy><policy context="mandatory"><deny send_destination="org.aetheri.P0ExecutionUser1" send_type="method_call" min_fds="1"/></policy></busconfig>
 '''
         with CONFIG.open('x',encoding='utf-8') as out: out.write(xml)
         CONFIG.chmod(0o644); run('restorecon',str(CONFIG)); record['config_sha256']=sha(CONFIG); save(record)
@@ -258,21 +258,32 @@ UMask=0077
             os.close(root_pin)
         verify_static(record); quiet_normal(ordinary)
         with closing(sqlite3.connect('file:'+str(work/'system/catalogue.sqlite3')+'?mode=ro',uri=True)) as db:
-            if db.execute("SELECT state FROM generation_leases").fetchall()!=[('running',)] or db.execute("SELECT count(*) FROM operations WHERE state='completed'").fetchone()[0]: raise RuntimeError('unexpected lease settlement')
+            if db.execute("SELECT state FROM generation_leases").fetchall()!=[('running',)]: raise RuntimeError('unexpected lease settlement')
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('catalogue corruption')
             record['steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
             record['app_invocation']=db.execute('SELECT lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()[0]
             if db.execute('SELECT state FROM launch_dispatches').fetchall()!=[('observed',)]: raise RuntimeError('missing Root execution observation')
-            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(6)]: raise RuntimeError('missing Root original execution/observation steps')
-            if db.execute('SELECT state,outcome,reason_code FROM operations').fetchall()!=[('running',None,'exec_channel_unknown')]: raise RuntimeError('execution observation settled the operation or erased its channel diagnostic')
+            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(7)]: raise RuntimeError('missing Root execution/completion steps')
+            if db.execute('SELECT state,outcome,reason_code,result_kind FROM operations').fetchall()!=[('completed','applied','exec_channel_unknown','launch')]: raise RuntimeError('missing Root launch result or channel diagnostic')
+            value={}
+            value.update(zip(('system_epoch','system_runtime','boot'),db.execute('SELECT lower(hex(authority_epoch)),lower(hex(runtime_incarnation)),lower(hex(current_boot_id)) FROM authority_meta').fetchone()))
+            value.update(zip(('operation','revision','completed_unix_ms'),db.execute('SELECT lower(hex(operation_id)),revision,completed_unix_ms FROM operations').fetchone()))
+            value.update(zip(('launch','lease','invocation'),db.execute('SELECT lower(hex(launch_id)),lower(hex(lease_id)),lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()))
+            value['profile_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=1').fetchone()[0]
+            value['observation_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=5').fetchone()[0]
+            completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
+            if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
+            if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
         evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
         shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
+        (evidence/'launch-completion.bin').write_bytes(completion); record['completion_sha256']=completion_hash
         user_database=work/record['user_catalogue_rel']
         with closing(sqlite3.connect('file:'+str(user_database)+'?mode=ro',uri=True)) as db:
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('User catalogue corruption')
             if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('running','ready',record['app_invocation'])]: raise RuntimeError('missing User readiness/invocation')
-            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(0,'applied'),(1,'applied'),(2,'applied'),(3,'applied')]: raise RuntimeError('missing User registration/readiness evidence')
-            if db.execute('SELECT state,outcome FROM operations').fetchall()!=[('running',None)]: raise RuntimeError('User readiness settled an operation')
+            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(5)]: raise RuntimeError('missing User launch completion')
+            if db.execute('SELECT state,outcome,result_kind,lower(hex(result_ref)) FROM operations').fetchall()!=[('completed','applied','launch',value['launch'])]: raise RuntimeError('wrong User launch result')
+            if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=4').fetchone()[0]!=completion_hash or db.execute('SELECT state FROM operation_links').fetchall()!=[('completed',)]: raise RuntimeError('unacknowledged Root result')
             record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
         shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
         record.update(state='passed',evidence=str(evidence)); save(record)

@@ -10,8 +10,10 @@ lifecycle methods defined by these contracts.
 The separate explicit live fixture now also proves User-mediated actual process/
 executable registration and explicit readiness. Its
 [native journal and observation bytes](runtime.md#user-mediated-application-registration-and-readiness)
-reuse v2 without changing frozen SQL/XML. Both owner operations and Root's lease
-remain unsettled; no normal app/session registration API is installed.
+reuse v2 without changing frozen SQL/XML. No normal app/session registration API
+is installed. Separate authenticated start-result receipts now complete both
+owner operations while Root's generation lease remains running; see
+[launch-result completion](runtime.md#launch-result-completion-without-run-or-lease-release).
 Root now also records an [actual execution observation](runtime.md#root-execution-observation-journal)
 after its original process evidence matches authenticated User confirmation.
 Historical retries preserve later states and the generation lease remains held.
@@ -40,6 +42,7 @@ Historical retries preserve later states and the generation lease remains held.
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [image.h](../src/linux/image.h), [image-v1.json](vectors/image-v1.json) | Bounded 112-byte AETHIMG1 executable observation codec; authenticated source and current-process matching are separate obligations |
+| [execution.h](../src/catalogue/execution.h), [execution-completion-v1.json](vectors/execution-completion-v1.json) | Canonical 200-byte start-result receipt and separate Root/User completion; no run/lease release or bearer trust |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
 | [fixture.h](../src/core/fixture.h), [fixture.c](../src/core/fixture.c), [native fixture tests](../tools/test_fixture_native.py) | Canonical C17 metadata decoding and field/bounds checks; no payload hashing, trust or importer |
 | [root.h](../src/core/root.h), [storage.h](../src/core/storage.h), [storage reference tests](../tests/test_storage_ref.c) | Runtime held/named mount identity and expected private-root binding; no durable volume enrollment or public grant transport |
@@ -193,6 +196,7 @@ No SQL/XML source or protocol version changed for this addition.
 | ae_catalogue_check_account | Require the exact active system-account/UID row and return its revision; not a process proof or future admission fence |
 | ae_catalogue_prepare_user_execution | Persist exact User execution preparation before external submission; fresh-only submit flag, immutable full-profile binding and retained recovery obligation; no ARM/readiness/drain proof |
 | ae_catalogue_observe_execution | Record actual execution evidence as Root step5/observed while retaining the running lease/operation; historical retries never rearm or restore later state |
+| ae_catalogue_complete_execution / ae_catalogue_finish_user_execution | Separate Root start-result receipt and User acknowledgement; complete only the start operations while retaining dispatch/run/lease obligations |
 | ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
 
 The caller supplies an already protected, stable absolute directory and identity

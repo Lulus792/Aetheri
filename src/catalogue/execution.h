@@ -109,4 +109,33 @@ int ae_catalogue_execution_report(struct ae_catalogue *,const struct ae_executio
 int ae_catalogue_observe_execution(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_launch_context *,const struct ae_execution_evidence *,const uint8_t app_digest[32],
     struct ae_execution_result *);
+enum { AE_EXECUTION_COMPLETION_BYTES=200 };
+struct ae_execution_completion {
+    uint8_t system_epoch[16],system_runtime[16],boot[16],operation[16],launch[16],lease[16],invocation[16];
+    uint8_t profile_digest[32],observation_digest[32];
+    int64_t revision,completed_unix_ms;
+};
+/* AETHLCR1 is an immutable start-result receipt, never lease/drain authority.
+ * Fixed big-endian bytes; independently authenticate the original Root reply. */
+int ae_execution_completion_encode(const struct ae_execution_completion *,uint8_t output[AE_EXECUTION_COMPLETION_BYTES]);
+int ae_execution_completion_decode(const uint8_t *,size_t,struct ae_execution_completion *);
+int ae_execution_completion_match(const struct ae_execution_profile *,const struct ae_execution_evidence *,
+    const uint8_t observation_digest[32],const struct ae_execution_completion *);
+/* Original Root runtime only. Fresh completion requires actual current caller
+ * admission, observed execution, matching User evidence and the closed UNKNOWN
+ * channel diagnostic (not itself exec proof). Complete only the start operation;
+ * keep dispatch observed, lease running and diagnostic reason intact. Exact
+ * historical retries return the original receipt/time without restoring state.
+ * No external effect; all outputs unchanged on errors/unknown COMMIT. */
+int ae_catalogue_complete_execution(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,const uint8_t observation_digest[32],
+    int64_t completed_unix_ms,struct ae_execution_completion *);
+/* Original User runtime. Caller authenticates the actual Root completion reply,
+ * rechecks its original app/image/private data, and derives the observation hash
+ * from its own confirmation. Require native registered/ready evidence. Complete
+ * only the User operation/link; retain the live launch/data obligation. Exact
+ * historical retry is receipt-only; no gate/run resurrection or lease release. */
+int ae_catalogue_finish_user_execution(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_execution_evidence *,const uint8_t observation_digest[32],const struct ae_execution_completion *,
+    int64_t completed_unix_ms,struct ae_user_launch_snapshot *);
 #endif

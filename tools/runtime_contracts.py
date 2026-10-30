@@ -16,6 +16,14 @@ class InvalidContract(ValueError):
 MAX_RECORD = 131072
 MAX_INT = 2**63 - 1
 
+def execution_completion(value):
+    fields(value,'system_epoch system_runtime boot operation launch lease invocation profile_digest observation_digest revision completed_unix_ms')
+    result=b'AETHLCR1'
+    for key in ('system_epoch','system_runtime','boot','operation','launch','lease'):
+        data=rawhex(value[key],16); require(data[6]>>4==4 and data[8]&0xc0==0x80,'completion UUID'); result+=data
+    invocation=rawhex(value['invocation'],16); require(any(invocation),'completion invocation')
+    return result+invocation+rawhex(value['profile_digest'],32)+rawhex(value['observation_digest'],32)+struct.pack('>QQ',integer(value['revision'],MAX_INT,1),integer(value['completed_unix_ms']))
+
 def image_record(value):
     fields(value,"inode size device_major device_minor uid gid mode birth_seconds birth_ns mtime_seconds mtime_ns ctime_seconds ctime_ns digest")
     require(value['uid']==0 and value['gid']==0 and value['mode']==0o100555,"image ownership/mode")

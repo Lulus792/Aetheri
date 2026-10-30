@@ -22,6 +22,7 @@
 #include <systemd/sd-daemon.h>
 #include <systemd/sd-id128.h>
 #include <unistd.h>
+#include <time.h>
 #define ROOT "/var/lib/aetheri-p0"
 #define IFACE "org.aetheri.P0ExecutionTest1"
 #define USER_UNIT "aetheri-p0-execution-user.service"
@@ -51,6 +52,8 @@ static struct ae_peer user_app=AE_PEER_INIT;
 static struct ae_process_context user_app_context;
 static struct ae_execution_evidence user_app_evidence;
 static uint8_t user_publisher[16],user_observation[OBSERVATION_BYTES];
+static int64_t realtime_ms(void)
+{ struct timespec value; CHECK(clock_gettime(CLOCK_REALTIME,&value)==0 && value.tv_sec>=0 && value.tv_sec<INT64_MAX/1000); return (int64_t)value.tv_sec*1000+value.tv_nsec/1000000; }
 static void id(uint8_t out[16],uint8_t last) { memset(out,0,16); out[6]=0x40; out[8]=0x80; out[15]=last; }
 static void load(const char *root)
 {
@@ -241,7 +244,7 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (r==0 && (current.gate!=AE_INSTALL_GATE_OPEN || current.install_revision!=p.install_revision || current.gate_revision!=p.install_gate_revision || memcmp(current.generation,p.generation,16)!=0 || memcmp(current.artifact,p.artifact,32)!=0)) r=-ESTALE;
         if (r==0) r=sd_bus_message_new_method_return(m,&reply);
         if (r>=0) r=sd_bus_message_append_array(reply,'y',record,sizeof record);
-    } else if (strcmp(method,"ConfirmApp")==0) {
+    } else if (strcmp(method,"ConfirmApp")==0 || strcmp(method,"FinishLaunch")==0) {
         const void *raw=NULL; size_t length=0; uint8_t hash[32],app_hash[32];
         r=sd_bus_message_read_array(m,'y',&raw,&length)>0 && sd_bus_message_at_end(m,1)==1 ? 0 : -EPROTO;
         if (r==0 && (length<106 || length>361 || app.pidfd<0 || !armed)) r=-EACCES;
@@ -256,12 +259,21 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (r==0) r=ae_process_verify(&app,bus,&app_context);
         if (r==0 && (app.connection_pid!=starter.connection_pid || app_context.cgroup_id!=starter_context.cgroup_id)) r=-ESTALE;
         if (r==0) r=ae_sha256_bytes(bytes,length,app_hash);
-        struct ae_execution_result observed;
-        if (r==0) r=ae_catalogue_observe_execution(store,&p,&broker,&bound_evidence,app_hash,&observed);
-        if (r==0 && (observed.effect_required || strcmp(observed.dispatch.state,"observed")!=0)) r=-ESTALE;
-        if (r==0) { app_confirmed=1; r=sd_bus_message_new_method_return(m,&reply); }
-        if (r>=0) r=sd_bus_message_append_array(reply,'y',p.root_operation,16);
-        if (r>=0) r=sd_bus_message_append(reply,"st",observed.dispatch.state,(uint64_t)observed.dispatch.revision);
+        if (strcmp(method,"FinishLaunch")==0) {
+            struct ae_execution_completion completed; uint8_t wire[AE_EXECUTION_COMPLETION_BYTES];
+            if (r==0 && !app_confirmed) r=-EAGAIN;
+            if (r==0) r=ae_catalogue_complete_execution(store,&p,&broker,&bound_evidence,app_hash,realtime_ms(),&completed);
+            if (r==0) r=ae_execution_completion_encode(&completed,wire);
+            if (r==0) r=sd_bus_message_new_method_return(m,&reply);
+            if (r>=0) r=sd_bus_message_append_array(reply,'y',wire,sizeof wire);
+        } else {
+            struct ae_execution_result observed;
+            if (r==0) r=ae_catalogue_observe_execution(store,&p,&broker,&bound_evidence,app_hash,&observed);
+            if (r==0 && (observed.effect_required || strcmp(observed.dispatch.state,"observed")!=0)) r=-ESTALE;
+            if (r==0) { app_confirmed=1; r=sd_bus_message_new_method_return(m,&reply); }
+            if (r>=0) r=sd_bus_message_append_array(reply,'y',p.root_operation,16);
+            if (r>=0) r=sd_bus_message_append(reply,"st",observed.dispatch.state,(uint64_t)observed.dispatch.revision);
+        }
     } else {
         CHECK(strcmp(method,"Dispatch")==0);
         if (admission==NULL || begun) r=-EALREADY;
@@ -286,6 +298,7 @@ static const sd_bus_vtable broker_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Receipt","","ayayayayayayayayayaysttbayay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("AppSource","","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("ConfirmApp","ay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("FinishLaunch","ay","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Dispatch","ayay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",control,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("PinApp","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
@@ -320,7 +333,7 @@ static sd_bus_message *root_call(const char *method,const struct ae_launch_reque
     if (dispatch) { uint8_t hash[32]; CHECK(ae_execution_digest(&p,hash)==0 && sd_bus_message_append_array(call,'y',p.lease,16)>=0 && sd_bus_message_append_array(call,'y',hash,32)>=0); }
     return root_reply(call);
 }
-static void confirm_application(void)
+static void confirm_application(int finish,struct ae_execution_completion *completed,uint8_t observation_hash[32])
 {
     uint8_t bytes[361],hash[32]; size_t name=strlen(user_app.unique_name); CHECK(name<=255 && ae_execution_digest(&p,hash)==0);
     memcpy(bytes,"AETHACK1",8); memcpy(bytes+8,hash,32); memcpy(bytes+40,user_app_context.invocation,16); memcpy(bytes+56,user_app.bus_id,16);
@@ -336,10 +349,13 @@ static void confirm_application(void)
         sd_bus_error_free(&error); sd_bus_message_unref(call); sd_bus_message_unref(answer); bytes[56]^=1; rejected=1;
     }
     sd_bus_message *call=NULL;
-    CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","ConfirmApp")>=0 && sd_bus_message_append_array(call,'y',bytes,106+name)>=0);
+    CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1",finish ? "FinishLaunch" : "ConfirmApp")>=0 && sd_bus_message_append_array(call,'y',bytes,106+name)>=0);
     sd_bus_message *reply=root_reply(call); const void *operation=NULL; size_t length=0; const char *state=NULL; uint64_t revision=0;
-    CHECK(sd_bus_message_read_array(reply,'y',&operation,&length)>0 && length==16 && memcmp(operation,p.root_operation,16)==0 &&
-        sd_bus_message_read(reply,"st",&state,&revision)>0 && strcmp(state,"observed")==0 && revision>0 && sd_bus_message_at_end(reply,1)==1);
+    CHECK(sd_bus_message_read_array(reply,'y',&operation,&length)>0);
+    if (finish) {
+        CHECK(completed && observation_hash && ae_execution_completion_decode(operation,length,completed)==0 && sd_bus_message_at_end(reply,1)==1 &&
+            ae_sha256_bytes(bytes,106+name,observation_hash)==0 && ae_execution_completion_match(&p,&user_app_evidence,observation_hash,completed)==0);
+    } else CHECK(length==16 && memcmp(operation,p.root_operation,16)==0 && sd_bus_message_read(reply,"st",&state,&revision)>0 && strcmp(state,"observed")==0 && revision>0 && sd_bus_message_at_end(reply,1)==1);
     sd_bus_message_unref(reply);
 }
 static void source_matches(const struct ae_install_snapshot *s)
@@ -396,7 +412,8 @@ static int application_error(sd_bus_error *error,int r)
 { return sd_bus_error_setf(error,"org.aetheri.Error1.NotAuthorized","Exact admitted live app/image required: %d",r); }
 static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
-    (void)userdata; int ready=strcmp(sd_bus_message_get_member(m),"Ready")==0;
+    (void)userdata; int complete=strcmp(sd_bus_message_get_member(m),"Complete")==0;
+    int ready=strcmp(sd_bus_message_get_member(m),"Register")!=0;
     struct ae_peer peer=AE_PEER_INIT; struct ae_process_context observed; struct ae_image image,actual;
     int r=sd_bus_message_get_expect_reply(m)==1 ? ae_peer_capture(m,&peer) : -EPROTO;
     if (r==0 && (!user_begun || peer.connection_uid!=1000 || strcmp(peer.connection_label,AE_STARTER_TARGET_CONTEXT)!=0 || (ready && user_app.pidfd<0))) r=-EACCES;
@@ -436,19 +453,25 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
         if (r==0) { user_app=peer; user_app.pidfd=pin; user_app_context=observed; memcpy(user_observation,source,sizeof source); }
     }
     struct ae_user_launch_snapshot state;
-    if (r==0) r=ae_catalogue_observe_user_execution(store,&p,ready ? AE_USER_EXECUTION_READY : AE_USER_EXECUTION_REGISTER,&user_app_evidence,&state);
+    if (r==0 && !complete) r=ae_catalogue_observe_user_execution(store,&p,ready ? AE_USER_EXECUTION_READY : AE_USER_EXECUTION_REGISTER,&user_app_evidence,&state);
+    if (r==0 && complete) {
+        struct ae_execution_completion completed; uint8_t observation[32]; confirm_application(1,&completed,observation);
+        r=ae_catalogue_finish_user_execution(store,&p,&user_app_evidence,observation,&completed,realtime_ms(),&state);
+    }
     if (payload>=0) close(payload);
     ae_peer_clear(&peer);
     if (r!=0) return application_error(error,r);
     CHECK((strcmp(state.state,"running")==0 && strcmp(state.readiness,"ready")==0) ||
         (!ready && strcmp(state.state,"starting")==0 && strcmp(state.readiness,"unknown")==0));
-    if (ready) confirm_application();
+    if (ready && !complete) confirm_application(0,NULL,NULL);
+    if (complete) CHECK(strcmp(state.operation_state,"completed")==0);
     return sd_bus_reply_method_return(m,"");
 }
 static const sd_bus_vtable user_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Begin","","",user_begin,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Register","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("Ready","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+    SD_BUS_METHOD("Ready","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Complete","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static void user_serve(int reject)
 {
     char *label=NULL; CHECK(getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && getcon_raw(&label)==0 &&

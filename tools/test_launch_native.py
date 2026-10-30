@@ -85,6 +85,14 @@ def main():
                 "fresh","lost","crash-before","crash-after","closed-gate","restart",
                 "overflow-dispatch","overflow-operation","overflow-catalogue","early-diagnostic","late-diagnostic",
                 "later-closing","later-terminal","later-uncertain"))
+        if len(sys.argv)==4 and sys.argv[3]=="completion":
+            scenarios=tuple("exec-completion-"+case for case in (
+                "fresh","root-lost","user-lost","root-crash-before","root-crash-after","user-crash-before","user-crash-after",
+                "root-gate","user-gate","root-restart","user-restart","root-overflow-operation","root-overflow-catalogue",
+                "user-overflow-operation","user-overflow-catalogue","missing-diagnostic","bad-diagnostic","missing-ready","later-terminal"))
+            vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/execution-completion-v1.json').read_bytes())
+            encoded=root/'completion.vector'; encoded.write_bytes(bytes.fromhex(vector['hex']))
+            subprocess.run([executable,'completion-codec',encoded],check=True,timeout=10)
         if len(sys.argv)==4 and sys.argv[3]=="wire":
             scenarios=tuple("exec-wire-"+case for case in (
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",

@@ -2218,8 +2218,8 @@ int ae_catalogue_withdraw_setup(struct ae_catalogue *s,const struct ae_setup_pro
 { return setup_action(s,p,h,i,e,c,t,3,o); }
 
 #define EXEC_INPUT "WITH p(se,sr,be,br,boot,account,i,g,d,storage,launch,lease,op,uop,ir,igate,dgate,hash,inv,evidence,artifact,fp,rhash,reason) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24)) "
-static int execution_statement_extra(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],
-    const struct ae_execution_evidence *e,const uint8_t report[32],const char *reason,const char *sql,int64_t *value)
+static int execution_statement_full(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],
+    const struct ae_execution_evidence *e,const uint8_t report[32],const char *reason,const int64_t *stamp,const char *sql,int64_t *value)
 {
     const uint8_t *ids[]={p->system_epoch,p->system_runtime,p->broker_epoch,p->broker_runtime,p->boot,p->account,p->install,p->generation,
         p->data,p->storage,p->launch,p->lease,p->root_operation,p->user_operation};
@@ -2232,6 +2232,7 @@ static int execution_statement_extra(struct ae_catalogue *store,const struct ae_
     for (int n=0;result==0 && n<5;++n) result=failure(sqlite3_bind_blob(s,n+18,digests[n],n==1 ? 16 : 32,SQLITE_TRANSIENT));
     if (result==0) result=failure(sqlite3_bind_blob(s,23,report ? report : zero,32,SQLITE_TRANSIENT));
     if (result==0) result=failure(sqlite3_bind_text(s,24,reason ? reason : "",-1,SQLITE_TRANSIENT));
+    if (result==0 && stamp!=NULL && sqlite3_bind_parameter_count(s)>=25) result=failure(sqlite3_bind_int64(s,25,*stamp));
     if (result==0) {
         int code=sqlite3_step(s);
         if (value!=NULL) {
@@ -2242,6 +2243,9 @@ static int execution_statement_extra(struct ae_catalogue *store,const struct ae_
     }
     int final=failure(sqlite3_finalize(s)); return result==0 ? final : result;
 }
+static int execution_statement_extra(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],
+    const struct ae_execution_evidence *e,const uint8_t report[32],const char *reason,const char *sql,int64_t *value)
+{ return execution_statement_full(store,p,hash,e,report,reason,NULL,sql,value); }
 static int execution_statement(struct ae_catalogue *store,const struct ae_execution_profile *p,const uint8_t hash[32],
     const struct ae_execution_evidence *e,const char *sql,int64_t *value)
 { return execution_statement_extra(store,p,hash,e,NULL,NULL,sql,value); }
@@ -2539,6 +2543,112 @@ int ae_catalogue_observe_execution(struct ae_catalogue *store,const struct ae_ex
     if (r==0) r=dispatch_row(store,p->lease,c,&result.dispatch);
     r=fixture_commit(store,r); if (r==0) *output=result;
 #undef OQ
+    return r;
+}
+int ae_catalogue_complete_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const uint8_t app_digest[32],int64_t stamp,struct ae_execution_completion *output)
+{
+    if (output==NULL || e==NULL || !nonzero(e->invocation) || app_digest==NULL || stamp<0) return -EINVAL;
+    uint8_t hash[32],diagnostic[32],bytes[AE_EXECUTION_COMPLETION_BYTES],receipt_hash[32]; char reason[64];
+    struct ae_execution_diagnostic unknown={.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+    int r=ae_execution_digest(p,hash);
+    if (r==0) r=ae_execution_diagnostic_encode(p,e,&unknown,diagnostic,reason);
+    if (r==0) r=reservation_context(store,c);
+    if (r==0 && (memcmp(p->system_epoch,store->identity.authority_epoch,16)!=0 || memcmp(p->system_runtime,c->system_runtime,16)!=0 ||
+        memcmp(p->boot,c->boot,16)!=0 || memcmp(p->broker_epoch,c->broker_epoch,16)!=0 || memcmp(p->broker_runtime,c->broker_runtime,16)!=0 || memcmp(p->account,c->account,16)!=0)) r=-ESTALE;
+    if (r!=0) return r;
+    r=exec_sql(store->db,"BEGIN IMMEDIATE"); if (r!=0) return r;
+    int64_t match=0,present=0; const uint8_t *record_hash=app_digest;
+#define CQ(sql,out) execution_statement_full(store,p,hash,e,record_hash,reason,&stamp,EXEC_INPUT sql,out)
+    r=CQ("SELECT count(*) " EXEC_TUPLE "JOIN operation_steps req ON req.operation_id=p.op AND req.step_no=1 AND req.action='stage' AND req.subject_kind='generation' AND req.subject_ref=p.g AND req.state='applied' AND req.evidence_digest=p.hash "
+        "JOIN operation_steps pin ON pin.operation_id=p.op AND pin.step_no=2 AND pin.action='verify' AND pin.subject_kind='integration' AND pin.subject_ref=p.inv AND pin.state='applied' AND pin.evidence_digest=p.evidence "
+        "JOIN operation_steps arm ON arm.operation_id=p.op AND arm.step_no=3 AND arm.action='activate' AND arm.subject_kind='launch' AND arm.subject_ref=p.launch AND arm.state='applied' AND arm.evidence_digest=p.hash "
+        "JOIN operation_steps obs ON obs.operation_id=p.op AND obs.step_no=5 AND obs.action='verify' AND obs.subject_kind='launch' AND obs.subject_ref=p.launch AND obs.state='applied' AND obs.evidence_digest=p.rhash "
+        "WHERE d.invocation_ref=p.inv AND d.ready_data_gate_revision=p.dgate",&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=CQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=6",&present);
+    record_hash=diagnostic;
+    if (r==0) r=CQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=4 AND action='verify' AND subject_kind='integration' AND subject_ref=p.inv AND state='applied' AND evidence_digest=p.rhash",&match);
+    if (r==0 && match!=1) r=-EAGAIN;
+    struct ae_execution_completion result={0};
+    const uint8_t *sources[]={p->system_epoch,p->system_runtime,p->boot,p->root_operation,p->launch,p->lease,e->invocation};
+    uint8_t *targets[]={result.system_epoch,result.system_runtime,result.boot,result.operation,result.launch,result.lease,result.invocation};
+    for (size_t n=0;n<7;++n) memcpy(targets[n],sources[n],16);
+    memcpy(result.profile_digest,hash,32); memcpy(result.observation_digest,app_digest,32);
+    if (r==0) r=CQ("SELECT o.revision " EXEC_TUPLE,&result.revision);
+    if (r==0 && present) r=CQ("SELECT o.completed_unix_ms " EXEC_TUPLE,&result.completed_unix_ms);
+    if (r==0 && !present) {
+        r=CQ("SELECT count(*) " EXEC_TUPLE "JOIN installs i ON i.install_id=p.i AND i.state='active' AND i.active_generation_id=p.g AND i.revision=p.ir "
+            "JOIN admission_gates f ON f.subject_kind='install' AND f.subject_ref=p.i AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.igate "
+            "WHERE d.state='observed' AND d.close_cause_epoch IS NULL AND l.state='running' AND o.state='running' AND o.outcome IS NULL AND o.accepted_unix_ms<=?25 AND o.reason_code=p.reason "
+            "AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>5)",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=CQ("SELECT max(m.catalogue_revision,o.revision) " EXEC_TUPLE,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) { ++result.revision; result.completed_unix_ms=stamp; }
+    }
+    if (r==0) r=ae_execution_completion_encode(&result,bytes);
+    if (r==0) r=ae_sha256_bytes(bytes,sizeof bytes,receipt_hash);
+    record_hash=receipt_hash;
+    if (r==0 && present) {
+        r=CQ("SELECT count(*) " EXEC_TUPLE "JOIN operation_steps done ON done.operation_id=p.op AND done.step_no=6 AND done.action='reconcile' AND done.subject_kind='launch' AND done.subject_ref=p.launch AND done.state='applied' AND done.evidence_digest=p.rhash "
+            "WHERE o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch AND d.state IN ('observed','closing','terminal','uncertain') AND (l.state='running' OR (l.state='released' AND d.state='terminal'))",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+    }
+    if (r==0 && !present) {
+        r=CQ("INSERT INTO operation_steps SELECT op,6,'reconcile','launch',launch,'applied',rhash FROM p",NULL);
+        if (r==0) r=CQ("UPDATE operations SET state='completed',phase='reconcile',outcome='applied',completed_unix_ms=?25,result_kind='launch',result_ref=(SELECT launch FROM p),revision=revision+1 WHERE operation_id=(SELECT op FROM p)",NULL);
+        if (r==0) r=CQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    r=fixture_commit(store,r); if (r==0) *output=result;
+#undef CQ
+    return r;
+}
+
+int ae_catalogue_finish_user_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const uint8_t app_digest[32],const struct ae_execution_completion *receipt,int64_t stamp,struct ae_user_launch_snapshot *output)
+{
+    if (output==NULL || stamp<0) return -EINVAL;
+    int r=ae_execution_completion_match(p,e,app_digest,receipt);
+    uint8_t hash[32],bytes[AE_EXECUTION_COMPLETION_BYTES],receipt_hash[32];
+    if (r==0) r=ae_execution_completion_encode(receipt,bytes);
+    if (r==0) r=ae_sha256_bytes(bytes,sizeof bytes,receipt_hash);
+    if (r!=0) return r;
+    r=user_execution_begin(store,p,hash,1); if (r!=0) return r;
+    int64_t match=0,present=0;
+#define FQ(sql,out) execution_statement_full(store,p,hash,e,receipt_hash,NULL,&stamp,EXEC_INPUT sql,out)
+#define USER_RESULT_TUPLE "FROM p JOIN authority_meta m ON m.singleton=1 AND m.authority_epoch=p.be AND m.owner_scope_ref=p.account AND m.runtime_incarnation=p.br AND m.current_boot_id=p.boot " \
+    "JOIN launches l ON l.operation_id=p.uop AND l.launch_id=p.launch AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.boot_id=p.boot AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.invocation_ref=p.inv AND l.session_ref='p0' AND l.seat_ref='none' " \
+    "JOIN operations o ON o.operation_id=p.uop JOIN plans plan ON plan.plan_id=o.plan_id AND plan.authority_epoch=p.be AND plan.scope_ref=p.account AND plan.kind='launch' AND plan.action_id='run' " \
+    "JOIN operation_links x ON x.operation_id=p.uop AND x.link_no=0 AND x.remote_epoch=p.se AND x.remote_operation_ref=p.op " \
+    "JOIN operation_steps intent ON intent.operation_id=p.uop AND intent.step_no=0 AND intent.action='verify' AND intent.subject_kind='launch' AND intent.subject_ref=p.launch AND intent.state='applied' AND intent.evidence_digest=p.fp " \
+    "JOIN operation_steps prep ON prep.operation_id=p.uop AND prep.step_no=1 AND prep.action='stage' AND prep.subject_kind='data' AND prep.subject_ref=p.d AND prep.state='applied' AND prep.evidence_digest=p.hash " \
+    "JOIN operation_steps reg ON reg.operation_id=p.uop AND reg.step_no=2 AND reg.action='verify' AND reg.subject_kind='integration' AND reg.subject_ref=p.inv AND reg.state='applied' AND reg.evidence_digest=p.evidence " \
+    "JOIN operation_steps ready ON ready.operation_id=p.uop AND ready.step_no=3 AND ready.action='activate' AND ready.subject_kind='launch' AND ready.subject_ref=p.launch AND ready.state='applied' AND ready.evidence_digest=p.evidence "
+    r=FQ("SELECT count(*) " USER_RESULT_TUPLE,&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=FQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop AND step_no=4",&present);
+    if (r==0 && present) {
+        r=FQ("SELECT count(*) " USER_RESULT_TUPLE "JOIN operation_steps done ON done.operation_id=p.uop AND done.step_no=4 AND done.action='reconcile' AND done.subject_kind='launch' AND done.subject_ref=p.launch AND done.state='applied' AND done.evidence_digest=p.rhash "
+            "WHERE o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch AND x.state='completed'",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+    }
+    if (r==0 && !present) {
+        r=user_execution_fence(store,p,hash,e);
+        if (r==0) r=FQ("SELECT count(*) " USER_RESULT_TUPLE "WHERE l.state='running' AND l.readiness='ready' AND x.state='accepted' AND o.accepted_unix_ms<=?25",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=FQ("SELECT max(m.catalogue_revision,o.revision) " USER_RESULT_TUPLE,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=FQ("INSERT INTO operation_steps SELECT uop,4,'reconcile','launch',launch,'applied',rhash FROM p",NULL);
+        if (r==0) r=FQ("UPDATE operation_links SET state='completed' WHERE operation_id=(SELECT uop FROM p) AND link_no=0",NULL);
+        if (r==0) r=FQ("UPDATE operations SET state='completed',phase='reconcile',reason_code='launch_started',outcome='applied',completed_unix_ms=?25,result_kind='launch',result_ref=(SELECT launch FROM p),revision=revision+1 WHERE operation_id=(SELECT uop FROM p)",NULL);
+        if (r==0) r=FQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    struct ae_user_launch_snapshot result;
+    if (r==0) r=user_launch_row(store,p->user_operation,&result);
+    r=fixture_commit(store,r); if (r==0) *output=result;
+#undef USER_RESULT_TUPLE
+#undef FQ
     return r;
 }
 #undef EXEC_INPUT

@@ -259,6 +259,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/execution.h now separately completes Root/User start results through
+  ae_catalogue_complete_execution / ae_catalogue_finish_user_execution. Read
+  spec/runtime.md's launch-result completion section; run catalogue.execution_completion.
+  AETHLCR1 is a 200-byte immutable receipt, never a lease/drain capability. Original
+  Root replies, actual app/User/current-image/private-data admission remain caller
+  obligations. Root requires observed execution plus the exact settled UNKNOWN
+  diagnostic; UNKNOWN alone is no exec proof. Preserve its reason. Root step6 and
+  User step4 acknowledge applied launch results without changing live dispatch,
+  launch, gates or lease revisions. Exact receipt/time retries preserve later
+  state; owner replacement needs separate recovery. Test-only FinishLaunch/Complete
+  and launch-completion.bin are not a normal SDK or production close/removal API.
+  Archive completed start results AND the still-running lease/run obligations.
 - catalogue/execution.h now has ae_catalogue_observe_execution: original Root
   profile/starter binding plus independently authenticated app/User evidence
   records step5 and observed dispatch, retaining the running lease/operation.

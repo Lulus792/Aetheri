@@ -161,6 +161,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.execution_observation COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" observation)
     set_tests_properties(catalogue.execution_observation PROPERTIES TIMEOUT 180)
+    add_test(NAME catalogue.execution_completion COMMAND Python3::Interpreter
+             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" completion)
+    set_tests_properties(catalogue.execution_completion PROPERTIES TIMEOUT 240)
     add_executable(test_reservation tests/test_reservation.c)
     target_compile_definitions(test_reservation PRIVATE _GNU_SOURCE)
     target_compile_options(test_reservation PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

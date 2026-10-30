@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — Root execution observation joined to actual User app evidence.
+31 October 2026 — separate Root/User start-result completion; run and lease retained.
 
 ## Confirmed
 
@@ -13,6 +13,42 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Root now completes the known start postcondition through an immutable 200-byte
+AETHLCR1 receipt, after original observed execution and the settled canonical
+UNKNOWN channel diagnostic agree. Actual execution observation remains independent
+of that diagnostic; UNKNOWN alone proves no execution. User authenticates the original Root reply and
+checks the complete profile/run/invocation/observation against its own registered,
+ready context before completing its operation/link. Both results are applied and
+bound to the exact LaunchId. Root dispatch stays observed/lease running and User
+launch stays running/ready; no gate or run/lease revision is changed.
+
+Exact receipts/times survive lost acknowledgements and later state changes.
+Original owner replacement, closed fresh admission, missing readiness or a
+contradictory diagnostic reject success. The nineteen native completion scenarios
+pass Debug ASan/UBSan (93.89 s), including all three Root/four User writes, commit
+uncertainty, actual process exits, overflow and historical terminal/exited retries.
+Independent byte vectors pass 17/17 (0.038 s); host orchestration passes 45/45
+(3.680 s). The eight affected-owner groups pass 8/8 Debug ASan/UBSan (437.53 s)
+and 8/8 Release (410.29 s). This is affected-boundary regression, not a new
+full-suite or OS/hardware acceptance claim.
+
+The actual enforcing live test passes both original-process IPC acknowledgements
+and repeated Complete calls. Its controller independently reconstructs the Root
+receipt and verifies the same digest in Root step6 and User step4, preserving
+the running lease and original diagnostic. launch-completion.bin is historical
+test evidence, not a capability. No normal service/profile/policy or public
+capability is enabled. Final read-only carrier checks confirm Enforcing, unchanged
+normal inputs, pending=None, two closed install/two closed data gates, no unsettled
+normal dispatch/lease, test names unowned and temporary inputs retired. Normal
+executing profile/starter/scaffold/Root unit remain absent. All 162 actual guest
+source hashes match the tested host snapshot; 446 local Markdown targets pass.
+The next work is executing recovery/run closure, native
+documents/revocation and complete removal; normal session/dynamic provisioning
+and the full desktop/apps/image/hardware goal remain active.
+See [start results](../../spec/runtime.md#launch-result-completion-without-run-or-lease-release).
+
+Previous Root observation checkpoint (31 October 2026):
 
 Root now separately journals actual target execution as step5 and an observed
 dispatch. The original full profile, starter invocation/context, current owner/

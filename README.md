@@ -18,8 +18,9 @@ checks and durable start preparation. Root verifies that original registered
 connection before request and release; it never reads the User database.
 User now verifies the running app's actual process, invocation and executable
 before recording registration, then accepts an explicit readiness report from
-that same connection. Readiness leaves both operations and Root's lease open;
-general app/session provisioning and executing recovery remain work.
+that same connection. Separate authenticated receipts now complete the two start
+operations while the app remains running/ready and Root's generation lease stays
+held. General app/session provisioning and executing recovery remain work.
 Root also records an observed dispatch only after its original process evidence
 matches that User confirmation. Historical retries preserve later states and
 keep the program's generation lease held.

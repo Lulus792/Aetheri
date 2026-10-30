@@ -955,3 +955,23 @@ a normal API. The actual User READY record precedes the Root confirmation; losin
 that reply retains both obligations for later query/recovery. General launch-result
 acknowledgement and eventual executing drain remain separate implementation gates.
 No product/UI or destructive hardware choice is needed for this internal step.
+
+## Complete start operations independently of run lifetime — 31 October 2026
+
+Give Root a canonical immutable AETHLCR1 receipt after its original actual execution
+observation and settled UNKNOWN channel record agree. UNKNOWN settles only the
+channel; it never replaces target/process/image evidence. Preserve its bounded
+diagnostic reason. Complete only the original start operation with LaunchId;
+leave the observed dispatch and running generation lease unchanged.
+
+User authenticates that original Root reply and compares the exact profile,
+observation/run/invocation with its own original registered/ready app and current
+private-data fences. Complete its own operation/link in a separate transaction.
+Lost replies resolve the original receipt without replaying a start. Historical
+retries preserve later states/times and cannot reopen a run, gate or lease.
+
+Reuse existing v2 operation steps and typed internal codecs; no schema/XML or
+dependency change is needed. The 200-byte receipt gets an independent frozen
+vector. Keep FinishLaunch/Complete in explicit test interfaces until normal
+session/app provisioning, lifetime recovery/drain and production policy are proven.
+No extra user product choice is needed for this internal lifetime separation.

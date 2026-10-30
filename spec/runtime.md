@@ -2720,9 +2720,11 @@ uncertain execution. Interrupted administrative teardown requires inspection.
 Object tree witnesses and policy/config/unit digests are local test evidence,
 not clone authentication or a complete power-loss journal.
 
-Both native catalogues retain incomplete operations after the app exits. Root's
-running lease, REQUEST/BIND/PREPARE/ARM and separate diagnostic, and User's
-preparation/registration/readiness steps are archived with `historical-test-catalogue.sqlite3`,
+Both native catalogues retain their original run histories after the app exits.
+The later launch-result completion boundary below now acknowledges both start
+operations, while Root's running lease remains. REQUEST/BIND/PREPARE/ARM,
+diagnostic/observation/completion and User's preparation/registration/readiness/
+acknowledgement steps are archived with `historical-test-catalogue.sqlite3`,
 `historical-user-catalogue.sqlite3` and `report.json` in a protected
 `live-execution-<token>` directory beside the driver binary. Channel UNKNOWN/EOF
 does not establish execution or drain; only the independent image observation
@@ -2994,11 +2996,12 @@ The live payload first attempts READY before REGISTER, then registers. Another
 connection's READY is rejected; the original connection reports READY and repeats
 both methods successfully. The controller checks the archived User running/ready
 invocation equals Root's actual dispatch invocation and User steps0..3 are applied.
-Both owner operations still run with no outcome and Root retains its running
-lease after independent exact test drain. Histories are archived before retiring
+Registration/READY alone leave both operations running. The later completion
+boundary below now acknowledges those start results while Root retains its
+running lease after independent exact test drain. Histories are archived before retiring
 the owned fixture. The payload's fixed test bus-name calls are not an authenticated
-general-purpose app SDK. Normal session admission, Root observation settlement,
-executing recovery/drain, documents and complete removal remain implementation
+general-purpose app SDK. Normal session admission, executing recovery/drain,
+documents and complete removal remain implementation
 work; no public launch capability is enabled.
 
 ## Root execution observation journal
@@ -3085,10 +3088,10 @@ payload finally calls Observe on its same Root connection; only then can the
 administrative driver observe/terminate the exact app and retire the owned fixture.
 This final test-driver handoff is not a production readiness or drain API.
 
-The controller requires Root observed plus steps0..5/applied, User running/ready
-with that exact invocation, both operations still running and Root's lease still
-running before archiving them. Exact administrative test drain/retirement does
-not settle those native obligations. No normal service, policy, dependency,
+This observation boundary requires Root observed plus steps0..5/applied and User
+running/ready for that invocation, without completing either operation. The later
+completion boundary below adds the result acknowledgements. The lease/run closure
+obligation survives exact administrative test drain/retirement. No normal service, policy, dependency,
 SQL/XML version or public capability changes.
 
 `catalogue.execution_observation` covers fourteen scenarios: fresh/lost reply,
@@ -3098,5 +3101,124 @@ simulated closing/terminal/uncertain states. It also checks missing ARM, wrong
 owner/input/profile/invocation/starter evidence/broker runtime, changed app digest,
 every write fault, output preservation and byte-stable retries. The simulated
 later states are receipt tests, not execution-drain evidence. Normal owner/session
-provisioning, launch-result completion, executing recovery/drain/lease settlement,
+provisioning, executing recovery/drain/lease settlement,
 documents/revocation and complete removal remain work.
+
+## Launch-result completion without run or lease release
+
+The start operation and the running app have separate lifetimes. Root now
+acknowledges the known start postcondition with an immutable AETHLCR1 receipt.
+User independently acknowledges that receipt against its original registered,
+ready app. Both start operations complete applied with result_kind=launch and
+the exact LaunchId. The Root dispatch remains observed, its generation lease
+remains running, and the User launch remains running/ready. This neither stops
+the app nor permits code/data removal. Closure/recovery/drain remain separate.
+
+`ae_catalogue_complete_execution` requires the original Root owner/runtime/boot/
+account, full profile and original applied request/bind/prepare/ARM/observation
+steps. Fresh completion requires observed execution, the running lease and exact
+current active install/generation/gate. The original applied step4 must contain
+the canonical closed UNKNOWN channel diagnostic. This proves channel settlement
+only; step5 and the caller's independently rechecked original app/User evidence
+prove the actual start. Failure/malformed/observer diagnostics cannot become
+successful start receipts. The bounded diagnostic reason remains intact.
+
+| Root record | Atomic changes |
+| --- | --- |
+| operation_steps | Step6 reconcile/launch/exact LaunchId/applied with receipt SHA-256 |
+| operations | completed/applied/reconcile, original diagnostic reason, result launch/LaunchId and completion time; increment revision |
+| authority_meta | Increment catalogue revision |
+
+No dispatch, generation lease or gate mutation occurs. Before committing, Root
+encodes the resulting operation revision and completion time into the receipt.
+An exact retry reconstructs the original receipt and checks its immutable step6
+digest; a different supplied current time never changes it. Later closing,
+terminal/released or uncertain state is preserved as history, never reactivated.
+Wrong profile/context/evidence and original-owner replacement reject. Current
+runtime-only acknowledgement is not cross-restart recovery. No external effect
+occurs in SQLite, and unknown commit acknowledgement preserves caller outputs.
+
+### AETHLCR1 receipt bytes
+
+The canonical receipt is exactly 200 bytes, all integers big endian:
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHLCR1 |
+| 8, 24, 40 | 16 each | System epoch, original Root runtime, boot |
+| 56, 72, 88 | 16 each | Root operation, LaunchId, LeaseId |
+| 104 | 16 | Actual invocation |
+| 120 | 32 | Complete AETHEXE1 SHA-256 |
+| 152 | 32 | Original Root step5 observation digest |
+| 184 | 8 | Completed Root operation revision, 1..2^63-1 |
+| 192 | 8 | Original completion Unix milliseconds, 0..2^63-1 |
+
+The first six IDs are v4 UUIDs; the supervisor invocation is a nonzero 128-bit
+value. Digests are byte values, not provenance. Codec errors preserve outputs;
+short/trailing input, invalid IDs and integer bounds reject. The independent
+Python encoder and native C codec use the frozen
+`spec/vectors/execution-completion-v1.json` vector. `ae_execution_completion_match`
+checks the exact profile/Root identity/operation/run/lease/invocation and expected
+observation digest. It cannot authenticate the sender of a copied receipt.
+
+User must authenticate the reply to its original unique-destination Root request,
+including cookies and actual Root ProcessFD/domain/unit/invocation/boot, and
+derive the observation digest from its own original AETHACK1 confirmation. Root
+never reads User SQLite or private storage. User never treats an arbitrary packet
+or root-looking name as completion authority.
+
+### User acknowledgement
+
+`ae_catalogue_finish_user_execution` first validates the authenticated receipt's
+complete binding. Inside its own transaction, the original User epoch/runtime/
+account/boot, exact launch/root link/profile preparation, registered invocation/
+context and ready evidence must agree. Fresh completion rechecks current active
+binding/attached data, open original data gate and original plan-read revisions;
+the launch must be running/ready with no later work or grants in this P0 profile.
+
+| User record | Atomic changes |
+| --- | --- |
+| operation_steps | Step4 reconcile/launch/exact LaunchId/applied with the same Root receipt SHA-256 |
+| operation_links | Original Root link becomes completed |
+| operations | completed/applied/reconcile, launch_started, result launch/LaunchId and own completion time; increment revision |
+| authority_meta | Increment catalogue revision |
+
+Launch/data/gate state and revisions do not change. Root can already be completed
+while User acknowledgement is lost: retain that original obligation and resolve
+the same receipt, without another start. Exact User retries preserve original
+time/revisions and later exited/closed history. A changed receipt conflicts.
+Original User replacement requires separate recovery, never rebinding the run.
+Both owners reject revision overflow before mutation and leave outputs unchanged
+on every error/unknown commit. Completion timestamps must not precede that owner's
+acceptance; wall-clock values are not drain or access authorization.
+
+### Executed fixed-fixture path and limits
+
+The explicit live test adds private FinishLaunch and app Complete methods only
+to its test vtables. After registration/READY and original Root observation,
+Complete rechecks the original app/image/private data, obtains the authenticated
+Root receipt and commits the User acknowledgement. Repeated Complete returns
+the same result. It does not call Register/Ready again after completion or turn
+their handshake into permission to restart. Root still rechecks the original
+User broker and held app/starter context before replying.
+
+The controller independently reconstructs AETHLCR1 from the archived Root database
+using the Python reference. Its SHA-256 must equal Root step6 and User step4,
+with the original link completed and both results bound to the same LaunchId.
+The archive adds launch-completion.bin (200 bytes) and completion_sha256 in the
+report; these are historical test evidence, never package/app capabilities.
+Root steps0..6 and User steps0..4 are applied, Root's lease stays running and User
+stays running/ready until independent administrative test drain. Fixture retirement
+still leaves that native lease/run closure obligation untouched.
+
+`catalogue.execution_completion` covers nineteen native scenarios across both
+owners: fresh, lost replies, actual child exits before/after each commit, gate/
+owner replacement, revision overflows, missing/conflicting diagnostics, missing
+User readiness and exact retries after simulated later terminal/exited history.
+All three Root/four User writes and commit boundaries are faulted, with rollback,
+unchanged error output, stable original receipts/times and held-lease/revision
+checks. Simulated later states are receipt tests, not live drain evidence. The
+separate enforcing test supplies actual peer/process/image/IPC evidence. Normal
+session provisioning, general app SDK, executing recovery/drain/lease settlement,
+native documents/revocation, complete removal and desktop/image/hardware remain
+work. No frozen SQL/XML, normal profile/policy or public capability changes.

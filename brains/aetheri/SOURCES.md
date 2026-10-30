@@ -1415,3 +1415,27 @@ Review then identified bounded diagnostic-reason loss when setting exec_observed
 The final transaction preserves an existing step4 reason; a late diagnostic
 keeps its own reason while independent dispatch state/step5 retain observed.
 Both orders are covered in the final fourteen-scenario native group.
+
+## Start-result completion — 31 October 2026
+
+Original [receipt codec](../../src/catalogue/execution.c),
+[owner transactions](../../src/catalogue/store.c),
+[native completion tests](../../tests/test_launch.c),
+[independent frozen vector](../../spec/vectors/execution-completion-v1.json) and
+[connected Root/User producer](../../tests/probe_execution_runtime.c) implement
+separate operation-result acknowledgement without run or generation-lease release.
+Root step6 and User step4 bind the same canonical receipt. Its full profile/run/
+invocation/observation binding still requires the original authenticated Root
+reply and actual caller/process/private-data provenance; bytes/hashes alone are
+not admission. Original owner replacement remains a separate recovery boundary.
+
+The first nineteen-scenario Debug native group passes (93.89 s), including every
+Root/User write/commit fault, actual child exits, stale gates/runtime, revision
+overflow, absent/conflicting diagnostics, missing User readiness and immutable
+historical retries after simulated terminal/exited states. Those state mutations
+test receipts, not real drain. The actual enforcing live test separately passes
+original-process RPC/result checks and repeated Complete calls. The controller
+reconstructs the receipt from Root rows with the Python reference and compares
+its digest against both owner journals, while requiring the lease still running.
+Normal capabilities/profiles, general app SDK and production recovery/removal
+remain outside that actual evidence.

@@ -185,3 +185,8 @@ starter/app pin and service context to the original User's image/registration
 confirmation. Both owner operations and the running generation lease remain;
 launch-result completion and eventual lifetime/drain are separate upcoming steps.
 Historical retries preserve later states instead of becoming another start.
+Separate authenticated Root start-result receipts and User acknowledgements now
+complete both start operations in the fixed live fixture. They keep the observed
+dispatch, running generation lease and running/ready User launch intact. Execution
+recovery/run closure, complete removal and normal session provisioning remain
+separate work; the full desktop/apps/image/hardware objective is unchanged.

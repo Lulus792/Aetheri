@@ -2141,3 +2141,85 @@ No normal app, host hardware or other project changed. Next implement launch-
 result completion independently of run lifetime, then executing recovery/drain/
 lease settlement and native documents/removal. Full OS/apps/UI/image/hardware
 scope remains active.
+
+## Separate launch-result completion — 31 October 2026
+
+Implemented native Root completion and separate User acknowledgement of a known
+successful start. Root requires the exact original profile/runtime/account,
+applied execution/observation evidence and the settled canonical UNKNOWN channel
+record; UNKNOWN itself is not execution proof. Root step6 freezes the receipt
+digest and completes only its start operation applied with result LaunchId.
+Its bounded diagnostic reason, observed dispatch and running generation lease
+remain intact. User authenticates the original Root reply, compares its original
+profile/invocation/observation, and rechecks registered/ready/current-data fences.
+User step4 binds the same receipt digest; its original Root link and start
+operation complete while the launch remains running/ready. No run/gate/lease
+state or revision is changed by either completion transaction.
+
+Added canonical AETHLCR1, exactly 200 big-endian bytes: Root epoch/runtime/boot,
+operation/launch/lease/invocation, full profile and observation digests, original
+completed operation revision and time. Independent Python/C frozen vectors check
+shape, short/trailing input and signed-SQL integer bounds. Codecs preserve error
+outputs. The record is not a bearer capability. Current original Root replies
+and actual process/image/private-data provenance remain caller obligations.
+Existing SQL/XML is unchanged; native transactions reuse operation steps/results.
+The shared statement helper now accepts a separately bound optional timestamp;
+existing callers retain the original argument binding without that parameter.
+
+Exact lost-reply retries return the original receipt/time and preserve later
+terminal/exited/closed history without another process effect or reopening state.
+Owner replacement requires separate recovery. Three Root/four User writes and
+commit boundaries are faulted; outputs remain unchanged after unknown commits.
+Counters reject overflow, and completion times cannot precede acceptance.
+The first nineteen-scenario native Debug ASan/UBSan group passes (93.89 s),
+covering both owners' lost replies, child exits before/after COMMIT, gate/runtime
+drift, overflow, missing/conflicting diagnostics, missing User readiness and
+simulated later-state receipt acknowledgement. Simulated state changes are not
+evidence of actual executing drain.
+
+Connected the actual enforcing fixture through test-only Root FinishLaunch and
+app Complete. Original app/image/private data and Root/User peers are rechecked;
+User authenticates the exact Root receipt before its own commit. The payload
+repeats Complete. The controller independently reconstructs the canonical receipt
+from Root rows and compares its SHA-256 to Root step6 and User step4, plus both
+result LaunchIds and completed link. It archives launch-completion.bin and its
+digest beside both historical catalogues. The live run passes with both applied
+start operations, Root lease still running and User launch running/ready; exact
+administrative test drain/retirement does not settle the remaining native lifetime
+obligations. No normal API/profile/policy, library or resident process is added.
+
+Host vectors pass 17/17 (0.038 s), orchestration 45/45 (3.680 s). The affected
+execution/preparation/readiness/observation/completion and coordinator/endpoint/
+admission groups are being verified in Debug and Release. Final results and
+protected-carrier/source checks follow below.
+
+The eight affected native groups pass Debug ASan/UBSan (437.53 s): Root execution,
+User preparation/readiness, Root observation/completion, and authority admission/
+coordinator/endpoint. Release is verified separately; no new full-suite claim is
+substituted for this bounded regression scope. The actual live evidence is
+`/home/aetheri/build/release/live-execution-dd58af1dca384dfaa54d1f92cad62d55`.
+Both archived start operations are completed/applied for the same LaunchId, with
+the same independently reconstructed 200-byte receipt digest in both journals.
+Root diagnostic reason exec_channel_unknown remains, dispatch observed/lease
+running and User launch running/ready. Actual Root/User five capability sets are
+empty. This proves the fixed fixture's start-result acknowledgement, not general
+app provisioning, lifetime settlement, recovery/removal or hardware acceptance.
+
+Read-only carrier verification confirms Enforcing, verified unchanged normal
+inputs, pending=None, two closed install/two closed data gates, no unsettled
+normal dispatch/lease, System1/test User name unowned and temporary execution
+root/config/module/unit slots retired. Normal executing profile/starter/scaffold/
+Root unit remain absent. All 162 actual guest source hashes match the current
+host snapshot and 446 local Markdown targets pass. No normal app, host hardware
+or other project changed. Next implement independent executing recovery/run
+closure before lease/data reclamation and native documents/revocation/removal;
+the full OS/apps/UI/image/hardware objective remains active.
+
+Final affected-boundary regression also passes 8/8 Release (410.29 s); Debug
+passes 8/8 (437.53 s). No native source changed after the successful live run and
+regression snapshot. The source-hash/carrier/receipt checks above verify that
+exact current implementation. Review covers canonical bounds/output preservation,
+original owner/profile/evidence fences, Root/User commit separation, counter
+overflow, retained diagnostic reason, immutable historical receipts and continued
+run/lease obligations. The new byte vector is the only added source artifact;
+existing SQL/XML/policy/dependency pins stay unchanged.

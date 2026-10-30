@@ -115,8 +115,9 @@ proves actual User-mediated app registration and explicit readiness, including
 the live current-image check and original-connection requirement. Root observation
 settlement is now implemented for the isolated fixture: Root joins its original
 starter/app context to original User confirmation and persists observed without
-releasing the lease. Launch-result completion and independently proven executing
-drain/lease recovery remain next.
+releasing the lease. Separate immutable Root launch-result receipts and exact User
+acknowledgement now complete the start operations, while run/lease remain active.
+Independently proven executing drain/lease recovery remains next.
 No personal product choice blocks
 the next backend integration; UI/browser/shell decisions remain with the user.
 General dynamic allocation/recovery and binding reconciliation after

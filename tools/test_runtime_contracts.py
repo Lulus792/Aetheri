@@ -11,6 +11,12 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_execution_completion_vector(self):
+        value=rc.load_json((ROOT/'spec/vectors/execution-completion-v1.json').read_bytes())
+        encoded=rc.execution_completion(value['input'])
+        self.assertEqual(len(encoded),200); self.assertEqual(encoded.hex(),value['hex']); self.assertEqual(rc.digest(encoded),value['sha256'])
+        for key,bad in (('revision',0),('revision',2**63),('completed_unix_ms',-1),('invocation','00'*16),('system_runtime','00'*16),('observation_digest','00')):
+            wrong=deepcopy(value['input']); wrong[key]=bad; self.rejects(rc.execution_completion,wrong)
     def test_image_observation_vector(self):
         v=rc.load_json((ROOT/'spec/vectors/image-v1.json').read_bytes())
         encoded=rc.image_record(v['input'])
