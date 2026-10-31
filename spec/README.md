@@ -110,6 +110,12 @@ test suite detect accidental changes to those sources.
 
 ## New records and constraints
 
+The separate [active Root integration](runtime.md#interrupted-active-root-test)
+now has actual live-original transfer/OBSERVE evidence, but its recovery closure
+failed and its original User later expired. Preserve its held lease, four PID1
+handles and exact fixture. New-User recovery is the next implementation step;
+the new optional test is not a passing active-run acceptance result.
+
 Root-only v6 adds immutable per-runtime `run_recovery_owners` observations and
 narrowly extends closure insertion after a same-boot Root replacement. The native
 recovery functions retain original start/profile/receipts and require the still-

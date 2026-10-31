@@ -1217,3 +1217,24 @@ A further replacement must OBSERVE and BEGIN anew. No new execution effect,
 capability, resident daemon, dependency or gate reopening follows from these
 transactions. Prove native faults first, then wire a separate confined active-run
 fixture; do not relabel the completed-run restart test as that proof.
+
+## Preserve the interrupted active run and separate User recovery — 31 October 2026
+
+Use an explicit active-test mode with After ordering but no BindsTo from App/User
+to Root. The normal fixture keeps its existing dependencies. Before transfer,
+original Root captures its authenticated User's actual ProcessFD identity/context
+in one create-only, flushed protected record bound to the original profile and
+Root invocation. Independently check that record against the controller's original
+User pin. A later current unit/domain or claimed runtime cannot replace it.
+
+Keep current target-image verification in the same-UID reidentified User, matching
+the original split of responsibilities. Root rechecks protected package sources
+and the original app process/lifetime. Do not add ptrace or capabilities so Root
+can read a different UID's proc/exe. The first combined check failed before the
+later cross-owner sequence; its correction does not retroactively accept it.
+
+After the original User expires, preserve the actual pending transfer/lease and
+all retained observations. Build new-User recovery next; do not weaken the v6
+original-User rule, pretend the dead User's UUID is live, clear the store or create
+fresh app/operation IDs for a green test. The current failed image/unit inputs
+stay independently protected until a reviewed same-intent continuation exists.

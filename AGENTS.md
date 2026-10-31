@@ -497,6 +497,25 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   controlled evidence, not an installed active-run coordinator. Normal inputs
   stay v2; User remains v4. Actual live Root recovery, replaced-User coordination
   and early-start recovery still need separate integration/evidence.
+- The opt-in --recover-active test now captures immutable AETHUSR1 original-User
+  metadata under system/recovery-user.bin before Root transfer. Read spec/runtime.md's
+  active-test section. Its first actual attempt 0f04cd9ae92d4500a42177e3e14de76b
+  reached current Root OBSERVE while App/User remained active, then failed at a
+  combined package/process-image check. Root UID0 without capabilities cannot
+  dereference UID1000 proc/exe; the source now keeps current image verification
+  in the reidentified User. That source correction is NOT installed in the held
+  failed fixture. App/User later expired; no actual recovery closure passed.
+  Preserve the exact fixture/controller/units/module/target and FOUR PID1 store
+  handles. Its Root v6 still has uncertain dispatch, running lease, observed
+  handoff revision 2, no closure and no recovery-owner row. Evidence is under the
+  guest build's active-recovery-failure-0f04cd9ae92d4500a42177e3e14de76b.
+  Never reset failed units, drop the store/target, retire this fixture or rerun
+  from fresh app/operation IDs to obtain a passing test. Original User metadata
+  is not a live ProcessFD or proof of its complete drain. Next implement separate
+  replaced-User admission/quiescence and original-ended-app recovery, preserving
+  v6's strict original-User boundary. Normal v2 inputs remain closed. Native
+  Release/Debug metadata checks ran only as administrative unconfined observers;
+  they do not prove live User reidentification or the remaining RPC sequence.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

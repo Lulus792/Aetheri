@@ -131,6 +131,16 @@ class VmTools(unittest.TestCase):
                         dict(handoff_sha256='X'*64),dict(revision=3),dict(end=old|dict(pid=78)),dict(end=old|dict(group_removed=False))):
             with self.assertRaises(RuntimeError): execution_runtime.validate_recovered(value|changes,record,bytes(384))
 
+    def test_original_user_record_is_bounded_and_preserves_kernel_identity(self):
+        from struct import pack
+        unit=execution_runtime.USER_UNIT.encode(); group=b'/system.slice/'+unit; label=b'system_u:system_r:aetheri_user_t:s0'
+        raw=(b'AETHUSR1'+bytes.fromhex('ab'*32)+bytes.fromhex('cd'*16)+b'AETHPID1'+bytes.fromhex('ef'*16)+pack('>QIIQ',2**64-1,123,1000,2**63+7)+bytes.fromhex('12'*16)+
+             pack('>HHH2x',len(unit),len(group),len(label))+unit+group+label)
+        value=execution_runtime.read_recovery_user(raw)
+        self.assertEqual(value['pidfd_id'],2**64-1); self.assertEqual(value['cgroup_id'],2**63+7); self.assertEqual(value['pid'],123)
+        for changed in (raw[:127],raw+b'x',b'badmagic'+raw[8:],raw[:126]+b'xx'+raw[128:],raw[:120]+b'\xff\xff'+raw[122:],raw[:92]+pack('>I',0)+raw[96:],raw[:-1]+b'\0'):
+            with self.assertRaises(ValueError): execution_runtime.read_recovery_user(changed)
+
     def test_live_execution_snapshot_persists_binary_labels_and_digests(self):
         captured={'code':(17,0,0,0o100555,1,12,100,200,b'system_u:object_r:aetheri_store_code_t:s0',bytes(range(32))),
                   'data':(18,1000,1000,0o40700,2,0,100,200,b'system_u:object_r:aetheri_app_data_t:s0:c35,c36',None)}

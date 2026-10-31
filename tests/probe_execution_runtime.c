@@ -51,6 +51,11 @@ static struct ae_lifetime *app_lifetime;
 static struct ae_handoff_service *handoff_service;
 static int handoff_prepared,handoff_fenced;
 static int handoff_mode,handoff_recovery,recovery_called,incoming_count;
+static int active_mode,user_reconnected,active_finished;
+static struct ae_lifetime_end recovered_end;
+static struct ae_process_context original_user_context;
+static struct ae_process_identity original_user_identity;
+static uint32_t original_user_pid;
 static int incoming_fds[4]={-1,-1,-1,-1};
 static char **incoming_names;
 static uint8_t current_runtime[16];
@@ -94,7 +99,61 @@ static void catalogue(const char *root,int create)
     char path[4096]; CHECK(snprintf(path,sizeof path,"%s/system",root)>0);
     struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_SYSTEM}; memcpy(identity.authority_epoch,p.system_epoch,16);
     CHECK((create ? ae_catalogue_create(path,&identity,p.boot,&store) : ae_catalogue_open(path,&identity,&store))==0);
-    if (create) CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_upgrade_handoffs(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
+    if (create) {
+        CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_upgrade_handoffs(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
+        if (active_mode) CHECK(ae_catalogue_upgrade_recovery(store)==0);
+    }
+}
+/* Private fixed-fixture record, not an installed broker enrollment format.
+ * Original Root writes it once, before transfer, under its protected state.
+ * Never infer the original User from a later candidate's PID/unit/UUID. */
+static void number_put(uint8_t *out,uint64_t value,size_t count)
+{ for (size_t n=0;n<count;++n) out[n]=(uint8_t)(value>>(8U*(count-1U-n))); }
+static uint64_t number_get(const uint8_t *in,size_t count)
+{ uint64_t value=0; for (size_t n=0;n<count;++n) value=(value<<8)|in[n]; return value; }
+static void original_user_record(int create)
+{
+    uint8_t bytes[2048]={0},profile[32]; size_t size=128;
+    CHECK(ae_execution_digest(&p,profile)==0);
+    int parent=open(ROOT "/system",O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC); struct stat st;
+    CHECK(parent>=3 && fstat(parent,&st)==0 && st.st_uid==0 && st.st_gid==0 && (st.st_mode&07777)==0700);
+    if (create) {
+        CHECK(start_result_present && ae_process_identify(&registered.peer,bus,&registered.context,&original_user_identity)==0);
+        original_user_context=registered.context; original_user_pid=(uint32_t)registered.peer.connection_pid;
+        struct ae_process_context self; CHECK(ae_process_observe_self(bus,&self)==0);
+        memcpy(bytes,"AETHUSR1",8); memcpy(bytes+8,profile,32); memcpy(bytes+40,self.invocation,16);
+        CHECK(ae_process_identity_encode(&original_user_identity,bytes+56)==0);
+        number_put(bytes+88,original_user_pid,4); number_put(bytes+92,original_user_context.uid,4);
+        number_put(bytes+96,original_user_context.cgroup_id,8); memcpy(bytes+104,original_user_context.invocation,16);
+        const char *texts[]={original_user_context.unit,original_user_context.cgroup,original_user_context.label};
+        for (size_t n=0;n<3;++n) { size_t length=strlen(texts[n]); CHECK(size+length<=sizeof bytes && length<=UINT16_MAX);
+            number_put(bytes+120+2*n,length,2); memcpy(bytes+size,texts[n],length); size+=length; }
+    }
+    int fd=openat(parent,"recovery-user.bin",(create ? O_RDWR|O_CREAT|O_EXCL : O_RDONLY)|O_CLOEXEC|O_NOFOLLOW,0600);
+    CHECK(fd>=3 && fstat(fd,&st)==0 && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 && st.st_nlink==1 && (st.st_mode&07777)==0600);
+    char *label=NULL; CHECK(fgetfilecon_raw(fd,&label)>0 && strcmp(label,"system_u:object_r:aetheri_system_state_t:s0")==0); freecon(label);
+    if (create) {
+        size_t done=0; while (done<size) { ssize_t written=write(fd,bytes+done,size-done); if (written<0 && errno==EINTR) continue;
+            CHECK(written>0); done+=(size_t)written; }
+        CHECK(fsync(fd)==0 && fsync(parent)==0);
+    } else {
+        CHECK(st.st_size>=128 && st.st_size<=(off_t)sizeof bytes); size=(size_t)st.st_size;
+        size_t done=0; while (done<size) { ssize_t got=read(fd,bytes+done,size-done); if (got<0 && errno==EINTR) continue;
+            CHECK(got>0); done+=(size_t)got; }
+        CHECK(memcmp(bytes,"AETHUSR1",8)==0 && memcmp(bytes+8,profile,32)==0 && !bytes[126] && !bytes[127]);
+        struct ae_handoff_snapshot h; CHECK(ae_catalogue_get_handoff(store,&p,&h)==0 && memcmp(bytes+40,h.original.custodian_invocation,16)==0);
+        CHECK(ae_process_identity_decode(bytes+56,32,&original_user_identity)==0 && memcmp(original_user_identity.boot,p.boot,16)==0);
+        original_user_pid=(uint32_t)number_get(bytes+88,4); original_user_context=(struct ae_process_context){.uid=(uid_t)number_get(bytes+92,4),.cgroup_id=number_get(bytes+96,8)};
+        memcpy(original_user_context.boot,p.boot,16); memcpy(original_user_context.invocation,bytes+104,16);
+        char *texts[]={original_user_context.unit,original_user_context.cgroup,original_user_context.label};
+        const size_t bounds[]={sizeof original_user_context.unit,sizeof original_user_context.cgroup,sizeof original_user_context.label}; size_t offset=128;
+        for (size_t n=0;n<3;++n) { size_t length=(size_t)number_get(bytes+120+2*n,2); CHECK(length>0 && length<bounds[n] && length<=size-offset);
+            for (size_t m=0;m<length;++m) CHECK(bytes[offset+m]>=0x21 && bytes[offset+m]<=0x7e);
+            memcpy(texts[n],bytes+offset,length); offset+=length; }
+        CHECK(offset==size && original_user_pid>0 && original_user_pid<=INT32_MAX && original_user_context.uid==1000 && original_user_context.cgroup_id &&
+            strcmp(original_user_context.unit,USER_UNIT)==0 && strcmp(original_user_context.label,"system_u:system_r:aetheri_user_t:s0")==0);
+    }
+    CHECK(close(fd)==0 && close(parent)==0);
 }
 static int handoff_owner(void)
 {
@@ -324,12 +383,14 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
     (void)userdata; const char *method=sd_bus_message_get_member(m); struct ae_peer peer=AE_PEER_INIT;
     int r=sd_bus_message_get_expect_reply(m)==1 ? ae_peer_capture(m,&peer) : -EPROTO;
     if (r==0 && strcmp(method,"RegisterBroker")==0) {
+        if (active_mode && handoff_recovery && (!recovery_called ||
+            peer.connection_pid!=(pid_t)original_user_pid || ae_process_reidentify(&original_user_identity,&peer,bus,&original_user_context)!=0)) r=-EACCES;
         struct ae_broker_identity identity;
         memcpy(identity.account,p.account,16); memcpy(identity.epoch,p.broker_epoch,16); memcpy(identity.runtime,p.broker_runtime,16);
-        r=ae_broker_bind(&registered,&peer,bus,event,&identity,USER_UNIT,p.boot);
+        if (r==0) r=ae_broker_bind(&registered,&peer,bus,event,&identity,USER_UNIT,p.boot);
         if (r==0) {
             broker=(struct ae_launch_context){.uid=(uint32_t)registered.peer.connection_uid};
-            memcpy(broker.system_runtime,p.system_runtime,16); memcpy(broker.boot,registered.context.boot,16);
+            memcpy(broker.system_runtime,current_runtime,16); memcpy(broker.boot,registered.context.boot,16);
             memcpy(broker.account,registered.identity.account,16); memcpy(broker.broker_epoch,registered.identity.epoch,16);
             memcpy(broker.broker_runtime,registered.identity.runtime,16);
         }
@@ -427,9 +488,11 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (strcmp(method,"FinishLaunch")==0) {
             struct ae_execution_completion completed; uint8_t wire[AE_EXECUTION_COMPLETION_BYTES];
             if (r==0 && !app_confirmed) r=-EAGAIN;
-            if (r==0) r=prepare_handoff();
+            if (r==0 && !active_mode) r=prepare_handoff();
             if (r==0) r=ae_catalogue_complete_execution(store,&p,&broker,&bound_evidence,app_hash,realtime_ms(),&completed);
             if (r==0) { start_result=completed; start_result_present=1; }
+            if (r==0 && active_mode && !original_user_pid) original_user_record(1);
+            if (r==0 && active_mode) r=prepare_handoff();
             if (r==0) r=ae_execution_completion_encode(&completed,wire);
             if (r==0) r=sd_bus_message_new_method_return(m,&reply);
             if (r>=0) r=sd_bus_message_append_array(reply,'y',wire,sizeof wire);
@@ -474,22 +537,106 @@ static const sd_bus_vtable broker_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("BeginClose","","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("FinishClose","ay","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Dispatch","ayay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+static void close_incoming(void)
+{
+    for (int n=0;n<incoming_count;++n) { CHECK(close(incoming_fds[n])==0); incoming_fds[n]=-1; free(incoming_names[n]); }
+    free(incoming_names); incoming_names=NULL; incoming_count=0;
+}
+static int observe_live(sd_bus_message *m,void *userdata,sd_bus_error *error)
+{
+    (void)userdata;
+    if (admin(m)!=0) return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Administrative test controller required");
+    CHECK(active_mode && handoff_recovery && !recovery_called && incoming_count==4); recovery_called=1;
+    CHECK(handoff_owner()==0); struct ae_handoff_snapshot h;
+    CHECK(ae_handoff_service_receive(handoff_service,incoming_fds,(const char *const *)incoming_names,4,realtime_ms(),&app_lifetime,&h)==0);
+    const struct ae_execution_process *original=&h.original.process;
+    app_context=(struct ae_process_context){.uid=original->uid,.cgroup_id=original->cgroup_id};
+    memcpy(app_context.boot,original->boot,16); memcpy(app_context.invocation,original->invocation,16);
+    strcpy(app_context.unit,original->unit); strcpy(app_context.cgroup,original->cgroup); strcpy(app_context.label,original->label);
+    memcpy(bound_evidence.invocation,original->invocation,16); memcpy(bound_evidence.context_digest,original->evidence_digest,32);
+    /* RECEIVE has admitted the exact complete inventory. This slot is an
+     * internal retained observation pin, never a new app bus registration. */
+    for (int n=0;n<4;++n) { size_t length=strlen(incoming_names[n]);
+        if (length>=8 && strcmp(incoming_names[n]+length-8,"-process")==0) {
+            CHECK(app.pidfd<0); app.pidfd=fcntl(incoming_fds[n],F_DUPFD_CLOEXEC,3);
+        }
+    }
+    app.connection_pid=(pid_t)original->pid; app.connection_uid=original->uid; strcpy(app.connection_label,original->label);
+    CHECK(app.pidfd>=3 && ae_process_verify(&app,bus,&app_context)==0);
+    /* Root validates the protected package/source and original process pin.
+     * Current executable validation belongs to the independently reidentified
+     * original UID1000 User before BeginRecoveredClose (see user_close). Root
+     * has neither same-UID proc access nor CAP_SYS_PTRACE and must not gain it. */
+    struct ae_execution_sources sources=AE_EXECUTION_SOURCES_INIT; uint8_t publisher[16];
+    CHECK(ae_execution_code_open(&p,&sources,publisher)==0);
+    ae_execution_sources_clear(&sources); original_user_record(0); close_incoming();
+    struct ae_lifetime_end unchanged,marker; memset(&marker,0xa5,sizeof marker); unchanged=marker;
+    CHECK(ae_lifetime_observe_end(app_lifetime,&unchanged)==-EAGAIN && memcmp(&unchanged,&marker,sizeof marker)==0);
+    app_confirmed=1; app_reported=1;
+    sd_bus_message *reply=NULL; int r=sd_bus_message_new_method_return(m,&reply);
+    if (r>=0) r=sd_bus_message_append_array(reply,'y',current_runtime,16);
+    if (r>=0) r=sd_bus_message_append(reply,"uht",original->pid,app.pidfd,original->cgroup_id);
+    if (r>=0) r=sd_bus_message_append_array(reply,'y',original->invocation,16);
+    if (r>=0) r=sd_bus_message_append_array(reply,'y',original->boot,16);
+    if (r>=0) r=sd_bus_send(bus,reply,NULL);
+    sd_bus_message_unref(reply); return r<0 ? r : 1;
+}
+static int recovered_close(sd_bus_message *m,void *userdata,sd_bus_error *error)
+{
+    (void)userdata; CHECK(active_mode && handoff_recovery && recovery_called);
+    struct ae_peer peer=AE_PEER_INIT; int r=ae_peer_capture(m,&peer);
+    if (r==0) r=ae_broker_verify(&registered,&peer,bus);
+    if (r==0) r=ae_process_reidentify(&original_user_identity,&peer,bus,&original_user_context);
+    const void *bytes=NULL; size_t size=0;
+    if (r==0 && (sd_bus_message_read_array(m,'y',&bytes,&size)<=0 || sd_bus_message_at_end(m,1)!=1)) r=-EBADMSG;
+    struct ae_run_receipt receipt;
+    if (r==0 && strcmp(sd_bus_message_get_member(m),"BeginRecoveredClose")==0) {
+        struct ae_execution_completion completed;
+        r=ae_execution_completion_decode(bytes,size,&completed);
+        if (r==0 && !active_finished) r=ae_process_verify(&app,bus,&app_context);
+        if (r==0) r=ae_catalogue_recover_begin_run_close(store,&p,&broker,&bound_evidence,&completed,realtime_ms(),&receipt);
+    } else if (r==0) {
+        struct ae_run_receipt quiet; r=ae_run_receipt_decode(bytes,size,&quiet);
+        if (r==0 && !active_finished) r=end_fences();
+        if (r==0 && !active_finished) r=ae_lifetime_observe_end(app_lifetime,&recovered_end);
+        struct ae_run_end ended={0}; uint8_t hash[32];
+        if (r==0) { memcpy(ended.boot,recovered_end.boot,16); memcpy(ended.invocation,recovered_end.invocation,16);
+            ended.pid=recovered_end.pid; ended.cgroup_id=recovered_end.cgroup_id; ended.group_removed=recovered_end.group_removed; ended.unit_failed=recovered_end.unit_failed;
+            r=ae_run_end_digest(&p,&bound_evidence,&ended,hash); }
+        if (r==0) r=ae_broker_verify(&registered,&peer,bus);
+        if (r==0) r=ae_catalogue_recover_release_run(store,&p,&broker,&bound_evidence,&quiet,hash,realtime_ms(),&receipt);
+        if (r==0 && !active_finished) {
+            CHECK(ae_lifetime_close(&app_lifetime)==0); ae_peer_clear(&app); handoff_fenced=1;
+            struct ae_handoff_snapshot retired;
+            CHECK(ae_handoff_service_retire_store(handoff_service,realtime_ms(),&retired)==0 && retired.state==AE_HANDOFF_FINISHED && retired.revision==4);
+            active_finished=1;
+        }
+    }
+    ae_peer_clear(&peer); if (r!=0) return user_error(error,r);
+    uint8_t wire[AE_RUN_RECEIPT_BYTES]; CHECK(ae_run_receipt_encode(&receipt,wire)==0);
+    sd_bus_message *reply=NULL; CHECK(sd_bus_message_new_method_return(m,&reply)>=0 && sd_bus_message_append_array(reply,'y',wire,sizeof wire)>=0);
+    r=sd_bus_send(bus,reply,NULL); sd_bus_message_unref(reply); return r<0 ? r : 1;
+}
+static const sd_bus_vtable active_broker_methods[]={SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("RegisterBroker","","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("BeginRecoveredClose","ay","ay",recovered_close,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("FinishClose","ay","ay",recovered_close,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static int recover_handoff(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
     (void)userdata;
     if (admin(m)!=0) return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Administrative test controller required");
-    if (!handoff_mode || !handoff_recovery || recovery_called) return sd_bus_error_set_const(error,"org.aetheri.Error1.NeedsRecovery","One original recovery dispatch only");
-    recovery_called=1;
-    CHECK(incoming_count==4 && handoff_owner()==0);
-    struct ae_lifetime *observer=NULL; struct ae_handoff_snapshot restored;
-    int accepted=ae_handoff_service_receive(handoff_service,incoming_fds,(const char *const *)incoming_names,4,realtime_ms(),&observer,&restored);
-    if (accepted!=0) fprintf(stderr,"actual store receive: %d\n",accepted);
-    CHECK(accepted==0 && restored.state==AE_HANDOFF_OBSERVED && memcmp(restored.observer_runtime,current_runtime,16)==0);
-    struct ae_lifetime_end ended; CHECK(ae_lifetime_observe_end(observer,&ended)==0 && ae_lifetime_close(&observer)==0);
-    for (int n=0;n<4;++n) { CHECK(close(incoming_fds[n])==0); incoming_fds[n]=-1; free(incoming_names[n]); }
-    free(incoming_names); incoming_names=NULL; incoming_count=0;
-    struct ae_handoff_snapshot retired;
-    CHECK(ae_handoff_service_retire_store(handoff_service,realtime_ms(),&retired)==0 && retired.state==AE_HANDOFF_FINISHED && retired.revision==4);
+    if (!handoff_mode || !handoff_recovery || (recovery_called && !active_finished)) return sd_bus_error_set_const(error,"org.aetheri.Error1.NeedsRecovery","One original recovery dispatch only");
+    struct ae_lifetime_end ended; struct ae_handoff_snapshot retired;
+    if (active_finished) { ended=recovered_end; CHECK(ae_catalogue_get_handoff(store,&p,&retired)==0 && retired.state==AE_HANDOFF_FINISHED); }
+    else {
+        recovery_called=1; CHECK(incoming_count==4 && handoff_owner()==0);
+        struct ae_lifetime *observer=NULL; struct ae_handoff_snapshot restored;
+        int accepted=ae_handoff_service_receive(handoff_service,incoming_fds,(const char *const *)incoming_names,4,realtime_ms(),&observer,&restored);
+        if (accepted!=0) fprintf(stderr,"actual store receive: %d\n",accepted);
+        CHECK(accepted==0 && restored.state==AE_HANDOFF_OBSERVED && memcmp(restored.observer_runtime,current_runtime,16)==0);
+        CHECK(ae_lifetime_observe_end(observer,&ended)==0 && ae_lifetime_close(&observer)==0); close_incoming();
+        CHECK(ae_handoff_service_retire_store(handoff_service,realtime_ms(),&retired)==0 && retired.state==AE_HANDOFF_FINISHED && retired.revision==4);
+    }
     uint8_t raw[AE_HANDOFF_MAX],hash[32]; size_t size=0;
     CHECK(ae_handoff_encode(&retired.original,raw,sizeof raw,&size)==0 && ae_sha256_bytes(raw,size,hash)==0);
     sd_bus_message *reply=NULL; int r=sd_bus_message_new_method_return(m,&reply);
@@ -504,6 +651,10 @@ static int recover_handoff(sd_bus_message *m,void *userdata,sd_bus_error *error)
 }
 static const sd_bus_vtable recovery_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("RecoverHandoff","","ayayutbbayayt",recover_handoff,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+static const sd_bus_vtable active_recovery_methods[]={SD_BUS_VTABLE_START(0),
+    SD_BUS_METHOD("RecoverHandoff","","ayayutbbayayt",recover_handoff,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("ObserveLive","","ayuhtayay",observe_live,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("ObserveEnd","","utbbayay",observe_end,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",control,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("PinApp","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("ObserveEnd","","utbbayay",observe_end,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
@@ -522,7 +673,8 @@ static void serve(void)
     } else { CHECK(!incoming_count); root_start(); }
     sd_bus_slot *a=NULL,*b=NULL,*f=NULL,*u=NULL;
     CHECK(sd_bus_add_object_vtable(bus,&a,"/org/aetheri/Management1","org.aetheri.Management1",discovery,NULL)>=0);
-    CHECK(sd_bus_add_object_vtable(bus,&b,"/org/aetheri/P0ExecutionTest1",IFACE,handoff_recovery ? recovery_methods : methods,NULL)>=0);
+    CHECK(sd_bus_add_object_vtable(bus,&b,"/org/aetheri/P0ExecutionTest1",IFACE,handoff_recovery ? (active_mode ? active_recovery_methods : recovery_methods) : methods,NULL)>=0);
+    if (active_mode && handoff_recovery) CHECK(sd_bus_add_object_vtable(bus,&u,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1",active_broker_methods,NULL)>=0);
     if (!handoff_recovery) {
         CHECK(sd_bus_add_filter(bus,&f,filter,NULL)>=0);
         CHECK(sd_bus_add_object_vtable(bus,&u,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1",broker_methods,NULL)>=0);
@@ -680,6 +832,7 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
     if (r==0 && complete) {
         struct ae_execution_completion completed; uint8_t observation[32]; confirm_application(1,&completed,observation);
         r=ae_catalogue_finish_user_execution(store,&p,&user_app_evidence,observation,&completed,realtime_ms(),&state);
+        if (r==0) { start_result=completed; start_result_present=1; }
     }
     if (payload>=0) close(payload);
     ae_peer_clear(&peer);
@@ -689,6 +842,29 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
     if (ready && !complete) confirm_application(0,NULL,NULL);
     if (complete) CHECK(strcmp(state.operation_state,"completed")==0);
     return sd_bus_reply_method_return(m,"");
+}
+static int user_reconnect(sd_bus_message *m,void *userdata,sd_bus_error *error)
+{
+    (void)userdata;
+    if (admin(m)!=0 || !active_mode || !start_result_present || user_reconnected) return user_error(error,-EACCES);
+    CHECK(root_pin.pidfd>=0 && ae_peer_alive(&root_pin)==-ESRCH);
+    sd_bus_creds *creds=NULL; const char *unique=NULL;
+    CHECK(sd_bus_get_name_creds(bus,"org.aetheri.System1",SD_BUS_CREDS_UNIQUE_NAME,&creds)>=0 && sd_bus_creds_get_unique_name(creds,&unique)>=0);
+    sd_bus_message *call=NULL,*reply=NULL;
+    CHECK(sd_bus_message_new_method_call(bus,&call,unique,"/org/aetheri/Management1","org.aetheri.Management1","GetProtocolInfo")>=0 && sd_bus_call(bus,call,5000000,NULL,&reply)>=0);
+    struct ae_peer fresh=AE_PEER_INIT; struct ae_process_context context;
+    CHECK(ae_peer_capture_reply(reply,call,&fresh)==0 && fresh.connection_uid==0 && strcmp(fresh.connection_label,"system_u:system_r:aetheri_system_t:s0")==0 &&
+        ae_process_observe(&fresh,bus,&context)==0 && strcmp(context.unit,AE_STARTER_ROOT_UNIT)==0 && memcmp(context.boot,p.boot,16)==0 && memcmp(context.invocation,root_context.invocation,16)!=0);
+    uint32_t major=0,minor=0; const void *bytes=NULL; size_t size=0;
+    CHECK(sd_bus_message_read(reply,"uu",&major,&minor)>0 && major==1 && minor==1 && sd_bus_message_enter_container(reply,'a',"s")>0 && sd_bus_message_at_end(reply,0)==1 && sd_bus_message_exit_container(reply)>0);
+    CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,p.system_epoch,16)==0);
+    CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,p.system_runtime,16)!=0 && sd_bus_message_at_end(reply,1)==1);
+    memcpy(current_runtime,bytes,16); CHECK(strlen(unique)<sizeof root_name); strcpy(root_name,unique);
+    ae_peer_clear(&root_pin); root_pin=fresh; fresh.pidfd=-1; root_context=context;
+    sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_creds_unref(creds);
+    reply=root_call("RegisterBroker",NULL,0); uint8_t hash[32]; CHECK(ae_execution_digest(&p,hash)==0);
+    CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==32 && memcmp(bytes,hash,32)==0 && sd_bus_message_at_end(reply,1)==1);
+    sd_bus_message_unref(reply); user_reconnected=1; return sd_bus_reply_method_return(m,"");
 }
 static int user_close(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
@@ -703,7 +879,14 @@ static int user_close(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (r==0) r=ae_execution_data_open(&p,user_publisher,&payload,&data);
         if (payload>=0) close(payload);
         if (r==0) {
-            sd_bus_message *reply=root_call("BeginClose",NULL,0); const void *raw=NULL; size_t size=0; struct ae_run_receipt begin;
+            sd_bus_message *reply=NULL;
+            if (active_mode) {
+                CHECK(user_reconnected && start_result_present); uint8_t completion[AE_EXECUTION_COMPLETION_BYTES];
+                CHECK(ae_execution_completion_encode(&start_result,completion)==0);
+                sd_bus_message *call=NULL; CHECK(sd_bus_message_new_method_call(bus,&call,root_name,"/org/aetheri/P0ExecutionBrokerTest1","org.aetheri.P0ExecutionBrokerTest1","BeginRecoveredClose")>=0 && sd_bus_message_append_array(call,'y',completion,sizeof completion)>=0);
+                reply=root_reply(call);
+            } else reply=root_call("BeginClose",NULL,0);
+            const void *raw=NULL; size_t size=0; struct ae_run_receipt begin;
             CHECK(sd_bus_message_read_array(reply,'y',&raw,&size)>0 && sd_bus_message_at_end(reply,1)==1 && ae_run_receipt_decode(raw,size,&begin)==0);
             r=ae_catalogue_quiesce_user_run(store,&p,&user_app_evidence,&begin,realtime_ms(),&receipt); sd_bus_message_unref(reply);
         }
@@ -725,6 +908,7 @@ static const sd_bus_vtable user_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Register","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Ready","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Complete","","",application_method,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Reconnect","","",user_reconnect,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Quiesce","","",user_close,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("FinishClose","","",user_close,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static void user_serve(int reject)
@@ -855,17 +1039,57 @@ static void drive(const char *root)
             image_path[prefix]=0; strcat(image_path,"/payload/bin/probe");
             int fd=open(image_path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW); CHECK(fd>=3); struct ae_image image,matched;
             CHECK(ae_image_verify(fd,command.sha256,&image)==0 && ae_image_match_process(&observed,1000,&image,&matched)==0);
+            if (active_mode) {
+                sd_id128_t iv; char invocation_text[33]; memcpy(iv.bytes,actual.invocation,16); sd_id128_to_string(iv,invocation_text);
+                printf("AETHERI_ACTIVE {\"pid\":%u,\"cgroup_id\":%llu,\"invocation\":\"%s\"}\n",pid,(unsigned long long)actual.cgroup_id,invocation_text);
+            } else {
             driver_user_close(user_destination,&user,&current_user,0);
             driver_user_close(user_destination,&user,&current_user,0);
             driver_end(unique,&held,&original,&observed,&actual);
             driver_user_close(user_destination,&user,&current_user,1);
             driver_user_close(user_destination,&user,&current_user,1);
+            }
             CHECK(close(fd)==0); ae_peer_clear(&observed);
         }
         ae_peer_clear(&root_peer); sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_error_free(&error);
     }
     ae_peer_clear(&user); ae_peer_clear(&held); sd_bus_creds_unref(creds); CHECK(ae_execution_client_close(&check)==0); sd_bus_flush_close_unref(bus);
-    puts("Actual native Root/User/private-view app lifetime closed for the fixed test profile; no general recovery or removal claim.");
+    puts(active_mode ? "Original fixed app is active; no run closure or lease release requested." :
+        "Actual native Root/User/private-view app lifetime closed for the fixed test profile; no general recovery or removal claim.");
+}
+static void drive_active_recovery(void)
+{
+    CHECK(sd_bus_open_system(&bus)>=0); sd_bus_creds *creds=NULL; const char *unique=NULL;
+    CHECK(sd_bus_get_name_creds(bus,"org.aetheri.System1",SD_BUS_CREDS_UNIQUE_NAME,&creds)>=0 && sd_bus_creds_get_unique_name(creds,&unique)>=0);
+    sd_bus_message *call=NULL,*reply=NULL; CHECK(sd_bus_message_new_method_call(bus,&call,unique,"/org/aetheri/P0ExecutionTest1",IFACE,"ObserveLive")>=0);
+    sd_bus_error error=SD_BUS_ERROR_NULL; int r=sd_bus_call(bus,call,10000000,&error,&reply);
+    if (r<0) fprintf(stderr,"actual live recovery: %d %s\n",r,error.message ? error.message : "-");
+    CHECK(r>=0); struct ae_peer root=AE_PEER_INIT,observed=AE_PEER_INIT,user=AE_PEER_INIT; struct ae_process_context root_actual,app_actual,user_actual;
+    CHECK(ae_peer_capture_reply(reply,call,&root)==0 && root.connection_uid==0 && strcmp(root.connection_label,"system_u:system_r:aetheri_system_t:s0")==0 &&
+        ae_process_observe(&root,bus,&root_actual)==0 && strcmp(root_actual.unit,AE_STARTER_ROOT_UNIT)==0 && memcmp(root_actual.boot,p.boot,16)==0);
+    const void *bytes=NULL; size_t size=0; uint32_t pid=0; int fd=-1; uint64_t group=0;
+    CHECK(sd_bus_message_has_signature(reply,"ayuhtayay") && sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,p.system_runtime,16)!=0);
+    CHECK(sd_bus_message_read(reply,"uht",&pid,&fd,&group)>0 && pid>0 && pid<=INT32_MAX && group);
+    observed.connection_pid=(pid_t)pid; observed.connection_uid=1000; strcpy(observed.connection_label,AE_STARTER_TARGET_CONTEXT);
+    observed.pidfd=fcntl(fd,F_DUPFD_CLOEXEC,3); CHECK(observed.pidfd>=3 && ae_process_observe(&observed,bus,&app_actual)==0 && app_actual.cgroup_id==group);
+    CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,app_actual.invocation,16)==0);
+    CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,p.boot,16)==0 && sd_bus_message_at_end(reply,1)==1);
+    sd_bus_message_unref(reply); sd_bus_message_unref(call); sd_bus_error_free(&error);
+    sd_bus_creds *user_creds=NULL; const char *user_unique=NULL;
+    CHECK(sd_bus_get_name_creds(bus,USER_NAME,SD_BUS_CREDS_UNIQUE_NAME,&user_creds)>=0 && sd_bus_creds_get_unique_name(user_creds,&user_unique)>=0);
+    CHECK(sd_bus_message_new_method_call(bus,&call,user_unique,USER_PATH,USER_IFACE,"Reconnect")>=0);
+    r=sd_bus_call(bus,call,10000000,&error,&reply);
+    if (r<0) fprintf(stderr,"actual original User reconnect: %d %s\n",r,error.message ? error.message : "-");
+    CHECK(r>=0 && ae_peer_capture_reply(reply,call,&user)==0 && user.connection_uid==1000 && strcmp(user.connection_label,"system_u:system_r:aetheri_user_t:s0")==0 &&
+        ae_process_observe(&user,bus,&user_actual)==0 && strcmp(user_actual.unit,USER_UNIT)==0 && memcmp(user_actual.boot,p.boot,16)==0 && sd_bus_message_at_end(reply,1)==1);
+    sd_bus_message_unref(reply); sd_bus_message_unref(call); sd_bus_error_free(&error);
+    driver_user_close(user_unique,&user,&user_actual,0); driver_user_close(user_unique,&user,&user_actual,0);
+    driver_end(unique,&root,&root_actual,&observed,&app_actual);
+    /* The driver exported this additional observation pin; close it BEFORE
+     * requesting native release and actual PID1-store retirement. */
+    ae_peer_clear(&observed);
+    driver_user_close(user_unique,&user,&user_actual,1); driver_user_close(user_unique,&user,&user_actual,1);
+    ae_peer_clear(&user); ae_peer_clear(&root); sd_bus_creds_unref(user_creds); sd_bus_creds_unref(creds); sd_bus_flush_close_unref(bus);
 }
 static void drive_recovery(void)
 {
@@ -896,20 +1120,27 @@ static void drive_recovery(void)
 }
 int main(int argc,char **argv)
 {
-    if (argc==2 && (strcmp(argv[1],"user-serve")==0 || strcmp(argv[1],"user-deny")==0)) {
+    if (argc==2 && (strcmp(argv[1],"user-serve")==0 || strcmp(argv[1],"user-deny")==0 || strcmp(argv[1],"user-serve-active")==0)) {
+        active_mode=strcmp(argv[1],"user-serve-active")==0;
         uint8_t digest[32]; CHECK(ae_execution_profile_load(&p,digest)==0); load(ROOT); user_serve(strcmp(argv[1],"user-deny")==0); return 0;
     }
     CHECK(geteuid()==0 && (argc==2 || argc==3)); const char *root=argc==3 ? argv[2] : ROOT;
-    if (argc==2 && (strcmp(argv[1],"serve")==0 || strcmp(argv[1],"serve-handoff")==0)) {
-        handoff_mode=strcmp(argv[1],"serve-handoff")==0;
+    if (argc==2 && (strcmp(argv[1],"serve")==0 || strcmp(argv[1],"serve-handoff")==0 || strcmp(argv[1],"serve-active")==0)) {
+        active_mode=strcmp(argv[1],"serve-active")==0; handoff_mode=active_mode || strcmp(argv[1],"serve-handoff")==0;
         incoming_count=sd_listen_fds_with_names(1,&incoming_names); CHECK(incoming_count==0 || (handoff_mode && incoming_count==4));
         for (int n=0;n<incoming_count;++n) incoming_fds[n]=SD_LISTEN_FDS_START+n;
         uint8_t digest[32]; CHECK(ae_execution_profile_load(&p,digest)==0);
     }
+    if (strcmp(argv[1],"init-active")==0 || strcmp(argv[1],"drive-active")==0) active_mode=1;
     load(root);
-    if (strcmp(argv[1],"drive")==0) { drive(root); return 0; }
+    if (strcmp(argv[1],"drive")==0 || strcmp(argv[1],"drive-active")==0) { drive(root); return 0; }
+    if (strcmp(argv[1],"recover-active")==0) { drive_active_recovery(); return 0; }
     if (strcmp(argv[1],"recover")==0) { drive_recovery(); return 0; }
-    catalogue(root,strcmp(argv[1],"init")==0);
-    if (strcmp(argv[1],"init")==0) { CHECK(ae_catalogue_close(&store)==0); return 0; }
-    CHECK((strcmp(argv[1],"serve")==0 || strcmp(argv[1],"serve-handoff")==0) && argc==2); serve(); return 0;
+    catalogue(root,strcmp(argv[1],"init")==0 || strcmp(argv[1],"init-active")==0);
+    if (strcmp(argv[1],"init")==0 || strcmp(argv[1],"init-active")==0) { CHECK(ae_catalogue_close(&store)==0); return 0; }
+    if (strcmp(argv[1],"check-user-record")==0) {
+        original_user_record(0); CHECK(ae_catalogue_close(&store)==0);
+        puts("Original User metadata matches the original native handoff; no live process or recovery admission proved."); return 0;
+    }
+    CHECK((strcmp(argv[1],"serve")==0 || strcmp(argv[1],"serve-handoff")==0 || strcmp(argv[1],"serve-active")==0) && argc==2); serve(); return 0;
 }

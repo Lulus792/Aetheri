@@ -43,8 +43,9 @@ def validate_native_end(ended,invocation,boot):
             ended['invocation']!=invocation or ended['boot']!=boot):
         raise RuntimeError('uncorrelated native lifetime observation')
 
-def validate_process_rows(db,profile,role,ended):
-    if db.execute('PRAGMA user_version').fetchone()[0]!=(5 if role=='system' else 4): raise RuntimeError('process catalogue version absent')
+def validate_process_rows(db,profile,role,ended,*,version=None):
+    if version is None: version=5 if role=='system' else 4
+    if db.execute('PRAGMA user_version').fetchone()[0]!=version: raise RuntimeError('process catalogue version absent')
     rows=db.execute('SELECT role,profile,profile_digest,invocation_ref,context_digest,process_identity,witness,witness_digest,recorded_unix_ms,start_operation_id FROM execution_processes ORDER BY role').fetchall()
     if [x[0] for x in rows]!=([1,2] if role=='system' else [2]): raise RuntimeError('wrong original process inventory')
     context=db.execute('SELECT evidence_digest FROM operation_steps WHERE step_no=2').fetchone()[0]
@@ -163,6 +164,61 @@ def acknowledge_user_start(record,work):
         if any(db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('install_bindings','data_epochs','launches','operations','run_closures','execution_processes')):
             raise RuntimeError('User bootstrap performed unrequested lifecycle work')
     record['tree']=current; save(record)
+def read_recovery_user(raw):
+    if type(raw) is not bytes or not 128<=len(raw)<=2048 or raw[:8]!=b'AETHUSR1' or raw[126:128]!=bytes(2):
+        raise ValueError('invalid private original-User frame')
+    identity=reference.read_process_identity(raw[56:88])
+    value=dict(profile_digest=raw[8:40].hex(),root_invocation=raw[40:56].hex(),**identity,
+               pid=int.from_bytes(raw[88:92],'big'),uid=int.from_bytes(raw[92:96],'big'),cgroup_id=int.from_bytes(raw[96:104],'big'),invocation=raw[104:120].hex())
+    offset=128
+    for index,(key,bound) in enumerate((('unit',256),('cgroup',1024),('label',512))):
+        length=int.from_bytes(raw[120+2*index:122+2*index],'big')
+        if not 0<length<bound or length>len(raw)-offset: raise ValueError('invalid original-User text size')
+        text=raw[offset:offset+length]
+        if any(c<0x21 or c>0x7e for c in text): raise ValueError('invalid original-User text')
+        value[key]=text.decode('ascii'); offset+=length
+    if (offset!=len(raw) or not 0<value['pid']<2**31 or value['uid']!=1000 or not value['cgroup_id'] or
+            value['unit']!=USER_UNIT or value['label']!='system_u:system_r:aetheri_user_t:s0' or
+            any(int(value[key],16)==0 for key in ('profile_digest','root_invocation','boot','invocation'))):
+        raise ValueError('invalid original-User binding')
+    return value
+
+def check_active_original(record,app_unit,user_pin):
+    terminal=select.poll(); terminal.register(user_pin,select.POLLIN)
+    if terminal.poll(0): raise RuntimeError('original User process exited')
+    jobs=json.loads(run('busctl','--system','--json=short','call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.freedesktop.systemd1.Manager','ListJobs'))
+    if any(job[1] in (USER_UNIT,app_unit) for job in jobs['data'][0]): raise RuntimeError('original live unit has a pending job')
+    for unit,pid,invocation in ((USER_UNIT,record['user_pid'],record['user_invocation']),
+                                (app_unit,record['original_active']['pid'],record['original_active']['invocation'])):
+        facts=dict(line.split('=',1) for line in run('systemctl','show',unit,'-p','ActiveState,MainPID,InvocationID,Job').splitlines())
+        if facts['ActiveState']!='active' or int(facts['MainPID'])!=pid or facts['InvocationID']!=invocation or facts['Job'] not in ('','0'):
+            raise RuntimeError('original live invocation changed: '+unit)
+    with closing(sqlite3.connect(f'file:{ROOT/"root/system/catalogue.sqlite3"}?mode=ro',uri=True)) as db:
+        if db.execute('SELECT state FROM generation_leases').fetchall()!=[('running',)] or db.execute('SELECT count(*) FROM run_closures').fetchone()[0]:
+            raise RuntimeError('active run was already closed/released')
+
+def acknowledge_recovery_user(record,work,user_pin):
+    path=work/'system/recovery-user.bin'; st=path.lstat(); value=read_recovery_user(path.read_bytes())
+    profile=(work/'registry/execution.conf').read_bytes()
+    context=run('systemctl','show',USER_UNIT,'-p','ControlGroup','--value')
+    if (not stat.S_ISREG(st.st_mode) or st.st_uid!=0 or st.st_gid!=0 or stat.S_IMODE(st.st_mode)!=0o600 or st.st_nlink!=1 or
+            os.getxattr(path,'security.selinux').rstrip(b'\0')!=b'system_u:object_r:aetheri_system_state_t:s0' or
+            value['profile_digest']!=hashlib.sha256(profile).hexdigest() or value['root_invocation']!=record['root_invocation'] or
+            value['boot']!=profile[72:88].hex() or value['pid']!=record['user_pid'] or value['invocation']!=record['user_invocation'] or
+            value['pidfd_id']!=os.fstat(user_pin).st_ino or value['cgroup']!=context or
+            value['cgroup_id']!=(Path('/sys/fs/cgroup')/context.lstrip('/')).stat().st_ino or
+            Path('/proc',str(value['pid']),'attr/current').read_bytes().rstrip(b'\0\n').decode()!=value['label']):
+        raise RuntimeError('original-User record not independently correlated')
+    current=capture(work); previous=record['tree']; name='system/recovery-user.bin'
+    if set(current)-set(previous)!={name} or set(previous)-set(current): raise RuntimeError('unexpected original-User record entries')
+    for key,observed in current.items():
+        if key==name: continue
+        if key in ('system/catalogue.sqlite3',record['user_catalogue_rel'],'system',record['payload_rel'],record['user_control_rel']):
+            if observed[:5]!=previous[key][:5] or observed[8]!=previous[key][8]: raise RuntimeError('recovery setup replaced owned object')
+        elif observed!=previous[key]: raise RuntimeError('recovery setup changed unrelated object: '+key)
+    record['tree'][name]=current[name]; record['static_hashes']['root/'+name]=sha(path)
+    record['original_user']=value; save(record)
+
 def seed(work,record):
     profile=(work/'registry/execution.conf').read_bytes()
     identifiers=[profile[8+16*n:24+16*n] for n in range(14)]
@@ -228,13 +284,13 @@ def retire(record,*,prelaunch_failure=False):
     for parent,dirs,files in os.walk(ROOT,followlinks=False):
         if not Path(parent).is_symlink(): Path(parent).chmod(0o700)
     shutil.rmtree(ROOT)
-def complete_handoff(record,work):
+def complete_handoff(record,work,*,active=False,user_pin=-1):
     app_unit="aetheri-app-"+identity(31).hex()+".service"
     verify_static(record); drained(ROOT_UNIT)
     check_hold(record,app_unit)
     if run('systemctl','show',ROOT_UNIT,'-p','NFileDescriptorStore','--value')!='4': raise RuntimeError('original Root store did not retain four handles')
     with closing(sqlite3.connect(f'file:{work/"system/catalogue.sqlite3"}?mode=ro',uri=True)) as db:
-        if (db.execute('SELECT state FROM generation_leases').fetchall()!=[('released',)] or
+        if (db.execute('SELECT state FROM generation_leases').fetchall()!=[('running' if active else 'released',)] or
                 db.execute('SELECT state,revision FROM execution_handoffs').fetchall()!=[('pending',1)]):
             raise RuntimeError('completed original run/pending transfer not retained')
     record['pending']='root-replacement'; save(record); run('systemctl','start',ROOT_UNIT)
@@ -245,6 +301,15 @@ def complete_handoff(record,work):
         record.update(replacement_pid=int(fresh['MainPID']),replacement_invocation=fresh['InvocationID'])
         record['replacement_capabilities']=require_empty_capabilities(record['replacement_pid']); record['pending']='recover-handoff'; save(record)
         verify_static(record); check_hold(record,app_unit)
+        if active:
+            check_active_original(record,app_unit,user_pin)
+            # Wrong same-domain/unit replacement admission remains rejected.
+            run('systemctl','start',REJECT_UNIT); drained(REJECT_UNIT)
+            output=run(str(ROOT/'driver'),'recover-active',str(work),timeout=20); print(output)
+            ends=[json.loads(line.removeprefix('AETHERI_END ')) for line in output.splitlines() if line.startswith('AETHERI_END ')]
+            if len(ends)!=1 or any(ends[0][key]!=record['original_active'][key] for key in ('pid','cgroup_id','invocation')):
+                raise RuntimeError('recovery closed another original app')
+            record['native_end']=ends[0]; record['active_end_output']=output; save(record)
         output=run(str(ROOT/'driver'),'recover',str(work),timeout=15); print(output)
         observations=[json.loads(line.removeprefix('AETHERI_HANDOFF ')) for line in output.splitlines() if line.startswith('AETHERI_HANDOFF ')]
         if len(observations)!=1: raise RuntimeError('missing/ambiguous replacement observation')
@@ -284,7 +349,7 @@ def archive_completed(record,work,driver,ordinary):
         completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
         if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
         if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
-        if db.execute('PRAGMA user_version').fetchone()[0]!=5: raise RuntimeError('wrong Root handoff schema')
+        if db.execute('PRAGMA user_version').fetchone()[0]!=(6 if record.get('active_recovery') else 5): raise RuntimeError('wrong Root handoff schema')
         handoff_rows=db.execute('SELECT witness,witness_digest,state,original_runtime,observer_runtime,revision FROM execution_handoffs').fetchall()
         if len(handoff_rows)!=1: raise RuntimeError('missing or ambiguous native handoff intent')
         wire,digest,state,origin,observer,revision=handoff_rows[0]; original=reference.read_execution_handoff(wire)
@@ -296,6 +361,10 @@ def archive_completed(record,work,driver,ordinary):
             raise RuntimeError('native handoff expectation/origin/retirement differs')
         if handoff and digest.hex()!=record['recovered']['handoff_sha256']: raise RuntimeError('replacement reply changed original expectation')
         record['handoff_witness_sha256']=digest.hex()
+        if record.get('active_recovery'):
+            if db.execute('SELECT lower(hex(runtime)),profile_digest,witness_digest,handoff_revision FROM run_recovery_owners').fetchall()!=[(record['recovered']['runtime'],hashlib.sha256((work/'registry/execution.conf').read_bytes()).digest(),digest,2)]:
+                raise RuntimeError('recovery owner not bound to original observations')
+            if db.execute("SELECT count(*) FROM admission_gates WHERE state!='closed'").fetchone()[0]: raise RuntimeError('Root recovery reopened gates')
         root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
         if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
                 root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')
@@ -310,7 +379,7 @@ def archive_completed(record,work,driver,ordinary):
         if not end_value['group_removed']:
             end_value['group_removed']=True; acceptable.add(hashlib.sha256(reference.run_end(end_value)).digest())
         if root_closure[7] not in acceptable: raise RuntimeError('native end digest differs from actual original process observation')
-        process_identity,process_hashes=validate_process_rows(db,root_closure[0],'system',record['native_end'])
+        process_identity,process_hashes=validate_process_rows(db,root_closure[0],'system',record['native_end'],version=6 if record.get('active_recovery') else 5)
         record['process_witness_sha256']={'system':process_hashes}
     evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
     shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
@@ -343,7 +412,7 @@ def main():
     lock=os.open('/etc/aetheri-p0-carrier',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     if sys.argv[1:]==['--retire']:
         record=json.loads((ROOT/'controller.json').read_text()); retire(record); return
-    arguments=sys.argv[1:]; handoff=arguments[-1:]==['--handoff']
+    arguments=sys.argv[1:]; active=arguments[-1:]==['--recover-active']; handoff=active or arguments[-1:]==['--handoff']
     if handoff: arguments=arguments[:-1]
     driver,starter,payload,observer=map(lambda x:Path(x).resolve(strict=True),arguments)
     for path in (driver,starter,payload):
@@ -357,7 +426,7 @@ def main():
     for unit in (ROOT_UNIT,USER_UNIT,REJECT_UNIT,app_unit)+((HOLD_UNIT,) if handoff else ()):
         if run('systemctl','show',unit,'--property=LoadState','--value')!='not-found' or unit_file(unit).exists(): raise RuntimeError('foreign unit slot')
     ROOT.mkdir(mode=0o700); run('restorecon',str(ROOT))
-    record=dict(token=uuid.uuid4().hex,state='preparing',pending=None,static_hashes={},unit_hashes={},seeded=False,handoff=handoff)
+    record=dict(token=uuid.uuid4().hex,state='preparing',pending=None,static_hashes={},unit_hashes={},seeded=False,handoff=handoff,active_recovery=active)
     save(record)
     try:
         policy=ROOT/(MODULE+'.cil'); policy.write_bytes((SOURCE/'policy/p0-execution-runtime.cil').read_bytes()); policy.chmod(0o600)
@@ -378,7 +447,7 @@ def main():
         value=reference.execution_views(dict(profile_sha256=sha(ROOT/'profile'),objects=objects))
         path=work/'registry/execution-views.conf'; path.write_bytes(value); path.chmod(0o444); label(path,'aetheri_registry_t')
         (work/'system').mkdir(mode=0o700); label(work/'system','aetheri_system_state_t')
-        run(str(ROOT/'driver'),'init',str(work)); seed(work,record)
+        run(str(ROOT/'driver'),'init-active' if active else 'init',str(work)); seed(work,record)
         for path in (work/'system').iterdir(): label(path,'aetheri_system_state_t')
         record['payload_rel']=str((fixture['data']/'payload').relative_to(work))
         record['user_control_rel']=str((fixture['account']/'control').relative_to(work))
@@ -411,10 +480,10 @@ TasksMax=1
 UMask=0077
 '''
         store_options='FileDescriptorStoreMax=4\nFileDescriptorStorePreserve=yes\nNotifyAccess=main\n' if handoff else ''
-        write_unit(ROOT_UNIT,'[Service]\nType=notify\n'+common+store_options+'SELinuxContext=system_u:system_r:aetheri_system_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart='+str(ROOT/'driver')+(' serve-handoff\n' if handoff else ' serve\n'),record)
-        write_unit(app_unit,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=exec\n'+common+'SELinuxContext=system_u:system_r:aetheri_starter_t:s0\nCapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=CAP_SETUID\nExecStart=/var/lib/aetheri-p0/execution-starter\n',record)
+        write_unit(ROOT_UNIT,'[Service]\nType=notify\n'+common+store_options+'SELinuxContext=system_u:system_r:aetheri_system_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart='+str(ROOT/'driver')+(' serve-active\n' if active else ' serve-handoff\n' if handoff else ' serve\n'),record)
+        write_unit(app_unit,'[Unit]\n'+('' if active else 'BindsTo='+ROOT_UNIT+'\n')+'After='+ROOT_UNIT+'\n[Service]\nType=exec\n'+common+'SELinuxContext=system_u:system_r:aetheri_starter_t:s0\nCapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=CAP_SETUID\nExecStart=/var/lib/aetheri-p0/execution-starter\n',record)
         user_common=common.replace('User=root\nGroup=root\n','User=aetheri\nGroup=aetheri\n')+'SELinuxContext=system_u:system_r:aetheri_user_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart=/var/lib/aetheri-p0/user-broker '
-        write_unit(USER_UNIT,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=notify\n'+user_common+'user-serve\n',record)
+        write_unit(USER_UNIT,'[Unit]\n'+('' if active else 'BindsTo='+ROOT_UNIT+'\n')+'After='+ROOT_UNIT+'\n[Service]\nType=notify\n'+user_common+('user-serve-active\n' if active else 'user-serve\n'),record)
         write_unit(REJECT_UNIT,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=oneshot\n'+user_common+'user-deny\n',record)
         if handoff:
             write_unit(HOLD_UNIT,'[Unit]\nDescription=Aetheri original execution observation retention\nAfter='+ROOT_UNIT+' '+app_unit+'\n',record)
@@ -443,8 +512,20 @@ UMask=0077
             verify_static(record)
             acknowledge_user_start(record,work)
             record['pending']='application'; save(record)
-            output=run(str(ROOT/'driver'),'drive',str(work),timeout=25)
+            output=run(str(ROOT/'driver'),'drive-active' if active else 'drive',str(work),timeout=25)
             print(output)
+            if active:
+                starts=[json.loads(line.removeprefix('AETHERI_ACTIVE ')) for line in output.splitlines() if line.startswith('AETHERI_ACTIVE ')]
+                if len(starts)!=1: raise RuntimeError('missing active original app evidence')
+                record['original_active']=starts[0]; acknowledge_recovery_user(record,work,user_pin)
+                check_active_original(record,app_unit,user_pin)
+                record['pending']='active-root-stop'; save(record)
+                run('systemctl','stop',ROOT_UNIT); terminal=select.poll(); terminal.register(root_pin,select.POLLIN)
+                if not terminal.poll(10000): raise RuntimeError('original Root still alive')
+                drained(ROOT_UNIT); check_active_original(record,app_unit,user_pin)
+                complete_handoff(record,work,active=True,user_pin=user_pin)
+                output=record['active_end_output']
+
             ends=[line.removeprefix('AETHERI_END ') for line in output.splitlines() if line.startswith('AETHERI_END ')]
             if len(ends)!=1: raise RuntimeError('missing or ambiguous native lifetime observation')
             record['native_end']=json.loads(ends[0]); save(record)
@@ -452,10 +533,11 @@ UMask=0077
             run('systemctl','stop',USER_UNIT); poll=select.poll(); poll.register(user_pin,select.POLLIN)
             if not poll.poll(10000): raise RuntimeError('original User process not dead')
             drained(USER_UNIT)
-            run('systemctl','stop',ROOT_UNIT); poll=select.poll(); poll.register(root_pin,select.POLLIN)
-            if not poll.poll(10000): raise RuntimeError('original Root process not dead')
-            drained(ROOT_UNIT)
-            if handoff: complete_handoff(record,work)
+            if not active:
+                run('systemctl','stop',ROOT_UNIT); poll=select.poll(); poll.register(root_pin,select.POLLIN)
+                if not poll.poll(10000): raise RuntimeError('original Root process not dead')
+                drained(ROOT_UNIT)
+                if handoff: complete_handoff(record,work)
         finally:
             if user_pin>=0: os.close(user_pin)
             os.close(root_pin)

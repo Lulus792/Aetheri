@@ -93,6 +93,8 @@ int main(int argc,char **argv)
         CHECK(observed>=0); sd_bus_error_free(&error); sd_bus_message_unref(reply); sd_bus_flush_close_unref(bus);
     }
     CHECK(write(STDOUT_FILENO,"ready\n",6)==6);
-    struct pollfd item={.fd=signal_fd,.events=POLLIN}; int result=poll(&item,1,5000);
+    /* The explicit P0 restart fixture needs time for the owner replacement.
+     * This remains an inert bounded test process, not a resident app timeout. */
+    struct pollfd item={.fd=signal_fd,.events=POLLIN}; int result=poll(&item,1,strcmp(scenario,"p0")==0 ? 30000 : 5000);
     CHECK(result==1 && (item.revents&POLLIN)); CHECK(close(signal_fd)==0); return 0;
 }

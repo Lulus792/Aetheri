@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — native close-only Root recovery transactions.
+31 October 2026 — original live app survives Root replacement; recovery interrupted.
 
 ## Confirmed
 
@@ -13,6 +13,47 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The separate --recover-active test now selects Root v6/User v4, preserves the
+original App/User across Root exit and transfers the actual four observation
+handles. Original Root writes one protected immutable AETHUSR1 User expectation
+before transfer; the controller independently compares it to its held original
+User ProcessFD and actual unit/invocation/cgroup/label. Replacement code adds
+explicit original-User reidentification, User-side current-image checks and the
+native recovered-close sequence. These later RPCs are not runtime accepted yet.
+
+The first actual attempt reached Root OBSERVE with the original App/User still
+active, then failed at a combined source/process-image expression. The source
+correction removes Root's direct cross-UID proc/exe check: current app-image
+validation remains in the authenticated reidentified User before closing. No
+capability or MAC grant was added. This correction is compiled, not deployed in
+the held attempt. App and User subsequently expired under their test time limits.
+
+The exact attempt remains at /var/lib/aetheri-p0-execution-runtime-test, pending
+recover-handoff. Root/app/User are terminal; PID1 retains FOUR original handles
+and the process-free retention target remains active. The native Root v6 dispatch
+is uncertain, generation lease running and handoff observed/revision 2. No closure
+or recovery-owner row was created. Its protected catalogue hash and all owned
+static inputs still agree. No app/operation/lease was replaced or released.
+Evidence is under the guest build's
+active-recovery-failure-0f04cd9ae92d4500a42177e3e14de76b. Do not retire/reset it.
+
+Next implement a separate replaced-User admission/quiescence protocol and original
+ended-app restoration for this same intent. Do not weaken the v6 original-User
+check, reconstruct a ProcessFD from a PID or discard the retained store to rerun.
+The ordinary carrier remains verified/quiet with normal v2 gates closed. The
+temporary active-test policy/units are intentionally retained for reconciliation.
+The full desktop/apps/image/hardware objective remains active.
+
+Host guards pass 50/50 (2.720 s). Release and Debug ASan/UBSan builds pass; the native
+User-record reader agrees with the original handoff in both administrative private
+mount-namespace checks. Those are metadata checks, not confined recovery acceptance.
+No existing SQL/XML, dependency family, production service or policy rule changed.
+All 187 host/snapshot/guest source hashes agree; 602 local Markdown file targets
+exist, excluding anchors and external URLs. The held failed catalogue/static
+inputs were rechecked after the metadata probes and remain unchanged.
+
+Previous native-transaction checkpoint (31 October 2026):
 
 Root-only v6 now adds immutable current-recovery-owner rows and separate native
 BEGIN/RELEASE/GET functions for a successfully started original run after Root

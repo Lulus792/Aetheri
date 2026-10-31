@@ -3961,3 +3961,75 @@ These synthetic evidence inputs do **not** prove an installed active-run recover
 coordinator. The existing actual confined --handoff test still closes the run
 before Root replacement. Its active-run counterpart, replaced-User coordination,
 early starter/error-channel recovery and production holder admission remain work.
+
+## Interrupted active Root test
+
+The separate optional `--recover-active` mode in
+[test_execution_runtime.py](../tools/test_execution_runtime.py) is unfinished
+integration work. It selects explicit Root v6/User v4 and starts the original App
+and User with ordering after Root, without binding their lifetime to Root. Normal
+test modes keep their prior dependencies. No production unit or capability changes.
+Its P0 inert payload has a bounded 30-second wait instead of five seconds so an
+owner restart can occur before explicit shutdown; other payload scenarios keep
+their prior bound. Authority unit time limits remain 45 seconds.
+
+Original Root writes one private `system/recovery-user.bin` before transferring
+observations. This create-only, file/directory-flushed 0600 Root state record has
+the exact system-state MAC label. It binds original profile and Root invocation
+to the authenticated original User's boot-local ProcessFD identity, PID, UID,
+invocation, cgroup object/name, unit and raw label. It is immutable maintenance
+metadata, not a grant, StorageRef, live descriptor or volume authentication.
+
+The private AETHUSR1 header is 128 bytes. It contains magic at 0, original profile
+SHA-256 at 8, original Root invocation at 40, canonical 32-byte AETHPID1 at 56,
+User PID/UID as big-endian u32 at 88/92, cgroup ID as u64 at 96, User invocation at
+104 and three u16 string lengths at 120/122/124. Bytes 126–127 are zero. Bounded
+ASCII unit, cgroup and label follow in that order, without terminators or trailing
+bytes. The complete record is at most 2048 bytes. Unit and label must match the
+fixed User. The reader compares its Root invocation to protected original handoff
+history; a later candidate cannot select the expected profile or User.
+
+Before Root exit the controller independently joins that record to its original
+held User pidfd, actual unit/invocation/cgroup and current raw label. It admits only
+this exact new protected entry into the fixture inventory. The original Root's
+four actual observation handles remain in PID1. A replacement starts with a fresh
+runtime and closed gates, restores/OBSERVEs those original objects, and exposes
+only private recovery handlers. Source code then requires the still-original User
+to authenticate a new Root pin after the old one is dead, and requires Root to
+reidentify that User against the saved original process/context before binding it.
+Current image validation remains in the same-UID User before recovered BEGIN.
+Root checks package sources and original app process/lifetime. No ptrace or new
+capability is granted. The driver closes its extra exported app observation pin
+before requesting release/store retirement. These later steps need actual proof.
+
+The first actual attempt `0f04cd9ae92d4500a42177e3e14de76b` preserved the original
+App and User through Root exit. New Root restored the set, committed OBSERVE at
+revision 2 and verified the live original app context. It then failed at the old
+combined source/current-image expression. Its errno was 13; the individual helper
+returns were not separately logged. Source review and the kernel proc-exe access
+contract show the cross-UID direct-image check is invalid for capability-empty
+UID0. Current source removes it in favor of the existing same-UID User image check.
+That correction is compiled but is not installed in this retained failed fixture.
+
+The original App and User subsequently expired under their test time limits. The
+native dispatch remains uncertain, generation lease running and handoff observed
+at revision 2; there is no closure or recovery-owner row. Root/app/User have no
+current main process/cgroup/job. PID1 still retains all FOUR original handles and
+the process-free target remains active. Preserve the exact fixture, native history,
+protected User record, original images/units/policy and target. Do not reset failed
+units or drop the store to make room for a fresh successful run.
+
+Evidence is under the guest build's
+`active-recovery-failure-0f04cd9ae92d4500a42177e3e14de76b`. The original fixture
+remains at `/var/lib/aetheri-p0-execution-runtime-test`. The final old helper line
+claimed closure even in its active-only branch; that text was incorrect and is
+corrected in source. Actual SQL and typed observations, not that line, establish
+the still-open run. Separate new-User admission/quiescence and already-ended
+original-app restoration must reconcile this SAME intent before another live test.
+Do not weaken v6 or reuse the dead User's runtime as a new live identity.
+
+Administrative Release and Debug ASan/UBSan checks decode the protected original
+User file and compare it to the native original handoff in a private mount namespace.
+They make no runtime change and prove metadata agreement only, not confined live
+User reidentification. Host malformed-frame checks pass. Normal v2 authorities and
+gates remain verified/quiet; the temporary active-test infrastructure is retained.

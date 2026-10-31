@@ -36,6 +36,15 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 
 ## Architecture and security
 
+Current implementation priority: reconcile retained attempt
+0f04cd9ae92d4500a42177e3e14de76b after both original Root/User were lost. Actual
+active Root replacement/handle OBSERVE worked before a direct cross-UID image
+check failed; the original User later expired. Its four PID1 handles, target,
+catalogues and original User expectation remain protected. Separate new-User
+admission/quiescence and already-ended original-app recovery must precede another
+live test. This is engineering work, not a pending personal product decision.
+See [active test](../../spec/runtime.md#interrupted-active-root-test).
+
 Current implemented boundary: the explicit successful fixed run now closes through
 separate v3 owner journals, an authenticated receipt chain and actual Linux end
 evidence. Normal installed catalogues remain v2. Real owner-restart recovery,

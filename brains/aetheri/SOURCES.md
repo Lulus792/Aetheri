@@ -1986,3 +1986,68 @@ Actual active-run Root/original-User communication, complete retained-handle end
 integration, replaced-User recovery and early starter/error-channel recovery remain
 unimplemented. The existing confined --handoff test proves replacement only after
 original run closure. Do not reuse its no-active-run evidence for this new path.
+
+## Interrupted active Root integration — 31 October 2026
+
+The [systemd unit documentation](https://www.freedesktop.org/software/systemd/man/259/systemd.unit.html)
+was checked for ordering versus lifetime-binding dependencies. Only the new active
+variant omits App/User BindsTo=Root. The actual controller verifies both original
+invocations remain active after Root exits. The
+[descriptor API](https://www.freedesktop.org/software/systemd/man/259/sd_listen_fds.html)
+was checked for unordered named activation copies, CLOEXEC and caller ownership.
+Names/counters do not replace native original-object comparison.
+
+Original Root captures its authenticated live User's context and mandatory pidfs
+identity into one create-only/flushed AETHUSR1 file in protected system state.
+The controller independently matches it to its held original User pidfd, actual
+unit/invocation/cgroup and raw label. It acknowledges only that exact new file in
+the already protected fixture inventory. A bounded independent Python reader and
+host counterexamples reject malformed lengths, trailing/reserved bytes, UID and
+text; full unsigned process/cgroup identifiers remain intact.
+
+Actual attempt 0f04cd9ae92d4500a42177e3e14de76b started original Root PID 95328 /
+invocation 10d68e9ddabd41ef99321fae76804faa, User PID 95336 / pidfs ID 95337 /
+cgroup 155064 / invocation f4098d03f95c432e83ca738f6a9227e7 and App PID 95339 /
+cgroup 155109 / invocation 96fa45fbf58543118009ba9aa6a6bc4a. The App/User survived
+Root exit. Replacement Root PID 95357 / invocation fab72bf0ed354a3693bbb4ef2d078b00
+received/validated the four original handles, committed native OBSERVE/revision 2
+and verified the original live app context. It failed at the combined package/
+process-image CHECK before original-User reidentification/recovered closure.
+
+That CHECK reported errno 13 but did not separately log the helpers' return values.
+[proc_pid_exe](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html) and
+[ptrace access checks](https://man7.org/linux/man-pages/man2/ptrace.2.html) explain
+the invalid direct cross-UID image check: effective-root credentials with empty
+capability sets do not satisfy same-UID or CAP_SYS_PTRACE admission. This is a
+source/contract diagnosis, not a newly measured isolated syscall return. Current
+source retains Root package/process checks and leaves current image validation
+with the reidentified same-UID User before recovered BEGIN. No permission was
+broadened. That correction was compiled, not installed in the retained attempt.
+
+App/User later expired under their test limits. Read-only native inspection shows
+uncertain dispatch, running lease, observed handoff revision 2, zero closures and
+zero recovery-owner rows. Root/App/User are terminal with no main process/group/
+job, while the process-free target retains invocation d185afff851d46849a96f77b4d0a64a6
+and PID1 still retains FOUR handles. Original handoff SHA-256 is
+1f529405d6d812045988fde96ab1f078b242d35869df937445e8c518f5fbeec9.
+Protected failed catalogue SHA-256 is
+bdfca485ed5079d62afc2270946cfd9999a354b2240a51c9914b4c64e9291f2d.
+
+The exact original fixture/controller/images/units/policy/User record remain held.
+An additional evidence copy, original unit fragments and report are under
+`/home/aetheri/build/release/active-recovery-failure-0f04cd9ae92d4500a42177e3e14de76b`.
+The live log's old active-only helper incorrectly printed a final closure sentence;
+the source message is corrected. SQL/typed evidence proves no closure or release.
+No app/operation/lease identities were replaced and no store/target was dropped.
+
+Release and Debug ASan/UBSan builds pass. Both native administrative metadata checks
+successfully decode the saved User record against the original handoff in a private
+mount namespace; they do not prove live User admission or the later RPCs. Host
+VM/tool tests pass 50/50 (2.720 s). Final read-only checks confirm the normal carrier
+remains verified/quiet and the failed catalogue/static inputs unchanged. The active
+test extension remains installed intentionally. No SQL/XML or policy rule changed.
+Separate replaced-User coordination and original-ended-app restoration are now the
+next implementation work; the complete active-run acceptance test remains failed.
+Final source comparison matches all 187 host/snapshot/guest files; 602 local
+Markdown file targets exist (anchors and external URLs excluded). The metadata
+probes leave the retained failed catalogue hash/static inputs unchanged.
