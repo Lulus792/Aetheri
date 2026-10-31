@@ -3222,3 +3222,72 @@ separate enforcing test supplies actual peer/process/image/IPC evidence. Normal
 session provisioning, general app SDK, executing recovery/drain/lease settlement,
 native documents/revocation, complete removal and desktop/image/hardware remain
 work. No frozen SQL/XML, normal profile/policy or public capability changes.
+
+## Original-process lifetime observation
+
+`linux/lifetime.h` adds a Root-owned, single-threaded, read-only observer. Capture
+starts from an already admitted live service leader's actual ProcessFD and current
+process context. The caller keeps its existing original supervisor unit reference
+and trusted host system bus alive. The observer duplicates the process pin, holds
+the exact cgroup-v2 root/group and opens that group's original cgroup.events.
+It verifies the live context again before returning. Neither caller-supplied
+paths nor a later same-name process can select the observed objects.
+
+`ae_lifetime_observe_end` requires all of the following, then repeats the unit
+and filesystem observations:
+
+| Observation | Required current evidence |
+| --- | --- |
+| Original process | Held ProcessFD reports dead |
+| Original service | Exact original unit object/name and InvocationID |
+| Terminal supervisor state | inactive or failed; MainPID zero; original ExecMainPID; Job `(0,"/")` |
+| Unit group selection | Empty ControlGroup or the original exact group path |
+| Held filesystem objects | Same non-recycled mount identities, inode/filesystem and root metadata |
+| Original recursive group | Still named as the held object with populated=0, or missing name plus original event reader deactivated/ENODEV |
+
+The absent-name branch does not use link counts: the pinned carrier still reports
+st_nlink=2 after the original group is removed. It also does not parse a procfs
+`(deleted)` pathname. The already-held kernfs reader supplies an independent
+deactivation observation. A missing name while that reader still works, or a
+different object under the old name, rejects and permanently quarantines the
+handle. This branch is checked against the pinned carrier; other kernel behavior
+fails closed and needs separate acceptance. The
+[kernel cgroup-v2 documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+defines populated across the subtree and the constraints on group removal.
+[Upstream kernfs read handling](https://github.com/torvalds/linux/blob/master/fs/kernfs/file.c)
+explains the deactivated-reader error; that source is background evidence, not
+a claim to have reviewed the exact Fedora kernel patch set.
+
+Unsettled state returns EAGAIN. Substitution latches ESTALE, inherited-handle use
+after fork returns ECHILD and callback-time close returns EBUSY. Errors leave
+the output unchanged. Closing only releases this object's local handles; it
+does not UnrefUnit, stop a service, free a lease, retire data or revoke handles.
+The native module creates no thread, daemon or polling loop.
+
+The privileged `linux.lifetime` test uses an isolated root-only component bus
+and actual host PID1/process/cgroup facts in the disposable enforcing carrier.
+It covers successful/failed units, an inactive job-free leader with only a live
+nested child, actual same-name restart and mount-namespace replacement, fork,
+busy close and FD balance. Controlled unit-property/lookup faults reject jobs,
+main PIDs, invocation changes, missing names and wrong objects; these faults are
+not actual cgroup rename tests (v2 rejects the attempted rename). Its private bus
+reuses the existing test launcher and edits no installed bus policy. Failure
+preserves its inputs/logs and printed service identities for inspection.
+
+The explicit live execution fixture captures this observer from Root's actual
+post-exec app pin while the coordinator still holds the original unit reference.
+After the administrative driver signals its independently verified app pidfd,
+the test-only ObserveEnd reply is authenticated back to original Root and compared
+with the original app PID/cgroup/invocation/boot. PID1 property signals plus a
+bounded test-only requery cover asynchronous cgroup removal. The controller
+archives this snapshot as native_end, independently checks unit/job/group drain
+for fixture retirement, and still requires the native lease running and User
+launch running/ready in the historical databases. Only this temporary test policy
+adds read/open/getattr for Root's cgroup.events; no write or kill permission.
+
+This is one current observation, not a permanent drain token or restart recovery.
+Future dispatch/migration must be excluded and external/delegated holders settled
+before it can contribute to full app drain. Durable executing run closure, lease
+settlement, recovery coordination and User acknowledgement remain separate work.
+The old no-exec withdrawal proof is unchanged. No normal profile, frozen SQL/XML,
+installed lifecycle capability or production launch/removal acceptance is added.

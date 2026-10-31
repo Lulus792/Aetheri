@@ -18,6 +18,18 @@ import test_execution_runtime as execution_runtime
 
 
 class VmTools(unittest.TestCase):
+    def test_native_end_report_requires_original_invocation_boot_and_bounded_shape(self):
+        original=dict(pid=123,cgroup_id=456,group_removed=True,unit_failed=False,invocation='ab'*16,boot='cd'*16)
+        execution_runtime.validate_native_end(original,original['invocation'],original['boot'])
+        for key,value in (('pid',0),('pid',2**31),('pid',True),('cgroup_id',0),('cgroup_id',2**64),('cgroup_id',True),
+                          ('group_removed',1),('unit_failed',0),('invocation','ef'*16),('boot','ef'*16),('extra',1)):
+            bad=dict(original); bad[key]=value
+            with self.assertRaisesRegex(RuntimeError,'uncorrelated'): execution_runtime.validate_native_end(bad,original['invocation'],original['boot'])
+        for key in original:
+            bad=dict(original); del bad[key]
+            with self.assertRaisesRegex(RuntimeError,'uncorrelated'): execution_runtime.validate_native_end(bad,original['invocation'],original['boot'])
+        with self.assertRaisesRegex(RuntimeError,'uncorrelated'): execution_runtime.validate_native_end(None,original['invocation'],original['boot'])
+
     def test_live_authority_capabilities_are_observed_not_only_configured(self):
         fields=('CapInh','CapPrm','CapEff','CapBnd','CapAmb')
         empty='\n'.join(key+':\t0000000000000000' for key in fields)

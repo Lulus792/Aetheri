@@ -6,6 +6,7 @@
 #include "launcher/preparation.h"
 #include "launcher/execution.h"
 #include "linux/image.h"
+#include "linux/lifetime.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -43,6 +44,7 @@ static struct ae_process_context root_context;
 static char root_name[256];
 static struct ae_peer starter=AE_PEER_INIT,app=AE_PEER_INIT;
 static struct ae_process_context starter_context,app_context;
+static struct ae_lifetime *app_lifetime;
 static sd_bus_message *waiting;
 static sd_event_source *arm_source;
 static int begun,armed,user_begun,app_confirmed,app_reported;
@@ -152,6 +154,18 @@ static int observe(sd_bus_message *m,void *userdata,sd_bus_error *error)
     if (pin) { app=peer; peer.pidfd=-1; app_context=actual; }
     else { CHECK(memcmp(peer.bus_id,app.bus_id,16)==0 && strcmp(peer.unique_name,app.unique_name)==0 && ae_peer_alive(&app)==0 && ae_process_context_equal(&actual,&app_context)); app_reported=1; }
     ae_peer_clear(&peer); CHECK(sd_bus_reply_method_return(m,"")>=0 && return_app()>=0); return 1;
+}
+static int observe_end(sd_bus_message *m,void *userdata,sd_bus_error *error)
+{
+    (void)userdata; CHECK(admin(m)==0 && app_confirmed && app_reported && app_lifetime);
+    struct ae_lifetime_end ended; int r=ae_lifetime_observe_end(app_lifetime,&ended);
+    if (r<0) return sd_bus_error_setf(error,r==-EAGAIN ? "org.aetheri.LifetimeTest1.Pending" : "org.aetheri.LifetimeTest1.Rejected","Original lifetime observation: %d",r);
+    sd_bus_message *reply=NULL; r=sd_bus_message_new_method_return(m,&reply);
+    if (r>=0) r=sd_bus_message_append(reply,"utbb",ended.pid,ended.cgroup_id,ended.group_removed,ended.unit_failed);
+    if (r>=0) r=sd_bus_message_append_array(reply,'y',ended.invocation,16);
+    if (r>=0) r=sd_bus_message_append_array(reply,'y',ended.boot,16);
+    if (r>=0) r=sd_bus_send(bus,reply,NULL);
+    sd_bus_message_unref(reply); return r;
 }
 static int arm(sd_event_source *source,void *userdata)
 {
@@ -270,6 +284,11 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
             struct ae_execution_result observed;
             if (r==0) r=ae_catalogue_observe_execution(store,&p,&broker,&bound_evidence,app_hash,&observed);
             if (r==0 && (observed.effect_required || strcmp(observed.dispatch.state,"observed")!=0)) r=-ESTALE;
+            if (r==0 && app_lifetime==NULL) r=ae_lifetime_capture(bus,&app,&app_context,&app_lifetime);
+            if (r==0) {
+                struct ae_lifetime_end unchanged,marker; memset(&marker,0xa5,sizeof marker); unchanged=marker;
+                CHECK(ae_lifetime_observe_end(app_lifetime,&unchanged)==-EAGAIN && memcmp(&unchanged,&marker,sizeof marker)==0);
+            }
             if (r==0) { app_confirmed=1; r=sd_bus_message_new_method_return(m,&reply); }
             if (r>=0) r=sd_bus_message_append_array(reply,'y',p.root_operation,16);
             if (r>=0) r=sd_bus_message_append(reply,"st",observed.dispatch.state,(uint64_t)observed.dispatch.revision);
@@ -301,7 +320,8 @@ static const sd_bus_vtable broker_methods[]={SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("FinishLaunch","ay","ay",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("Dispatch","ayay","ayst",broker_method,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Begin","","",control,SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("PinApp","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
+    SD_BUS_METHOD("Wait","","uushayayay",control,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("PinApp","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_METHOD("Observe","","",observe,SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("ObserveEnd","","utbbayay",observe_end,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
 static void serve(void)
 {
     char *label=NULL; CHECK(getcon_raw(&label)==0 && strcmp(label,"system_u:system_r:aetheri_system_t:s0")==0 && security_getenforce()==1 && prctl(PR_GET_NO_NEW_PRIVS,0L,0L,0L,0L)==1); freecon(label);
@@ -495,6 +515,57 @@ static void user_serve(int reject)
     sd_bus_slot *slot=NULL; CHECK(sd_bus_add_object_vtable(bus,&slot,USER_PATH,USER_IFACE,user_methods,NULL)>=0 && sd_bus_request_name(bus,USER_NAME,0)>=0);
     CHECK(sd_notify(0,"READY=1\nSTATUS=Isolated actual User preparation owner")>0 && sd_event_loop(event)>=0);
 }
+static int unit_changed(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{ (void)message; (void)error; *(int *)userdata=1; return 0; }
+static uint64_t monotonic_us(void)
+{ struct timespec now; CHECK(clock_gettime(CLOCK_MONOTONIC,&now)==0 && now.tv_sec>=0); return (uint64_t)now.tv_sec*1000000U+(uint64_t)now.tv_nsec/1000U; }
+static void driver_end(const char *unique,const struct ae_peer *held,const struct ae_process_context *original,const struct ae_peer *observed,const struct ae_process_context *actual)
+{
+    sd_bus_message *unit=NULL; const char *path=NULL;
+    CHECK(sd_bus_call_method(bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnit",NULL,&unit,"s",actual->unit)>=0 && sd_bus_message_read(unit,"o",&path)>0);
+    int changed=0; sd_bus_slot *watch=NULL;
+    CHECK(sd_bus_match_signal(bus,&watch,"org.freedesktop.systemd1",path,"org.freedesktop.DBus.Properties","PropertiesChanged",unit_changed,&changed)>=0);
+    sd_bus_message_unref(unit);
+    CHECK(sd_bus_call_method(bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","Subscribe",NULL,NULL,"")>=0);
+    CHECK(pidfd_send_signal(observed->pidfd,SIGTERM,NULL,0)==0); struct pollfd terminal={.fd=observed->pidfd,.events=POLLIN};
+    CHECK(poll(&terminal,1,10000)==1 && (terminal.revents&POLLIN) && ae_peer_alive(observed)==-ESRCH);
+    uint64_t deadline=monotonic_us()+4000000U;
+    for (;;) {
+        CHECK(ae_peer_alive(held)==0 && ae_process_verify(held,bus,original)==0);
+        sd_bus_message *call=NULL,*reply=NULL; sd_bus_error failure=SD_BUS_ERROR_NULL;
+        CHECK(sd_bus_message_new_method_call(bus,&call,unique,"/org/aetheri/P0ExecutionTest1",IFACE,"ObserveEnd")>=0);
+        int r=sd_bus_call(bus,call,2000000,&failure,&reply);
+        if (r>=0) {
+            struct ae_peer root=AE_PEER_INIT; struct ae_process_context current;
+            CHECK(ae_peer_capture_reply(reply,call,&root)==0 && root.connection_pid==held->connection_pid &&
+                root.connection_uid==0 && strcmp(root.connection_label,held->connection_label)==0 &&
+                strcmp(root.unique_name,held->unique_name)==0 && memcmp(root.bus_id,held->bus_id,16)==0 &&
+                ae_process_observe(&root,bus,&current)==0 && ae_process_context_equal(&current,original));
+            uint32_t pid=0; uint64_t cgroup=0; int removed=0,failed=0;
+            CHECK(sd_bus_message_has_signature(reply,"utbbayay") && sd_bus_message_read(reply,"utbb",&pid,&cgroup,&removed,&failed)>0 &&
+                pid==(uint32_t)observed->connection_pid && cgroup==actual->cgroup_id);
+            for (size_t field=0;field<2;++field) { const void *bytes=NULL; size_t size=0;
+                CHECK(sd_bus_message_read_array(reply,'y',&bytes,&size)>0 && size==16 && memcmp(bytes,field==0 ? actual->invocation : actual->boot,16)==0); }
+            CHECK(sd_bus_message_at_end(reply,1)==1);
+            sd_id128_t invocation,boot; char iv[33],bt[33]; memcpy(invocation.bytes,actual->invocation,16); memcpy(boot.bytes,actual->boot,16);
+            sd_id128_to_string(invocation,iv); sd_id128_to_string(boot,bt);
+            printf("AETHERI_END {\"pid\":%u,\"cgroup_id\":%llu,\"group_removed\":%s,\"unit_failed\":%s,\"invocation\":\"%s\",\"boot\":\"%s\"}\n",pid,(unsigned long long)cgroup,removed ? "true" : "false",failed ? "true" : "false",iv,bt);
+            ae_peer_clear(&root); sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_error_free(&failure); break;
+        }
+        if (!sd_bus_error_has_name(&failure,"org.aetheri.LifetimeTest1.Pending")) fprintf(stderr,"native lifetime RPC: %d %s\n",r,failure.message ? failure.message : "-");
+        CHECK(sd_bus_error_has_name(&failure,"org.aetheri.LifetimeTest1.Pending"));
+        sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_error_free(&failure);
+        uint64_t now=monotonic_us(); CHECK(now<deadline);
+        /* Test-only bounded re-observation covers a cgroup-removal notification
+         * arriving just after PID1's final property signal. No resident loop. */
+        uint64_t wait=deadline-now; if (wait>100000U) wait=100000U;
+        changed=0; int processed;
+        do { processed=sd_bus_process(bus,NULL); CHECK(processed>=0); } while (processed>0 && !changed);
+        if (!changed) CHECK(sd_bus_wait(bus,wait)>=0);
+    }
+    CHECK(sd_bus_call_method(bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","Unsubscribe",NULL,NULL,"")>=0);
+    sd_bus_slot_unref(watch);
+}
 static void drive(const char *root)
 {
     CHECK(sd_bus_open_system(&bus)>=0); struct ae_execution_client *check=NULL; CHECK(ae_execution_client_new(bus,&p,AE_STARTER_ROOT_UNIT,&check)==0);
@@ -537,8 +608,7 @@ static void drive(const char *root)
             image_path[prefix]=0; strcat(image_path,"/payload/bin/probe");
             int fd=open(image_path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW); CHECK(fd>=3); struct ae_image image,matched;
             CHECK(ae_image_verify(fd,command.sha256,&image)==0 && ae_image_match_process(&observed,1000,&image,&matched)==0);
-            CHECK(pidfd_send_signal(observed.pidfd,SIGTERM,NULL,0)==0); struct pollfd terminal={.fd=observed.pidfd,.events=POLLIN};
-            CHECK(poll(&terminal,1,10000)==1 && (terminal.revents&POLLIN) && ae_peer_alive(&observed)==-ESRCH);
+            driver_end(unique,&held,&original,&observed,&actual);
             CHECK(close(fd)==0); ae_peer_clear(&observed);
         }
         ae_peer_clear(&root_peer); sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_error_free(&error);

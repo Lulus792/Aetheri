@@ -43,3 +43,9 @@ Linux acceptance gates rather than a date promise. The dedicated carrier now boo
 and runs native C17 core tests and two enforcing authority services. Private user
 launch acceptance/reservation/withdrawal survive broker replacement; real app
 dispatch/readiness, document access and full removal are still the next P0 work.
+
+The later explicit executing fixture now proves original User registration/READY,
+Root observation, separate start-result completion and native original-process/
+unit/recursive-group end observation. Historical run/lease records stay held:
+durable executing closure/recovery and document/removal acceptance still precede
+P0 completion. See current [State](../STATE.md) for the actual tested boundary.

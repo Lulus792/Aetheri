@@ -25,6 +25,10 @@ Root also records an observed dispatch only after its original process evidence
 matches that User confirmation. Historical retries preserve later states and
 keep the program's generation lease held.
 
+A new native observer checks the original process, service invocation and entire
+process group after exit. The enforcing test now gets that result from the actual
+Root service. Durable run closure and resource release remain the next boundary.
+
 The installed setup helper prepares private code/data views and supports checked
 teardown; it cannot execute apps. A separate execution subsystem has tested
 credential dropping, handle sealing, exact ELF execution/image observation and

@@ -975,3 +975,26 @@ dependency change is needed. The 200-byte receipt gets an independent frozen
 vector. Keep FinishLaunch/Complete in explicit test interfaces until normal
 session/app provisioning, lifetime recovery/drain and production policy are proven.
 No extra user product choice is needed for this internal lifetime separation.
+
+## Observe original executing lifetime before journal settlement — 31 October 2026
+
+Keep lifetime observation separate from both start-result receipts and durable
+run/lease release. Hold the originally admitted leader's ProcessFD, exact cgroup
+objects and event reader while the caller retains its original unit reference.
+Join terminal PID1 state/job absence with the original invocation and recursive
+group emptiness; repeat observations and quarantine identity drift. Use no new
+daemon or resident polling loop.
+
+The pinned kernel reports st_nlink=2 even after group removal. Require missing
+name plus deactivation/ENODEV from the already-held event reader instead. A missing
+name with a readable original rejects. Avoid ambiguous deleted-path strings.
+Other kernel behavior needs separate acceptance and fails closed. Actual cgroup-v2
+rename returns EPERM; missing/replaced lookups are explicit fault injections,
+not a claim that such an actual rename test passed.
+
+Exercise the primitive in the existing explicit enforcing execution fixture only
+after Root has joined original User image/readiness confirmation to its process
+evidence. The administrative driver authenticates original Root's reply and keeps
+the historical lease/run obligations unchanged. Durable closure, restart recovery,
+future-dispatch fencing and external/delegated holder settlement remain work.
+No library family, frozen schema/XML or normal lifecycle capability changes.

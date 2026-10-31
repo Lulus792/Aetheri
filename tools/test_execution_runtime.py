@@ -34,6 +34,14 @@ SOURCE=Path(__file__).resolve().parents[1]
 def run(*args,timeout=60):
     return subprocess.check_output(args,text=True,stderr=subprocess.STDOUT,timeout=timeout).strip()
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
+def validate_native_end(ended,invocation,boot):
+    if (type(ended) is not dict or set(ended)!= {'pid','cgroup_id','group_removed','unit_failed','invocation','boot'} or
+            type(ended['pid']) is not int or not 0<ended['pid']<2**31 or
+            type(ended['cgroup_id']) is not int or not 0<ended['cgroup_id']<2**64 or
+            type(ended['group_removed']) is not bool or type(ended['unit_failed']) is not bool or
+            ended['invocation']!=invocation or ended['boot']!=boot):
+        raise RuntimeError('uncorrelated native lifetime observation')
+
 def quiet_normal(record):
     normal.verified(record)
     if record['pending'] is not None: raise RuntimeError('normal carrier request pending')
@@ -245,7 +253,11 @@ UMask=0077
             verify_static(record)
             acknowledge_user_start(record,work)
             record['pending']='application'; save(record)
-            print(run(str(ROOT/'driver'),'drive',str(work),timeout=25))
+            output=run(str(ROOT/'driver'),'drive',str(work),timeout=25)
+            print(output)
+            ends=[line.removeprefix('AETHERI_END ') for line in output.splitlines() if line.startswith('AETHERI_END ')]
+            if len(ends)!=1: raise RuntimeError('missing or ambiguous native lifetime observation')
+            record['native_end']=json.loads(ends[0]); save(record)
             drained(app_unit); record['pending']=None; record['state']='draining'; save(record)
             run('systemctl','stop',USER_UNIT); poll=select.poll(); poll.register(user_pin,select.POLLIN)
             if not poll.poll(10000): raise RuntimeError('original User process not dead')
@@ -269,6 +281,7 @@ UMask=0077
             value.update(zip(('system_epoch','system_runtime','boot'),db.execute('SELECT lower(hex(authority_epoch)),lower(hex(runtime_incarnation)),lower(hex(current_boot_id)) FROM authority_meta').fetchone()))
             value.update(zip(('operation','revision','completed_unix_ms'),db.execute('SELECT lower(hex(operation_id)),revision,completed_unix_ms FROM operations').fetchone()))
             value.update(zip(('launch','lease','invocation'),db.execute('SELECT lower(hex(launch_id)),lower(hex(lease_id)),lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()))
+            validate_native_end(record['native_end'],value['invocation'],value['boot'])
             value['profile_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=1').fetchone()[0]
             value['observation_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=5').fetchone()[0]
             completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()

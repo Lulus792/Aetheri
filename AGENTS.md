@@ -259,6 +259,22 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- linux/lifetime.h now provides a Root-owned read-only original-process/unit/
+  recursive-cgroup end observer. Read spec/runtime.md's lifetime section; run
+  linux.lifetime in the explicit privileged carrier suite. Borrow the caller's
+  original unit reference and trusted system bus; never Unref/stop/release from
+  observer close. Same held objects/mounts, invocation, dead pin, terminal unit/
+  no job and empty/deactivated original group are required. st_nlink remains 2
+  after removal on this carrier: require missing name AND held event-reader
+  ENODEV, never missing-name/link-count/deleted-path inference alone. Other
+  kernel behavior fails closed. Restart/namespace/lookup drift quarantines.
+  Actual root-only PID1 tests use a private component bus; property/lookup faults
+  are controlled (v2 rejects actual rename). The connected enforcing test captures
+  after actual Root/User execution confirmation and authenticates ObserveEnd only
+  in its test interface. Archive native_end as historical snapshot; lease stays
+  running/User running-ready. Future-dispatch fencing, external/delegated holder
+  settlement, durable run closure/recovery and production removal remain work.
+  Never use the old no-exec withdrawal proof to settle an executing attempt.
 - catalogue/execution.h now separately completes Root/User start results through
   ae_catalogue_complete_execution / ae_catalogue_finish_user_execution. Read
   spec/runtime.md's launch-result completion section; run catalogue.execution_completion.
@@ -281,8 +297,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   step5 separately retain actual observation. The explicit
   live fixture adds PinApp/ConfirmApp only in test interfaces; no installed API/
   capability/policy change. Keep actual original pins/unique connections and User
-  current-image/private-data checks. Launch-result completion and executing drain/
-  recovery remain pending; administrative failed-test retirement preserves both
+  current-image/private-data checks. Executing durable drain/recovery remain
+  pending; administrative failed-test retirement preserves both
   unsettled catalogues and is never a no-exec release or production recovery.
 - catalogue/execution.h now separately journals User REGISTER and READY through
   ae_catalogue_observe_user_execution. Read spec/runtime.md's User-mediated app

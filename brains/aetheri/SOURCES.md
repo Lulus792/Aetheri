@@ -1439,3 +1439,35 @@ reconstructs the receipt from Root rows with the Python reference and compares
 its digest against both owner journals, while requiring the lease still running.
 Normal capabilities/profiles, general app SDK and production recovery/removal
 remain outside that actual evidence.
+
+## Original-process lifetime observation — 31 October 2026
+
+Original [native observer](../../src/linux/lifetime.h),
+[implementation](../../src/linux/lifetime.c),
+[actual PID1 tests](../../tests/test_lifetime.c) and
+[connected Root producer](../../tests/probe_execution_runtime.c) join original
+process death, service/invocation/job state and recursive cgroup observations.
+[Linux cgroup-v2 documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+defines recursive populated state and removal constraints.
+[systemd 259 D-Bus API](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.systemd1.html)
+documents unit jobs, properties, references and signal subscription. The observer
+borrows the caller's existing reference; it does not add/remove a reference on a
+shared connection. These docs do not establish app lifetime closure by themselves.
+
+The first administrative test hit init_t's existing home-executable denial; using
+the existing /usr/bin/env test pattern preserves policy. The next component RPC
+was denied by system-bus default policy; reuse of the existing root-only private
+test broker avoids any installed-policy change. Actual terminal cgroup inspection
+then showed st_nlink=2 after deletion, invalidating the original link-count check.
+The corrected check joins missing name to deactivation of the original already-
+opened event reader. [Upstream kernfs file handling](https://github.com/torvalds/linux/blob/master/fs/kernfs/file.c)
+explains ENODEV on lost active reference; this is background source review, not
+the exact Fedora patch set. The carrier supplies actual behavior acceptance.
+
+An attempted actual v2 group rename returned EPERM. The test now explicitly
+injects only missing/wrong name-lookup results while a real nested child remains
+live and the original event reader is readable. Both reject, and restoring the
+lookup never clears quarantine. Actual restart/namespace replacement remain real
+kernel/PID1 tests. Five service fixtures pass with Debug ASan/UBSan and Release;
+the connected enforcing probe adds actual cap-zero Root/User, UID1000 app and
+authenticated end RPC evidence. Its historical running lease/run are preserved.

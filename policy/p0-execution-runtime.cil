@@ -4,6 +4,8 @@
 (typeattributeset systemd_unit_file_type (aetheri_execution_unit_test_t))
 (allow init_t aetheri_execution_unit_test_t (file (read open getattr)))
 (allow aetheri_system_t aetheri_execution_unit_test_t (service (status start)))
+; Original held cgroup.events, read-only lifetime observation in this test only.
+(allow aetheri_system_t cgroup_t (file (read open getattr)))
 (allow aetheri_starter_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_system_t (process (getattr)))

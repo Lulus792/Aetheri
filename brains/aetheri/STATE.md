@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — separate Root/User start-result completion; run and lease retained.
+31 October 2026 — native original-process lifetime observer; run and lease retained.
 
 ## Confirmed
 
@@ -13,6 +13,41 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The new linux/lifetime module holds the original admitted process pin, exact
+cgroup root/group and original cgroup.events reader. A current end observation
+requires the original inactive/failed unit invocation, no main PID/job, original
+ExecMainPID and an empty recursive group or independently deactivated original
+group object. It repeats the observations; missing names alone, replacement,
+restart and mount drift reject. It adds no thread, resident service or dependency.
+Caller-held unit reference, trusted PID1/filesystems and future dispatch/migration
+exclusion remain explicit obligations. Closing a handle releases no lease or data.
+
+The final five-fixture linux.lifetime test covers successful/failed services,
+an inactive job-free leader with a live nested child, actual same-name restart,
+namespace replacement and controlled property/lookup faults. Fork/busy-close/error
+outputs and FD balance pass. Together with linux.process, final Debug ASan/UBSan
+passes 2/2 (6.64 s) and Release 2/2 (4.73 s). The affected coordinator/endpoint
+Debug groups pass 2/2 (143.48 s); host orchestration passes 46/46 (2.803 s).
+These are scoped checks, not full-suite or OS/hardware acceptance.
+
+The actual enforcing Root/User/starter/app test also obtains an authenticated
+native end snapshot for its exact UID1000 app and retains it as native_end.
+The historical Root lease stays running/dispatch observed; User stays running/ready.
+No native run-closure journal or release is inferred from that snapshot. The test
+policy adds only read/open/getattr for Root's cgroup.events, then retires it with
+the exact owned fixture. See [lifetime observation](../../spec/runtime.md#original-process-lifetime-observation).
+Final read-only carrier checks confirm Enforcing, unchanged normal inputs,
+pending=None, two closed gates per owner, unowned service names and absent test
+inputs/module/units. Normal execution profile/starter/scaffold remain absent.
+Both actual Root/User capability sets are empty; their original start receipt
+is retained. All 166 guest source hashes match the tested host snapshot; 533
+local Markdown file targets pass. The final connected repeat captures the observer
+only after original Root/User execution confirmation.
+Executing durable closure/recovery, holder settlement, documents/revocation,
+complete removal and the full desktop/apps/image/hardware goal remain active.
+
+Previous start-result completion checkpoint (31 October 2026):
 
 Root now completes the known start postcondition through an immutable 200-byte
 AETHLCR1 receipt, after original observed execution and the settled canonical
