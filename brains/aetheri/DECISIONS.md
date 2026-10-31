@@ -1123,3 +1123,24 @@ digests and UID0. Native Root P0 matching still requires its actual UID1000 app
 profile. Keep installed confined producer/receiver admission, exact partial-set
 reconciliation, continuous original unit retention, early-starter/error-channel
 recovery and Root/User settlement as remaining integration work.
+
+## Test process-free original-unit retention before installing it — 31 October 2026
+
+Use a separately provisioned protected target with explicit ordering references
+to the original custodian/app for the next component proof. It retains PID1's
+original unit metadata without a new resident custodian or activation dependency.
+Keep the original controller-pin variant as a separate regression. The new variant
+must use zero controller RefUnit calls, discard the old host-bus connection and
+reap the original services' clients before inspecting the same original evidence.
+
+Bind the exact created fragment/inode and nonzero target invocation, recheck
+loaded dependencies/job/reload state, and never retry an uncertain start. Preserve
+uncertain inputs. After actual restoration/end observation and explicit store
+retirement, stop the target, remove only its exact fragment and require all three
+units to be collected. A target stop alone is never drain or lease release.
+
+This administrative enforcing-carrier test now passes; it does not authorize a
+normal Root store, production configuration mutation or recovery settlement.
+Integrate protected provisioning/reload exclusion, interrupted effects and the
+v5 handoff journal separately. Runtime code, SQL/wire contracts and policy stay
+unchanged. Personal UI/product decisions remain deferred.

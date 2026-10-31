@@ -63,14 +63,16 @@ journals remain necessary. Early starter/ARM/error-channel recovery also remains
 No normal Root FD store is enabled; the fixed app's FD store remains forbidden.
 See [retained observation handles](../../spec/runtime.md#retained-observation-handles-across-a-component-service-restart).
 
-For original-unit retention, investigate an explicitly managed, process-free
-target with protected ordering references to custodian and app. Upstream v259
-creates reference edges for explicitly configured dependencies; target units do
-not advertise transient creation there. This is a research lead for preallocated
-protected test configuration, not accepted runtime behavior. Test retention after
-the original bus connection and all controller RefUnit pins are gone, then exact
-retirement/GC without app restart. Current handoff tests deliberately retain the
-original units through the controller, so they cannot prove that new boundary.
+Original-unit retention now has a separate actual component test: a protected
+process-free target preserves custodian/app metadata after original process/client
+exit and the controller's original host-bus connection closes. That controller
+makes zero RefUnit calls. After actual handle restoration/end and empty-store
+verification, target retirement permits all three units to be collected, without
+restarting the app. The default handoff variant still uses controller pins.
+This proves the mechanism on the trusted carrier, not production retention
+admission. Protected provisioning/reload exclusion, interrupted target creation/
+retirement and its integration with v5 exact-set reconciliation remain required.
+See [unit retention](../../spec/runtime.md#original-unit-retention-without-controller-pins).
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging

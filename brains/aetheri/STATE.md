@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — canonical original expectations and a Root-only handoff journal.
+31 October 2026 — process-free original-unit retention through a component restart.
 
 ## Confirmed
 
@@ -13,6 +13,33 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The separate opt-in linux.lifetime_handoff_retention test now preserves original
+custodian/app units through a protected process-free target with explicit ordering
+references. The controller makes zero RefUnit calls and closes its original host
+bus connection after both original processes and their systemd-run clients exit.
+A fresh connection still sees the original settled service metadata and four
+stored handles. A replacement observer validates the original objects and end,
+then empties the store. The target keeps the same nonzero invocation. Only after
+successful observation does the test stop it, remove its exact owned fragment
+and require all three units to disappear from PID1. No app restart is involved.
+
+The four affected Linux cases pass Debug ASan/UBSan 4/4 (6.36 s) and Release 4/4
+(4.73 s), with enforcing policy and no new policy grant or dependency. This is an
+administrative unconfined_t component test with capability-empty observers, not
+confined Root/User recovery. The trusted carrier's configuration and exclusion
+of competing administrative changes are prerequisites. Protected production
+provisioning/reload/retirement and exact-set reconciliation still need integration
+with the existing v5 journal. See [unit retention](../../spec/runtime.md#original-unit-retention-without-controller-pins).
+Read-only checks find no remaining handoff unit/target fragment; normal Root/User
+catalogues remain v2 with two closed gates each, pending=None and no unsettled
+normal dispatch/lease. No normal FD store or public lifecycle capability opens.
+Host VM guards pass 47/47 (2.319 s); all 183 host/snapshot/guest source hashes
+agree. Local Markdown validation passes 586 file targets, excluding anchors and
+external URLs. No full database or confined-runtime suite was rerun for this
+test/tool/documentation change.
+
+Previous canonical-journal checkpoint (31 October 2026):
 
 Canonical AETHHND1 now binds the complete original app-process witness to cgroup
 root/group/event objects, PID/cgroup namespaces and the original custodian unit/

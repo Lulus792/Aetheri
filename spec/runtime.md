@@ -3600,11 +3600,51 @@ ownership and FD balance, including already-dead originals.
 Only this disposable test uses a PID1 store. Normal installed Root inputs and the
 app's no-store boundary remain unchanged. Unknown/partial transfers preserve the
 original expectation and handles; they do not authorize another effect, release,
-cleanup or inferred drain. Canonical durable handoff enrollment, exact-set
-reconciliation, original unit retention, confined owner admission and Root/User
+cleanup or inferred drain. Installed durable handoff enrollment, exact-set
+reconciliation, production unit retention, confined owner admission and Root/User
 restart settlement remain work. Reboot loses these kernel handles; historical
 v4 evidence alone never restores them. This handle-only boundary adds no daemon
 or public API. The separate optional metadata journal is described below.
+
+### Original-unit retention without controller pins
+
+The separate opt-in `linux.lifetime_handoff_retention` variant runs the same
+real handoff with a protected, process-free target. It creates a fresh root-owned
+0600 fragment under `/run/systemd/system`, with only a description and explicit
+`After=` references to the original custodian/app. Before creation it refuses a
+loaded name or an existing fragment in PID1's actual unit search paths. It retains
+the created fragment's inode and exact bytes; it never adopts matching content.
+The existing trusted carrier's PID1 configuration and absence of competing
+administrative mutations are prerequisites, not a production admission proof.
+
+The target starts once while both original services are active. Bounded checks
+wait for that submitted job, never resubmit it. The test requires the exact loaded
+fragment, an unchanged nonzero target invocation, no reload requirement or job,
+both ordering references, and empty activation/stop/reload propagation arrays.
+The target adds no resident process. It does not start, restart or stop the app.
+
+In this variant the controller never calls RefUnit. The original observer and
+app exit, their systemd-run clients are reaped, and the controller closes its
+original host-system-bus connection. A fresh connection still finds the same
+active target and original settled service metadata, plus all four stored handles.
+The replacement custodian receives/validates the exact originals, proves original
+end after group removal and explicitly empties its store. The target retains its
+original invocation through this replacement; the app is never restarted.
+
+After successful observation and verified empty store, the test stops only its
+target, rechecks and removes its exact fragment, then requires PID1 to collect all
+three units. There are still zero controller RefUnit calls. Failure preserves
+printed identities/configuration and evidence for inspection. Stopping a target
+or removing configuration alone is never a lease-release or drain proof.
+
+The four affected Linux cases pass Debug ASan/UBSan 4/4 (6.36 s) and Release 4/4
+(4.73 s) on the enforcing carrier. Both observer invocations remain administrative
+`unconfined_t` with empty capabilities. This tests an original-unit retention
+mechanism; it does not install a protected Root retention controller or connect
+the v5 journal to a confined producer/receiver. Provisioning/reload exclusion,
+interrupted retention creation/retirement, exact partial-set reconciliation,
+early starter/error-channel recovery and Root/User settlement remain work.
+No normal unit, catalogue version, gate, policy or public capability changes.
 
 ## Durable original observation handoff
 

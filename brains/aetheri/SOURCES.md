@@ -1735,3 +1735,40 @@ runtime acceptance. Current component controllers explicitly RefUnit the origina
 custodian/app and thus do not prove retention after all those clients disappear.
 The final reviewed source snapshot matches all 183 host/guest hashes. Local
 Markdown validation passes 583 file targets, without checking anchors/network.
+
+## Process-free original-unit retention proof — 31 October 2026
+
+The earlier source-based candidate now has an actual administrative component
+proof in [test_lifetime_handoff.c](../../tests/test_lifetime_handoff.c), selected
+by the opt-in linux.lifetime_handoff_retention case. Upstream v259's
+[fragment parser](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/load-fragment.c)
+requests reference edges for configured unit dependencies; the
+[unit implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/unit.c)
+adds those references. The
+[target implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/target.c)
+has an active state without a service process and does not advertise transient
+creation. These tagged sources justify testing a protected static target, not
+assuming production retention from a descriptor store alone.
+
+On the existing enforcing systemd 259.10 carrier, a fresh exact-owned /run target
+with After references retains both original unit records after original observer/
+app/client exit and controller bus replacement. The controller makes zero RefUnit
+calls. The target's nonzero invocation/configuration stay unchanged. Actual new
+PrivateMounts observer delivery/restoration proves original end after group
+removal; explicit store retirement precedes target stop/exact fragment removal.
+All three units are then collected. No app restart or extra resident process is
+introduced. The test requires trusted PID1 configuration and no competing
+administrative mutation; it does not implement production provisioning or MAC.
+
+Builds report no warnings. The four affected Linux cases pass Debug ASan/UBSan
+4/4 (6.36 s) and Release 4/4 (4.73 s). Local guest logs are
+`/home/aetheri/build/unit-retention-{debug,release}-{build,test}.log`.
+No catalogue/schema/library/policy change was made, so the earlier database and
+confined Root/User regression results are historical, not rerun here. Read-only
+inspection finds no remaining handoff units or target fragments; normal Root/User
+remain v2, two closed gates each, pending=None and no unsettled dispatch/lease.
+Protected interrupted target effects, exact-set reconciliation and confined
+Root/User recovery remain work.
+Host VM guards pass 47/47 (2.319 s), updated wrapper syntax parses, and all 183
+host/snapshot/guest source hashes agree. Local Markdown validation passes 586
+file targets, excluding anchors and external URLs.

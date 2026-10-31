@@ -19,6 +19,7 @@
 #define IFACE "org.aetheri.TestHandoff1"
 #define MANAGER "org.freedesktop.systemd1"
 static const char *const names[4]={"aetheri-test-process","aetheri-test-anchor","aetheri-test-group","aetheri-test-events"};
+static int reference_calls;
 /* Real portable AETHHND1, but with explicit synthetic component-test digests.
  * Its UID-0 test app is NOT admitted by the fixed UID-1000 execution profile.
  * mode: 1 original write, 0 independent original-controller read, 2 replacement. */
@@ -74,7 +75,94 @@ static void guard(void)
     CHECK(f && fgets(text,sizeof text,f) && fclose(f)==0 && strcmp(text,"Aetheri P0 disposable VM\n")==0);
 }
 static void reference(sd_bus *bus,const char *unit,int take)
-{ CHECK(sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager",take ? "RefUnit" : "UnrefUnit",NULL,NULL,"s",unit)>=0); }
+{ if (take) ++reference_calls; CHECK(sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager",take ? "RefUnit" : "UnrefUnit",NULL,NULL,"s",unit)>=0); }
+struct hold { char name[256],text[1024]; int directory; struct stat file; uint8_t invocation[16]; };
+static void hold_slot_empty(sd_bus *bus,const char *name)
+{
+    sd_bus_message *reply=NULL;
+    CHECK(sd_bus_get_property(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager","UnitPath",NULL,&reply,"as")>=0);
+    CHECK(sd_bus_message_enter_container(reply,'a',"s")>0); const char *directory=NULL; int r,count=0;
+    while ((r=sd_bus_message_read(reply,"s",&directory))>0) {
+        char path[4096]; struct stat st; CHECK(directory[0]=='/' && ++count<=64);
+        int size=snprintf(path,sizeof path,"%s/%s",directory,name); CHECK(size>0 && size<(int)sizeof path);
+        CHECK(lstat(path,&st)<0 && errno==ENOENT);
+    }
+    CHECK(r==0 && count>0 && sd_bus_message_exit_container(reply)>0); sd_bus_message_unref(reply);
+}
+static int loaded(sd_bus *bus,const char *name)
+{
+    sd_bus_message *reply=NULL; sd_bus_error error=SD_BUS_ERROR_NULL;
+    int r=sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager","GetUnit",&error,&reply,"s",name);
+    if (r<0) CHECK(sd_bus_error_has_name(&error,"org.freedesktop.systemd1.NoSuchUnit"));
+    sd_bus_error_free(&error); sd_bus_message_unref(reply); return r>=0;
+}
+static void hold_file(struct hold *h,int create)
+{
+    int fd=openat(h->directory,h->name,(create ? O_WRONLY|O_CREAT|O_EXCL : O_RDONLY)|O_CLOEXEC|O_NOFOLLOW,0600); CHECK(fd>=0);
+    if (create) {
+        CHECK(fsetfilecon_raw(fd,"system_u:object_r:systemd_unit_file_t:s0")==0);
+        CHECK(write(fd,h->text,strlen(h->text))==(ssize_t)strlen(h->text) && fsync(fd)==0 && fsync(h->directory)==0);
+        CHECK(fstat(fd,&h->file)==0);
+    } else {
+        struct stat st; char bytes[1024]; CHECK(fstat(fd,&st)==0 && st.st_dev==h->file.st_dev && st.st_ino==h->file.st_ino &&
+            st.st_uid==0 && st.st_gid==0 && S_ISREG(st.st_mode) && (st.st_mode&07777)==0600 && st.st_nlink==1 && st.st_size==(off_t)strlen(h->text));
+        CHECK(read(fd,bytes,sizeof bytes)==(ssize_t)strlen(h->text) && memcmp(bytes,h->text,strlen(h->text))==0);
+    }
+    CHECK(close(fd)==0);
+}
+static void string_has(sd_bus *bus,const char *path,const char *key,const char *a,const char *b)
+{
+    sd_bus_message *reply=NULL; CHECK(sd_bus_get_property(bus,MANAGER,path,MANAGER ".Unit",key,NULL,&reply,"as")>=0);
+    CHECK(sd_bus_message_enter_container(reply,'a',"s")>0); const char *text=NULL; int seen_a=0,seen_b=0,r;
+    while ((r=sd_bus_message_read(reply,"s",&text))>0) { if (a && strcmp(a,text)==0) ++seen_a; if (b && strcmp(b,text)==0) ++seen_b; CHECK(a || b); }
+    CHECK(r==0 && (!a || seen_a==1) && (!b || seen_b==1) && sd_bus_message_exit_container(reply)>0);
+    sd_bus_message_unref(reply);
+}
+static void hold_check(sd_bus *bus,struct hold *h,const char *owner_unit,const char *app_unit,int initial)
+{
+    hold_file(h,0); sd_bus_message *reply=NULL,*job=NULL,*inv=NULL; const char *path=NULL,*jobpath=NULL;
+    CHECK(sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager","GetUnit",NULL,&reply,"s",h->name)>=0 && sd_bus_message_read(reply,"o",&path)>0);
+    const char *keys[]={"Id","LoadState","ActiveState","FragmentPath"}; char fragment[512]; CHECK(snprintf(fragment,sizeof fragment,"/run/systemd/system/%s",h->name)>0);
+    const char *values[]={h->name,"loaded","active",fragment};
+    for (size_t n=0;n<4;++n) { char *v=NULL; CHECK(sd_bus_get_property_string(bus,MANAGER,path,MANAGER ".Unit",keys[n],NULL,&v)>=0 && strcmp(v,values[n])==0); free(v); }
+    uint32_t id=1; int transient=1,reload=1;
+    CHECK(sd_bus_get_property_trivial(bus,MANAGER,path,MANAGER ".Unit","Transient",NULL,'b',&transient)>=0 && !transient);
+    CHECK(sd_bus_get_property_trivial(bus,MANAGER,path,MANAGER ".Unit","NeedDaemonReload",NULL,'b',&reload)>=0 && !reload);
+    CHECK(sd_bus_get_property(bus,MANAGER,path,MANAGER ".Unit","Job",NULL,&job,"(uo)")>=0 && sd_bus_message_read(job,"(uo)",&id,&jobpath)>0 && !id && strcmp(jobpath,"/")==0);
+    CHECK(sd_bus_get_property(bus,MANAGER,path,MANAGER ".Unit","InvocationID",NULL,&inv,"ay")>=0);
+    const void *bytes=NULL; size_t size=0; CHECK(sd_bus_message_read_array(inv,'y',&bytes,&size)>0 && size==16);
+    unsigned int nonzero=0; for (size_t n=0;n<size;++n) nonzero|=((const uint8_t *)bytes)[n]; CHECK(nonzero);
+    if (initial) memcpy(h->invocation,bytes,16); else CHECK(memcmp(h->invocation,bytes,16)==0);
+    string_has(bus,path,"After",owner_unit,app_unit);
+    const char *empty[]={"Wants","Requires","Requisite","BindsTo","PartOf","Upholds","OnFailure","OnSuccess","Triggers","TriggeredBy","PropagatesStopTo","PropagatesReloadTo"};
+    for (size_t n=0;n<sizeof empty/sizeof empty[0];++n) string_has(bus,path,empty[n],NULL,NULL);
+    sd_bus_message_unref(inv); sd_bus_message_unref(job); sd_bus_message_unref(reply);
+}
+static void hold_wait(sd_bus *bus,const char *name)
+{
+    int ready=0;
+    for (int n=0;!ready && n<200;++n) {
+        sd_bus_message *reply=NULL,*job=NULL; const char *path=NULL,*jobpath=NULL; char *state=NULL; uint32_t id=1;
+        CHECK(sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager","GetUnit",NULL,&reply,"s",name)>=0 && sd_bus_message_read(reply,"o",&path)>0);
+        CHECK(sd_bus_get_property_string(bus,MANAGER,path,MANAGER ".Unit","ActiveState",NULL,&state)>=0);
+        CHECK(sd_bus_get_property(bus,MANAGER,path,MANAGER ".Unit","Job",NULL,&job,"(uo)")>=0 && sd_bus_message_read(job,"(uo)",&id,&jobpath)>0);
+        ready=strcmp(state,"active")==0 && !id && strcmp(jobpath,"/")==0;
+        free(state); sd_bus_message_unref(job); sd_bus_message_unref(reply); if (!ready) usleep(10000);
+    }
+    CHECK(ready); /* Never resubmit StartUnit after an observation delay. */
+}
+static void hold_start(sd_bus *bus,struct hold *h,const char *owner_unit,const char *app_unit)
+{
+    CHECK(!loaded(bus,h->name)); hold_slot_empty(bus,h->name);
+    h->directory=open("/run/systemd/system",O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW); CHECK(h->directory>=0);
+    struct stat st; CHECK(fstat(h->directory,&st)==0 && st.st_uid==0 && !(st.st_mode&0022));
+    CHECK(snprintf(h->text,sizeof h->text,"[Unit]\nDescription=Aetheri original-unit retention test\nAfter=%s %s\n",owner_unit,app_unit)>0);
+    hold_file(h,1);
+    CHECK(sd_bus_call_method(bus,MANAGER,"/org/freedesktop/systemd1",MANAGER ".Manager","StartUnit",NULL,NULL,"ss",h->name,"fail")>=0);
+    /* Target has no processes. Its start waits only for the already-active
+     * service start jobs; this administrative fixture does not start an app. */
+    hold_wait(bus,h->name); hold_check(bus,h,owner_unit,app_unit,1);
+}
 static uint32_t store_size(sd_bus *bus,const char *unit)
 {
     sd_bus_message *reply=NULL; const char *path=NULL; uint32_t count=UINT32_MAX;
@@ -190,7 +278,7 @@ static void owner_main(const char *work,const char *controller)
     for (int n=0;n<4;++n) CHECK(close(o.fds[n])==0);
     sd_bus_flush_close_unref(bus); sd_bus_flush_close_unref(o.system);
 }
-struct control { sd_bus *system; const char *owner_unit,*app_unit; char destination[256]; struct ae_process_context first; int owners,exit_app,finished,retained; uint32_t app_pid; uint64_t group; };
+struct control { sd_bus *system; const char *owner_unit,*app_unit; char destination[256]; struct ae_process_context first; int owners,exit_app,finished,retained,manager_hold; uint32_t app_pid; uint64_t group; struct hold hold; };
 static int control_call(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
     (void)error; struct control *c=userdata; const char *member=sd_bus_message_get_member(m);
@@ -204,11 +292,13 @@ static int control_call(sd_bus_message *m,void *userdata,sd_bus_error *error)
     sd_bus_message_unref(reply);
     if (strcmp(member,"Owner")==0) {
         uint32_t second=2; CHECK(sd_bus_message_read(m,"u",&second)>0 && second==(uint32_t)c->owners && c->owners<2);
-        if (!second) { c->first=actual; reference(c->system,c->owner_unit,1); }
+        if (!second) { c->first=actual; if (!c->manager_hold) reference(c->system,c->owner_unit,1); }
         else CHECK(memcmp(c->first.invocation,actual.invocation,16)!=0);
         CHECK(strlen(peer.unique_name)<sizeof c->destination); strcpy(c->destination,peer.unique_name); ++c->owners;
     } else if (strcmp(member,"Retain")==0) {
-        CHECK(c->owners==1 && !c->retained); reference(c->system,c->app_unit,1); c->retained=1;
+        CHECK(c->owners==1 && !c->retained);
+        if (c->manager_hold) hold_start(c->system,&c->hold,c->owner_unit,c->app_unit); else reference(c->system,c->app_unit,1);
+        c->retained=1;
     } else {
         uint32_t pid=0; uint64_t group=0; CHECK(c->owners==2 && strcmp(member,"Finish")==0 && sd_bus_message_read(m,"ut",&pid,&group)>0 && pid==c->app_pid && group==c->group); c->finished=1;
     }
@@ -264,13 +354,14 @@ int main(int argc,char **argv)
     alarm(70); guard();
     if (argc==4 && strcmp(argv[1],"--owner")==0) { owner_main(argv[2],argv[3]); return 0; }
     if (argc==3 && strcmp(argv[1],"--client")==0) { client_main(argv[2]); return 0; }
-    CHECK(argc==2 && argv[0][0]=='/'); int baseline=descriptors(); sd_bus *bus=NULL; struct control c={0};
+    CHECK((argc==2 || (argc==3 && strcmp(argv[2],"--retain-units")==0)) && argv[0][0]=='/'); int baseline=descriptors(); sd_bus *bus=NULL; struct control c={.manager_hold=argc==3,.hold={.directory=-1}};
     CHECK(sd_bus_open_system(&c.system)>=0 && sd_bus_open_user(&bus)>=0);
     sd_id128_t id; char digits[33],owner_unit[256],app_unit[256]; CHECK(sd_id128_randomize(&id)==0); sd_id128_to_string(id,digits);
     CHECK(snprintf(owner_unit,sizeof owner_unit,"aetheri-handoff-owner-%s.service",digits)>0 && snprintf(app_unit,sizeof app_unit,"aetheri-handoff-app-%s.service",digits)>0);
+    CHECK(snprintf(c.hold.name,sizeof c.hold.name,"aetheri-handoff-hold-%s.target",digits)>0);
     c.owner_unit=owner_unit; c.app_unit=app_unit; CHECK(sd_bus_add_object_vtable(bus,NULL,OBJECT,IFACE,control_methods,&c)>=0);
     const char *controller=NULL; CHECK(sd_bus_get_unique_name(bus,&controller)>=0);
-    printf("Owned retained-handle fixtures: %s %s\n",owner_unit,app_unit); fflush(stdout);
+    printf("Owned retained-handle fixtures: %s %s%s%s\n",owner_unit,app_unit,c.manager_hold ? " " : "",c.manager_hold ? c.hold.name : ""); fflush(stdout);
     pid_t owner=start(argv[0],owner_unit,argv[1],controller,1),app=start(argv[0],app_unit,argv[1],controller,0);
     int status=0; pid_t done=0;
     for (int n=0;!done && n<2000;++n) { done=waitpid(owner,&status,WNOHANG); CHECK(done>=0); if (!done) pump(bus); }
@@ -283,11 +374,24 @@ int main(int argc,char **argv)
     for (int n=0;n<300 && !settled(c.system,app_unit);++n) pump(bus);
     CHECK(settled(c.system,app_unit) && store_size(c.system,owner_unit)==4);
     char group[2048]; struct stat st; CHECK(snprintf(group,sizeof group,"/sys/fs/cgroup%s",record.context.cgroup)>0 && lstat(group,&st)<0 && errno==ENOENT);
+    if (c.manager_hold) {
+        CHECK(!reference_calls); sd_bus_flush_close_unref(c.system); c.system=NULL;
+        CHECK(sd_bus_open_system(&c.system)>=0); /* Every original host-bus client is gone. */
+        hold_check(c.system,&c.hold,owner_unit,app_unit,0);
+        CHECK(settled(c.system,owner_unit) && settled(c.system,app_unit) && store_size(c.system,owner_unit)==4);
+    }
     unit_command(bus,"start",owner_unit);
     for (int n=0;n<1000 && (!c.finished || !settled(c.system,owner_unit));++n) pump(bus);
     CHECK(c.finished && c.owners==2 && settled(c.system,owner_unit) && store_size(c.system,owner_unit)==0);
-    reference(c.system,owner_unit,0); reference(c.system,app_unit,0);
+    if (c.manager_hold) {
+        CHECK(!reference_calls); hold_check(c.system,&c.hold,owner_unit,app_unit,0);
+        unit_command(bus,"stop",c.hold.name); hold_file(&c.hold,0);
+        CHECK(unlinkat(c.hold.directory,c.hold.name,0)==0 && fsync(c.hold.directory)==0 && close(c.hold.directory)==0);
+        for (int n=0;n<200 && (loaded(c.system,owner_unit) || loaded(c.system,app_unit) || loaded(c.system,c.hold.name));++n) pump(bus);
+        CHECK(!loaded(c.system,owner_unit) && !loaded(c.system,app_unit) && !loaded(c.system,c.hold.name));
+    } else { reference(c.system,owner_unit,0); reference(c.system,app_unit,0); }
     int dir=open(argv[1],O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW); CHECK(dir>=0 && unlinkat(dir,"handoff.record",0)==0 && fsync(dir)==0 && close(dir)==0);
     sd_bus_flush_close_unref(bus); sd_bus_flush_close_unref(c.system); CHECK(descriptors()==baseline);
-    puts("Original observer exited, app died and cgroup disappeared with all four handles retained; actual new PrivateMounts service recovered original end then explicitly emptied its PID1 store. No owner-journal recovery claim."); return 0;
+    puts(c.manager_hold ? "Process-free target retained original custodian/app units after original observers and controller host-bus connection ended; original handles restored/end observed, store retired, target stopped and all three units collected. No controller RefUnit or owner-journal recovery claim." :
+        "Original observer exited, app died and cgroup disappeared with all four handles retained; actual new PrivateMounts service recovered original end then explicitly emptied its PID1 store. No owner-journal recovery claim."); return 0;
 }

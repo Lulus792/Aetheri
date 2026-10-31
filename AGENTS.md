@@ -446,6 +446,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   UID1000 execution-profile admission. No installed Root producer/receiver,
   production unit retention, partial-set or early-starter recovery is implied.
   Run catalogue.handoffs and the existing linux.lifetime_handoff component test.
+- linux.lifetime_handoff_retention separately tests a protected process-free
+  target retaining original custodian/app metadata after all original probe
+  clients exit and the controller closes its host-bus connection. The controller
+  uses zero RefUnit calls; actual restoration/end/store retirement precedes exact
+  target retirement and all-three-unit GC. Read spec/runtime.md's original-unit
+  retention section. This is trusted administrative carrier configuration, not
+  production Root provisioning/reload exclusion or v5 recovery integration.
+  Preserve uncertain target/file/job state; do not infer drain from target stop.
+  Normal inputs, policy, closed gates and public capabilities remain unchanged.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

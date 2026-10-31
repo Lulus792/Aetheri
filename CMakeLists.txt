@@ -418,6 +418,9 @@ if(BUILD_TESTING)
             add_test(NAME linux.lifetime_handoff COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lifetime_native.py" $<TARGET_FILE:test_lifetime_handoff> "${CMAKE_CURRENT_BINARY_DIR}" handoff)
             set_tests_properties(linux.lifetime_handoff PROPERTIES TIMEOUT 100)
+            add_test(NAME linux.lifetime_handoff_retention COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lifetime_native.py" $<TARGET_FILE:test_lifetime_handoff> "${CMAKE_CURRENT_BINARY_DIR}" handoff-retention)
+            set_tests_properties(linux.lifetime_handoff_retention PROPERTIES TIMEOUT 100)
         endif()
     endif()
     if(AETHERI_PRIVILEGED_TESTS)
