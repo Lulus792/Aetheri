@@ -43,7 +43,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact v2/v3/v4 opening and explicit additive upgrades under the retained owner lock |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact v2/v3/v4 (Root also v5) opening and explicit additive upgrades under the retained owner lock |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
@@ -63,6 +63,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 | [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
 | [replacement-observer test](../tests/test_process_identity.c), [process identity vector](vectors/process-identity-v1.json) | Boot-bound pidfs identity through a fresh authenticated connection; no journal/owner-restart adoption |
+| [handoff.h](../src/catalogue/handoff.h), [Root v5](schema/system-v5.sql), [handoff vector](vectors/execution-handoff-v1.json) | Canonical original-object expectations and separate Root handoff intent/observation/retirement journal; no installed recovery producer/receiver |
 | [retained-handle test](../tests/test_lifetime_handoff.c) | Actual bounded PID1 handoff after observer exit/app-group disappearance; original-object validation, not Root/User journal recovery |
 | [execution process vector](vectors/execution-process-v1.json) | Canonical AETHPRC1 durable context/profile binding; its native APIs are in execution.h |
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
@@ -100,12 +101,21 @@ documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
 authorization or validate incoming messages by themselves.
 
-The initial v1/v2 snapshots retain complete definitions; v3/v4 compose their additions.
+The initial v1/v2 snapshots retain complete definitions; v3/v4 and Root v5 compose their additions.
 The v2 bootstrap and migration consume the same target SQL. This avoids separate
 handwritten migration copies of every CHECK/trigger. Frozen v1/v2/v3 hashes in the
 test suite detect accidental changes to those sources.
 
 ## New records and constraints
+
+Root-only v5 adds execution_handoffs: an immutable original AETHHND1 expectation
+linked to the existing app-process witness, with separate observation/retirement
+state. The explicit v4-to-v5 migration changes no old row, runtime, revision or
+gate; User stays v4 and User v5 is rejected. Normal create remains v2 and open
+never migrates. Existing-intent retries return no new transfer/removal effect
+flags, including after a lost successful commit. Actual handle-set validation
+and PID1 effects stay outside SQLite. See the
+[handoff journal](runtime.md#durable-original-observation-handoff).
 
 V4 adds execution_processes per owner, with immutable original profile, context,
 process identity, witness bytes/hash and enrollment time. In v4, fresh Root ARM,
@@ -118,7 +128,7 @@ reopening admission. Enrollment requires the original runtime. See the
 
 The explicit v3-to-v4 migration preserves existing rows and gates and never
 backfills missing process evidence. It does not authorize legacy pending starts
-or implement their recovery. Only separate temporary test stores use v4; normal
+or implement their recovery. Separate temporary tests select v4 or Root v5; normal
 installed catalogues remain v2. Native v2 requires the lifetime upgrade first.
 Each DDL/version change is atomic under the retained writer lock; unknown commit
 acknowledgements query the actual canonical target instead of restoring a backup.
@@ -229,7 +239,7 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact v2/v3/v4 validation and startup-context writes.
+The C17 store implements v2 creation, exact v2/v3/v4 (Root also v5) validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
 The later explicit v3/v4 upgrades add independent run/process evidence; published
@@ -241,6 +251,8 @@ v1/v2/v3 SQL and existing protocol versions remain unchanged.
 | ae_catalogue_open | Existing database only; validate application/version, exact schema, foreign keys, integrity and expected owner/epoch |
 | ae_catalogue_upgrade_lifetimes | Explicit additive v2-to-v3 transaction under the existing owner lock; no normal automatic migration |
 | ae_catalogue_upgrade_processes | Explicit additive v3-to-v4 process-evidence transaction; no backfill, admission or existing-row mutation |
+| ae_catalogue_upgrade_handoffs | Explicit Root-only v4-to-v5 original-handoff journal; User/default creation unchanged |
+| ae_catalogue_handoff, ae_catalogue_get_handoff | Root original intent/observation/retirement and historical maintenance read; no installed effect/admission or run recovery |
 | ae_catalogue_begin_runtime | Atomically set a fresh runtime/boot, advance catalogue revision, close existing open gates and trigger recovery marking |
 | ae_catalogue_get_info | Return checked identity/current-context fields; never a readiness or holder-drain assertion |
 | ae_catalogue_enroll_account | System owner only: explicitly persist a trusted account/UID and advance catalogue revision atomically; exact active retry is unchanged; never rebind/reactivate a scope |

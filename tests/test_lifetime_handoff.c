@@ -1,4 +1,6 @@
 #include "linux/lifetime.h"
+#include "catalogue/handoff.h"
+#include "core/digest.h"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,15 +19,48 @@
 #define IFACE "org.aetheri.TestHandoff1"
 #define MANAGER "org.freedesktop.systemd1"
 static const char *const names[4]={"aetheri-test-process","aetheri-test-anchor","aetheri-test-group","aetheri-test-events"};
-/* Test-local native envelope, never an installed journal or a portable format. */
-static void record_io(const char *work,struct ae_lifetime_checkpoint *record,int writing)
+/* Real portable AETHHND1, but with explicit synthetic component-test digests.
+ * Its UID-0 test app is NOT admitted by the fixed UID-1000 execution profile.
+ * mode: 1 original write, 0 independent original-controller read, 2 replacement. */
+static void record_io(const char *work,struct ae_lifetime_checkpoint *record,const struct ae_process_context *custodian,int mode)
 {
+    int writing=mode==1; uint8_t bytes[AE_HANDOFF_MAX],profile[32],evidence[32]; size_t size=0;
+    const char profile_name[]="Aetheri administrative lifetime component profile";
+    const char context_name[]="Aetheri administrative lifetime component context";
+    CHECK(ae_sha256_bytes((const uint8_t *)profile_name,sizeof profile_name-1,profile)==0 &&
+        ae_sha256_bytes((const uint8_t *)context_name,sizeof context_name-1,evidence)==0);
+    struct ae_execution_handoff portable={0};
+    if (writing) {
+        portable.process=(struct ae_execution_process){.role=AE_EXECUTION_APP,.pidfd_id=record->process.pidfd_id,
+            .pid=record->pid,.uid=(uint32_t)record->context.uid,.cgroup_id=record->context.cgroup_id};
+        memcpy(portable.process.profile_digest,profile,32); memcpy(portable.process.evidence_digest,evidence,32);
+        memcpy(portable.process.boot,record->context.boot,16); memcpy(portable.process.invocation,record->context.invocation,16);
+        strcpy(portable.process.unit,record->context.unit); strcpy(portable.process.label,record->context.label); strcpy(portable.process.cgroup,record->context.cgroup);
+        strcpy(portable.custodian,custodian->unit); memcpy(portable.custodian_invocation,custodian->invocation,16);
+        portable.root=record->root; portable.group=record->group; portable.pid_namespace=record->pid_namespace; portable.cgroup_namespace=record->cgroup_namespace;
+        portable.events_inode=record->events_inode; portable.events_mount=record->events_mount; portable.events_mode=record->events_mode;
+        portable.events_uid=record->events_uid; portable.events_gid=record->events_gid;
+        CHECK(ae_handoff_encode(&portable,bytes,sizeof bytes,&size)==0);
+    }
     int directory=open(work,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW); CHECK(directory>=0);
     struct stat parent; CHECK(fstat(directory,&parent)==0 && parent.st_uid==0 && (parent.st_mode&0777)==0700);
     int fd=openat(directory,"handoff.record",(writing ? O_WRONLY|O_CREAT|O_EXCL : O_RDONLY)|O_CLOEXEC|O_NOFOLLOW,0600); CHECK(fd>=0);
     struct stat st; CHECK(fstat(fd,&st)==0 && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_nlink==1 && (st.st_mode&0777)==0600);
-    if (writing) CHECK(write(fd,record,sizeof *record)==sizeof *record && fsync(fd)==0 && fsync(directory)==0);
-    else { char tail; CHECK(st.st_size==(off_t)sizeof *record && read(fd,record,sizeof *record)==sizeof *record && read(fd,&tail,1)==0); }
+    if (writing) CHECK(write(fd,bytes,size)==(ssize_t)size && fsync(fd)==0 && fsync(directory)==0);
+    else {
+        char tail; CHECK(st.st_size>=374 && st.st_size<=AE_HANDOFF_MAX); size=(size_t)st.st_size;
+        CHECK(read(fd,bytes,size)==(ssize_t)size && read(fd,&tail,1)==0 && ae_handoff_decode(bytes,size,&portable)==0);
+        CHECK(memcmp(portable.process.profile_digest,profile,32)==0 && memcmp(portable.process.evidence_digest,evidence,32)==0 &&
+            strcmp(portable.custodian,custodian->unit)==0 && (mode==2 ? memcmp(portable.custodian_invocation,custodian->invocation,16)!=0 : memcmp(portable.custodian_invocation,custodian->invocation,16)==0));
+        struct ae_lifetime_checkpoint value={.root=portable.root,.group=portable.group,.pid_namespace=portable.pid_namespace,
+            .cgroup_namespace=portable.cgroup_namespace,.events_inode=portable.events_inode,.events_mount=portable.events_mount,
+            .events_mode=portable.events_mode,.events_uid=portable.events_uid,.events_gid=portable.events_gid,.pid=portable.process.pid};
+        value.process.pidfd_id=portable.process.pidfd_id; memcpy(value.process.boot,portable.process.boot,16);
+        memcpy(value.context.boot,portable.process.boot,16); memcpy(value.context.invocation,portable.process.invocation,16);
+        value.context.uid=(uid_t)portable.process.uid; value.context.cgroup_id=portable.process.cgroup_id;
+        strcpy(value.context.unit,portable.process.unit); strcpy(value.context.label,portable.process.label); strcpy(value.context.cgroup,portable.process.cgroup);
+        *record=value;
+    }
     CHECK(close(fd)==0 && close(directory)==0);
 }
 static int descriptors(void)
@@ -89,7 +124,7 @@ static void rejection_checks(sd_bus *system,const struct ae_lifetime_checkpoint 
     }
     CHECK(descriptors()==baseline);
 }
-struct owner { sd_bus *system,*transport; struct ae_lifetime *life; struct ae_lifetime_checkpoint record; int fds[4],done; const char *work,*controller; };
+struct owner { sd_bus *system,*transport; struct ae_lifetime *life; struct ae_lifetime_checkpoint record; struct ae_process_context self; int fds[4],done; const char *work,*controller; };
 static int capture(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
     (void)error; struct owner *o=userdata; CHECK(!o->done);
@@ -99,7 +134,7 @@ static int capture(sd_bus_message *m,void *userdata,sd_bus_error *error)
     reference(o->system,context.unit,1);
     CHECK(ae_lifetime_capture(o->system,&peer,&context,&o->life)==0);
     CHECK(ae_lifetime_export(o->life,&o->record,o->fds)==0); rejection_checks(o->system,&o->record,o->fds);
-    record_io(o->work,&o->record,1); o->done=1;
+    record_io(o->work,&o->record,&o->self,1); o->done=1;
     ae_peer_clear(&peer); return sd_bus_reply_method_return(m,"");
 }
 static const sd_bus_vtable capture_methods[]={SD_BUS_VTABLE_START(0),SD_BUS_METHOD("Capture","","",capture,SD_BUS_VTABLE_UNPRIVILEGED),SD_BUS_VTABLE_END};
@@ -114,6 +149,7 @@ static void owner_main(const char *work,const char *controller)
     CHECK(fclose(status)==0 && caps==5);
     CHECK(sd_bus_open_system(&o.system)>=0 && sd_bus_open_user(&bus)>=0);
     o.transport=bus;
+    CHECK(ae_process_observe_self(o.system,&o.self)==0);
     CHECK(sd_bus_set_method_call_timeout(o.system,2000000)>=0);
     CHECK(sd_bus_call_method(bus,controller,OBJECT,IFACE,"Owner",NULL,NULL,"u",(uint32_t)(count==4))>=0);
     if (!count) {
@@ -132,7 +168,7 @@ static void owner_main(const char *work,const char *controller)
             int index=-1; for (int k=0;k<4;++k) if (strcmp(received[n],names[k])==0) index=k;
             CHECK(index>=0 && !(seen&(1<<index))); seen|=1<<index; o.fds[index]=SD_LISTEN_FDS_START+n; free(received[n]);
         }
-        free(received); CHECK(seen==15); record_io(work,&o.record,0);
+        free(received); CHECK(seen==15); record_io(work,&o.record,&o.self,2);
         struct ae_root_identity current; int root=open("/sys/fs/cgroup",O_RDONLY|O_DIRECTORY|O_CLOEXEC); CHECK(root>=0);
         CHECK(ae_root_observe(root,&current)==0 && close(root)==0 && current.mount_id!=o.record.root.mount_id);
         int baseline=descriptors();
@@ -239,7 +275,7 @@ int main(int argc,char **argv)
     int status=0; pid_t done=0;
     for (int n=0;!done && n<2000;++n) { done=waitpid(owner,&status,WNOHANG); CHECK(done>=0); if (!done) pump(bus); }
     CHECK(done==owner && WIFEXITED(status) && WEXITSTATUS(status)==0 && c.owners==1 && settled(c.system,owner_unit));
-    struct ae_lifetime_checkpoint record; record_io(argv[1],&record,0);
+    struct ae_lifetime_checkpoint record; record_io(argv[1],&record,&c.first,0);
     CHECK(strcmp(record.context.unit,app_unit)==0 && store_size(c.system,owner_unit)==4 && c.retained);
     c.app_pid=record.pid; c.group=record.context.cgroup_id; c.exit_app=1; done=0;
     for (int n=0;!done && n<1000;++n) { done=waitpid(app,&status,WNOHANG); CHECK(done>=0); if (!done) pump(bus); }

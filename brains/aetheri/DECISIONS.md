@@ -1095,3 +1095,31 @@ names or a processing barrier, establish the tested set. Remove stored entries
 explicitly after successful test observation. Preserve uncertain state. Normal
 Root/app policy and installed inputs remain unchanged; production handoff
 journaling, original unit retention and Root/User settlement need separate work.
+
+## Journal the original app-observation handoff in Root v5 — 31 October 2026
+
+Add a single Root-only execution_handoffs table linked to the existing immutable
+v4 app witness. Keep User on v4, normal create on v2, opening free of migration
+and all published v1/v2/v3/v4 sources unchanged. The explicit v4-to-v5 extension
+retains the owner lock/DB object and changes no existing rows, gates or revisions.
+No new database, daemon, dependency family or public wire is needed.
+
+Use canonical AETHHND1 for original process/cgroup/event/namespace and custodian
+observations. Persist the full original frame/hash and profile/process bindings
+before transport. Preserve full-width identifiers and signed observed birth time;
+native padding is never a record format. Custodian and app invocations are
+distinct from Aetheri runtime incarnations and never admit themselves.
+
+Keep intent, actual delivered-set observation, retirement intent and actual
+absence acknowledgement distinct. Only confirmed fresh intent commits permit a
+transfer/retirement effect. Existing-intent retries preserve history with no fresh
+effect flags. Replacement runtimes can record the last actual observation while
+the origin stays immutable and the old run/lease remains quarantined/held.
+Retirement requires separate native terminal/released closure and actual holder/
+PID1 evidence; never infer them from a barrier, stored name, history or reboot.
+
+The real administrative component uses the canonical frame with synthetic test
+digests and UID0. Native Root P0 matching still requires its actual UID1000 app
+profile. Keep installed confined producer/receiver admission, exact partial-set
+reconciliation, continuous original unit retention, early-starter/error-channel
+recovery and Root/User settlement as remaining integration work.

@@ -35,6 +35,11 @@ V3_HASHES = {
     'spec/schema/system-v3.sql':'fa9e3ff271a7a1db66934475a1ba0557c64ca9969ff05e8c726799f217a66033',
     'spec/schema/user-v3.sql':'9c0331df80438a76d4a8630c9ecf849f879a9b9f0f02f61fadc65bf8e9ec15f4',
 }
+V4_HASHES = {
+    'spec/schema/common-v4.sql':'0b094567685d63ebc54452be42c4dad0d98ad4010c2bf1d934de24866cff8b46',
+    'spec/schema/system-v4.sql':'bccb7f29f8b4ea034b66f2e3e68cea3818a52627fe8c046bcf639887b9751c3f',
+    'spec/schema/user-v4.sql':'9307e329929a9ba9eac4c0e8ca8dc0c93c8b67c702a559e925c05553c5cdbe62',
+}
 
 
 def uid():
@@ -154,6 +159,63 @@ class SqlCanonicalization(unittest.TestCase):
 
 
 class ContractCase(unittest.TestCase):
+    def handoff_source(self,name):
+        db=self.connect(name); legacy(db,'system')
+        cc.migrate_v1_to_v2(db,'system',backup=self.connect('backup-'+name))
+        cc.migrate_v2_to_v3(db,'system'); cc.migrate_v3_to_v4(db,'system'); return db
+
+    def test_v5_system_only_preserves_frozen_v4_rows_and_retry(self):
+        for name,digest in V4_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        db=self.handoff_source('handoff-preserve.db'); before=rows(db)
+        self.assertTrue(cc.migrate_v4_to_v5(db,'system')); cc.validate(db,'system',5); self.assert_preserved(db,before)
+        self.assertEqual(db.execute('SELECT count(*) FROM execution_handoffs').fetchone()[0],0)
+        after=rows(db); signature=cc.signature(db)
+        self.assertFalse(cc.migrate_v4_to_v5(db,'system')); self.assertEqual(rows(db),after); self.assertEqual(cc.signature(db),signature)
+        with self.assertRaises(cc.ContractError): cc.bootstrap(self.connect('no-user5'),'user',5)
+        user,f=self.migrated('user'); cc.migrate_v2_to_v3(user,'user'); cc.migrate_v3_to_v4(user,'user'); before=rows(user)
+        with self.assertRaises(cc.ContractError): cc.migrate_v4_to_v5(user,'user')
+        self.assertEqual(rows(user),before); cc.validate(user,'user',4)
+
+    def test_v5_rollback_all_ddl_and_lost_commit(self):
+        db=self.handoff_source('handoff-faults.db'); before=rows(db); signature=cc.signature(db)
+        phases=['locked']+['statement_'+str(n) for n in range(len(cc.extension_v5('system')))]+['version_set','validated']
+        for phase in phases:
+            def fault(where):
+                if where==phase: raise RuntimeError(where)
+            with self.assertRaisesRegex(RuntimeError,phase): cc.migrate_v4_to_v5(db,'system',checkpoint=fault)
+            cc.validate(db,'system',4); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+        def lost(where):
+            if where=='committed': raise RuntimeError('lost')
+        with self.assertRaisesRegex(RuntimeError,'lost'): cc.migrate_v4_to_v5(db,'system',checkpoint=lost)
+        cc.validate(db,'system',5); self.assert_preserved(db,before); self.assertFalse(cc.migrate_v4_to_v5(db,'system'))
+
+    def test_v5_actual_process_exits_before_and_after_commit(self):
+        code='''import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[2]: os._exit(75)
+cc.migrate_v4_to_v5(db,'system',checkpoint=checkpoint)
+raise RuntimeError('v5 crash checkpoint missed')
+'''
+        for phase in ('statement_0','version_set','committed'):
+            name='handoff-crash-'+phase+'.db'; db=self.handoff_source(name); before=rows(db)
+            path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+            result=subprocess.run([sys.executable,'-c',code,path,phase],cwd=ROOT/'tools',timeout=20); self.assertEqual(result.returncode,75)
+            db=self.connect(name); self.assert_preserved(db,before); cc.validate(db,'system',5 if phase=='committed' else 4)
+            self.assertEqual(cc.migrate_v4_to_v5(db,'system'),phase!='committed')
+
+    def test_v5_full_disk_and_foreign_source_fail_closed(self):
+        db=self.handoff_source('handoff-full.db'); db.execute('VACUUM'); before=rows(db); count=db.execute('PRAGMA page_count').fetchone()[0]
+        self.assertEqual(db.execute('PRAGMA freelist_count').fetchone()[0],0)
+        db.execute('PRAGMA max_page_count='+str(count))
+        with self.assertRaises(sqlite3.OperationalError): cc.migrate_v4_to_v5(db,'system')
+        cc.validate(db,'system',4); self.assertEqual(rows(db),before)
+        db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE foreign_extension(value)'); db.commit()
+        foreign=rows(db)
+        with self.assertRaises(cc.ContractError): cc.migrate_v4_to_v5(db,'system')
+        self.assertEqual(rows(db),foreign); self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],4)
+
     def test_v4_additions_preserve_v3_rows_frozen_sources_and_retry(self):
         for name,digest in V3_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
         for kind in ('system','user'):

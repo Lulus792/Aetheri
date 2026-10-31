@@ -31,12 +31,14 @@ def statements(text):
 
 
 def source(kind, version):
-    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4):
+    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5) or (version==5 and kind!='system'):
         raise ContractError("unsupported catalogue kind/version")
     if version==3:
         return source(kind,2)+extension_v3(kind)
     if version==4:
         return source(kind,3)+extension_v4(kind)
+    if version==5:
+        return source(kind,4)+extension_v5(kind)
     return [sql for name in ("common", kind)
             for sql in statements((ROOT / f"spec/schema/{name}-v{version}.sql").read_text(encoding="utf-8"))]
 
@@ -51,6 +53,10 @@ def extension_v4(kind):
     if kind not in APPLICATION_IDS: raise ContractError('unsupported catalogue kind')
     return [sql for name in ('common',kind)
             for sql in statements((ROOT/f'spec/schema/{name}-v4.sql').read_text(encoding='utf-8'))]
+
+def extension_v5(kind):
+    if kind!='system': raise ContractError('handoff extension is system-only')
+    return list(statements((ROOT/'spec/schema/system-v5.sql').read_text(encoding='utf-8')))
 
 
 def configure(db):
@@ -192,6 +198,25 @@ def migrate_v3_to_v4(db,kind,*,checkpoint=None):
         raise
     return True
 
+
+def migrate_v4_to_v5(db,kind,*,checkpoint=None):
+    """Explicit system-owner original-handoff extension; User remains v4."""
+    if kind!='system' or db.in_transaction: raise ContractError('idle system connection required')
+    if db.execute('PRAGMA user_version').fetchone()[0]==5:
+        validate(db,kind,5); return False
+    configure(db)
+    def mark(phase):
+        if checkpoint: checkpoint(phase)
+    try:
+        db.execute('BEGIN EXCLUSIVE'); validate(db,kind,4); mark('locked')
+        for n,statement in enumerate(extension_v5(kind)):
+            db.execute(statement); mark('statement_'+str(n))
+        db.execute('PRAGMA user_version=5'); mark('version_set')
+        validate(db,kind,5); mark('validated'); db.commit(); mark('committed')
+    except BaseException:
+        if db.in_transaction: db.rollback()
+        raise
+    return True
 
 def migrate_v1_to_v2(db, kind, *, backup, checkpoint=None):
     """Atomic metadata migration with a pre-migration SQLite backup.

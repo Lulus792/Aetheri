@@ -56,10 +56,21 @@ retained handles from PID1 in a new private mount namespace after its app/group
 have disappeared. It proves original end and explicitly empties the bounded
 store. No extra resident custodian is needed for that tested transport. A
 processing barrier alone still does not prove exact-set acceptance. Canonical
-protected handoff enrollment, partial/unknown transfer reconciliation, continuous
-original unit retention and confined Root/User journal recovery remain necessary.
+protected AETHHND1 bytes and a Root-only v5 handoff journal now exist. Connecting
+their exact-set validation to an installed confined producer/receiver, reconciling
+partial/unknown transfers, retaining the original unit and settling Root/User
+journals remain necessary. Early starter/ARM/error-channel recovery also remains.
 No normal Root FD store is enabled; the fixed app's FD store remains forbidden.
 See [retained observation handles](../../spec/runtime.md#retained-observation-handles-across-a-component-service-restart).
+
+For original-unit retention, investigate an explicitly managed, process-free
+target with protected ordering references to custodian and app. Upstream v259
+creates reference edges for explicitly configured dependencies; target units do
+not advertise transient creation there. This is a research lead for preallocated
+protected test configuration, not accepted runtime behavior. Test retention after
+the original bus connection and all controller RefUnit pins are gone, then exact
+retirement/GC without app restart. Current handoff tests deliberately retain the
+original units through the controller, so they cannot prove that new boundary.
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging

@@ -118,6 +118,14 @@ def main():
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",
                 "register-send-before","register-send-lost","release-send-before","release-send-lost",
                 "deadline-event","deadline-direct","release-deadline","context-drift","broker-replacement","root-restart"))
+        if len(sys.argv)==4 and sys.argv[3]=='handoffs':
+            vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/execution-handoff-v1.json').read_bytes())
+            encoded=root/'handoff.vector'; raw=bytes.fromhex(vector['hex'])
+            encoded.write_bytes(bytes.fromhex(vector['profile_hex'])+struct.pack('>I',len(raw))+raw+bytes.fromhex(vector['sha256']))
+            subprocess.run([executable,'handoff-codec',encoded],check=True,timeout=10)
+            scenarios=tuple('exec-handoff-'+case for case in (
+                'fresh','lost-1','lost-3','lost-4','crash-1-before','crash-1-after','crash-3-before','crash-3-after',
+                'crash-4-before','crash-4-after','observe','observe-lost-2','observe-crash-2-before','observe-crash-2-after','overflow','corrupt-handoff'))
         with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"

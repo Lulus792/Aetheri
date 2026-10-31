@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — retained original observation handles across a component restart.
+31 October 2026 — canonical original expectations and a Root-only handoff journal.
 
 ## Confirmed
 
@@ -13,6 +13,55 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Canonical AETHHND1 now binds the complete original app-process witness to cgroup
+root/group/event objects, PID/cgroup namespaces and the original custodian unit/
+invocation. Native padding is never stored. Full-width unsigned identifiers,
+optional birth and signed birth seconds are preserved; the independent frozen
+vector agrees between Python and C. The actual capability-empty component restart
+now uses this portable record before PID1 transfer instead of a native structure.
+Its UID0/synthetic profile is explicitly outside fixed UID1000 P0 admission.
+
+One new Root-only execution_handoffs table in explicit schema v5 records immutable
+origin plus pending/observed/retiring/retired state. User stays v4; create still
+defaults to v2 and opening never migrates. Frozen v1/v2/v3/v4 sources and old rows,
+gates/revisions are preserved. Only fresh confirmed intent commits permit transfer
+or retirement effects; existing-intent/lost-successful-commit retries permit none.
+Later runtime observations never replace the origin or adopt/release the old run.
+Retirement requires separate terminal/released closure and actual PID1 absence.
+See [durable handoff](../../spec/runtime.md#durable-original-observation-handoff).
+
+The native sixteen-case journal matrix covers every DDL/mutation write, lost
+commits, eight actual mutation-process exits, repeated runtime replacement,
+retention/immutability, overflow and real database-byte corruption. Migration
+tests also exit actual processes before/after commit. Host contracts pass 44/44
+(91.991 s) on SQLite 3.53.1; the guest uses SQLite 3.51.2. Independent byte tests
+pass 21/21 (0.022 s), including reserved bytes, text/bounds and signed-time extremes.
+
+The affected Release sweep passes 14/14 (1024.59 s). Concurrent Debug passes
+13/14; its lifetime group hits the existing 240-second limit. With no parallel
+suite, the reviewed Debug lifetime group passes in 202.45 s; together with the
+final signed-time handoff/component checks, that repeat passes 3/3 (352.11 s).
+Final reviewed Release handoff/component checks pass 2/2 (110.13 s). The timed-out
+metadata-only fixture/log remain preserved; no functional assertion failed there.
+Run database-heavy carrier suites serially under the current resource limits.
+The IPC-disabled native build also compiles and passes the codec smoke check;
+the catalogue handoff test is registered without an IPC requirement. Host VM
+orchestration tests pass 47/47 (2.418 s). This is affected-boundary verification,
+not a new full-suite, performance or hardware acceptance claim.
+All 183 host/guest source hashes match. Local Markdown validation passes 583
+file targets; anchors and external URLs were not checked by that validation.
+
+The existing enforcing confined Root/User/app regression still passes actual
+start/readiness/end, three original v4 witnesses and successful native closure.
+This journal is not wired into installed confined Root producer/receiver paths;
+its metadata actor/transport inputs remain controlled native fixtures. The
+component proves canonical expectations in a real bounded handoff, not Root/User
+recovery. Full-set reconciliation, original-unit retention, early starter/ARM/
+error-channel recovery, app documents/revocation/removal and the desktop/apps/
+image/hardware goal remain work. No normal Root store or public capability opens.
+
+Previous retained-handle checkpoint (31 October 2026):
 
 The private Linux lifetime module now exports four original observation handles
 with independently protected expectations and restores them after observer exit.

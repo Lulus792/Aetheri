@@ -2,6 +2,7 @@
 #include "catalogue/setup.h"
 #include "catalogue/execution.h"
 #include "catalogue/lifetime.h"
+#include "catalogue/handoff.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -24,7 +25,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -599,6 +600,115 @@ static void process_enrollment(struct ae_catalogue **slot,const struct ae_catalo
     CHECK(sqlite3_exec(db,"UPDATE execution_processes SET recorded_unix_ms=9",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
     CHECK(sqlite3_exec(db,"DELETE FROM execution_processes",NULL,NULL,NULL)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
 }
+static struct ae_execution_handoff handoff_record(const struct ae_execution_process *app)
+{
+    struct ae_execution_handoff v={.process=*app,.pid_namespace=4026531836U,.cgroup_namespace=4026531835U,
+        .events_inode=UINT64_MAX-5,.events_mount=UINT64_MAX-4,.events_mode=0100444};
+    v.root=(struct ae_root_identity){.mount_id=UINT64_MAX-4,.inode=1,.device_minor=29,.mode=0040755,.filesystem_type=0x63677270};
+    v.group=v.root; v.group.inode=app->cgroup_id; strcpy(v.custodian,"aetheri-p0-execution-root.service"); id(v.custodian_invocation,67); return v;
+}
+static void handoff_action(struct ae_catalogue **slot,const struct ae_catalogue_identity *ri,const char *directory,
+    const struct ae_execution_profile *p,const struct ae_execution_handoff *original,enum ae_handoff_stage stage,const char *scenario)
+{
+    struct ae_handoff_result out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+    struct ae_handoff_snapshot prior; int observed=ae_catalogue_get_handoff(*slot,p,&prior);
+    CHECK(observed==0 || observed==-ENOENT); int64_t revision=observed==0 ? prior.revision+1 : 1;
+    uint8_t before[32],after[32]; database_digest(directory,before);
+    for (int n=1;n<=2;++n) {
+        step_fault=n; step_number=0; CHECK(ae_catalogue_handoff(*slot,p,stage,original,125000+stage,&out)==-EIO && !step_fault && memcmp(&out,&marker,sizeof out)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    commit_fault=1; CHECK(ae_catalogue_handoff(*slot,p,stage,original,125000+stage,&out)==-EIO && memcmp(&out,&marker,sizeof out)==0);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    char lost[32],crash[32]; CHECK(snprintf(lost,sizeof lost,"lost-%d",stage)>0 && snprintf(crash,sizeof crash,"crash-%d-",stage)>0);
+    int committed=0;
+    if (strstr(scenario,lost)) {
+        commit_fault=2; CHECK(ae_catalogue_handoff(*slot,p,stage,original,125000+stage,&out)==-EIO && memcmp(&out,&marker,sizeof out)==0); committed=1;
+    } else if (strstr(scenario,crash)) {
+        CHECK(ae_catalogue_close(slot)==0); pid_t child=fork(); CHECK(child>=0); int early=strstr(scenario,"before")!=NULL;
+        if (!child) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(directory,ri,&fresh)==0); crash_mode=early ? 1 : 2;
+            (void)ae_catalogue_handoff(fresh,p,stage,original,125000+stage,&out); _exit(90); }
+        int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(early ? 71 : 72));
+        CHECK(ae_catalogue_open(directory,ri,slot)==0); committed=!early;
+    }
+    CHECK(ae_catalogue_handoff(*slot,p,stage,original,125000+stage,&out)==0);
+    CHECK(out.transfer_required==(stage==AE_HANDOFF_PREPARE && !committed) && out.retire_required==(stage==AE_HANDOFF_RETIRE && !committed));
+    CHECK(out.snapshot.revision==revision && out.snapshot.recorded_unix_ms==125001);
+    database_digest(directory,before);
+    CHECK(ae_catalogue_handoff(*slot,p,stage,original,999999,&out)==0 && !out.transfer_required && !out.retire_required && out.snapshot.revision==revision);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+}
+static int handoff_start(struct ae_catalogue **root,struct ae_catalogue *user,const struct ae_catalogue_identity *ri,const char *directory,
+    const struct ae_execution_profile *p,const struct ae_execution_handoff *original,const char *scenario)
+{
+    struct ae_handoff_snapshot snapshot,marker; memset(&marker,0xa5,sizeof marker); snapshot=marker;
+    CHECK(ae_catalogue_get_handoff(*root,p,&snapshot)==-EPROTONOSUPPORT && memcmp(&snapshot,&marker,sizeof marker)==0);
+    CHECK(ae_catalogue_upgrade_handoffs(user)==-EPROTONOSUPPORT);
+    uint8_t before[32],after[32]; database_digest(directory,before);
+    for (int n=1;n<=6;++n) { ddl_fault=n; ddl_number=0; CHECK(ae_catalogue_upgrade_handoffs(*root)==-EIO && !ddl_fault);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0 && scalar(directory,"PRAGMA user_version")==4); }
+    commit_fault=1; CHECK(ae_catalogue_upgrade_handoffs(*root)==-EIO && scalar(directory,"PRAGMA user_version")==4);
+    commit_fault=2; CHECK(ae_catalogue_upgrade_handoffs(*root)==-EIO && scalar(directory,"PRAGMA user_version")==5);
+    CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(directory,ri,root)==0);
+    database_digest(directory,before); CHECK(ae_catalogue_upgrade_handoffs(*root)==0); database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    CHECK(ae_catalogue_get_handoff(*root,p,&snapshot)==-ENOENT && memcmp(&snapshot,&marker,sizeof marker)==0);
+    struct ae_handoff_result result,untouched; memset(&untouched,0xa5,sizeof untouched); result=untouched;
+    struct ae_execution_handoff wrong=*original; --wrong.process.pidfd_id;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,&wrong,125001,&result)==-ESTALE && memcmp(&result,&untouched,sizeof result)==0);
+    if (strstr(scenario,"overflow")) { edit(directory,"UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,original,125001,&result)==-EOVERFLOW); return 1; }
+    handoff_action(root,ri,directory,p,original,AE_HANDOFF_PREPARE,scenario);
+    ++wrong.root.inode;
+    wrong.process=original->process;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,&wrong,999999,&result)==-EEXIST);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,original,125002,&result)==-ESTALE);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRE,original,125003,&result)==-EAGAIN);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRED,original,125004,&result)==-EAGAIN);
+    sqlite3 *db=database(directory);
+    CHECK(sqlite3_exec(db,"UPDATE execution_handoffs SET witness_digest=zeroblob(32),revision=revision+1",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
+    CHECK(sqlite3_exec(db,"UPDATE execution_handoffs SET state='retired',revision=revision+1",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
+    CHECK(sqlite3_exec(db,"DELETE FROM execution_handoffs",NULL,NULL,NULL)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
+    if (strstr(scenario,"corrupt-handoff")) {
+        uint8_t raw[AE_HANDOFF_MAX],hash[32]; size_t size=0;
+        CHECK(ae_handoff_encode(original,raw,sizeof raw,&size)==0 && ae_sha256_bytes(raw,size,hash)==0 && ae_catalogue_close(root)==0);
+        char path[4096]; CHECK(snprintf(path,sizeof path,"%s/catalogue.sqlite3",directory)>0); int fd=open(path,O_RDWR|O_CLOEXEC|O_NOFOLLOW);
+        struct stat st; CHECK(fd>=0 && fstat(fd,&st)==0 && st.st_size>32 && st.st_size<2*1024*1024);
+        size=(size_t)st.st_size; uint8_t *bytes=malloc(size); CHECK(bytes && read(fd,bytes,size)==(ssize_t)size); size_t found=0,offset=0;
+        for (size_t n=0;n+32<=size;++n) if (memcmp(bytes+n,hash,32)==0) { ++found; offset=n; }
+        CHECK(found==1); bytes[offset]^=1U; CHECK(pwrite(fd,bytes+offset,1,(off_t)offset)==1 && fsync(fd)==0 && close(fd)==0); free(bytes);
+        CHECK(ae_catalogue_open(directory,ri,root)==0); snapshot=marker;
+        CHECK(ae_catalogue_get_handoff(*root,p,&snapshot)==-EUCLEAN && memcmp(&snapshot,&marker,sizeof snapshot)==0);
+        result=untouched; CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,original,999999,&result)==-EUCLEAN && memcmp(&result,&untouched,sizeof result)==0); return 1;
+    }
+    if (strstr(scenario,"observe")) {
+        uint8_t runtime[16]; id(runtime,6); CHECK(ae_catalogue_begin_runtime(*root,p->boot,runtime)==0);
+        handoff_action(root,ri,directory,p,original,AE_HANDOFF_OBSERVE,scenario);
+        id(runtime,7); CHECK(ae_catalogue_begin_runtime(*root,p->boot,runtime)==0);
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,original,125010,&result)==0 && result.snapshot.revision==3 &&
+            !result.transfer_required && !result.retire_required && memcmp(result.snapshot.observer_runtime,runtime,16)==0);
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,original,999999,&result)==0 && result.snapshot.observed_unix_ms==125010 && result.snapshot.revision==3);
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRE,original,125011,&result)==-EAGAIN);
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,original,125011,&result)==-ESTALE);
+        CHECK(scalar(directory,"SELECT state='uncertain' FROM launch_dispatches")==1 && scalar(directory,"SELECT state='running' FROM generation_leases")==1);
+        CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(directory,ri,root)==0 && ae_catalogue_get_handoff(*root,p,&snapshot)==0 && snapshot.revision==3); return 1;
+    }
+    return 0;
+}
+static void handoff_finish(struct ae_catalogue **root,const struct ae_catalogue_identity *ri,const char *directory,
+    const struct ae_execution_profile *p,const struct ae_execution_handoff *original,const char *scenario)
+{
+    /* Metadata-only mock removal evidence. Real PID1 absence is tested by the
+     * separate component; no kernel/owner-recovery claim follows from this call. */
+    handoff_action(root,ri,directory,p,original,AE_HANDOFF_RETIRE,scenario);
+    handoff_action(root,ri,directory,p,original,AE_HANDOFF_RETIRED,scenario);
+    struct ae_handoff_result result;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,original,999999,&result)==0 && result.snapshot.state==AE_HANDOFF_FINISHED && !result.transfer_required && !result.retire_required);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,original,999999,&result)==-ESTALE);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRE,original,999999,&result)==0 && !result.retire_required && result.snapshot.retiring_unix_ms==125003);
+    sqlite3 *db=database(directory);
+    CHECK(sqlite3_exec(db,"DELETE FROM execution_processes WHERE role=2",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
+    CHECK(sqlite3_exec(db,"DELETE FROM execution_handoffs",NULL,NULL,NULL)==SQLITE_OK && sqlite3_close(db)==SQLITE_OK);
+}
 static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,
     const struct ae_execution_profile *p,struct ae_launch_context *context,const struct ae_execution_evidence *e,const char *rd,const char *scenario)
 {
@@ -641,6 +751,8 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     struct ae_execution_process wrong=app; wrong.pidfd_id--;
     CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&wrong,124002,&out)==-ESTALE);
     process_enrollment(root,ri,rd,p,e,&app,2,scenario);
+    struct ae_execution_handoff handoff=handoff_record(&app); int with_handoff=strncmp(scenario,"exec-handoff-",13)==0;
+    if (with_handoff && handoff_start(root,*user,ri,rd,p,&handoff,scenario)) return;
     CHECK(ae_catalogue_observe_user_execution(*user,p,AE_USER_EXECUTION_READY,&ue,&launch)==0);
     if (strstr(scenario,"replace")) {
         int is_user=strstr(scenario,"user-replace")!=NULL; struct ae_catalogue **slot=is_user ? user : root; const char *directory=is_user ? ud : rd;
@@ -673,6 +785,7 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     CHECK(ae_catalogue_quiesce_user_run(*user,p,&ue,&closing,124201,&quiet)==0);
     CHECK(ae_catalogue_release_run(*root,p,context,e,&quiet,ended,124202,&released)==0);
     CHECK(ae_catalogue_end_user_run(*user,p,&ue,&released,124203,&launch)==0);
+    if (with_handoff) handoff_finish(root,ri,rd,p,&handoff,scenario);
     CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&app,999999,&out)==0 && out.recorded_unix_ms==124002);
     CHECK(ae_catalogue_enroll_execution_process(*user,p,&ue,&user_app,999999,&out)==0 && out.recorded_unix_ms==124001);
     CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(rd,ri,root)==0 && ae_catalogue_get_execution_process(*root,p,AE_EXECUTION_STARTER,&out)==0);
@@ -685,7 +798,7 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
     struct ae_execution_profile p; execution_profile(&p,q,c); execution_codec(&p,expected);
     struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
-    if (strncmp(scenario,"exec-process-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
+    if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
     CHECK(ae_catalogue_authorize_user_execution(user,&p)==0 && ae_catalogue_authorize_user_execution(*root,&p)==-EPERM);
     struct ae_execution_profile wrong=p; wrong.storage[15]++;
     CHECK(ae_catalogue_authorize_user_execution(user,&wrong)==-ESTALE);
@@ -846,6 +959,27 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
 }
 int main(int argc,char **argv)
 {
+    if (argc==3 && strcmp(argv[1],"handoff-codec")==0) {
+        uint8_t data[2981],raw[AE_HANDOFF_MAX],hash[32]; FILE *file=fopen(argv[2],"rb"); CHECK(file);
+        size_t total=fread(data,1,sizeof data,file); CHECK(!ferror(file) && feof(file) && fclose(file)==0 && total>=388+374+32);
+        size_t size=0; for (size_t n=0;n<4;++n) size=(size<<8)|data[384+n]; CHECK(size<=AE_HANDOFF_MAX && total==388+size+32);
+        struct ae_execution_profile p; CHECK(ae_execution_decode(data,384,&p)==0);
+        struct ae_execution_handoff v,marker; memset(&marker,0xa5,sizeof marker); size_t written=0;
+        CHECK(ae_handoff_decode(data+388,size,&v)==0 && v.process.pidfd_id==UINT64_MAX && v.root.mount_id==UINT64_MAX-4 && v.group.inode==(UINT64_C(1)<<63)+31);
+        CHECK(ae_handoff_encode(&v,raw,sizeof raw,&written)==0 && written==size && memcmp(raw,data+388,size)==0 && ae_sha256_bytes(raw,size,hash)==0 && memcmp(hash,data+388+size,32)==0);
+        CHECK(ae_handoff_match(&p,&v)==0);
+        for (size_t n=0;n<size;++n) { v=marker; CHECK(ae_handoff_decode(data+388,n,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); }
+        v=marker; CHECK(ae_handoff_decode(data+388,size+1,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0);
+        const size_t offsets[]={0,24,26,97,184,257};
+        for (size_t n=0;n<6;++n) { memcpy(raw,data+388,size); raw[offsets[n]]=255; v=marker;
+            CHECK(ae_handoff_decode(raw,size,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); }
+        CHECK(ae_handoff_decode(data+388,size,&v)==0); memset(raw,0xa5,sizeof raw); written=999;
+        CHECK(ae_handoff_encode(&v,raw,size-1,&written)==-ENOBUFS && written==999); for (size_t n=0;n<sizeof raw;++n) CHECK(raw[n]==0xa5);
+        const int64_t times[]={-1,INT64_MIN,INT64_MAX};
+        for (size_t n=0;n<3;++n) { v.group.birth_seconds=times[n]; struct ae_execution_handoff decoded;
+            CHECK(ae_handoff_encode(&v,raw,sizeof raw,&written)==0 && ae_handoff_decode(raw,written,&decoded)==0 && decoded.group.birth_seconds==times[n]); }
+        v.process.uid=0; CHECK(ae_handoff_match(&p,&v)==-ESTALE); return 0;
+    }
     if (argc==3 && strcmp(argv[1],"process-codec")==0) {
         uint8_t data[2469],raw[AE_EXECUTION_PROCESS_MAX],hash[32]; FILE *file=fopen(argv[2],"rb"); CHECK(file);
         size_t total=fread(data,1,sizeof data,file); CHECK(!ferror(file) && feof(file) && fclose(file)==0 && total>=388+149+32);

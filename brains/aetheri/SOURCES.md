@@ -1663,3 +1663,75 @@ dispatch or lease. This is affected-boundary regression, not a full-suite or
 OS/hardware acceptance claim.
 The final source snapshot matches all 179 host/guest hashes. Local Markdown file
 validation passes 575 targets; it does not validate anchors or network pages.
+
+## Canonical original-handoff journal — 31 October 2026
+
+[AETHHND1](../../src/catalogue/handoff.h) binds original v4 app evidence to the
+original cgroup root/group/events and host namespace observations, with separate
+custodian unit/invocation. Native and independent Python codecs agree with the
+[frozen vector](../../spec/vectors/execution-handoff-v1.json), including full-width
+identifiers, absent birth and signed-time extremes. The actual Root-owned
+component now writes/reads that portable frame before/after PID1 handoff, checks
+original versus replacement custodian invocation and still verifies all four
+actual objects/end observations. Its synthetic digests/UID0 are explicitly not
+admitted by fixed UID1000 execution-profile matching.
+
+[Root-only v5](../../spec/schema/system-v5.sql) adds one table, preserving the
+immutable origin while journaling intent, actual-set observation and two-stage
+retirement. A composite foreign key retains its original process witness. Fresh
+confirmed intent alone permits a transfer/retirement effect; historical retries
+do not. Repeated current runtimes cannot adopt the old run or release its lease.
+SQL v1/v2/v3/v4 and public XML stay unchanged; normal create remains v2 and User
+has no v5 migration. Installed confined authorities do not call these new APIs.
+
+The sixteen-case native matrix covers every new DDL/mutation write, both commit
+acknowledgement directions, eight actual mutation child exits, repeated owner
+runtime replacement, overflow, retention/immutability and actual stored-digest
+byte corruption. Those process/transport/absence inputs are controlled metadata,
+not Linux admission evidence. Python migrations add three actual process exits,
+all DDL/version rollbacks, source/version/owner checks and SQLITE_FULL recovery.
+The first full-page test still had reusable free pages; vacuuming its disposable
+source before fixing max_page_count correctly exercises allocation failure.
+
+Official SQLite [transaction semantics](https://www.sqlite.org/lang_transaction.html)
+support the explicit write/exclusive boundaries; [foreign-key constraints](https://www.sqlite.org/foreignkeys.html)
+support the retained parent relationship. The [page-count pragmas](https://www.sqlite.org/pragma.html#pragma_max_page_count)
+describe the page limit used by the failure fixture. These source contracts are
+not power-loss or actual transport proof. Host contracts pass 44/44 (91.991 s)
+on SQLite 3.53.1; the carrier uses existing SQLite 3.51.2. Independent byte tests
+pass 21/21 (0.022 s); host orchestration passes 47/47 (2.418 s).
+
+The affected Release sweep passes 14/14 (1024.59 s). Concurrent Debug passes
+13/14 with catalogue.lifetime stopped at its 240.01-second limit. No assertion
+failure was reported in that interrupted metadata-only group; no test_launch
+process remained afterward. Its exact fixture is retained at
+`/home/aetheri/build/debug/launch-ompahtv6`. The isolated reviewed Debug repeat
+passes lifetime in 202.45 s and final handoff/component groups in 148.98/0.68 s
+(3/3, 352.11 s). Reviewed Release handoff/component passes 2/2 (110.13 s).
+The review includes signed birth-time extremes. Run these database-heavy suites
+serially on this carrier; these durations are not OS performance benchmarks.
+The IPC-disabled native build compiles and passes the codec smoke test, with
+catalogue.handoffs registered independently of IPC. No new dependency is added.
+
+The existing enforcing confined Root/User/app regression passes again; its v4
+witnesses, immutable starts and native successful closure are archived at
+`/home/aetheri/build/release/live-execution-55a11efd8c1f4f529994af613aa133d5`.
+The original app PID is 82030, group 117640 and invocation
+`d109dd715a6b4078b49d89c09347a848`; its original group is removed. Read-only
+inspection confirms enforcing policy, retired exact temporary confined fixture,
+normal pending=None/closed gates and no unsettled normal dispatch/lease. This
+does not connect the new journal to a production Root descriptor-store receiver.
+
+For the next original-unit-retention investigation,
+[systemd v259 unit dependencies](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/unit.c)
+add a reference edge when explicitly requested; the
+[D-Bus property setter](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-unit.c)
+requests that reference for configured dependencies. A protected process-free
+target with explicit ordering references is therefore a candidate to test.
+The [v259 target vtable](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/target.c)
+does not advertise transient creation; do not assume StartTransientUnit supports
+it. This is a source-based inference for a separately provisioned test, not
+runtime acceptance. Current component controllers explicitly RefUnit the original
+custodian/app and thus do not prove retention after all those clients disappear.
+The final reviewed source snapshot matches all 183 host/guest hashes. Local
+Markdown validation passes 583 file targets, without checking anchors/network.

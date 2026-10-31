@@ -54,6 +54,44 @@ def read_execution_process(data):
     require(offset==len(data) and execution_process(value)==data,'process witness canonical form')
     return value
 
+def _handoff_root(value):
+    fields(value,'mount_id inode device_major device_minor uid gid mode filesystem_type filesystem_id birth_present birth_seconds birth_nanoseconds')
+    mode=integer(value['mode'],65535); require(mode&0o170000==0o040000,'handoff directory')
+    require(type(value['filesystem_type']) is int and value['filesystem_type']==0x63677270 and type(value['birth_present']) is bool,'handoff filesystem/birth')
+    seconds=integer(value['birth_seconds'],MAX_INT,-2**63); nanos=integer(value['birth_nanoseconds'],999999999)
+    require(value['birth_present'] or (seconds==0 and nanos==0),'absent handoff birth')
+    return struct.pack('>QQIIIIIQ8sB3xqI4x',integer(value['mount_id'],2**64-1,1),integer(value['inode'],2**64-1,1),
+        *(integer(value[k],2**32-1) for k in ('device_major','device_minor','uid','gid','mode')),
+        value['filesystem_type'],rawhex(value['filesystem_id'],8),value['birth_present'],seconds,nanos)
+
+def execution_handoff(value):
+    fields(value,'process custodian custodian_invocation root group pid_namespace cgroup_namespace events_inode events_mount events_mode events_uid events_gid')
+    process=execution_process(value['process']); require(value['process']['role']==2,'handoff app role')
+    unit=value['custodian']; require(type(unit) is str and 8<len(unit)<=255 and unit.endswith('.service') and all(0x21<=ord(c)<=0x7e and c!='/' for c in unit),'handoff custodian')
+    root,group=value['root'],value['group']; a,b=_handoff_root(root),_handoff_root(group)
+    require(all(root[k]==group[k] for k in ('mount_id','device_major','device_minor','filesystem_id')) and root['inode']!=group['inode'] and group['inode']==value['process']['cgroup_id'],'handoff anchor/group')
+    require(value['events_mount']==root['mount_id'] and type(value['events_mode']) is int and 0<=value['events_mode']<=65535 and value['events_mode']&0o170000==0o100000,'handoff events')
+    return (b'AETHHND1'+rawhex(value['custodian_invocation'],16)+struct.pack('>HHQQ',len(unit),len(process),
+            integer(value['pid_namespace'],2**64-1,1),integer(value['cgroup_namespace'],2**64-1,1))+a+b+
+            struct.pack('>QQIII',integer(value['events_inode'],2**64-1,1),integer(value['events_mount'],2**64-1,1),
+                integer(value['events_mode'],65535),integer(value['events_uid'],2**32-1),integer(value['events_gid'],2**32-1))+process+unit.encode('ascii'))
+
+def read_execution_handoff(data):
+    require(type(data) is bytes and 374<=len(data)<=2560 and data[:8]==b'AETHHND1','handoff frame')
+    unit,length,pidns,cgroupns=struct.unpack('>HHQQ',data[24:44])
+    require(8<unit<=255 and 149<=length<=2048 and 216+length+unit==len(data),'handoff lengths')
+    roots=[]
+    for offset in (44,116):
+        names='mount_id inode device_major device_minor uid gid mode filesystem_type filesystem_id birth_present birth_seconds birth_nanoseconds'.split()
+        v=dict(zip(names,struct.unpack('>QQIIIIIQ8sB3xqI4x',data[offset:offset+72])))
+        require(v['birth_present'] in (0,1),'handoff birth flag'); v['birth_present']=bool(v['birth_present']); v['filesystem_id']=v['filesystem_id'].hex(); roots.append(v)
+    inode,mount,mode,uid,gid=struct.unpack('>QQIII',data[188:216])
+    try: custodian=data[216+length:].decode('ascii')
+    except UnicodeError as error: raise InvalidContract('handoff custodian encoding') from error
+    value=dict(process=read_execution_process(data[216:216+length]),custodian=custodian,custodian_invocation=data[8:24].hex(),root=roots[0],group=roots[1],
+        pid_namespace=pidns,cgroup_namespace=cgroupns,events_inode=inode,events_mount=mount,events_mode=mode,events_uid=uid,events_gid=gid)
+    require(execution_handoff(value)==data,'handoff canonical form'); return value
+
 def run_receipt(value):
     fields(value,'kind profile_digest invocation previous_digest evidence_digest revision unix_ms')
     tags={'root_closing':b'AETHCLS1','user_quiet':b'AETHQSC1','root_released':b'AETHEND1'}

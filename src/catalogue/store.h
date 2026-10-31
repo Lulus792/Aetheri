@@ -26,7 +26,8 @@ struct ae_catalogue_info {
  *
  * Explicit create uses O_EXCL; open never creates/replaces/migrates a database.
  * Both retain a separate CLOEXEC writer.lock, require rollback journaling and
- * validate exact v2 or explicitly upgraded v3/v4 schema/metadata. A runtime unique mount identity pins the
+ * validate exact v2 or explicitly upgraded v3/v4 (Root also v5) schema/metadata.
+ * A runtime unique mount identity pins the
  * directory; later calls reject a named bind-mount replacement even for the same
  * inode/device. This is not durable volume registration. Outputs remain unchanged on failure.
  * Errors are negative errno (EPROTONOSUPPORT for versions requiring migration).
@@ -46,6 +47,11 @@ int ae_catalogue_upgrade_lifetimes(struct ae_catalogue *);
  * Exact v4 retry validates; v2 requires the separate lifetime upgrade first.
  * Caller independently quiesces writers. No existing row/runtime/gate changes. */
 int ae_catalogue_upgrade_processes(struct ae_catalogue *);
+/* Explicit Root-only v4 -> v5 original-handoff journal. User stays v4; no
+ * automatic migration, old-row/backfill, gate/runtime change or actual handoff.
+ * Same writer/DB object; lost acknowledgement inspects actual v4/v5, never copies
+ * a backup over the database. Exact v5 retry validates without changing history. */
+int ae_catalogue_upgrade_handoffs(struct ae_catalogue *);
 /* Commit fresh runtime + boot. Existing open gates close; closing gates keep
  * their durable cause. Triggers mark recovery obligations. This does not settle
  * holders, reopen gates or establish a global service-readiness gate. Reusing

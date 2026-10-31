@@ -7,6 +7,7 @@
 #include "catalogue/setup.h"
 #include "catalogue/execution.h"
 #include "catalogue/lifetime.h"
+#include "catalogue/handoff.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -153,7 +154,12 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
         "PRAGMA application_id=1096042579; PRAGMA user_version=2;" :
         "PRAGMA application_id=1096042581; PRAGMA user_version=2;");
     if (result==0 && version>=3) result=extend_schema_v3(db,kind);
-    if (result==0 && version==4) result=extend_schema_v4(db,kind);
+    if (result==0 && version>=4) result=extend_schema_v4(db,kind);
+    if (result==0 && version==5) {
+        if (kind!=AE_CATALOGUE_SYSTEM) return -EPROTONOSUPPORT;
+        for (size_t n=0;result==0 && ae_schema_system_v5[n];++n) result=exec_sql(db,ae_schema_system_v5[n]);
+        if (result==0) result=exec_sql(db,"PRAGMA user_version=5");
+    }
     return result;
 }
 
@@ -294,7 +300,7 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2 && value != 3 && value != 4) result = -EPROTONOSUPPORT;
+    if (result == 0 && value != 2 && value != 3 && value != 4 && !(value==5 && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
     if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
@@ -838,6 +844,22 @@ int ae_catalogue_upgrade_processes(struct ae_catalogue *store)
     if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
     if (r==0 && version!=3 && version!=4) r=-EPROTONOSUPPORT;
     if (r==0 && version==3) r=extend_schema_v4(store->db,store->identity.kind);
+    if (r==0) r=validate(store);
+    return fixture_commit(store,r);
+}
+int ae_catalogue_upgrade_handoffs(struct ae_catalogue *store)
+{
+    int r=still_named(store);
+    if (r==0 && store->identity.kind!=AE_CATALOGUE_SYSTEM) r=-EPROTONOSUPPORT;
+    if (r==0) r=exec_sql(store->db,"BEGIN EXCLUSIVE");
+    if (r!=0) return r;
+    r=validate(store); sqlite3_int64 version=0;
+    if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=4 && version!=5) r=-EPROTONOSUPPORT;
+    if (r==0 && version==4) {
+        for (size_t n=0;r==0 && ae_schema_system_v5[n];++n) r=exec_sql(store->db,ae_schema_system_v5[n]);
+        if (r==0) r=exec_sql(store->db,"PRAGMA user_version=5");
+    }
     if (r==0) r=validate(store);
     return fixture_commit(store,r);
 }
@@ -2304,7 +2326,8 @@ static int require_execution_process(struct ae_catalogue *s,const struct ae_exec
     (void)hash;
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
     struct ae_execution_process_snapshot snapshot;
-    if (r==0 && version==4) {
+    if (r==0 && version!=2 && version!=3 && version!=4 && !(version==5 && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && (version==4 || version==5)) {
         r=process_catalogue_row(s,p,(enum ae_execution_process_role)role,&snapshot);
         if (r==0) r=ae_execution_process_match(p,e,&snapshot.process);
     }
@@ -2715,13 +2738,13 @@ static int process_catalogue_begin(struct ae_catalogue *s,const struct ae_execut
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=4) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=4 && !(version==5 && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info;
     if (r==0) r=read_info(s,&info);
     int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
     if (r==0 && (memcmp(info.authority_epoch,system ? p->system_epoch : p->broker_epoch,16)!=0 ||
         (!system && memcmp(s->identity.owner,p->account,16)!=0) || memcmp(info.boot_id,p->boot,16)!=0 ||
-        (write && memcmp(info.runtime_incarnation,system ? p->system_runtime : p->broker_runtime,16)!=0))) r=-ESTALE;
+        (write==1 && memcmp(info.runtime_incarnation,system ? p->system_runtime : p->broker_runtime,16)!=0))) r=-ESTALE;
     return r==0 ? 0 : fixture_commit(s,r);
 }
 static int process_catalogue_row(struct ae_catalogue *s,const struct ae_execution_profile *p,enum ae_execution_process_role role,struct ae_execution_process_snapshot *output)
@@ -2829,6 +2852,171 @@ int ae_catalogue_enroll_execution_process(struct ae_catalogue *s,const struct ae
     r=fixture_commit(s,r); if (r==0) *output=result;
     return r;
 }
+static int handoff_begin(struct ae_catalogue *s,const struct ae_execution_profile *p,int write)
+{
+    if (!s || s->identity.kind!=AE_CATALOGUE_SYSTEM) return -EPERM;
+    int r=process_catalogue_begin(s,p,write); if (r!=0) return r;
+    sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=5) r=-EPROTONOSUPPORT;
+    return r==0 ? 0 : fixture_commit(s,r);
+}
+static int handoff_row(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_handoff_snapshot *output)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,
+        "SELECT profile,profile_digest,process_digest,witness,witness_digest,state,original_runtime,boot_id,recorded_unix_ms,"
+        "observer_runtime,observed_unix_ms,retirement_runtime,retiring_unix_ms,retired_runtime,retired_unix_ms,revision FROM execution_handoffs WHERE launch_id=?",-1,&q,NULL));
+    if (r==0) r=failure(sqlite3_bind_blob(q,1,p->launch,16,SQLITE_TRANSIENT));
+    if (r==0) { int code=sqlite3_step(q); if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code); }
+    struct ae_handoff_snapshot result={0}; uint8_t profile[384],expected[384],hash[32],value[32];
+    if (r==0) r=projection_blob(q,0,profile,384);
+    if (r==0) r=ae_execution_encode(p,expected);
+    if (r==0 && memcmp(profile,expected,384)!=0) r=-ESTALE;
+    if (r==0) r=ae_sha256_bytes(profile,384,hash);
+    if (r==0) r=projection_blob(q,1,value,32);
+    if (r==0 && memcmp(hash,value,32)!=0) r=-EUCLEAN;
+    if (r==0) {
+        int size=sqlite3_column_bytes(q,3); const uint8_t *raw=sqlite3_column_blob(q,3);
+        if (sqlite3_column_type(q,3)!=SQLITE_BLOB || size<374 || size>AE_HANDOFF_MAX) r=-EUCLEAN;
+        if (r==0 && ae_handoff_decode(raw,(size_t)size,&result.original)!=0) r=-EUCLEAN;
+        if (r==0) r=ae_sha256_bytes(raw,(size_t)size,hash);
+    }
+    if (r==0) r=projection_blob(q,4,value,32);
+    if (r==0 && memcmp(hash,value,32)!=0) r=-EUCLEAN;
+    if (r==0) r=ae_handoff_match(p,&result.original);
+    struct ae_execution_process_snapshot process;
+    if (r==0) r=process_catalogue_row(s,p,AE_EXECUTION_APP,&process);
+    uint8_t a[AE_EXECUTION_PROCESS_MAX],b[AE_EXECUTION_PROCESS_MAX]; size_t as=0,bs=0;
+    if (r==0) r=ae_execution_process_encode(&process.process,a,sizeof a,&as);
+    if (r==0) r=ae_execution_process_encode(&result.original.process,b,sizeof b,&bs);
+    if (r==0 && (as!=bs || memcmp(a,b,as)!=0)) r=-EUCLEAN;
+    if (r==0) r=ae_sha256_bytes(a,as,hash);
+    if (r==0) r=projection_blob(q,2,value,32);
+    if (r==0 && memcmp(hash,value,32)!=0) r=-EUCLEAN;
+    if (r==0) {
+        const char *state=(const char *)sqlite3_column_text(q,5);
+        const char *states[]={"pending","observed","retiring","retired"};
+        for (int n=0;state && n<4;++n) if (sqlite3_column_type(q,5)==SQLITE_TEXT &&
+            sqlite3_column_bytes(q,5)==(int)strlen(states[n]) && memcmp(state,states[n],strlen(states[n]))==0) result.state=(enum ae_handoff_state)(n+1);
+        if (!result.state) r=-EUCLEAN;
+    }
+    if (r==0) r=projection_blob(q,6,value,16);
+    if (r==0 && memcmp(value,p->system_runtime,16)!=0) r=-EUCLEAN;
+    if (r==0) r=projection_blob(q,7,value,16);
+    if (r==0 && memcmp(value,p->boot,16)!=0) r=-EUCLEAN;
+    if (r==0 && (sqlite3_column_type(q,8)!=SQLITE_INTEGER || sqlite3_column_int64(q,8)<0 ||
+        sqlite3_column_type(q,15)!=SQLITE_INTEGER || sqlite3_column_int64(q,15)<1)) r=-EUCLEAN;
+    if (r==0) { result.recorded_unix_ms=sqlite3_column_int64(q,8); result.revision=sqlite3_column_int64(q,15); }
+    uint8_t *ids[]={result.observer_runtime,result.retirement_runtime,result.retired_runtime};
+    int64_t *times[]={&result.observed_unix_ms,&result.retiring_unix_ms,&result.retired_unix_ms};
+    int present[3]={0};
+    for (int n=0;r==0 && n<3;++n) {
+        int column=9+2*n; present[n]=sqlite3_column_type(q,column)!=SQLITE_NULL;
+        if (!present[n]) { if (sqlite3_column_type(q,column+1)!=SQLITE_NULL) r=-EUCLEAN; continue; }
+        r=projection_blob(q,column,ids[n],16);
+        if (r==0 && ((ids[n][6]>>4)!=4 || (ids[n][8]&0xc0)!=0x80 ||
+            sqlite3_column_type(q,column+1)!=SQLITE_INTEGER || sqlite3_column_int64(q,column+1)<0)) r=-EUCLEAN;
+        if (r==0) *times[n]=sqlite3_column_int64(q,column+1);
+    }
+    if (r==0 && ((result.state==AE_HANDOFF_PENDING && result.revision!=1) ||
+        (result.state!=AE_HANDOFF_PENDING && result.revision<2) || (result.state==AE_HANDOFF_FINISHED && result.revision<3) ||
+        (present[0] && memcmp(result.observer_runtime,p->system_runtime,16)==0) ||
+        (result.state==AE_HANDOFF_PENDING && (present[0] || present[1] || present[2])) ||
+        (result.state==AE_HANDOFF_OBSERVED && (!present[0] || present[1] || present[2])) ||
+        (result.state==AE_HANDOFF_RETIRING && (!present[1] || present[2])) ||
+        (result.state==AE_HANDOFF_FINISHED && (!present[1] || !present[2])))) r=-EUCLEAN;
+    if (r==0 && sqlite3_step(q)!=SQLITE_DONE) r=-EUCLEAN;
+    int final=failure(sqlite3_finalize(q)); if (r==0) r=final;
+    if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_get_handoff(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_handoff_snapshot *output)
+{
+    if (!output) return -EINVAL;
+    int r=handoff_begin(s,p,0); if (r!=0) return r;
+    struct ae_handoff_snapshot result; r=handoff_row(s,p,&result);
+    r=fixture_commit(s,r); if (r==0) *output=result; return r;
+}
+#define HANDOFF_INPUT "WITH h(launch,profile,pdigest,process,witness,digest,original,boot,stamp,current) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)) "
+struct handoff_values { uint8_t profile[384],phash[32],process[32],raw[AE_HANDOFF_MAX],digest[32],runtime[16]; size_t size; int64_t stamp; };
+static int handoff_statement(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct handoff_values *v,const char *sql,int64_t *count)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,sql,-1,&q,NULL));
+    const void *blobs[]={p->launch,v->profile,v->phash,v->process,v->raw,v->digest,p->system_runtime,p->boot,v->runtime};
+    const int columns[]={1,2,3,4,5,6,7,8,10},sizes[]={16,384,32,32,(int)v->size,32,16,16,16};
+    for (size_t n=0;r==0 && n<9;++n) r=failure(sqlite3_bind_blob(q,columns[n],blobs[n],sizes[n],SQLITE_TRANSIENT));
+    if (r==0) r=failure(sqlite3_bind_int64(q,9,v->stamp));
+    if (r==0) {
+        int code=sqlite3_step(q);
+        if (count) {
+            if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -EUCLEAN : failure(code);
+            else if (sqlite3_column_type(q,0)!=SQLITE_INTEGER) r=-EUCLEAN;
+            else { *count=sqlite3_column_int64(q,0); if (sqlite3_step(q)!=SQLITE_DONE) r=-EUCLEAN; }
+        } else { r=code==SQLITE_DONE ? 0 : failure(code); if (r==0 && sqlite3_changes(s->db)!=1) r=-EUCLEAN; }
+    }
+    int final=failure(sqlite3_finalize(q)); return r==0 ? final : r;
+}
+#define HQ(sql,out) handoff_statement(s,p,&v,HANDOFF_INPUT sql,out)
+int ae_catalogue_handoff(struct ae_catalogue *s,const struct ae_execution_profile *p,enum ae_handoff_stage stage,
+    const struct ae_execution_handoff *original,int64_t stamp,struct ae_handoff_result *output)
+{
+    if (!output || !original || stamp<0 || stage<AE_HANDOFF_PREPARE || stage>AE_HANDOFF_RETIRED) return -EINVAL;
+    struct handoff_values v={.stamp=stamp}; int r=ae_handoff_match(p,original);
+    if (r==0) r=ae_handoff_encode(original,v.raw,sizeof v.raw,&v.size);
+    if (r==0) r=ae_sha256_bytes(v.raw,v.size,v.digest);
+    if (r==0) r=ae_execution_encode(p,v.profile);
+    if (r==0) r=ae_sha256_bytes(v.profile,sizeof v.profile,v.phash);
+    uint8_t proc[AE_EXECUTION_PROCESS_MAX]; size_t size=0;
+    if (r==0) r=ae_execution_process_encode(&original->process,proc,sizeof proc,&size);
+    if (r==0) r=ae_sha256_bytes(proc,size,v.process);
+    if (r==0) r=handoff_begin(s,p,stage==AE_HANDOFF_PREPARE ? 1 : 2);
+    if (r!=0) return r;
+    struct ae_catalogue_info info; r=read_info(s,&info); if (r==0) memcpy(v.runtime,info.runtime_incarnation,16);
+    struct ae_handoff_result result={0}; int fresh=0;
+    if (r==0) r=handoff_row(s,p,&result.snapshot);
+    if (r==-ENOENT && stage==AE_HANDOFF_PREPARE) {
+        struct ae_execution_process_snapshot process; r=process_catalogue_row(s,p,AE_EXECUTION_APP,&process);
+        uint8_t bytes[AE_EXECUTION_PROCESS_MAX]; size_t length=0;
+        if (r==0) r=ae_execution_process_encode(&process.process,bytes,sizeof bytes,&length);
+        if (r==0 && (length!=size || memcmp(bytes,proc,size)!=0)) r=-ESTALE;
+        int64_t admitted=0;
+        if (r==0) r=HQ("SELECT count(*) FROM h JOIN launch_dispatches d ON d.launch_id=h.launch JOIN generation_leases l ON l.lease_id=d.lease_id "
+            "WHERE d.state IN ('dispatching','observed') AND l.state='running' AND NOT EXISTS (SELECT 1 FROM run_closures c WHERE c.launch_id=h.launch)",&admitted);
+        if (r==0 && !admitted) r=-EAGAIN;
+        if (r==0) { fresh=1; result.transfer_required=1; }
+    } else if (r==0) {
+        uint8_t bytes[AE_HANDOFF_MAX]; size_t length=0; r=ae_handoff_encode(&result.snapshot.original,bytes,sizeof bytes,&length);
+        if (r==0 && (length!=v.size || memcmp(bytes,v.raw,v.size)!=0)) r=-EEXIST;
+        if (r==0 && stage==AE_HANDOFF_OBSERVE) {
+            if (memcmp(info.runtime_incarnation,p->system_runtime,16)==0) r=-ESTALE;
+            else if (result.snapshot.state>AE_HANDOFF_OBSERVED) r=-EALREADY;
+            else if (memcmp(info.runtime_incarnation,result.snapshot.observer_runtime,16)!=0) fresh=1;
+        } else if (r==0 && stage==AE_HANDOFF_RETIRE && result.snapshot.state<AE_HANDOFF_RETIRING) { fresh=1; result.retire_required=1; }
+        else if (r==0 && stage==AE_HANDOFF_RETIRED) {
+            if (result.snapshot.state<AE_HANDOFF_RETIRING) r=-EAGAIN;
+            else if (result.snapshot.state==AE_HANDOFF_RETIRING) fresh=1;
+        }
+    }
+    if (r==0 && fresh && (info.revision==INT64_MAX || (stage!=AE_HANDOFF_PREPARE && result.snapshot.revision==INT64_MAX))) r=-EOVERFLOW;
+    if (r==0 && fresh && stage>=AE_HANDOFF_RETIRE) {
+        int64_t settled=0;
+        r=HQ("SELECT count(*) FROM h JOIN launch_dispatches d ON d.launch_id=h.launch JOIN generation_leases l ON l.lease_id=d.lease_id "
+            "JOIN run_closures c ON c.launch_id=h.launch WHERE d.state='terminal' AND l.state='released' AND c.state='released' AND c.profile=h.profile",&settled);
+        if (r==0 && !settled) r=-EAGAIN;
+    }
+    if (r==0 && fresh && stage==AE_HANDOFF_PREPARE)
+        r=HQ("INSERT INTO execution_handoffs SELECT launch,2,profile,pdigest,process,witness,digest,'pending',original,boot,stamp,NULL,NULL,NULL,NULL,NULL,NULL,1 FROM h",NULL);
+    else if (r==0 && fresh && stage==AE_HANDOFF_OBSERVE)
+        r=HQ("UPDATE execution_handoffs SET state='observed',observer_runtime=(SELECT current FROM h),observed_unix_ms=(SELECT stamp FROM h),revision=revision+1 WHERE launch_id=(SELECT launch FROM h)",NULL);
+    else if (r==0 && fresh && stage==AE_HANDOFF_RETIRE)
+        r=HQ("UPDATE execution_handoffs SET state='retiring',retirement_runtime=(SELECT current FROM h),retiring_unix_ms=(SELECT stamp FROM h),revision=revision+1 WHERE launch_id=(SELECT launch FROM h)",NULL);
+    else if (r==0 && fresh && stage==AE_HANDOFF_RETIRED)
+        r=HQ("UPDATE execution_handoffs SET state='retired',retired_runtime=(SELECT current FROM h),retired_unix_ms=(SELECT stamp FROM h),revision=revision+1 WHERE launch_id=(SELECT launch FROM h)",NULL);
+    if (r==0 && fresh) r=HQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    if (r==0 && fresh) r=handoff_row(s,p,&result.snapshot);
+    r=fixture_commit(s,r); if (r==0) *output=result; return r;
+}
+#undef HQ
+#undef HANDOFF_INPUT
 #undef EXEC_INPUT
 #undef EXEC_TUPLE
 
@@ -2904,7 +3092,7 @@ static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=3 && version!=4) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=3 && version!=4 && !(version==5 && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     if (r!=0) return fixture_commit(s,r);
     return 0;
 }

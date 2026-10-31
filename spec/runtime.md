@@ -3585,8 +3585,8 @@ The original capability-empty observer exits. The app subsequently exits and its
 cgroup disappears while no observer process exists. A new invocation with a new
 private mount namespace receives all four original handles, restores actual end
 observation, explicitly removes each stored entry, and verifies the store is
-empty. An independent administrative controller retains the original app unit
-throughout; **production unit retention across Root connection loss is not
+empty. An independent administrative controller retains the original custodian
+and app units throughout; **production unit retention across Root connection loss is not
 implemented by this test**. Both observer invocations check all five capability
 sets are empty. The enforcing test runs in the administrative `unconfined_t`
 domain, not a newly authorized production Root recovery domain.
@@ -3603,5 +3603,113 @@ original expectation and handles; they do not authorize another effect, release,
 cleanup or inferred drain. Canonical durable handoff enrollment, exact-set
 reconciliation, original unit retention, confined owner admission and Root/User
 restart settlement remain work. Reboot loses these kernel handles; historical
-v4 evidence alone never restores them. No new daemon, public API or SQL migration
-is introduced.
+v4 evidence alone never restores them. This handle-only boundary adds no daemon
+or public API. The separate optional metadata journal is described below.
+
+## Durable original observation handoff
+
+The separate `catalogue/handoff.h` module defines canonical AETHHND1 metadata and
+the Root-only v5 execution_handoffs journal. It binds a post-exec app's existing
+immutable v4 process witness to the four original lifetime observation objects.
+It does not admit an app, observe a kernel object, adopt a run, restore readiness
+or release a generation lease. The installed authorities do not invoke this API
+or enable a descriptor store. Public XML/capabilities and default v2 creation stay
+unchanged. Early starter/ARM/error-channel recovery remains separate work.
+
+### Original bytes and identity
+
+All integers are big-endian. IDs/inodes/mounts/namespaces use their full unsigned
+64-bit domain; birth seconds use signed 64-bit two's complement. The record is
+bounded to 2560 bytes. Current text limits permit at most 2406 bytes. Reserved
+bytes must be zero, text is bounded ASCII without NUL, and cgroup paths retain
+the existing canonical process-path rules.
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHHND1 |
+| 8 | 16 | Original custodian service invocation |
+| 24, 26 | 2 each | Custodian-name and embedded-process lengths |
+| 28, 36 | 8 each | Original host PID/cgroup namespace observations |
+| 44, 116 | 72 each | Original cgroup-root/group observations |
+| 188, 196 | 8 each | Original event inode and mount |
+| 204, 208, 212 | 4 each | Event mode, UID and GID |
+| 216 | variable | Complete canonical AETHPRC1, then custodian service name |
+
+Each 72-byte directory observation contains mount/inode (8 each), device major,
+minor, UID, GID and mode (4 each), filesystem type (8), raw filesystem ID (8),
+birth-present (1), three zero bytes, birth seconds (8), nanoseconds (4), and four
+zero bytes. Absent birth has zero seconds/nanoseconds. Both directories must be
+cgroup-v2 objects on the same exact mount/filesystem; the group's inode equals
+the original process's cgroup ID. The event is a regular object on that mount.
+These are same-boot held-object facts, never volume/clone authentication.
+
+The embedded app witness preserves its original profile and journal-context
+digest; Root's context digest still binds its original starter evidence. It is
+not reinterpreted as fresh app or replacement-custodian admission. Keep three
+identities distinct: app unit invocation, original custodian unit invocation,
+and Aetheri owner-runtime incarnation. The current observer runtime is recorded
+separately. None of these identifiers can mint its own authority.
+
+### Journal and effect boundary
+
+The original launch/profile/process digest, complete witness/hash, original
+runtime/boot and enrollment time are immutable. The composite foreign key points
+to the existing role-2 execution_processes row. Native reads decode/hash the
+original frame and compare it with that exact process record and profile.
+Same-authority/boot history may be read by a replacement owner; current kernel,
+custodian/image/namespace/transport admission must be checked independently.
+
+| Stage | Required caller evidence and resulting metadata |
+| --- | --- |
+| PREPARE | Original Root runtime, still-running original app tuple and admitted live export; insert pending before transfer |
+| OBSERVE | Replacement current Root, original protected expectations and actual exact delivered-set validation; record last observed runtime |
+| RETIRE | Original run terminal, native lease released and original closure released; commit retiring before external removal |
+| RETIRED | Existing retirement intent plus independently checked actual PID1 slot absence; record retired |
+
+Only a confirmed fresh PREPARE/RETIRE commit returns transfer_required or
+retire_required respectively. Existing-intent retries, including a lost successful
+commit, preserve history and return neither flag. A failed transaction that
+definitely left no intent can subsequently create its first committed intent;
+the caller never dispatches an effect on an error. No notification, descriptor
+close, process action or kernel query occurs inside the transaction.
+
+Pending means intent, **not accepted transport**. A processing barrier is not
+exact-set acceptance. Partial/missing sets and unknown effect acknowledgements
+remain reconciliation work; these APIs do not authorize resubmission. Old and
+new use of shared event-reader descriptions must be serialized. An observation
+row is historical and cannot substitute for currently held/verified handles.
+Repeated replacement runtimes can record observations without replacing the
+original bytes or adopting the old run. Startup still quarantines its dispatch
+and holds its lease. Retirement cannot bypass that unsettled state.
+
+Retirement and its final acknowledgement have separate durable states/runtimes.
+Final confirmation can come from a later admitted current owner after actual
+absence checks. Exact terminal retries never rearm, reopen gates, rewind state
+or change original times. A handoff cannot be pruned before retired; then prune
+it before the referenced process evidence. Full app/operation retention and purge,
+cross-boot reconciliation and production unit retention remain unimplemented.
+
+### Migration and actual test boundaries
+
+V5 is an explicit additive **system-only** v4 upgrade under the same retained
+writer lock/database inode. User has no new table/version; v5 User is unsupported.
+Frozen v1/v2/v3/v4 sources and old data/gates/revisions remain unchanged. Normal
+creation stays v2, opening never migrates, and no old pending work is backfilled.
+Unknown migration acknowledgements inspect actual v4/v5, never restore a backup
+over a possibly committed database. No new dependency family or daemon is added.
+
+Native metadata tests cover lost commits, every migration/mutation write,
+process exits, repeated owner-runtime replacement, wrong origin, overflow,
+immutable/retention constraints and actual database-byte corruption. Their
+process/transport/absence inputs are controlled metadata, not Linux or caller
+admission evidence. The independent Python encoder and frozen vector verify
+byte agreement, including full-width IDs, optional birth and signed time bounds.
+
+The real component-service restart test now persists this canonical frame before
+PID1 transfer instead of a native C structure. Its controller checks the original
+custodian, and the replacement checks the same unit with a different invocation
+before restoring exact original handles and observing end. Its explicit synthetic
+component-profile digests and UID-0 test app are not accepted as the fixed UID-1000
+execution profile by ae_handoff_match. This proves portable original expectations
+in the actual bounded handoff, not an installed confined Root producer/receiver or
+Root/User recovery coordinator. Connecting those boundaries remains work.

@@ -262,7 +262,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - catalogue/execution.h now persists immutable AETHPRC1 process observations in
   explicit v4 execution_processes. Read spec/runtime.md's durable enrollment;
   run catalogue.processes and contract/migration tests. Freeze v1/v2/v3 SQL/wire;
-  normal create stays v2 and open validates exact v2/v3/v4 without migrating.
+  normal create stays v2 and open validates exact v2/v3/v4 (Root also v5) without migrating.
   upgrade_processes is an explicit quiesced-owner v3-to-v4 action under the same
   retained lock; no existing rows/revisions/gates change or missing evidence is
   backfilled. Root starter precedes ARM, Root app retains that exact kernel
@@ -291,7 +291,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
 - catalogue/lifetime.h now journals successful original-run closure separately
   in explicit v3 run_closures. Read spec/README.md and spec/runtime.md's separate
   durable run closure section; run catalogue.lifetime. Keep frozen v1/v2 SQL and
-  wire unchanged. Native create stays v2, open validates exact v2/v3/v4 without
+  wire unchanged. Native create stays v2, open validates exact v2/v3/v4 (Root also v5) without
   migrating; upgrade_lifetimes is an explicit quiesced-owner action under the
   retained writer lock. It adds no rows/admission/revisions to existing tables.
   Never restore a backup after unknown commit. A completed start operation,
@@ -431,8 +431,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   group disappearance, with capability-empty administrative unconfined_t services.
   Its four-entry store uses FDPOLL=0 and explicit retirement; a barrier is not set
   acceptance. The independent test controller retains the original unit. No normal
-  Root FD store, durable handoff journal, production unit retention or Root/User
-  recovery is implemented; the app FD store stays forbidden. Preserve uncertainty.
+  Root FD store, production unit retention or Root/User recovery is implemented;
+  the separate journal below does not enable them. The app FD store stays forbidden.
+  Preserve uncertainty.
+- catalogue/handoff.h adds canonical AETHHND1 and an explicit Root-only v5
+  journal linked to the original v4 app witness. Read spec/runtime.md's durable
+  handoff section. User remains v4; normal create remains v2, open never migrates,
+  and frozen v1/v2/v3/v4 SQL/wires stay unchanged. Existing-intent retries/lost
+  successful commits never permit another transfer/retirement effect. Current
+  observer incarnations cannot replace the origin, adopt a run, restore readiness
+  or release leases; retired retries never rearm. Actual descriptor-set/absence
+  and protected custodian admission remain caller obligations. The real component
+  uses the canonical frame with explicit synthetic digests/UID0; it is not a fixed
+  UID1000 execution-profile admission. No installed Root producer/receiver,
+  production unit retention, partial-set or early-starter recovery is implied.
+  Run catalogue.handoffs and the existing linux.lifetime_handoff component test.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

@@ -11,6 +11,25 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_handoff_vector_and_adversarial_inputs(self):
+        vector=rc.load_json((ROOT/'spec/vectors/execution-handoff-v1.json').read_bytes())
+        data=rc.execution_handoff(vector['input'])
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_execution_handoff(data),vector['input'])
+        for key,value in (('custodian','x'),('custodian','/bad.service'),('custodian','bad space.service'),('custodian','x'*256),('custodian_invocation','00'*16),
+                          ('pid_namespace',0),('pid_namespace',2**64),('cgroup_namespace',False),('events_inode',0),('events_mode',0o040755),('events_mount',1)):
+            v=deepcopy(vector['input']); v[key]=value; self.rejects(rc.execution_handoff,v)
+        for which,key,value in (('root','filesystem_type',0),('root','filesystem_type',float(0x63677270)),('root','birth_present',1),('root','birth_seconds',1),('root','mode',0o100600),
+                                ('group','inode',1),('group','filesystem_id','00'*8),('group','birth_nanoseconds',10**9),('group','birth_seconds',-2**63-1),('process','role',1)):
+            v=deepcopy(vector['input']); v[which][key]=value; self.rejects(rc.execution_handoff,v)
+        for n in range(len(data)): self.rejects(rc.read_execution_handoff,data[:n])
+        for offset in (0,24,26,97,184,257):
+            bad=bytearray(data); bad[offset]=255; self.rejects(rc.read_execution_handoff,bytes(bad))
+        self.rejects(rc.read_execution_handoff,data+b'\0')
+        for seconds in (-1,-2**63,2**63-1):
+            value=deepcopy(vector['input']); value['group']['birth_seconds']=seconds
+            self.assertEqual(rc.read_execution_handoff(rc.execution_handoff(value)),value)
+
     def test_execution_process_vector_and_bounds(self):
         vector=rc.load_json((ROOT/'spec/vectors/execution-process-v1.json').read_bytes())
         data=rc.execution_process(vector['input'])

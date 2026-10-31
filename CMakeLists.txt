@@ -39,8 +39,9 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
             spec/schema/common-v2.sql spec/schema/system-v2.sql spec/schema/user-v2.sql
             spec/schema/common-v3.sql spec/schema/system-v3.sql spec/schema/user-v3.sql
             spec/schema/common-v4.sql spec/schema/system-v4.sql spec/schema/user-v4.sql
+            spec/schema/system-v5.sql
     VERBATIM)
-add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/lifetime.c "${AETHERI_SCHEMA_SOURCE}")
+add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
 target_compile_definitions(aetheri_catalogue PRIVATE _GNU_SOURCE)
 target_compile_options(aetheri_catalogue PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -172,6 +173,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.processes COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" processes)
     set_tests_properties(catalogue.processes PROPERTIES TIMEOUT 240)
+    add_test(NAME catalogue.handoffs COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" handoffs)
+    set_tests_properties(catalogue.handoffs PROPERTIES TIMEOUT 600)
     add_executable(test_reservation tests/test_reservation.c)
     target_compile_definitions(test_reservation PRIVATE _GNU_SOURCE)
     target_compile_options(test_reservation PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -410,7 +414,7 @@ if(BUILD_TESTING)
             add_executable(test_lifetime_handoff tests/test_lifetime_handoff.c)
             target_compile_definitions(test_lifetime_handoff PRIVATE _GNU_SOURCE)
             target_compile_options(test_lifetime_handoff PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
-            target_link_libraries(test_lifetime_handoff PRIVATE aetheri_linux)
+            target_link_libraries(test_lifetime_handoff PRIVATE aetheri_linux aetheri_catalogue)
             add_test(NAME linux.lifetime_handoff COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lifetime_native.py" $<TARGET_FILE:test_lifetime_handoff> "${CMAKE_CURRENT_BINARY_DIR}" handoff)
             set_tests_properties(linux.lifetime_handoff PROPERTIES TIMEOUT 100)
