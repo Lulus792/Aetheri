@@ -29,6 +29,7 @@ CONFIG=Path('/etc/dbus-1/system.d/91-aetheri-p0-execution-runtime.conf')
 ROOT_UNIT='aetheri-p0-execution-root.service'
 USER_UNIT='aetheri-p0-execution-user.service'
 REJECT_UNIT='aetheri-p0-execution-user-reject.service'
+HOLD_UNIT='aetheri-p0-execution-hold.target'
 SOURCE=Path(__file__).resolve().parents[1]
 
 def run(*args,timeout=60):
@@ -94,12 +95,41 @@ def capture(path):
 def drained(unit):
     facts=dict(x.split('=',1) for x in run('systemctl','show',unit,'--property=ActiveState,MainPID,ControlGroup').splitlines())
     jobs=json.loads(run('busctl','--system','--json=short','call','org.freedesktop.systemd1','/org/freedesktop/systemd1','org.freedesktop.systemd1.Manager','ListJobs'))
-    if facts['ActiveState'] not in ('inactive','failed') or facts['MainPID']!='0' or facts['ControlGroup'] or any(x[1]==unit for x in jobs['data'][0]):
+    if (facts['ActiveState'] not in ('inactive','failed') or
+            (unit!=HOLD_UNIT and (facts['MainPID']!='0' or facts['ControlGroup'])) or any(x[1]==unit for x in jobs['data'][0])):
         raise RuntimeError('owned process/unit/cgroup/job not drained: '+unit)
     return facts['ActiveState']
 def unit_file(unit):
+    if unit==HOLD_UNIT: return Path('/run/systemd/system')/unit
     if not unit.endswith('.service') or '/' in unit or unit.endswith('.service.service'): raise ValueError('fixed service name required')
     return Path('/run/systemd/system')/unit
+
+def check_hold(record,app_unit):
+    st=unit_file(HOLD_UNIT).lstat()
+    if list((st.st_dev,st.st_ino,st.st_uid,st.st_gid,st.st_mode,st.st_nlink))!=record['hold_object']:
+        raise RuntimeError('original retention fragment object replaced')
+    keys=('Id','ActiveState','InvocationID','FragmentPath','NeedDaemonReload','Transient','After','Wants','Requires','Requisite','BindsTo','PartOf','Upholds','OnFailure','OnSuccess','Triggers','TriggeredBy','PropagatesStopTo','PropagatesReloadTo')
+    facts=dict(x.split('=',1) for x in run('systemctl','show',HOLD_UNIT,'--property='+','.join(keys)).splitlines())
+    if (facts['Id']!=HOLD_UNIT or facts['ActiveState']!='active' or facts['FragmentPath']!=str(unit_file(HOLD_UNIT)) or
+            facts['NeedDaemonReload']!='no' or facts['Transient']!='no' or len(facts['InvocationID'])!=32 or int(facts['InvocationID'],16)==0 or
+            facts['After'].split().count(ROOT_UNIT)!=1 or facts['After'].split().count(app_unit)!=1 or
+            any(facts[key] for key in keys[7:])):
+        raise RuntimeError('original retention target/configuration changed')
+    if 'hold_invocation' in record and record['hold_invocation']!=facts['InvocationID']: raise RuntimeError('retention target invocation replaced')
+    if sha(unit_file(HOLD_UNIT))!=record['unit_hashes'][HOLD_UNIT]: raise RuntimeError('retention fragment replaced')
+    return facts['InvocationID']
+
+def validate_recovered(value,record,profile):
+    if (type(value) is not dict or set(value)!= {'root_pid','root_invocation','runtime','handoff_sha256','revision','end'} or
+            value['root_pid']!=record['replacement_pid'] or value['root_invocation']!=record['replacement_invocation'] or
+            value['runtime']==profile[24:40].hex() or value['revision']!=4 or
+            type(value['runtime']) is not str or len(value['runtime'])!=32 or any(c not in '0123456789abcdef' for c in value['runtime']) or int(value['runtime'],16)==0 or
+            type(value['handoff_sha256']) is not str or len(value['handoff_sha256'])!=64 or any(c not in '0123456789abcdef' for c in value['handoff_sha256'])):
+        raise RuntimeError('uncorrelated replacement observation')
+    old=record['native_end']; validate_native_end(value['end'],old['invocation'],old['boot'])
+    if (any(value['end'][key]!=old[key] for key in ('pid','cgroup_id','unit_failed')) or
+            (old['group_removed'] and not value['end']['group_removed'])):
+        raise RuntimeError('replacement observed a different original app')
 
 def require_empty_capabilities(pid):
     fields={line.split(':',1)[0]:line.split(':',1)[1].strip() for line in Path('/proc',str(pid),'status').read_text().splitlines() if ':' in line}
@@ -198,6 +228,114 @@ def retire(record,*,prelaunch_failure=False):
     for parent,dirs,files in os.walk(ROOT,followlinks=False):
         if not Path(parent).is_symlink(): Path(parent).chmod(0o700)
     shutil.rmtree(ROOT)
+def complete_handoff(record,work):
+    app_unit="aetheri-app-"+identity(31).hex()+".service"
+    verify_static(record); drained(ROOT_UNIT)
+    check_hold(record,app_unit)
+    if run('systemctl','show',ROOT_UNIT,'-p','NFileDescriptorStore','--value')!='4': raise RuntimeError('original Root store did not retain four handles')
+    with closing(sqlite3.connect(f'file:{work/"system/catalogue.sqlite3"}?mode=ro',uri=True)) as db:
+        if (db.execute('SELECT state FROM generation_leases').fetchall()!=[('released',)] or
+                db.execute('SELECT state,revision FROM execution_handoffs').fetchall()!=[('pending',1)]):
+            raise RuntimeError('completed original run/pending transfer not retained')
+    record['pending']='root-replacement'; save(record); run('systemctl','start',ROOT_UNIT)
+    fresh=dict(x.split('=',1) for x in run('systemctl','show',ROOT_UNIT,'--property=ActiveState,MainPID,InvocationID').splitlines())
+    if fresh['ActiveState']!='active' or int(fresh['MainPID'])<1 or fresh['InvocationID']==record['root_invocation']: raise RuntimeError('not a replacement Root invocation')
+    replacement_pin=os.pidfd_open(int(fresh['MainPID']))
+    try:
+        record.update(replacement_pid=int(fresh['MainPID']),replacement_invocation=fresh['InvocationID'])
+        record['replacement_capabilities']=require_empty_capabilities(record['replacement_pid']); record['pending']='recover-handoff'; save(record)
+        verify_static(record); check_hold(record,app_unit)
+        output=run(str(ROOT/'driver'),'recover',str(work),timeout=15); print(output)
+        observations=[json.loads(line.removeprefix('AETHERI_HANDOFF ')) for line in output.splitlines() if line.startswith('AETHERI_HANDOFF ')]
+        if len(observations)!=1: raise RuntimeError('missing/ambiguous replacement observation')
+        validate_recovered(observations[0],record,(work/'registry/execution.conf').read_bytes())
+        record['recovered']=observations[0]; save(record)
+        if run('systemctl','show',ROOT_UNIT,'-p','NFileDescriptorStore','--value')!='0': raise RuntimeError('original stored handles not retired')
+        check_hold(record,app_unit); run('systemctl','stop',ROOT_UNIT)
+        terminal=select.poll(); terminal.register(replacement_pin,select.POLLIN)
+        if not terminal.poll(10000): raise RuntimeError('replacement Root not dead')
+        drained(ROOT_UNIT)
+        record['pending']='retention-stop'; save(record); run('systemctl','stop',HOLD_UNIT); drained(HOLD_UNIT)
+        record['pending']=None; save(record)
+    finally: os.close(replacement_pin)
+
+def archive_completed(record,work,driver,ordinary):
+    handoff=record.get("handoff",False)
+    verify_static(record); quiet_normal(ordinary)
+    with closing(sqlite3.connect('file:'+str(work/'system/catalogue.sqlite3')+'?mode=ro',uri=True)) as db:
+        if db.execute("SELECT state FROM generation_leases").fetchall()!=[('released',)]: raise RuntimeError('missing native lifetime settlement')
+        if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('catalogue corruption')
+        record['steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
+        record['app_invocation']=db.execute('SELECT lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()[0]
+        if db.execute('SELECT state FROM launch_dispatches').fetchall()!=[('terminal',)]: raise RuntimeError('missing native terminal dispatch')
+        if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(7)]: raise RuntimeError('missing Root execution/completion steps')
+        if db.execute('SELECT state,outcome,reason_code,result_kind FROM operations').fetchall()!=[('completed','applied','exec_channel_unknown','launch')]: raise RuntimeError('missing Root launch result or channel diagnostic')
+        value={}
+        value.update(zip(('system_epoch','system_runtime','boot'),db.execute('SELECT lower(hex(authority_epoch)),lower(hex(runtime_incarnation)),lower(hex(current_boot_id)) FROM authority_meta').fetchone()))
+        if handoff:
+            if value['system_runtime']!=record['recovered']['runtime']: raise RuntimeError('replacement runtime not committed')
+            # Immutable start receipts belong to the ORIGINAL runtime.
+            value['system_runtime']=(work/'registry/execution.conf').read_bytes()[24:40].hex()
+        value.update(zip(('operation','revision','completed_unix_ms'),db.execute('SELECT lower(hex(operation_id)),revision,completed_unix_ms FROM operations').fetchone()))
+        value.update(zip(('launch','lease','invocation'),db.execute('SELECT lower(hex(launch_id)),lower(hex(lease_id)),lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()))
+        validate_native_end(record['native_end'],value['invocation'],value['boot'])
+        value['profile_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=1').fetchone()[0]
+        value['observation_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=5').fetchone()[0]
+        completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
+        if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
+        if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
+        if db.execute('PRAGMA user_version').fetchone()[0]!=5: raise RuntimeError('wrong Root handoff schema')
+        handoff_rows=db.execute('SELECT witness,witness_digest,state,original_runtime,observer_runtime,revision FROM execution_handoffs').fetchall()
+        if len(handoff_rows)!=1: raise RuntimeError('missing or ambiguous native handoff intent')
+        wire,digest,state,origin,observer,revision=handoff_rows[0]; original=reference.read_execution_handoff(wire)
+        process=db.execute('SELECT witness FROM execution_processes WHERE role=2').fetchone()[0]
+        if (digest!=hashlib.sha256(wire).digest() or reference.execution_process(original['process'])!=process or
+                original['custodian']!=ROOT_UNIT or original['custodian_invocation']!=record['root_invocation'] or
+                state!='retired' or origin.hex()!=value['system_runtime'] or
+                (observer.hex() if observer is not None else None)!=(record['recovered']['runtime'] if handoff else None) or revision!=(4 if handoff else 3)):
+            raise RuntimeError('native handoff expectation/origin/retirement differs')
+        if handoff and digest.hex()!=record['recovered']['handoff_sha256']: raise RuntimeError('replacement reply changed original expectation')
+        record['handoff_witness_sha256']=digest.hex()
+        root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
+        if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
+                root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')
+        root_begin,user_quiet,root_end=(reference.read_run_receipt(root_closure[n]) for n in (5,6,8))
+        chain=completion_hash
+        for kind,receipt,wire in zip(('root_closing','user_quiet','root_released'),(root_begin,user_quiet,root_end),(root_closure[5],root_closure[6],root_closure[8])):
+            if receipt['kind']!=kind or receipt['previous_digest']!=chain or receipt['profile_digest']!=value['profile_digest'] or receipt['invocation']!=value['invocation']: raise RuntimeError('uncorrelated lifetime receipt chain')
+            chain=hashlib.sha256(wire).hexdigest()
+        if root_begin['evidence_digest']!=root_closure[2].hex() or root_end['evidence_digest']!=root_closure[7].hex(): raise RuntimeError('wrong lifetime evidence binding')
+        end_value=dict(profile_digest=value['profile_digest'],context_digest=root_closure[2].hex(),**record['native_end'])
+        acceptable={hashlib.sha256(reference.run_end(end_value)).digest()}
+        if not end_value['group_removed']:
+            end_value['group_removed']=True; acceptable.add(hashlib.sha256(reference.run_end(end_value)).digest())
+        if root_closure[7] not in acceptable: raise RuntimeError('native end digest differs from actual original process observation')
+        process_identity,process_hashes=validate_process_rows(db,root_closure[0],'system',record['native_end'])
+        record['process_witness_sha256']={'system':process_hashes}
+    evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
+    shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
+    (evidence/'launch-completion.bin').write_bytes(completion); record['completion_sha256']=completion_hash
+    (evidence/'run-close-receipts.bin').write_bytes(root_closure[5]+root_closure[6]+root_closure[8])
+    record['lifetime_receipt_sha256']=[hashlib.sha256(root_closure[n]).hexdigest() for n in (5,6,8)]
+    user_database=work/record['user_catalogue_rel']
+    with closing(sqlite3.connect('file:'+str(user_database)+'?mode=ro',uri=True)) as db:
+        if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('User catalogue corruption')
+        if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('exited','unavailable',record['app_invocation'])]: raise RuntimeError('missing User lifetime acknowledgement')
+        if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(5)]: raise RuntimeError('missing User launch completion')
+        if db.execute('SELECT state,outcome,result_kind,lower(hex(result_ref)) FROM operations').fetchall()!=[('completed','applied','launch',value['launch'])]: raise RuntimeError('wrong User launch result')
+        if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=4').fetchone()[0]!=completion_hash or db.execute('SELECT state FROM operation_links').fetchall()!=[('completed',)]: raise RuntimeError('unacknowledged Root result')
+        record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
+        user_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
+        if user_closure is None or user_closure[:2]!=root_closure[:2] or user_closure[3:]!=root_closure[3:] or user_quiet['evidence_digest']!=user_closure[2].hex(): raise RuntimeError('User lifetime journal not correlated with actual Root release')
+        user_identity,user_hashes=validate_process_rows(db,root_closure[0],'user',record['native_end'])
+        if user_identity!=process_identity: raise RuntimeError('Root/User original kernel identities differ')
+        record['process_witness_sha256']['user']=user_hashes
+    shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
+    record.update(state='passed',evidence=str(evidence)); save(record)
+    (evidence/'report.json').write_text(json.dumps(record,indent=2)+'\n')
+    retire(record)
+    print('Live integration passed: native Root terminal/released and User exited; immutable start results and separate lifetime receipts archived. Exact test fixture retired; no general recovery/removal acceptance.')
+
 def main():
     import fcntl
     if sys.platform!='linux' or os.geteuid()!=0 or not Path('/sys/firmware/efi').is_dir() or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri P0 disposable VM' or run('getenforce')!='Enforcing':
@@ -205,7 +343,9 @@ def main():
     lock=os.open('/etc/aetheri-p0-carrier',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     if sys.argv[1:]==['--retire']:
         record=json.loads((ROOT/'controller.json').read_text()); retire(record); return
-    driver,starter,payload,observer=map(lambda x:Path(x).resolve(strict=True),sys.argv[1:])
+    arguments=sys.argv[1:]; handoff=arguments[-1:]==['--handoff']
+    if handoff: arguments=arguments[:-1]
+    driver,starter,payload,observer=map(lambda x:Path(x).resolve(strict=True),arguments)
     for path in (driver,starter,payload):
         if b'libasan.so' in path.read_bytes(): raise RuntimeError('use Release binaries for the confined probe')
     ordinary=normal.load(); quiet_normal(ordinary)
@@ -214,10 +354,10 @@ def main():
     if run('busctl','--system','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','NameHasOwner','s','org.aetheri.System1')!='b false':
         raise RuntimeError('normal System1 must be unowned')
     app_unit='aetheri-app-'+identity(31).hex()+'.service'
-    for unit in (ROOT_UNIT,USER_UNIT,REJECT_UNIT,app_unit):
+    for unit in (ROOT_UNIT,USER_UNIT,REJECT_UNIT,app_unit)+((HOLD_UNIT,) if handoff else ()):
         if run('systemctl','show',unit,'--property=LoadState','--value')!='not-found' or unit_file(unit).exists(): raise RuntimeError('foreign unit slot')
     ROOT.mkdir(mode=0o700); run('restorecon',str(ROOT))
-    record=dict(token=uuid.uuid4().hex,state='preparing',pending=None,static_hashes={},unit_hashes={},seeded=False)
+    record=dict(token=uuid.uuid4().hex,state='preparing',pending=None,static_hashes={},unit_hashes={},seeded=False,handoff=handoff)
     save(record)
     try:
         policy=ROOT/(MODULE+'.cil'); policy.write_bytes((SOURCE/'policy/p0-execution-runtime.cil').read_bytes()); policy.chmod(0o600)
@@ -270,12 +410,22 @@ MemoryMax=96M
 TasksMax=1
 UMask=0077
 '''
-        write_unit(ROOT_UNIT,'[Service]\nType=notify\n'+common+'SELinuxContext=system_u:system_r:aetheri_system_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart='+str(ROOT/'driver')+' serve\n',record)
+        store_options='FileDescriptorStoreMax=4\nFileDescriptorStorePreserve=yes\nNotifyAccess=main\n' if handoff else ''
+        write_unit(ROOT_UNIT,'[Service]\nType=notify\n'+common+store_options+'SELinuxContext=system_u:system_r:aetheri_system_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart='+str(ROOT/'driver')+(' serve-handoff\n' if handoff else ' serve\n'),record)
         write_unit(app_unit,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=exec\n'+common+'SELinuxContext=system_u:system_r:aetheri_starter_t:s0\nCapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_SETPCAP\nAmbientCapabilities=CAP_SETUID\nExecStart=/var/lib/aetheri-p0/execution-starter\n',record)
         user_common=common.replace('User=root\nGroup=root\n','User=aetheri\nGroup=aetheri\n')+'SELinuxContext=system_u:system_r:aetheri_user_t:s0\nCapabilityBoundingSet=\nAmbientCapabilities=\nExecStart=/var/lib/aetheri-p0/user-broker '
         write_unit(USER_UNIT,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=notify\n'+user_common+'user-serve\n',record)
         write_unit(REJECT_UNIT,'[Unit]\nBindsTo='+ROOT_UNIT+'\nAfter='+ROOT_UNIT+'\n[Service]\nType=oneshot\n'+user_common+'user-deny\n',record)
+        if handoff:
+            write_unit(HOLD_UNIT,'[Unit]\nDescription=Aetheri original execution observation retention\nAfter='+ROOT_UNIT+' '+app_unit+'\n',record)
+            st=unit_file(HOLD_UNIT).lstat(); record['hold_object']=[st.st_dev,st.st_ino,st.st_uid,st.st_gid,st.st_mode,st.st_nlink]
+            if record['hold_object'][2:]!=[0,0,stat.S_IFREG|0o644,1]: raise RuntimeError('unexpected new retention fragment ownership')
+            save(record)
         flush_tree(ROOT); run('systemctl','daemon-reload'); run('busctl','--system','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','ReloadConfig')
+        if handoff:
+            record['pending']='retention-start'; save(record); run('systemctl','start',HOLD_UNIT)
+            record['hold_invocation']=check_hold(record,app_unit); save(record)
+            for unit in (ROOT_UNIT,app_unit): drained(unit)
         record['pending']='root-start'; save(record); run('systemctl','start',ROOT_UNIT)
         facts=dict(x.split('=',1) for x in run('systemctl','show',ROOT_UNIT,'--property=ActiveState,MainPID,InvocationID').splitlines())
         if facts['ActiveState']!='active' or int(facts['MainPID'])<1: raise RuntimeError('unknown Root start')
@@ -305,77 +455,11 @@ UMask=0077
             run('systemctl','stop',ROOT_UNIT); poll=select.poll(); poll.register(root_pin,select.POLLIN)
             if not poll.poll(10000): raise RuntimeError('original Root process not dead')
             drained(ROOT_UNIT)
+            if handoff: complete_handoff(record,work)
         finally:
             if user_pin>=0: os.close(user_pin)
             os.close(root_pin)
-        verify_static(record); quiet_normal(ordinary)
-        with closing(sqlite3.connect('file:'+str(work/'system/catalogue.sqlite3')+'?mode=ro',uri=True)) as db:
-            if db.execute("SELECT state FROM generation_leases").fetchall()!=[('released',)]: raise RuntimeError('missing native lifetime settlement')
-            if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('catalogue corruption')
-            record['steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
-            record['app_invocation']=db.execute('SELECT lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()[0]
-            if db.execute('SELECT state FROM launch_dispatches').fetchall()!=[('terminal',)]: raise RuntimeError('missing native terminal dispatch')
-            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(7)]: raise RuntimeError('missing Root execution/completion steps')
-            if db.execute('SELECT state,outcome,reason_code,result_kind FROM operations').fetchall()!=[('completed','applied','exec_channel_unknown','launch')]: raise RuntimeError('missing Root launch result or channel diagnostic')
-            value={}
-            value.update(zip(('system_epoch','system_runtime','boot'),db.execute('SELECT lower(hex(authority_epoch)),lower(hex(runtime_incarnation)),lower(hex(current_boot_id)) FROM authority_meta').fetchone()))
-            value.update(zip(('operation','revision','completed_unix_ms'),db.execute('SELECT lower(hex(operation_id)),revision,completed_unix_ms FROM operations').fetchone()))
-            value.update(zip(('launch','lease','invocation'),db.execute('SELECT lower(hex(launch_id)),lower(hex(lease_id)),lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()))
-            validate_native_end(record['native_end'],value['invocation'],value['boot'])
-            value['profile_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=1').fetchone()[0]
-            value['observation_digest']=db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=5').fetchone()[0]
-            completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
-            if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
-            if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
-            if db.execute('PRAGMA user_version').fetchone()[0]!=5: raise RuntimeError('wrong Root handoff schema')
-            handoff=db.execute('SELECT witness,witness_digest,state,original_runtime,observer_runtime,revision FROM execution_handoffs').fetchall()
-            if len(handoff)!=1: raise RuntimeError('missing or ambiguous native handoff intent')
-            wire,digest,state,origin,observer,revision=handoff[0]; original=reference.read_execution_handoff(wire)
-            process=db.execute('SELECT witness FROM execution_processes WHERE role=2').fetchone()[0]
-            if (digest!=hashlib.sha256(wire).digest() or reference.execution_process(original['process'])!=process or
-                    original['custodian']!=ROOT_UNIT or original['custodian_invocation']!=record['root_invocation'] or
-                    state!='retired' or origin.hex()!=value['system_runtime'] or observer is not None or revision!=3):
-                raise RuntimeError('native handoff expectation/origin/retirement differs')
-            record['handoff_witness_sha256']=digest.hex()
-            root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
-            if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
-                    root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')
-            root_begin,user_quiet,root_end=(reference.read_run_receipt(root_closure[n]) for n in (5,6,8))
-            chain=completion_hash
-            for kind,receipt,wire in zip(('root_closing','user_quiet','root_released'),(root_begin,user_quiet,root_end),(root_closure[5],root_closure[6],root_closure[8])):
-                if receipt['kind']!=kind or receipt['previous_digest']!=chain or receipt['profile_digest']!=value['profile_digest'] or receipt['invocation']!=value['invocation']: raise RuntimeError('uncorrelated lifetime receipt chain')
-                chain=hashlib.sha256(wire).hexdigest()
-            if root_begin['evidence_digest']!=root_closure[2].hex() or root_end['evidence_digest']!=root_closure[7].hex(): raise RuntimeError('wrong lifetime evidence binding')
-            end_value=dict(profile_digest=value['profile_digest'],context_digest=root_closure[2].hex(),**record['native_end'])
-            acceptable={hashlib.sha256(reference.run_end(end_value)).digest()}
-            if not end_value['group_removed']:
-                end_value['group_removed']=True; acceptable.add(hashlib.sha256(reference.run_end(end_value)).digest())
-            if root_closure[7] not in acceptable: raise RuntimeError('native end digest differs from actual original process observation')
-            process_identity,process_hashes=validate_process_rows(db,root_closure[0],'system',record['native_end'])
-            record['process_witness_sha256']={'system':process_hashes}
-        evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
-        shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
-        (evidence/'launch-completion.bin').write_bytes(completion); record['completion_sha256']=completion_hash
-        (evidence/'run-close-receipts.bin').write_bytes(root_closure[5]+root_closure[6]+root_closure[8])
-        record['lifetime_receipt_sha256']=[hashlib.sha256(root_closure[n]).hexdigest() for n in (5,6,8)]
-        user_database=work/record['user_catalogue_rel']
-        with closing(sqlite3.connect('file:'+str(user_database)+'?mode=ro',uri=True)) as db:
-            if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('User catalogue corruption')
-            if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('exited','unavailable',record['app_invocation'])]: raise RuntimeError('missing User lifetime acknowledgement')
-            if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(5)]: raise RuntimeError('missing User launch completion')
-            if db.execute('SELECT state,outcome,result_kind,lower(hex(result_ref)) FROM operations').fetchall()!=[('completed','applied','launch',value['launch'])]: raise RuntimeError('wrong User launch result')
-            if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=4').fetchone()[0]!=completion_hash or db.execute('SELECT state FROM operation_links').fetchall()!=[('completed',)]: raise RuntimeError('unacknowledged Root result')
-            record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
-            user_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
-            if user_closure is None or user_closure[:2]!=root_closure[:2] or user_closure[3:]!=root_closure[3:] or user_quiet['evidence_digest']!=user_closure[2].hex(): raise RuntimeError('User lifetime journal not correlated with actual Root release')
-            user_identity,user_hashes=validate_process_rows(db,root_closure[0],'user',record['native_end'])
-            if user_identity!=process_identity: raise RuntimeError('Root/User original kernel identities differ')
-            record['process_witness_sha256']['user']=user_hashes
-        shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
-        record.update(state='passed',evidence=str(evidence)); save(record)
-        (evidence/'report.json').write_text(json.dumps(record,indent=2)+'\n')
-        retire(record)
-        print('Live integration passed: native Root terminal/released and User exited; immutable start results and separate lifetime receipts archived. Exact test fixture retired; no general recovery/removal acceptance.')
+        archive_completed(record,work,driver,ordinary)
     except BaseException as error:
         if isinstance(error,subprocess.CalledProcessError): print(error.output,file=sys.stderr)
         for unit in record['unit_hashes']:

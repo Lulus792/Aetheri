@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — actual original handles joined to the Root handoff journal.
+31 October 2026 — confined PID1 handle transfer and Root replacement.
 
 ## Confirmed
 
@@ -13,6 +13,50 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The private handoff module now sends only after fresh PREPARE, admits an exact
+four-name PID1 inventory before actual restore/OBSERVE, and removes stored handles
+only after fresh retirement intent. Unknown/partial effects remain pending with
+no automatic repeat. Completed retirement is historical and never changes a later
+store. The new adapter cases use real owner SQL and controlled supervisor edges;
+the actual confined test supplies real kernel/descriptor-store evidence.
+
+The opt-in --handoff integration sends actual UID1000 app observation handles
+from capability-empty Root while the app is live. Original Root/User complete
+normal run closure before Root replacement. A protected process-free target
+retains original unit history; the new Root receives/validates the four originals,
+observes original end in a new PrivateMounts namespace, and retires the pending
+handoff/store at revision 4. No app restart or native lease adoption is performed.
+The default unsubmitted integration still retires at revision 3.
+See [confined transfer](../../spec/runtime.md#confined-transfer-after-a-completed-run).
+
+The first replacement's pidfs_t filesystem getattr denial preserved the same
+intent, original witness and four stored handles. A recorded minimal policy
+repair allowed a later invocation to finish that same handoff. A fresh automated
+handoff run and the normal baseline both pass after a test-auditor variable
+shadowing fix. The temporary extension permits PID1 fd use/barrier pipe write
+and Root pidfs metadata observation, with no capability, ptrace, namespace entry
+or Root error-pipe read grant. The exact test infrastructure is retired.
+
+Recovery while a run is active, Root/User settlement, partial-set reconciliation,
+early failure and production provisioning/admission remain work. Normal v2 gates,
+public capabilities and the app's no-store boundary remain unchanged. The older
+namespace-denied attempt's held history remains protected in guest quarantine.
+The desktop/apps/image/hardware requirements remain the full objective.
+
+Final automatic normal and --handoff runs both pass. The original failure was
+also continued successfully with the same intent, not replaced by a fresh run.
+Debug ASan/UBSan bridge/transport groups pass 2/2 (68.54 s); Release bridge,
+transport and existing coordinator/endpoint groups pass 4/4 (172.69 s).
+Read-only checks confirm enforcing policy, no temporary execution/hold units or
+module/bus configuration, normal v2 Root/User with two closed gates each and
+pending=None/no unsettled normal lease. These are functional/confinement checks;
+active-run recovery, production integration and hardware acceptance remain open.
+Host VM/tool guards pass 49/49 (3.129 s). All 186 host/snapshot/guest source hashes
+agree; local Markdown validation passes 594 file targets, excluding anchors and
+external URLs. No new dependency family or resident daemon was added.
+
+Previous native-bridge checkpoint (31 October 2026):
 
 The private authority/handoff module now joins actual lifetime export to the
 immutable enrolled app witness and existing v5 PREPARE transaction. Only a fresh

@@ -752,7 +752,15 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&wrong,124002,&out)==-ESTALE);
     process_enrollment(root,ri,rd,p,e,&app,2,scenario);
     struct ae_execution_handoff handoff=handoff_record(&app); int with_handoff=strncmp(scenario,"exec-handoff-",13)==0;
-    if (strncmp(scenario,"exec-bridge-",12)==0) {
+    int with_transport=strncmp(scenario,"exec-bridge-store-",18)==0;
+    if (with_transport) {
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+        void ae_test_handoff_transport_begin(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_handoff *,const char *);
+        ae_test_handoff_transport_begin(*root,p,&handoff,scenario);
+#else
+        CHECK(0 && "handoff transport requires AETHERI_LINUX_IPC");
+#endif
+    } else if (strncmp(scenario,"exec-bridge-",12)==0) {
 #ifdef AETHERI_TEST_EXECUTION_SERVICE
         void ae_test_handoff_service(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_handoff *,const char *);
         ae_test_handoff_service(*root,p,&handoff,scenario);
@@ -794,6 +802,13 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     CHECK(ae_catalogue_quiesce_user_run(*user,p,&ue,&closing,124201,&quiet)==0);
     CHECK(ae_catalogue_release_run(*root,p,context,e,&quiet,ended,124202,&released)==0);
     CHECK(ae_catalogue_end_user_run(*user,p,&ue,&released,124203,&launch)==0);
+    if (with_transport) {
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+        void ae_test_handoff_transport_finish(struct ae_catalogue *,const struct ae_execution_profile *,const char *);
+        ae_test_handoff_transport_finish(*root,p,scenario);
+#endif
+        CHECK(scalar(rd,"SELECT state='released' FROM generation_leases")==1 && scalar(rd,"SELECT state='terminal' FROM launch_dispatches")==1); return;
+    }
     if (with_handoff) handoff_finish(root,ri,rd,p,&handoff,scenario);
     CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&app,999999,&out)==0 && out.recorded_unix_ms==124002);
     CHECK(ae_catalogue_enroll_execution_process(*user,p,&ue,&user_app,999999,&out)==0 && out.recorded_unix_ms==124001);

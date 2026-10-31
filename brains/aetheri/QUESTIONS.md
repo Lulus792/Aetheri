@@ -78,8 +78,9 @@ The native authority/handoff bridge now joins real export to the original v5
 intent and restores from protected SQL expectations before OBSERVE. Its actual
 confined fixture exercises UID1000 PREPARE and unsubmitted-handoff retirement;
 replacement/commit/ownership cases use controlled kernel adapters with real SQL.
-Actual confined receiver/descriptor-store transfer, complete/partial inventory
-admission and Root/User settlement are still required. Preserve the namespace-
+The separate --handoff variant now proves actual confined transfer/replacement
+and retirement after original run closure. Active-run Root/User recovery,
+production admission and partial-set reconciliation remain required. Preserve the namespace-
 denied test's original held history in guest quarantine; it was not settled by
 infrastructure retirement. No personal product decision blocks this work.
 

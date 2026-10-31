@@ -1846,3 +1846,85 @@ Final reviewed bridge repeats pass Debug ASan/UBSan 1/1 (15.48 s) and Release 1/
 (14.07 s). Host VM guards pass 48/48 (2.360 s); changed Python tools parse. All
 186 host/snapshot/guest source hashes agree. Local Markdown validation passes
 591 file targets, excluding anchors and external URLs.
+
+## Confined descriptor-store transfer and replacement — 31 October 2026
+
+[Native transport](../../src/authority/handoff.h) adds fresh-intent SEND, complete
+named-inventory RECEIVE and fresh-intent RETIRE to the same existing bridge.
+[Adapter cases](../../tests/test_handoff_service.c) cover success, unknown partial
+send, lost barrier, partial removal, lost retirement commit and lost final commit.
+They use actual v5 SQL and owned mock-store FDs, with controlled supervisor/kernel
+edges. They additionally reject wrong store configuration and routing names and
+prove completed retries do not inspect or mutate later store contents.
+
+The systemd 259 [notification contract](https://www.freedesktop.org/software/systemd/man/259/sd_notify.html)
+defines distinct named notifications, explicit removal and processing barriers.
+The [activation API](https://www.freedesktop.org/software/systemd/man/259/sd_listen_fds.html)
+delivers duplicate descriptors in arbitrary store order with names and CLOEXEC.
+Names/counts remain routing observations; the independent original witness and
+actual kernel objects establish the tested acceptance. The
+[service properties](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-service.c)
+expose the reviewed main-only/preserved/four-entry profile. Actual libsystemd
+sd_bus_path_encode output was compared to PID1 GetUnit for systemd-logind.service
+before using the same SDK encoding for the independently admitted custodian.
+
+PID1 descriptor use and writable barrier-pipe reception were reviewed before the
+first actual transfer. The installed carrier's init CIL had no Root descriptor-use
+edge. Linux 6.19's [receive hook and file permissions](https://raw.githubusercontent.com/torvalds/linux/v6.19/security/selinux/hooks.c)
+check descriptor provenance and the file's access mode. The
+[SDK barrier](https://raw.githubusercontent.com/systemd/systemd/v259/src/libsystemd/sd-daemon/sd-daemon.c)
+passes a pipe writer; the [manager](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/manager.c)
+closes that barrier handle after processing. The temporary fixture grants PID1
+Root fd use and pipe write, with no pipe read, broker/app access or new capability.
+
+The first actual sender succeeded, original Root/User closed the app run, and all
+four handles survived Root exit. The first confined replacement (PID 91301,
+invocation 8f7f878c607a4dc99df6d3a4ac55191a) was denied pidfs_t filesystem getattr
+at retained-pidfd fstatfs (AVCs 24192/24195). Original intent stayed pending at
+revision 1, store count stayed four, and the already closed run/lease stayed
+terminal/released. The target preserved its original invocation and fragment.
+
+After complete original fixture/unit/configuration checks, a recorded policy
+repair added only that filesystem metadata permission. Original controller,
+policy, catalogue and failure evidence are under the guest build's
+handoff-store-repair-8820d2edf6a9418fab59adeb9a8807c3. Before restarting, the
+catalogue hash still matched the repair snapshot. The next invocation validated
+the same four originals and retired that same intent; no app/operation was
+recreated. Its archived evidence is
+`/home/aetheri/build/release/live-execution-8820d2edf6a9418fab59adeb9a8807c3`.
+The original app PID 91285/group 143501/invocation 77d3dcb874264e278d3b1c8b92ba0e92
+and witness hash 6804c5a99ca511c4d5e4542d9677732db126e8bf853e8afceee47c49c40f2822
+remain correlated across that failure/continuation.
+
+A fresh automatic --handoff run also passed. The following normal run exposed
+mode-variable shadowing in the Python auditor after native closure; renaming its
+row list fixed that auditor without relaunching the original app. That original
+audit then completed, and final fresh automatic normal and --handoff runs both
+pass. Final normal evidence is
+`/home/aetheri/build/release/live-execution-f3461edb51b343a29776ceed116bd538`.
+Final restart evidence is
+`/home/aetheri/build/release/live-execution-d2375a4cf62145ae97b81e228edb48e5`:
+app PID 92495/group 148075/invocation 62eed89f7d644fc586415317e97c1a72,
+replacement PID 92513/invocation 4ccdb24e62a74186b6e3fcb1c530b2dc and runtime
+4f87bef96faa4e4fab55ef5e1fd5c2a3. Its witness hash is
+9d528c4dd683ec400c2ffce4a0a955616dc2011a3c95daae03a120c474482e73.
+The native journal ends retired at revision 4 with the original witness unchanged.
+Actual old-group removal, replacement process/domain/unit admission, original
+immutable start/closure receipts and zero final store are independently checked.
+
+Debug ASan/UBSan handoff groups pass 2/2 (68.54 s). Release bridge/transport and
+existing coordinator/endpoint regressions pass 4/4 (172.69 s), including all six
+transport fault fixtures. These are functional/confinement checks, not OS latency,
+power-loss or hardware acceptance. Recovery of an active run and exact partial-set
+integration remain required; this tested run closes under its original owners.
+
+Final read-only inspection confirms enforcing policy, no temporary execution/
+hold units or module/bus configuration, normal v2 Root/User with two closed gates
+each, pending=None and no unsettled normal dispatch/lease. The earlier namespace-
+denied attempt at protected guest quarantine still retains its original pending
+application and unchanged catalogue hash; this new completed transfer does not
+settle or replace that separate failed history.
+Final host VM/tool guards pass 49/49 (3.129 s). All 186 host/snapshot/guest source
+hashes agree. Local Markdown validation passes 594 file targets, excluding anchors
+and external URLs. No dependency family, production schema/wire or resident daemon
+was added.

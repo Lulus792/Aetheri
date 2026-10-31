@@ -463,13 +463,29 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   original-unit retention remain caller obligations. Current self admission must
   already be independently established; construct only after the unit is active.
   authority.handoff uses real SQL with controlled kernel adapters. The confined
-  test now exercises actual UID1000 PREPARE in Root v5/User v4 but submits no
-  transfer. Its successful retirement proof is ONLY for that unsubmitted case,
+  default test exercises actual UID1000 PREPARE in Root v5/User v4 but submits no
+  transfer. Its default retirement proof is ONLY for that unsubmitted case,
   after native release/local-copy fencing and zero-capacity/empty store checks.
   The temporary Root nsfs getattr grant adds no capability/namespace entry/open.
   Preserve the failed live fixture's original pending/held history in protected
-  guest quarantine; infrastructure retirement did not settle it. No installed
-  receiver, actual Root transfer, partial-set or full owner recovery is implied.
+  guest quarantine; infrastructure retirement did not settle it. No normal
+  installed receiver, partial-set or full owner recovery is implied.
+- The same handoff module now has explicit P0 SEND/RECEIVE/RETIRE with a four-slot
+  preserved main-only PID1 store. Read spec/runtime.md's confined-transfer section.
+  Only fresh confirmed intents permit notifications; unknown/partial effects
+  never allow automatic repeat. Completed retirement never touches a later store.
+  Labels route only; complete inventory plus actual SQL-bound object validation
+  remain mandatory. The opt-in test_execution_runtime.py --handoff proves actual
+  confined Root replacement after the original run is already closed/released.
+  Its process-free target retains original unit history; startup selects its role
+  from protected catalogue history, not from incoming FDs. The receiver exposes
+  no executing/broker handlers and uses a fresh runtime without rewriting original
+  receipts. Native retirement follows actual local-copy closure/fencing and store
+  absence. A pidfs getattr failure was repaired with the same retained intent/FDs;
+  no app/operation identities were regenerated. Temporary PID1 fd use/barrier write
+  and Root pidfs metadata permissions add no pipe read, capability or ptrace.
+  Active-run/cross-owner recovery, general allocation, partial-set integration,
+  early starter/error-channel recovery and production retention still remain.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

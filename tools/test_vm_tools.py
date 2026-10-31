@@ -117,10 +117,19 @@ class VmTools(unittest.TestCase):
                 with self.assertRaises(RuntimeError): execution_runtime.quiet_normal({'pending':'unknown'})
 
     def test_live_execution_unit_file_uses_the_exact_wire_unit_name(self):
-        for name in ('aetheri-p0-execution-root.service','aetheri-app-0000000000004000800000000000001f.service'):
+        for name in ('aetheri-p0-execution-root.service','aetheri-app-0000000000004000800000000000001f.service',execution_runtime.HOLD_UNIT):
             self.assertEqual(execution_runtime.unit_file(name).name,name)
-        for invalid in ('../foreign.service','service','wrong.service.service'):
+        for invalid in ('../foreign.service','service','wrong.service.service','foreign.target'):
             with self.assertRaises(ValueError): execution_runtime.unit_file(invalid)
+
+    def test_recovered_handoff_requires_new_actor_and_original_end(self):
+        old=dict(pid=77,cgroup_id=123,group_removed=True,unit_failed=False,invocation='ab'*16,boot='cd'*16)
+        record=dict(replacement_pid=99,replacement_invocation='ef'*16,native_end=old)
+        value=dict(root_pid=99,root_invocation='ef'*16,runtime='12'*16,handoff_sha256='34'*32,revision=4,end=old.copy())
+        execution_runtime.validate_recovered(value,record,bytes(384))
+        for changes in (dict(root_pid=100),dict(root_invocation='56'*16),dict(runtime='00'*16),dict(runtime='X'*32),
+                        dict(handoff_sha256='X'*64),dict(revision=3),dict(end=old|dict(pid=78)),dict(end=old|dict(group_removed=False))):
+            with self.assertRaises(RuntimeError): execution_runtime.validate_recovered(value|changes,record,bytes(384))
 
     def test_live_execution_snapshot_persists_binary_labels_and_digests(self):
         captured={'code':(17,0,0,0o100555,1,12,100,200,b'system_u:object_r:aetheri_store_code_t:s0',bytes(range(32))),

@@ -1171,3 +1171,31 @@ Keep failed live-test native state intact even when its independently inspected
 dead test infrastructure is retired. Quarantine is not lease release or successful
 recovery. The unsubmitted successful handoff may retire only after native run
 release, local-copy closure/fencing and actual zero-capacity/empty store checks.
+
+## Exercise confined PID1 transport before active-run recovery — 31 October 2026
+
+Add SEND/RECEIVE/RETIRE to the same native bridge and existing Root process.
+The P0 store has exactly four entries, main-only notification and preservation
+across exit. Derive routing labels from the original profile; admit kernel
+objects against protected SQL, never against their supplied names. Unknown
+effects preserve intent; partial retirement cannot automatically resend removal.
+Completed retry is historical and cannot act on later store contents.
+
+Use a protected process-free target to retain Root/app unit history. Start it
+before the services and verify it activates neither. Select original versus
+replacement startup from admitted catalogue history before checking incoming
+inventory. A replacement uses a fresh runtime, closes gates and exposes only its
+test observation/retirement endpoint. Keep normal/public launch inputs disabled.
+
+For the first confined integration, complete the run with its original owners
+before replacing Root. This isolates actual handle transport/restoration and
+retirement; recovery of an active run still needs separate Root/User transactions.
+Keep original start receipts/runtime distinct from the replacement's observation.
+Do not recreate app/operation IDs or settle a lease from store/descriptor closure.
+
+PID1 needs descriptor use and the barrier pipe's write permission, without a
+Root error-reader read grant. Root needs pidfs filesystem getattr for mandatory
+retained-pidfd type observation. Review/test these narrow temporary rules; do
+not add capabilities, ptrace or namespace entry as a shortcut. A failed receiver
+with a complete retained set may revalidate the same intent in a later admitted
+invocation; this never authorizes another SEND.

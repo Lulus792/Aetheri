@@ -9,6 +9,12 @@
 ; Read only this admitted observer's PID/cgroup namespace identity for AETHHND1.
 ; No namespace entry, mount capability, ptrace or namespace-file open grant.
 (allow aetheri_system_t nsfs_t (file (getattr)))
+; Retained ProcessFD validation includes mandatory PID_FS_MAGIC fstatfs.
+(allow aetheri_system_t pidfs_t (filesystem (getattr)))
+; Explicit observation-store receiver and sd_notify_barrier's write-only pipe
+; end. No PID1/broker/app read grant for Root's private execution-error pipe.
+(allow init_t aetheri_system_t (fd (use)))
+(allow init_t aetheri_system_t (fifo_file (write)))
 (allow aetheri_starter_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_system_t (process (getattr)))

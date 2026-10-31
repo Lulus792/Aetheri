@@ -128,6 +128,8 @@ def main():
                 'crash-4-before','crash-4-after','observe','observe-lost-2','observe-crash-2-before','observe-crash-2-after','overflow','corrupt-handoff'))
         if len(sys.argv)==4 and sys.argv[3]=='handoff-bridge':
             scenarios=('exec-bridge-fresh','exec-bridge-lost')
+        if len(sys.argv)==4 and sys.argv[3]=='handoff-transport':
+            scenarios=tuple('exec-bridge-store-'+case for case in ('fresh','send-lost','barrier-lost','retire-lost','retire-commit','retired-commit'))
         with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"

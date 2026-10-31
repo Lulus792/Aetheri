@@ -3597,8 +3597,9 @@ change. Negative handoff checks cover missing/wrong descriptors, original identi
 root/group/event metadata, invocation/PID/context/namespace conflicts, output
 ownership and FD balance, including already-dead originals.
 
-Only this disposable test uses a PID1 store. Normal installed Root inputs and the
-app's no-store boundary remain unchanged. Unknown/partial transfers preserve the
+Only the explicit disposable component/confined tests use a PID1 store. Normal
+installed Root inputs and the app's no-store boundary remain unchanged.
+Unknown/partial transfers preserve the
 original expectation and handles; they do not authorize another effect, release,
 cleanup or inferred drain. Installed durable handoff enrollment, exact-set
 reconciliation, production unit retention, confined owner admission and Root/User
@@ -3652,8 +3653,8 @@ The separate `catalogue/handoff.h` module defines canonical AETHHND1 metadata an
 the Root-only v5 execution_handoffs journal. It binds a post-exec app's existing
 immutable v4 process witness to the four original lifetime observation objects.
 It does not admit an app, observe a kernel object, adopt a run, restore readiness
-or release a generation lease. The installed authorities do not invoke this API
-or enable a descriptor store. Public XML/capabilities and default v2 creation stay
+or release a generation lease. The normal provisioned authorities do not invoke
+this API or enable a descriptor store. Public XML/capabilities and default v2 creation stay
 unchanged. Early starter/ARM/error-channel recovery remains separate work.
 
 ### Original bytes and identity
@@ -3796,8 +3797,8 @@ ownership only; they are not kernel-admission evidence.
 The separate enforcing Root/User/app integration now explicitly creates Root v5
 and User v4. It exercises actual PREPARE from the UID1000 app and checks that the
 canonical frame matches the immutable app witness and actual Root invocation.
-It deliberately submits no descriptor-store transfer. All exported copies close;
-an exact retry returns none. After the original User is quiet and native Root
+Its default mode deliberately submits no descriptor-store transfer. All exported
+copies close; an exact retry returns none. After the original User is quiet and native Root
 release commits, it fences further preparation, closes the source observer,
 journals retirement and verifies the configured-zero/empty Root store before
 acknowledging absence. This narrowly retires an **unsubmitted** test handoff; it
@@ -3813,7 +3814,80 @@ its infrastructure was retired after exact terminal unit/cgroup/job/store/static
 checks. No native lease release was fabricated for that failed attempt.
 
 Normal authorities/catalogues, their closed gates, public capabilities and app
-FD-store prohibition remain unchanged. This bridge has no installed transfer
-adapter or confined replacement receiver yet. Continuous protected retention,
-partial-set reconciliation, retirement after actual transfer, early failure and
-Root/User recovery settlement remain separate required work.
+FD-store prohibition remain unchanged. The optional transport below is confined
+to the explicit P0 test. Production retention/provisioning, partial-set
+reconciliation, early failure and Root/User recovery settlement remain work.
+
+### Confined transfer after a completed run
+
+The existing handoff module now supplies SEND, RECEIVE and RETIRE for one admitted
+P0 profile. This is a bounded supervisor transport, not a general store allocator.
+It requires the actual current custodian unit to have NotifyAccess=main,
+FileDescriptorStorePreserve=yes and FileDescriptorStoreMax=4. Bootstrap still owes
+the protected image/configuration/environment, trusted host views, exclusion of
+competing administrative mutations and continuous original-unit retention.
+
+The four labels are `aetheri-handoff1-<profile-sha256>-<slot>`, with lowercase
+hex of the original canonical 384-byte AETHEXE1 profile. Slots in lifetime order
+are process, anchor, group and events. Each label is bounded by 112 bytes including
+NUL and is a routing label, not object admission or an app StorageRef.
+
+SEND first refuses an existing intent or occupied store. Only a fresh confirmed
+PREPARE permits four separate FDSTORE notifications with FDPOLL=0. It closes its
+temporary exported duplicates on every path. A processing barrier and store count
+are observations only; exact acceptance is established on actual delivery. Any
+failed/partial/unknown submission keeps the original intent and never enables
+another automatic SEND, including through a newly constructed bridge object.
+
+RECEIVE maps the complete four-name activation inventory to lifetime order. It
+rejects missing/duplicate/unknown names, validates the store profile/count, then
+loads the protected original expectation and checks actual objects before OBSERVE.
+Caller-owned activation FDs survive every outcome; the private observer owns its
+own copies. Names, count or arbitrary FD order cannot establish identity.
+
+RETIRE requires successful RECEIVE, independently fenced future effects, closed
+local/exported copies and the already terminal/released native run/lease. Only
+a fresh retirement intent sends the four removals. An uncertain partial removal
+stays retiring. A retry can acknowledge actual empty-store absence but cannot
+repeat removal of a remaining subset. A completed retry returns historical
+metadata without inspecting or changing a later store. General partial-set
+reconciliation remains unimplemented.
+
+The explicit `tools/test_execution_runtime.py ... --handoff` variant provisions
+one protected process-free target with After references to Root and app. It starts
+before either service, verifies that neither was activated, and preserves its
+independent fragment inode/ownership/bytes and target invocation. The target
+has no activation/stop/reload dependencies and adds no resident process. It
+retains original unit history across Root's bus/process departure.
+
+The first capability-empty confined Root sends actual app observation handles
+while the UID1000 app is live. The original Root/User complete normal run closure
+before Root exits; the store and pending intent remain. A new invocation of the
+same protected unit receives all four handles in a new PrivateMounts namespace.
+Startup selects producer versus replacement from protected catalogue history,
+then checks the required activation inventory. Incoming FD count alone never
+selects a fresh bootstrap or rearms a completed intent. The replacement commits
+a fresh runtime and keeps gates closed. After readiness its administrative test
+method validates/restores originals, proves original end, closes local copies and
+journals/removes/acknowledges the store. It exposes no execution/broker handlers.
+
+The controller authenticates the replacement reply's actual ProcessFD/domain/
+unit/invocation and original app IDs, then independently checks the canonical
+witness/hash, immutable original start/closure receipts, replacement runtime and
+retired revision 4. It verifies empty store, stops the exact replacement and target
+and retires only the inspected test infrastructure. The default variant retains
+its unsubmitted proof and retired revision 3.
+
+The temporary policy permits PID1 to use Root-owned descriptors and receive the
+barrier's writable pipe end. It adds no pipe-read grant for Root's execution-error
+reader to PID1, the bus or apps. Root's retained pidfd fstatfs additionally needs
+pidfs_t filesystem getattr. No ptrace, capability or namespace entry/open is added.
+An actual first replacement was denied on that filesystem query; the same pending
+intent and all four PID1 copies survived. A narrowly recorded policy repair let
+another Root invocation complete that original handoff without app relaunch or
+new operation IDs. A fresh fully automated run also passes.
+
+This proves confined handle/journal recovery and retirement after a completed run.
+Recovery while a run is active, cross-owner settlement, early starter/error-channel
+recovery, production admission and full app removal remain required. Normal v2
+authorities, public capabilities and app descriptor-store prohibition stay intact.
