@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — separate v3 closure; fixed successful run/lease now settled.
+31 October 2026 — original live process reidentification after observer replacement.
 
 ## Confirmed
 
@@ -13,6 +13,46 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The existing Linux process module now captures a boot-bound non-recycled pidfs
+identity from its authenticated ProcessFD and independently admitted current
+context. A new observer can compare a fresh connection with the original protected
+identity/context. No numeric-PID fallback, new daemon, permission or dependency
+is added. The portable AETHPID1 frame is 32 bytes; its frozen full-uint64 vector
+agrees between Python and C. It is maintenance evidence, not executable/readiness
+or recovery authority.
+
+The actual root-only component test exits the first observer, execs a second,
+reidentifies the still-live app through a new bus connection, rejects a different
+same-context child and observes the original run's end. Native tests also reject
+same-name service replacement, current-context drift, denied/missing kernel facts,
+denied fstat, zero inode and a dead process, preserving outputs and FD balance.
+Final affected Debug ASan/UBSan groups pass 3/3 (3.60 s); Release 3/3 (3.16 s).
+Independent byte tests pass 19/19 (0.036 s). This is affected-boundary regression,
+not a new full native suite or OS/hardware acceptance claim.
+
+The final actual enforcing Root/User/app integration passes identity checks in
+both capability-empty authorities, along with actual image/data/peer/start/end
+checks and successful fixed-run closure. Its temporary fixture is retired. Normal
+catalogues remain v2 with two closed gates each, pending=None, no unsettled normal
+dispatch/lease, unowned test names and absent test units/module/profile/starter.
+Policy stays enforcing. Identities in this test remain in memory: protected
+durable witness enrollment, real Root/User restart reconciliation and already-dead
+process recovery still require implementation. No old runtime/run is adopted.
+See [process identity](../../spec/runtime.md#original-live-process-identity-after-observer-replacement).
+
+Two earlier confined attempts failed because libsystemd's optional filesystem
+probe was denied; a supervised read-only diagnostic proved direct fstat works
+in that same User domain. The final path retains the existing mandatory
+PIDFD_GET_INFO checks around direct 64-bit fstat, without loosening policy.
+Both unresolved historical fixtures/catalogues were archived after independently
+verified original process/unit/invocation/group/job drain and complete owned-tree
+inspection. Their running leases were not released or declared recovered.
+See [sources](SOURCES.md#live-process-identity-after-observer-replacement).
+All 174 guest source hashes match the tested host snapshot; 559 local Markdown
+file targets pass. The full desktop/apps/image/hardware goal remains active.
+
+Previous separate v3 closure checkpoint (31 October 2026):
 
 Successful original-run shutdown now has its own v3 run_closures record per owner.
 The explicit additive upgrade preserves frozen v1/v2 definitions, all existing

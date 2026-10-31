@@ -11,6 +11,16 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_process_identity_vector_and_bounds(self):
+        vector=rc.load_json((ROOT/'spec/vectors/process-identity-v1.json').read_bytes())
+        data=rc.process_identity(vector['input'])
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_process_identity(data),vector['input'])
+        for key,value in (('boot','00'*16),('boot','ff'),('pidfd_id',0),('pidfd_id',2**64),('pidfd_id',True)):
+            row=deepcopy(vector['input']); row[key]=value; self.rejects(rc.process_identity,row)
+        for bad in (data[:n] for n in range(32)): self.rejects(rc.read_process_identity,bad)
+        for bad in (data+b'\0',b'Z'+data[1:],data[:8]+b'\0'*16+data[24:],data[:24]+b'\0'*8): self.rejects(rc.read_process_identity,bad)
+
     def test_run_closure_vectors_and_bounds(self):
         vectors=rc.load_json((ROOT/'spec/vectors/run-closure-v1.json').read_bytes())
         for vector in vectors['receipts']+[vectors['end']]:

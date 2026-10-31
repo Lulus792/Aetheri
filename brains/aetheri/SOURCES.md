@@ -1516,3 +1516,47 @@ transport or revoke a real FD. The final connected repeat includes the immediate
 original-broker recheck before mutation. Independent read-only inspection confirms
 the archived receipt chain and settled v3 rows, unchanged normal v2 closed gates,
 retired exact temporary fixture, enforcing policy and 172 matching source hashes.
+
+## Live process identity after observer replacement — 31 October 2026
+
+Original [process API](../../src/linux/process.h),
+[implementation](../../src/linux/process.c),
+[replacement-observer test](../../tests/test_process_identity.c) and
+[frozen vector](../../spec/vectors/process-identity-v1.json) add independently
+retained process identity without changing existing journals or public APIs.
+[Systemd v259's pidfd manual source](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_pidfd_get_inode_id.xml)
+documents boot-scoped 64-bit inode identity and direct fstat on 64-bit systems.
+Its [helper source](https://raw.githubusercontent.com/systemd/systemd/v259/src/libsystemd/sd-daemon/sd-daemon.c)
+and [pidfs implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/basic/pidfd-util.c)
+show the extra self-pidfd/filesystem/file-handle checks. These upstream sources
+explain the design; the Fedora carrier supplies executed acceptance.
+
+The initial component tests passed but actual confined app registration failed.
+The first result lacked a useful diagnostic; test-only rejection logging exposed
+EOPNOTSUPP. A separate supervised UID1000 aetheri_user_t read probe demonstrated
+self pidfd_open and fstat success, while fstatfs returned EACCES and the helper
+returned EOPNOTSUPP. An unconfined capability-empty probe did not reproduce the
+denial. Direct fstat after the existing mandatory typed ProcessFD/context checks
+avoids the denied operation without extra policy grants. The first diagnostic
+launcher with --pipe reset its connection; a subsequent /usr/bin/env dispatch
+was denied by the existing entrypoint policy. Direct execution of the correctly
+typed diagnostic binary succeeded. All diagnostic inputs/units were independently
+inspected/drained and retired; no policy was loosened.
+
+Both failed connected attempts preserved their original running Root lease and
+dispatching journal, User preparing state and UNKNOWN diagnostic. The exact
+owned image/unit/invocation/cgroup/job/tree evidence was inspected after exit;
+the complete fixtures and unresolved catalogues were archived before purely
+administrative test retirement. They were never settled through the no-exec
+proof or declared successful. The first new fstat fault test also affected the
+existing cgroup read; restricting its injection to the actual held pidfd repaired
+the test without changing production checks.
+
+Final affected regressions pass 3/3 Debug ASan/UBSan (3.60 s) and 3/3 Release
+(3.16 s), plus 19/19 independent byte checks (0.036 s). The final actual confined
+repeat passes both capability-empty owners' identity checks and the existing
+fixed-run closure. Read-only inspection confirms unchanged normal v2 catalogues,
+closed gates, no normal unsettled dispatch/lease, enforcing policy and retired
+exact temporary inputs. This proves live-process continuity after component
+observer exit, not durable authority restart recovery. All 174 tested guest
+source hashes agree with the host snapshot.

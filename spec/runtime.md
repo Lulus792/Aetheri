@@ -3395,3 +3395,53 @@ rows. Early start failure, arbitrary apps/exports, real owner-restart recovery,
 general quiescence/revocation, removal, normal session provisioning and the full
 desktop/image/hardware acceptance remain work. It adds no daemon, resident poll
 loop, third-party family, frozen wire change or automatic installed migration.
+
+## Original live process identity after observer replacement
+
+`linux/process.h` now captures a boot-bound pidfs identity from an already
+bus-authenticated ProcessFD. `ae_process_identify` checks the independently
+admitted current UID, label, service, invocation and cgroup before and after
+reading the same descriptor's 64-bit inode. Mandatory PIDFD_GET_INFO remains;
+unsupported kernels never fall back to numeric PID paths. The accepted x86-64
+pidfs kernel is required. The identity read adds fstat to the existing context
+checks and retains no extra descriptor. It adds no polling loop, dependency
+family or permission.
+
+The canonical AETHPID1 frame is exactly 32 bytes: tag8, nonzero boot16 and nonzero
+unsigned pidfs inode8 in big-endian order. It has no padding or optional fields.
+The [frozen vector](vectors/process-identity-v1.json) exercises UINT64_MAX.
+Malformed/truncated/trailing/nil inputs and syscall errors preserve outputs.
+
+`ae_process_reidentify` compares independently retained original evidence against
+a fresh authenticated ProcessFD and the original expected current context. A new
+D-Bus unique connection name is permitted; the actual kernel process must be the
+same. A different boot, inode, current context or service restart rejects. The
+caller must persist this evidence with the original run/context in protected
+owner state before depending on recovery. Candidate-supplied bytes cannot select
+or enroll their own original identity.
+Trusted same-host kernel/bus and authority admission remain prerequisites; these
+bytes do not authenticate another machine, a volume or a cloned VM.
+
+This is not recovery authority, executable proof or a recovered old connection.
+Exec may retain a process identity; current image/admission still require their
+own checks. A process which has already exited cannot reconnect through this
+path. Lost original cgroup/event handles, unit references, old catalogue runtimes,
+holders and leases are not restored or released. Durable execution-witness
+enrollment and replacement-owner reconciliation remain the next integration work.
+
+The root-only linux.process_identity component test writes a protected local
+record, actually exits its first observer and execs a second observer with fresh
+bus connections. The app remains in its original PID1 invocation and reconnects.
+A different child in the same UID/label/unit/invocation/cgroup is rejected; the
+original process succeeds. The replacement then captures the live lifetime
+observer and obtains original process/unit/group end. The context envelope is a
+test-only native structure, not an installed persistence format. On success only
+its inspected record/private bus inputs are retired; failures preserve evidence.
+The ordinary process test separately rejects same-name service replacement,
+missing/changed kernel data, denied fstat, zero inode and dead processes.
+
+The explicit enforcing execution fixture also captures/rechecks these identities
+inside its actual capability-empty Root/User domains, alongside existing image,
+data and peer checks. These identities remain in memory; this does not restart
+those authorities or adopt an old journal. Normal catalogues, policy and public
+capabilities remain unchanged.

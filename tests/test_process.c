@@ -17,6 +17,15 @@
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "line %d: %s\n", __LINE__, #x); exit(1); } } while (0)
 
 static unsigned int fault, identity_calls;
+static int inode_fault,identity_fd=-1;
+int __real_fstat(int,struct stat *);
+int __wrap_fstat(int fd,struct stat *value)
+{
+    if (fd==identity_fd && inode_fault==1) { errno=EACCES; return -1; }
+    int r=__real_fstat(fd,value);
+    if (r==0 && fd==identity_fd && inode_fault==2) value->st_ino=0;
+    return r;
+}
 int __real_ioctl(int fd, unsigned long request, ...);
 int __wrap_ioctl(int fd, unsigned long request, ...)
 {
@@ -40,6 +49,7 @@ struct server {
     sd_bus *system;
     struct ae_peer retained;
     struct ae_process_context context;
+    struct ae_process_identity identity;
     char unit[256];
     unsigned int calls;
 };
@@ -71,6 +81,7 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
         CHECK(memcmp(actual.invocation, state->context.invocation, sizeof actual.invocation) != 0);
         CHECK(ae_process_verify(&peer, state->system, &state->context) == -ESTALE);
         CHECK(ae_peer_alive(&state->retained) == -ESRCH);
+        CHECK(ae_process_reidentify(&state->identity,&peer,state->system,&actual)==-ESTALE);
         ae_peer_clear(&state->retained);
         state->context = actual;
         state->retained = peer;
@@ -110,6 +121,15 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
         CHECK(memcmp(&untouched, &sentinel, sizeof sentinel) == 0);
     }
     fault = 0;
+    struct ae_process_identity identity,identity_marker; memset(&identity_marker,0xa5,sizeof identity_marker);
+    identity_fd=peer.pidfd;
+    for (inode_fault=1;inode_fault<=2;++inode_fault) {
+        identity=identity_marker;
+        CHECK(ae_process_identify(&peer,state->system,&actual,&identity)==(inode_fault==1 ? -EACCES : -ENODATA));
+        CHECK(memcmp(&identity,&identity_marker,sizeof identity)==0);
+    }
+    inode_fault=0; identity_fd=-1;
+    CHECK(ae_process_identify(&peer,state->system,&actual,&state->identity)==0);
     int baseline = descriptors();
     for (unsigned int n = 0; n < 32; ++n) CHECK(ae_process_verify(&peer, state->system, &actual) == 0);
     CHECK(descriptors() == baseline);
@@ -210,6 +230,8 @@ int main(int argc, char **argv)
         CHECK(waitpid(runner, &status, 0) == runner && WIFEXITED(status) && WEXITSTATUS(status) == 0);
     }
     CHECK(ae_process_verify(&state.retained, state.system, &state.context) == -ESRCH);
+    struct ae_process_identity identity,identity_marker; memset(&identity_marker,0xa5,sizeof identity_marker); identity=identity_marker;
+    CHECK(ae_process_identify(&state.retained,state.system,&state.context,&identity)==-ESRCH && memcmp(&identity,&identity_marker,sizeof identity)==0);
     ae_peer_clear(&state.retained);
     sd_bus_flush_close_unref(state.system);
     sd_bus_flush_close_unref(bus);

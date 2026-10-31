@@ -204,3 +204,53 @@ int ae_process_observe_self(sd_bus *system_bus, struct ae_process_context *outpu
     ae_peer_clear(&self);
     return result;
 }
+
+int ae_process_identity_encode(const struct ae_process_identity *identity,uint8_t output[AE_PROCESS_IDENTITY_BYTES])
+{
+    if (!identity || !output) return -EINVAL;
+    unsigned int present=0;
+    for (size_t n=0;n<16;++n) present|=identity->boot[n];
+    if (!present || !identity->pidfd_id) return -EBADMSG;
+    uint8_t bytes[AE_PROCESS_IDENTITY_BYTES]; memcpy(bytes,"AETHPID1",8); memcpy(bytes+8,identity->boot,16);
+    for (size_t n=0;n<8;++n) bytes[24+n]=(uint8_t)(identity->pidfd_id>>(56U-8U*n));
+    memcpy(output,bytes,sizeof bytes); return 0;
+}
+int ae_process_identity_decode(const uint8_t *bytes,size_t size,struct ae_process_identity *output)
+{
+    if (!bytes || !output) return -EINVAL;
+    if (size!=AE_PROCESS_IDENTITY_BYTES || memcmp(bytes,"AETHPID1",8)!=0) return -EBADMSG;
+    struct ae_process_identity identity={0}; memcpy(identity.boot,bytes+8,16);
+    for (size_t n=0;n<8;++n) identity.pidfd_id=(identity.pidfd_id<<8)|bytes[24+n];
+    uint8_t check[AE_PROCESS_IDENTITY_BYTES]; int r=ae_process_identity_encode(&identity,check);
+    if (r==0) *output=identity;
+    return r;
+}
+int ae_process_identify(const struct ae_peer *peer,sd_bus *bus,const struct ae_process_context *context,struct ae_process_identity *output)
+{
+    if (!output || !context) return -EINVAL;
+    int r=ae_process_verify(peer,bus,context);
+    struct ae_process_identity identity={0}; sd_id128_t boot;
+    if (r==0) r=sd_id128_get_boot(&boot);
+    if (r>=0 && memcmp(boot.bytes,context->boot,16)!=0) r=-ESTALE;
+    /* Mandatory PIDFD_GET_INFO in verify already proves the supported pidfs
+     * descriptor type. On our x86-64 baseline its non-recycled inode is 64-bit.
+     * Avoid libsystemd's extra self-pidfd/fstatfs/name_to_handle_at probes: the
+     * confined owner needs only getattr on its already admitted process FD. */
+    struct stat info;
+    _Static_assert(sizeof info.st_ino==sizeof(uint64_t),"64-bit pidfs inode required");
+    if (r>=0 && fstat(peer->pidfd,&info)<0) r=-errno;
+    if (r>=0 && !info.st_ino) r=-ENODATA;
+    if (r>=0) identity.pidfd_id=(uint64_t)info.st_ino;
+    if (r>=0) r=ae_process_verify(peer,bus,context);
+    if (r==0) { memcpy(identity.boot,boot.bytes,16); *output=identity; }
+    return r<0 ? r : 0;
+}
+int ae_process_reidentify(const struct ae_process_identity *original,const struct ae_peer *peer,sd_bus *bus,const struct ae_process_context *context)
+{
+    uint8_t bytes[AE_PROCESS_IDENTITY_BYTES]; int r=ae_process_identity_encode(original,bytes);
+    if (r!=0) return r;
+    struct ae_process_identity current;
+    r=ae_process_identify(peer,bus,context,&current);
+    if (r==0 && (current.pidfd_id!=original->pidfd_id || memcmp(current.boot,original->boot,16)!=0)) r=-ESTALE;
+    return r;
+}

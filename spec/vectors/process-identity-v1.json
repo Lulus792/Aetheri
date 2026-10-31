@@ -1,0 +1,9 @@
+{
+  "kind": "process_identity",
+  "input": {
+    "boot": "0102030405060708090a0b0c0d0e0f10",
+    "pidfd_id": 18446744073709551615
+  },
+  "hex": "41455448504944310102030405060708090a0b0c0d0e0f10ffffffffffffffff",
+  "sha256": "9a5f2475fbbd113e842aa4588d127505a93b675af09bcfb31eb99c6f70af3549"
+}

@@ -61,6 +61,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [CMakeLists.txt](../CMakeLists.txt), [core](../src/core/storage.h), [native tests](../tests/test_core.c) | C17 ownership/storage primitives; build and scope in runtime.md |
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 | [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
+| [replacement-observer test](../tests/test_process_identity.c), [process identity vector](vectors/process-identity-v1.json) | Boot-bound pidfs identity through a fresh authenticated connection; no journal/owner-restart adoption |
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 The default schema remains user_version=2; an explicit quiesced-owner upgrade

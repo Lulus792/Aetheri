@@ -45,6 +45,7 @@ static struct ae_process_context root_context;
 static char root_name[256];
 static struct ae_peer starter=AE_PEER_INIT,app=AE_PEER_INIT;
 static struct ae_process_context starter_context,app_context;
+static struct ae_process_identity app_identity,user_app_identity;
 static struct ae_lifetime *app_lifetime;
 static struct ae_execution_completion start_result;
 static int start_result_present;
@@ -154,8 +155,8 @@ static int observe(sd_bus_message *m,void *userdata,sd_bus_error *error)
     CHECK(ae_process_observe(&peer,bus,&actual)==0 && actual.uid==1000 &&
         memcmp(actual.boot,p.boot,16)==0 && memcmp(actual.invocation,starter_context.invocation,16)==0 &&
         strcmp(actual.unit,starter_context.unit)==0 && actual.cgroup_id==starter_context.cgroup_id);
-    if (pin) { app=peer; peer.pidfd=-1; app_context=actual; }
-    else { CHECK(memcmp(peer.bus_id,app.bus_id,16)==0 && strcmp(peer.unique_name,app.unique_name)==0 && ae_peer_alive(&app)==0 && ae_process_context_equal(&actual,&app_context)); app_reported=1; }
+    if (pin) { CHECK(ae_process_identify(&peer,bus,&actual,&app_identity)==0); app=peer; peer.pidfd=-1; app_context=actual; }
+    else { CHECK(memcmp(peer.bus_id,app.bus_id,16)==0 && strcmp(peer.unique_name,app.unique_name)==0 && ae_peer_alive(&app)==0 && ae_process_context_equal(&actual,&app_context) && ae_process_reidentify(&app_identity,&peer,bus,&app_context)==0); app_reported=1; }
     ae_peer_clear(&peer); CHECK(sd_bus_reply_method_return(m,"")>=0 && return_app()>=0); return 1;
 }
 static int observe_end(sd_bus_message *m,void *userdata,sd_bus_error *error)
@@ -491,7 +492,10 @@ static int user_begin(sd_bus_message *m,void *userdata,sd_bus_error *error)
     return sd_bus_reply_method_return(m,"");
 }
 static int application_error(sd_bus_error *error,int r)
-{ return sd_bus_error_setf(error,"org.aetheri.Error1.NotAuthorized","Exact admitted live app/image required: %d",r); }
+{
+    fprintf(stderr,"App process/image check rejected: %d\n",r);
+    return sd_bus_error_setf(error,"org.aetheri.Error1.NotAuthorized","Exact admitted live app/image required: %d",r);
+}
 static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
 {
     (void)userdata; int complete=strcmp(sd_bus_message_get_member(m),"Complete")==0;
@@ -518,7 +522,9 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
     if (r==0 && user_app.pidfd>=0 && (memcmp(source,user_observation,sizeof source)!=0 || !ae_process_context_equal(&observed,&user_app_context))) r=-ESTALE;
     int payload=-1; struct ae_data_enrollment data;
     if (r==0) r=ae_execution_data_open(&p,user_publisher,&payload,&data);
-    if (r==0) r=ae_process_verify(&peer,bus,&observed);
+    struct ae_process_identity process_identity;
+    if (r==0) r=ae_process_identify(&peer,bus,&observed,&process_identity);
+    if (r==0 && user_app.pidfd>=0) r=ae_process_reidentify(&user_app_identity,&peer,bus,&user_app_context);
     if (r==0 && user_app.pidfd<0) {
         uint8_t evidence[2048]={0}; size_t used=0;
 #define APP_COPY(v,n) do { memcpy(evidence+used,v,n); used+=(n); } while (0)
@@ -532,7 +538,7 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
 #undef APP_COPY
         int pin=r==0 ? fcntl(peer.pidfd,F_DUPFD_CLOEXEC,3) : -1;
         if (r==0 && pin<0) r=-errno;
-        if (r==0) { user_app=peer; user_app.pidfd=pin; user_app_context=observed; memcpy(user_observation,source,sizeof source); }
+        if (r==0) { user_app=peer; user_app.pidfd=pin; user_app_context=observed; user_app_identity=process_identity; memcpy(user_observation,source,sizeof source); }
     }
     struct ae_user_launch_snapshot state;
     if (r==0 && !complete) r=ae_catalogue_observe_user_execution(store,&p,ready ? AE_USER_EXECUTION_READY : AE_USER_EXECUTION_REGISTER,&user_app_evidence,&state);
@@ -555,7 +561,7 @@ static int user_close(sd_bus_message *m,void *userdata,sd_bus_error *error)
     int finish=strcmp(sd_bus_message_get_member(m),"FinishClose")==0;
     struct ae_run_receipt receipt; int r=ae_catalogue_get_run_receipt(store,&p,&user_app_evidence,AE_RUN_USER_QUIET,&receipt);
     if (!finish && r==-ENOENT) {
-        struct ae_image expected,actual; r=ae_process_verify(&user_app,bus,&user_app_context);
+        struct ae_image expected,actual; r=ae_process_reidentify(&user_app_identity,&user_app,bus,&user_app_context);
         if (r==0) r=ae_image_decode(user_observation+56,112,&expected);
         if (r==0) r=ae_image_match_process(&user_app,1000,&expected,&actual);
         int payload=-1; struct ae_data_enrollment data;

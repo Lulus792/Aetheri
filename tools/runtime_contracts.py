@@ -16,6 +16,16 @@ class InvalidContract(ValueError):
 MAX_RECORD = 131072
 MAX_INT = 2**63 - 1
 
+def process_identity(value):
+    fields(value,'boot pidfd_id')
+    return b'AETHPID1'+rawhex(value['boot'],16)+struct.pack('>Q',integer(value['pidfd_id'],2**64-1,1))
+
+def read_process_identity(data):
+    require(type(data) is bytes and len(data)==32 and data[:8]==b'AETHPID1','process identity frame')
+    value=dict(boot=data[8:24].hex(),pidfd_id=struct.unpack('>Q',data[24:])[0])
+    require(process_identity(value)==data,'process identity canonical form')
+    return value
+
 def run_receipt(value):
     fields(value,'kind profile_digest invocation previous_digest evidence_digest revision unix_ms')
     tags={'root_closing':b'AETHCLS1','user_quiet':b'AETHQSC1','root_released':b'AETHEND1'}

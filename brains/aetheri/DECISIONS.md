@@ -1025,3 +1025,24 @@ The fixed unit excludes restart triggers, delegation, FD stores and exports;
 arbitrary app or external-holder drain is not inferred. The User P0 boundary
 requires no grant/access rows. No public API, library family or normal installed
 catalogue upgrade is added. UI/unsaved-work/stop interaction remains a user choice.
+
+## Retain original boot-bound kernel process identity for recovery — 31 October 2026
+
+Extend the existing process module with a 32-byte AETHPID1 record: original boot
+plus non-recycled 64-bit pidfs inode. Capture only after actual bus ProcessFD and
+independently admitted current-context checks, repeat those checks afterward and
+reject unsupported kernel evidence. A replacement observer may compare a fresh
+authenticated connection against the independently protected original identity
+and context. It cannot use candidate bytes/PID/name to create its own authority.
+
+Use direct fstat on the accepted x86-64 pidfs kernel after the mandatory
+PIDFD_GET_INFO checks. The reviewed libsystemd helper performs extra self-pidfd,
+filesystem and file-handle probes; its filesystem getattr is denied in the actual
+User domain. A separate actual confined read probe proves direct fstat works.
+Do not broaden policy for that optional helper path. No third-party code/family,
+frozen schema/wire change or new resident service is needed.
+
+Keep durable run/context enrollment, replacement-owner journal settlement,
+already-dead process recovery and lost original cgroup/event/unit handles as
+separate obligations. Identity survives ordinary exec and is never target-image
+or readiness proof. UI/unsaved-work choices remain deferred to the user.

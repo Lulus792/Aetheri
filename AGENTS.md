@@ -259,6 +259,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- linux/process.h now captures/reidentifies AETHPID1 (boot + 64-bit pidfs inode)
+  from an authenticated live ProcessFD and independently admitted current context.
+  Read spec/runtime.md's observer-replacement section; run linux.process_identity
+  and linux.process in the explicit carrier suite. Mandatory PIDFD_GET_INFO checks
+  bracket direct fstat on the accepted x86-64 pidfs kernel; no numeric-PID fallback.
+  Do not widen policy for libsystemd's optional self-pidfd/fstatfs/handle probes.
+  Fresh bus names can identify the same original process, never authorize a new
+  owner/run or recover an old connection/image/lease/cgroup handle. Persist original
+  identity with independently protected run/context before relying on recovery;
+  never adopt candidate-supplied evidence. The actual replacement-observer test
+  keeps its native context envelope private/test-only. Confined Root/User probe
+  identities remain in memory; durable enrollment/restart settlement remain work.
 - catalogue/lifetime.h now journals successful original-run closure separately
   in explicit v3 run_closures. Read spec/README.md and spec/runtime.md's separate
   durable run closure section; run catalogue.lifetime. Keep frozen v1/v2 SQL and

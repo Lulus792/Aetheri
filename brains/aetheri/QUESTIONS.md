@@ -43,6 +43,11 @@ early failed starts, general exported/delegated holders, document access/revocat
 and full removal remain implementation gates. No product choice blocks those
 backend tasks. See current [State](STATE.md) and
 [closure contract](../../spec/runtime.md#separate-durable-run-closure).
+Original live process reidentification now has actual observer-exit/reconnect
+evidence. Persist that identity with the independently admitted original
+run/context before integrating replacement-owner journal reconciliation; the
+current confined fixture retains it only in memory. Already-dead process and
+lost original cgroup/unit handle recovery remain separate gates.
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging
