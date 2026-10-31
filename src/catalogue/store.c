@@ -6,6 +6,7 @@
 #include "catalogue/launch.h"
 #include "catalogue/setup.h"
 #include "catalogue/execution.h"
+#include "catalogue/lifetime.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -129,7 +130,14 @@ static int application_id(enum ae_catalogue_kind kind)
     return kind == AE_CATALOGUE_SYSTEM ? 1096042579 : 1096042581;
 }
 
-static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind)
+static int extend_schema_v3(sqlite3 *db,enum ae_catalogue_kind kind)
+{
+    const char *const *sql=kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v3 : ae_schema_user_v3;
+    int r=0;
+    for (size_t n=0;r==0 && sql[n]!=NULL;++n) r=exec_sql(db,sql[n]);
+    return r==0 ? exec_sql(db,"PRAGMA user_version=3") : r;
+}
+static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
 {
     const char *const *sql = kind == AE_CATALOGUE_SYSTEM ? ae_schema_system : ae_schema_user;
     int result = 0;
@@ -137,6 +145,7 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind)
     if (result == 0) result = exec_sql(db, kind == AE_CATALOGUE_SYSTEM ?
         "PRAGMA application_id=1096042579; PRAGMA user_version=2;" :
         "PRAGMA application_id=1096042581; PRAGMA user_version=2;");
+    if (result==0 && version==3) result=extend_schema_v3(db,kind);
     return result;
 }
 
@@ -195,13 +204,13 @@ static char *canonical(const unsigned char *sql, int length)
     return output;
 }
 
-static int compare_schema(sqlite3 *db, enum ae_catalogue_kind kind)
+static int compare_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
 {
     sqlite3 *reference = NULL;
     sqlite3_stmt *left = NULL, *right = NULL;
     int result = failure(sqlite3_open_v2(":memory:", &reference, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX, NULL));
     if (result == 0) result = configure(reference);
-    if (result == 0) result = build_schema(reference, kind);
+    if (result == 0) result = build_schema(reference, kind,version);
     const char *query = "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL ORDER BY type,name";
     if (result == 0) result = failure(sqlite3_prepare_v2(db, query, -1, &left, NULL));
     if (result == 0) result = failure(sqlite3_prepare_v2(reference, query, -1, &right, NULL));
@@ -277,8 +286,8 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2) result = -EPROTONOSUPPORT;
-    if (result == 0) result = compare_schema(store->db, store->identity.kind);
+    if (result == 0 && value != 2 && value != 3) result = -EPROTONOSUPPORT;
+    if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
     if (result == 0) {
@@ -417,7 +426,7 @@ int ae_catalogue_create(const char *directory, const struct ae_catalogue_identit
     int result = connect_store(directory, identity, 1, &store);
     if (result != 0) return result;
     result = exec_sql(store->db, "BEGIN EXCLUSIVE");
-    if (result == 0) result = build_schema(store->db, identity->kind);
+    if (result == 0) result = build_schema(store->db, identity->kind,2);
     sqlite3_stmt *statement = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db,
         "INSERT INTO authority_meta(singleton,kind,authority_epoch,current_boot_id,owner_scope_ref) VALUES(1,?,?,?,?)", -1, &statement, NULL));
@@ -798,6 +807,19 @@ static int fixture_commit(struct ae_catalogue *store, int result)
     if (result == 0) result = exec_sql(store->db, "COMMIT");
     if (result != 0 && !sqlite3_get_autocommit(store->db)) (void)exec_sql(store->db, "ROLLBACK");
     return result;
+}
+
+int ae_catalogue_upgrade_lifetimes(struct ae_catalogue *store)
+{
+    int r=still_named(store);
+    if (r==0) r=exec_sql(store->db,"BEGIN EXCLUSIVE");
+    if (r!=0) return r;
+    r=validate(store);
+    sqlite3_int64 version=0;
+    if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
+    if (r==0 && version==2) r=extend_schema_v3(store->db,store->identity.kind);
+    if (r==0) r=validate(store);
+    return fixture_commit(store,r);
 }
 
 int ae_catalogue_fixture_accept(struct ae_catalogue *store, const struct ae_fixture_request *request,
@@ -2653,6 +2675,270 @@ int ae_catalogue_finish_user_execution(struct ae_catalogue *store,const struct a
 }
 #undef EXEC_INPUT
 #undef EXEC_TUPLE
+
+/* Separate v3 lifetime records: never extend/change a completed start operation. */
+#define FB(value, length) ((struct fixture_value){.bytes=(value), .size=(length)})
+#define FI(value) ((struct fixture_value){.size=-1, .number=(value)})
+#define RUN_INPUT "WITH p(profile,hash,op,uop,launch,lease,i,g,d,se,sr,be,br,account,boot,inv,ctx,start,beg,quiet,ended,rel,stamp,srev,stime,obs,fp,artifact,ir,igate,dgate) AS (VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31)) "
+struct run_values {
+    struct fixture_value v[31];
+    uint8_t profile[AE_EXECUTION_BYTES],hash[32],start[32],beg[AE_RUN_RECEIPT_BYTES],quiet[AE_RUN_RECEIPT_BYTES],rel[AE_RUN_RECEIPT_BYTES],end[32],obs[32];
+};
+static int run_inputs(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,int64_t stamp,struct run_values *v)
+{
+    if (!e || !nonzero(e->invocation) || stamp<0 || !v) return -EINVAL;
+    memset(v,0,sizeof *v);
+    int r=ae_execution_encode(p,v->profile);
+    if (r==0) r=ae_sha256_bytes(v->profile,sizeof v->profile,v->hash);
+    if (r==0) r=still_named(s);
+    if (r!=0) return r;
+    const struct fixture_value values[]={FB(v->profile,384),FB(v->hash,32),FB(p->root_operation,16),FB(p->user_operation,16),FB(p->launch,16),FB(p->lease,16),
+        FB(p->install,16),FB(p->generation,16),FB(p->data,16),FB(p->system_epoch,16),FB(p->system_runtime,16),FB(p->broker_epoch,16),FB(p->broker_runtime,16),
+        FB(p->account,16),FB(p->boot,16),FB(e->invocation,16),FB(e->context_digest,32),FB(v->start,32),FB(v->beg,136),FB(v->quiet,136),FB(v->end,32),FB(v->rel,136),
+        FI(stamp),FI(0),FI(0),FB(v->obs,32),FB(p->request_digest,32),FB(p->artifact,32),FI(p->install_revision),FI(p->install_gate_revision),FI(p->data_gate_revision)};
+    memcpy(v->v,values,sizeof values); return 0;
+}
+static int run_statement(struct ae_catalogue *s,const struct run_values *v,const char *sql,int64_t *number,void *blob,int bytes)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,sql,-1,&q,NULL));
+    for (int n=0;r==0 && n<31;++n) {
+        const struct fixture_value *a=&v->v[n];
+        r=failure(a->size<0 ? sqlite3_bind_int64(q,n+1,a->number) : sqlite3_bind_blob(q,n+1,a->bytes,a->size,SQLITE_TRANSIENT));
+    }
+    if (r==0) {
+        int code=sqlite3_step(q);
+        if (number || blob) {
+            if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code);
+            else {
+                if (number) { if (sqlite3_column_type(q,0)!=SQLITE_INTEGER) r=-EUCLEAN; else *number=sqlite3_column_int64(q,0); }
+                else r=projection_blob(q,0,blob,bytes);
+                if (r==0 && sqlite3_step(q)!=SQLITE_DONE) r=-EUCLEAN;
+            }
+        } else { r=code==SQLITE_DONE ? 0 : failure(code); if (r==0 && sqlite3_changes(s->db)!=1) r=-EUCLEAN; }
+    }
+    int final=failure(sqlite3_finalize(q)); return r==0 ? final : r;
+}
+#define RQ(sql,out) run_statement(s,&v,RUN_INPUT sql,out,NULL,0)
+#define RB(sql,out,bytes) run_statement(s,&v,RUN_INPUT sql,NULL,out,bytes)
+#define RUN_ROOT "FROM p JOIN authority_meta m ON m.singleton=1 AND m.kind='system' AND m.authority_epoch=p.se AND m.runtime_incarnation=p.sr AND m.current_boot_id=p.boot " \
+    "JOIN launch_dispatches l ON l.launch_id=p.launch AND l.lease_id=p.lease AND l.root_operation_id=p.op AND l.broker_epoch=p.be AND l.broker_incarnation=p.br AND l.account_scope_ref=p.account AND l.install_ref=p.i AND l.generation_ref=p.g AND l.data_epoch_ref=p.d AND l.boot_id=p.boot AND l.invocation_ref=p.inv AND l.install_gate_revision=p.igate AND l.ready_data_gate_revision=p.dgate AND l.action_id='run' AND l.session_ref='p0' AND l.seat_ref='none' " \
+    "JOIN operations o ON o.operation_id=p.op AND o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch " \
+    "JOIN plans plan ON plan.plan_id=o.plan_id AND plan.kind='launch' AND plan.authority_epoch=p.se AND plan.scope_ref=p.account AND plan.action_id='run' " \
+    "JOIN generation_leases lease ON lease.lease_id=p.lease JOIN generations g ON g.generation_id=p.g AND g.artifact_id=p.artifact " \
+    "JOIN operation_steps intent ON intent.operation_id=p.op AND intent.step_no=0 AND intent.action='verify' AND intent.subject_kind='launch' AND intent.subject_ref=p.launch AND intent.state='applied' AND intent.evidence_digest=p.fp " \
+    "JOIN operation_steps prep ON prep.operation_id=p.op AND prep.step_no=1 AND prep.action='stage' AND prep.subject_kind='generation' AND prep.subject_ref=p.g AND prep.state='applied' AND prep.evidence_digest=p.hash " \
+    "JOIN operation_steps pin ON pin.operation_id=p.op AND pin.step_no=2 AND pin.action='verify' AND pin.subject_kind='integration' AND pin.subject_ref=p.inv AND pin.state='applied' AND pin.evidence_digest=p.ctx " \
+    "JOIN operation_steps arm ON arm.operation_id=p.op AND arm.step_no=3 AND arm.action='activate' AND arm.subject_kind='launch' AND arm.subject_ref=p.launch AND arm.state='applied' AND arm.evidence_digest=p.hash " \
+    "JOIN operation_steps observed ON observed.operation_id=p.op AND observed.step_no=5 AND observed.action='verify' AND observed.subject_kind='launch' AND observed.subject_ref=p.launch AND observed.state='applied' " \
+    "JOIN operation_steps done ON done.operation_id=p.op AND done.step_no=6 AND done.action='reconcile' AND done.subject_kind='launch' AND done.subject_ref=p.launch AND done.state='applied' "
+#define RUN_USER "FROM p JOIN authority_meta m ON m.singleton=1 AND m.kind='user' AND m.authority_epoch=p.be AND m.owner_scope_ref=p.account AND m.runtime_incarnation=p.br AND m.current_boot_id=p.boot " \
+    "JOIN launches l ON l.launch_id=p.launch AND l.operation_id=p.uop AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.boot_id=p.boot AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.invocation_ref=p.inv AND l.session_ref='p0' AND l.seat_ref='none' " \
+    "JOIN operations o ON o.operation_id=p.uop AND o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch " \
+    "JOIN plans plan ON plan.plan_id=o.plan_id AND plan.kind='launch' AND plan.authority_epoch=p.be AND plan.scope_ref=p.account AND plan.action_id='run' " \
+    "JOIN operation_links link ON link.operation_id=p.uop AND link.link_no=0 AND link.state='completed' AND link.remote_epoch=p.se AND link.remote_operation_ref=p.op " \
+    "JOIN operation_steps intent ON intent.operation_id=p.uop AND intent.step_no=0 AND intent.action='verify' AND intent.subject_kind='launch' AND intent.subject_ref=p.launch AND intent.state='applied' AND intent.evidence_digest=p.fp " \
+    "JOIN operation_steps prep ON prep.operation_id=p.uop AND prep.step_no=1 AND prep.action='stage' AND prep.subject_kind='data' AND prep.subject_ref=p.d AND prep.state='applied' AND prep.evidence_digest=p.hash " \
+    "JOIN operation_steps pin ON pin.operation_id=p.uop AND pin.step_no=2 AND pin.action='verify' AND pin.subject_kind='integration' AND pin.subject_ref=p.inv AND pin.state='applied' AND pin.evidence_digest=p.ctx " \
+    "JOIN operation_steps ready ON ready.operation_id=p.uop AND ready.step_no=3 AND ready.action='activate' AND ready.subject_kind='launch' AND ready.subject_ref=p.launch AND ready.state='applied' AND ready.evidence_digest=p.ctx " \
+    "JOIN operation_steps done ON done.operation_id=p.uop AND done.step_no=4 AND done.action='reconcile' AND done.subject_kind='launch' AND done.subject_ref=p.launch AND done.state='applied' "
+#define RUN_ROW "JOIN run_closures c ON c.launch_id=p.launch AND c.profile=p.profile AND c.profile_digest=p.hash AND c.invocation_ref=p.inv AND c.context_digest=p.ctx "
+static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,int64_t stamp,struct run_values *v,int write)
+{
+    int r=run_inputs(s,p,e,stamp,v);
+    if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
+    if (r!=0) return r;
+    sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=3) r=-EPROTONOSUPPORT;
+    if (r!=0) return fixture_commit(s,r);
+    return 0;
+}
+static int run_existing(struct ae_catalogue *s,const struct run_values *v,int *exists)
+{
+    int64_t count=0; int r=run_statement(s,v,RUN_INPUT "SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch",&count,NULL,0);
+    if (r==0 && count) {
+        const char *base=s->identity.kind==AE_CATALOGUE_SYSTEM ? RUN_INPUT "SELECT count(*) " RUN_ROOT RUN_ROW "WHERE c.start_operation_id=p.op AND c.start_result_digest=done.evidence_digest" :
+            RUN_INPUT "SELECT count(*) " RUN_USER RUN_ROW "WHERE c.start_operation_id=p.uop AND c.start_result_digest=done.evidence_digest";
+        r=run_statement(s,v,base,&count,NULL,0);
+        if (r==0 && count!=1) r=-EEXIST;
+        if (r==0) *exists=1;
+    } else if (r==0) *exists=0;
+    return r;
+}
+static int run_receipt_row(struct ae_catalogue *s,const struct run_values *v,enum ae_run_receipt_kind kind,struct ae_run_receipt *output)
+{
+    const char *sql=kind==AE_RUN_ROOT_CLOSING ? RUN_INPUT "SELECT begin_receipt FROM run_closures,p WHERE launch_id=p.launch" :
+        kind==AE_RUN_USER_QUIET ? RUN_INPUT "SELECT quiet_receipt FROM run_closures,p WHERE launch_id=p.launch AND quiet_receipt IS NOT NULL" :
+        kind==AE_RUN_ROOT_RELEASED ? RUN_INPUT "SELECT release_receipt FROM run_closures,p WHERE launch_id=p.launch AND state='released'" : NULL;
+    if (!sql) return -EINVAL;
+    uint8_t raw[AE_RUN_RECEIPT_BYTES]; int r=run_statement(s,v,sql,NULL,raw,sizeof raw);
+    if (r==0) r=ae_run_receipt_decode(raw,sizeof raw,output);
+    return r;
+}
+static struct ae_run_receipt run_receipt(const struct run_values *v,const struct ae_execution_evidence *e,enum ae_run_receipt_kind kind,const uint8_t previous[32],const uint8_t evidence[32],int64_t revision,int64_t stamp)
+{
+    struct ae_run_receipt a={.kind=kind,.revision=revision,.unix_ms=stamp};
+    memcpy(a.profile_digest,v->hash,32); memcpy(a.invocation,e->invocation,16); memcpy(a.previous_digest,previous,32); memcpy(a.evidence_digest,evidence,32); return a;
+}
+static int run_root_context(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c)
+{
+    int r=reservation_context(s,c);
+    if (r==0 && (!p || memcmp(p->system_epoch,s->identity.authority_epoch,16)!=0 || memcmp(p->system_runtime,c->system_runtime,16)!=0 || memcmp(p->boot,c->boot,16)!=0 ||
+        memcmp(p->broker_epoch,c->broker_epoch,16)!=0 || memcmp(p->broker_runtime,c->broker_runtime,16)!=0 || memcmp(p->account,c->account,16)!=0)) r=-ESTALE;
+    return r;
+}
+int ae_catalogue_get_run_receipt(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,enum ae_run_receipt_kind kind,struct ae_run_receipt *output)
+{
+    if (!output) return -EINVAL;
+    struct run_values v; int r=run_begin(s,p,e,0,&v,0); if (r!=0) return r;
+    int exists=0; r=run_existing(s,&v,&exists); if (r==0 && !exists) r=-ENOENT;
+    struct ae_run_receipt result;
+    if (r==0) r=run_receipt_row(s,&v,kind,&result);
+    if (r==0) r=ae_run_receipt_match(p,e,kind,&result);
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_begin_run_close(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *context,
+    const struct ae_execution_evidence *e,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *output)
+{
+    if (!output || !started) return -EINVAL;
+    int r=ae_execution_completion_match(p,e,started->observation_digest,started);
+    if (r==0) r=run_root_context(s,p,context);
+    if (r!=0) return r;
+    struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
+    uint8_t raw[AE_EXECUTION_COMPLETION_BYTES]; r=ae_execution_completion_encode(started,raw);
+    if (r==0) r=ae_sha256_bytes(raw,sizeof raw,v.start);
+    memcpy(v.obs,started->observation_digest,32); v.v[23]=FI(started->revision); v.v[24]=FI(started->completed_unix_ms);
+    int exists=0; int64_t match=0;
+    if (r==0) r=RQ("SELECT count(*) " RUN_ROOT "WHERE done.evidence_digest=p.start AND observed.evidence_digest=p.obs AND o.revision=p.srev AND o.completed_unix_ms=p.stime",&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=run_existing(s,&v,&exists);
+    struct ae_run_receipt result=run_receipt(&v,e,AE_RUN_ROOT_CLOSING,v.start,e->context_digest,1,stamp);
+    if (r==0 && exists) r=run_receipt_row(s,&v,AE_RUN_ROOT_CLOSING,&result);
+    if (r==0 && !exists) {
+        r=RQ("SELECT count(*) " RUN_ROOT "WHERE l.state='observed' AND lease.state='running' AND l.close_cause_epoch IS NULL AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>6)",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision) " RUN_ROOT,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=ae_run_receipt_encode(&result,v.beg);
+        if (r==0) r=RQ("INSERT INTO run_closures(launch_id,start_operation_id,profile,profile_digest,invocation_ref,context_digest,start_result_digest,state,begin_receipt,began_unix_ms) SELECT launch,op,profile,hash,inv,ctx,start,'closing',beg,stamp FROM p",NULL);
+        if (r==0) r=RQ("UPDATE launch_dispatches SET state='closing',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_quiesce_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *begin,int64_t stamp,struct ae_run_receipt *output)
+{
+    if (!output) return -EINVAL;
+    int r=ae_run_receipt_match(p,e,AE_RUN_ROOT_CLOSING,begin); if (r!=0) return r;
+    struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
+    if (s->identity.kind!=AE_CATALOGUE_USER) r=-EPERM;
+    memcpy(v.start,begin->previous_digest,32); uint8_t hash[32]={0};
+    if (r==0) r=ae_run_receipt_encode(begin,v.beg);
+    if (r==0) r=ae_sha256_bytes(v.beg,sizeof v.beg,hash);
+    int64_t match=0; int exists=0;
+    if (r==0) r=RQ("SELECT count(*) " RUN_USER "WHERE done.evidence_digest=p.start",&match);
+    if (r==0 && match!=1) r=-ESTALE;
+    if (r==0) r=run_existing(s,&v,&exists);
+    struct ae_run_receipt result=run_receipt(&v,e,AE_RUN_USER_QUIET,hash,e->context_digest,1,stamp);
+    if (r==0 && exists) {
+        r=RQ("SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND begin_receipt=p.beg AND state IN ('closing','released')",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+        if (r==0) r=run_receipt_row(s,&v,AE_RUN_USER_QUIET,&result);
+    }
+    if (r==0 && !exists) {
+        r=RQ("SELECT count(*) " RUN_USER "WHERE l.state='running' AND l.readiness='ready' AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>4)",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision) " RUN_USER,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=ae_run_receipt_encode(&result,v.quiet);
+        if (r==0) r=RQ("INSERT INTO run_closures(launch_id,start_operation_id,profile,profile_digest,invocation_ref,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,began_unix_ms) SELECT launch,uop,profile,hash,inv,ctx,start,'closing',beg,quiet,stamp FROM p",NULL);
+        if (r==0) r=RQ("UPDATE launches SET state='stopping',readiness='unavailable',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_release_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *context,
+    const struct ae_execution_evidence *e,const struct ae_run_receipt *quiet,const uint8_t end_digest[32],int64_t stamp,struct ae_run_receipt *output)
+{
+    if (!output || !end_digest) return -EINVAL;
+    int r=ae_run_receipt_match(p,e,AE_RUN_USER_QUIET,quiet);
+    if (r==0) r=run_root_context(s,p,context);
+    if (r!=0) return r;
+    struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
+    int exists=0; r=run_existing(s,&v,&exists); if (r==0 && !exists) r=-ENOENT;
+    struct ae_run_receipt begin,result; uint8_t hash[32]; int64_t match=0,revision=0,released=0;
+    if (r==0) r=run_receipt_row(s,&v,AE_RUN_ROOT_CLOSING,&begin);
+    if (r==0) r=ae_run_receipt_digest(&begin,hash);
+    if (r==0 && memcmp(hash,quiet->previous_digest,32)!=0) r=-ESTALE;
+    if (r==0) r=ae_run_receipt_encode(quiet,v.quiet);
+    memcpy(v.end,end_digest,32);
+    if (r==0) r=RQ("SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND state='released'",&released);
+    if (r==0 && released) {
+        r=RQ("SELECT count(*) " RUN_ROOT RUN_ROW "WHERE c.state='released' AND c.quiet_receipt=p.quiet AND c.end_digest=p.ended AND l.state='terminal' AND lease.state='released'",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+        if (r==0) r=run_receipt_row(s,&v,AE_RUN_ROOT_RELEASED,&result);
+    }
+    if (r==0 && !released) {
+        r=RQ("SELECT count(*) " RUN_ROOT RUN_ROW "WHERE c.state='closing' AND c.quiet_receipt IS NULL AND c.began_unix_ms<=p.stamp AND l.state='closing' AND lease.state='running'",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision,lease.revision,c.revision) " RUN_ROOT RUN_ROW,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=RQ("SELECT c.revision " RUN_ROOT RUN_ROW,&revision);
+        if (r==0) r=ae_run_receipt_digest(quiet,hash);
+        result=run_receipt(&v,e,AE_RUN_ROOT_RELEASED,hash,end_digest,revision<INT64_MAX ? revision+1 : 0,stamp);
+        if (r==0) r=ae_run_receipt_encode(&result,v.rel);
+        if (r==0) r=RQ("UPDATE run_closures SET state='released',quiet_receipt=(SELECT quiet FROM p),end_digest=(SELECT ended FROM p),release_receipt=(SELECT rel FROM p),ended_unix_ms=(SELECT stamp FROM p),revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE launch_dispatches SET state='terminal',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE generation_leases SET state='released',revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_end_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *released,int64_t stamp,struct ae_user_launch_snapshot *output)
+{
+    if (!output) return -EINVAL;
+    int r=ae_run_receipt_match(p,e,AE_RUN_ROOT_RELEASED,released); if (r!=0) return r;
+    struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
+    if (s->identity.kind!=AE_CATALOGUE_USER) r=-EPERM;
+    int exists=0; if (r==0) r=run_existing(s,&v,&exists); if (r==0 && !exists) r=-ENOENT;
+    struct ae_run_receipt quiet; uint8_t hash[32]; int64_t match=0,done=0;
+    if (r==0) r=run_receipt_row(s,&v,AE_RUN_USER_QUIET,&quiet);
+    if (r==0) r=ae_run_receipt_digest(&quiet,hash);
+    if (r==0 && memcmp(released->previous_digest,hash,32)!=0) r=-ESTALE;
+    if (r==0) r=ae_run_receipt_encode(released,v.rel);
+    memcpy(v.end,released->evidence_digest,32);
+    if (r==0) r=RQ("SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND state='released'",&done);
+    if (r==0 && done) {
+        r=RQ("SELECT count(*) " RUN_USER RUN_ROW "WHERE c.release_receipt=p.rel AND l.state='exited'",&match);
+        if (r==0 && match!=1) r=-EEXIST;
+    }
+    if (r==0 && !done) {
+        r=RQ("SELECT count(*) " RUN_USER RUN_ROW "WHERE c.state='closing' AND c.began_unix_ms<=p.stamp AND l.state='stopping' AND l.readiness='unavailable' AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch)",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+        if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision,c.revision) " RUN_USER RUN_ROW,&match);
+        if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=RQ("UPDATE run_closures SET state='released',end_digest=(SELECT ended FROM p),release_receipt=(SELECT rel FROM p),ended_unix_ms=(SELECT stamp FROM p),revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE launches SET state='exited',readiness='unavailable',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL);
+        if (r==0) r=RQ("UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+    }
+    struct ae_user_launch_snapshot result;
+    if (r==0) r=user_launch_row(s,p->user_operation,&result);
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
+#undef RUN_INPUT
+#undef RUN_ROOT
+#undef RUN_USER
+#undef RUN_ROW
+#undef RQ
+#undef RB
+#undef FB
+#undef FI
 
 int ae_catalogue_close(struct ae_catalogue **output)
 {

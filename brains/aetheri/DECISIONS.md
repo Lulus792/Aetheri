@@ -998,3 +998,30 @@ evidence. The administrative driver authenticates original Root's reply and keep
 the historical lease/run obligations unchanged. Durable closure, restart recovery,
 future-dispatch fencing and external/delegated holder settlement remain work.
 No library family, frozen schema/XML or normal lifecycle capability changes.
+
+## Keep run closure separate from completed start results — 31 October 2026
+
+Add one v3 run_closures table to each owner's existing database. The start
+operation and immutable AETHLCR1 result already have a completed lifetime; run
+shutdown needs an independent journal. Store its full original profile and
+evidence rather than appending unfinished work to that completed operation.
+Keep v1/v2 definitions byte-for-byte, normal creation on v2 and opening free of
+migration. An explicit exclusive v2-to-v3 upgrade adds only the new table/guards
+and preserves every existing row, owner identity, revision and gate.
+
+Use an authenticated receipt chain: Root closes its dispatch, User fences its
+run and acknowledges quiescence, Root independently verifies actual end and
+atomically releases the generation lease, then User acknowledges exited. Each
+owner commits locally; lost acknowledgements resolve original records without
+another process effect. Cleanup can proceed with closed global admission gates
+and never restores them. Original owner replacement stays a separate recovery
+case. The natural successful-run journal does not invent a removal/stop operation
+or rewrite an existing close cause.
+
+Keep this integration inside the fixed inert enforcing test until general
+holder/revocation/session policy is implemented. Root rechecks the original
+broker after the supervisor/end observations, immediately before its mutation.
+The fixed unit excludes restart triggers, delegation, FD stores and exports;
+arbitrary app or external-holder drain is not inferred. The User P0 boundary
+requires no grant/access rows. No public API, library family or normal installed
+catalogue upgrade is added. UI/unsaved-work/stop interaction remains a user choice.

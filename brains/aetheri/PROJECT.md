@@ -66,8 +66,9 @@ with typed local control and owner-scoped metadata writers. The
 including distinct installation/generation/data/run/operation lifetimes.
 The initial [schema/API contract](knowledge/schema-and-api.md) is now accepted:
 SQL constraints, D-Bus signatures, failure semantics and starting budgets.
-Isolated validation and two prototype protocol endpoints exist; lifecycle methods
-are not implemented.
+Isolated validation and two prototype protocol endpoints exist; normal lifecycle
+capabilities remain disabled. The explicit fixed-run test has separate native
+start and v3 lifetime journals; general provisioning/recovery/removal remain work.
 The [filesystem/permissions direction](knowledge/filesystem-and-permissions.md)
 is accepted, including managed paths/ownership, independent documents and
 ext4/LUKS2/SELinux plus namespaces as starting foundations.

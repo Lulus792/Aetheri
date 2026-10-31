@@ -46,6 +46,7 @@ dispatch/readiness, document access and full removal are still the next P0 work.
 
 The later explicit executing fixture now proves original User registration/READY,
 Root observation, separate start-result completion and native original-process/
-unit/recursive-group end observation. Historical run/lease records stay held:
-durable executing closure/recovery and document/removal acceptance still precede
+unit/recursive-group end observation. Separate v3 journals now also settle the
+successful fixed run's Root lease and User launch while preserving start results.
+Executing recovery, general holders and document/removal acceptance still precede
 P0 completion. See current [State](../STATE.md) for the actual tested boundary.

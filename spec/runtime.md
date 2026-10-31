@@ -3281,13 +3281,117 @@ the test-only ObserveEnd reply is authenticated back to original Root and compar
 with the original app PID/cgroup/invocation/boot. PID1 property signals plus a
 bounded test-only requery cover asynchronous cgroup removal. The controller
 archives this snapshot as native_end, independently checks unit/job/group drain
-for fixture retirement, and still requires the native lease running and User
-launch running/ready in the historical databases. Only this temporary test policy
+for fixture retirement. The later v3 path below now separately settles the fixed
+test run/lease; the observer itself still performs no metadata release. Only this temporary test policy
 adds read/open/getattr for Root's cgroup.events; no write or kill permission.
 
 This is one current observation, not a permanent drain token or restart recovery.
 Future dispatch/migration must be excluded and external/delegated holders settled
-before it can contribute to full app drain. Durable executing run closure, lease
-settlement, recovery coordination and User acknowledgement remain separate work.
+before it can contribute to full app drain. The following section adds separate
+durable closure, lease settlement and User acknowledgement for the fixed successful
+run. General recovery coordination and holder settlement remain work.
 The old no-exec withdrawal proof is unchanged. No normal profile, frozen SQL/XML,
 installed lifecycle capability or production launch/removal acceptance is added.
+
+## Separate durable run closure
+
+`catalogue/lifetime.h` supplies the successful-run closure protocol. Its separate
+v3 run_closures table belongs to the same Root/User database and writer lock as
+that owner's existing records. Creation remains v2; upgrade is an explicit
+quiesced-owner action. Existing v1/v2 definitions, completed start operations,
+operation steps, result timestamps/revisions and AETHLCR1 receipts never change.
+Neither opening a catalogue nor losing an acknowledgement upgrades or restores it.
+
+The one new table stores the full 384-byte execution profile plus digest,
+original invocation/context/start-result binding, immutable begin/quiet/release
+receipts, end digest, owner timestamps and revision. Identity and initial intent
+cannot change. Released is terminal; unfinished closure becomes uncertain on
+runtime replacement. Prune its released record before pruning the referenced
+launch/start operation. This retained maintenance evidence is separate from
+app-private data; its eventual retention/pruning policy is still work.
+
+| Owner call | Fresh atomic result |
+| --- | --- |
+| Root begin_run_close | Original completed/observed start gains a separate closing record; dispatch becomes closing, lease stays running |
+| User quiesce_user_run | Original Root closing receipt matches User's completed/ready start; User records quiet acknowledgement and launch becomes stopping/unavailable |
+| Root release_run | Original User quiet receipt plus independently admitted actual end: closure released, dispatch terminal and generation lease released |
+| User end_user_run | Original authenticated Root release matches User's quiet receipt; User closure released and launch exited/unavailable |
+
+The P0 User quiescence boundary requires zero grant/access rows for this run;
+there is no document transport/holder settlement implementation to infer from
+their state. Root never reads User SQLite or private data. Native metadata APIs
+cannot authenticate process/IPC facts; their caller must verify the actual
+original connections, units, invocations, current code/data and appropriate
+quiescence/end observations. Digests and copied packets alone are insufficient.
+Closed global gates do not block cleanup or get reopened. No-exec withdrawal and
+channel EOF cannot settle this executing journal.
+
+Every mutating boundary checks revision overflow and preserves output on errors,
+including an unknown COMMIT. Exact retries return the original receipt/time with
+no revision advance. get_run_receipt reads historical evidence without issuing a
+new effect or claiming a fresh kernel observation. Root/runtime/broker replacement
+requires separate recovery; this path cannot rebind an old run or restore a gate.
+The original REQUEST/ARM APIs still reject another dispatch after start completion.
+
+### Receipt and end bytes
+
+Each receipt is exactly 136 bytes, with big-endian signed-domain integers:
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHCLS1 (Root closing), AETHQSC1 (User quiet), AETHEND1 (Root released) |
+| 8 | 32 | SHA-256 of the complete original AETHEXE1 profile |
+| 40 | 16 | Original nonzero supervisor invocation |
+| 56 | 32 | Previous receipt SHA-256 |
+| 88 | 32 | Stage evidence digest |
+| 120, 128 | 8 each | Local journal revision (1..2^63-1), original Unix milliseconds (0..2^63-1) |
+
+The chain begins with SHA-256 of the immutable 200-byte AETHLCR1 start result,
+then Root closing, User quiet and Root released. Stage evidence binds Root's
+original starter context, User's registered app context, then the actual end.
+The full profile already binds both authorities/runtimes, boot, account, run,
+lease, installation/generation/data and original operation identities.
+
+The end digest covers a 120-byte AETHREN1 record: tag8, profile digest32,
+Root context digest32, boot16, invocation16, cgroup ID8, original PID4,
+group-removed1, unit-failed1 and two zero reserved bytes. Cgroup IDs use the full
+unsigned 64-bit range; PIDs are 1..2^31-1 and flags exactly 0/1. The native encoder
+checks boot/invocation against its original binding. It hashes verified facts;
+it neither captures a process nor provides a permanent drain token.
+The independent [frozen vectors](vectors/run-closure-v1.json) include all three
+receipts and an end observation above the signed cgroup-ID range. Malformed,
+short/trailing, nil invocation and integer-bound inputs preserve native outputs.
+
+### Connected fixed-profile evidence
+
+Only the explicit test adds BeginClose/FinishClose to its private Root vtable and
+Quiesce/FinishClose to its User test vtable. Root verifies the original registered
+User for every call. User authenticates original Root's reply; the administrative
+driver authenticates original User. Repeated Quiesce/FinishClose exercise immutable
+real IPC acknowledgements before and after exit. Normal APIs/capabilities and
+installed input profiles remain unchanged.
+
+For the fixed inert ELF, Root's SQL closing state and original one-shot coordinator
+exclude a fresh Aetheri dispatch. Protected unit/policy provisioning excludes app
+cgroup migration, delegation and exported code/data/view holders. Before release,
+Root also verifies Restart=no, no TriggeredBy/UpheldBy, no Delegate and both zero
+FD-store count/maximum. User closes its local private-data/image checks before
+acknowledging quiet. The original Root lifetime observer then proves process/unit/
+recursive-group end. No generic external-holder registry or arbitrary supervisor
+mutation exclusion is implied by this fixed provisioning.
+
+The controller reconstructs the original start receipt after closure, verifies
+its unchanged hash in both owner journals, decodes the entire three-receipt chain
+and joins its evidence to both run_closures rows and actual end observation.
+The group may progress from empty to removed between two reads; that progression
+cannot replace the original PID/cgroup/invocation/boot. Root's archived dispatch
+is terminal/lease released; User is exited/unavailable. run-close-receipts.bin is
+408 historical bytes, alongside launch-completion.bin and the two owner databases.
+Independent administrative unit/job/group drain and complete owned-input/tree
+checks still precede fixture retirement.
+
+This proves closure for the successful original fixed run without grant/access
+rows. Early start failure, arbitrary apps/exports, real owner-restart recovery,
+general quiescence/revocation, removal, normal session provisioning and the full
+desktop/image/hardware acceptance remain work. It adds no daemon, resident poll
+loop, third-party family, frozen wire change or automatic installed migration.

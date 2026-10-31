@@ -1471,3 +1471,48 @@ lookup never clears quarantine. Actual restart/namespace replacement remain real
 kernel/PID1 tests. Five service fixtures pass with Debug ASan/UBSan and Release;
 the connected enforcing probe adds actual cap-zero Root/User, UID1000 app and
 authenticated end RPC evidence. Its historical running lease/run are preserved.
+
+## Separate v3 run closure — 31 October 2026
+
+Original [v3 additions](../../spec/schema/common-v3.sql),
+[native transactions](../../src/catalogue/store.c),
+[receipt/end codecs](../../src/catalogue/lifetime.c) and
+[independent vectors](../../spec/vectors/run-closure-v1.json) add lifetime records
+without mutating completed start results. Native create remains v2; exact open
+accepts v2 or explicitly upgraded v3. V1/v2 source hashes are frozen. The existing
+owner lock, DELETE journaling and synchronous=EXTRA remain prerequisites.
+[SQLite transactions](https://www.sqlite.org/lang_transaction.html) document the
+exclusive writer/DDL transaction boundary; application-managed
+[user_version](https://www.sqlite.org/pragma.html#pragma_user_version) is distinct
+from the engine's internal schema counter. These docs support the migration
+design; actual fault/crash tests supply the executed evidence.
+
+The first build exposed file-local value macros that had already been undefined;
+scoping the new binding macros to the new transaction section fixed compilation.
+The first native closure scenario completed the four transactions but expected
+an old ARM retry to succeed. Inspection showed the existing completed-start guard
+correctly returns EAGAIN; the test now requires that rejection and unchanged output,
+without weakening REQUEST/ARM. All twenty native closure scenarios then passed,
+including every write, both commit-acknowledgement directions, actual child exits,
+owner replacement, closed gates and revision limits. Migration additionally faults
+all eight native DDL/version boundaries for both owners and reopens exact v3.
+
+Development checks preserve populated v2 rows and cover all additive DDL/version
+boundaries, six actual process exits before/after migration commit, wrong owner/
+version/source drift and an unknown commit acknowledgement. Three frozen receipts
+and an unsigned-range end vector agree between independent Python and native C.
+The connected enforcing test joins the original User/Root connections to their
+separate journals and original Linux end observer. Root becomes terminal/released,
+User exited/unavailable, while both completed start receipts remain unchanged.
+Only the temporary test catalogues are upgraded; ordinary protected inputs/gates
+and installed capabilities are unchanged. Exact owner-restart recovery, arbitrary
+holders, native documents/revocation and full removal remain implementation gates.
+
+Final complete native regressions pass 45/45 Debug ASan/UBSan (791.20 s) and
+45/45 Release (711.73 s). A subsequently added focused metadata-grant scenario
+passes both builds and proves that pending/active/revoked grant rows all block
+this deliberately narrow quiescence path. It does not exercise actual grant
+transport or revoke a real FD. The final connected repeat includes the immediate
+original-broker recheck before mutation. Independent read-only inspection confirms
+the archived receipt chain and settled v3 rows, unchanged normal v2 closed gates,
+retired exact temporary fixture, enforcing policy and 172 matching source hashes.

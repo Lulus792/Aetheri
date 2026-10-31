@@ -51,7 +51,8 @@ class VmTools(unittest.TestCase):
         with closing(sqlite3.connect(path)) as db,db:
             db.execute('CREATE TABLE authority_meta(kind,authority_epoch,owner_scope_ref,runtime_incarnation,current_boot_id,catalogue_revision)')
             db.execute('INSERT INTO authority_meta VALUES(?,?,?,?,?,?)',('user',bytes(profile[40:56]),bytes(profile[88:104]),bytes(profile[56:72]),bytes(profile[72:88]),2))
-            for table in ('install_bindings','data_epochs','launches','operations'): db.execute('CREATE TABLE '+table+'(id)')
+            for table in ('install_bindings','data_epochs','launches','operations','run_closures'): db.execute('CREATE TABLE '+table+'(id)')
+            db.execute('PRAGMA user_version=3')
         context=b'system_u:object_r:aetheri_user_state_t:s0'
         before={control:[10,1000,1000,stat.S_IFDIR|0o700,2,0,1,1,context.hex(),None]}
         database=control+'/catalogue.sqlite3'; lock=control+'/writer.lock'

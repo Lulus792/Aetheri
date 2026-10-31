@@ -16,6 +16,31 @@ class InvalidContract(ValueError):
 MAX_RECORD = 131072
 MAX_INT = 2**63 - 1
 
+def run_receipt(value):
+    fields(value,'kind profile_digest invocation previous_digest evidence_digest revision unix_ms')
+    tags={'root_closing':b'AETHCLS1','user_quiet':b'AETHQSC1','root_released':b'AETHEND1'}
+    require(type(value['kind']) is str and value['kind'] in tags,'run receipt kind')
+    return (tags[value['kind']]+rawhex(value['profile_digest'],32)+rawhex(value['invocation'],16)+
+            rawhex(value['previous_digest'],32)+rawhex(value['evidence_digest'],32)+
+            struct.pack('>QQ',integer(value['revision'],MAX_INT,1),integer(value['unix_ms'])))
+
+def run_end(value):
+    fields(value,'profile_digest context_digest boot invocation cgroup_id pid group_removed unit_failed')
+    require(type(value['group_removed']) is bool and type(value['unit_failed']) is bool,'end booleans')
+    return (b'AETHREN1'+rawhex(value['profile_digest'],32)+rawhex(value['context_digest'],32)+
+            rawhex(value['boot'],16)+rawhex(value['invocation'],16)+
+            struct.pack('>QI??xx',integer(value['cgroup_id'],2**64-1,1),integer(value['pid'],2**31-1,1),value['group_removed'],value['unit_failed']))
+
+def read_run_receipt(data):
+    require(type(data) is bytes and len(data)==136,'run receipt length')
+    kinds={b'AETHCLS1':'root_closing',b'AETHQSC1':'user_quiet',b'AETHEND1':'root_released'}
+    require(data[:8] in kinds,'run receipt tag')
+    value=dict(kind=kinds[data[:8]],profile_digest=data[8:40].hex(),invocation=data[40:56].hex(),
+               previous_digest=data[56:88].hex(),evidence_digest=data[88:120].hex())
+    value['revision'],value['unix_ms']=struct.unpack('>QQ',data[120:])
+    require(run_receipt(value)==data,'run receipt canonical form')
+    return value
+
 def execution_completion(value):
     fields(value,'system_epoch system_runtime boot operation launch lease invocation profile_digest observation_digest revision completed_unix_ms')
     result=b'AETHLCR1'

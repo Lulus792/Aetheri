@@ -25,6 +25,11 @@ V1_HASHES = {
     "spec/schema/user-v1.sql": "235b95b978cc2ce8535273cc8407b33daee5f822a6ef942965c95550b1d68526",
     "spec/api/management-v1.xml": "83eab1b87f720385bb9e9c1c59663f69e8b28dda5bff0e42cb6307bdd3ff32d0",
 }
+V2_HASHES = {
+    'spec/schema/common-v2.sql':'7a9fe66bab6237d89d9026c4a14da71e92d90006591bdcd56493d723d5145883',
+    'spec/schema/system-v2.sql':'9a606e7469a4a35db357a9ce296f2a57cdf7848b8c7bdc541219951494dcdbc8',
+    'spec/schema/user-v2.sql':'dad2cc892c2432bc4950a446e06fda69774a8d5bc0ec31265c181dca0bbc5cd7',
+}
 
 
 def uid():
@@ -144,6 +149,74 @@ class SqlCanonicalization(unittest.TestCase):
 
 
 class ContractCase(unittest.TestCase):
+    def test_v3_additions_preserve_populated_v2_and_exact_retry(self):
+        for name,digest in V2_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); before=rows(db)
+            self.assertTrue(cc.migrate_v2_to_v3(db,kind)); cc.validate(db,kind,3)
+            self.assert_preserved(db,before)
+            self.assertEqual(db.execute('SELECT count(*) FROM run_closures').fetchone()[0],0)
+            fresh=self.connect('fresh3-'+kind); cc.bootstrap(fresh,kind,3)
+            self.assertEqual(cc.signature(db),cc.signature(fresh))
+            after=rows(db); self.assertFalse(cc.migrate_v2_to_v3(db,kind)); self.assertEqual(rows(db),after)
+            with self.assertRaises(cc.ContractError): cc.validate(db,kind,2)
+
+    def test_v3_ddl_and_version_failures_rollback_without_rewriting_v2(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); before=rows(db); old_schema=cc.signature(db)
+            for phase in ['locked']+['statement_'+str(n) for n in range(7)]+['version_set','validated']:
+                def fault(actual):
+                    if actual==phase: raise RuntimeError('injected v3 boundary')
+                with self.assertRaisesRegex(RuntimeError,'injected'): cc.migrate_v2_to_v3(db,kind,checkpoint=fault)
+                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],2)
+                self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),old_schema)
+            def lost(actual):
+                if actual=='committed': raise RuntimeError('lost v3 acknowledgement')
+            with self.assertRaisesRegex(RuntimeError,'lost'): cc.migrate_v2_to_v3(db,kind,checkpoint=lost)
+            cc.validate(db,kind,3); self.assertFalse(cc.migrate_v2_to_v3(db,kind)); self.assert_preserved(db,before)
+
+    def test_v3_migration_rejects_wrong_version_kind_and_source_drift(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind)
+            with self.assertRaises(cc.ContractError): cc.migrate_v2_to_v3(db,'user' if kind=='system' else 'system')
+            db.execute('PRAGMA user_version=99')
+            with self.assertRaises(cc.ContractError): cc.migrate_v2_to_v3(db,kind)
+            db.execute('PRAGMA user_version=2'); db.execute('CREATE TABLE foreign_extension(value)'); db.commit()
+            with self.assertRaises(cc.ContractError): cc.migrate_v2_to_v3(db,kind)
+            self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],2)
+
+    def test_v3_actual_process_exit_before_and_after_migration_commit(self):
+        code='''import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[3]: os._exit(74)
+cc.migrate_v2_to_v3(db,sys.argv[2],checkpoint=checkpoint)
+raise RuntimeError('crash checkpoint missed')
+'''
+        for kind in ('system','user'):
+            for phase in ('statement_0','version_set','committed'):
+                name='crash3-'+kind+'-'+phase+'.db'; db=self.connect(name)
+                legacy(db,kind); cc.migrate_v1_to_v2(db,kind,backup=self.connect('backup-'+name))
+                before=rows(db); path=db.execute('PRAGMA database_list').fetchone()[2]
+                db.close(); self.connections.remove(db)
+                result=subprocess.run([sys.executable,'-c',code,path,kind,phase],cwd=ROOT/'tools',timeout=20)
+                self.assertEqual(result.returncode,74)
+                db=self.connect(name); self.assert_preserved(db,before)
+                cc.validate(db,kind,3 if phase=='committed' else 2)
+                self.assertEqual(cc.migrate_v2_to_v3(db,kind),phase!='committed')
+
+    def test_v3_page_limit_preserves_old_catalogue_and_allows_later_retry(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); db.execute('VACUUM'); before=rows(db)
+            pages=db.execute('PRAGMA page_count').fetchone()[0]
+            self.assertEqual(db.execute('PRAGMA freelist_count').fetchone()[0],0)
+            db.execute('PRAGMA max_page_count='+str(pages))
+            with self.assertRaises(sqlite3.DatabaseError): cc.migrate_v2_to_v3(db,kind)
+            cc.validate(db,kind,2); self.assertEqual(rows(db),before)
+            db.execute('PRAGMA max_page_count=2147483646')
+            self.assertTrue(cc.migrate_v2_to_v3(db,kind)); self.assert_preserved(db,before)
+
     def setUp(self):
         out = (ROOT/"out").resolve()
         if out.parent != ROOT.resolve():

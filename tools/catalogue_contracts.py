@@ -31,10 +31,19 @@ def statements(text):
 
 
 def source(kind, version):
-    if kind not in APPLICATION_IDS or version not in (1, 2):
+    if kind not in APPLICATION_IDS or version not in (1, 2, 3):
         raise ContractError("unsupported catalogue kind/version")
+    if version==3:
+        return source(kind,2)+extension_v3(kind)
     return [sql for name in ("common", kind)
             for sql in statements((ROOT / f"spec/schema/{name}-v{version}.sql").read_text(encoding="utf-8"))]
+
+
+def extension_v3(kind):
+    if kind not in APPLICATION_IDS:
+        raise ContractError('unsupported catalogue kind')
+    return [sql for name in ('common',kind)
+            for sql in statements((ROOT/f'spec/schema/{name}-v3.sql').read_text(encoding='utf-8'))]
 
 
 def configure(db):
@@ -128,6 +137,34 @@ def validate(db, kind, version=CURRENT_VERSION, *, metadata=True):
 
 def _main_file(db):
     return next(row[2] for row in db.execute("PRAGMA database_list") if row[1] == "main")
+
+
+def migrate_v2_to_v3(db,kind,*,checkpoint=None):
+    """Explicit quiesced-owner additive migration; never an automatic opener.
+
+    Existing tables/rows/metadata are untouched. DDL and version commit together.
+    A failed acknowledgement is queried, never rolled back by copying an old file.
+    This is development tooling; native owners retain their independent lock.
+    """
+    if db.in_transaction: raise ContractError('dedicated idle connection required')
+    version=db.execute('PRAGMA user_version').fetchone()[0]
+    if version==3:
+        validate(db,kind,3); return False
+    configure(db)
+    def mark(phase):
+        if checkpoint: checkpoint(phase)
+    try:
+        db.execute('BEGIN EXCLUSIVE')
+        validate(db,kind,2); mark('locked')
+        for n,statement in enumerate(extension_v3(kind)):
+            db.execute(statement); mark('statement_'+str(n))
+        db.execute('PRAGMA user_version=3'); mark('version_set')
+        validate(db,kind,3); mark('validated')
+        db.commit(); mark('committed')
+    except BaseException:
+        if db.in_transaction: db.rollback()
+        raise
+    return True
 
 
 def migrate_v1_to_v2(db, kind, *, backup, checkpoint=None):

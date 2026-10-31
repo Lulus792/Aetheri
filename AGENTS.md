@@ -259,6 +259,25 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/lifetime.h now journals successful original-run closure separately
+  in explicit v3 run_closures. Read spec/README.md and spec/runtime.md's separate
+  durable run closure section; run catalogue.lifetime. Keep frozen v1/v2 SQL and
+  wire unchanged. Native create stays v2, open validates exact v2/v3 without
+  migrating; upgrade_lifetimes is an explicit quiesced-owner action under the
+  retained writer lock. It adds no rows/admission/revisions to existing tables.
+  Never restore a backup after unknown commit. A completed start operation,
+  revision/time/result/steps and AETHLCR1 receipt remain immutable on close.
+  Root closing -> authenticated User quiet -> independently admitted original
+  end/Root terminal+lease released -> authenticated User exited. Digests/frames
+  are metadata, never process/quiescence or bearer proof. Get receipts are
+  historical, not fresh observations. Original runtime/owner replacement requires
+  separate recovery; unfinished v3 closures become uncertain. The P0 User path
+  requires no grant/access rows. Actual fixed test provisioning excludes future
+  dispatch/restart/migration/delegation/FD-store/export holders; general holder
+  settlement is unimplemented. Root rechecks original broker just before mutation.
+  New methods stay only in explicit test vtables; normal installed catalogues
+  remain v2 and capabilities empty. Do not use old no-exec withdrawal to close
+  an executing attempt, or treat an isolated successful-run close as full removal.
 - linux/lifetime.h now provides a Root-owned read-only original-process/unit/
   recursive-cgroup end observer. Read spec/runtime.md's lifetime section; run
   linux.lifetime in the explicit privileged carrier suite. Borrow the caller's
@@ -271,9 +290,9 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Actual root-only PID1 tests use a private component bus; property/lookup faults
   are controlled (v2 rejects actual rename). The connected enforcing test captures
   after actual Root/User execution confirmation and authenticates ObserveEnd only
-  in its test interface. Archive native_end as historical snapshot; lease stays
-  running/User running-ready. Future-dispatch fencing, external/delegated holder
-  settlement, durable run closure/recovery and production removal remain work.
+  in its test interface. Archive native_end as historical snapshot; the separate
+  v3 path above now settles only the successful fixed run. General future-dispatch
+  fencing, external/delegated holder settlement, recovery and removal remain work.
   Never use the old no-exec withdrawal proof to settle an executing attempt.
 - catalogue/execution.h now separately completes Root/User start results through
   ae_catalogue_complete_execution / ae_catalogue_finish_user_execution. Read

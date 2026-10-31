@@ -93,6 +93,18 @@ def main():
             vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/execution-completion-v1.json').read_bytes())
             encoded=root/'completion.vector'; encoded.write_bytes(bytes.fromhex(vector['hex']))
             subprocess.run([executable,'completion-codec',encoded],check=True,timeout=10)
+        if len(sys.argv)==4 and sys.argv[3] in ('lifetime','lifetime-grants'):
+            vectors=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/run-closure-v1.json').read_bytes())
+            encoded=root/'lifetime.vector'
+            encoded.write_bytes(bytes.fromhex(vectors['profile_hex'])+b''.join(bytes.fromhex(x['hex'])+bytes.fromhex(x['sha256']) for x in vectors['receipts'])+bytes.fromhex(vectors['end']['sha256']))
+            subprocess.run([executable,'run-codec',encoded],check=True,timeout=10)
+            scenarios=tuple('exec-lifetime-'+case for case in (
+                'fresh','gates','grants','step0-lost','step1-lost','step2-lost','step3-lost',
+                'step0-crash-before','step0-crash-after','step1-crash-before','step1-crash-after',
+                'step2-crash-before','step2-crash-after','step3-crash-before','step3-crash-after',
+                'step2-replace','step3-replace',
+                'step0-limit-launch','step1-limit-launch','step2-limit-lease','step3-limit-catalogue'))
+            if sys.argv[3]=='lifetime-grants': scenarios=('exec-lifetime-grants',)
         if len(sys.argv)==4 and sys.argv[3]=="wire":
             scenarios=tuple("exec-wire-"+case for case in (
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",

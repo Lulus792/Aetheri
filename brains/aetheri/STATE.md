@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — native original-process lifetime observer; run and lease retained.
+31 October 2026 — separate v3 closure; fixed successful run/lease now settled.
 
 ## Confirmed
 
@@ -13,6 +13,58 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Successful original-run shutdown now has its own v3 run_closures record per owner.
+The explicit additive upgrade preserves frozen v1/v2 definitions, all existing
+rows/revisions/gates and the original completed start result. Normal creation
+stays v2 and opening never migrates. Root closes its dispatch, User records quiet
+and stopping/unavailable, Root atomically records end/terminal/released lease,
+then User acknowledges exited. Start operation revisions/times/results/steps stay
+unchanged. Exact retries are historical; owner replacement marks unfinished close
+uncertain and needs separate recovery.
+
+Canonical 136-byte Root-closing/User-quiet/Root-release receipts form a SHA-256
+chain from the original 200-byte start receipt. A separate 120-byte end observation
+binds actual original boot/invocation/cgroup/PID. Frames remain metadata, never
+bearer/process/holder capabilities. No IPC/filesystem/supervisor effect runs inside
+SQLite. The native metadata tests cover all writes, commit uncertainty, real child
+exits, owner replacement, closed gates and revision overflow. Source-contract
+tests cover preserved populated rows, all eight native DDL/version failures,
+six migration process exits, source/version/owner drift and SQLITE_FULL.
+
+The actual enforcing fixed test now joins original Root/User IPC and independent
+Linux end observation to the journals: Root dispatch terminal/lease released,
+User exited/unavailable. It rechecks the original User before mutation and verifies
+the protected one-shot unit has no restart/activation/delegation/FD-store holders.
+The fixed inert profile excludes other exports/migration; the User boundary
+requires no grant/access rows. The controller independently decodes both journals
+and their receipt chain and verifies the unchanged start result. Historical data
+now also includes run-close-receipts.bin (408 bytes). Only temporary test stores
+are upgraded. General holders, early failed starts, real owner-restart recovery,
+documents/revocation, full removal and normal session provisioning remain work.
+The full desktop/apps/image/hardware objective remains active.
+See [run closure](../../spec/runtime.md#separate-durable-run-closure).
+
+The complete native suite passes 45/45 in Debug ASan/UBSan (791.20 s) and
+45/45 in Release (711.73 s). These runs include the original twenty closure
+scenarios. An additional focused grant case then passes in both builds: pending,
+active and even historical revoked grant rows prevent this P0 quiescence path.
+Its metadata-only fixture does not claim real document/FD revocation. Final
+source-contract, byte-contract and host-orchestration checks pass 35/35
+(83.519 s), 18/18 (0.013 s) and 46/46 (2.335 s), respectively. The final actual
+enforcing integration repeats successfully after the immediate broker recheck.
+
+Read-only final inspection confirms schema v2 and two closed gates in each normal
+owner catalogue, pending=None, no unsettled normal dispatch/lease, unowned test
+service names and absent temporary inputs/module/units. Normal execution profile,
+starter and view scaffold remain absent. Both actual Root/User test processes
+had all five capability sets empty. The archived v3 catalogues pass integrity and
+foreign-key checks; their released records and three-receipt chain agree with
+the unchanged start receipt. All 172 guest source hashes match the tested host
+snapshot. These are fixed-profile software tests, not daily-use OS or hardware
+acceptance. All 548 local Markdown file targets pass the final file-link check.
+
+Previous original-process observation checkpoint (31 October 2026):
 
 The new linux/lifetime module holds the original admitted process pin, exact
 cgroup root/group and original cgroup.events reader. A current end observation

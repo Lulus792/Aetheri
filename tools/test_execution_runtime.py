@@ -106,7 +106,8 @@ def acknowledge_user_start(record,work):
     with closing(sqlite3.connect('file:'+str(work/database)+'?mode=ro',uri=True)) as db:
         if db.execute('SELECT kind,authority_epoch,owner_scope_ref,runtime_incarnation,current_boot_id,catalogue_revision FROM authority_meta').fetchall()!=[
             ('user',profile[40:56],profile[88:104],profile[56:72],profile[72:88],2)]: raise RuntimeError('User startup context differs')
-        if any(db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('install_bindings','data_epochs','launches','operations')):
+        if db.execute('PRAGMA user_version').fetchone()[0]!=3: raise RuntimeError('explicit test lifetime schema absent')
+        if any(db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('install_bindings','data_epochs','launches','operations','run_closures')):
             raise RuntimeError('User bootstrap performed unrequested lifecycle work')
     record['tree']=current; save(record)
 def seed(work,record):
@@ -270,11 +271,11 @@ UMask=0077
             os.close(root_pin)
         verify_static(record); quiet_normal(ordinary)
         with closing(sqlite3.connect('file:'+str(work/'system/catalogue.sqlite3')+'?mode=ro',uri=True)) as db:
-            if db.execute("SELECT state FROM generation_leases").fetchall()!=[('running',)]: raise RuntimeError('unexpected lease settlement')
+            if db.execute("SELECT state FROM generation_leases").fetchall()!=[('released',)]: raise RuntimeError('missing native lifetime settlement')
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('catalogue corruption')
             record['steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
             record['app_invocation']=db.execute('SELECT lower(hex(invocation_ref)) FROM launch_dispatches').fetchone()[0]
-            if db.execute('SELECT state FROM launch_dispatches').fetchall()!=[('observed',)]: raise RuntimeError('missing Root execution observation')
+            if db.execute('SELECT state FROM launch_dispatches').fetchall()!=[('terminal',)]: raise RuntimeError('missing native terminal dispatch')
             if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(7)]: raise RuntimeError('missing Root execution/completion steps')
             if db.execute('SELECT state,outcome,reason_code,result_kind FROM operations').fetchall()!=[('completed','applied','exec_channel_unknown','launch')]: raise RuntimeError('missing Root launch result or channel diagnostic')
             value={}
@@ -287,22 +288,41 @@ UMask=0077
             completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
             if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
             if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
+            if db.execute('PRAGMA user_version').fetchone()[0]!=3: raise RuntimeError('wrong Root lifetime schema')
+            root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
+            if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
+                    root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')
+            root_begin,user_quiet,root_end=(reference.read_run_receipt(root_closure[n]) for n in (5,6,8))
+            chain=completion_hash
+            for kind,receipt,wire in zip(('root_closing','user_quiet','root_released'),(root_begin,user_quiet,root_end),(root_closure[5],root_closure[6],root_closure[8])):
+                if receipt['kind']!=kind or receipt['previous_digest']!=chain or receipt['profile_digest']!=value['profile_digest'] or receipt['invocation']!=value['invocation']: raise RuntimeError('uncorrelated lifetime receipt chain')
+                chain=hashlib.sha256(wire).hexdigest()
+            if root_begin['evidence_digest']!=root_closure[2].hex() or root_end['evidence_digest']!=root_closure[7].hex(): raise RuntimeError('wrong lifetime evidence binding')
+            end_value=dict(profile_digest=value['profile_digest'],context_digest=root_closure[2].hex(),**record['native_end'])
+            acceptable={hashlib.sha256(reference.run_end(end_value)).digest()}
+            if not end_value['group_removed']:
+                end_value['group_removed']=True; acceptable.add(hashlib.sha256(reference.run_end(end_value)).digest())
+            if root_closure[7] not in acceptable: raise RuntimeError('native end digest differs from actual original process observation')
         evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
         shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
         (evidence/'launch-completion.bin').write_bytes(completion); record['completion_sha256']=completion_hash
+        (evidence/'run-close-receipts.bin').write_bytes(root_closure[5]+root_closure[6]+root_closure[8])
+        record['lifetime_receipt_sha256']=[hashlib.sha256(root_closure[n]).hexdigest() for n in (5,6,8)]
         user_database=work/record['user_catalogue_rel']
         with closing(sqlite3.connect('file:'+str(user_database)+'?mode=ro',uri=True)) as db:
             if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise RuntimeError('User catalogue corruption')
-            if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('running','ready',record['app_invocation'])]: raise RuntimeError('missing User readiness/invocation')
+            if db.execute("SELECT state,readiness,lower(hex(invocation_ref)) FROM launches").fetchall()!=[('exited','unavailable',record['app_invocation'])]: raise RuntimeError('missing User lifetime acknowledgement')
             if db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()!=[(n,'applied') for n in range(5)]: raise RuntimeError('missing User launch completion')
             if db.execute('SELECT state,outcome,result_kind,lower(hex(result_ref)) FROM operations').fetchall()!=[('completed','applied','launch',value['launch'])]: raise RuntimeError('wrong User launch result')
             if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=4').fetchone()[0]!=completion_hash or db.execute('SELECT state FROM operation_links').fetchall()!=[('completed',)]: raise RuntimeError('unacknowledged Root result')
             record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
+            user_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
+            if user_closure is None or user_closure[:2]!=root_closure[:2] or user_closure[3:]!=root_closure[3:] or user_quiet['evidence_digest']!=user_closure[2].hex(): raise RuntimeError('User lifetime journal not correlated with actual Root release')
         shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
         record.update(state='passed',evidence=str(evidence)); save(record)
         (evidence/'report.json').write_text(json.dumps(record,indent=2)+'\n')
         retire(record)
-        print('Live integration passed and exact owned fixture retired; isolated held-lease history archived. No production admission/readiness/removal acceptance.')
+        print('Live integration passed: native Root terminal/released and User exited; immutable start results and separate lifetime receipts archived. Exact test fixture retired; no general recovery/removal acceptance.')
     except BaseException as error:
         if isinstance(error,subprocess.CalledProcessError): print(error.output,file=sys.stderr)
         for unit in record['unit_hashes']:

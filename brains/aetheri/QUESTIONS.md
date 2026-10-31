@@ -36,6 +36,14 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 
 ## Architecture and security
 
+Current implemented boundary: the explicit successful fixed run now closes through
+separate v3 owner journals, an authenticated receipt chain and actual Linux end
+evidence. Normal installed catalogues remain v2. Real owner-restart recovery,
+early failed starts, general exported/delegated holders, document access/revocation
+and full removal remain implementation gates. No product choice blocks those
+backend tasks. See current [State](STATE.md) and
+[closure contract](../../spec/runtime.md#separate-durable-run-closure).
+
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging
 now checks inventory/copied bytes and resyncs. Protected P0 administrative staging

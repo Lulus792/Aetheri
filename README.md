@@ -3,41 +3,21 @@
 Aetheri is a planned Linux-based desktop operating system for personal daily use,
 with its own desktop and applications, including required suspend/resume support.
 
-The current C17 prototype runs in a dedicated Fedora/UEFI test VM. Two confined
-system/user services manage tested catalogues, verified test packages and separate
-private-data allocations. Native transactions record start reservations, starter
-binding, preparation and arm without repeating a possibly completed external effect.
-An explicit enforcing-VM test now connects the real Root journal, authenticated
-starter, private code/data mounts and one-way execution. It observes a fresh
-post-exec app connection and the actual running ELF under UID/GID1000 in a
-separate constrained domain. This uses isolated test inputs; normal user admission
-and recovery are still in progress. The test preserves historical
-lease obligations rather than treating process exit as permission to release them.
-The test now includes a real User process with its own catalogue, private-data
-checks and durable start preparation. Root verifies that original registered
-connection before request and release; it never reads the User database.
-User now verifies the running app's actual process, invocation and executable
-before recording registration, then accepts an explicit readiness report from
-that same connection. Separate authenticated receipts now complete the two start
-operations while the app remains running/ready and Root's generation lease stays
-held. General app/session provisioning and executing recovery remain work.
-Root also records an observed dispatch only after its original process evidence
-matches that User confirmation. Historical retries preserve later states and
-keep the program's generation lease held.
+The C17 prototype runs in a dedicated Fedora/UEFI test VM. Separate system and
+user services manage verified test packages, private data and durable app-start
+records. An isolated test under enforcing SELinux joins the actual caller,
+supervisor, private mounts and running executable before accepting app readiness.
 
-A new native observer checks the original process, service invocation and entire
-process group after exit. The enforcing test now gets that result from the actual
-Root service. Durable run closure and resource release remain the next boundary.
+That test now also closes a successful app run. The user service records
+quiescence for this document-free fixture; the system service verifies that the
+original process and its entire supervised group have ended, and each owner
+records its own result. The code
+lease is released atomically; the original start receipts remain unchanged.
+This works for the fixed test profile. General session provisioning, restart
+recovery, document access and full app removal are still in progress.
+See the [runtime contracts](spec/runtime.md#separate-durable-run-closure).
 
-The installed setup helper prepares private code/data views and supports checked
-teardown; it cannot execute apps. A separate execution subsystem has tested
-credential dropping, handle sealing, exact ELF execution/image observation and
-an issuer-owned error channel with sd-bus writer transfer. The
-[isolated live execution test](spec/runtime.md#isolated-live-rootstarterexecution-test)
-also checks the actual starter-to-app transition without changing normal installed
-profiles or opening their gates.
-
-Actual app launch, document access and the desktop remain in progress. There is
+Normal app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The
 [current state](brains/aetheri/STATE.md) records exact implementation and test limits.
 

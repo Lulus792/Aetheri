@@ -11,6 +11,18 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_run_closure_vectors_and_bounds(self):
+        vectors=rc.load_json((ROOT/'spec/vectors/run-closure-v1.json').read_bytes())
+        for vector in vectors['receipts']+[vectors['end']]:
+            encoder=rc.run_receipt if vector['kind']=='receipt' else rc.run_end
+            data=encoder(vector['input'])
+            self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+            if vector['kind']=='receipt': self.assertEqual(rc.read_run_receipt(data),vector['input'])
+        for key,value in (('kind','other'),('revision',0),('revision',2**63),('unix_ms',-1),('unix_ms',True),('invocation','00'*16),('profile_digest','ff')):
+            row=deepcopy(vectors['receipts'][0]['input']); row[key]=value; self.rejects(rc.run_receipt,row)
+        for key,value in (('pid',0),('pid',2**31),('cgroup_id',0),('cgroup_id',2**64),('group_removed',1),('unit_failed',0),('boot','00'*16)):
+            row=deepcopy(vectors['end']['input']); row[key]=value; self.rejects(rc.run_end,row)
+
     def test_execution_completion_vector(self):
         value=rc.load_json((ROOT/'spec/vectors/execution-completion-v1.json').read_bytes())
         encoded=rc.execution_completion(value['input'])
