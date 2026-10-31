@@ -1928,3 +1928,61 @@ Final host VM/tool guards pass 49/49 (3.129 s). All 186 host/snapshot/guest sour
 hashes agree. Local Markdown validation passes 594 file targets, excluding anchors
 and external URLs. No dependency family, production schema/wire or resident daemon
 was added.
+
+## Native close-only Root recovery — 31 October 2026
+
+The [SQLite transaction documentation](https://www.sqlite.org/lang_transaction.html)
+was reviewed for explicit/exclusive transactions, one writer, statement lifetime
+and commit/rollback uncertainty. The [trigger documentation](https://www.sqlite.org/lang_createtrigger.html)
+was reviewed for row-level WHEN/OLD/NEW admission and transactional trigger changes.
+These support the implementation method; they do not prove an Aetheri recovery
+actor, original kernel object, native holder end or actual power-loss durability.
+
+The new Root-only v6 source adds one immutable per-runtime recovery-owner table.
+Its admission binds current catalogue runtime to the original handoff/profile and
+observed witness revision. The explicit migration replaces only the system closure
+insert trigger, preserving normal admission and adding the narrow current-owner
+alternative. Frozen v1–v5 sources/rows and normal v2/User v4 inputs stay unchanged.
+The v5 source hash is frozen independently in the new migration tests.
+
+Native BEGIN/RELEASE/GET share original transaction code while replacing only the
+SQL current-Root-runtime input, never the canonical original profile/runtime bytes.
+BEGIN rechecks the exact successful original start result before owner enrollment.
+An existing uncertain closure keeps its original begin receipt. A second Root
+replacement requires a new OBSERVE and its own BEGIN; a prior owner row cannot
+permit direct RELEASE. RELEASE keeps original User quiet/end/holder prerequisites.
+Original-runtime functions still reject replacement contexts. No IPC or process
+operation takes place in these transactions.
+
+All 15 native recovery fixtures pass Release (116.60 s) and Debug ASan/UBSan
+(150.27 s). They use actual SQLite owner transactions with controlled admitted
+process/handoff/end inputs. Each relevant SQL mutation is faulted and verified
+against unchanged file bytes/outputs. Real child processes exit before/after
+commits; lost successful acknowledgements and repeated Root replacement preserve
+one original closure/lease/receipt chain. Current-OBSERVE/owner omissions, changed
+User/boot, missing original completion and revision overflow are rejected. Original
+start revisions, closed gates and historical replay after retirement are checked.
+Logs: guest build `run-recovery-release.log` and `run-recovery-debug.log`.
+
+Host SQLite/migration/API contracts pass 46/46 (68.999 s), including v6 every-DDL
+rollback, unknown commit, real process exits, full disk, foreign schema and User v6
+rejection. The two v6 tests repeated after adding the frozen-v5 hash guard pass
+2/2 (10.476 s). Host VM/tool guards pass 49/49 (3.345 s). These tests do not change
+normal installed services, policy or previous quarantined run history.
+
+Release regressions pass 4/4 (278.75 s): original lifetime (130.02 s), handoff
+journal (132.18 s), populated Python/native schema interop (3.56 s) and existing
+authority handoff bridge (12.99 s). Interop now covers each Root v2–v6/User v2–v4
+and checks unchanged rows and native-open file bytes. Evidence is under the guest
+build's `run-recovery-regressions.log`; none of these starts an installed app.
+
+Final read-only carrier inspection confirms enforcing policy, normal Root/User v2
+with two closed gates each, no pending normal request/unsettled normal dispatch or
+lease, and no temporary execution units, module or bus configuration. All 187
+host/snapshot/guest source hashes agree. Local Markdown validation passes 599 file
+targets, excluding anchors and external URLs. No new dependency/resident service.
+
+Actual active-run Root/original-User communication, complete retained-handle end
+integration, replaced-User recovery and early starter/error-channel recovery remain
+unimplemented. The existing confined --handoff test proves replacement only after
+original run closure. Do not reuse its no-active-run evidence for this new path.

@@ -164,6 +164,46 @@ class ContractCase(unittest.TestCase):
         cc.migrate_v1_to_v2(db,'system',backup=self.connect('backup-'+name))
         cc.migrate_v2_to_v3(db,'system'); cc.migrate_v3_to_v4(db,'system'); return db
 
+    def test_v6_migration_rollback_preservation_and_lost_commit(self):
+        self.assertEqual(hashlib.sha256((ROOT/'spec/schema/system-v5.sql').read_bytes()).hexdigest(),'6aaf5f948c33f7ac00ad1646eaf0030f05e67d89f08f64cc63b8b646097579b0')
+        db=self.handoff_source('recovery6.db'); cc.migrate_v4_to_v5(db,'system')
+        before=rows(db); signature=cc.signature(db)
+        phases=['locked']+['statement_'+str(n) for n in range(len(cc.extension_v6('system')))]+['version_set','validated']
+        for phase in phases:
+            def fail(where):
+                if where==phase: raise RuntimeError(where)
+            with self.assertRaisesRegex(RuntimeError,phase): cc.migrate_v5_to_v6(db,'system',checkpoint=fail)
+            cc.validate(db,'system',5); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+        def lost(where):
+            if where=='committed': raise RuntimeError('lost')
+        with self.assertRaisesRegex(RuntimeError,'lost'): cc.migrate_v5_to_v6(db,'system',checkpoint=lost)
+        cc.validate(db,'system',6); self.assert_preserved(db,before)
+        after=rows(db); self.assertFalse(cc.migrate_v5_to_v6(db,'system')); self.assertEqual(rows(db),after)
+        with self.assertRaises(cc.ContractError): cc.bootstrap(self.connect('user6.db'),'user',6)
+
+    def test_v6_actual_crash_full_disk_and_foreign_source(self):
+        code="""import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[2]: os._exit(75)
+cc.migrate_v5_to_v6(db,'system',checkpoint=checkpoint)
+raise RuntimeError('checkpoint missed')
+"""
+        for phase in ('statement_4','version_set','committed'):
+            name='recovery-crash-'+phase+'.db'; db=self.handoff_source(name); cc.migrate_v4_to_v5(db,'system'); before=rows(db)
+            path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+            self.assertEqual(subprocess.run([sys.executable,'-c',code,path,phase],cwd=ROOT/'tools',timeout=20).returncode,75)
+            db=self.connect(name); cc.validate(db,'system',6 if phase=='committed' else 5); self.assert_preserved(db,before)
+            self.assertEqual(cc.migrate_v5_to_v6(db,'system'),phase!='committed')
+        db=self.handoff_source('recovery-full.db'); cc.migrate_v4_to_v5(db,'system'); db.execute('VACUUM'); before=rows(db)
+        db.execute('PRAGMA max_page_count='+str(db.execute('PRAGMA page_count').fetchone()[0]))
+        with self.assertRaises(sqlite3.OperationalError): cc.migrate_v5_to_v6(db,'system')
+        cc.validate(db,'system',5); self.assertEqual(rows(db),before)
+        db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE foreign_extension(value)'); db.commit(); before=rows(db)
+        with self.assertRaises(cc.ContractError): cc.migrate_v5_to_v6(db,'system')
+        self.assertEqual(rows(db),before)
+
     def test_v5_system_only_preserves_frozen_v4_rows_and_retry(self):
         for name,digest in V4_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
         db=self.handoff_source('handoff-preserve.db'); before=rows(db)

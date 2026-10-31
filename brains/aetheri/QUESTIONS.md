@@ -82,7 +82,10 @@ The separate --handoff variant now proves actual confined transfer/replacement
 and retirement after original run closure. Active-run Root/User recovery,
 production admission and partial-set reconciliation remain required. Preserve the namespace-
 denied test's original held history in guest quarantine; it was not settled by
-infrastructure retirement. No personal product decision blocks this work.
+infrastructure retirement. No personal product decision blocks this work. Native Root-only v6 now permits
+close-only recovery with a current handoff OBSERVE and the still-original User;
+actual active-run wiring, replaced-User settlement and early-start recovery remain.
+See [Root recovery transactions](../../spec/runtime.md#root-replacement-closure-transactions).
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging

@@ -53,4 +53,26 @@ int ae_catalogue_end_user_run(struct ae_catalogue *,const struct ae_execution_pr
  * Original owner/runtime only. ENOENT means this stage is not recorded. */
 int ae_catalogue_get_run_receipt(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_execution_evidence *,enum ae_run_receipt_kind,struct ae_run_receipt *);
+/* Separate Root-only v6 closure after a SAME-BOOT Root replacement. Original
+ * profile/start/process/receipts remain immutable; context.system_runtime is the
+ * current Root, while broker identity MUST still be the original live User.
+ * Caller authenticates that User anew against independently retained ORIGINAL
+ * process/unit/invocation evidence (not just a current unit/domain or broker
+ * UUID), validates/restores the exact original observation handles and commits
+ * current v5 OBSERVE before these calls. This
+ * is close-only recovery, never execution/readiness adoption or fresh dispatch.
+ * BEGIN atomically records an immutable current-owner observation with the
+ * original closing receipt (or retains an existing uncertain closure). RELEASE
+ * needs fresh original end/holder/future-effect evidence and authenticated quiet
+ * receipt. A new Root after another interruption must OBSERVE again and call
+ * BEGIN before RELEASE. No restarted User, cross-boot or early-start recovery.
+ * GET is read-only; original APIs keep their original-runtime checks. Errors,
+ * including lost successful commits, preserve outputs. Exact repeats preserve
+ * original receipts/gates/start operation, including after handoff retirement. */
+int ae_catalogue_recover_begin_run_close(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,const struct ae_execution_completion *,int64_t,struct ae_run_receipt *);
+int ae_catalogue_recover_release_run(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,const struct ae_run_receipt *,const uint8_t [32],int64_t,struct ae_run_receipt *);
+int ae_catalogue_get_recovered_run_receipt(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_execution_evidence *,enum ae_run_receipt_kind,struct ae_run_receipt *);
 #endif

@@ -30,6 +30,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [common-v2](schema/common-v2.sql), [system-v2](schema/system-v2.sql), [user-v2](schema/user-v2.sql) | Canonical complete v2 bootstrap definitions |
 | [common-v3](schema/common-v3.sql), [system-v3](schema/system-v3.sql), [user-v3](schema/user-v3.sql) | Explicit additive run-closure journal after frozen v2; no existing table rewrite |
 | [common-v4](schema/common-v4.sql), [system-v4](schema/system-v4.sql), [user-v4](schema/user-v4.sql) | Immutable original-process records after frozen v3; role-specific enrollment and retention guards |
+| [system-v6](schema/system-v6.sql) | Explicit Root recovery-owner records and guarded closure admission after frozen v5 |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
@@ -63,7 +64,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 | [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
 | [replacement-observer test](../tests/test_process_identity.c), [process identity vector](vectors/process-identity-v1.json) | Boot-bound pidfs identity through a fresh authenticated connection; no journal/owner-restart adoption |
-| [handoff.h](../src/catalogue/handoff.h), [Root v5](schema/system-v5.sql), [handoff vector](vectors/execution-handoff-v1.json) | Canonical original-object expectations and separate Root handoff intent/observation/retirement journal; no installed recovery producer/receiver |
+| [handoff.h](../src/catalogue/handoff.h), [Root v5](schema/system-v5.sql), [handoff vector](vectors/execution-handoff-v1.json) | Canonical original-object expectations and separate Root handoff intent/observation/retirement journal; no normal installed recovery endpoint |
 | [native handoff bridge](../src/authority/handoff.h) | Original export/PREPARE and SQL-bound restore/OBSERVE; opt-in four-slot PID1 transport and confined restart after a completed run; active-run owner recovery remains separate |
 | [retained-handle test](../tests/test_lifetime_handoff.c) | Actual bounded PID1 handoff; separate process-free target variant retains original units without controller pins, then verifies retirement/GC; not Root/User journal recovery |
 | [execution process vector](vectors/execution-process-v1.json) | Canonical AETHPRC1 durable context/profile binding; its native APIs are in execution.h |
@@ -102,12 +103,21 @@ documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
 authorization or validate incoming messages by themselves.
 
-The initial v1/v2 snapshots retain complete definitions; v3/v4 and Root v5 compose their additions.
+The initial v1/v2 snapshots retain complete definitions; v3/v4 and Root v5/v6 compose their additions.
 The v2 bootstrap and migration consume the same target SQL. This avoids separate
 handwritten migration copies of every CHECK/trigger. Frozen v1/v2/v3 hashes in the
 test suite detect accidental changes to those sources.
 
 ## New records and constraints
+
+Root-only v6 adds immutable per-runtime `run_recovery_owners` observations and
+narrowly extends closure insertion after a same-boot Root replacement. The native
+recovery functions retain original start/profile/receipts and require the still-
+original User plus a current SQL-bound handoff OBSERVE. They can finish closure,
+never reopen gates or dispatch. Actual installed active-run recovery is pending;
+see [recovery transactions](runtime.md#root-replacement-closure-transactions).
+The explicit v5-to-v6 migration changes no existing row; frozen v1–v5 sources,
+normal v2 creation and User v4 stay fixed.
 
 Root-only v5 adds execution_handoffs: an immutable original AETHHND1 expectation
 linked to the existing app-process witness, with separate observation/retirement

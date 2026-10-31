@@ -1199,3 +1199,21 @@ retained-pidfd type observation. Review/test these narrow temporary rules; do
 not add capabilities, ptrace or namespace entry as a shortcut. A failed receiver
 with a complete retained set may revalidate the same intent in a later admitted
 invocation; this never authorizes another SEND.
+
+## Separate close-only Root recovery from original-runtime APIs — 31 October 2026
+
+Keep original v3 close/get APIs strict. Rewriting AETHEXE1 to the current runtime
+would destroy its original identity/digest and receipt joins. Broadly accepting
+any current owner would omit the new observation binding. Instead add an explicit
+Root v6 path, using the existing v3 receipt/closure chain with an immutable current
+recovery-owner row. Its entry requires current v5 OBSERVE of the exact original
+objects and complete original successful-start evidence. Original User identity
+and same boot remain mandatory; replaced-User/early-start recovery is separate.
+
+BEGIN journals the new owner and closure atomically, retaining an uncertain old
+closure and its immutable receipt when present. RELEASE still requires fresh
+original end, holder/future-effect fences and authenticated original User quiet.
+A further replacement must OBSERVE and BEGIN anew. No new execution effect,
+capability, resident daemon, dependency or gate reopening follows from these
+transactions. Prove native faults first, then wire a separate confined active-run
+fixture; do not relabel the completed-run restart test as that proof.

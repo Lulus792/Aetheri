@@ -31,7 +31,7 @@ def statements(text):
 
 
 def source(kind, version):
-    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5) or (version==5 and kind!='system'):
+    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5, 6) or (version>=5 and kind!='system'):
         raise ContractError("unsupported catalogue kind/version")
     if version==3:
         return source(kind,2)+extension_v3(kind)
@@ -39,6 +39,8 @@ def source(kind, version):
         return source(kind,3)+extension_v4(kind)
     if version==5:
         return source(kind,4)+extension_v5(kind)
+    if version==6:
+        return source(kind,5)+extension_v6(kind)
     return [sql for name in ("common", kind)
             for sql in statements((ROOT / f"spec/schema/{name}-v{version}.sql").read_text(encoding="utf-8"))]
 
@@ -57,6 +59,31 @@ def extension_v4(kind):
 def extension_v5(kind):
     if kind!='system': raise ContractError('handoff extension is system-only')
     return list(statements((ROOT/'spec/schema/system-v5.sql').read_text(encoding='utf-8')))
+
+
+def extension_v6(kind):
+    if kind!='system': raise ContractError('recovery extension is system-only')
+    return list(statements((ROOT/'spec/schema/system-v6.sql').read_text(encoding='utf-8')))
+
+
+def migrate_v5_to_v6(db,kind,*,checkpoint=None):
+    """Explicit quiesced Root migration; original rows and identities stay fixed."""
+    if kind!='system' or db.in_transaction: raise ContractError('idle Root connection required')
+    if db.execute('PRAGMA user_version').fetchone()[0]==6:
+        validate(db,kind,6); return False
+    configure(db)
+    def mark(phase):
+        if checkpoint: checkpoint(phase)
+    try:
+        db.execute('BEGIN EXCLUSIVE'); validate(db,kind,5); mark('locked')
+        for n,statement in enumerate(extension_v6(kind)):
+            db.execute(statement); mark('statement_'+str(n))
+        db.execute('PRAGMA user_version=6'); mark('version_set')
+        validate(db,kind,6); mark('validated'); db.commit(); mark('committed')
+    except BaseException:
+        if db.in_transaction: db.rollback()
+        raise
+    return True
 
 
 def configure(db):

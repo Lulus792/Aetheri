@@ -3891,3 +3891,73 @@ This proves confined handle/journal recovery and retirement after a completed ru
 Recovery while a run is active, cross-owner settlement, early starter/error-channel
 recovery, production admission and full app removal remain required. Normal v2
 authorities, public capabilities and app descriptor-store prohibition stay intact.
+
+
+## Root replacement closure transactions
+
+The explicit Root-only v6 extension adds `run_recovery_owners` and three private
+native functions in [catalogue/lifetime.h](../src/catalogue/lifetime.h). They
+close an already successfully started original run after a same-boot Root
+replacement. They do not resume app requests, establish readiness, reopen a
+gate, start an app or recover a replaced User. No installed endpoint selects
+this path yet; its kernel/peer/end inputs remain independently owed by its caller.
+
+The original AETHEXE1 bytes, Root/User start operations and immutable process
+records remain unchanged. The supplied launch context instead names the current
+Root runtime, with the **original** broker epoch/runtime/account and UID 1000.
+Every call requires the actual current catalogue runtime, original boot/authority,
+active account and the original SQL-bound app-process evidence. A v5 handoff must
+already have an OBSERVE from that current Root, after actual exact-set restoration.
+An old OBSERVE or merely receiving names/counters cannot authorize recovery.
+
+`ae_catalogue_recover_begin_run_close` validates the complete original start
+completion against its original operation steps, then atomically records the
+current recovery owner and creates the original v3 closing receipt. Its owner row
+binds the original profile/witness digests, observed handoff revision and current
+runtime. An already begun closure stays uncertain after restart; recovery returns
+its original immutable begin receipt rather than moving it back to closing.
+The dispatch can move only toward closure. The running code lease stays held.
+
+The caller must independently retain the original User's process/unit/invocation
+expectation before Root fails and authenticate its fresh peer against that
+expectation. The UUID fields in the launch context, or a currently active matching
+unit/domain, do not prove it is the original User. Native SQLite does not supply
+that missing process proof. Production durable User-provenance enrollment remains
+separate work; a fixed fixture must bind an independently protected original
+expectation before attempting live recovery.
+
+The still-original User must authenticate the replacement Root independently,
+accept that exact closing receipt, settle/fence its handles and produce its normal
+quiet receipt. The new Root must independently fence future effects and settle
+all external holders, and use the retained original lifetime observer for fresh
+end evidence. Only `ae_catalogue_recover_release_run` then atomically records the
+release receipt, terminal dispatch and released code lease. The User consumes
+that authenticated release through its unchanged original-runtime transaction.
+The native database receives verified facts; it performs no process/IPC action.
+
+If Root fails again before release, another current incarnation must validate the
+same retained objects and commit OBSERVE again. Its own BEGIN enrolls a separate
+immutable owner row, retaining the original begin receipt. It cannot go straight
+to RELEASE with a prior incarnation's row. Lost successful commits preserve outputs
+and actual state; exact retries return original receipts. Completed retries do
+not enroll a new owner, change gates, update start operations or undo retirement.
+The separate recovered-receipt getter is read-only. Original close/get APIs still
+require their original runtime and are not a recovery bypass.
+
+The explicit v5-to-v6 migration retains the same writer lock/database object and
+uses one exclusive transaction. It adds one table and its admission/immutability/
+retention triggers, then replaces only the system closure-insert trigger with its
+original admission plus this narrow recovery alternative. Old rows, metadata,
+versions 1–5 sources and User v4 stay fixed. Normal creation stays v2; opening
+never upgrades. An unknown commit is reconciled against the actual canonical
+schema, never by restoring a backup over a possibly committed owner database.
+
+`catalogue.run_recovery` uses actual native SQLite transactions and controlled
+already-admitted process/handoff/end fixtures. It covers recovery before/after a
+previous close began, two Root replacements, each mutation rollback, lost commits,
+real process exits around commits, immutable receipts/start revisions, closed
+gates, absent OBSERVE, wrong User/boot, missing start completion and overflow.
+These synthetic evidence inputs do **not** prove an installed active-run recovery
+coordinator. The existing actual confined --handoff test still closes the run
+before Root replacement. Its active-run counterpart, replaced-User coordination,
+early starter/error-channel recovery and production holder admission remain work.

@@ -124,8 +124,9 @@ remain unchanged.
 The native lifecycle prototype is in progress. Boot-bound process identity can
 recognize an original still-live process through a fresh authenticated connection.
 Separate immutable v4 records now persist the original profile/context in each
-owner's catalogue. Actual Root/User restart reconciliation, already-dead process
-and lost-handle recovery remain necessary. Current normal catalogues/gates remain
+owner's catalogue. Native close-only Root recovery now requires current retained-handle observation
+and the still-original User. Actual active-run Root/User restart reconciliation
+and early-start/lost-handle recovery remain necessary. Current normal catalogues/gates remain
 unchanged and closed.
 
 The full desktop and original applications, normal session/app provisioning,

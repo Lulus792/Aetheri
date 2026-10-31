@@ -486,6 +486,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   and Root pidfs metadata permissions add no pipe read, capability or ptrace.
   Active-run/cross-owner recovery, general allocation, partial-set integration,
   early starter/error-channel recovery and production retention still remain.
+- catalogue/lifetime.h now has explicit Root-only v6 close-only recovery functions.
+  Read spec/runtime.md's Root replacement closure section. Immutable current-owner
+  rows require same boot, original successful start/app witness, current handoff
+  OBSERVE and still-original User identity. Caller must retain that original
+  User's independent process/unit/invocation expectation before failure; current
+  unit/domain or broker UUID alone is insufficient. Original APIs remain strict.
+  A further Root replacement must OBSERVE and BEGIN again; never rewrite AETHEXE1,
+  rearm a run/gate or infer fresh end/holder proof from SQL. Native tests use
+  controlled evidence, not an installed active-run coordinator. Normal inputs
+  stay v2; User remains v4. Actual live Root recovery, replaced-User coordination
+  and early-start recovery still need separate integration/evidence.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

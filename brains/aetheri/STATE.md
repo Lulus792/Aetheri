@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — confined PID1 handle transfer and Root replacement.
+31 October 2026 — native close-only Root recovery transactions.
 
 ## Confirmed
 
@@ -13,6 +13,43 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+Root-only v6 now adds immutable current-recovery-owner rows and separate native
+BEGIN/RELEASE/GET functions for a successfully started original run after Root
+replacement. They require original profile/process/start evidence, the current
+handoff OBSERVE, same boot/authority/account and the still-original User. BEGIN
+preserves an old uncertain closure/receipt; RELEASE still requires independently
+verified original end, holder/future-effect fencing and authenticated User quiet.
+A further Root replacement must OBSERVE and BEGIN again. Completed retries never
+reopen gates, enroll a new owner or change original receipts/start operations.
+Normal close/get APIs remain strict about their original runtime.
+See [Root recovery](../../spec/runtime.md#root-replacement-closure-transactions).
+
+The explicit v5-to-v6 migration changes no existing row and no frozen v1–v5 SQL.
+It adds one table and replaces only the system closure-insert trigger with original
+admission plus a narrow recovery alternative. Normal creation/installed catalogues
+remain v2; User stays v4. No new dependency, wire capability or resident process.
+Native tests use real owner SQLite and controlled already-admitted kernel/peer/end
+inputs. This is not an installed active-run coordinator. The actual confined
+--handoff fixture below still closes its run before Root replacement. Wiring the
+new path to actual live Root/original-User communication and retained-handle end
+proof, then replaced-User/early-start recovery, remains the next integration work.
+
+New recovery transactions pass Release (116.60 s) and Debug ASan/UBSan (150.27 s),
+with 15 controlled-evidence fixtures each. Host contract tests pass 46/46, with the
+two v6 migrations repeated after their frozen-v5 guard; host VM/tool guards pass
+49/49. Release regressions for original lifetime/handoff journals, Python-to-native
+schema interoperability and the existing authority bridge pass 4/4 (278.75 s).
+Interop now opens populated Root v2–v6/User v2–v4 without changing rows/file bytes.
+These are native transaction/memory and host checks, not installed active-run or
+physical hardware acceptance. Original User provenance must be independently
+retained before a failure; a current unit/domain or broker UUID is insufficient.
+Final read-only inspection confirms enforcing policy, normal Root/User v2/two
+closed gates each, no pending normal work and no temporary execution infrastructure.
+All 187 host/snapshot/guest source hashes agree; 599 local Markdown file targets
+exist (anchors and external URLs excluded).
+
+Previous confined-transfer checkpoint (31 October 2026):
 
 The private handoff module now sends only after fresh PREPARE, admits an exact
 four-name PID1 inventory before actual restore/OBSERVE, and removes stored handles

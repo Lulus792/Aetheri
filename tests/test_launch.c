@@ -25,7 +25,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -709,6 +709,120 @@ static void handoff_finish(struct ae_catalogue **root,const struct ae_catalogue_
     CHECK(sqlite3_exec(db,"DELETE FROM execution_processes WHERE role=2",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
     CHECK(sqlite3_exec(db,"DELETE FROM execution_handoffs",NULL,NULL,NULL)==SQLITE_OK && sqlite3_close(db)==SQLITE_OK);
 }
+/* Real SQLite owner transactions; process/handoff/end inputs below are synthetic
+ * already-admitted fixtures, not evidence of an installed recovery coordinator. */
+static void run_recovery_test(struct ae_catalogue **root,struct ae_catalogue *user,const struct ae_catalogue_identity *ri,
+    const struct ae_execution_profile *p,const struct ae_launch_context *original,const struct ae_execution_evidence *e,
+    const struct ae_execution_evidence *ue,const struct ae_execution_completion *started,const struct ae_execution_handoff *h,
+    const char *rd,const char *ud,const char *scenario)
+{
+    CHECK(ae_catalogue_upgrade_handoffs(*root)==0 && ae_catalogue_upgrade_recovery(user)==-EPROTONOSUPPORT);
+    uint8_t before[32],after[32]; database_digest(rd,before);
+    for (int n=1;n<=7;++n) {
+        ddl_fault=n; ddl_number=0;
+        CHECK(ae_catalogue_upgrade_recovery(*root)==-EIO && !ddl_fault && scalar(rd,"PRAGMA user_version")==5);
+        database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+    }
+    commit_fault=2; CHECK(ae_catalogue_upgrade_recovery(*root)==-EIO && scalar(rd,"PRAGMA user_version")==6);
+    CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(rd,ri,root)==0);
+    database_digest(rd,before); CHECK(ae_catalogue_upgrade_recovery(*root)==0); database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+    struct ae_handoff_result handoff;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,h,124150,&handoff)==0 && handoff.transfer_required);
+    struct ae_run_receipt begin,quiet,released,out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+    if (strstr(scenario,"existing-close")) CHECK(ae_catalogue_begin_run_close(*root,p,original,e,started,124180,&begin)==0);
+    uint8_t runtime[16]; id(runtime,6); CHECK(ae_catalogue_begin_runtime(*root,p->boot,runtime)==0);
+    struct ae_launch_context c=*original; memcpy(c.system_runtime,runtime,16);
+    CHECK(ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out)==-ESTALE && memcmp(&out,&marker,sizeof out)==0);
+    if (strstr(scenario,"unobserved")) return;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,h,124190,&handoff)==0);
+    CHECK(ae_catalogue_begin_run_close(*root,p,original,e,started,124200,&out)==-ESTALE);
+    CHECK(ae_catalogue_begin_run_close(*root,p,&c,e,started,124200,&out)==-ESTALE);
+    struct ae_launch_context wrong=c; id(wrong.broker_runtime,52);
+    CHECK(ae_catalogue_recover_begin_run_close(*root,p,&wrong,e,started,124200,&out)==-ESTALE);
+    wrong=c; id(wrong.boot,8); CHECK(ae_catalogue_recover_begin_run_close(*root,p,&wrong,e,started,124200,&out)==-ESTALE);
+    if (strstr(scenario,"wrong-user") || strstr(scenario,"wrong-boot")) return;
+    if (strstr(scenario,"missing-start")) {
+        edit(rd,"DELETE FROM operation_steps WHERE step_no=6");
+        CHECK(ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out)==-ESTALE);
+        CHECK(scalar(rd,"SELECT count(*) FROM run_recovery_owners")==0); return;
+    }
+    if (strstr(scenario,"overflow-owner")) {
+        edit(rd,"UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out)==-EOVERFLOW);
+        CHECK(scalar(rd,"SELECT count(*) FROM run_recovery_owners")==0); return;
+    }
+    int64_t root_revision=scalar(rd,"SELECT revision FROM operations"),user_revision=scalar(ud,"SELECT revision FROM operations");
+    uint8_t end[32]; memset(end,0x65,32);
+    for (int stage=0;stage<2;++stage) {
+        if (stage) {
+            CHECK(ae_catalogue_quiesce_user_run(user,p,ue,&begin,124210,&quiet)==0);
+            if (strstr(scenario,"twice")) {
+                id(runtime,7); CHECK(ae_catalogue_begin_runtime(*root,p->boot,runtime)==0); memcpy(c.system_runtime,runtime,16);
+                CHECK(ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out)==-ESTALE);
+                CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,h,124215,&handoff)==0);
+                CHECK(ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out)==-ENOENT);
+                CHECK(ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124216,&out)==0 && memcmp(&out,&begin,sizeof out)==0);
+                CHECK(scalar(rd,"SELECT count(*) FROM run_recovery_owners")==2);
+            }
+            if (strstr(scenario,"overflow-release")) {
+                edit(rd,"UPDATE generation_leases SET revision=9223372036854775807");
+                CHECK(ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out)==-EOVERFLOW);
+                CHECK(scalar(rd,"SELECT state='running' FROM generation_leases")==1); return;
+            }
+        }
+        database_digest(rd,before); out=marker;
+        int writes=stage ? 4 : strstr(scenario,"existing-close") ? 2 : 5;
+        for (int n=1;n<=writes;++n) {
+            step_fault=n; step_number=0;
+            int r=stage ? ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out) :
+                ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out);
+            CHECK(r==-EIO && !step_fault && memcmp(&out,&marker,sizeof out)==0);
+            database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+        }
+        commit_fault=1;
+        CHECK((stage ? ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out) :
+            ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out))==-EIO);
+        database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+        int selected=strstr(scenario,stage ? "release" : "begin")!=NULL;
+        if (selected && strstr(scenario,"crash")) {
+            CHECK(ae_catalogue_close(root)==0); pid_t child=fork(); CHECK(child>=0); int early=strstr(scenario,"before")!=NULL;
+            if (!child) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(rd,ri,&fresh)==0); crash_mode=early ? 1 : 2;
+                if (stage) (void)ae_catalogue_recover_release_run(fresh,p,&c,e,&quiet,end,124220,&out);
+                else (void)ae_catalogue_recover_begin_run_close(fresh,p,&c,e,started,124200,&out);
+                _exit(90);
+            }
+            int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(early ? 71 : 72));
+            CHECK(ae_catalogue_open(rd,ri,root)==0);
+        } else if (selected && strstr(scenario,"lost")) {
+            commit_fault=2;
+            CHECK((stage ? ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out) :
+                ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out))==-EIO && memcmp(&out,&marker,sizeof out)==0);
+        }
+        CHECK((stage ? ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,124220,&out) :
+            ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,124200,&out))==0);
+        if (stage) released=out; else begin=out;
+        database_digest(rd,before);
+        CHECK((stage ? ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,999999,&out) :
+            ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,999999,&out))==0);
+        database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+        CHECK(ae_catalogue_get_recovered_run_receipt(*root,p,&c,e,stage ? AE_RUN_ROOT_RELEASED : AE_RUN_ROOT_CLOSING,&out)==0);
+        CHECK(memcmp(&out,stage ? &released : &begin,sizeof out)==0);
+        CHECK(scalar(rd,"SELECT revision FROM operations")==root_revision && scalar(ud,"SELECT revision FROM operations")==user_revision);
+        CHECK(scalar(rd,"SELECT state='running' FROM generation_leases")==!stage);
+    }
+    struct ae_user_launch_snapshot launch;
+    CHECK(ae_catalogue_end_user_run(user,p,ue,&released,124230,&launch)==0 && strcmp(launch.state,"exited")==0);
+    CHECK(scalar(rd,"SELECT count(*) FROM admission_gates WHERE state='open'")==0);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRE,h,124240,&handoff)==0 && handoff.retire_required);
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_RETIRED,h,124241,&handoff)==0);
+    database_digest(rd,before);
+    CHECK(ae_catalogue_recover_begin_run_close(*root,p,&c,e,started,999999,&out)==0 && memcmp(&out,&begin,sizeof out)==0);
+    CHECK(ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,999999,&out)==0 && memcmp(&out,&released,sizeof out)==0);
+    database_digest(rd,after); CHECK(memcmp(before,after,32)==0);
+    end[0]^=1; CHECK(ae_catalogue_recover_release_run(*root,p,&c,e,&quiet,end,999999,&out)==-EEXIST);
+    CHECK(ae_catalogue_get_run_receipt(*root,p,e,AE_RUN_ROOT_RELEASED,&out)<0);
+    CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(rd,ri,root)==0);
+}
 static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,
     const struct ae_execution_profile *p,struct ae_launch_context *context,const struct ae_execution_evidence *e,const char *rd,const char *scenario)
 {
@@ -796,6 +910,9 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     struct ae_execution_completion completed;
     CHECK(ae_catalogue_complete_execution(*root,p,context,e,app_hash,124100,&completed)==0);
     CHECK(ae_catalogue_finish_user_execution(*user,p,&ue,app_hash,&completed,124101,&launch)==0);
+    if (strncmp(scenario,"exec-recover-",13)==0) {
+        run_recovery_test(root,*user,ri,p,context,e,&ue,&completed,&handoff,rd,ud,scenario); return;
+    }
     if (strstr(scenario,"gates")) { edit(rd,"UPDATE admission_gates SET state='closed',revision=revision+1"); edit(ud,"UPDATE admission_gates SET state='closed',revision=revision+1"); }
     struct ae_run_receipt closing,quiet,released; uint8_t ended[32]; memset(ended,0x65,32);
     CHECK(ae_catalogue_begin_run_close(*root,p,context,e,&completed,124200,&closing)==0);
@@ -822,7 +939,8 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
     struct ae_execution_profile p; execution_profile(&p,q,c); execution_codec(&p,expected);
     struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
-    if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0 || strncmp(scenario,"exec-bridge-",12)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
+    if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0 || strncmp(scenario,"exec-bridge-",12)==0 ||
+        strncmp(scenario,"exec-recover-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
     CHECK(ae_catalogue_authorize_user_execution(user,&p)==0 && ae_catalogue_authorize_user_execution(*root,&p)==-EPERM);
     struct ae_execution_profile wrong=p; wrong.storage[15]++;
     CHECK(ae_catalogue_authorize_user_execution(user,&wrong)==-ESTALE);
