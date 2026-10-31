@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — immutable v4 original-process evidence in each owner catalogue.
+31 October 2026 — retained original observation handles across a component restart.
 
 ## Confirmed
 
@@ -13,6 +13,50 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The private Linux lifetime module now exports four original observation handles
+with independently protected expectations and restores them after observer exit.
+It checks the original boot/pidfs identity, exact root/group/event objects,
+original PID/cgroup namespaces and current original unit/invocation/end facts.
+The explicit restore path can retain the original mount across a new PrivateMounts
+namespace; ordinary capture still quarantines named mount replacement. Namespace
+drift latches quarantine. This native checkpoint is not a portable persistent
+record, fresh bus peer or owner-journal recovery transaction.
+
+An actual capability-empty administrative component service stores exactly four
+handles in PID1, exits, and restarts after its app has died and the original group
+has disappeared. The new invocation observes original end using the retained
+handles, explicitly removes all stored entries and verifies the store is empty.
+The independent controller retains the original app unit. No normal Root store
+or production unit-retention path is enabled. Policy remains enforcing; this is
+an unconfined_t component test, not production Root recovery-domain admission.
+See [retained handles](../../spec/runtime.md#retained-observation-handles-across-a-component-service-restart).
+
+Final affected native tests pass 4/4 Debug ASan/UBSan (4.42 s) and 4/4 Release
+(3.95 s). They cover live/dead restore, wrong/missing handles and bindings, output
+ownership/FD balance, actual mount and cgroup namespace changes, existing process
+identity/reconnect/end behavior and a real PID1 store handoff. Host orchestration
+tests pass 47/47 (2.342 s). The existing enforcing Root/User/app integration also
+passes: immutable start results and three original process witnesses remain
+correlated, Root closes terminal/released and User exits. Exact temporary
+infrastructure is retired; normal v2 catalogues retain two closed gates each,
+pending=None and no unsettled normal dispatch/lease.
+All 179 host/guest source hashes match. Local documentation validation passes
+575 file targets; anchors and external URLs were not checked by that validation.
+
+Initial component setup failures were diagnosed before any stored handoff:
+capability-empty root cannot traverse the developer's private home or inspect
+PID1 namespace links. The test now uses a protected root-owned /run tree and
+preserves an already authorized host namespace binding using self observations.
+No capabilities or policy grants were added. The six exact failed transient
+units were retired only after independent no-process/job/group/store checks;
+their original inputs/journals remain preserved as failed evidence.
+
+Canonical durable handoff enrollment, partial/unknown-set reconciliation,
+continuous production unit retention and actual Root/User restart settlement
+remain work. The full desktop/apps/image/hardware objective stays active.
+
+Previous immutable v4 process-evidence checkpoint (31 October 2026):
 
 The native execution module now persists canonical AETHPRC1 observations in one
 new execution_processes table per owner. V4 is an explicit additive upgrade from

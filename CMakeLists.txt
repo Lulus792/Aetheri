@@ -407,6 +407,13 @@ if(BUILD_TESTING)
             add_test(NAME linux.process_identity COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lifetime_native.py" $<TARGET_FILE:test_process_identity> "${CMAKE_CURRENT_BINARY_DIR}" reidentify)
             set_tests_properties(linux.process_identity PROPERTIES TIMEOUT 100)
+            add_executable(test_lifetime_handoff tests/test_lifetime_handoff.c)
+            target_compile_definitions(test_lifetime_handoff PRIVATE _GNU_SOURCE)
+            target_compile_options(test_lifetime_handoff PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+            target_link_libraries(test_lifetime_handoff PRIVATE aetheri_linux)
+            add_test(NAME linux.lifetime_handoff COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_lifetime_native.py" $<TARGET_FILE:test_lifetime_handoff> "${CMAKE_CURRENT_BINARY_DIR}" handoff)
+            set_tests_properties(linux.lifetime_handoff PROPERTIES TIMEOUT 100)
         endif()
     endif()
     if(AETHERI_PRIVILEGED_TESTS)

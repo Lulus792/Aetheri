@@ -3530,3 +3530,78 @@ decodes each process witness and joins all three identities/context bindings to
 the actual original process/unit/group observation. Its report retains witness
 hashes. Normal installed catalogues/gates, policy and public APIs remain unchanged.
 This is durable original evidence, not a completed Root/User restart coordinator.
+
+## Retained observation handles across a component-service restart
+
+The private `linux/lifetime.h` export/restore boundary retains observation of an
+original service after its observer exits. It transfers exactly four CLOEXEC
+duplicates: original pidfd, cgroup root, original group and original
+`cgroup.events` reader. It exports no package/data mount view, error-channel
+writer or arbitrary app handle. Export requires the still-live admitted original;
+it does not reconstruct missing evidence after that process has died.
+
+The caller must independently protect the original `ae_lifetime_checkpoint`
+before transferring handles. This native structure is an internal expectation,
+**not a portable persistent record or owner-journal transaction**. It binds the
+original context and boot/pidfs identity, PID, exact root/group observations,
+event-object metadata and original PID/cgroup namespace observations. Never
+create an expectation from an incoming candidate, descriptor name or app packet.
+The caller still owes protected profile/operation admission, trusted host views,
+authorized supervisor transport and continuous retention of the original unit.
+Old and new observation must be serialized: duplicate event-reader handles share
+the same open-file state. Export alone neither quiesces nor closes the old owner.
+
+Restore borrows the exact received set and duplicates it privately. It checks
+current boot/namespaces, original pidfs type/inode, non-recycled root/group mount
+and inode identities, and the exact original event reader's read access and
+metadata. It repeats object checks around actual original unit/invocation/main
+PID/job and cgroup observations. Live originals also undergo current process
+verification. Dead originals require the existing independent end observations;
+missing group names alone still prove nothing. Failure consumes no caller FD and
+does not publish an observer. A restored observer cannot export another original
+checkpoint or supply fresh authenticated bus-peer credentials.
+
+Ordinary capture keeps its strict current named `/sys/fs/cgroup` mount check.
+Only this explicit restore path can use the independently bound **retained** root
+mount across a fresh `PrivateMounts` service namespace. It never substitutes the
+replacement namespace's mount. Every restored group observation rechecks the
+original PID/cgroup namespace binding; drift latches quarantine. Observing one's
+own namespaces preserves an already authorized host binding, without claiming
+to authenticate that host from self-reported information or inspecting PID1
+through an extra ptrace permission.
+
+### Actual bounded PID1 handoff test
+
+The explicit administrative component test `linux.lifetime_handoff` uses the
+existing systemd descriptor store on a temporary observer unit: maximum four,
+`NotifyAccess=main`, `FileDescriptorStorePreserve=yes`, and per-transfer
+`FDPOLL=0`. This prevents error/hangup cleanup from discarding dead-object
+evidence. Names select slots only; their order and contents are checked against
+the independently protected original expectation. A notification/barrier proves
+sending/processing, not exact set acceptance. The test checks actual store count,
+then validates the delivered objects after a real service start.
+
+The original capability-empty observer exits. The app subsequently exits and its
+cgroup disappears while no observer process exists. A new invocation with a new
+private mount namespace receives all four original handles, restores actual end
+observation, explicitly removes each stored entry, and verifies the store is
+empty. An independent administrative controller retains the original app unit
+throughout; **production unit retention across Root connection loss is not
+implemented by this test**. Both observer invocations check all five capability
+sets are empty. The enforcing test runs in the administrative `unconfined_t`
+domain, not a newly authorized production Root recovery domain.
+
+The companion lifetime test distinguishes ordinary mount-namespace quarantine
+from explicit retained-root restore and then rejects an actual cgroup namespace
+change. Negative handoff checks cover missing/wrong descriptors, original identity,
+root/group/event metadata, invocation/PID/context/namespace conflicts, output
+ownership and FD balance, including already-dead originals.
+
+Only this disposable test uses a PID1 store. Normal installed Root inputs and the
+app's no-store boundary remain unchanged. Unknown/partial transfers preserve the
+original expectation and handles; they do not authorize another effect, release,
+cleanup or inferred drain. Canonical durable handoff enrollment, exact-set
+reconciliation, original unit retention, confined owner admission and Root/User
+restart settlement remain work. Reboot loses these kernel handles; historical
+v4 evidence alone never restores them. No new daemon, public API or SQL migration
+is introduced.

@@ -54,7 +54,7 @@ int __wrap_sd_bus_get_property_trivial(sd_bus *bus,const char *destination,const
     }
     return r;
 }
-struct server { sd_bus *bus; struct ae_lifetime *life,*stale,*missing,*replacement; struct ae_process_context context; char unit[256]; int calls,child_fd; };
+struct server { sd_bus *bus; struct ae_lifetime *life,*stale,*missing,*replacement; struct ae_process_context context; char unit[256]; int calls,child_fd; struct ae_lifetime_checkpoint checkpoint; int transfer[4]; };
 static int descriptors(void)
 { DIR *d=opendir("/proc/self/fd"); CHECK(d); int count=0; while (readdir(d)) ++count; CHECK(closedir(d)==0); return count; }
 static int capture(sd_bus_message *message,void *userdata,sd_bus_error *error)
@@ -78,6 +78,7 @@ static int capture(sd_bus_message *message,void *userdata,sd_bus_error *error)
     for (int n=0;n<8;++n) { struct ae_lifetime *v=NULL; CHECK(ae_lifetime_capture(s->bus,&peer,&context,&v)==0 && ae_lifetime_close(&v)==0 && v==NULL); }
     CHECK(descriptors()==baseline);
     CHECK(ae_lifetime_capture(s->bus,&peer,&context,&s->life)==0 && ae_lifetime_capture(s->bus,&peer,&context,&s->stale)==0);
+    if (!s->calls) CHECK(ae_lifetime_export(s->life,&s->checkpoint,s->transfer)==0);
     if (child_pid) CHECK(ae_lifetime_capture(s->bus,&peer,&context,&s->missing)==0 && ae_lifetime_capture(s->bus,&peer,&context,&s->replacement)==0);
     struct ae_lifetime_end out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
     CHECK(ae_lifetime_observe_end(s->life,&out)==-EAGAIN && memcmp(&out,&marker,sizeof out)==0);
@@ -181,7 +182,7 @@ int main(int argc,char **argv)
     int baseline=descriptors();
     const char *scenarios[]={"simple","failed","descendant","restart","namespace"};
     for (size_t n=0;n<sizeof scenarios/sizeof scenarios[0];++n) {
-        struct server s={.child_fd=-1}; CHECK(sd_bus_open_system(&s.bus)>=0 && sd_bus_set_method_call_timeout(s.bus,2000000)>=0);
+        struct server s={.child_fd=-1,.transfer={-1,-1,-1,-1}}; CHECK(sd_bus_open_system(&s.bus)>=0 && sd_bus_set_method_call_timeout(s.bus,2000000)>=0);
         sd_bus *transport=NULL; CHECK(sd_bus_open_user(&transport)>=0);
         CHECK(sd_bus_add_object_vtable(transport,NULL,"/org/aetheri/TestLifetime","org.aetheri.TestLifetime1",methods,&s)>=0);
         const char *unique=NULL; CHECK(sd_bus_get_unique_name(transport,&unique)>=0);
@@ -211,8 +212,15 @@ int main(int argc,char **argv)
         if (strcmp(scenarios[n],"namespace")==0) {
             CHECK(unshare(CLONE_NEWNS)==0 && mount(NULL,"/",NULL,MS_REC|MS_PRIVATE,NULL)==0);
             struct ae_lifetime_end value; CHECK(ae_lifetime_observe_end(s.life,&value)==-ESTALE && ae_lifetime_observe_end(s.life,&value)==-ESTALE);
+            struct ae_lifetime *restored=NULL;
+            CHECK(ae_lifetime_restore(s.bus,&s.checkpoint,s.transfer,&restored)==0);
+            CHECK(ae_lifetime_observe_end(restored,&value)==0);
+            CHECK(unshare(CLONE_NEWCGROUP)==0);
+            CHECK(ae_lifetime_observe_end(restored,&value)==-ESTALE && ae_lifetime_observe_end(restored,&value)==-ESTALE);
+            CHECK(ae_lifetime_close(&restored)==0 && ae_lifetime_restore(s.bus,&s.checkpoint,s.transfer,&restored)==-ESTALE && !restored);
             /* Last case: exit this disposable administrative namespace. */
         }
+        for (int k=0;k<4;++k) CHECK(close(s.transfer[k])==0);
         CHECK(ae_lifetime_close(&s.life)==0 && ae_lifetime_close(&s.stale)==0);
         CHECK(sd_bus_call_method(s.bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","UnrefUnit",NULL,NULL,"s",s.unit)>=0);
         sd_bus_flush_close_unref(transport); sd_bus_flush_close_unref(s.bus);

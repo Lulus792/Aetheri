@@ -46,16 +46,20 @@ backend tasks. See current [State](STATE.md) and
 Original live process reidentification has actual observer-exit/reconnect evidence.
 The confined fixture now persists that identity with the original profile/context
 in immutable v4 owner records. A replacement runtime can read those records;
-actual Root/User restart reconciliation, already-dead process and lost original
-cgroup/unit/event handle recovery remain separate gates.
+actual Root/User restart reconciliation and lost original unit/handle recovery
+remain separate gates. The component handoff below can observe an already-dead
+original only when all its originally captured handles were retained.
 
-For retained kernel observation handles, investigate the existing PID1 FD store
-before adding a resident custodian. Its default error/hangup cleanup can discard
-the very dead-object evidence recovery needs; overriding it requires bounded,
-explicit retirement. A processing barrier alone does not prove the exact set was
-accepted. Original object/profile bindings, namespace handling, uncertain handoff
-and real restart/drain tests remain necessary. No Root FD store is enabled yet;
-the fixed app's FD store remains forbidden.
+The private lifetime module now exports/restores four exact original observation
+handles. An actual capability-empty component service exits, then receives the
+retained handles from PID1 in a new private mount namespace after its app/group
+have disappeared. It proves original end and explicitly empties the bounded
+store. No extra resident custodian is needed for that tested transport. A
+processing barrier alone still does not prove exact-set acceptance. Canonical
+protected handoff enrollment, partial/unknown transfer reconciliation, continuous
+original unit retention and confined Root/User journal recovery remain necessary.
+No normal Root FD store is enabled; the fixed app's FD store remains forbidden.
+See [retained observation handles](../../spec/runtime.md#retained-observation-handles-across-a-component-service-restart).
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging

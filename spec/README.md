@@ -63,6 +63,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 | [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
 | [replacement-observer test](../tests/test_process_identity.c), [process identity vector](vectors/process-identity-v1.json) | Boot-bound pidfs identity through a fresh authenticated connection; no journal/owner-restart adoption |
+| [retained-handle test](../tests/test_lifetime_handoff.c) | Actual bounded PID1 handoff after observer exit/app-group disappearance; original-object validation, not Root/User journal recovery |
 | [execution process vector](vectors/execution-process-v1.json) | Canonical AETHPRC1 durable context/profile binding; its native APIs are in execution.h |
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 

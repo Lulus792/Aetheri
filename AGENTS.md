@@ -421,6 +421,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   is not connected to the installed authority; actual Root/starter provisioning,
   live supervisor request/current broker-data admission, target readiness and
   independent executing drain/recovery remain pending. Keep normal inputs closed.
+- linux/lifetime now exports/restores four private original observation handles.
+  Read spec/runtime.md's retained-observation section. The native checkpoint is
+  not a portable persistent record or journal adoption. Independently protect
+  the original expectation before transport; never adopt incoming names/objects.
+  Restore uses the exact retained root across PrivateMounts, rechecks original
+  PID/cgroup namespaces and keeps ordinary capture's named-mount quarantine.
+  linux.lifetime_handoff tests actual PID1 retention after observer exit and app/
+  group disappearance, with capability-empty administrative unconfined_t services.
+  Its four-entry store uses FDPOLL=0 and explicit retirement; a barrier is not set
+  acceptance. The independent test controller retains the original unit. No normal
+  Root FD store, durable handoff journal, production unit retention or Root/User
+  recovery is implemented; the app FD store stays forbidden. Preserve uncertainty.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

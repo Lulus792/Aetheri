@@ -1617,3 +1617,49 @@ rebuild reproduces all 76 tested executables exactly. All 178 source hashes matc
 host and guest. Independent final inspection confirms unchanged normal v2 closed
 gates, enforcing policy, retired exact test infrastructure and the correlated
 three-witness archive with immutable start results and settled fixed run/lease.
+
+## Retained observation handles across a component restart — 31 October 2026
+
+Implemented [private export/restore](../../src/linux/lifetime.h) and an actual
+[temporary service handoff](../../tests/test_lifetime_handoff.c), using the existing
+libsystemd dependency. The [systemd.service 259 contract](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html)
+defines bounded per-service retention and preservation across exit;
+[sd_notify 259](https://www.freedesktop.org/software/systemd/man/259/sd_notify.html)
+defines explicit transfer/removal, disabled error/hangup cleanup and processing
+barriers. [sd_listen_fds 259](https://www.freedesktop.org/software/systemd/man/259/sd_listen_fds.html)
+requires handling arbitrary order and nonunique names. Our interpretation keeps
+these as transport/selection facts, never authentication of the original objects
+or proof that a whole set was accepted. The carrier actually tests delivery and
+object validation after service replacement, with explicit bounded retirement.
+
+The original capability-empty administrative observer exits before its app dies
+and cgroup disappears. Its replacement has a different invocation/private mount,
+restores the four exact original handles, observes end, removes the store entries
+and exits. The independent harness continuously retains the app unit. This proves
+the bounded component transport, not production Root/User journal adoption or
+retention across an original Root bus connection loss. No policy grant is added.
+
+The early setup failures are retained in the guest's
+`/home/aetheri/build/lifetime-handoff-initial-failures.json` with original unit
+definitions/journals and input inventories. Exact failed units had no main/control
+process, group, job or stored handles before administrative retirement. A separate
+capability-empty diagnostic confirms self namespace observations work while PID1
+links are inaccessible. Linux's [namespace link implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/proc/namespaces.c)
+uses a ptrace access check. The final implementation preserves the independently
+authorized original host namespace binding and never broadens ptrace permissions.
+
+Final affected native tests pass 4/4 Debug ASan/UBSan (4.42 s) and 4/4 Release
+(3.95 s); host orchestration passes 47/47 (2.342 s). Actual cgroup namespace drift
+is rejected after explicit retained-root restoration across a mount namespace
+change. The separate existing confined Root/User/app regression passes with
+three original v4 process witnesses, immutable start results and native successful
+closure. Evidence is archived at
+`/home/aetheri/build/release/live-execution-821689d5072444e1954aae5b0aac3601`.
+Its original PID is 76563, group 110078 and invocation
+`5d5e0afa463f4638bb75d35694d37427`; the original group was removed. Final read-only
+inspection confirms enforcing policy, retired exact temporary units/module/store,
+unchanged normal v2 catalogues/closed gates, pending=None and no unsettled normal
+dispatch or lease. This is affected-boundary regression, not a full-suite or
+OS/hardware acceptance claim.
+The final source snapshot matches all 179 host/guest hashes. Local Markdown file
+validation passes 575 targets; it does not validate anchors or network pages.

@@ -117,7 +117,7 @@ limits are in [runtime contracts](spec/runtime.md).
 | --- | --- |
 | src/core | Ownership/allocation records, fixture metadata, bounded storage, staging/publication and SHA-256 verification |
 | src/catalogue | SQLite v2 identity, fixture, launch and setup transactions |
-| src/linux | Bus/process checks, private mount views and internal image/one-way execution primitives |
+| src/linux | Bus/process checks, original lifetime observation/handle transfer, private mount views and internal image/one-way execution primitives |
 | src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |
 | src/launcher | Short-lived no-exec view preparer; real app-start integration remains work |
 | policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |

@@ -1074,3 +1074,24 @@ Use the existing SHA-256, SQLite owner boundary and native C17 modules; no publi
 wire, dependency family, daemon, automatic installed migration or UI choice is
 needed. A legacy pending start without this evidence is not silently backfilled
 or accepted merely because its schema was upgraded.
+
+## Retain original observation handles through the existing supervisor — 31 October 2026
+
+Use the existing PID1 descriptor store as the bounded transport for a component
+restart test, before adding a resident custodian. Export exactly original pidfd,
+cgroup anchor/group and event reader, with independently protected original
+expectations. Never export an error-channel writer or app code/data views. Keep
+the native checkpoint distinct from canonical persistence and recovery authority.
+
+Permit explicit restored observation through the exact retained root mount when
+the new service has a fresh PrivateMounts namespace. Preserve ordinary capture's
+strict named-mount quarantine and recheck original host PID/cgroup namespace
+bindings on restored observations. Current host admission remains the caller's
+protected obligation; no PID1 ptrace permission is added to inspect its links.
+
+The test alone enables a four-entry store, preserves it across service exit and
+disables automatic error/hangup retirement. Actual delivery/object checks, not
+names or a processing barrier, establish the tested set. Remove stored entries
+explicitly after successful test observation. Preserve uncertain state. Normal
+Root/app policy and installed inputs remain unchanged; production handoff
+journaling, original unit retention and Root/User settlement need separate work.

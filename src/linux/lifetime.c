@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
@@ -16,13 +17,15 @@
 #define SERVICE "org.freedesktop.systemd1.Service"
 struct ae_lifetime {
     pid_t owner;
-    int root,group,events,busy,stale;
+    int root,group,events,busy,stale,restored;
     struct ae_peer peer;
     sd_bus *bus; /* borrowed; original unit reference belongs to the caller */
     struct ae_process_context context;
     struct ae_root_identity root_identity,group_identity;
+    uint64_t pid_namespace,cgroup_namespace;
     char unit_path[1024];
 };
+static int namespace_check(const struct ae_lifetime *);
 static int owner(struct ae_lifetime *v)
 { return v==NULL ? -EINVAL : v->owner!=getpid() ? -ECHILD : v->stale ? -ESTALE : 0; }
 static int group_open(int root,const char *path)
@@ -97,7 +100,10 @@ static int populated(int fd,int *value)
 }
 static int snapshot_group(struct ae_lifetime *v,int terminal,int *removed)
 {
-    int r=ae_root_check_path(v->root,CGROOT,&v->root_identity);
+    struct ae_root_identity anchor;
+    int r=v->restored ? namespace_check(v) : ae_root_check_path(v->root,CGROOT,&v->root_identity);
+    if (r==0 && v->restored) r=ae_root_observe(v->root,&anchor);
+    if (r==0 && v->restored && !ae_root_equal(&anchor,&v->root_identity)) r=-ESTALE;
     struct ae_root_identity held,named;
     if (r==0) r=ae_root_observe(v->group,&held);
     if (r==0 && !ae_root_equal(&held,&v->group_identity)) r=-ESTALE;
@@ -142,6 +148,127 @@ int ae_lifetime_capture(sd_bus *bus,const struct ae_peer *peer,const struct ae_p
     int removed=0;
     if (r==0) r=snapshot_group(v,0,&removed);
     if (r==0) r=ae_process_verify(&v->peer,bus,expected);
+    if (r==0) { *output=v; return 0; }
+    (void)ae_lifetime_close(&v); return r;
+}
+static int current_namespace(const char *self,uint64_t *output)
+{
+    struct stat st;
+    if (stat(self,&st)<0) return -errno;
+    if (!st.st_ino) return -ENODATA;
+    *output=(uint64_t)st.st_ino; return 0;
+}
+static int namespaces(struct ae_lifetime_checkpoint *v)
+{
+    /* Host admission is the caller's existing protected supervisor obligation.
+     * Self observations only preserve that original namespace binding; reading
+     * PID1's namespace links would need an otherwise unnecessary ptrace grant. */
+    int r=current_namespace("/proc/self/ns/pid",&v->pid_namespace);
+    if (r==0) r=current_namespace("/proc/self/ns/cgroup",&v->cgroup_namespace);
+    return r;
+}
+static int namespace_check(const struct ae_lifetime *v)
+{
+    struct ae_lifetime_checkpoint now={0}; int r=namespaces(&now);
+    if (r==0 && (now.pid_namespace!=v->pid_namespace || now.cgroup_namespace!=v->cgroup_namespace)) r=-ESTALE;
+    return r;
+}
+static int events_identity(int fd,const struct ae_lifetime_checkpoint *v,struct ae_lifetime_checkpoint *out)
+{
+    const unsigned int required=STATX_TYPE|STATX_MODE|STATX_INO|STATX_UID|STATX_GID|STATX_MNT_ID_UNIQUE;
+    struct statx st; struct statfs fs;
+    if (statx(fd,"",AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW,required,&st)<0 || fstatfs(fd,&fs)<0) return -errno;
+    if ((st.stx_mask&required)!=required || !st.stx_ino || !st.stx_mnt_id) return -ENOTSUP;
+    int flags=fcntl(fd,F_GETFL);
+    if (flags<0) return -errno;
+    if (!S_ISREG(st.stx_mode) || fs.f_type!=CGROUP2_SUPER_MAGIC ||
+        st.stx_mnt_id!=v->root.mount_id || st.stx_dev_major!=v->root.device_major ||
+        st.stx_dev_minor!=v->root.device_minor || (flags&O_ACCMODE)!=O_RDONLY || (flags&O_PATH)) return -ESTALE;
+    out->events_inode=st.stx_ino; out->events_mount=st.stx_mnt_id;
+    out->events_mode=st.stx_mode; out->events_uid=st.stx_uid; out->events_gid=st.stx_gid;
+    return 0;
+}
+static int events_equal(const struct ae_lifetime_checkpoint *a,const struct ae_lifetime_checkpoint *b)
+{
+    return a->events_inode==b->events_inode && a->events_mount==b->events_mount &&
+        a->events_mode==b->events_mode && a->events_uid==b->events_uid && a->events_gid==b->events_gid;
+}
+int ae_lifetime_export(struct ae_lifetime *v,struct ae_lifetime_checkpoint *output,int handles[AE_LIFETIME_HANDLE_COUNT])
+{
+    int r=owner(v);
+    if (r==0 && (output==NULL || handles==NULL)) r=-EINVAL;
+    if (r==0 && v->busy) r=-EBUSY;
+    if (r==0 && v->restored) r=-EALREADY;
+    if (r==0) for (int n=0;n<AE_LIFETIME_HANDLE_COUNT;++n) if (handles[n]!=-1) r=-EINVAL;
+    if (r!=0) return r;
+    v->busy=1; struct ae_lifetime_checkpoint value={.context=v->context,.root=v->root_identity,
+        .group=v->group_identity,.pid=(uint32_t)v->peer.connection_pid};
+    int removed=0,fds[AE_LIFETIME_HANDLE_COUNT]={-1,-1,-1,-1};
+    r=ae_process_identify(&v->peer,v->bus,&v->context,&value.process);
+    if (r==0) r=namespaces(&value);
+    if (r==0) r=snapshot_group(v,0,&removed);
+    if (r==0) r=events_identity(v->events,&value,&value);
+    const int source[AE_LIFETIME_HANDLE_COUNT]={v->peer.pidfd,v->root,v->group,v->events};
+    for (int n=0;r==0 && n<AE_LIFETIME_HANDLE_COUNT;++n) { fds[n]=fcntl(source[n],F_DUPFD_CLOEXEC,3); if (fds[n]<0) r=-errno; }
+    if (r==0) r=ae_process_verify(&v->peer,v->bus,&v->context);
+    if (r==0) { *output=value; memcpy(handles,fds,sizeof fds); }
+    else for (int n=0;n<AE_LIFETIME_HANDLE_COUNT;++n) if (fds[n]>=0) close(fds[n]);
+    if (r==-ESTALE) v->stale=1;
+    v->busy=0; return r;
+}
+static int restore_objects(struct ae_lifetime *v,const struct ae_lifetime_checkpoint *expected)
+{
+    struct ae_root_identity root,group; struct ae_lifetime_checkpoint actual={.root=expected->root};
+    int r=ae_root_observe(v->root,&root);
+    if (r==0) r=ae_root_observe(v->group,&group);
+    if (r==0 && (!ae_root_equal(&root,&expected->root) || !ae_root_equal(&group,&expected->group))) r=-ESTALE;
+    if (r==0) r=events_identity(v->events,expected,&actual);
+    if (r==0 && !events_equal(&actual,expected)) r=-ESTALE;
+    struct stat st; struct statfs fs;
+    if (r==0 && (fstat(v->peer.pidfd,&st)<0 || fstatfs(v->peer.pidfd,&fs)<0)) r=-errno;
+    if (r==0 && (fs.f_type!=PID_FS_MAGIC || (uint64_t)st.st_ino!=expected->process.pidfd_id)) r=-ESTALE;
+    return r;
+}
+int ae_lifetime_restore(sd_bus *bus,const struct ae_lifetime_checkpoint *expected,const int handles[AE_LIFETIME_HANDLE_COUNT],struct ae_lifetime **output)
+{
+    if (!bus || !expected || !handles || !output || *output!=NULL) return -EINVAL;
+    if (getuid()!=0 || geteuid()!=0 || getgid()!=0 || getegid()!=0) return -EPERM;
+    for (int n=0;n<AE_LIFETIME_HANDLE_COUNT;++n) if (handles[n]<0) return -EINVAL;
+    uint8_t encoded[AE_PROCESS_IDENTITY_BYTES];
+    int r=ae_process_identity_encode(&expected->process,encoded);
+    if (r==0 && (memcmp(expected->process.boot,expected->context.boot,16)!=0 || !expected->pid || expected->pid>INT32_MAX ||
+        !expected->context.cgroup_id || expected->group.inode!=expected->context.cgroup_id ||
+        expected->root.filesystem_type!=CGROUP2_SUPER_MAGIC || expected->group.filesystem_type!=CGROUP2_SUPER_MAGIC ||
+        expected->root.mount_id!=expected->group.mount_id || expected->context.cgroup[0]!='/' || !expected->context.cgroup[1] ||
+        !expected->context.unit[0] || !expected->context.label[0] ||
+        !memchr(expected->context.unit,0,sizeof expected->context.unit) ||
+        !memchr(expected->context.label,0,sizeof expected->context.label) ||
+        !memchr(expected->context.cgroup,0,sizeof expected->context.cgroup))) r=-EBADMSG;
+    sd_id128_t boot; if (r==0) r=sd_id128_get_boot(&boot);
+    if (r==0 && memcmp(boot.bytes,expected->context.boot,16)!=0) r=-ESTALE;
+    struct ae_lifetime_checkpoint current={0}; if (r==0) r=namespaces(&current);
+    if (r==0 && (current.pid_namespace!=expected->pid_namespace || current.cgroup_namespace!=expected->cgroup_namespace)) r=-ESTALE;
+    if (r!=0) return r;
+    struct ae_lifetime *v=calloc(1,sizeof *v); if (!v) return -ENOMEM;
+    v->owner=getpid(); v->root=v->group=v->events=v->peer.pidfd=-1; v->bus=bus; v->restored=1;
+    v->context=expected->context; v->root_identity=expected->root; v->group_identity=expected->group;
+    v->pid_namespace=expected->pid_namespace; v->cgroup_namespace=expected->cgroup_namespace;
+    /* Internal observation pin only: no bus name/connection credentials are
+     * reconstructed. Never expose this as a fresh authenticated IPC peer. */
+    v->peer.connection_pid=(pid_t)expected->pid; v->peer.connection_uid=expected->context.uid;
+    strcpy(v->peer.connection_label,expected->context.label);
+    int *dest[AE_LIFETIME_HANDLE_COUNT]={&v->peer.pidfd,&v->root,&v->group,&v->events};
+    for (int n=0;r==0 && n<AE_LIFETIME_HANDLE_COUNT;++n) { *dest[n]=fcntl(handles[n],F_DUPFD_CLOEXEC,3); if (*dest[n]<0) r=-errno; }
+    if (r==0) r=restore_objects(v,expected);
+    if (r==0) r=unit_path(v,v->unit_path);
+    /* Restore is read-only and may see either a still-live original or its end.
+     * A change during these observations remains pending; it never releases. */
+    int alive=r==0 ? ae_peer_alive(&v->peer) : r,removed=0;
+    if (r==0 && alive!=0 && alive!=-ESRCH) r=alive;
+    if (r==0) r=snapshot_unit(v,alive==-ESRCH,NULL);
+    if (r==0) r=snapshot_group(v,alive==-ESRCH,&removed);
+    if (r==0 && alive==0) r=ae_process_verify(&v->peer,bus,&v->context);
+    if (r==0) r=restore_objects(v,expected);
     if (r==0) { *output=v; return 0; }
     (void)ae_lifetime_close(&v); return r;
 }
