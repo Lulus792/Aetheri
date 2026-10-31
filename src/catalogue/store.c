@@ -137,6 +137,13 @@ static int extend_schema_v3(sqlite3 *db,enum ae_catalogue_kind kind)
     for (size_t n=0;r==0 && sql[n]!=NULL;++n) r=exec_sql(db,sql[n]);
     return r==0 ? exec_sql(db,"PRAGMA user_version=3") : r;
 }
+static int extend_schema_v4(sqlite3 *db,enum ae_catalogue_kind kind)
+{
+    const char *const *sql=kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v4 : ae_schema_user_v4;
+    int r=0;
+    for (size_t n=0;r==0 && sql[n]!=NULL;++n) r=exec_sql(db,sql[n]);
+    return r==0 ? exec_sql(db,"PRAGMA user_version=4") : r;
+}
 static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
 {
     const char *const *sql = kind == AE_CATALOGUE_SYSTEM ? ae_schema_system : ae_schema_user;
@@ -145,7 +152,8 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
     if (result == 0) result = exec_sql(db, kind == AE_CATALOGUE_SYSTEM ?
         "PRAGMA application_id=1096042579; PRAGMA user_version=2;" :
         "PRAGMA application_id=1096042581; PRAGMA user_version=2;");
-    if (result==0 && version==3) result=extend_schema_v3(db,kind);
+    if (result==0 && version>=3) result=extend_schema_v3(db,kind);
+    if (result==0 && version==4) result=extend_schema_v4(db,kind);
     return result;
 }
 
@@ -286,7 +294,7 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2 && value != 3) result = -EPROTONOSUPPORT;
+    if (result == 0 && value != 2 && value != 3 && value != 4) result = -EPROTONOSUPPORT;
     if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
@@ -818,6 +826,18 @@ int ae_catalogue_upgrade_lifetimes(struct ae_catalogue *store)
     sqlite3_int64 version=0;
     if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
     if (r==0 && version==2) r=extend_schema_v3(store->db,store->identity.kind);
+    if (r==0) r=validate(store);
+    return fixture_commit(store,r);
+}
+int ae_catalogue_upgrade_processes(struct ae_catalogue *store)
+{
+    int r=still_named(store);
+    if (r==0) r=exec_sql(store->db,"BEGIN EXCLUSIVE");
+    if (r!=0) return r;
+    r=validate(store); sqlite3_int64 version=0;
+    if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=3 && version!=4) r=-EPROTONOSUPPORT;
+    if (r==0 && version==3) r=extend_schema_v4(store->db,store->identity.kind);
     if (r==0) r=validate(store);
     return fixture_commit(store,r);
 }
@@ -2278,6 +2298,18 @@ static int execution_statement(struct ae_catalogue *store,const struct ae_execut
     "JOIN plan_reads r ON r.plan_id=a.plan_id AND r.source_epoch=p.se AND r.subject_kind='install' AND r.subject_ref=p.i AND r.expected_revision=p.ir " \
     "JOIN generation_leases l ON l.lease_id=p.lease JOIN generations gen ON gen.generation_id=p.g AND gen.artifact_id=p.artifact " \
     "JOIN operation_steps z ON z.operation_id=p.op AND z.step_no=0 AND z.action='verify' AND z.subject_kind='launch' AND z.subject_ref=p.launch AND z.state='applied' AND z.evidence_digest=p.fp "
+static int process_catalogue_row(struct ae_catalogue *,const struct ae_execution_profile *,enum ae_execution_process_role,struct ae_execution_process_snapshot *);
+static int require_execution_process(struct ae_catalogue *s,const struct ae_execution_profile *p,const uint8_t hash[32],const struct ae_execution_evidence *e,int role)
+{
+    (void)hash;
+    sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
+    struct ae_execution_process_snapshot snapshot;
+    if (r==0 && version==4) {
+        r=process_catalogue_row(s,p,(enum ae_execution_process_role)role,&snapshot);
+        if (r==0) r=ae_execution_process_match(p,e,&snapshot.process);
+    }
+    return r==-ENOENT ? -EAGAIN : r;
+}
 static int user_execution_begin(struct ae_catalogue *store,const struct ae_execution_profile *p,uint8_t hash[32],int write)
 {
     int result=ae_execution_digest(p,hash);
@@ -2375,6 +2407,7 @@ int ae_catalogue_observe_user_execution(struct ae_catalogue *store,const struct 
     if (r==0 && mutation) {
         r=AQ("SELECT max(m.catalogue_revision,o.revision,l.revision) FROM p JOIN authority_meta m ON m.singleton=1 JOIN operations o ON o.operation_id=p.uop JOIN launches l ON l.operation_id=p.uop",&match);
         if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0 && stage==AE_USER_EXECUTION_READY) r=require_execution_process(store,p,hash,e,2);
         if (r==0 && stage==AE_USER_EXECUTION_REGISTER) {
             r=AQ("INSERT INTO operation_steps SELECT uop,2,'verify','integration',inv,'applied',evidence FROM p",NULL);
             if (r==0) r=AQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT uop FROM p) AND step_no=1",NULL);
@@ -2449,6 +2482,7 @@ int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_
         if (result==0 && info.revision==INT64_MAX) result=-EOVERFLOW;
         if (result==0) result=EQ("SELECT max(o.revision,d.revision,l.revision) " EXEC_TUPLE,&match);
         if (result==0 && match==INT64_MAX) result=-EOVERFLOW;
+        if (result==0 && stage==AE_EXECUTION_ARM) result=require_execution_process(store,p,hash,e,1);
         if (result==0 && stage==AE_EXECUTION_REQUEST) result=EQ("INSERT INTO operation_steps SELECT op,1,'stage','generation',g,'executing',hash FROM p",NULL);
         if (result==0 && stage==AE_EXECUTION_BIND) result=EQ("INSERT INTO operation_steps SELECT op,2,'verify','integration',inv,'executing',evidence FROM p",NULL);
         if (result==0 && stage==AE_EXECUTION_PREPARE) {
@@ -2555,6 +2589,7 @@ int ae_catalogue_observe_execution(struct ae_catalogue *store,const struct ae_ex
         if (r==0 && match!=1) r=-EAGAIN;
         if (r==0) r=OQ("SELECT max(m.catalogue_revision,o.revision,d.revision) " EXEC_TUPLE,&match);
         if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
+        if (r==0) r=require_execution_process(store,p,hash,e,2);
         if (r==0) r=OQ("INSERT INTO operation_steps SELECT op,5,'verify','launch',launch,'applied',rhash FROM p",NULL);
         if (r==0) r=OQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM p) AND step_no=3",NULL);
         if (r==0) r=OQ("UPDATE launch_dispatches SET state='observed',revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL);
@@ -2673,6 +2708,127 @@ int ae_catalogue_finish_user_execution(struct ae_catalogue *store,const struct a
 #undef FQ
     return r;
 }
+static int process_catalogue_begin(struct ae_catalogue *s,const struct ae_execution_profile *p,int write)
+{
+    uint8_t raw[AE_EXECUTION_BYTES]; int r=ae_execution_encode(p,raw);
+    if (r==0) r=still_named(s);
+    if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
+    if (r!=0) return r;
+    sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=4) r=-EPROTONOSUPPORT;
+    struct ae_catalogue_info info;
+    if (r==0) r=read_info(s,&info);
+    int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
+    if (r==0 && (memcmp(info.authority_epoch,system ? p->system_epoch : p->broker_epoch,16)!=0 ||
+        (!system && memcmp(s->identity.owner,p->account,16)!=0) || memcmp(info.boot_id,p->boot,16)!=0 ||
+        (write && memcmp(info.runtime_incarnation,system ? p->system_runtime : p->broker_runtime,16)!=0))) r=-ESTALE;
+    return r==0 ? 0 : fixture_commit(s,r);
+}
+static int process_catalogue_row(struct ae_catalogue *s,const struct ae_execution_profile *p,enum ae_execution_process_role role,struct ae_execution_process_snapshot *output)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,
+        "SELECT profile,profile_digest,invocation_ref,context_digest,process_identity,witness,witness_digest,recorded_unix_ms,start_operation_id FROM execution_processes WHERE launch_id=? AND role=?",-1,&q,NULL));
+    if (r==0) r=failure(sqlite3_bind_blob(q,1,p->launch,16,SQLITE_TRANSIENT));
+    if (r==0) r=failure(sqlite3_bind_int(q,2,(int)role));
+    if (r==0) { int code=sqlite3_step(q); if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code); }
+    struct ae_execution_process_snapshot result={0};
+    uint8_t profile[384],expected[384],hash[32],value[32],operation[16];
+    const uint8_t *raw=NULL; int bytes=0;
+    if (r==0) r=projection_blob(q,0,profile,384);
+    if (r==0) r=ae_execution_encode(p,expected);
+    if (r==0 && memcmp(profile,expected,384)!=0) r=-ESTALE;
+    if (r==0) r=ae_sha256_bytes(profile,384,hash);
+    if (r==0) r=projection_blob(q,1,value,32);
+    if (r==0 && memcmp(value,hash,32)!=0) r=-EUCLEAN;
+    if (r==0) {
+        bytes=sqlite3_column_bytes(q,5); raw=sqlite3_column_blob(q,5);
+        if (sqlite3_column_type(q,5)!=SQLITE_BLOB || bytes<149 || bytes>AE_EXECUTION_PROCESS_MAX) r=-EUCLEAN;
+    }
+    if (r==0) r=ae_execution_process_decode(raw,(size_t)bytes,&result.process);
+    if (r==0) r=ae_sha256_bytes(raw,(size_t)bytes,hash);
+    if (r==0) r=projection_blob(q,6,value,32);
+    if (r==0 && memcmp(value,hash,32)!=0) r=-EUCLEAN;
+    struct ae_execution_evidence evidence={0};
+    if (r==0) r=projection_blob(q,2,evidence.invocation,16);
+    if (r==0) r=projection_blob(q,3,evidence.context_digest,32);
+    if (r==0) r=ae_execution_process_match(p,&evidence,&result.process);
+    if (r==0) r=projection_blob(q,4,value,32);
+    if (r==0 && (result.process.role!=role || memcmp(value,raw+44,32)!=0)) r=-EUCLEAN;
+    if (r==0) r=projection_blob(q,8,operation,16);
+    if (r==0 && memcmp(operation,s->identity.kind==AE_CATALOGUE_SYSTEM ? p->root_operation : p->user_operation,16)!=0) r=-EUCLEAN;
+    if (r==0 && (sqlite3_column_type(q,7)!=SQLITE_INTEGER || sqlite3_column_int64(q,7)<0)) r=-EUCLEAN;
+    if (r==0) { result.recorded_unix_ms=sqlite3_column_int64(q,7); int code=sqlite3_step(q); if (code!=SQLITE_DONE) r=code==SQLITE_ROW ? -EUCLEAN : failure(code); }
+    int final=failure(sqlite3_finalize(q)); if (r==0) r=final;
+    if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_get_execution_process(struct ae_catalogue *s,const struct ae_execution_profile *p,enum ae_execution_process_role role,struct ae_execution_process_snapshot *output)
+{
+    if (!output || (role!=AE_EXECUTION_STARTER && role!=AE_EXECUTION_APP)) return -EINVAL;
+    int r=process_catalogue_begin(s,p,0); if (r!=0) return r;
+    struct ae_execution_process_snapshot result;
+    r=process_catalogue_row(s,p,role,&result); r=fixture_commit(s,r);
+    if (r==0) *output=result;
+    return r;
+}
+int ae_catalogue_enroll_execution_process(struct ae_catalogue *s,const struct ae_execution_profile *p,
+    const struct ae_execution_evidence *e,const struct ae_execution_process *process,int64_t stamp,struct ae_execution_process_snapshot *output)
+{
+    if (!output || stamp<0) return -EINVAL;
+    int r=ae_execution_process_match(p,e,process); if (r!=0) return r;
+    uint8_t raw[AE_EXECUTION_PROCESS_MAX],profile[384],hash[32],digest[32]; size_t size=0;
+    r=ae_execution_process_encode(process,raw,sizeof raw,&size);
+    if (r==0) r=ae_execution_encode(p,profile);
+    if (r==0) r=ae_execution_digest(p,hash);
+    if (r==0) r=ae_sha256_bytes(raw,size,digest);
+    if (r!=0) return r;
+    r=process_catalogue_begin(s,p,1); if (r!=0) return r;
+    struct ae_execution_process_snapshot result;
+    r=process_catalogue_row(s,p,process->role,&result);
+    if (r==0) {
+        uint8_t original[AE_EXECUTION_PROCESS_MAX]; size_t length=0; r=ae_execution_process_encode(&result.process,original,sizeof original,&length);
+        if (r==0 && (length!=size || memcmp(raw,original,size)!=0)) r=-EEXIST;
+    } else if (r==-ESTALE) r=-EEXIST;
+    else if (r==-ENOENT) {
+        int64_t match=0;
+        if (s->identity.kind==AE_CATALOGUE_SYSTEM) {
+            r=execution_statement(s,p,hash,e,EXEC_INPUT "SELECT count(*) " EXEC_TUPLE
+                "JOIN scopes account ON account.scope_id=p.account AND account.kind='account' AND account.state='active' AND account.os_uid=1000 "
+                "JOIN operation_steps bound ON bound.operation_id=p.op AND bound.step_no=2 AND bound.action='verify' AND bound.subject_kind='integration' AND bound.subject_ref=p.inv AND bound.evidence_digest=p.evidence "
+                "JOIN operation_steps requested ON requested.operation_id=p.op AND requested.step_no=1 AND requested.action='stage' AND requested.subject_kind='generation' AND requested.subject_ref=p.g AND requested.evidence_digest=p.hash "
+                "WHERE o.state='running' AND d.close_cause_epoch IS NULL",&match);
+            if (r==0 && match==1) r=execution_statement(s,p,hash,e,process->role==AE_EXECUTION_STARTER ?
+                EXEC_INPUT "SELECT count(*) " EXEC_TUPLE "WHERE d.state='reserved' AND d.invocation_ref IS NULL AND l.state='reserved' AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>=3)" :
+                EXEC_INPUT "SELECT count(*) " EXEC_TUPLE "WHERE d.state='dispatching' AND d.invocation_ref=p.inv AND l.state='running' AND EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no=3 AND action='activate' AND subject_kind='launch' AND subject_ref=p.launch AND evidence_digest=p.hash AND state='executing')",&match);
+            if (r==0 && match==1 && process->role==AE_EXECUTION_APP) {
+                struct ae_execution_process_snapshot starter;
+                r=process_catalogue_row(s,p,AE_EXECUTION_STARTER,&starter);
+                if (r==0 && (process->pidfd_id!=starter.process.pidfd_id || process->pid!=starter.process.pid || process->cgroup_id!=starter.process.cgroup_id || strcmp(process->cgroup,starter.process.cgroup)!=0)) r=-ESTALE;
+            }
+        } else {
+            r=process->role==AE_EXECUTION_APP ? user_execution_fence(s,p,hash,e) : -EPERM;
+            if (r==0) match=1;
+        }
+        if (r==0 && match!=1) r=-ESTALE;
+        struct ae_catalogue_info info;
+        if (r==0) r=read_info(s,&info);
+        if (r==0 && info.revision==INT64_MAX) r=-EOVERFLOW;
+        sqlite3_stmt *q=NULL;
+        if (r==0) r=failure(sqlite3_prepare_v2(s->db,"INSERT INTO execution_processes VALUES(?,?,?,?,?,?,?,?,?,?,?)",-1,&q,NULL));
+        const uint8_t *op=s->identity.kind==AE_CATALOGUE_SYSTEM ? p->root_operation : p->user_operation;
+        const void *blobs[]={p->launch,op,profile,hash,e->invocation,e->context_digest,raw+44,raw,digest};
+        const int columns[]={1,3,4,5,6,7,8,9,10},lengths[]={16,16,384,32,16,32,32,(int)size,32};
+        for (size_t n=0;r==0 && n<9;++n) r=failure(sqlite3_bind_blob(q,columns[n],blobs[n],lengths[n],SQLITE_TRANSIENT));
+        if (r==0) r=failure(sqlite3_bind_int(q,2,(int)process->role));
+        if (r==0) r=failure(sqlite3_bind_int64(q,11,stamp));
+        if (r==0) { int code=sqlite3_step(q); r=code==SQLITE_DONE ? 0 : failure(code); if (r==0 && sqlite3_changes(s->db)!=1) r=-EUCLEAN; }
+        int final=failure(sqlite3_finalize(q)); if (r==0) r=final;
+        if (r==0) r=execution_statement(s,p,hash,e,EXEC_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL);
+        if (r==0) r=process_catalogue_row(s,p,process->role,&result);
+    }
+    r=fixture_commit(s,r); if (r==0) *output=result;
+    return r;
+}
 #undef EXEC_INPUT
 #undef EXEC_TUPLE
 
@@ -2748,7 +2904,7 @@ static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=3) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=3 && version!=4) r=-EPROTONOSUPPORT;
     if (r!=0) return fixture_commit(s,r);
     return 0;
 }

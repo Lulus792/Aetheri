@@ -1046,3 +1046,31 @@ Keep durable run/context enrollment, replacement-owner journal settlement,
 already-dead process recovery and lost original cgroup/event/unit handles as
 separate obligations. Identity survives ordinary exec and is never target-image
 or readiness proof. UI/unsaved-work choices remain deferred to the user.
+
+## Persist original process evidence before fresh execution transitions — 31 October 2026
+
+Add one immutable execution_processes table per owner through explicit v4
+additions after frozen v3. Preserve all published v1/v2/v3 definitions and existing
+rows/gates; normal creation stays v2 and opening never migrates. The table belongs
+to the existing owner lock/database, not another service or file hierarchy.
+
+Root stores the actual starter before ARM, then its actual app under the same
+boot-bound kernel identity/PID/invocation/cgroup. User stores its registered app
+before READY. Each record binds the complete original execution profile, current
+process context, original journal evidence and canonical AETHPRC1 bytes/hash.
+V4 fresh ARM, Root target observation and User READY require the corresponding
+validated record. Keep metadata evidence distinct from actual kernel/image/data
+admission; caller-supplied packets do not authorize their own enrollment.
+
+Enrollment requires the original owner runtime. Exact retries preserve bytes/time;
+changed records conflict. A same-authority/account/boot maintenance getter may
+cross a runtime replacement, returning original history without state adoption,
+readiness restoration, another effect or lease release. Keep actual recovery
+transactions and already-dead/lost-handle proof as separate work. Prevent pruning
+until run/lease settlement, then prune evidence before referenced launch/start
+records. Retention/removal integration remains required.
+
+Use the existing SHA-256, SQLite owner boundary and native C17 modules; no public
+wire, dependency family, daemon, automatic installed migration or UI choice is
+needed. A legacy pending start without this evidence is not silently backfilled
+or accepted merely because its schema was upgraded.

@@ -125,3 +125,75 @@ int ae_execution_diagnostic_encode(const struct ae_execution_profile *p,const st
     if (r==0) { memcpy(output,hash,32); memcpy(reason,text,sizeof text); }
     return r;
 }
+
+static void process_put(uint8_t *out,uint64_t value,size_t size)
+{ for (size_t n=0;n<size;++n) out[n]=(uint8_t)(value>>(8U*(size-1U-n))); }
+static uint64_t process_get(const uint8_t *in,size_t size)
+{ uint64_t value=0; for (size_t n=0;n<size;++n) value=(value<<8)|in[n]; return value; }
+static int process_text(const char *text,size_t capacity,size_t *length)
+{
+    size_t size=strnlen(text,capacity);
+    if (!size || size==capacity) return -EBADMSG;
+    for (size_t n=0;n<size;++n) if ((unsigned char)text[n]<0x21 || (unsigned char)text[n]>0x7e) return -EBADMSG;
+    *length=size; return 0;
+}
+int ae_execution_process_encode(const struct ae_execution_process *v,uint8_t *output,size_t capacity,size_t *written)
+{
+    if (!v || !output || !written) return -EINVAL;
+    unsigned int boot=0,invocation=0;
+    for (size_t n=0;n<16;++n) { boot|=v->boot[n]; invocation|=v->invocation[n]; }
+    if ((v->role!=AE_EXECUTION_STARTER && v->role!=AE_EXECUTION_APP) || !boot || !invocation ||
+        !v->pidfd_id || !v->cgroup_id || !v->pid || v->pid>INT32_MAX) return -EBADMSG;
+    size_t sizes[3]; const char *texts[]={v->unit,v->label,v->cgroup};
+    const size_t bounds[]={sizeof v->unit,sizeof v->label,sizeof v->cgroup}; size_t size=146;
+    for (size_t n=0;n<3;++n) { int r=process_text(texts[n],bounds[n],&sizes[n]); if (r!=0) return r; size+=sizes[n]; }
+    if (v->cgroup[0]!='/' || v->cgroup[1]==0 || v->cgroup[sizes[2]-1]=='/' || strstr(v->cgroup,"//") ||
+        strstr(v->cgroup,"/../") || strstr(v->cgroup,"/./") ||
+        (sizes[2]>=3 && strcmp(v->cgroup+sizes[2]-3,"/..")==0) ||
+        (sizes[2]>=2 && strcmp(v->cgroup+sizes[2]-2,"/.")==0)) return -EBADMSG;
+    if (capacity<size) return -ENOBUFS;
+    _Static_assert(146+sizeof v->unit-1+sizeof v->label-1+sizeof v->cgroup-1<=AE_EXECUTION_PROCESS_MAX,"process witness capacity");
+    uint8_t bytes[AE_EXECUTION_PROCESS_MAX]={0};
+    memcpy(bytes,"AETHPRC1",8); memcpy(bytes+8,v->profile_digest,32); bytes[40]=(uint8_t)v->role;
+    memcpy(bytes+44,"AETHPID1",8); memcpy(bytes+52,v->boot,16); process_put(bytes+68,v->pidfd_id,8);
+    memcpy(bytes+76,v->invocation,16); memcpy(bytes+92,v->evidence_digest,32);
+    process_put(bytes+124,v->pid,4); process_put(bytes+128,v->uid,4); process_put(bytes+132,v->cgroup_id,8);
+    size_t offset=140;
+    for (size_t n=0;n<3;++n) { process_put(bytes+offset,sizes[n],2); offset+=2; memcpy(bytes+offset,texts[n],sizes[n]); offset+=sizes[n]; }
+    memcpy(output,bytes,size); *written=size; return 0;
+}
+int ae_execution_process_decode(const uint8_t *bytes,size_t size,struct ae_execution_process *output)
+{
+    if (!bytes || !output) return -EINVAL;
+    if (size<149 || size>AE_EXECUTION_PROCESS_MAX || memcmp(bytes,"AETHPRC1",8)!=0 ||
+        memcmp(bytes+44,"AETHPID1",8)!=0 || bytes[41] || bytes[42] || bytes[43]) return -EBADMSG;
+    struct ae_execution_process v={0}; v.role=(enum ae_execution_process_role)bytes[40]; memcpy(v.profile_digest,bytes+8,32);
+    memcpy(v.boot,bytes+52,16); v.pidfd_id=process_get(bytes+68,8); memcpy(v.invocation,bytes+76,16); memcpy(v.evidence_digest,bytes+92,32);
+    v.pid=(uint32_t)process_get(bytes+124,4); v.uid=(uint32_t)process_get(bytes+128,4); v.cgroup_id=process_get(bytes+132,8);
+    char *texts[]={v.unit,v.label,v.cgroup}; const size_t bounds[]={sizeof v.unit,sizeof v.label,sizeof v.cgroup}; size_t offset=140;
+    for (size_t n=0;n<3;++n) {
+        if (size-offset<2) return -EBADMSG;
+        size_t length=(size_t)process_get(bytes+offset,2); offset+=2;
+        if (!length || length>=bounds[n] || length>size-offset || memchr(bytes+offset,0,length)) return -EBADMSG;
+        memcpy(texts[n],bytes+offset,length); offset+=length;
+    }
+    if (offset!=size) return -EBADMSG;
+    uint8_t check[AE_EXECUTION_PROCESS_MAX]; size_t length=0; int r=ae_execution_process_encode(&v,check,sizeof check,&length);
+    if (r==0) *output=v;
+    return r;
+}
+int ae_execution_process_match(const struct ae_execution_profile *p,const struct ae_execution_evidence *e,const struct ae_execution_process *v)
+{
+    if (!e || !v) return -EINVAL;
+    uint8_t raw[AE_EXECUTION_PROCESS_MAX],hash[32]; size_t size=0;
+    int r=ae_execution_process_encode(v,raw,sizeof raw,&size);
+    if (r==0) r=ae_execution_digest(p,hash);
+    if (r!=0) return r;
+    char unit[80],hex[33]; const char *digits="0123456789abcdef";
+    for (size_t n=0;n<16;++n) { hex[2*n]=digits[p->launch[n]>>4]; hex[2*n+1]=digits[p->launch[n]&15U]; } hex[32]=0;
+    int count=snprintf(unit,sizeof unit,"aetheri-app-%s.service",hex);
+    if (count<0 || count>=(int)sizeof unit) return -EOVERFLOW;
+    return memcmp(v->profile_digest,hash,32)!=0 || memcmp(v->boot,p->boot,16)!=0 || memcmp(v->invocation,e->invocation,16)!=0 ||
+        memcmp(v->evidence_digest,e->context_digest,32)!=0 || strcmp(v->unit,unit)!=0 ||
+        v->uid!=(v->role==AE_EXECUTION_STARTER ? 0U : 1000U) ? -ESTALE : 0;
+}

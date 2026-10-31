@@ -48,5 +48,8 @@ The later explicit executing fixture now proves original User registration/READY
 Root observation, separate start-result completion and native original-process/
 unit/recursive-group end observation. Separate v3 journals now also settle the
 successful fixed run's Root lease and User launch while preserving start results.
+V4 now persists the original process/profile/context observations, requiring
+them before fresh ARM, Root target observation and User readiness in that schema.
+Maintenance reads after an owner-runtime change do not adopt the old run.
 Executing recovery, general holders and document/removal acceptance still precede
 P0 completion. See current [State](../STATE.md) for the actual tested boundary.

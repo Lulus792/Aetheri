@@ -99,12 +99,20 @@ def main():
             encoded.write_bytes(bytes.fromhex(vectors['profile_hex'])+b''.join(bytes.fromhex(x['hex'])+bytes.fromhex(x['sha256']) for x in vectors['receipts'])+bytes.fromhex(vectors['end']['sha256']))
             subprocess.run([executable,'run-codec',encoded],check=True,timeout=10)
             scenarios=tuple('exec-lifetime-'+case for case in (
-                'fresh','gates','grants','step0-lost','step1-lost','step2-lost','step3-lost',
+                'fresh','v4','gates','grants','step0-lost','step1-lost','step2-lost','step3-lost',
                 'step0-crash-before','step0-crash-after','step1-crash-before','step1-crash-after',
                 'step2-crash-before','step2-crash-after','step3-crash-before','step3-crash-after',
                 'step2-replace','step3-replace',
                 'step0-limit-launch','step1-limit-launch','step2-limit-lease','step3-limit-catalogue'))
             if sys.argv[3]=='lifetime-grants': scenarios=('exec-lifetime-grants',)
+        if len(sys.argv)==4 and sys.argv[3]=='processes':
+            vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/execution-process-v1.json').read_bytes())
+            encoded=root/'process.vector'; raw=bytes.fromhex(vector['hex'])
+            encoded.write_bytes(bytes.fromhex(vector['profile_hex'])+struct.pack('>I',len(raw))+raw+bytes.fromhex(vector['sha256']))
+            subprocess.run([executable,'process-codec',encoded],check=True,timeout=10)
+            scenarios=tuple('exec-process-'+case for case in ('fresh','gates','lost-0','lost-1','lost-2',
+                'crash-0-before','crash-0-after','crash-1-before','crash-1-after','crash-2-before','crash-2-after',
+                'root-replace','user-replace','overflow-root','overflow-user','corrupt'))
         if len(sys.argv)==4 and sys.argv[3]=="wire":
             scenarios=tuple("exec-wire-"+case for case in (
                 "success","wrong-peer","wrong-tuple","bind-commit-lost","prepare-commit-lost","arm-commit-lost",

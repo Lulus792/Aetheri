@@ -18,6 +18,25 @@ import test_execution_runtime as execution_runtime
 
 
 class VmTools(unittest.TestCase):
+    def test_archived_user_process_rows_require_all_original_bindings(self):
+        reference=execution_runtime.reference
+        vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/execution-process-v1.json').read_bytes()); profile=bytes.fromhex(vector['profile_hex'])
+        value=dict(vector['input'],role=2,uid=1000,label='system_u:system_r:aetheri_exec_app_t:s0:c35,c36')
+        wire=reference.execution_process(value); digest=bytes.fromhex(reference.digest(wire)); context=bytes.fromhex(value['evidence_digest'])
+        identity=reference.process_identity(dict(boot=value['boot'],pidfd_id=value['pidfd_id']))
+        row=(2,profile,bytes.fromhex(value['profile_digest']),bytes.fromhex(value['invocation']),context,identity,wire,digest,123,profile[216:232])
+        ended={k:value[k] for k in ('boot','invocation','pid','cgroup_id')}
+        with closing(sqlite3.connect(':memory:')) as db:
+            db.execute('PRAGMA user_version=4'); db.execute('CREATE TABLE operation_steps(step_no,evidence_digest)')
+            db.execute('INSERT INTO operation_steps VALUES(2,?)',(context,))
+            db.execute('CREATE TABLE execution_processes(role,profile,profile_digest,invocation_ref,context_digest,process_identity,witness,witness_digest,recorded_unix_ms,start_operation_id)')
+            db.execute('INSERT INTO execution_processes VALUES(?,?,?,?,?,?,?,?,?,?)',row)
+            self.assertEqual(execution_runtime.validate_process_rows(db,profile,'user',ended),(identity,{'app':digest.hex()}))
+            for column,bad in ((1,b'\0'*384),(2,b'\0'*32),(3,b'\0'*16),(4,b'\0'*32),(5,b'\0'*32),(7,b'\0'*32),(8,-1),(9,b'\0'*16)):
+                db.execute('DELETE FROM execution_processes'); changed=list(row); changed[column]=bad
+                db.execute('INSERT INTO execution_processes VALUES(?,?,?,?,?,?,?,?,?,?)',changed)
+                with self.assertRaises(RuntimeError): execution_runtime.validate_process_rows(db,profile,'user',ended)
+
     def test_native_end_report_requires_original_invocation_boot_and_bounded_shape(self):
         original=dict(pid=123,cgroup_id=456,group_removed=True,unit_failed=False,invocation='ab'*16,boot='cd'*16)
         execution_runtime.validate_native_end(original,original['invocation'],original['boot'])
@@ -51,8 +70,8 @@ class VmTools(unittest.TestCase):
         with closing(sqlite3.connect(path)) as db,db:
             db.execute('CREATE TABLE authority_meta(kind,authority_epoch,owner_scope_ref,runtime_incarnation,current_boot_id,catalogue_revision)')
             db.execute('INSERT INTO authority_meta VALUES(?,?,?,?,?,?)',('user',bytes(profile[40:56]),bytes(profile[88:104]),bytes(profile[56:72]),bytes(profile[72:88]),2))
-            for table in ('install_bindings','data_epochs','launches','operations','run_closures'): db.execute('CREATE TABLE '+table+'(id)')
-            db.execute('PRAGMA user_version=3')
+            for table in ('install_bindings','data_epochs','launches','operations','run_closures','execution_processes'): db.execute('CREATE TABLE '+table+'(id)')
+            db.execute('PRAGMA user_version=4')
         context=b'system_u:object_r:aetheri_user_state_t:s0'
         before={control:[10,1000,1000,stat.S_IFDIR|0o700,2,0,1,1,context.hex(),None]}
         database=control+'/catalogue.sqlite3'; lock=control+'/writer.lock'

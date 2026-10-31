@@ -1560,3 +1560,60 @@ closed gates, no normal unsettled dispatch/lease, enforcing policy and retired
 exact temporary inputs. This proves live-process continuity after component
 observer exit, not durable authority restart recovery. All 174 tested guest
 source hashes agree with the host snapshot.
+
+## Immutable original-process enrollment — 31 October 2026
+
+Original [v4 additions](../../spec/schema/common-v4.sql),
+[native codec/API](../../src/catalogue/execution.h),
+[owner transactions](../../src/catalogue/store.c) and
+[frozen vector](../../spec/vectors/execution-process-v1.json) bind original kernel
+identity/context to a complete original execution profile. Published v1/v2/v3
+sources remain unchanged. The original [transaction documentation](https://www.sqlite.org/lang_transaction.html)
+and [user_version description](https://www.sqlite.org/pragma.html#pragma_user_version)
+support the exclusive additive migration design. They do not prove application
+recovery; actual fault/crash/corruption tests supply the scoped executed evidence.
+
+The first sixteen-scenario native group passes Debug ASan/UBSan (142.19 s).
+Every enrollment write and both commit-acknowledgement directions preserve
+outputs/history; six actual children exit before/after enrollment commit. Original
+records remain readable after owner-runtime replacement while writes reject and
+run/lease recovery obligations remain. A deliberate unique stored-digest byte
+mutation leaves SQLite structure valid but fails native read and fresh target
+observation. The fixtures' end digests/process fields are controlled metadata,
+not Linux drain or caller-admission proof.
+
+The source-contract suite passes 40/40 (79.796 s), including v3 preservation,
+all v4 DDL/version checkpoints, six migration process exits, source/owner drift,
+unknown acknowledgement and SQLITE_FULL. Native migration additionally faults
+all six DDL/version boundaries per owner and reopens the committed target.
+Independent byte tests pass 20/20 (0.071 s). Controller host tests pass 47/47
+(2.435 s), including corrupted User profile/hash/context/identity/operation/time
+bindings. Their first fixture lookup accidentally used the test's patched VM
+root; selecting the repository-relative frozen vector corrected that test input.
+
+The actual enforcing fixture independently enrolls/checks original Root starter,
+Root app and User app records using current held ProcessFD/context checks. Root's
+app preserves the starter's kernel identity; both owners' records match the same
+actual original PID/cgroup/invocation/boot and their distinct journal evidence.
+Its controller decodes the archived native bytes after service exit and checks
+record hashes, both immutable start results and actual run closure. This does
+not restart/adopt either authority or recover lost original kernel handles.
+
+For the next lost-handle investigation, upstream
+[systemd.service 259](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html)
+documents bounded per-service descriptor retention and delivery to that service's
+next process. [sd_notify 259](https://www.freedesktop.org/software/systemd/man/259/sd_notify.html)
+describes descriptor naming, default error/hangup cleanup, the optional cleanup
+override and processing synchronization. These are research leads only: no Root
+descriptor store, acceptance proof, import of old kernel handles or actual restart
+behavior has been implemented/accepted from those docs. Existing app FD-store
+exclusion remains unchanged.
+
+Final affected native regressions pass 12/12 Debug ASan/UBSan (658.41 s) and
+12/12 Release (567.72 s). The lifetime group now additionally upgrades a populated
+v3 closing/quiet journal without changing its receipts or preventing settlement.
+The last compile-time capacity check uses the actual field sizes; the reviewed
+rebuild reproduces all 76 tested executables exactly. All 178 source hashes match
+host and guest. Independent final inspection confirms unchanged normal v2 closed
+gates, enforcing policy, retired exact test infrastructure and the correlated
+three-witness archive with immutable start results and settled fixed run/lease.

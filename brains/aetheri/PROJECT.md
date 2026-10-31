@@ -121,11 +121,12 @@ work. OpenSSL 3.5 LTS/libcrypto is explicitly accepted and adopted after exact
 Fedora 1:3.5.9-1.fc44 RPM/signature/license review. Existing foundational choices
 remain unchanged.
 
-The native lifecycle prototype is in progress. Boot-bound process identity now
-allows a replacement observer to recognize the original still-live process over
-a fresh authenticated connection. Protected durable enrollment and actual
-Root/User restart reconciliation remain necessary before this becomes service
-recovery. Current normal catalogues/gates remain unchanged and closed.
+The native lifecycle prototype is in progress. Boot-bound process identity can
+recognize an original still-live process through a fresh authenticated connection.
+Separate immutable v4 records now persist the original profile/context in each
+owner's catalogue. Actual Root/User restart reconciliation, already-dead process
+and lost-handle recovery remain necessary. Current normal catalogues/gates remain
+unchanged and closed.
 
 The full desktop and original applications, normal session/app provisioning,
 an original bootable image/installer, updates and hardware/performance acceptance

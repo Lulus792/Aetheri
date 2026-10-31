@@ -1,6 +1,6 @@
 # Versioned catalogue and API contracts
 
-26 October 2026. P0 contract implementation. These files define SQLite structure,
+31 October 2026. P0 contract implementation. These files define SQLite structure,
 migration behavior and D-Bus messages; they do not implement the Linux authorities,
 SELinux policy, document transport or process supervision.
 
@@ -29,6 +29,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [common-v1](schema/common-v1.sql), [system-v1](schema/system-v1.sql), [user-v1](schema/user-v1.sql) | Frozen initial catalogue definitions |
 | [common-v2](schema/common-v2.sql), [system-v2](schema/system-v2.sql), [user-v2](schema/user-v2.sql) | Canonical complete v2 bootstrap definitions |
 | [common-v3](schema/common-v3.sql), [system-v3](schema/system-v3.sql), [user-v3](schema/user-v3.sql) | Explicit additive run-closure journal after frozen v2; no existing table rewrite |
+| [common-v4](schema/common-v4.sql), [system-v4](schema/system-v4.sql), [user-v4](schema/user-v4.sql) | Immutable original-process records after frozen v3; role-specific enrollment and retention guards |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
@@ -42,8 +43,8 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact v2/v3 opening and explicit additive upgrade under the retained owner lock |
-| [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and v3 additions; no runtime SQL-file loading |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact v2/v3/v4 opening and explicit additive upgrades under the retained owner lock |
+| [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
@@ -62,12 +63,14 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [peer capture](../src/linux/peer.h), [peer test](../tests/test_peer.c) | Required bus-supplied credentials/process pin; app/run authorization remains separate |
 | [process observer](../src/linux/process.h), [process test](../tests/test_process.c) | Current process/service/invocation/cgroup evidence; trusted registration and admission remain separate |
 | [replacement-observer test](../tests/test_process_identity.c), [process identity vector](vectors/process-identity-v1.json) | Boot-bound pidfs identity through a fresh authenticated connection; no journal/owner-restart adoption |
+| [execution process vector](vectors/execution-process-v1.json) | Canonical AETHPRC1 durable context/profile binding; its native APIs are in execution.h |
 | [p0-fixture.cil](../policy/p0-fixture.cil), [policy controller](../tools/test_linux_policy.py) | Explicit disposable-carrier MAC probe, outside default tests and production policy |
 
 The default schema remains user_version=2; an explicit quiesced-owner upgrade
 adds v3's run_closures table and guards. Open never migrates and create still
-creates v2. V1/v2 files are frozen; v3 composes their complete v2 schema with
-three additive SQL files. Schema version and protocol major/minor are independent.
+creates v2. A second explicit v3-to-v4 upgrade adds immutable execution-process
+evidence. V1/v2/v3 files are frozen; each later version composes the previous
+complete schema with its additive files. Schema and protocol versions are independent.
 Catalogue1 is 1.1; Development1 is 1.4 with the additive RefreshExecFixtureInstall
 projection beside the original fixture reservation, launch and setup tests.
 Setup1 1.0 is a private no-exec prototype. Their implementation and enforcing
@@ -96,12 +99,28 @@ documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
 authorization or validate incoming messages by themselves.
 
-Canonical snapshots intentionally retain complete definitions for both versions.
+The initial v1/v2 snapshots retain complete definitions; v3/v4 compose their additions.
 The v2 bootstrap and migration consume the same target SQL. This avoids separate
-handwritten migration copies of every CHECK/trigger. v1 hashes in the test suite
-detect accidental changes to the reference.
+handwritten migration copies of every CHECK/trigger. Frozen v1/v2/v3 hashes in the
+test suite detect accidental changes to those sources.
 
 ## New records and constraints
+
+V4 adds execution_processes per owner, with immutable original profile, context,
+process identity, witness bytes/hash and enrollment time. In v4, fresh Root ARM,
+Root execution observation and User READY require their corresponding validated
+record. Root's target must retain the original starter's kernel identity; User
+enrolls after registration and before readiness. Historical reads can cross an
+owner-runtime replacement on the same boot, without adopting an old run or
+reopening admission. Enrollment requires the original runtime. See the
+[durable process contract](runtime.md#durable-original-process-enrollment).
+
+The explicit v3-to-v4 migration preserves existing rows and gates and never
+backfills missing process evidence. It does not authorize legacy pending starts
+or implement their recovery. Only separate temporary test stores use v4; normal
+installed catalogues remain v2. Native v2 requires the lifetime upgrade first.
+Each DDL/version change is atomic under the retained writer lock; unknown commit
+acknowledgements query the actual canonical target instead of restoring a backup.
 
 V3 adds one run_closures table per owner. It preserves the complete original
 execution profile, original start-result digest, invocation/context and separate
@@ -209,17 +228,18 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact v2/v3 validation and startup-context writes.
+The C17 store implements v2 creation, exact v2/v3/v4 validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
-The later explicit v3 upgrade adds the independent run journal; v1/v2 SQL and
-existing protocol versions remain unchanged.
+The later explicit v3/v4 upgrades add independent run/process evidence; published
+v1/v2/v3 SQL and existing protocol versions remain unchanged.
 
 | Internal C API | Behavior |
 | --- | --- |
 | ae_catalogue_create | Explicit O_EXCL creation, canonical schema and supplied authority metadata in one transaction; flush parent directory afterward |
 | ae_catalogue_open | Existing database only; validate application/version, exact schema, foreign keys, integrity and expected owner/epoch |
 | ae_catalogue_upgrade_lifetimes | Explicit additive v2-to-v3 transaction under the existing owner lock; no normal automatic migration |
+| ae_catalogue_upgrade_processes | Explicit additive v3-to-v4 process-evidence transaction; no backfill, admission or existing-row mutation |
 | ae_catalogue_begin_runtime | Atomically set a fresh runtime/boot, advance catalogue revision, close existing open gates and trigger recovery marking |
 | ae_catalogue_get_info | Return checked identity/current-context fields; never a readiness or holder-drain assertion |
 | ae_catalogue_enroll_account | System owner only: explicitly persist a trusted account/UID and advance catalogue revision atomically; exact active retry is unchanged; never rebind/reactivate a scope |
@@ -230,6 +250,8 @@ existing protocol versions remain unchanged.
 | ae_catalogue_begin_run_close / ae_catalogue_quiesce_user_run | Separate v3 Root dispatch fence and original User quiescence acknowledgement |
 | ae_catalogue_release_run / ae_catalogue_end_user_run | After independent actual end/holder proof, atomically release Root's lease and acknowledge User exited without changing start results |
 | ae_catalogue_get_run_receipt | Read original historical closure evidence; no new process effect or fresh kernel proof |
+| ae_catalogue_enroll_execution_process | Persist original authenticated process evidence at its exact stage; immutable bytes/time and no replayed effects |
+| ae_catalogue_get_execution_process | Same-authority/account/boot historical maintenance read, including after owner-runtime replacement; no run adoption or current process proof |
 | ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
 
 The caller supplies an already protected, stable absolute directory and identity

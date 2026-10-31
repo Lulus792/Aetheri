@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — original live process reidentification after observer replacement.
+31 October 2026 — immutable v4 original-process evidence in each owner catalogue.
 
 ## Confirmed
 
@@ -13,6 +13,59 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The native execution module now persists canonical AETHPRC1 observations in one
+new execution_processes table per owner. V4 is an explicit additive upgrade from
+frozen v3 under the same writer lock. Published v1/v2/v3 SQL and existing rows,
+identities/revisions/gates remain unchanged; native create stays v2 and open
+validates exact v2/v3/v4 without migrating or backfilling old starts.
+
+Root enrolls its original starter before ARM and its actual app under the same
+kernel identity/PID/invocation/cgroup afterward. User enrolls its actual registered
+app before READY. In v4 the three fresh transitions require their corresponding
+validated original witness. Enrollment changes only the new immutable row and
+catalogue revision; retries retain original bytes/time. Historical maintenance
+reads allow a replacement runtime on the same authority/account/boot, without
+adopting an old run, restoring readiness, repeating an effect or freeing a lease.
+
+The first sixteen-scenario native matrix passes Debug ASan/UBSan (142.19 s):
+all enrollment writes/commit uncertainty, six actual enrollment child exits,
+runtime replacement/read-only reopening, missing transition barriers, closed
+gates, revision limits, immutability/retention and real database-byte corruption.
+Both owners additionally fault all six native v4 DDL/version boundaries and lost
+commit directions. Source-contract tests pass 40/40 (79.796 s), including six
+actual migration process exits, full-page rollback and frozen v3/source drift.
+Independent byte checks pass 20/20 (0.071 s); host orchestration passes 47/47
+(2.435 s), including negative archived User-binding checks.
+
+The actual enforcing Root/User/app fixture now passes native enrollment/get/retry
+for all three observations, start/readiness/end and successful run closure.
+After both authorities exit, its independent controller decodes and correlates
+the archived records, immutable start results and actual original process/group
+end. Both authorities had all capability sets empty. No policy grant or public
+capability was added. Normal installed catalogues remain v2; the explicit test
+alone selects v4. Actual Root/User restart coordination, already-dead/lost-handle
+recovery, general holders/documents/revocation/removal and normal provisioning
+remain work. The full desktop/apps/image/hardware objective remains active.
+See [durable process evidence](../../spec/runtime.md#durable-original-process-enrollment).
+
+Final affected regressions pass 12/12 Debug ASan/UBSan (658.41 s) and 12/12
+Release (567.72 s), including the new v4 migration of populated closing/quiet
+records and unchanged older start/observation/completion/service behavior.
+These are affected-boundary groups, not a new full-suite claim. The reviewed
+capacity assertion derives its bound from actual fields; rebuilding reproduces
+all 76 tested executables byte-for-byte. All 178 guest source hashes match the
+host snapshot; 570 local Markdown file targets pass.
+
+Final read-only carrier inspection confirms enforcing policy, unchanged ordinary
+v2 catalogues with two closed gates each, pending=None and no unsettled normal
+dispatch/lease. Test service names are unowned; exact temporary files/module/units
+are absent. Normal executing profile/starter/view scaffold remain absent. Both
+archived v4 databases pass integrity/foreign-key checks, contain the three matched
+original witnesses and retain completed start results with Root lease released
+and User exited. No actual Root/User restart or general removal is inferred.
+
+Previous live-process identity checkpoint (31 October 2026):
 
 The existing Linux process module now captures a boot-bound non-recycled pidfs
 identity from its authenticated ProcessFD and independently admitted current

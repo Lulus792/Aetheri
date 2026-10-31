@@ -3,12 +3,12 @@ import json
 from pathlib import Path
 import sys
 
-from catalogue_contracts import source,extension_v3
+from catalogue_contracts import source,extension_v3,extension_v4
 
 
 def main():
     destination = Path(sys.argv[1])
-    lines = ['/* Generated frozen v2 plus explicit v3 additions. Do not edit. */',
+    lines = ['/* Generated frozen v2 plus explicit versioned additions. Do not edit. */',
              '#include "catalogue/schema.h"']
     for kind in ("system", "user"):
         statements = [sql for sql in source(kind, 2) if not sql.startswith("PRAGMA")]
@@ -23,6 +23,12 @@ def main():
         for sql in extension_v3(kind):
             sql.encode('ascii')
             if len(sql)>4095: raise ValueError('v3 SQL exceeds C17 literal bound')
+            lines.append('    '+json.dumps(sql)+',')
+        lines.extend(['    0','};'])
+        lines.append(f"const char *const ae_schema_{kind}_v4[] = {{")
+        for sql in extension_v4(kind):
+            sql.encode('ascii')
+            if len(sql)>4095: raise ValueError('v4 SQL exceeds C17 literal bound')
             lines.append('    '+json.dumps(sql)+',')
         lines.extend(['    0','};'])
     destination.parent.mkdir(parents=True, exist_ok=True)

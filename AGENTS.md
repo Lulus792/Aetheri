@@ -259,6 +259,23 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   protected Root unit/profile provisioning, producer admission/ARM handlers and
   target readiness/drain remain work. Keep ordinary installed inputs unchanged.
 - MIT applies to original Aetheri code/documentation. Preserve third-party licenses.
+- catalogue/execution.h now persists immutable AETHPRC1 process observations in
+  explicit v4 execution_processes. Read spec/runtime.md's durable enrollment;
+  run catalogue.processes and contract/migration tests. Freeze v1/v2/v3 SQL/wire;
+  normal create stays v2 and open validates exact v2/v3/v4 without migrating.
+  upgrade_processes is an explicit quiesced-owner v3-to-v4 action under the same
+  retained lock; no existing rows/revisions/gates change or missing evidence is
+  backfilled. Root starter precedes ARM, Root app retains that exact kernel
+  identity after ARM, User app follows registration and precedes READY. V4 fresh
+  ARM/Root observation/User READY require their validated original record.
+  Enrollment needs the original runtime; exact retries keep time/bytes. The
+  historical same-authority/account/boot getter permits a replacement runtime
+  without adopting a run, restoring readiness or releasing a lease. Current
+  process/image/data/holder admission and an actual recovery transaction remain
+  separate. End/lease settlement precedes evidence pruning; no full purge exists.
+  Actual confined tests enroll all three observations, but production restart
+  coordination, already-dead/lost-handle recovery and normal provisioning remain
+  work. Ordinary installed catalogues stay v2 and public capabilities empty.
 - linux/process.h now captures/reidentifies AETHPID1 (boot + 64-bit pidfs inode)
   from an authenticated live ProcessFD and independently admitted current context.
   Read spec/runtime.md's observer-replacement section; run linux.process_identity
@@ -270,11 +287,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   identity with independently protected run/context before relying on recovery;
   never adopt candidate-supplied evidence. The actual replacement-observer test
   keeps its native context envelope private/test-only. Confined Root/User probe
-  identities remain in memory; durable enrollment/restart settlement remain work.
+  identities now have separate v4 enrollment above; restart settlement remains work.
 - catalogue/lifetime.h now journals successful original-run closure separately
   in explicit v3 run_closures. Read spec/README.md and spec/runtime.md's separate
   durable run closure section; run catalogue.lifetime. Keep frozen v1/v2 SQL and
-  wire unchanged. Native create stays v2, open validates exact v2/v3 without
+  wire unchanged. Native create stays v2, open validates exact v2/v3/v4 without
   migrating; upgrade_lifetimes is an explicit quiesced-owner action under the
   retained writer lock. It adds no rows/admission/revisions to existing tables.
   Never restore a backup after unknown commit. A completed start operation,

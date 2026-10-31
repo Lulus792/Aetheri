@@ -3445,3 +3445,88 @@ inside its actual capability-empty Root/User domains, alongside existing image,
 data and peer checks. These identities remain in memory; this does not restart
 those authorities or adopt an old journal. Normal catalogues, policy and public
 capabilities remain unchanged.
+
+## Durable original-process enrollment
+
+The explicit v4 extension adds one execution_processes table to each owner's
+existing catalogue. It stores the full original AETHEXE1 profile, local start
+operation, role, invocation/journal evidence, boot-bound AETHPID1 identity,
+canonical process witness/hash and original enrollment time. Rows cannot be
+updated. Root retains separate starter/app observations; User retains its app
+observation. This metadata belongs to the original run, not to a new observer.
+
+The native enrollment caller independently supplies actual authenticated
+ProcessFD/context/image/data observations. SQLite cannot produce that proof.
+Enrollment requires the original authority/runtime/boot and exact executing
+tuple. Root's starter record precedes ARM; its app record follows ARM under the
+same original kernel identity, PID, invocation and cgroup. User's app record
+follows its actual registration and precedes READY. A v4 fresh ARM, Root target
+observation or User READY rejects a missing or malformed corresponding record.
+The original v2/v3 paths retain their existing behavior; no public capability is
+enabled by selecting v4 in a test.
+
+An enrollment adds only its immutable row and advances catalogue revision.
+Operation/run/lease/readiness/gate rows stay unchanged. Exact retries preserve
+the original bytes/time and do not advance revisions; conflicting process bytes
+reject. Outputs remain unchanged on every error, including unknown COMMIT.
+There is no external effect, allocation, IPC or process observation inside SQLite.
+
+The historical getter requires the exact original profile, authority/account
+and same boot, but permits a changed current owner runtime. It validates the
+stored profile, witness digest, duplicated identity/invocation/evidence and
+operation binding before returning them. It changes no state. A replacement
+owner still needs its own admission, a fresh authenticated ProcessFD, independent
+current image/data/holder checks and a separate recovery transaction. An old
+profile cannot enroll or dispatch under a replacement runtime. Different boots,
+clones, already-dead processes and lost original cgroup/unit/event handles are
+not solved by reading this record.
+
+### AETHPRC1 bytes
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 8 | AETHPRC1 |
+| 8 | 32 | Complete original profile SHA-256 |
+| 40 | 1 + 3 | Role: 1 starter, 2 app; three zero reserved bytes |
+| 44 | 32 | Original canonical AETHPID1 boot/pidfs identity |
+| 76 | 16 | Original nonzero unit invocation |
+| 92 | 32 | Owner's original journal context evidence digest |
+| 124, 128 | 4 each | Original PID and current UID |
+| 132 | 8 | Current cgroup ID, full unsigned 64-bit domain |
+| 140 | variable | Three uint16-length-prefixed strings: unit, raw label, cgroup |
+
+Integers are big-endian. PID is 1..2^31-1; UID uses uint32. Strings are nonempty
+printable ASCII, at most 255/511/1023 bytes, without NUL. The cgroup path is
+absolute, has no empty/dot/dot-dot components and does not end in a slash. The record
+budget is 2048 bytes; current text bounds permit at most 1935. Profile matching
+also checks the derived aetheri-app-LaunchId.service and fixed P0 UID0/UID1000
+roles. Root's journal digest still names its original starter context even in
+the separate app observation; the current UID/label fields describe that app.
+Neither field is a substitute for the other's provenance. The independent
+[frozen vector](vectors/execution-process-v1.json) includes full-uint64 identity
+and a cgroup ID above the signed integer range. Native padding is never stored.
+
+### Migration, retention and executed boundary
+
+Native create remains v2; open validates exact v2/v3/v4 and never migrates.
+An explicit quiesced-owner v3-to-v4 upgrade adds only the new table/guards and
+version. V1/v2/v3 sources remain frozen; existing rows, identities, revisions and
+gates are preserved. A v2 catalogue needs the separate lifetime upgrade first.
+No process evidence is backfilled and no old pending start is adopted. Unknown
+acknowledgements inspect the actual canonical version; never copy back an old
+database over a possibly committed migration.
+
+Process evidence cannot be pruned while the corresponding Root run/lease or
+User launch remains unsettled. After settlement, prune its evidence before
+deleting the referenced launch/start operation. A bounded maintenance-retention
+and complete-removal implementation remains work; these are not app-private
+files or an unreported successful purge.
+
+The temporary enforcing fixture now enrolls Root's actual starter before ARM,
+Root's fresh post-exec peer, and User's registered app before readiness. Both
+actual authorities exercise native enrollment/get/exact retry. After independent
+end and successful closure, the controller checks both archived catalogues,
+decodes each process witness and joins all three identities/context bindings to
+the actual original process/unit/group observation. Its report retains witness
+hashes. Normal installed catalogues/gates, policy and public APIs remain unchanged.
+This is durable original evidence, not a completed Root/User restart coordinator.

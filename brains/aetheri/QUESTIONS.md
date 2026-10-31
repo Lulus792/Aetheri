@@ -43,11 +43,19 @@ early failed starts, general exported/delegated holders, document access/revocat
 and full removal remain implementation gates. No product choice blocks those
 backend tasks. See current [State](STATE.md) and
 [closure contract](../../spec/runtime.md#separate-durable-run-closure).
-Original live process reidentification now has actual observer-exit/reconnect
-evidence. Persist that identity with the independently admitted original
-run/context before integrating replacement-owner journal reconciliation; the
-current confined fixture retains it only in memory. Already-dead process and
-lost original cgroup/unit handle recovery remain separate gates.
+Original live process reidentification has actual observer-exit/reconnect evidence.
+The confined fixture now persists that identity with the original profile/context
+in immutable v4 owner records. A replacement runtime can read those records;
+actual Root/User restart reconciliation, already-dead process and lost original
+cgroup/unit/event handle recovery remain separate gates.
+
+For retained kernel observation handles, investigate the existing PID1 FD store
+before adding a resident custodian. Its default error/hangup cleanup can discard
+the very dead-object evidence recovery needs; overriding it requires bounded,
+explicit retirement. A processing barrier alone does not prove the exact set was
+accepted. Original object/profile bindings, namespace handling, uncertain handoff
+and real restart/drain tests remain necessary. No Root FD store is enabled yet;
+the fixed app's FD store remains forbidden.
 
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging

@@ -26,6 +26,34 @@ def read_process_identity(data):
     require(process_identity(value)==data,'process identity canonical form')
     return value
 
+def execution_process(value):
+    fields(value,'role profile_digest boot pidfd_id invocation evidence_digest pid uid cgroup_id unit label cgroup')
+    role=integer(value['role'],2,1)
+    out=(b'AETHPRC1'+rawhex(value['profile_digest'],32)+struct.pack('>B3x',role)+
+         process_identity(dict(boot=value['boot'],pidfd_id=value['pidfd_id']))+
+         rawhex(value['invocation'],16)+rawhex(value['evidence_digest'],32)+
+         struct.pack('>IIQ',integer(value['pid'],2**31-1,1),integer(value['uid'],2**32-1),integer(value['cgroup_id'],2**64-1,1)))
+    for key,limit in (('unit',255),('label',511),('cgroup',1023)):
+        text=value[key]; require(type(text) is str and 0<len(text)<=limit and all(0x21<=ord(c)<=0x7e for c in text),'process text')
+        out+=struct.pack('>H',len(text))+text.encode('ascii')
+    group=value['cgroup']
+    require(group.startswith('/') and len(group)>1 and not group.endswith('/') and all(c not in ('','.','..') for c in group[1:].split('/')),'process cgroup')
+    return out
+
+def read_execution_process(data):
+    require(type(data) is bytes and 149<=len(data)<=2048 and data[:8]==b'AETHPRC1' and data[41:44]==b'\0'*3,'process witness frame')
+    identity=read_process_identity(data[44:76])
+    value=dict(role=data[40],profile_digest=data[8:40].hex(),**identity,invocation=data[76:92].hex(),evidence_digest=data[92:124].hex())
+    value['pid'],value['uid'],value['cgroup_id']=struct.unpack('>IIQ',data[124:140]); offset=140
+    for key in ('unit','label','cgroup'):
+        require(len(data)-offset>=2,'process text prefix'); size=struct.unpack('>H',data[offset:offset+2])[0]; offset+=2
+        require(size<=len(data)-offset,'process text length')
+        try: value[key]=data[offset:offset+size].decode('ascii')
+        except UnicodeError as error: raise InvalidContract('process text encoding') from error
+        offset+=size
+    require(offset==len(data) and execution_process(value)==data,'process witness canonical form')
+    return value
+
 def run_receipt(value):
     fields(value,'kind profile_digest invocation previous_digest evidence_digest revision unix_ms')
     tags={'root_closing':b'AETHCLS1','user_quiet':b'AETHQSC1','root_released':b'AETHEND1'}

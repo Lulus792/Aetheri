@@ -138,4 +138,39 @@ int ae_catalogue_complete_execution(struct ae_catalogue *,const struct ae_execut
 int ae_catalogue_finish_user_execution(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_execution_evidence *,const uint8_t observation_digest[32],const struct ae_execution_completion *,
     int64_t completed_unix_ms,struct ae_user_launch_snapshot *);
+
+enum ae_execution_process_role { AE_EXECUTION_STARTER=1,AE_EXECUTION_APP };
+enum { AE_EXECUTION_PROCESS_MAX=2048 };
+/* Canonical bounded metadata, independent of Linux handles/native padding.
+ * Context fields must come from actual admitted ProcessFD/unit/image evidence.
+ * evidence_digest binds the owner's existing original journal context; it is
+ * distinct from these current process fields (starter and target differ). */
+struct ae_execution_process {
+    enum ae_execution_process_role role;
+    uint8_t profile_digest[32],boot[16],invocation[16],evidence_digest[32];
+    uint64_t pidfd_id,cgroup_id;
+    uint32_t pid,uid;
+    char unit[256],label[512],cgroup[1024];
+};
+int ae_execution_process_encode(const struct ae_execution_process *,uint8_t *,size_t,size_t *);
+int ae_execution_process_decode(const uint8_t *,size_t,struct ae_execution_process *);
+int ae_execution_process_match(const struct ae_execution_profile *,const struct ae_execution_evidence *,const struct ae_execution_process *);
+struct ae_execution_process_snapshot { struct ae_execution_process process; int64_t recorded_unix_ms; };
+/* Internal v4 immutable enrollment: original owner/runtime/boot, original
+ * executing tuple and exact stage required. Root starter BEFORE ARM; Root app
+ * after ARM under the same starter kernel identity; User app AFTER registration
+ * and BEFORE READY. Caller still owes current authenticated process/image/data
+ * admission. No effects or kernel proof inside SQLite. Existing start/run/lease
+ * rows stay unchanged. Exact retries preserve time; conflicting bytes reject.
+ * Outputs unchanged on errors/unknown COMMIT; lost acknowledgement queries the
+ * original record, never permits another dispatch or replacement identity. */
+int ae_catalogue_enroll_execution_process(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_execution_evidence *,const struct ae_execution_process *,int64_t,struct ae_execution_process_snapshot *);
+/* Historical maintenance read under the retained owner lock. Exact original
+ * profile/authority/account/boot required, but current runtime may differ.
+ * Never rebinds/adopts a run, restores readiness, arms, proves current identity,
+ * authenticates another machine/clone or releases a lease. A replacement owner
+ * must separately verify current kernel/IPC/image/holders and journal recovery. */
+int ae_catalogue_get_execution_process(struct ae_catalogue *,const struct ae_execution_profile *,
+    enum ae_execution_process_role,struct ae_execution_process_snapshot *);
 #endif

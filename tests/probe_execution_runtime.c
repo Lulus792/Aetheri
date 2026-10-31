@@ -60,6 +60,19 @@ static struct ae_execution_evidence user_app_evidence;
 static uint8_t user_publisher[16],user_observation[OBSERVATION_BYTES];
 static int64_t realtime_ms(void)
 { struct timespec value; CHECK(clock_gettime(CLOCK_REALTIME,&value)==0 && value.tv_sec>=0 && value.tv_sec<INT64_MAX/1000); return (int64_t)value.tv_sec*1000+value.tv_nsec/1000000; }
+static void persist_process(const struct ae_peer *peer,const struct ae_process_context *context,const struct ae_execution_evidence *e,enum ae_execution_process_role role)
+{
+    struct ae_process_identity identity; CHECK(ae_process_identify(peer,bus,context,&identity)==0);
+    struct ae_execution_process record={.role=role,.pidfd_id=identity.pidfd_id,.cgroup_id=context->cgroup_id,
+        .pid=(uint32_t)peer->connection_pid,.uid=(uint32_t)context->uid};
+    CHECK(ae_execution_digest(&p,record.profile_digest)==0); memcpy(record.boot,identity.boot,16);
+    memcpy(record.invocation,context->invocation,16); memcpy(record.evidence_digest,e->context_digest,32);
+    strcpy(record.unit,context->unit); strcpy(record.label,context->label); strcpy(record.cgroup,context->cgroup);
+    struct ae_execution_process_snapshot stored,again; int64_t stamp=realtime_ms();
+    CHECK(ae_catalogue_enroll_execution_process(store,&p,e,&record,stamp,&stored)==0);
+    CHECK(ae_catalogue_get_execution_process(store,&p,role,&again)==0 && again.recorded_unix_ms==stored.recorded_unix_ms && again.process.pidfd_id==record.pidfd_id);
+    CHECK(ae_catalogue_enroll_execution_process(store,&p,e,&record,stamp+1,&again)==0 && again.recorded_unix_ms==stored.recorded_unix_ms);
+}
 static void id(uint8_t out[16],uint8_t last) { memset(out,0,16); out[6]=0x40; out[8]=0x80; out[15]=last; }
 static void load(const char *root)
 {
@@ -73,7 +86,7 @@ static void catalogue(const char *root,int create)
     char path[4096]; CHECK(snprintf(path,sizeof path,"%s/system",root)>0);
     struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_SYSTEM}; memcpy(identity.authority_epoch,p.system_epoch,16);
     CHECK((create ? ae_catalogue_create(path,&identity,p.boot,&store) : ae_catalogue_open(path,&identity,&store))==0);
-    if (create) CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
+    if (create) CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
 }
 static void root_start(void)
 {
@@ -155,7 +168,7 @@ static int observe(sd_bus_message *m,void *userdata,sd_bus_error *error)
     CHECK(ae_process_observe(&peer,bus,&actual)==0 && actual.uid==1000 &&
         memcmp(actual.boot,p.boot,16)==0 && memcmp(actual.invocation,starter_context.invocation,16)==0 &&
         strcmp(actual.unit,starter_context.unit)==0 && actual.cgroup_id==starter_context.cgroup_id);
-    if (pin) { CHECK(ae_process_identify(&peer,bus,&actual,&app_identity)==0); app=peer; peer.pidfd=-1; app_context=actual; }
+    if (pin) { CHECK(ae_process_identify(&peer,bus,&actual,&app_identity)==0); persist_process(&peer,&actual,&bound_evidence,AE_EXECUTION_APP); app=peer; peer.pidfd=-1; app_context=actual; }
     else { CHECK(memcmp(peer.bus_id,app.bus_id,16)==0 && strcmp(peer.unique_name,app.unique_name)==0 && ae_peer_alive(&app)==0 && ae_process_context_equal(&actual,&app_context) && ae_process_reidentify(&app_identity,&peer,bus,&app_context)==0); app_reported=1; }
     ae_peer_clear(&peer); CHECK(sd_bus_reply_method_return(m,"")>=0 && return_app()>=0); return 1;
 }
@@ -175,6 +188,7 @@ static int arm(sd_event_source *source,void *userdata)
 {
     (void)source; (void)userdata; struct ae_execution_endpoint_status status;
     CHECK(ae_execution_endpoint_status(endpoint,&broker,&status)==0 && status.prepared_pending && status.execution.prepared);
+    persist_process(&starter,&starter_context,&bound_evidence,AE_EXECUTION_STARTER);
     struct ae_execution_result result; int r=ae_execution_admission_arm(admission,&result);
     if (r!=0) { fprintf(stderr,"native ARM failed: %d\n",r); return r; }
     armed=1; return 0;
@@ -542,6 +556,7 @@ static int application_method(sd_bus_message *m,void *userdata,sd_bus_error *err
     }
     struct ae_user_launch_snapshot state;
     if (r==0 && !complete) r=ae_catalogue_observe_user_execution(store,&p,ready ? AE_USER_EXECUTION_READY : AE_USER_EXECUTION_REGISTER,&user_app_evidence,&state);
+    if (r==0 && !ready) persist_process(&peer,&observed,&user_app_evidence,AE_EXECUTION_APP);
     if (r==0 && complete) {
         struct ae_execution_completion completed; uint8_t observation[32]; confirm_application(1,&completed,observation);
         r=ae_catalogue_finish_user_execution(store,&p,&user_app_evidence,observation,&completed,realtime_ms(),&state);
@@ -609,7 +624,7 @@ static void user_serve(int reject)
     char account[33],directory[256]; sd_id128_t owner; memcpy(owner.bytes,p.account,16); sd_id128_to_string(owner,account);
     CHECK(snprintf(directory,sizeof directory,ROOT "/users/%s/control",account)>0);
     struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_USER}; memcpy(identity.authority_epoch,p.broker_epoch,16); memcpy(identity.owner,p.account,16);
-    CHECK(ae_catalogue_create(directory,&identity,p.boot,&store)==0 && ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_begin_runtime(store,p.boot,p.broker_runtime)==0);
+    CHECK(ae_catalogue_create(directory,&identity,p.boot,&store)==0 && ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_begin_runtime(store,p.boot,p.broker_runtime)==0);
     sd_bus_message *reply=root_call("RegisterBroker",NULL,0); const void *digest=NULL; size_t size=0; uint8_t hash[32]; CHECK(ae_execution_digest(&p,hash)==0);
     CHECK(sd_bus_message_read_array(reply,'y',&digest,&size)>0 && size==32 && memcmp(digest,hash,32)==0 && sd_bus_message_at_end(reply,1)==1); sd_bus_message_unref(reply);
     sd_bus_slot *slot=NULL; CHECK(sd_bus_add_object_vtable(bus,&slot,USER_PATH,USER_IFACE,user_methods,NULL)>=0 && sd_bus_request_name(bus,USER_NAME,0)>=0);

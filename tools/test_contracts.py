@@ -30,6 +30,11 @@ V2_HASHES = {
     'spec/schema/system-v2.sql':'9a606e7469a4a35db357a9ce296f2a57cdf7848b8c7bdc541219951494dcdbc8',
     'spec/schema/user-v2.sql':'dad2cc892c2432bc4950a446e06fda69774a8d5bc0ec31265c181dca0bbc5cd7',
 }
+V3_HASHES = {
+    'spec/schema/common-v3.sql':'100d24e7b7413b4d151b0d4a8bce1297fe89aec5fbcda84781639db51fb45e8e',
+    'spec/schema/system-v3.sql':'fa9e3ff271a7a1db66934475a1ba0557c64ca9969ff05e8c726799f217a66033',
+    'spec/schema/user-v3.sql':'9c0331df80438a76d4a8630c9ecf849f879a9b9f0f02f61fadc65bf8e9ec15f4',
+}
 
 
 def uid():
@@ -149,6 +154,65 @@ class SqlCanonicalization(unittest.TestCase):
 
 
 class ContractCase(unittest.TestCase):
+    def test_v4_additions_preserve_v3_rows_frozen_sources_and_retry(self):
+        for name,digest in V3_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); cc.migrate_v2_to_v3(db,kind); before=rows(db)
+            self.assertTrue(cc.migrate_v3_to_v4(db,kind)); cc.validate(db,kind,4); self.assert_preserved(db,before)
+            self.assertEqual(db.execute('SELECT count(*) FROM execution_processes').fetchone()[0],0)
+            fresh=self.connect('fresh4-'+kind); cc.bootstrap(fresh,kind,4); self.assertEqual(cc.signature(db),cc.signature(fresh))
+            after=rows(db); self.assertFalse(cc.migrate_v3_to_v4(db,kind)); self.assertEqual(rows(db),after)
+
+    def test_v4_every_additive_statement_and_unknown_commit(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); cc.migrate_v2_to_v3(db,kind); before=rows(db); signature=cc.signature(db)
+            for phase in ['locked']+['statement_'+str(n) for n in range(len(cc.extension_v4(kind)))]+['version_set','validated']:
+                def fault(actual):
+                    if actual==phase: raise RuntimeError('v4 injected boundary')
+                with self.assertRaisesRegex(RuntimeError,'v4 injected'): cc.migrate_v3_to_v4(db,kind,checkpoint=fault)
+                self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],3); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+            def lost(actual):
+                if actual=='committed': raise RuntimeError('v4 lost acknowledgement')
+            with self.assertRaisesRegex(RuntimeError,'v4 lost'): cc.migrate_v3_to_v4(db,kind,checkpoint=lost)
+            cc.validate(db,kind,4); self.assertFalse(cc.migrate_v3_to_v4(db,kind)); self.assert_preserved(db,before)
+
+    def test_v4_process_exit_before_and_after_migration_commit(self):
+        code='''import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[3]: os._exit(74)
+cc.migrate_v3_to_v4(db,sys.argv[2],checkpoint=checkpoint)
+raise RuntimeError('v4 crash checkpoint missed')
+'''
+        for kind in ('system','user'):
+            for phase in ('statement_0','version_set','committed'):
+                name='crash4-'+kind+'-'+phase+'.db'; db=self.connect(name); legacy(db,kind)
+                cc.migrate_v1_to_v2(db,kind,backup=self.connect('backup-'+name)); cc.migrate_v2_to_v3(db,kind)
+                before=rows(db); path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+                result=subprocess.run([sys.executable,'-c',code,path,kind,phase],cwd=ROOT/'tools',timeout=20); self.assertEqual(result.returncode,74)
+                db=self.connect(name); self.assert_preserved(db,before); cc.validate(db,kind,4 if phase=='committed' else 3)
+                self.assertEqual(cc.migrate_v3_to_v4(db,kind),phase!='committed')
+
+    def test_v4_wrong_version_owner_and_schema_drift(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind)
+            with self.assertRaises(cc.ContractError): cc.migrate_v3_to_v4(db,kind)
+            cc.migrate_v2_to_v3(db,kind)
+            with self.assertRaises(cc.ContractError): cc.migrate_v3_to_v4(db,'user' if kind=='system' else 'system')
+            db.execute('CREATE TABLE foreign_extension(value)'); db.commit()
+            with self.assertRaises(cc.ContractError): cc.migrate_v3_to_v4(db,kind)
+            self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],3)
+
+    def test_v4_full_catalogue_rollback_and_later_retry(self):
+        for kind in ('system','user'):
+            db,f=self.migrated(kind); cc.migrate_v2_to_v3(db,kind); db.execute('VACUUM'); before=rows(db)
+            pages=db.execute('PRAGMA page_count').fetchone()[0]; self.assertEqual(db.execute('PRAGMA freelist_count').fetchone()[0],0)
+            db.execute('PRAGMA max_page_count='+str(pages))
+            with self.assertRaises(sqlite3.DatabaseError): cc.migrate_v3_to_v4(db,kind)
+            cc.validate(db,kind,3); self.assertEqual(rows(db),before); db.execute('PRAGMA max_page_count=2147483646')
+            self.assertTrue(cc.migrate_v3_to_v4(db,kind)); self.assert_preserved(db,before)
+
     def test_v3_additions_preserve_populated_v2_and_exact_retry(self):
         for name,digest in V2_HASHES.items(): self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
         for kind in ('system','user'):

@@ -11,6 +11,16 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_execution_process_vector_and_bounds(self):
+        vector=rc.load_json((ROOT/'spec/vectors/execution-process-v1.json').read_bytes())
+        data=rc.execution_process(vector['input'])
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_execution_process(data),vector['input'])
+        for key,value in (('role',0),('role',3),('role',True),('pid',0),('pid',2**31),('uid',2**32),('pidfd_id',0),('pidfd_id',2**64),('cgroup_id',0),('boot','00'*16),('invocation','00'*16),('unit','x'*256),('label','x'*512),('cgroup','x'*1024),('label','bad\0label'),('label','é'),('cgroup','/a/../b'),('cgroup','/a//b'),('cgroup','/a/.'),('cgroup','/a/')):
+            row=deepcopy(vector['input']); row[key]=value; self.rejects(rc.execution_process,row)
+        for n in range(len(data)): self.rejects(rc.read_execution_process,data[:n])
+        for bad in (data+b'\0',b'Z'+data[1:],data[:41]+b'\1'+data[42:],data[:140]+b'\xff\xff'+data[142:]): self.rejects(rc.read_execution_process,bad)
+
     def test_process_identity_vector_and_bounds(self):
         vector=rc.load_json((ROOT/'spec/vectors/process-identity-v1.json').read_bytes())
         data=rc.process_identity(vector['input'])

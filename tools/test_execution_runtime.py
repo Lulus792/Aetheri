@@ -42,6 +42,29 @@ def validate_native_end(ended,invocation,boot):
             ended['invocation']!=invocation or ended['boot']!=boot):
         raise RuntimeError('uncorrelated native lifetime observation')
 
+def validate_process_rows(db,profile,role,ended):
+    if db.execute('PRAGMA user_version').fetchone()[0]!=4: raise RuntimeError('process catalogue version absent')
+    rows=db.execute('SELECT role,profile,profile_digest,invocation_ref,context_digest,process_identity,witness,witness_digest,recorded_unix_ms,start_operation_id FROM execution_processes ORDER BY role').fetchall()
+    if [x[0] for x in rows]!=([1,2] if role=='system' else [2]): raise RuntimeError('wrong original process inventory')
+    context=db.execute('SELECT evidence_digest FROM operation_steps WHERE step_no=2').fetchone()[0]
+    unit='aetheri-app-'+profile[168:184].hex()+'.service'; identity=None; hashes={}
+    for kind,original,profile_hash,invocation,evidence,process_id,wire,digest,stamp,operation in rows:
+        value=reference.read_execution_process(wire)
+        expected_operation=profile[200:216] if role=='system' else profile[216:232]
+        expected=dict(profile_digest=hashlib.sha256(profile).hexdigest(),boot=ended['boot'],invocation=ended['invocation'],
+                      pid=ended['pid'],cgroup_id=ended['cgroup_id'],uid=0 if kind==1 else 1000,role=kind,unit=unit)
+        if (original!=profile or profile_hash!=hashlib.sha256(profile).digest() or any(value[key]!=v for key,v in expected.items()) or
+                value['evidence_digest']!=context.hex() or evidence!=context or invocation.hex()!=ended['invocation'] or
+                digest!=hashlib.sha256(wire).digest() or process_id!=reference.process_identity(dict(boot=value['boot'],pidfd_id=value['pidfd_id'])) or
+                operation!=expected_operation):
+            raise RuntimeError('uncorrelated process witness')
+        label='system_u:system_r:aetheri_starter_t:s0' if kind==1 else 'system_u:system_r:aetheri_exec_app_t:s0:c35,c36'
+        if value['label']!=label or not value['cgroup'].endswith('/'+unit) or type(stamp) is not int or stamp<0:
+            raise RuntimeError('wrong process context or original time')
+        if identity is not None and process_id!=identity: raise RuntimeError('starter kernel identity replaced')
+        identity=process_id; hashes['starter' if kind==1 else 'app']=digest.hex()
+    return identity,hashes
+
 def quiet_normal(record):
     normal.verified(record)
     if record['pending'] is not None: raise RuntimeError('normal carrier request pending')
@@ -106,8 +129,8 @@ def acknowledge_user_start(record,work):
     with closing(sqlite3.connect('file:'+str(work/database)+'?mode=ro',uri=True)) as db:
         if db.execute('SELECT kind,authority_epoch,owner_scope_ref,runtime_incarnation,current_boot_id,catalogue_revision FROM authority_meta').fetchall()!=[
             ('user',profile[40:56],profile[88:104],profile[56:72],profile[72:88],2)]: raise RuntimeError('User startup context differs')
-        if db.execute('PRAGMA user_version').fetchone()[0]!=3: raise RuntimeError('explicit test lifetime schema absent')
-        if any(db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('install_bindings','data_epochs','launches','operations','run_closures')):
+        if db.execute('PRAGMA user_version').fetchone()[0]!=4: raise RuntimeError('explicit test process schema absent')
+        if any(db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('install_bindings','data_epochs','launches','operations','run_closures','execution_processes')):
             raise RuntimeError('User bootstrap performed unrequested lifecycle work')
     record['tree']=current; save(record)
 def seed(work,record):
@@ -288,7 +311,7 @@ UMask=0077
             completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
             if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
             if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
-            if db.execute('PRAGMA user_version').fetchone()[0]!=3: raise RuntimeError('wrong Root lifetime schema')
+            if db.execute('PRAGMA user_version').fetchone()[0]!=4: raise RuntimeError('wrong Root process schema')
             root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
             if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
                     root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')
@@ -303,6 +326,8 @@ UMask=0077
             if not end_value['group_removed']:
                 end_value['group_removed']=True; acceptable.add(hashlib.sha256(reference.run_end(end_value)).digest())
             if root_closure[7] not in acceptable: raise RuntimeError('native end digest differs from actual original process observation')
+            process_identity,process_hashes=validate_process_rows(db,root_closure[0],'system',record['native_end'])
+            record['process_witness_sha256']={'system':process_hashes}
         evidence=driver.parent/('live-execution-'+record['token']); evidence.mkdir(mode=0o700)
         shutil.copyfile(work/'system/catalogue.sqlite3',evidence/'historical-test-catalogue.sqlite3')
         (evidence/'launch-completion.bin').write_bytes(completion); record['completion_sha256']=completion_hash
@@ -318,6 +343,9 @@ UMask=0077
             record['user_steps']=db.execute('SELECT step_no,state FROM operation_steps ORDER BY step_no').fetchall()
             user_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
             if user_closure is None or user_closure[:2]!=root_closure[:2] or user_closure[3:]!=root_closure[3:] or user_quiet['evidence_digest']!=user_closure[2].hex(): raise RuntimeError('User lifetime journal not correlated with actual Root release')
+            user_identity,user_hashes=validate_process_rows(db,root_closure[0],'user',record['native_end'])
+            if user_identity!=process_identity: raise RuntimeError('Root/User original kernel identities differ')
+            record['process_witness_sha256']['user']=user_hashes
         shutil.copyfile(user_database,evidence/'historical-user-catalogue.sqlite3')
         record.update(state='passed',evidence=str(evidence)); save(record)
         (evidence/'report.json').write_text(json.dumps(record,indent=2)+'\n')

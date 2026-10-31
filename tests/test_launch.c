@@ -24,7 +24,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -536,6 +536,7 @@ static void lifetime_test(struct ae_catalogue **root,struct ae_catalogue **user,
         }
         CHECK(close_call(stage,*root,*user,p,c,e,&ue,&started,receipts,ended,&out,&launch)==0);
         if (stage<3) receipts[stage]=out;
+        if (stage<2 && strstr(scenario,"lifetime-v4")) CHECK(ae_catalogue_upgrade_processes(*slot)==0 && scalar(directory,"SELECT state='closing' FROM run_closures")==1);
         database_digest(directory,before);
         CHECK(close_call(stage,*root,*user,p,c,e,&ue,&started,receipts,ended,&out,&launch)==0);
         if (stage<3) CHECK(memcmp(&out,&receipts[stage],sizeof out)==0);
@@ -558,6 +559,125 @@ static void lifetime_test(struct ae_catalogue **root,struct ae_catalogue **user,
     struct ae_execution_result original,untouched; memset(&untouched,0xa5,sizeof untouched); original=untouched;
     CHECK(ae_catalogue_execution(*root,p,c,AE_EXECUTION_ARM,e,&original)==-EAGAIN && memcmp(&original,&untouched,sizeof original)==0);
 }
+static struct ae_execution_process process_record(const struct ae_execution_profile *p,const struct ae_execution_evidence *e,enum ae_execution_process_role role)
+{
+    struct ae_execution_process v={.role=role,.pidfd_id=UINT64_MAX,.cgroup_id=(UINT64_C(1)<<63)+31,.pid=4242,.uid=role==AE_EXECUTION_STARTER ? 0U : 1000U};
+    CHECK(ae_execution_digest(p,v.profile_digest)==0); memcpy(v.boot,p->boot,16); memcpy(v.invocation,e->invocation,16); memcpy(v.evidence_digest,e->context_digest,32);
+    char hex[33]; const char *digits="0123456789abcdef";
+    for (size_t n=0;n<16;++n) { hex[2*n]=digits[p->launch[n]>>4]; hex[2*n+1]=digits[p->launch[n]&15U]; } hex[32]=0;
+    CHECK(snprintf(v.unit,sizeof v.unit,"aetheri-app-%s.service",hex)>0 && snprintf(v.cgroup,sizeof v.cgroup,"/system.slice/%s",v.unit)>0);
+    strcpy(v.label,role==AE_EXECUTION_STARTER ? "system_u:system_r:aetheri_starter_t:s0" : "system_u:system_r:aetheri_exec_app_t:s0:c35,c36"); return v;
+}
+static void process_enrollment(struct ae_catalogue **slot,const struct ae_catalogue_identity *identity,const char *directory,
+    const struct ae_execution_profile *p,const struct ae_execution_evidence *e,const struct ae_execution_process *process,int stage,const char *scenario)
+{
+    struct ae_execution_process_snapshot output,marker; memset(&marker,0xa5,sizeof marker); output=marker;
+    uint8_t before[32],after[32]; database_digest(directory,before);
+    for (int n=1;n<=2;++n) {
+        step_fault=n; step_number=0; CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,process,124000+stage,&output)==-EIO && step_fault==0);
+        CHECK(memcmp(&output,&marker,sizeof marker)==0); database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    commit_fault=1; CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,process,124000+stage,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    char lost[32],crash[32]; CHECK(snprintf(lost,sizeof lost,"lost-%d",stage)>0 && snprintf(crash,sizeof crash,"crash-%d-",stage)>0);
+    if (strstr(scenario,lost)) {
+        commit_fault=2; CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,process,124000+stage,&output)==-EIO && memcmp(&output,&marker,sizeof marker)==0);
+    } else if (strstr(scenario,crash)) {
+        CHECK(ae_catalogue_close(slot)==0); pid_t child=fork(); CHECK(child>=0); int early=strstr(scenario,"before")!=NULL;
+        if (child==0) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(directory,identity,&fresh)==0); crash_mode=early ? 1 : 2;
+            (void)ae_catalogue_enroll_execution_process(fresh,p,e,process,124000+stage,&output); _exit(90); }
+        int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(early ? 71 : 72)); CHECK(ae_catalogue_open(directory,identity,slot)==0);
+    }
+    CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,process,124000+stage,&output)==0 && output.recorded_unix_ms==124000+stage && output.process.pidfd_id==UINT64_MAX);
+    database_digest(directory,before);
+    CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,process,999999,&output)==0 && output.recorded_unix_ms==124000+stage);
+    CHECK(ae_catalogue_get_execution_process(*slot,p,process->role,&output)==0 && output.recorded_unix_ms==124000+stage);
+    database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    struct ae_execution_process changed=*process; changed.pidfd_id--;
+    CHECK(ae_catalogue_enroll_execution_process(*slot,p,e,&changed,999999,&output)==-EEXIST);
+    sqlite3 *db=database(directory);
+    CHECK(sqlite3_exec(db,"UPDATE execution_processes SET recorded_unix_ms=9",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
+    CHECK(sqlite3_exec(db,"DELETE FROM execution_processes",NULL,NULL,NULL)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
+}
+static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,
+    const struct ae_execution_profile *p,struct ae_launch_context *context,const struct ae_execution_evidence *e,const char *rd,const char *scenario)
+{
+    struct ae_catalogue_identity ui={.kind=AE_CATALOGUE_USER}; memcpy(ui.authority_epoch,p->broker_epoch,16); memcpy(ui.owner,p->account,16);
+    size_t length=strlen(rd); char ud[4096]; CHECK(length>6 && strcmp(rd+length-6,"system")==0 && length<sizeof ud); memcpy(ud,rd,length-6); strcpy(ud+length-6,"user");
+    struct ae_execution_process_snapshot out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+    CHECK(ae_catalogue_get_execution_process(*root,p,AE_EXECUTION_STARTER,&out)==-EPROTONOSUPPORT && memcmp(&out,&marker,sizeof out)==0);
+    CHECK(ae_catalogue_upgrade_processes(*root)==-EPROTONOSUPPORT);
+    for (int owner=0;owner<2;++owner) {
+        struct ae_catalogue **slot=owner ? user : root; const char *directory=owner ? ud : rd;
+        CHECK(ae_catalogue_upgrade_lifetimes(*slot)==0); uint8_t before[32],after[32]; database_digest(directory,before);
+        for (int n=1;n<=6;++n) { ddl_fault=n; ddl_number=0; CHECK(ae_catalogue_upgrade_processes(*slot)==-EIO && ddl_fault==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0 && scalar(directory,"PRAGMA user_version")==3); }
+        commit_fault=1; CHECK(ae_catalogue_upgrade_processes(*slot)==-EIO && scalar(directory,"PRAGMA user_version")==3);
+        commit_fault=2; CHECK(ae_catalogue_upgrade_processes(*slot)==-EIO && scalar(directory,"PRAGMA user_version")==4);
+        CHECK(ae_catalogue_close(slot)==0 && ae_catalogue_open(directory,owner ? &ui : ri,slot)==0);
+        database_digest(directory,before); CHECK(ae_catalogue_upgrade_processes(*slot)==0); database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    struct ae_user_execution_result accepted; struct ae_execution_result execution,untouched; memset(&untouched,0xa5,sizeof untouched);
+    CHECK(ae_catalogue_prepare_user_execution(*user,p,&accepted)==0 && accepted.submit_required);
+    CHECK(ae_catalogue_execution(*root,p,context,AE_EXECUTION_REQUEST,NULL,&execution)==0 && execution.effect_required);
+    CHECK(ae_catalogue_execution(*root,p,context,AE_EXECUTION_BIND,e,&execution)==0);
+    CHECK(ae_catalogue_execution(*root,p,context,AE_EXECUTION_PREPARE,e,&execution)==0); execution=untouched;
+    CHECK(ae_catalogue_execution(*root,p,context,AE_EXECUTION_ARM,e,&execution)==-EAGAIN && memcmp(&execution,&untouched,sizeof execution)==0);
+    struct ae_execution_process starter=process_record(p,e,AE_EXECUTION_STARTER),app=process_record(p,e,AE_EXECUTION_APP);
+    if (strstr(scenario,"overflow-root")) { edit(rd,"UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&starter,124000,&out)==-EOVERFLOW && memcmp(&out,&marker,sizeof out)==0); return; }
+    process_enrollment(root,ri,rd,p,e,&starter,0,scenario);
+    CHECK(ae_catalogue_execution(*root,p,context,AE_EXECUTION_ARM,e,&execution)==0 && execution.effect_required);
+    uint8_t app_hash[32]; memset(app_hash,0x87,32);
+    CHECK(ae_catalogue_observe_execution(*root,p,context,e,app_hash,&execution)==-EAGAIN);
+    struct ae_execution_evidence ue=*e; memset(ue.context_digest,0x99,32);
+    struct ae_user_launch_snapshot launch;
+    CHECK(ae_catalogue_observe_user_execution(*user,p,AE_USER_EXECUTION_REGISTER,&ue,&launch)==0);
+    CHECK(ae_catalogue_observe_user_execution(*user,p,AE_USER_EXECUTION_READY,&ue,&launch)==-EAGAIN);
+    struct ae_execution_process user_app=process_record(p,&ue,AE_EXECUTION_APP);
+    if (strstr(scenario,"overflow-user")) { edit(ud,"UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_enroll_execution_process(*user,p,&ue,&user_app,124001,&out)==-EOVERFLOW); return; }
+    process_enrollment(user,&ui,ud,p,&ue,&user_app,1,scenario);
+    struct ae_execution_process wrong=app; wrong.pidfd_id--;
+    CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&wrong,124002,&out)==-ESTALE);
+    process_enrollment(root,ri,rd,p,e,&app,2,scenario);
+    CHECK(ae_catalogue_observe_user_execution(*user,p,AE_USER_EXECUTION_READY,&ue,&launch)==0);
+    if (strstr(scenario,"replace")) {
+        int is_user=strstr(scenario,"user-replace")!=NULL; struct ae_catalogue **slot=is_user ? user : root; const char *directory=is_user ? ud : rd;
+        uint8_t runtime[16]; id(runtime,is_user ? 52 : 6); CHECK(ae_catalogue_begin_runtime(*slot,p->boot,runtime)==0);
+        CHECK(ae_catalogue_get_execution_process(*slot,p,AE_EXECUTION_APP,&out)==0 && out.process.pidfd_id==UINT64_MAX);
+        CHECK(ae_catalogue_enroll_execution_process(*slot,p,is_user ? &ue : e,is_user ? &user_app : &app,999999,&out)==-ESTALE);
+        CHECK(scalar(rd,"SELECT state='running' FROM generation_leases")==1);
+        CHECK(scalar(directory,is_user ? "SELECT state='recovery_required' FROM launches" : "SELECT state='uncertain' FROM launch_dispatches")==1);
+        CHECK(ae_catalogue_close(slot)==0 && ae_catalogue_open(directory,is_user ? &ui : ri,slot)==0 && ae_catalogue_get_execution_process(*slot,p,AE_EXECUTION_APP,&out)==0); return;
+    }
+    if (strstr(scenario,"corrupt")) {
+        uint8_t raw[AE_EXECUTION_PROCESS_MAX],hash[32]; size_t size=0; CHECK(ae_execution_process_encode(&app,raw,sizeof raw,&size)==0 && ae_sha256_bytes(raw,size,hash)==0);
+        CHECK(ae_catalogue_close(root)==0); char path[4096]; CHECK(snprintf(path,sizeof path,"%s/catalogue.sqlite3",rd)>0);
+        int fd=open(path,O_RDWR|O_CLOEXEC|O_NOFOLLOW); struct stat st; CHECK(fd>=0 && fstat(fd,&st)==0 && st.st_size>32 && st.st_size<2*1024*1024);
+        size=(size_t)st.st_size; uint8_t *bytes=malloc(size); CHECK(bytes && read(fd,bytes,size)==(ssize_t)size); size_t found=0,offset=0;
+        for (size_t n=0;n+32<=size;++n) if (memcmp(bytes+n,hash,32)==0) { ++found; offset=n; }
+        CHECK(found==1); bytes[offset]^=1U; CHECK(pwrite(fd,bytes+offset,1,(off_t)offset)==1 && fsync(fd)==0 && close(fd)==0); free(bytes);
+        CHECK(ae_catalogue_open(rd,ri,root)==0); out=marker; CHECK(ae_catalogue_get_execution_process(*root,p,AE_EXECUTION_APP,&out)==-EUCLEAN && memcmp(&out,&marker,sizeof out)==0);
+        CHECK(ae_catalogue_observe_execution(*root,p,context,e,app_hash,&execution)==-EUCLEAN); return;
+    }
+    struct ae_execution_diagnostic unknown={.kind=AE_EXECUTION_DIAGNOSTIC_UNKNOWN};
+    CHECK(ae_catalogue_execution_report(*root,p,context,e,&unknown,&execution)==0);
+    CHECK(ae_catalogue_observe_execution(*root,p,context,e,app_hash,&execution)==0);
+    struct ae_execution_completion completed;
+    CHECK(ae_catalogue_complete_execution(*root,p,context,e,app_hash,124100,&completed)==0);
+    CHECK(ae_catalogue_finish_user_execution(*user,p,&ue,app_hash,&completed,124101,&launch)==0);
+    if (strstr(scenario,"gates")) { edit(rd,"UPDATE admission_gates SET state='closed',revision=revision+1"); edit(ud,"UPDATE admission_gates SET state='closed',revision=revision+1"); }
+    struct ae_run_receipt closing,quiet,released; uint8_t ended[32]; memset(ended,0x65,32);
+    CHECK(ae_catalogue_begin_run_close(*root,p,context,e,&completed,124200,&closing)==0);
+    CHECK(ae_catalogue_quiesce_user_run(*user,p,&ue,&closing,124201,&quiet)==0);
+    CHECK(ae_catalogue_release_run(*root,p,context,e,&quiet,ended,124202,&released)==0);
+    CHECK(ae_catalogue_end_user_run(*user,p,&ue,&released,124203,&launch)==0);
+    CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&app,999999,&out)==0 && out.recorded_unix_ms==124002);
+    CHECK(ae_catalogue_enroll_execution_process(*user,p,&ue,&user_app,999999,&out)==0 && out.recorded_unix_ms==124001);
+    CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(rd,ri,root)==0 && ae_catalogue_get_execution_process(*root,p,AE_EXECUTION_STARTER,&out)==0);
+    CHECK(scalar(rd,"SELECT state='released' FROM generation_leases")==1 && scalar(ud,"SELECT state='exited' FROM launches")==1);
+}
 static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user_slot,const struct ae_catalogue_identity *identity,
     const struct ae_user_launch *q,struct ae_launch_context *c,const char *directory,const char *expected,const char *scenario)
 {
@@ -565,6 +685,7 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
     struct ae_execution_profile p; execution_profile(&p,q,c); execution_codec(&p,expected);
     struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
+    if (strncmp(scenario,"exec-process-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
     CHECK(ae_catalogue_authorize_user_execution(user,&p)==0 && ae_catalogue_authorize_user_execution(*root,&p)==-EPERM);
     struct ae_execution_profile wrong=p; wrong.storage[15]++;
     CHECK(ae_catalogue_authorize_user_execution(user,&wrong)==-ESTALE);
@@ -725,6 +846,25 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
 }
 int main(int argc,char **argv)
 {
+    if (argc==3 && strcmp(argv[1],"process-codec")==0) {
+        uint8_t data[2469],raw[AE_EXECUTION_PROCESS_MAX],hash[32]; FILE *file=fopen(argv[2],"rb"); CHECK(file);
+        size_t total=fread(data,1,sizeof data,file); CHECK(!ferror(file) && feof(file) && fclose(file)==0 && total>=388+149+32);
+        size_t size=0; for (size_t n=0;n<4;++n) size=(size<<8)|data[384+n]; CHECK(size<=AE_EXECUTION_PROCESS_MAX && total==388+size+32);
+        struct ae_execution_profile p; CHECK(ae_execution_decode(data,384,&p)==0);
+        struct ae_execution_process v,marker; memset(&marker,0xa5,sizeof marker); size_t written=0;
+        CHECK(ae_execution_process_decode(data+388,size,&v)==0 && v.pidfd_id==UINT64_MAX && v.cgroup_id==(UINT64_C(1)<<63)+31);
+        CHECK(ae_execution_process_encode(&v,raw,sizeof raw,&written)==0 && written==size && memcmp(raw,data+388,size)==0 && ae_sha256_bytes(raw,size,hash)==0 && memcmp(hash,data+388+size,32)==0);
+        struct ae_execution_evidence evidence={0}; memcpy(evidence.invocation,v.invocation,16); memcpy(evidence.context_digest,v.evidence_digest,32);
+        CHECK(ae_execution_process_match(&p,&evidence,&v)==0);
+        for (size_t n=0;n<size;++n) { v=marker; CHECK(ae_execution_process_decode(data+388,n,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); }
+        v=marker; CHECK(ae_execution_process_decode(data+388,size+1,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0);
+        const size_t offsets[]={0,40,41,44,140};
+        for (size_t n=0;n<5;++n) { memcpy(raw,data+388,size); raw[offsets[n]]=0xff; v=marker; CHECK(ae_execution_process_decode(raw,size,&v)==-EBADMSG && memcmp(&v,&marker,sizeof v)==0); }
+        CHECK(ae_execution_process_decode(data+388,size,&v)==0); memset(raw,0xa5,sizeof raw); written=999;
+        CHECK(ae_execution_process_encode(&v,raw,size-1,&written)==-ENOBUFS && written==999); for (size_t n=0;n<sizeof raw;++n) CHECK(raw[n]==0xa5);
+        v.uid=1; CHECK(ae_execution_process_match(&p,&evidence,&v)==-ESTALE); v.uid=0; v.boot[0]^=1;
+        CHECK(ae_execution_process_match(&p,&evidence,&v)==-ESTALE); return 0;
+    }
     if (argc==3 && strcmp(argv[1],"run-codec")==0) {
         uint8_t data[920],bytes[137],hash[32]; FILE *file=fopen(argv[2],"rb"); CHECK(file && fread(data,1,sizeof data,file)==sizeof data && fgetc(file)==EOF && fclose(file)==0);
         struct ae_execution_profile p; CHECK(ae_execution_decode(data,384,&p)==0);
