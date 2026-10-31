@@ -126,6 +126,8 @@ def main():
             scenarios=tuple('exec-handoff-'+case for case in (
                 'fresh','lost-1','lost-3','lost-4','crash-1-before','crash-1-after','crash-3-before','crash-3-after',
                 'crash-4-before','crash-4-after','observe','observe-lost-2','observe-crash-2-before','observe-crash-2-after','overflow','corrupt-handoff'))
+        if len(sys.argv)==4 and sys.argv[3]=='handoff-bridge':
+            scenarios=('exec-bridge-fresh','exec-bridge-lost')
         with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"

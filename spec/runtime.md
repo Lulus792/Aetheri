@@ -3753,3 +3753,67 @@ component-profile digests and UID-0 test app are not accepted as the fixed UID-1
 execution profile by ae_handoff_match. This proves portable original expectations
 in the actual bounded handoff, not an installed confined Root producer/receiver or
 Root/User recovery coordinator. Connecting those boundaries remains work.
+
+### Native bridge from original handles to the owner journal
+
+`authority/handoff.h` now joins these two existing boundaries. Its Root-only,
+single-threaded object borrows the exclusive catalogue and trusted host bus and
+pins its admitted current custodian context/runtime. Each use corroborates the
+actual self process/unit/invocation/domain/boot and catalogue context. Fork use
+and reentrant close reject the call; actor/runtime drift latches ESTALE in the old
+object. Matching again does not recover it. The
+caller must independently admit the protected image/configuration/host context
+and retain the original units; self observation does not create that authority.
+The service must already be active, so construct it after readiness.
+
+PREPARE exports the actual live original lifetime objects, reads the immutable
+enrolled app process witness and compares PID, pidfs identity, boot and the whole
+process context. It constructs AETHHND1 from that admitted witness and actual
+root/group/event/namespace observations, binds the current custodian invocation,
+then commits the existing v5 intent. Only a confirmed fresh commit returns four
+owned CLOEXEC duplicates and transfer_required=1. An existing-intent retry returns
+no handles or transfer permission. Errors, including lost successful commits,
+close only these temporary duplicates and preserve caller outputs/original
+observer and the persistent recovery obligation. No notification is sent here.
+
+RESTORE requires a replacement runtime and a new invocation of the same admitted
+custodian. It loads the original expectation from the protected v5 row before
+restoring the supplied objects. Retiring/retired rows, a changed custodian or the
+original invocation are rejected. The caller owes complete supervisor-inventory
+and transport admission; this API receives exactly four distinct CLOEXEC handles
+in lifetime slot order, not an arbitrary list of named candidates. Actual lifetime
+restore checks the original objects. The bridge rechecks its own context before
+committing OBSERVE and publishing the private observer. Failure closes only its
+private duplicates; incoming FDs and outputs stay with the caller. Retrying an
+unknown OBSERVE revalidates actual objects, without another transfer or run effect.
+
+`authority.handoff` uses real v5 SQLite transactions and controlled Linux adapters
+to test wrong original fields, missing/duplicate/non-CLOEXEC FDs, actor drift
+before/after restore, failed/lost commits, repeated runtime replacement, immutable
+origins, reentrant/fork guards and FD balance. Its /dev/null descriptors test
+ownership only; they are not kernel-admission evidence.
+
+The separate enforcing Root/User/app integration now explicitly creates Root v5
+and User v4. It exercises actual PREPARE from the UID1000 app and checks that the
+canonical frame matches the immutable app witness and actual Root invocation.
+It deliberately submits no descriptor-store transfer. All exported copies close;
+an exact retry returns none. After the original User is quiet and native Root
+release commits, it fences further preparation, closes the source observer,
+journals retirement and verifies the configured-zero/empty Root store before
+acknowledging absence. This narrowly retires an **unsubmitted** test handoff; it
+cannot reconcile a partial/unknown real transfer. The independent Python reader
+checks the archived original bytes/hash/origin and pending-to-retired history.
+
+Actual confinement needed one temporary test-policy addition: nsfs_t file getattr
+for the Root observer's namespace identity. No namespace-file open, namespace
+entry, ptrace, capability or app permission was added. The initial before-ready
+failure was reconciled as empty-before-launch. A later denied execution fixture
+was quarantined with original pending dispatch/held lease and all inputs intact;
+its infrastructure was retired after exact terminal unit/cgroup/job/store/static
+checks. No native lease release was fabricated for that failed attempt.
+
+Normal authorities/catalogues, their closed gates, public capabilities and app
+FD-store prohibition remain unchanged. This bridge has no installed transfer
+adapter or confined replacement receiver yet. Continuous protected retention,
+partial-set reconciliation, retirement after actual transfer, early failure and
+Root/User recovery settlement remain separate required work.

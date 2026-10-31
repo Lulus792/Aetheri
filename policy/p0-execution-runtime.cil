@@ -6,6 +6,9 @@
 (allow aetheri_system_t aetheri_execution_unit_test_t (service (status start)))
 ; Original held cgroup.events, read-only lifetime observation in this test only.
 (allow aetheri_system_t cgroup_t (file (read open getattr)))
+; Read only this admitted observer's PID/cgroup namespace identity for AETHHND1.
+; No namespace entry, mount capability, ptrace or namespace-file open grant.
+(allow aetheri_system_t nsfs_t (file (getattr)))
 (allow aetheri_starter_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_execution_unit_test_t (service (status)))
 (allow aetheri_user_t aetheri_system_t (process (getattr)))

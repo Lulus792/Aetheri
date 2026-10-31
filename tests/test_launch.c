@@ -752,6 +752,15 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     CHECK(ae_catalogue_enroll_execution_process(*root,p,e,&wrong,124002,&out)==-ESTALE);
     process_enrollment(root,ri,rd,p,e,&app,2,scenario);
     struct ae_execution_handoff handoff=handoff_record(&app); int with_handoff=strncmp(scenario,"exec-handoff-",13)==0;
+    if (strncmp(scenario,"exec-bridge-",12)==0) {
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+        void ae_test_handoff_service(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_handoff *,const char *);
+        ae_test_handoff_service(*root,p,&handoff,scenario);
+        CHECK(scalar(rd,"SELECT state='running' FROM generation_leases")==1 && scalar(rd,"SELECT state='uncertain' FROM launch_dispatches")==1); return;
+#else
+        CHECK(0 && "handoff bridge requires AETHERI_LINUX_IPC");
+#endif
+    }
     if (with_handoff && handoff_start(root,*user,ri,rd,p,&handoff,scenario)) return;
     CHECK(ae_catalogue_observe_user_execution(*user,p,AE_USER_EXECUTION_READY,&ue,&launch)==0);
     if (strstr(scenario,"replace")) {
@@ -798,7 +807,7 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
     struct ae_execution_profile p; execution_profile(&p,q,c); execution_codec(&p,expected);
     struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
-    if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
+    if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0 || strncmp(scenario,"exec-bridge-",12)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
     CHECK(ae_catalogue_authorize_user_execution(user,&p)==0 && ae_catalogue_authorize_user_execution(*root,&p)==-EPERM);
     struct ae_execution_profile wrong=p; wrong.storage[15]++;
     CHECK(ae_catalogue_authorize_user_execution(user,&wrong)==-ESTALE);

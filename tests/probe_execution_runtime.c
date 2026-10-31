@@ -3,6 +3,7 @@
 #include "authority/execution_admission.h"
 #include "authority/projection.h"
 #include "authority/reservation.h"
+#include "authority/handoff.h"
 #include "launcher/preparation.h"
 #include "launcher/execution.h"
 #include "linux/image.h"
@@ -47,6 +48,8 @@ static struct ae_peer starter=AE_PEER_INIT,app=AE_PEER_INIT;
 static struct ae_process_context starter_context,app_context;
 static struct ae_process_identity app_identity,user_app_identity;
 static struct ae_lifetime *app_lifetime;
+static struct ae_handoff_service *handoff_service;
+static int handoff_prepared,handoff_fenced;
 static struct ae_execution_completion start_result;
 static int start_result_present;
 static sd_bus_message *waiting;
@@ -86,7 +89,58 @@ static void catalogue(const char *root,int create)
     char path[4096]; CHECK(snprintf(path,sizeof path,"%s/system",root)>0);
     struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_SYSTEM}; memcpy(identity.authority_epoch,p.system_epoch,16);
     CHECK((create ? ae_catalogue_create(path,&identity,p.boot,&store) : ae_catalogue_open(path,&identity,&store))==0);
-    if (create) CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
+    if (create) CHECK(ae_catalogue_upgrade_lifetimes(store)==0 && ae_catalogue_upgrade_processes(store)==0 && ae_catalogue_upgrade_handoffs(store)==0 && ae_catalogue_enroll_account(store,p.account,1000)==0);
+}
+static int prepare_handoff(void)
+{
+    if (handoff_fenced) return -EALREADY;
+    if (handoff_prepared) return 0;
+    if (!handoff_service) {
+        struct ae_process_context self;
+        int checked=ae_process_observe_self(bus,&self);
+        if (checked!=0) return checked;
+        if (self.uid!=0 || strcmp(self.unit,AE_STARTER_ROOT_UNIT)!=0 ||
+            strcmp(self.label,"system_u:system_r:aetheri_system_t:s0")!=0 || memcmp(self.boot,p.boot,16)!=0) return -ESTALE;
+        checked=ae_handoff_service_new(store,bus,&p,&self,&handoff_service);
+        if (checked!=0) return checked;
+    }
+    struct ae_handoff_transfer result=AE_HANDOFF_TRANSFER_INIT;
+    int r=ae_handoff_service_prepare(handoff_service,app_lifetime,realtime_ms(),&result);
+    if (r!=0) return r;
+    CHECK(result.journal.transfer_required && result.journal.snapshot.state==AE_HANDOFF_PENDING &&
+        result.journal.snapshot.original.process.uid==1000 && result.journal.snapshot.original.process.pidfd_id==app_identity.pidfd_id &&
+        strcmp(result.journal.snapshot.original.process.unit,app_context.unit)==0);
+    for (int n=0;n<4;++n) CHECK(result.handles[n]>=3 && (fcntl(result.handles[n],F_GETFD)&FD_CLOEXEC) && close(result.handles[n])==0);
+    /* Deliberately no transport effect in this integration. Existing-intent
+     * retry must not produce another set, even after the original copies close. */
+    result=(struct ae_handoff_transfer)AE_HANDOFF_TRANSFER_INIT;
+    r=ae_handoff_service_prepare(handoff_service,app_lifetime,realtime_ms(),&result);
+    CHECK(r==0 && !result.journal.transfer_required);
+    for (int n=0;n<4;++n) CHECK(result.handles[n]==-1);
+    handoff_prepared=1; return 0;
+}
+static int retire_unsubmitted_handoff(void)
+{
+    if (!handoff_prepared) return -EAGAIN;
+    /* Fixed proof: no transfer adapter/store was ever enabled, all exported
+     * copies closed, original User is quiet, and native Root release committed.
+     * This cannot retire an unknown/partial real supervisor transfer. */
+    handoff_fenced=1;
+    int r=ae_lifetime_close(&app_lifetime);
+    struct ae_handoff_snapshot original;
+    if (r==0) r=ae_catalogue_get_handoff(store,&p,&original);
+    struct ae_handoff_result result;
+    if (r==0) r=ae_catalogue_handoff(store,&p,AE_HANDOFF_RETIRE,&original.original,realtime_ms(),&result);
+    sd_bus_message *reply=NULL; const char *path=NULL;
+    if (r==0) r=sd_bus_call_method(bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnit",NULL,&reply,"s",AE_STARTER_ROOT_UNIT);
+    if (r>=0 && sd_bus_message_read(reply,"o",&path)<=0) r=-EBADMSG;
+    uint32_t held=1,maximum=1;
+    if (r>=0) r=sd_bus_get_property_trivial(bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","NFileDescriptorStore",NULL,'u',&held);
+    if (r>=0) r=sd_bus_get_property_trivial(bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","FileDescriptorStoreMax",NULL,'u',&maximum);
+    if (r>=0 && (held || maximum)) r=-ESTALE;
+    sd_bus_message_unref(reply);
+    if (r>=0) r=ae_catalogue_handoff(store,&p,AE_HANDOFF_RETIRED,&original.original,realtime_ms(),&result);
+    return r<0 ? r : 0;
 }
 static void root_start(void)
 {
@@ -328,6 +382,7 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
                 if (r==0) r=ae_catalogue_release_run(store,&p,&broker,&bound_evidence,&quiet,hash,realtime_ms(),&receipt);
             }
         }
+        if (r==0 && finish) r=retire_unsubmitted_handoff();
         uint8_t wire[AE_RUN_RECEIPT_BYTES];
         if (r==0) r=ae_run_receipt_encode(&receipt,wire);
         if (r==0) r=sd_bus_message_new_method_return(m,&reply);
@@ -350,6 +405,7 @@ static int broker_method(sd_bus_message *m,void *userdata,sd_bus_error *error)
         if (strcmp(method,"FinishLaunch")==0) {
             struct ae_execution_completion completed; uint8_t wire[AE_EXECUTION_COMPLETION_BYTES];
             if (r==0 && !app_confirmed) r=-EAGAIN;
+            if (r==0) r=prepare_handoff();
             if (r==0) r=ae_catalogue_complete_execution(store,&p,&broker,&bound_evidence,app_hash,realtime_ms(),&completed);
             if (r==0) { start_result=completed; start_result_present=1; }
             if (r==0) r=ae_execution_completion_encode(&completed,wire);

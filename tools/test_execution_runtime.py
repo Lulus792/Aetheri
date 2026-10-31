@@ -43,7 +43,7 @@ def validate_native_end(ended,invocation,boot):
         raise RuntimeError('uncorrelated native lifetime observation')
 
 def validate_process_rows(db,profile,role,ended):
-    if db.execute('PRAGMA user_version').fetchone()[0]!=4: raise RuntimeError('process catalogue version absent')
+    if db.execute('PRAGMA user_version').fetchone()[0]!=(5 if role=='system' else 4): raise RuntimeError('process catalogue version absent')
     rows=db.execute('SELECT role,profile,profile_digest,invocation_ref,context_digest,process_identity,witness,witness_digest,recorded_unix_ms,start_operation_id FROM execution_processes ORDER BY role').fetchall()
     if [x[0] for x in rows]!=([1,2] if role=='system' else [2]): raise RuntimeError('wrong original process inventory')
     context=db.execute('SELECT evidence_digest FROM operation_steps WHERE step_no=2').fetchone()[0]
@@ -154,11 +154,27 @@ def verify_static(record):
         if path.is_symlink() or sha(path)!=expected: raise RuntimeError('owned unit input changed')
     if sha(CONFIG)!=record['config_sha256'] or hashlib.sha256(installed()).hexdigest()!=record['policy_sha256']:
         raise RuntimeError('temporary bus/policy input changed')
-def retire(record):
+def retire(record,*,prelaunch_failure=False):
     info=ROOT.lstat(); marker=(ROOT/'controller.json').lstat()
     if ROOT.is_symlink() or not stat.S_ISDIR(info.st_mode) or info.st_uid!=0 or stat.S_IMODE(info.st_mode)!=0o700 or not stat.S_ISREG(marker.st_mode) or marker.st_uid!=0 or stat.S_IMODE(marker.st_mode)!=0o600 or marker.st_nlink!=1:
         raise RuntimeError('untrusted fixture/controller metadata')
-    if record['pending'] is not None or record['state']!='passed': raise RuntimeError('unsettled fixture; manual reconciliation required')
+    if prelaunch_failure:
+        # Explicit administrative reconciliation of a failed *initial* Root
+        # activation only. Never accept an app/unknown lifecycle dispatch here.
+        if (record['pending']!='root-start' or record['state']!='preparing' or
+                'root_pid' in record or 'user_pid' in record or
+                (ROOT/'root'/record['user_catalogue_rel']).exists()):
+            raise RuntimeError('not an initial prelaunch failure')
+        with closing(sqlite3.connect(f'file:{ROOT/"root/system/catalogue.sqlite3"}?mode=ro',uri=True)) as db:
+            if (db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall() or
+                    any(db.execute('SELECT count(*) FROM '+name).fetchone()[0] for name in
+                        ('operations','launch_dispatches','generation_leases','execution_processes','execution_handoffs'))):
+                raise RuntimeError('prelaunch catalogue is not empty')
+        facts=dict(x.split('=',1) for x in run('systemctl','show',ROOT_UNIT,'-p','InvocationID','-p','ExecMainStatus','-p','Result').splitlines())
+        if (facts['InvocationID']!=record.get('failed_root_invocation') or len(facts['InvocationID'])!=32 or
+                int(facts['InvocationID'],16)==0 or facts['ExecMainStatus']=='0' or facts['Result']!='exit-code'):
+            raise RuntimeError('original failed Root invocation not reconciled')
+    elif record['pending'] is not None or record['state']!='passed': raise RuntimeError('unsettled fixture; manual reconciliation required')
     verify_static(record)
     for unit in record['unit_hashes']:
         state=drained(unit)
@@ -311,7 +327,16 @@ UMask=0077
             completion=reference.execution_completion(value); completion_hash=hashlib.sha256(completion).hexdigest()
             if db.execute('SELECT lower(hex(evidence_digest)) FROM operation_steps WHERE step_no=6').fetchone()[0]!=completion_hash: raise RuntimeError('Root completion receipt mismatch')
             if db.execute('SELECT lower(hex(result_ref)) FROM operations').fetchone()[0]!=value['launch']: raise RuntimeError('wrong Root launch result')
-            if db.execute('PRAGMA user_version').fetchone()[0]!=4: raise RuntimeError('wrong Root process schema')
+            if db.execute('PRAGMA user_version').fetchone()[0]!=5: raise RuntimeError('wrong Root handoff schema')
+            handoff=db.execute('SELECT witness,witness_digest,state,original_runtime,observer_runtime,revision FROM execution_handoffs').fetchall()
+            if len(handoff)!=1: raise RuntimeError('missing or ambiguous native handoff intent')
+            wire,digest,state,origin,observer,revision=handoff[0]; original=reference.read_execution_handoff(wire)
+            process=db.execute('SELECT witness FROM execution_processes WHERE role=2').fetchone()[0]
+            if (digest!=hashlib.sha256(wire).digest() or reference.execution_process(original['process'])!=process or
+                    original['custodian']!=ROOT_UNIT or original['custodian_invocation']!=record['root_invocation'] or
+                    state!='retired' or origin.hex()!=value['system_runtime'] or observer is not None or revision!=3):
+                raise RuntimeError('native handoff expectation/origin/retirement differs')
+            record['handoff_witness_sha256']=digest.hex()
             root_closure=db.execute('SELECT profile,profile_digest,context_digest,start_result_digest,state,begin_receipt,quiet_receipt,end_digest,release_receipt,revision FROM run_closures').fetchone()
             if (root_closure is None or root_closure[0]!=(work/'registry/execution.conf').read_bytes() or
                     root_closure[1]!=hashlib.sha256(root_closure[0]).digest() or root_closure[3].hex()!=completion_hash or root_closure[4]!='released' or root_closure[9]!=2): raise RuntimeError('invalid Root lifetime journal')

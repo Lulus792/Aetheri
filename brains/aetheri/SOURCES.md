@@ -1772,3 +1772,77 @@ Root/User recovery remain work.
 Host VM guards pass 47/47 (2.319 s), updated wrapper syntax parses, and all 183
 host/snapshot/guest source hashes agree. Local Markdown validation passes 586
 file targets, excluding anchors and external URLs.
+
+## Native observation/journal bridge — 31 October 2026
+
+[authority/handoff](../../src/authority/handoff.h) joins actual lifetime export to
+the existing immutable app witness and v5 intent. Its replacement path loads the
+original SQL expectation before actual object restoration and OBSERVE. It retains
+borrowed incoming handles and quarantines its object on actor/runtime drift.
+There is no descriptor-store notification, installed receiver or lease release
+in this module. Existing systemd/Linux/SQLite dependencies and wire formats stay.
+
+[Native bridge cases](../../tests/test_handoff_service.c) run real SQLite owner
+transactions with controlled Linux adapters. Mutation commit faults are armed
+at the mutation boundary, after read-only admission transactions; those reads
+cannot accidentally consume a claimed lost-write acknowledgement. The cases
+cover ten wrong original fields, exact retry/lost commit, descriptor ownership,
+missing/duplicate/non-CLOEXEC input, restore failure, drift before/after object
+validation, latched quarantine, repeated replacement and fork/reentrant guards.
+Their /dev/null FDs are ownership fixtures, not actual kernel-object evidence.
+
+The [confined integration](../../tools/test_execution_runtime.py) now explicitly
+creates Root v5/User v4 and invokes native PREPARE from actual UID1000 app handles.
+It checks canonical AETHHND1 against the immutable process witness and original
+Root invocation. No transfer is submitted. It closes all exported copies and
+tests exact retry with no replacement set. Successful native Root/User closure
+precedes retirement of this unsubmitted handoff, with preparation fenced and
+the Root store independently configured at zero/empty. An independent Python
+reader validates the archived original bytes/hash/origin and retired history.
+
+The initial observer was constructed while Type=notify was still activating;
+the existing active-unit proof correctly refused it. Construction now occurs in
+the active preparation path, without weakening that proof. Its exact empty-before-
+launch fixture was independently checked and retired; the original failure is
+archived under the guest build's prelaunch-failure-810c74a0ed88495686737244d12ea57f.
+The explicit retirement helper rejects lifecycle dispatches or known started owners;
+its default path still preserves pending attempts.
+
+The next actual run reached export and recorded enforcing nsfs_t file/getattr
+denial for Root PID 87381 (AVC 22161), before any handoff intent/transfer. Only
+that read permission was added to the temporary execution-test policy. There is
+no namespace-file open, namespace entry, ptrace, capability or app grant. Its
+original failed attempt remains at
+`/var/lib/aetheri-p0-execution-quarantine/d0bd0e5389c840458502e5a09edaeb17`.
+The complete original controller/inputs/catalogues and pending application,
+observed dispatch and running lease are unchanged. Exact original service
+invocations, terminal unit/cgroup/job facts, zero-capacity/empty stores, no restart/
+activation edges and complete static/object inventories preceded retirement of
+only its dead test infrastructure. No native settlement was recorded for the
+quarantined attempt.
+
+With the narrow permission, the actual confined run passes native start/end,
+successful Root/User closure and unsubmitted-handoff retirement. Normal installed
+v2 authorities remain separate. Confined replacement reception, actual transfer,
+partial-set reconciliation and owner recovery still need implementation/evidence.
+
+The affected Release sweep passes 3/3 (180.17 s): catalogue.handoffs 113.09 s,
+authority.handoff 11.70 s and the existing authority.execution_service 55.37 s.
+The final actual confined evidence is archived at
+`/home/aetheri/build/release/live-execution-8ae678b5abf144d282d7c8698983ae21`.
+Its app PID 88952/group 137004 ends successfully with original invocation
+`4577a3817dc445918146fb94a7f376ab`, and the original group is removed. The canonical
+handoff hash is baf971c704f40cdc2800465ed161f83bba7c01f91213cc46879a1c587b449b15.
+The IPC-disabled native producer also builds and explicitly rejects bridge mode,
+instead of silently running only catalogue setup and claiming bridge coverage.
+These are functional/confinement checks, not performance or hardware acceptance.
+
+Read-only final inspection confirms enforcing policy and no live-test/retention
+units, target fragments, temporary module or temporary bus configuration. Normal
+Root/User remain schema v2 with two closed gates each, pending=None and no unsettled
+normal dispatch/lease. The quarantined failed attempt's catalogue hash and original
+pending/held states still match the preserved retirement evidence.
+Final reviewed bridge repeats pass Debug ASan/UBSan 1/1 (15.48 s) and Release 1/1
+(14.07 s). Host VM guards pass 48/48 (2.360 s); changed Python tools parse. All
+186 host/snapshot/guest source hashes agree. Local Markdown validation passes
+591 file targets, excluding anchors and external URLs.

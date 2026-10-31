@@ -1144,3 +1144,30 @@ normal Root store, production configuration mutation or recovery settlement.
 Integrate protected provisioning/reload exclusion, interrupted effects and the
 v5 handoff journal separately. Runtime code, SQL/wire contracts and policy stay
 unchanged. Personal UI/product decisions remain deferred.
+
+## Join original observations to v5 before transfer — 31 October 2026
+
+Use one private Root bridge in the existing execution-service library. Bind its
+admitted current self context/runtime, compare actual lifetime export to the
+immutable enrolled app witness and commit PREPARE before returning transfer FDs.
+Only a confirmed fresh intent returns handles; close temporary duplicates on
+errors/lost acknowledgement. Existing intent never authorizes another transfer.
+
+On replacement, load original expectations from protected SQL before examining
+delivered objects. Require a new invocation of the same custodian, actual object
+restoration, repeated current actor/runtime checks and confirmed OBSERVE before
+publishing an observer. Preserve caller-owned incoming FDs and error outputs.
+Keep exact supervisor-inventory/transport admission outside this native bridge;
+do not pretend a four-element array proves supervisor acceptance.
+
+First integrate actual PREPARE into the confined fixed-run fixture, with no
+transport enabled, then wire a separate replacement receiver. Root alone uses
+explicit v5 there; User remains v4 and normal provisioning v2. Require an active
+custodian after readiness; do not weaken process proof for startup timing.
+Namespace identity needs only a temporary Root nsfs getattr rule, supported by
+an actual enforcing denial. Do not add ptrace, namespace entry/open or capabilities.
+
+Keep failed live-test native state intact even when its independently inspected
+dead test infrastructure is retired. Quarantine is not lease release or successful
+recovery. The unsubmitted successful handoff may retire only after native run
+release, local-copy closure/fencing and actual zero-capacity/empty store checks.

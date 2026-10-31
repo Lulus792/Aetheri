@@ -1,6 +1,6 @@
 # State
 
-31 October 2026 — process-free original-unit retention through a component restart.
+31 October 2026 — actual original handles joined to the Root handoff journal.
 
 ## Confirmed
 
@@ -13,6 +13,46 @@ P0 carrier/resource selection is accepted as the development direction, not the
 final Aetheri distribution or runtime acceptance.
 
 ## Implemented
+
+The private authority/handoff module now joins actual lifetime export to the
+immutable enrolled app witness and existing v5 PREPARE transaction. Only a fresh
+confirmed intent returns four transfer handles. Existing intent and retries after
+a lost successful commit return none. RESTORE loads original expectations from SQL before
+actual object validation, rechecks the current custodian/runtime and then commits
+OBSERVE. Its caller still owes complete supervisor-inventory/transport admission
+and continuous unit retention. It does not send notifications, adopt a run or
+release a lease. See [native bridge](../../spec/runtime.md#native-bridge-from-original-handles-to-the-owner-journal).
+
+The actual enforcing Root/User/app integration now uses explicit Root v5/User v4
+and exercises PREPARE from the real UID1000 app. It checks the canonical frame
+against the immutable app witness and actual Root invocation. No store transfer
+is submitted. Exported copies close, retry returns none, and normal successful
+run closure is followed by retirement of this unsubmitted handoff with a Root
+store of capacity zero and no entries. Normal v2 authorities/gates/capabilities are unchanged.
+The temporary policy adds only namespace-object getattr for the Root observer.
+
+The earlier before-ready setup failure was reconciled before any app/lease/intent.
+The later namespace-denied fixture retains its original pending dispatch/held
+lease, catalogue bytes and complete inputs in protected guest quarantine. Only
+its exact dead test infrastructure was retired; no native settlement was invented.
+The corrected confined integration passes. An installed confined replacement
+receiver, actual supervisor transfer/partial-set reconciliation and full Root/User
+recovery remain work. All product/desktop/apps/image/hardware requirements remain.
+
+The affected Release sweep passes 3/3 (180.17 s), including the new bridge, original
+handoff catalogue and existing execution coordinator. The actual confined run
+again passes Root/User/app start/end and native closure; the temporary fixture,
+policy extension and bus configuration are retired. The IPC-disabled producer
+builds and rejects bridge mode explicitly. Final read-only checks confirm normal
+Root/User v2, two closed gates each, pending=None and no unsettled normal lease/
+dispatch. Quarantined failed native state remains unchanged. These results do
+not cover an installed replacement receiver or full owner recovery.
+The reviewed focused bridge repeats pass Debug ASan/UBSan (15.48 s) and Release
+(14.07 s). Host VM guards pass 48/48 (2.360 s); all 186 host/guest source hashes
+agree. Local Markdown validation passes 591 file targets, excluding anchors and
+external URLs. No new general performance or hardware acceptance is claimed.
+
+Previous process-free retention checkpoint (31 October 2026):
 
 The separate opt-in linux.lifetime_handoff_retention test now preserves original
 custodian/app units through a protected process-free target with explicit ordering

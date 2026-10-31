@@ -455,6 +455,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   production Root provisioning/reload exclusion or v5 recovery integration.
   Preserve uncertain target/file/job state; do not infer drain from target stop.
   Normal inputs, policy, closed gates and public capabilities remain unchanged.
+- authority/handoff.h now joins actual lifetime export to the enrolled v4 app
+  witness before v5 PREPARE, and protected SQL expectations to restore/OBSERVE.
+  Read spec/runtime.md's native bridge section. Only a fresh confirmed intent
+  returns transfer FDs; existing/lost-successful-commit retries return none.
+  Incoming FDs stay caller-owned; exact supervisor inventory/transport and
+  original-unit retention remain caller obligations. Current self admission must
+  already be independently established; construct only after the unit is active.
+  authority.handoff uses real SQL with controlled kernel adapters. The confined
+  test now exercises actual UID1000 PREPARE in Root v5/User v4 but submits no
+  transfer. Its successful retirement proof is ONLY for that unsubmitted case,
+  after native release/local-copy fencing and zero-capacity/empty store checks.
+  The temporary Root nsfs getattr grant adds no capability/namespace entry/open.
+  Preserve the failed live fixture's original pending/held history in protected
+  guest quarantine; infrastructure retirement did not settle it. No installed
+  receiver, actual Root transfer, partial-set or full owner recovery is implied.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
 - Keep a small number of coherent modules/documents. Explain every major directory,

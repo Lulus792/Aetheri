@@ -237,6 +237,19 @@ class VmTools(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,"causal reconciliation"): execute.retire()
         marker.unlink.assert_not_called(); root.rmdir.assert_not_called()
 
+    def test_live_prelaunch_retirement_rejects_lifecycle_or_known_owner(self):
+        root=MagicMock(spec=Path); marker=MagicMock(spec=Path); root.__truediv__.return_value=marker
+        root.is_symlink.return_value=False
+        root.lstat.return_value=type('Info',(),dict(st_mode=stat.S_IFDIR|0o700,st_uid=0))()
+        marker.lstat.return_value=type('Info',(),dict(st_mode=stat.S_IFREG|0o600,st_uid=0,st_nlink=1))()
+        base=dict(pending='root-start',state='preparing',user_catalogue_rel='users/control/catalogue.sqlite3')
+        with patch.object(execution_runtime,'ROOT',root),patch.object(execution_runtime,'run',side_effect=AssertionError('effect')), \
+             patch.object(execution_runtime.sqlite3,'connect',side_effect=AssertionError('unadmitted database')):
+            for changes in (dict(pending='application'),dict(state='running'),dict(root_pid=123),dict(user_pid=456)):
+                with self.assertRaisesRegex(RuntimeError,'initial prelaunch failure'):
+                    execution_runtime.retire(base|changes,prelaunch_failure=True)
+        marker.unlink.assert_not_called(); root.rmdir.assert_not_called()
+
     def test_execute_drain_requires_independent_process_cgroup_and_job_absence(self):
         job=dict(type="a(usssoo)",data=[[]])
         unit="aetheri-p0-execute-owned.service"

@@ -74,6 +74,15 @@ admission. Protected provisioning/reload exclusion, interrupted target creation/
 retirement and its integration with v5 exact-set reconciliation remain required.
 See [unit retention](../../spec/runtime.md#original-unit-retention-without-controller-pins).
 
+The native authority/handoff bridge now joins real export to the original v5
+intent and restores from protected SQL expectations before OBSERVE. Its actual
+confined fixture exercises UID1000 PREPARE and unsubmitted-handoff retirement;
+replacement/commit/ownership cases use controlled kernel adapters with real SQL.
+Actual confined receiver/descriptor-store transfer, complete/partial inventory
+admission and Root/User settlement are still required. Preserve the namespace-
+denied test's original held history in guest quarantine; it was not settled by
+infrastructure retirement. No personal product decision blocks this work.
+
 Native SHA-256 is no longer an open library choice: reviewed OpenSSL 3.5.9 is
 installed and native byte/held-FD verification is tested. Native payload staging
 now checks inventory/copied bytes and resyncs. Protected P0 administrative staging
