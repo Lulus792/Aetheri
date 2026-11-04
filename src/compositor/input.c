@@ -10,6 +10,7 @@
 #include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
+#include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_pointer.h>
@@ -38,10 +39,13 @@ struct ae_input {
     struct wlr_cursor *cursor;
     struct wl_list keyboards, pointers;
     struct wl_listener new_input, motion, absolute, button, axis, frame, cursor_request;
+    struct wl_listener selection_request, drag_request;
     struct window *focused, *grabbed;
     double start_x, start_y;
     int grab_x, grab_y, width, height;
     uint32_t edges, cursor_serial;
+    uint32_t clipboard_floor;
+    bool clipboard_focus_valid;
 };
 struct cursor_image { struct wlr_buffer base; uint32_t pixels[16 * 20]; };
 static void image_destroy(struct wlr_buffer *buffer) { free(buffer); }
@@ -68,7 +72,7 @@ static void focus(struct ae_input *in, struct window *w) {
     bool changed = in->focused != w;
     if (in->focused && in->focused != w) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
     in->focused = w;
-    if (!w) { wlr_seat_keyboard_notify_clear_focus(in->seat); return; }
+    if (!w) { in->clipboard_focus_valid = false; wlr_seat_keyboard_notify_clear_focus(in->seat); return; }
     wlr_scene_node_raise_to_top(&w->tree->node);
     if (changed) wlr_xdg_toplevel_set_activated(w->toplevel, true);
     struct wlr_keyboard *kb = wlr_seat_get_keyboard(in->seat);
@@ -82,6 +86,11 @@ static void focus(struct ae_input *in, struct window *w) {
             uint32_t code = kb->keycodes[i];
             if (code <= KEY_MAX && !entry->suppressed[code]) keys[count++] = code;
         }
+    }
+    if (changed || !in->clipboard_focus_valid ||
+            in->seat->keyboard_state.focused_surface != w->toplevel->base->surface) {
+        in->clipboard_floor = wl_display_get_serial(in->server->display) + 1;
+        in->clipboard_focus_valid = true;
     }
     wlr_seat_keyboard_notify_enter(in->seat, w->toplevel->base->surface, keys, count, &kb->modifiers);
 }
@@ -262,7 +271,10 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
         k = wl_container_of(in->keyboards.next, k, link);
         wlr_seat_set_keyboard(in->seat, k->keyboard);
         if (in->focused) focus(in, in->focused);
-    } else wlr_seat_keyboard_notify_clear_focus(in->seat);
+    } else {
+        in->clipboard_focus_valid = false;
+        wlr_seat_keyboard_notify_clear_focus(in->seat);
+    }
     capabilities(in);
 }
 static void pointer_destroy(struct wl_listener *listener, void *data) {
@@ -296,7 +308,8 @@ bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
         wl_signal_add(&kb->events.key, &k->key); wl_signal_add(&kb->events.modifiers, &k->modifiers);
         wl_signal_add(&device->events.destroy, &k->destroy); wl_list_insert(&in->keyboards, &k->link);
         wlr_seat_set_keyboard(in->seat, kb);
-        fallback(in, NULL);
+        if (in->focused && in->focused->mapped) focus(in, in->focused);
+        else fallback(in, NULL);
     } else if (device->type == WLR_INPUT_DEVICE_POINTER) {
         struct pointer *p = calloc(1, sizeof(*p));
         if (!p) return false;
@@ -351,10 +364,35 @@ void ae_input_resize(struct window *w, void *data) {
             (edges & WLR_EDGE_TOP && edges & WLR_EDGE_BOTTOM) || (edges & WLR_EDGE_LEFT && edges & WLR_EDGE_RIGHT)) return;
     begin(w, e->seat, e->serial, edges);
 }
+static void selection_request(struct wl_listener *listener, void *data) {
+    struct ae_input *in = wl_container_of(listener, in, selection_request);
+    struct wlr_seat_request_set_selection_event *event = data;
+    struct wlr_seat_client *client = wlr_aetheri_selection_client_v1(event);
+    bool fresh = in->clipboard_focus_valid && event->serial - in->clipboard_floor < UINT32_MAX / 2;
+    if (client && client == in->seat->keyboard_state.focused_client &&
+            in->focused && in->focused->mapped && wlr_seat_get_keyboard(in->seat) && fresh &&
+            in->seat->keyboard_state.focused_surface == in->focused->toplevel->base->surface) {
+        wlr_seat_set_selection(in->seat, event->source, event->serial);
+    } else if (event->source && event->source != in->seat->selection_source) {
+        wlr_data_source_destroy(event->source);
+    }
+}
+static void drag_request(struct wl_listener *listener, void *data) {
+    struct ae_input *in = wl_container_of(listener, in, drag_request);
+    struct wlr_seat_request_start_drag_event *event = data;
+    struct wlr_data_source *source = event->drag->source;
+    /* Clipboard support does not silently admit drag/grab/icon behavior. */
+    if (!wlr_aetheri_reject_unstarted_drag_v1(event->drag)) {
+        in->server->failed = true; wl_display_terminate(in->server->display); return;
+    }
+    if (source && source != in->seat->selection_source) wlr_data_source_destroy(source);
+}
 struct ae_input *ae_input_create(struct server *s) {
     struct ae_input *in = calloc(1, sizeof(*in));
     if (!in) return NULL;
     in->server = s;
+    /* Required private symbol: an old incompatible runtime fails at startup. */
+    if (wlr_aetheri_selection_client_v1(NULL) != NULL) { free(in); return NULL; }
     wl_list_init(&in->keyboards); wl_list_init(&in->pointers);
     in->seat = wlr_seat_create(s->display, "seat0"); in->cursor = wlr_cursor_create();
     if (!in->seat || !in->cursor) {
@@ -370,6 +408,8 @@ struct ae_input *ae_input_create(struct server *s) {
     in->axis.notify = axis; wl_signal_add(&in->cursor->events.axis, &in->axis);
     in->frame.notify = frame; wl_signal_add(&in->cursor->events.frame, &in->frame);
     in->cursor_request.notify = cursor_request; wl_signal_add(&in->seat->events.request_set_cursor, &in->cursor_request);
+    in->selection_request.notify = selection_request; wl_signal_add(&in->seat->events.request_set_selection, &in->selection_request);
+    in->drag_request.notify = drag_request; wl_signal_add(&in->seat->events.request_start_drag, &in->drag_request);
     return in;
 }
 void ae_input_destroy(struct ae_input *in) {
@@ -378,6 +418,7 @@ void ae_input_destroy(struct ae_input *in) {
     wl_list_remove(&in->new_input.link); wl_list_remove(&in->motion.link);
     wl_list_remove(&in->absolute.link); wl_list_remove(&in->button.link);
     wl_list_remove(&in->axis.link); wl_list_remove(&in->frame.link); wl_list_remove(&in->cursor_request.link);
+    wl_list_remove(&in->selection_request.link); wl_list_remove(&in->drag_request.link);
     wlr_cursor_destroy(in->cursor); wlr_seat_destroy(in->seat); free(in);
 }
 void ae_input_stop_backend(struct ae_input *in) {

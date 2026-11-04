@@ -181,5 +181,31 @@
     "sha256": "9a2b238f7ed80ca153227ff2ea0e3df083e85ff1deb5249381e35c8289e1a029",
     "original_sha256": "f5e3ef516cd54837cc5b8f08a2c0b3ac8d6b22b40dda2c9152fb0de4b42f1881",
     "patched_sha256": "40a85488459f256185476bee8e5f1054c193fb84b2c7264a1b44e185eb1631bc"
+  },
+  "clipboard_patch": {
+    "path": "patches/wlroots-0.20.2-clipboard-context.patch",
+    "sha256": "43705ef92d05845451491eaf5e2a390e627b3b44487a807507fa59e50d9a2ca0",
+    "files": {
+      "include/wlr/types/wlr_seat.h": {
+        "original_sha256": "687375f265944549ae3b1840bc95fcc23cf71046e58b7a23b4f5a99674162d13",
+        "patched_sha256": "e7c4fab219ecc6eefb58f2b4a8ab70cba1a830847e97bf19e1533d7110e846fc"
+      },
+      "include/wlr/types/wlr_data_device.h": {
+        "original_sha256": "3e14b7b7c50180cf2d976c7692be4809abf8510f6aa22cfc84e5253640d0693c",
+        "patched_sha256": "dd289c5dd5f2a3962467363cee3a6bde4e0111ed929f9a2b0fb6d06a9e1b8b9a"
+      },
+      "types/data_device/wlr_data_device.c": {
+        "original_sha256": "fd02ada144783ec8328beead2c5c74a5509db1f5e920e7f9b60425d7382bd983",
+        "patched_sha256": "b620709be23f7c0e2103a121fc3c11973a6b805c563ede74e305d024941f2b86"
+      },
+      "types/data_device/wlr_data_offer.c": {
+        "original_sha256": "250cb3568e5f7cb0928defa10e399ec77318c1c0b2aec662cd16f2f510c4a823",
+        "patched_sha256": "61473bd465f187dd4b1a43553ad8b47dfe426b9871c0d6f00edf4dcf51454974"
+      },
+      "types/data_device/wlr_drag.c": {
+        "original_sha256": "0fd02f754676bd211aa6834504f8f11e5ab046b520bdd42922f139359f873883",
+        "patched_sha256": "b1f371202715fba428c837dba52aff57a10e760ab17c44e3ebb20128812ea35f"
+      }
+    }
   }
 }

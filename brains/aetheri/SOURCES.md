@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native clipboard — 4 November 2026
+
+- [Clipboard contract](../../spec/graphics.md#native-clipboard-selection),
+  [input integration](../../src/compositor/input.c),
+  [private library patch](../../patches/wlroots-0.20.2-clipboard-context.patch),
+  [input pins](../../spec/graphics-inputs.json) and
+  [separate-client native runner](../../tools/test_compositor_clipboard.py).
+- The exact wlroots 0.20.2 data-device/source/offer/drag, seat-keyboard and public
+  header sources were read. The live upstream API/protocol links in the contract
+  are supporting references, not proof of compatibility with a newer release.
+- Native Release/sanitizer clients transfer actual UTF-8 pipe bytes and reject
+  background/empty-focus offers and old publication serials. A test-only library
+  mutation detects the empty-focus exposure with identical final binaries; old
+  ABI loading fails before the private socket exists. STATE records exact limits.
+
 ## Native Settings view — 4 November 2026
 
 - [Scope/build/evidence](../../spec/settings.md), [pinned sources/RPMs/font](../../spec/ui-inputs.json),

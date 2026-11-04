@@ -3,12 +3,64 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
 import tarfile
 
 from prepare_vm import ROOT, verify
+
+
+def apply_reviewed_patch(tree, record):
+    """Apply only exact pinned unified hunks; no shell, fuzzy context or offsets."""
+    raw = (ROOT / record["path"]).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != record["sha256"]:
+        raise ValueError("reviewed integration patch changed")
+    lines = raw.splitlines(keepends=True)
+    cursor = 0
+    for name, hashes in record["files"].items():
+        if ".." in Path(name).parts or Path(name).is_absolute():
+            raise ValueError("unexpected integration path")
+        if lines[cursor:cursor+2] != [b"--- a/" + name.encode() + b"\n", b"+++ b/" + name.encode() + b"\n"]:
+            raise ValueError("unexpected integration file header")
+        cursor += 2
+        path = tree / name
+        original = path.read_bytes()
+        if hashlib.sha256(original).hexdigest() != hashes["original_sha256"]:
+            raise ValueError("integration preimage changed: " + name)
+        source, output, pos = original.splitlines(keepends=True), [], 0
+        while cursor < len(lines) and lines[cursor].startswith(b"@@ "):
+            match = re.fullmatch(rb"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@\n", lines[cursor])
+            if not match:
+                raise ValueError("unexpected integration hunk")
+            old_start, new_start = int(match[1]), int(match[3])
+            old_count, new_count = int(match[2] or b"1"), int(match[4] or b"1")
+            if old_start < pos + 1 or old_start > len(source) + 1:
+                raise ValueError("overlapping integration hunks")
+            output.extend(source[pos:old_start-1]); pos = old_start-1
+            if len(output) != new_start-1:
+                raise ValueError("integration result offset changed")
+            consumed = produced = 0
+            cursor += 1
+            while cursor < len(lines) and lines[cursor][:1] in (b" ", b"+", b"-") and not lines[cursor].startswith(b"--- a/"):
+                line = lines[cursor]
+                if line[:1] in (b" ", b"-"):
+                    if pos >= len(source) or source[pos] != line[1:]:
+                        raise ValueError("integration context mismatch")
+                    pos += 1; consumed += 1
+                if line[:1] in (b" ", b"+"):
+                    output.append(line[1:]); produced += 1
+                cursor += 1
+            if (consumed, produced) != (old_count, new_count):
+                raise ValueError("integration hunk length mismatch")
+        output.extend(source[pos:])
+        result = b"".join(output)
+        if hashlib.sha256(result).hexdigest() != hashes["patched_sha256"]:
+            raise ValueError("integration result changed: " + name)
+        path.write_bytes(result)
+    if cursor != len(lines):
+        raise ValueError("unconsumed integration patch data")
 
 
 def main():
@@ -60,6 +112,7 @@ def main():
     if hashlib.sha256(original).hexdigest() != patch["patched_sha256"]:
         raise ValueError("reviewed patch result changed")
     pointer.write_bytes(original)
+    apply_reviewed_patch(tree, config["clipboard_patch"])
     build, prefix = work / "build", work / "prefix"
     options = ["--libdir=lib", "--wrap-mode=nodownload", "-Dauto_features=disabled", "-Dexamples=false",
                "-Dbackends=[]", "-Drenderers=[]", "-Dallocators=[]", "-Dsession=disabled",
@@ -74,7 +127,7 @@ def main():
     license_dir.mkdir(parents=True)
     with (license_dir / "LICENSE").open("xb") as output:
         output.write((tree / "LICENSE").read_bytes())
-    report = {"archive_sha256": record["digest"], "patch": patch, "commands": commands,
+    report = {"archive_sha256": record["digest"], "patch": patch, "clipboard_patch": config["clipboard_patch"], "commands": commands,
               "library_sha256": hashlib.sha256((prefix / "lib/libwlroots-0.20.so").read_bytes()).hexdigest()}
     (work / "result.json").write_text(json.dumps(report, indent=2) + "\n")
     print("Reviewed private wlroots built at", prefix)

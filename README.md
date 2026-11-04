@@ -27,8 +27,9 @@ and test limits.
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.
 Native keyboard/pointer focus, move/resize, fullscreen and independent teardown
-pass protocol, composed-pixel and sanitizer checks. Physical display/input, a
-trusted session and ordinary app integration remain work.
+pass protocol, composed-pixel and sanitizer checks. Clipboard bytes now transfer
+between separate native clients with focus/serial checks and source cleanup.
+Physical display/input, a trusted session and ordinary app integration remain work.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·

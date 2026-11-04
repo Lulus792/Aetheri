@@ -21,6 +21,7 @@
 #include <wlr/render/pixman.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
@@ -346,7 +347,8 @@ int main(int argc, char **argv) {
     s.scene = wlr_scene_create();
     s.layout = wlr_output_layout_create(s.display);
     if (!s.allocator || !s.scene || !s.layout || !wlr_renderer_init_wl_display(s.renderer, s.display) ||
-            !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display)) goto done;
+            !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display) ||
+            !wlr_data_device_manager_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
     if (!wlr_scene_rect_create(&s.scene->tree, 8320, 2160, background)) goto done;

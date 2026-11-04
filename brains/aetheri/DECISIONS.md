@@ -1,5 +1,25 @@
 # Decisions
 
+## Native clipboard stays focus-bound and producer-owned — 4 November 2026
+
+Add ordinary Wayland clipboard transport to the private compositor before app
+editing/browser workflows. Keep bytes at the producer/receiver; no clipboard
+history, background manager, data-control protocol or implicit host bridge.
+Accept writes/clear from the actual current keyboard-focus client and current
+focus serial interval. Reject new reads from retained offers in background or
+empty focus. A keyboard replacement keeps the logical window and starts a fresh
+interval. Losing a window alone does not erase a connected producer's selection.
+
+The pinned wlroots callback lacks requester identity, so use an explicit private
+source/header integration rather than inferring a caller from UID or the source
+name. Add offer receive-time checks and an API for rejecting unstarted drags;
+required symbols catch accidental old libraries before publication. Pin/verify
+both patches and per-file source/result hashes in fresh private builds. Symbols
+or metadata alone do not authenticate library content. Actual pointer/key/client/
+FD workflows, sanitizer coverage and same-binary negative controls are required.
+Do not infer app grants, descriptor revocation, production clipboard security or
+old-intent settlement from this development feature. See [scope](../../spec/graphics.md#native-clipboard-selection).
+
 ## First native Settings view and measured SDL boundary — 4 November 2026
 
 Use a small toolkit-independent C17 display/selection model and an opt-in SDL3

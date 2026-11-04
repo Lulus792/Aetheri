@@ -20,9 +20,10 @@ recovery provenance is reviewed. It must not redispatch/replace the quarantined
 app attempt or claim lifecycle/hardware acceptance. Final product designs remain
 deferred for user review; dependency/renderer/input plumbing is engineering work.
 The private wlroots 0.20.2/Pixman prototype now passes native input/focus, nested
-presentation and pixel/sanitizer checks. Next integrate an app view and session
-behavior; physical/trusted-session acceptance remains open. The narrow upstream
-coordinate patch is separately pinned. See [current scope](../../spec/graphics.md).
+presentation and clipboard transport checks, with a working development Settings
+view. Normal app/session and accessible UI integration remain engineering work;
+physical/trusted-session acceptance remains open. Both the coordinate and private
+clipboard integration patches are pinned. See [current scope](../../spec/graphics.md).
 
 ## Browser
 

@@ -1,8 +1,58 @@
 # State
 
-4 November 2026 — first native Settings development view.
+4 November 2026 — native clipboard transport and focus-bound selection.
 
 ## Current update
+
+The private compositor now supports real Wayland clipboard selection and FD
+transfer between independently connected clients. Publications/clears require
+the actual keyboard-focus client/current mapped surface and a serial from that
+focus interval. Replacement/clear/producer exit preserve the expected source
+lifetime. Retained offers cannot begin a transfer in background or empty focus.
+The compositor keeps metadata only, with no history or payload cache. See the
+[native clipboard boundary](../../spec/graphics.md#native-clipboard-selection).
+
+Release passes all six Settings/compositor tests (10.64 s); Debug ASan/UBSan with
+the separately instrumented wlroots passes 6/6 (17.80 s). The clipboard test has
+11 native workflows, including UTF-8 bytes, old/unknown serials, empty selection,
+empty focus, keyboard replacement, producer departure and rejected source-less/
+source-backed drags. A replacement keyboard now retains the user's current
+window rather than selecting an unrelated fallback, with a fresh focus interval.
+An initial empty-read test acknowledgement mistake and the genuine replacement-
+focus failure are retained. All 54 image hashes match both profiles and the
+previous published Settings/input checkpoint; no final UI design was changed.
+
+The wlroots 0.20.2 private integration patch adds original requester provenance,
+receive-time offer focus checking and safe unstarted-drag rejection. Required
+private API symbols reject an old library before a socket/READY is published.
+Archive/patch and all five affected file preimage/result hashes are pinned and
+checked by the fresh source builder. Both prior pointer-only and new library
+profiles remain separate. With the identical final native binaries, a deliberate
+receive-guard mutation exposes bytes during empty focus and fails the exact
+test assertion. That negative library is test-only and never selected normally.
+An old-ABI negative control also fails as expected before opening a socket.
+
+No package/library family, daemon, policy grant, SQL/XML contract, authority
+capability or installed app lifecycle was added. This same-UID private test is
+not clipboard consent, secure lock/sandbox/holder admission, parent bridging,
+FD revocation or completed drag-and-drop. Already transferred descriptors/bytes
+remain outside offer cancellation. Native accessible app controls, actual settings
+backends, normal session/app provisioning, the full experiment desktop, original
+image/installer and physical hardware acceptance remain work.
+
+The ordinary Release build and five selected existing core/broker/boot tests
+pass (0.22 s). The protected old Root/User catalogue hashes and 17 static files/
+profile remain unchanged, with running/recover-handoff historical bookkeeping.
+The old execution intent is still unresolved; clipboard/test process exit is
+not its drain or release evidence.
+All 225 host/snapshot/guest source hashes agree. Both actually mapped private
+wlroots library hashes match their original build reports; all five patched
+source files match their pinned results. All 108 compressed native captures
+reproduce their original hashes. The 28 frozen SQL/XML files are unchanged and
+722 local Markdown file targets resolve. No selected UI/compositor test remains
+live. The retained controls/builds/logs stay separate from normal dependencies.
+
+Previous Settings checkpoint (0d2ef8f):
 
 The optional C17 Settings view now reads actual display observations from the
 private Aetheri Wayland session. Display selection/refresh, native keyboard and

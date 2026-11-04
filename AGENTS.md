@@ -619,6 +619,16 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   broad GL development packages, change shared host/WSL settings or infer physical
   GPU acceptance. SDK/Mesa Release libraries are not ASan-instrumented by the
   current app Debug check. The default Settings option stays OFF.
+- The private compositor now exposes native clipboard selection. Read the
+  clipboard section of spec/graphics.md and the additional pinned wlroots patch.
+  Use the actual request client/current seat focus and current focus serial floor;
+  no UID/source-name inference. Retained offers require current focus at receive.
+  Replacement keyboards retain the current window and start fresh focus. The
+  private getter/reject symbols require the new ABI before socket publication;
+  they are not library provenance. Reject unstarted drags without leaking a
+  source-less drag or destroying the active clipboard source. Clipboard uses no
+  history/payload cache/host bridge; it is not app admission, consent, FD revocation,
+  trusted lock or completed DnD. Preserve the old-ABI/receive-guard negative controls.
 - The user confirmed the current workstation is the main-PC target and requires
   future AM5 portability. Read brains/aetheri/knowledge/testumgebung.md.
   Keep the x86-64/UEFI baseline vendor-neutral; no unconditional -march=native.

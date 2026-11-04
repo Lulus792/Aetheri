@@ -1,5 +1,6 @@
 /* Independent libwayland consumer: no wlroots or compositor-private linkage. */
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,6 +15,7 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "client check failed: %s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); } } while (0)
 struct app;
+struct clipboard_source { struct app *app; struct wl_data_source *object; unsigned index; };
 struct view {
     struct app *app;
     struct wl_surface *surface;
@@ -50,7 +52,89 @@ struct app {
     unsigned grab_mode;
     uint32_t last_button;
     struct wl_callback *sync;
+    const char *clipboard_payload;
+    struct wl_data_device_manager *data_manager;
+    struct wl_data_device *data_device;
+    struct wl_data_offer *offers[64], *selection, *previous_selection;
+    size_t offer_count, source_count;
+    struct clipboard_source sources[16];
+    uint32_t clipboard_serial, old_clipboard_serial;
 };
+static void source_target(void *data, struct wl_data_source *source, const char *mime) { (void)data; (void)source; (void)mime; }
+static void source_send(void *data, struct wl_data_source *source, const char *mime, int32_t fd) {
+    (void)source;
+    struct clipboard_source *s=data;
+    CHECK(!strcmp(mime,"text/plain;charset=utf-8"));
+    size_t length=strlen(s->app->clipboard_payload);
+    ssize_t n;
+    do { n=write(fd,s->app->clipboard_payload,length); } while (n<0 && errno==EINTR);
+    CHECK(n==(ssize_t)length); CHECK(close(fd)==0);
+    printf("CLIPBOARD_SENT %u\n",s->index);
+}
+static void source_cancelled(void *data, struct wl_data_source *source) {
+    (void)source; struct clipboard_source *s=data; printf("CLIPBOARD_CANCEL %u\n",s->index);
+}
+static const struct wl_data_source_listener source_listener={.target=source_target,.send=source_send,.cancelled=source_cancelled};
+static void offer_mime(void *data, struct wl_data_offer *offer, const char *mime) { (void)data; (void)offer; CHECK(!strcmp(mime,"text/plain;charset=utf-8")); }
+static const struct wl_data_offer_listener offer_listener={.offer=offer_mime};
+static void device_offer(void *data, struct wl_data_device *device, struct wl_data_offer *offer) {
+    (void)device; struct app *a=data;
+    CHECK(a->offer_count<64); a->offers[a->offer_count++]=offer;
+    CHECK(wl_data_offer_add_listener(offer,&offer_listener,a)==0);
+}
+static void device_selection(void *data, struct wl_data_device *device, struct wl_data_offer *offer) {
+    (void)device; struct app *a=data;
+    if (a->selection) a->previous_selection=a->selection;
+    a->selection=offer;
+    printf("CLIPBOARD_SELECTION %d\n",offer!=NULL);
+}
+static const struct wl_data_device_listener device_listener={.data_offer=device_offer,.selection=device_selection};
+static void clipboard_command(struct app *a, char c) {
+    if (c=='C' || c=='S' || c=='Z' || c=='J') {
+        CHECK(a->source_count<16);
+        struct clipboard_source *s=&a->sources[a->source_count];
+        *s=(struct clipboard_source){.app=a,.index=(unsigned)a->source_count}; ++a->source_count;
+        s->object=wl_data_device_manager_create_data_source(a->data_manager); CHECK(s->object);
+        CHECK(wl_data_source_add_listener(s->object,&source_listener,s)==0);
+        wl_data_source_offer(s->object,"text/plain;charset=utf-8");
+        if (c=='J') {
+            CHECK(a->keyboard_focus);
+            wl_data_source_set_actions(s->object,WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+            wl_data_device_start_drag(a->data_device,s->object,a->keyboard_focus->surface,NULL,a->last_button);
+        } else wl_data_device_set_selection(a->data_device,s->object,c=='Z' ? 0 : c=='S' ? a->old_clipboard_serial : a->clipboard_serial);
+    } else if (c=='E') wl_data_device_set_selection(a->data_device,NULL,a->clipboard_serial);
+    else if (c=='D') {
+        CHECK(a->keyboard_focus);
+        wl_data_device_start_drag(a->data_device,NULL,a->keyboard_focus->surface,NULL,a->last_button);
+    } else if (c=='H') {
+        CHECK(a->keyboard_focus && a->source_count);
+        wl_data_device_start_drag(a->data_device,a->sources[a->source_count-1].object,a->keyboard_focus->surface,NULL,a->last_button);
+    } else if (c=='R' || c=='O') {
+        struct wl_data_offer *offer=c=='R' ? a->selection : a->previous_selection;
+        if (!offer) {
+            puts("CLIPBOARD_READ 0");
+            CHECK(wl_display_roundtrip(a->display)>=0); printf("CLIPBOARD_SYNC %c\n",c); return;
+        }
+        int fds[2]; CHECK(pipe2(fds,O_CLOEXEC)==0);
+        wl_data_offer_receive(offer,"text/plain;charset=utf-8",fds[1]); CHECK(close(fds[1])==0);
+        CHECK(wl_display_roundtrip(a->display)>=0);
+        unsigned char bytes[128]; size_t used=0;
+        for (;;) {
+            struct pollfd p={.fd=fds[0],.events=POLLIN};
+            int ready; do { ready=poll(&p,1,4000); } while (ready<0 && errno==EINTR);
+            CHECK(ready>0 && used<sizeof(bytes));
+            ssize_t n=read(fds[0],bytes+used,sizeof(bytes)-used);
+            if (n<0 && errno==EINTR) continue;
+            CHECK(n>=0); if (!n) break; used+=(size_t)n;
+        }
+        CHECK(close(fds[0])==0);
+        printf("CLIPBOARD_READ %zu",used);
+        for (size_t i=0;i<used;++i) printf(" %02x",bytes[i]);
+        putchar('\n');
+    } else CHECK(false);
+    CHECK(wl_display_roundtrip(a->display)>=0);
+    printf("CLIPBOARD_SYNC %c\n",c);
+}
 static void release(void *data, struct wl_buffer *object) {
     struct buffer *b = data;
     wl_buffer_destroy(object);
@@ -226,6 +310,7 @@ static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t se
     struct app *a = data; a->keyboard_focus = find_view(a, surface);
     uint32_t *key;
     wl_array_for_each(key, keys) CHECK(*key != 15); /* compositor-consumed Tab */
+    a->old_clipboard_serial=a->clipboard_serial; a->clipboard_serial=serial;
     printf("KEYBOARD_ENTER %u\n", a->keyboard_focus->index);
 }
 static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface) {
@@ -289,6 +374,9 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
         CHECK(!a->seat && version >= 5);
         a->seat = wl_registry_bind(registry, name, &wl_seat_interface, 5);
         CHECK(a->seat && wl_seat_add_listener(a->seat, &seat_listener, a) == 0);
+    } else if (a->clipboard_payload && !strcmp(interface,"wl_data_device_manager")) {
+        CHECK(!a->data_manager && version>=3);
+        a->data_manager=wl_registry_bind(registry,name,&wl_data_device_manager_interface,3);
     }
 }
 static void global_remove(void *data, struct wl_registry *registry, uint32_t name) {
@@ -320,9 +408,12 @@ static void destroy_view(struct view *v) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input"))));
+    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b"))));
     struct app a = {.shell_version = argc == 2 && !strcmp(argv[1], "--legacy") ? 3 : 5,
                     .input = argc == 2 && !strcmp(argv[1], "--input")};
+    if (argc==2 && !strncmp(argv[1],"--clipboard-",12)) {
+        a.input=true; a.clipboard_payload=argv[1][12]=='a' ? "Aetheri A Grüße\n" : "Aetheri B Grüße\n";
+    }
     if (a.input) { a.xkb = xkb_context_new(XKB_CONTEXT_NO_ENVIRONMENT_NAMES); CHECK(a.xkb); }
     wl_list_init(&a.buffers);
     a.display = wl_display_connect(NULL);
@@ -330,6 +421,11 @@ int main(int argc, char **argv) {
     a.registry = wl_display_get_registry(a.display);
     CHECK(a.registry && wl_registry_add_listener(a.registry, &registry_listener, &a) == 0);
     CHECK(wl_display_roundtrip(a.display) >= 0 && a.compositor && a.shm && a.shell && a.output_count == 3);
+    if (a.clipboard_payload) {
+        CHECK(a.data_manager && a.seat);
+        a.data_device=wl_data_device_manager_get_data_device(a.data_manager,a.seat); CHECK(a.data_device);
+        CHECK(wl_data_device_add_listener(a.data_device,&device_listener,&a)==0);
+    }
     create_view(&a, 0);
     create_view(&a, 1);
     for (;;) {
@@ -360,6 +456,14 @@ int main(int argc, char **argv) {
             else if (a.input && c == 'z') { a.grab_mode = 2; puts("ARM_RESIZE"); }
             else if (a.input && c == 'h') { a.grab_mode = 3; puts("ARM_FOREIGN"); }
             else if (a.input && c == 't') { xdg_toplevel_move(a.views[0].top, a.seat, a.last_button); input_sync(&a); }
+            else if (a.clipboard_payload && c=='U') {
+                destroy_view(&a.views[0]); destroy_view(&a.views[1]);
+                CHECK(wl_display_roundtrip(a.display)>=0); puts("CLIPBOARD_VIEWS_UNMAPPED");
+            } else if (a.clipboard_payload && c=='N') {
+                CHECK(!a.views[0].surface && !a.views[1].surface);
+                create_view(&a,0); create_view(&a,1); puts("CLIPBOARD_VIEWS_CREATED");
+            }
+            else if (a.clipboard_payload && strchr("CSZERODJH",c)) clipboard_command(&a,c);
             else CHECK(false);
         }
     }
@@ -376,6 +480,10 @@ int main(int argc, char **argv) {
     if (a.pointer) wl_pointer_release(a.pointer);
     if (a.keyboard) wl_keyboard_release(a.keyboard);
     if (a.seat) wl_seat_destroy(a.seat);
+    for (size_t i=0;i<a.source_count;++i) wl_data_source_destroy(a.sources[i].object);
+    for (size_t i=0;i<a.offer_count;++i) wl_data_offer_destroy(a.offers[i]);
+    if (a.data_device) wl_data_device_release(a.data_device);
+    if (a.data_manager) wl_data_device_manager_destroy(a.data_manager);
     wl_display_disconnect(a.display);
     xkb_state_unref(a.key_state); xkb_keymap_unref(a.keymap); xkb_context_unref(a.xkb);
     puts("CLOSED");

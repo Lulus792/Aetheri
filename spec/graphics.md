@@ -38,7 +38,8 @@ select a target. Implicit grabs retain surface-relative coordinates outside the
 window. Unmapping the origin does not redirect the held release to another app.
 Resize uses bounded geometry and client min/max constraints. Device removal
 withdraws capabilities; a fresh keyboard does not inherit an old held Shift.
-Multiple simultaneous keyboard aggregation, touch/gestures, IME, clipboard and
+Multiple simultaneous keyboard aggregation, touch/gestures and IME remain work.
+The private native clipboard boundary is described below; clipboard UI/consent and
 physical Bluetooth/device recovery still need their own acceptance.
 
 `--nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET` connects explicitly to a named
@@ -73,7 +74,7 @@ Native consumers observe actual seat events without linking the compositor.
   Shutdown first destroys clients, then outputs and renderer resources.
 - A maximum of 64 live toplevels is enforced. This is not a complete protocol
   resource quota or protection against malicious clients. Production access
-  policy, sandbox, lock, clipboard, popups, trusted shell roles, physical input,
+  policy, sandbox, lock, clipboard mediation, popups, trusted shell roles, physical input,
   scaling/hotplug and GPU recovery remain work.
 - No authority RPC, catalogue write, launch capability, lease or app identity is
   connected. A mapped window proves neither admitted readiness nor process drain.
@@ -234,3 +235,69 @@ Primary references reviewed: [pinned wlroots source](https://gitlab.freedesktop.
 [Expat changes](https://github.com/libexpat/libexpat/blob/R_2_9_0/expat/Changes) and
 [DNF cache semantics](https://dnf5.readthedocs.io/en/latest/dnf5.conf.5.html).
 Live API pages may describe newer versions; pinned source/headers are authoritative.
+
+## Native clipboard selection
+
+4 November 2026. The private compositor now advertises `wl_data_device_manager`
+version 3 and accepts clipboard selections through its seat input module.
+This is real client-to-client Wayland/FD transport. It introduces no clipboard
+history, persistence, privileged data-control protocol or resident clipboard
+manager. The existing trusted same-UID private runtime-directory boundary still
+applies; this is not normal admitted-app or secure-session clipboard policy.
+
+The input module accepts publication or explicit clearing only from the actual
+current keyboard-focus seat client, with a mapped current root surface and a
+serial sent during that focus interval. wlroots first validates that the serial
+was actually issued to that client and was not superseded. Aetheri separately
+checks the focus interval, including when the current selection is empty. These
+are bounded 32-bit Wayland serial observations, not durable user/app identity.
+Keyboard removal invalidates the interval. Replacing a keyboard retains the
+current logical window, sends fresh native focus and cannot reuse the old serial.
+
+The producer owns content and serves requested bytes through the receiver's FD.
+The compositor retains source/offer metadata and never reads, logs or caches the
+payload. Replacement cancels the old source; clearing or producer departure
+clears the current selection. Losing a window/focus does not erase a still-live
+producer's clipboard. An old offer cannot start a new transfer without current
+focus, including the interval when no window has focus. A transferred FD or bytes
+already copied into another process cannot be revoked by destroying an offer.
+App byte quotas, user paste consent, sensitive-content handling, session lock,
+cross-account/sandbox admission and parent/nested clipboard bridging remain work.
+
+The pinned wlroots 0.20.2 interface omits the requesting client from its selection
+event. Its receive handler also lacks a current-focus check on an offer retained
+during empty focus. The small [private integration patch](../patches/wlroots-0.20.2-clipboard-context.patch)
+adds original client provenance to the event and binds each selection offer to
+its live seat for receive-time focus checks. Existing offer replacement and
+resource destruction still make the old resource inert.
+
+The required private symbols `wlr_aetheri_selection_client_v1` and
+`wlr_aetheri_reject_unstarted_drag_v1` deliberately prevent silently loading an
+old incompatible library. The first is called at startup before opening the
+socket. These symbols detect an old ABI, not trusted source/image provenance.
+The second frees only an unstarted drag; the compositor separately
+cancels a fresh rejected source while preserving its current clipboard source.
+Drag-and-drop/grab/icon admission is not implemented by enabling clipboard.
+Source-less and source-backed rejected drags must leave no leaked drag/grab.
+This is an Aetheri-private library integration, not an upstream API claim.
+
+The fresh [source builder](../tools/build_graphics.py) verifies the archive,
+pointer-enter patch and clipboard patch, plus each affected file's exact original
+and result hashes. Unified hunks require exact positions/context/counts, with no
+fuzz, shell patch execution or fallback. New Release/Debug prefixes preserve
+the prior pointer-only library and all original evidence. No new package family,
+SQL/XML, authority capability, policy permission or installed app is introduced.
+
+`compositor.clipboard` uses two independently connected libwayland clients and
+actual seat focus. It verifies UTF-8 pipe bytes, replacement/cancellation, clear,
+producer exit, unfocused and empty-focus reads, old/unknown serials, keyboard
+replacement, selection retention through window unmap/remap and rejected drags.
+It exercises native protocol objects/FDs, without linking the client to wlroots
+or exposing an injection global in the ordinary compositor. Test payloads are
+fixed non-private text. The exact executed scope/results are in STATE. MIME
+families beyond that text corpus, clipboard app UI and physical devices still
+need their own acceptance.
+
+Primary references: [Wayland data-device protocol](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_data_device)
+and [wlroots data-device API](https://wlroots.pages.freedesktop.org/wlroots/wlr/types/wlr_data_device.h.html).
+The pinned 0.20.2 source, not a newer API page, defines the reviewed boundary.

@@ -1,0 +1,93 @@
+--- a/include/wlr/types/wlr_seat.h
++++ b/include/wlr/types/wlr_seat.h
+@@ -324,6 +324,8 @@
+ struct wlr_seat_request_set_selection_event {
+ 	struct wlr_data_source *source;
+ 	uint32_t serial;
++	/* Aetheri private profile: original requester, NULL only for compositor code. */
++	struct wlr_seat_client *client;
+ };
+ 
+ struct wlr_seat_request_set_primary_selection_event {
+--- a/include/wlr/types/wlr_data_device.h
++++ b/include/wlr/types/wlr_data_device.h
+@@ -45,6 +45,9 @@
+ 	struct {
+ 		struct wl_listener source_destroy;
+ 	} WLR_PRIVATE;
++
++	/* Aetheri private profile: lifetime is bounded by the seat-owned offer. */
++	struct wlr_seat *seat;
+ };
+ 
+ /**
+@@ -176,6 +179,12 @@
+ void wlr_seat_set_selection(struct wlr_seat *seat,
+ 	struct wlr_data_source *source, uint32_t serial);
+ 
++/* Aetheri private integration. Required symbols prevent loading the old ABI. */
++struct wlr_seat_client *wlr_aetheri_selection_client_v1(
++	const struct wlr_seat_request_set_selection_event *event);
++/* Frees only an unstarted drag. The caller retains responsibility for its source. */
++bool wlr_aetheri_reject_unstarted_drag_v1(struct wlr_drag *drag);
++
+ /**
+  * Creates a new drag. To request to start the drag, call
+  * wlr_seat_request_start_drag().
+--- a/types/data_device/wlr_data_device.c
++++ b/types/data_device/wlr_data_device.c
+@@ -158,6 +158,7 @@
+ 	}
+ 
+ 	struct wlr_seat_request_set_selection_event event = {
++		.client = client,
+ 		.source = source,
+ 		.serial = serial,
+ 	};
+@@ -317,3 +318,8 @@
+ 
+ 	return manager;
+ }
++
++struct wlr_seat_client *wlr_aetheri_selection_client_v1(
++		const struct wlr_seat_request_set_selection_event *event) {
++	return event ? event->client : NULL;
++}
+--- a/types/data_device/wlr_data_offer.c
++++ b/types/data_device/wlr_data_offer.c
+@@ -99,6 +99,13 @@
+ 		return;
+ 	}
+ 
++	if (offer->type == WLR_DATA_OFFER_SELECTION) {
++		struct wlr_seat_client *focused = offer->seat->keyboard_state.focused_client;
++		if (focused == NULL || focused->client != client) {
++			close(fd);
++			return;
++		}
++	}
+ 	wlr_data_source_send(offer->source, mime_type, fd);
+ }
+ 
+@@ -249,6 +256,7 @@
+ 	}
+ 	offer->source = source;
+ 	offer->type = type;
++	offer->seat = seat_client->seat;
+ 
+ 	struct wl_client *client = wl_resource_get_client(device_resource);
+ 	uint32_t version = wl_resource_get_version(device_resource);
+--- a/types/data_device/wlr_drag.c
++++ b/types/data_device/wlr_drag.c
+@@ -559,3 +559,11 @@
+ 
+ 	wlr_seat_start_drag(seat, drag, serial);
+ }
++
++bool wlr_aetheri_reject_unstarted_drag_v1(struct wlr_drag *drag) {
++	if (drag == NULL || drag->started || drag->cancelling) {
++		return false;
++	}
++	drag_destroy(drag);
++	return true;
++}

@@ -237,6 +237,11 @@ if(AETHERI_COMPOSITOR)
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
             "${CMAKE_CURRENT_BINARY_DIR}")
         set_tests_properties(compositor.input PROPERTIES TIMEOUT 45)
+        add_test(NAME compositor.clipboard COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor_clipboard.py"
+            $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
+            "${CMAKE_CURRENT_BINARY_DIR}")
+        set_tests_properties(compositor.clipboard PROPERTIES TIMEOUT 60)
         add_test(NAME compositor.nested COMMAND Python3::Interpreter
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor_nested.py"
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-compositor>

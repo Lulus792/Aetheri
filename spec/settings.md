@@ -203,7 +203,7 @@ checks above are not evidence until their selected binaries actually pass.
 Native semantics/AT-SPI and a screenreader workflow are still required. SDL3 and
 SDL_ttf do not supply a complete accessible widget toolkit; this view must not
 be represented as a daily-use accessible Settings app. IME/text editing,
-clipboard, full settings backends/async failure handling, session admission,
+clipboard editing UI, full settings backends/async failure handling, session admission,
 persistence/removal, mixed-density physical monitors, hardware GPU, suspend and
 render/display recovery remain work. Current scale controls change text, not a
 physical monitor or system scale. Real native 2x output evidence is separate
