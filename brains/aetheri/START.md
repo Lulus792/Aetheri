@@ -6,6 +6,8 @@ strict service-main admission and interruption transactions. Read STATE before
 relying on retained-handle evidence.
 The separate [DRM development session](../../spec/session.md) now has actual
 virtual-display/input evidence; normal session and lock/resume admission remain open.
+The [private desktop connection](../../spec/desktop.md) now has native role/focus/
+foreign-client tests; its dock/search consumer is still a diagnostic probe.
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
 

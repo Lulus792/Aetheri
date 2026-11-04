@@ -1,5 +1,24 @@
 # Decisions
 
+## Separate the development desktop connection — 5 November 2026
+
+Use one independently inherited AF_UNIX stream endpoint for the private shell
+control and existing wlroots layer-shell v5, with advertisement AND bind filtering
+to the original connection. Keep compositor window/focus policy, desktop UI and
+supervisor app launching in separate modules. Ordinary xdg windows do not express
+the dock reservation/exclusive search role; a globally accessible shell protocol
+would grant these controls to ordinary apps. No UID/title/app-ID inference or
+automatic replacement is permitted. Exact metadata/IDs remain descriptive.
+
+Bound one dock/search surface per actual output, track configure dimensions to
+avoid buffer/configure feedback, retain logical app focus during exclusive search,
+and distinguish expected retirement from an unexpected shell failure. This is a
+development connection capability, not an authenticated process or production
+session/app/lock protocol. Copy the upstream XML verbatim from the already pinned
+archive with its license and verify its hash. See [contract](../../spec/desktop.md).
+Product dock/search composition, fixed Settings launch supervision, normal
+admission, physical/a11y/resume acceptance and fullscreen-dock policy remain work.
+
 ## Keep development supervision separate from production admission — 4 November 2026
 
 Use one ordinary-user development supervisor inside an explicit PAM/logind unit,

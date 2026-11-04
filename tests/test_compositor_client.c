@@ -444,6 +444,12 @@ int main(int argc, char **argv) {
             else if (c == 'r') xdg_toplevel_unset_fullscreen(a.views[0].top);
             else if (c == 'm') xdg_toplevel_set_maximized(a.views[0].top);
             else if (c == 'n') xdg_toplevel_unset_maximized(a.views[0].top);
+            else if (c == 'u') {
+                char title[600] = "Grüße\n"; size_t used = strlen(title);
+                for (unsigned i = 0; i < 280; ++i) { title[used++] = (char)0xc3; title[used++] = (char)0xa4; }
+                title[used] = '\0'; xdg_toplevel_set_title(a.views[0].top, title);
+                puts("METADATA_SENT");
+            }
             else if (c == 'p') {
                 CHECK(!a.views[0].frame);
                 a.views[0].frame = wl_surface_frame(a.views[0].surface);

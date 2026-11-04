@@ -17,13 +17,15 @@ struct output {
     unsigned index;
     unsigned capture;
     uint64_t commits;
+    int reserved_bottom;
 };
 struct window {
     struct server *server;
     struct wlr_xdg_toplevel *toplevel;
     struct wlr_scene_tree *tree;
     struct wl_list link;
-    struct wl_listener commit, destroy, map, unmap, maximize, fullscreen, move, resize;
+    struct wl_listener commit, destroy, map, unmap, maximize, fullscreen, move, resize, title, app_id;
+    uint32_t id;
     unsigned home;
     int x, y;
     bool mapped;
@@ -37,6 +39,8 @@ struct server {
     struct wlr_output_layout *layout;
     struct wlr_xdg_shell *shell;
     struct ae_input *input;
+    struct ae_desktop *desktop;
+    struct wlr_scene_tree *windows_tree;
     struct wl_listener new_toplevel;
     struct wl_listener backend_destroy;
     struct wl_listener new_output, session_active, session_destroy;
@@ -44,9 +48,12 @@ struct server {
     struct output outputs[OUTPUT_LIMIT];
     struct wl_list windows;
     unsigned output_count, window_count, next_home, capture;
+    uint32_t next_window_id;
     int capture_fd;
     bool failed, nested, drm, shutting_down;
 };
+
+void ae_server_configure(struct window *window);
 
 
 #endif

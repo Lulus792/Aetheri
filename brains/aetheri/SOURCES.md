@@ -4,6 +4,24 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Private desktop connection — 5 November 2026
+
+- [Contract and native acceptance](../../spec/desktop.md),
+  [private XML/provenance](../../protocols/README.md),
+  [compositor integration](../../src/compositor/desktop.c) and
+  [independent native checks](../../tools/test_desktop.py).
+- [Wayland server API](https://wayland.freedesktop.org/docs/html/apc.html), read
+  5 November: global filtering covers advertisement and binding; original FD
+  ownership transfers to wl_client_create only on success. This is not PID proof.
+- Existing pinned wlroots 0.20.2 layer header/implementation and scene helper were
+  inspected; copied XML bytes and upstream license match that archive exactly.
+  [Graphics inputs](../../spec/graphics-inputs.json) pins the copied hash.
+- Private local/desktop-connection-2026-11-05 holds final native results, 78 equal
+  image hashes per profile, exact filter-mutation rejection and nineteen protected
+  old-file checks. The native color-block capture is a protocol diagnostic, not
+  product visual, assistive, physical or trusted-session acceptance. Both initial
+  counterexample harness errors and the actual precise rejection remain recorded.
+
 ## Development supervisor and native viewer — 4 November 2026
 
 - [Development guide/contracts](../../spec/development-session.md),

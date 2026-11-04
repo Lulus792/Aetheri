@@ -36,6 +36,11 @@ compositor and Settings on the carrier's actual virtual display/input. It has a
 repeatable start/status/stop command and an optional native QEMU console. This
 continues desktop development while normal session/app admission remains closed.
 
+The compositor also has a tested [private desktop connection](spec/desktop.md)
+for dock/search placement, focus and existing-window activation. The current
+consumer is a diagnostic probe; the original dock/search UI and app starter are
+the next implementation step.
+
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
 [Architecture options](brains/aetheri/knowledge/architecture-options.md) ·

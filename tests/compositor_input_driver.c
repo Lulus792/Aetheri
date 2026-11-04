@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/interfaces/wlr_pointer.h>
+#include <wlr/types/wlr_output.h>
 struct input_driver {
     struct server *server;
     struct wl_event_source *source;
@@ -52,11 +53,21 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     if (length < 0 && (errno == EINTR || errno == EAGAIN)) return 0;
     if (length <= 0 || (size_t)length >= sizeof(text) - 1) goto invalid;
     unsigned code, state;
+    unsigned output_index, width, height;
     double x, y;
     int used = 0;
     ++d->time;
     if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
+    else if (sscanf(text, "O %u %u %u%n", &output_index, &width, &height, &used) == 3 && used == length &&
+            output_index < d->server->output_count && width >= 320 && width <= 3840 && height >= 320 && height <= 2160) {
+        struct wlr_output_state requested; wlr_output_state_init(&requested);
+        wlr_output_state_set_custom_mode(&requested, (int32_t)width, (int32_t)height, 60000);
+        struct wlr_output_event_request_state event = {.output = d->server->outputs[output_index].output, .state = &requested};
+        if (!event.output) { wlr_output_state_finish(&requested); goto invalid; }
+        wl_signal_emit_mutable(&event.output->events.request_state, &event);
+        wlr_output_state_finish(&requested);
+    }
     else if (d->live && sscanf(text, "M %lf %lf%n", &x, &y, &used) == 2 && used == length && isfinite(x) && isfinite(y) && x >= 0 && x < 8320 && y >= 0 && y < 2160) {
         struct wlr_pointer_motion_absolute_event event = {.pointer = &d->pointer, .time_msec = d->time, .x = x / 8320.0, .y = y / 2160.0};
         wl_signal_emit_mutable(&d->pointer.events.motion_absolute, &event);

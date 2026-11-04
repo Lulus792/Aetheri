@@ -1,5 +1,6 @@
 #include "input.h"
 #include "server.h"
+#include "desktop.h"
 #include <drm_fourcc.h>
 #include <limits.h>
 #include <linux/input-event-codes.h>
@@ -69,10 +70,20 @@ static void default_cursor(struct ae_input *in) {
 }
 static void focus(struct ae_input *in, struct window *w) {
     if (w && !w->mapped) return;
-    bool changed = in->focused != w;
+    struct window *old = in->focused;
+    bool changed = in->focused != w || (w && in->seat->keyboard_state.focused_surface != w->toplevel->base->surface);
     if (in->focused && in->focused != w) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
     in->focused = w;
-    if (!w) { in->clipboard_focus_valid = false; wlr_seat_keyboard_notify_clear_focus(in->seat); return; }
+    if (ae_desktop_keyboard_surface(in->server->desktop)) {
+        if (old && old != w) ae_desktop_window(in->server->desktop, old);
+        ae_desktop_window(in->server->desktop, w);
+        return;
+    }
+    if (!w) {
+        in->clipboard_focus_valid = false; wlr_seat_keyboard_notify_clear_focus(in->seat);
+        if (old) ae_desktop_window(in->server->desktop, old);
+        return;
+    }
     wlr_scene_node_raise_to_top(&w->tree->node);
     if (changed) wlr_xdg_toplevel_set_activated(w->toplevel, true);
     struct wlr_keyboard *kb = wlr_seat_get_keyboard(in->seat);
@@ -93,6 +104,35 @@ static void focus(struct ae_input *in, struct window *w) {
         in->clipboard_focus_valid = true;
     }
     wlr_seat_keyboard_notify_enter(in->seat, w->toplevel->base->surface, keys, count, &kb->modifiers);
+    if (changed) {
+        if (old && old != w) ae_desktop_window(in->server->desktop, old);
+        ae_desktop_window(in->server->desktop, w);
+    }
+}
+bool ae_input_focused(struct ae_input *in, struct window *w) {
+    return in && w && in->focused == w && in->seat->keyboard_state.focused_surface == w->toplevel->base->surface;
+}
+void ae_input_activate(struct ae_input *in, struct window *w) { if (in) focus(in, w); }
+void ae_input_shell_focus(struct ae_input *in, struct wlr_surface *surface) {
+    if (!in || !surface || !surface->mapped || in->seat->keyboard_state.focused_surface == surface) return;
+    if (in->grabbed) wlr_xdg_toplevel_set_resizing(in->grabbed->toplevel, false);
+    in->grabbed = NULL; in->clipboard_focus_valid = false;
+    if (in->focused) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
+    struct wlr_keyboard *kb = wlr_seat_get_keyboard(in->seat);
+    if (!kb) return;
+    uint32_t keys[WLR_KEYBOARD_KEYS_CAP]; size_t count = 0;
+    struct keyboard *entry;
+    wl_list_for_each(entry, &in->keyboards, link) if (entry->keyboard == kb) {
+        for (size_t i = 0; i < kb->num_keycodes; ++i) {
+            uint32_t code = kb->keycodes[i];
+            if (code <= KEY_MAX && !entry->suppressed[code]) keys[count++] = code;
+        }
+    }
+    wlr_seat_keyboard_notify_enter(in->seat, surface, keys, count, &kb->modifiers);
+    if (in->focused) ae_desktop_window(in->server->desktop, in->focused);
+}
+void ae_input_restore(struct ae_input *in) {
+    if (in && ae_desktop_surface(in->server->desktop, in->seat->keyboard_state.focused_surface)) focus(in, in->focused);
 }
 static void fallback(struct ae_input *in, struct window *exclude) {
     struct window *w;
@@ -198,7 +238,8 @@ static void button(struct wl_listener *listener, void *data) {
     if (e->state == WL_POINTER_BUTTON_STATE_PRESSED && !in->seat->pointer_state.button_count) {
         double x, y;
         struct wlr_scene_node *node = wlr_scene_node_at(&in->server->scene->tree.node, in->cursor->x, in->cursor->y, &x, &y);
-        focus(in, node_window(node));
+        if (!ae_desktop_surface(in->server->desktop, in->seat->pointer_state.focused_surface))
+            focus(in, node_window(node));
     }
     wlr_seat_pointer_notify_button(in->seat, e->time_msec, e->button, e->state);
     if (!in->seat->pointer_state.button_count) {
@@ -239,9 +280,19 @@ static void key(struct wl_listener *listener, void *data) {
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;
     }
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode == KEY_SPACE &&
+            (wlr_keyboard_get_modifiers(k->keyboard) & WLR_MODIFIER_LOGO)) {
+        struct wlr_output *o = wlr_output_layout_output_at(in->server->layout, in->cursor->x, in->cursor->y);
+        for (unsigned i = 0; i < in->server->output_count; ++i) {
+            if (in->server->outputs[i].output == o && ae_desktop_toggle(in->server->desktop, i)) {
+                k->suppressed[e->keycode] = true; return;
+            }
+        }
+    }
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode == KEY_TAB &&
             (wlr_keyboard_get_modifiers(k->keyboard) & WLR_MODIFIER_ALT)) {
         k->suppressed[e->keycode] = true;
+        if (ae_desktop_keyboard_surface(in->server->desktop)) return;
         struct window *w, *first = NULL;
         bool after = false;
         wl_list_for_each(w, &in->server->windows, link) {
@@ -270,7 +321,9 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
     if (!wl_list_empty(&in->keyboards)) {
         k = wl_container_of(in->keyboards.next, k, link);
         wlr_seat_set_keyboard(in->seat, k->keyboard);
-        if (in->focused) focus(in, in->focused);
+        struct wlr_surface *shell = ae_desktop_keyboard_surface(in->server->desktop);
+        if (shell) ae_input_shell_focus(in, shell);
+        else if (in->focused) focus(in, in->focused);
     } else {
         in->clipboard_focus_valid = false;
         wlr_seat_keyboard_notify_clear_focus(in->seat);
@@ -308,7 +361,9 @@ bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
         wl_signal_add(&kb->events.key, &k->key); wl_signal_add(&kb->events.modifiers, &k->modifiers);
         wl_signal_add(&device->events.destroy, &k->destroy); wl_list_insert(&in->keyboards, &k->link);
         wlr_seat_set_keyboard(in->seat, kb);
-        if (in->focused && in->focused->mapped) focus(in, in->focused);
+        struct wlr_surface *shell = ae_desktop_keyboard_surface(in->server->desktop);
+        if (shell) ae_input_shell_focus(in, shell);
+        else if (in->focused && in->focused->mapped) focus(in, in->focused);
         else fallback(in, NULL);
     } else if (device->type == WLR_INPUT_DEVICE_POINTER) {
         struct pointer *p = calloc(1, sizeof(*p));

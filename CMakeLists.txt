@@ -203,7 +203,35 @@ if(AETHERI_COMPOSITOR)
         COMMAND "${WAYLAND_SCANNER}" client-header "${AETHERI_XDG_XML}" "${AETHERI_XDG_CLIENT}"
         COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_XDG_XML}" "${AETHERI_XDG_CODE}"
         DEPENDS "${AETHERI_XDG_XML}" VERBATIM)
-    add_executable(aetheri-compositor src/compositor/main.c src/compositor/input.c "${AETHERI_XDG_HEADER}")
+    set(AETHERI_DESKTOP_XML "${CMAKE_CURRENT_SOURCE_DIR}/protocols/aetheri-development-desktop-v1.xml")
+    set(AETHERI_LAYER_XML "${CMAKE_CURRENT_SOURCE_DIR}/protocols/wlr-layer-shell-unstable-v1.xml")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${AETHERI_LAYER_XML}" "${CMAKE_CURRENT_SOURCE_DIR}/spec/graphics-inputs.json")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/spec/graphics-inputs.json" AETHERI_GRAPHICS_INPUTS)
+    string(JSON AETHERI_LAYER_EXPECTED GET "${AETHERI_GRAPHICS_INPUTS}" desktop_layer_protocol sha256)
+    file(SHA256 "${AETHERI_LAYER_XML}" AETHERI_LAYER_ACTUAL)
+    if(NOT AETHERI_LAYER_ACTUAL STREQUAL AETHERI_LAYER_EXPECTED)
+        message(FATAL_ERROR "Reviewed wlroots layer-shell protocol bytes changed")
+    endif()
+    set(AETHERI_DESKTOP_SERVER "${CMAKE_CURRENT_BINARY_DIR}/generated/aetheri-development-desktop-v1-server.h")
+    set(AETHERI_DESKTOP_CLIENT "${CMAKE_CURRENT_BINARY_DIR}/generated/aetheri-development-desktop-v1-client.h")
+    set(AETHERI_DESKTOP_CODE "${CMAKE_CURRENT_BINARY_DIR}/generated/aetheri-development-desktop-v1.c")
+    set(AETHERI_LAYER_SERVER "${CMAKE_CURRENT_BINARY_DIR}/generated/wlr-layer-shell-unstable-v1-protocol.h")
+    set(AETHERI_LAYER_CLIENT "${CMAKE_CURRENT_BINARY_DIR}/generated/wlr-layer-shell-v1-client.h")
+    set(AETHERI_LAYER_CODE "${CMAKE_CURRENT_BINARY_DIR}/generated/wlr-layer-shell-v1.c")
+    add_custom_command(OUTPUT "${AETHERI_DESKTOP_SERVER}" "${AETHERI_DESKTOP_CLIENT}" "${AETHERI_DESKTOP_CODE}"
+            "${AETHERI_LAYER_SERVER}" "${AETHERI_LAYER_CLIENT}" "${AETHERI_LAYER_CODE}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+        COMMAND "${WAYLAND_SCANNER}" server-header "${AETHERI_DESKTOP_XML}" "${AETHERI_DESKTOP_SERVER}"
+        COMMAND "${WAYLAND_SCANNER}" client-header "${AETHERI_DESKTOP_XML}" "${AETHERI_DESKTOP_CLIENT}"
+        COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_DESKTOP_XML}" "${AETHERI_DESKTOP_CODE}"
+        COMMAND "${WAYLAND_SCANNER}" server-header "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_SERVER}"
+        COMMAND "${WAYLAND_SCANNER}" client-header "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CLIENT}"
+        COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CODE}"
+        DEPENDS "${AETHERI_DESKTOP_XML}" "${AETHERI_LAYER_XML}" VERBATIM)
+    set(AETHERI_COMPOSITOR_SOURCES src/compositor/main.c src/compositor/input.c src/compositor/desktop.c
+        "${AETHERI_XDG_HEADER}" "${AETHERI_DESKTOP_SERVER}" "${AETHERI_DESKTOP_CODE}" "${AETHERI_LAYER_SERVER}")
+    add_executable(aetheri-compositor ${AETHERI_COMPOSITOR_SOURCES})
     target_include_directories(aetheri-compositor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
     target_compile_definitions(aetheri-compositor PRIVATE _GNU_SOURCE WLR_USE_UNSTABLE)
     if(AETHERI_DRM_SESSION)
@@ -228,7 +256,7 @@ if(AETHERI_COMPOSITOR)
                 $<TARGET_FILE:aetheri-compositor> "${CMAKE_CURRENT_BINARY_DIR}")
             set_tests_properties(compositor.session_arguments PROPERTIES TIMEOUT 30)
         endif()
-        add_executable(test_compositor_server src/compositor/main.c src/compositor/input.c tests/compositor_input_driver.c "${AETHERI_XDG_HEADER}")
+        add_executable(test_compositor_server ${AETHERI_COMPOSITOR_SOURCES} tests/compositor_input_driver.c)
         target_include_directories(test_compositor_server PRIVATE src tests "${CMAKE_CURRENT_BINARY_DIR}/generated")
         target_compile_definitions(test_compositor_server PRIVATE _GNU_SOURCE WLR_USE_UNSTABLE AETHERI_INPUT_TEST)
         target_compile_options(test_compositor_server PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -242,6 +270,21 @@ if(AETHERI_COMPOSITOR)
         target_compile_definitions(test_compositor_client PRIVATE _GNU_SOURCE)
         target_compile_options(test_compositor_client PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
         target_link_libraries(test_compositor_client PRIVATE PkgConfig::WAYLAND_CLIENT PkgConfig::XKBCOMMON)
+        add_executable(test_desktop_client tests/test_desktop_client.c "${AETHERI_DESKTOP_CLIENT}" "${AETHERI_DESKTOP_CODE}"
+            "${AETHERI_LAYER_CLIENT}" "${AETHERI_LAYER_CODE}" "${AETHERI_XDG_CLIENT}" "${AETHERI_XDG_CODE}")
+        target_include_directories(test_desktop_client PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+        target_compile_definitions(test_desktop_client PRIVATE _GNU_SOURCE)
+        target_compile_options(test_desktop_client PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        target_link_libraries(test_desktop_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+        if(AETHERI_SANITIZERS)
+            target_compile_options(test_desktop_client PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(test_desktop_client PRIVATE -fsanitize=address,undefined)
+        endif()
+        add_test(NAME compositor.desktop COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_desktop.py"
+            $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_desktop_client>
+            $<TARGET_FILE:test_compositor_client> "${CMAKE_CURRENT_BINARY_DIR}")
+        set_tests_properties(compositor.desktop PROPERTIES TIMEOUT 60)
         if(AETHERI_SANITIZERS)
             target_compile_options(test_compositor_client PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
             target_link_options(test_compositor_client PRIVATE -fsanitize=address,undefined)

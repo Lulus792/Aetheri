@@ -13,6 +13,12 @@ headless/nested selection or imply a trusted session, lock or resume policy.
 
 ## Implemented scope
 
+The optional [private desktop connection](desktop.md) adds compositor-side dock/
+search roles, work-area reservation and control of existing windows bound to
+the original connection. Its native consumer is a diagnostic protocol probe; product
+shell UI and app-start supervision are next. Neither global exists without an
+explicit inherited shell endpoint. Existing no-shell modes remain available.
+
 The explicit `--headless` mode creates three virtual outputs: 1920×1080,
 2560×1440 and 3840×2160, arranged left to right in the scene. These buffers are
 not sent to a physical display. New windows receive an initial configure and

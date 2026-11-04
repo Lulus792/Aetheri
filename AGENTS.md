@@ -636,3 +636,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   machine paths, local state, downloaded/build trees and VM images out of Git.
 - No laptop installation disk is selected. Verify exact device identity and
   recovery steps before any destructive hardware test.
+- The private desktop connection now exists in compositor/desktop.c; read
+  spec/desktop.md. Only the independently inherited original stream connection
+  can discover/bind layer-shell/control; no UID/title/app-ID or numeric-PID proof.
+  Keep view state, compositor focus policy and fixed-app supervisor launches
+  separate. Neither private global exists without --shell-fd. The current native
+  consumer is diagnostic only; no SDL product shell/controller app-start channel
+  or production session/lock/app authority is implemented. Unexpected shell loss
+  fails this development session; retire acknowledges only orderly departure,
+  never lifecycle/lease settlement. Preserve old intents and normal empty caps.

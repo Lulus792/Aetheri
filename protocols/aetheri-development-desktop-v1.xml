@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="aetheri_development_desktop_v1">
+  <copyright>Copyright 2026 Aetheri contributors. MIT; see LICENSE.</copyright>
+  <interface name="aetheri_development_desktop_v1" version="1">
+    <description summary="private development desktop connection">
+      Available only on the independently inherited desktop connection. This is
+      development window management, not app/run admission, security UI or an SDK.
+      Window IDs are session-local, never reused and are not process identities.
+      Metadata is descriptive, never publisher/installation/permission evidence.
+    </description>
+    <request name="destroy" type="destructor"/>
+    <request name="activate"><arg name="window_id" type="uint"/></request>
+    <request name="retire">
+      <description summary="acknowledge an orderly desktop departure">
+        The server acknowledges this on the original connection. Departure then
+        ends this development compositor. No lease or normal app state is settled.
+      </description>
+    </request>
+    <event name="output"><arg name="index" type="uint"/><arg name="name" type="string"/></event>
+    <event name="window"><arg name="window_id" type="uint"/><arg name="title" type="string"/><arg name="app_id" type="string"/><arg name="active" type="uint"/></event>
+    <event name="closed"><arg name="window_id" type="uint"/></event>
+    <event name="toggle"><arg name="output_index" type="uint"/></event>
+    <event name="activated"><arg name="window_id" type="uint"/><arg name="found" type="uint"/></event>
+    <event name="retired"/>
+    <event name="done"/>
+  </interface>
+</protocol>

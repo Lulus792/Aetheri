@@ -1,8 +1,38 @@
 # State
 
-4 November 2026 — repeatable development supervision and native VM console.
+5 November 2026 — private desktop role/focus connection; product shell remains next.
 
 ## Current update
+
+The compositor now accepts one original inherited AF_UNIX stream connection for
+private development desktop control and layer-shell v5. A global filter denies
+ordinary same-UID discovery/binding, including known-ID forgery. No-shell defaults
+remain unchanged. A separate window scene and bounded per-output dock/search
+profile provide work-area reservation, exclusive keyboard focus and restoration,
+existing-window activation, never-reused session IDs and bounded descriptive UTF-8.
+Unexpected control/peer loss fails the development session; acknowledged retirement
+permits an orderly departure. It is a connection capability, not process/account/
+app admission, secure lock UI, launch authority or lease settlement.
+
+See the [desktop contract/evidence](../../spec/desktop.md). Actual Release and
+Debug ASan/UBSan each pass all eight selected Settings/compositor checks, including
+the new independent native protocol/pixel/input/foreign-client test. All 78 image
+hashes per profile agree and all 156 gzip originals verify. Existing native input,
+clipboard, nested and Settings behavior remains green. The unchanged test rejects
+a deliberately weakened global filter at the precise foreign-discovery assertion.
+The upstream layer XML is copied from the already pinned wlroots archive with its
+license intact and a CMake hash check. No new library family/policy is installed.
+
+The current desktop consumer paints diagnostic color blocks only. A designed
+SDL3 dock/search client, its fixed-app supervisor channel and native development-
+controller integration are the next work. The controller remains in its previous
+closed state; no normal shell/session capabilities are advertised. The nineteen
+protected old catalogue/static/profile hashes remain unchanged and all 28 frozen
+SQL/XML contracts are raw-byte identical. The old running/recover-handoff intent
+stays unresolved. The VM remains booted/enforcing on tty1 with no active Aetheri
+unit or seat0 login session. Full OS/app/image/experiment/hardware work remains open.
+
+## Previous update — 4 November 2026
 
 The [development controller](../../spec/development-session.md) now provides
 start/status/stop through the verified dedicated-carrier connection. Its separate

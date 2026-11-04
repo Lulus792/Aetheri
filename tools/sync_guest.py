@@ -16,7 +16,7 @@ def main():
     # Include only repository source, contracts and development tests, never vm,
     # local, downloads, private keys, build outputs or another project.
     paths = [vm.ROOT / "CMakeLists.txt"]
-    for prefix in ("src", "tests", "spec", "tools", "policy", "patches"):
+    for prefix in ("src", "tests", "spec", "tools", "policy", "patches", "protocols"):
         paths.extend(path for path in (vm.ROOT / prefix).rglob("*")
                      if path.is_file() and path.suffix in (".c", ".h", ".py", ".sql", ".xml", ".json", ".cil", ".conf", ".patch"))
     payload = io.BytesIO()

@@ -207,5 +207,14 @@
         "patched_sha256": "b1f371202715fba428c837dba52aff57a10e760ab17c44e3ebb20128812ea35f"
       }
     }
+  },
+  "desktop_layer_protocol": {
+    "reviewed": "2026-11-05",
+    "path": "protocols/wlr-layer-shell-unstable-v1.xml",
+    "sha256": "87e0b9c837aecd6977f76f3c47d73088b7159871f5d979dc1840f6cadb5e2ed8",
+    "source_archive": "wlroots-0.20.2.tar.gz",
+    "source_member": "wlroots-0.20.2/protocol/wlr-layer-shell-unstable-v1.xml",
+    "version": 5,
+    "license": "Upstream permissive copyright and grant retained verbatim in XML; no local protocol edits"
   }
 }
