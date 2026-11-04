@@ -1,0 +1,179 @@
+{
+  "format": 1,
+  "purpose": "Optional private graphical bring-up on the P0 carrier, not a production graphics base",
+  "reviewed": "2026-11-04",
+  "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "inputs": [
+    {
+      "name": "wlroots-0.20.2.tar.gz",
+      "version": "wlroots 0.20.2; MIT; private minimal software profile",
+      "url": "https://gitlab.freedesktop.org/wlroots/wlroots/-/archive/0.20.2/wlroots-0.20.2.tar.gz",
+      "size": 700802,
+      "algorithm": "sha256",
+      "digest": "972c7ac44b17828f4702bfae7cd8347346a3fb5b2c1076cfa2c3fcedac5ec343",
+      "evidence": "https://gitlab.freedesktop.org/wlroots/wlroots/-/tags/0.20.2"
+    },
+    {
+      "name": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "size": 170660,
+      "algorithm": "sha256",
+      "digest": "edd4ba5100079961bb7f9ebcb3efda75dac38f7be79f73e55839c699e236e997",
+      "version": "libdrm-2.4.134-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libdrm/"
+    },
+    {
+      "name": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+      "size": 191426,
+      "algorithm": "sha256",
+      "digest": "001b477e68cf8747c7574e9183907d0754c279de43dbc1d672399b548ccb4371",
+      "version": "libdrm-devel-2.4.134-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libdrm/"
+    },
+    {
+      "name": "libwayland-client-1.26.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libwayland-client-1.26.0-1.fc44.x86_64.rpm",
+      "size": 36340,
+      "algorithm": "sha256",
+      "digest": "0f2b24f04061c1c053a02085f4edb89243e2d4f0284775f164d2c7e77785e7e7",
+      "version": "libwayland-client-1.26.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "libwayland-cursor-1.26.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libwayland-cursor-1.26.0-1.fc44.x86_64.rpm",
+      "size": 19701,
+      "algorithm": "sha256",
+      "digest": "5ca949179d3ded9e8d0ebf1f2dee8514aa06a472869b04f5fc47d6a47ade2582",
+      "version": "libwayland-cursor-1.26.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "libwayland-egl-1.26.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libwayland-egl-1.26.0-1.fc44.x86_64.rpm",
+      "size": 12710,
+      "algorithm": "sha256",
+      "digest": "a8a168af70e986983085ede3a72b741ef15448ae03719e9a6a4fe59c16396bb5",
+      "version": "libwayland-egl-1.26.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "libwayland-server-1.26.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libwayland-server-1.26.0-1.fc44.x86_64.rpm",
+      "size": 45059,
+      "algorithm": "sha256",
+      "digest": "3404b75eb810c828661e2549a1bbb49f44efb2f8e7c61c37e5a3bf6be77bb295",
+      "version": "libwayland-server-1.26.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "meson-1.11.2-1.fc44.noarch.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/m/meson-1.11.2-1.fc44.noarch.rpm",
+      "size": 2740686,
+      "algorithm": "sha256",
+      "digest": "fdfc1a5c36867a340734d108bd34098b6f88b58258c6328492b134d635ed0420",
+      "version": "meson-1.11.2-1.fc44.noarch; Apache-2.0",
+      "evidence": "https://packages.fedoraproject.org/pkgs/meson/"
+    },
+    {
+      "name": "wayland-devel-1.26.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/w/wayland-devel-1.26.0-1.fc44.x86_64.rpm",
+      "size": 162921,
+      "algorithm": "sha256",
+      "digest": "3b51e0fe13dbe9543b33ac8ad6464ce1babec92fa189b8126bbc57e2524659d5",
+      "version": "wayland-devel-1.26.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "wayland-protocols-devel-1.49-1.fc44.noarch.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/w/wayland-protocols-devel-1.49-1.fc44.noarch.rpm",
+      "size": 190656,
+      "algorithm": "sha256",
+      "digest": "a8bc6f454fdd655417ab64945a10cad30a41847de381b1e199f26500cf500ce8",
+      "version": "wayland-protocols-devel-1.49-1.fc44.noarch; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/wayland/"
+    },
+    {
+      "name": "libffi-devel-3.5.2-2.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libffi-devel-3.5.2-2.fc44.x86_64.rpm",
+      "size": 30419,
+      "algorithm": "sha256",
+      "digest": "89310f3daf6bdd8dbcc081891a653a4bf54d115e5614020fa761f56f84158911",
+      "version": "libffi-devel-3.5.2-2.fc44.x86_64; MIT AND CC-PDDC AND (GPL-3.0-or-later WITH Texinfo-exception)",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libffi/"
+    },
+    {
+      "name": "libpciaccess-devel-0.16-17.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libpciaccess-devel-0.16-17.fc44.x86_64.rpm",
+      "size": 12792,
+      "algorithm": "sha256",
+      "digest": "92cf6f722a80b8e420e12071dab66d8e5ec2e67529d6bbb7d1ead24035a10c9c",
+      "version": "libpciaccess-devel-0.16-17.fc44.x86_64; HPND AND MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libpciaccess/"
+    },
+    {
+      "name": "libxkbcommon-devel-1.13.1-2.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libxkbcommon-devel-1.13.1-2.fc44.x86_64.rpm",
+      "size": 76587,
+      "algorithm": "sha256",
+      "digest": "94e265b4470543cca5e3728fe8ca06beb28dc73bbf1b02266bad35d8db1bce02",
+      "version": "libxkbcommon-devel-1.13.1-2.fc44.x86_64; MIT AND X11 AND MIT-CMU",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libxkbcommon/"
+    },
+    {
+      "name": "libxml2-devel-2.12.10-6.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libxml2-devel-2.12.10-6.fc44.x86_64.rpm",
+      "size": 536140,
+      "algorithm": "sha256",
+      "digest": "dc79bbb44d797ae8908c695e2fa57d8e9e8d1825723146e5b82f439781edbb3b",
+      "version": "libxml2-devel-2.12.10-6.fc44.x86_64; MIT AND ISC-Veillard AND W3C",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libxml2/"
+    },
+    {
+      "name": "pixman-0.46.2-3.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/pixman-0.46.2-3.fc44.x86_64.rpm",
+      "size": 304584,
+      "algorithm": "sha256",
+      "digest": "a2647f765cbea1cee0a0472223efd7538676e9272b5e9725dd3e37d44e0d81c6",
+      "version": "pixman-0.46.2-3.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/pixman/"
+    },
+    {
+      "name": "pixman-devel-0.46.2-3.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/pixman-devel-0.46.2-3.fc44.x86_64.rpm",
+      "size": 18365,
+      "algorithm": "sha256",
+      "digest": "b591d838e8514a23793b88135040b397630ed38d3c2e3bf68f084525bf03c910",
+      "version": "pixman-devel-0.46.2-3.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/pixman/"
+    },
+    {
+      "name": "xz-devel-5.8.2-2.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/x/xz-devel-5.8.2-2.fc44.x86_64.rpm",
+      "size": 68603,
+      "algorithm": "sha256",
+      "digest": "28a9ff5dec94b3ef31a80ccdd80922d389c64e41f5da0adf0cd2a16e23532ba6",
+      "version": "xz-devel-5.8.2-2.fc44.x86_64; 0BSD",
+      "evidence": "https://packages.fedoraproject.org/pkgs/xz/"
+    },
+    {
+      "name": "zlib-ng-compat-devel-2.3.3-3.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/z/zlib-ng-compat-devel-2.3.3-3.fc44.x86_64.rpm",
+      "size": 39060,
+      "algorithm": "sha256",
+      "digest": "66ce7228ae8befaad9282647a5c6a6f649cd20d7702dfa07869d653d7c4589c0",
+      "version": "zlib-ng-compat-devel-2.3.3-3.fc44.x86_64; Zlib",
+      "evidence": "https://packages.fedoraproject.org/pkgs/zlib-ng/"
+    },
+    {
+      "name": "expat-2.9.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/e/expat-2.9.0-1.fc44.x86_64.rpm",
+      "size": 139273,
+      "algorithm": "sha256",
+      "digest": "ffec2aa09ae0a4d9a33ee0f4458b222745fa7717d8098bf1bdd3ec0255c9b5b3",
+      "version": "expat-2.9.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/expat/"
+    }
+  ]
+}

@@ -1,8 +1,32 @@
 # State
 
-4 November 2026 — strict current service main-process checks and confined integration.
+4 November 2026 — private native compositor and strict service-main integration.
 
 ## Current update
+
+The optional C17 wlroots compositor now renders actual xdg-shell windows into
+three private software outputs (1080p/1440p/4K), with maximize/fullscreen/restore,
+independent teardown, negotiated v5/v3 consumers and frame pacing. Release passes
+the native composed-pixel workflow in 4.68 s; Debug ASan/UBSan, including separate
+instrumented wlroots, passes in 6.69 s. Twenty-four losslessly compressed captures
+per profile and original logs are retained. See [scope/build/evidence](../../spec/graphics.md).
+All 24 Release/sanitizer image hashes agree, including mapped-window and empty
+idle checks; lossless original bytes were reverified. No test executable remains
+live. All 206 host/snapshot/guest source hashes agree, 28 frozen SQL/XML files
+remain raw/normalized unchanged and 689 local Markdown file targets resolve.
+
+The minimal wlroots 0.20.2 dependency profile is separate from normal carrier
+inputs; its exact archive and 18 signed RPMs are pinned. It adds 16 packages and
+updates Expat/libdrm in the dedicated guest, with no X11/Mesa/Vulkan/session
+backend adoption. The compositor option defaults OFF. The normal Release build
+and five existing core/broker/boot checks pass (0.32 s). Preserved old Root/User
+catalogue hashes and inspected static files remain unchanged. No installed
+authority/capability, SQL/XML, policy permission, app dispatch, recovery settlement
+or permanent graphics process was added. This is not a usable desktop or hardware/
+security acceptance. Next add real input/focus and a visible private output before
+app UI/session integration. Final design stays with the user.
+
+Previous service-main checkpoint:
 
 Root discovery and active retained-broker verification now require the actual
 PID1 MainPID, no ControlPID and no pending Unit.Job, alongside the held authenticated

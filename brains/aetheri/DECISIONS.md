@@ -1,5 +1,15 @@
 # Decisions
 
+## Bring up the original compositor privately — 4 November 2026
+
+Use the selected wlroots family at reviewed 0.20.2 with a minimal private Pixman/
+headless profile before physical/session integration. Pin its source and signed
+carrier dependency closure separately; keep graphics opt-in and defaults headless.
+Native consumers and composed pixels establish rendering/lifetime behavior, not
+secure app admission, hardware, final UI or old-intent release. Preserve the failed
+fixture. Add input/focus and a visible private output next. See [contract and
+evidence](../../spec/graphics.md).
+
 ## Admit service mains explicitly — 4 November 2026
 
 Add optional strict main-process observation, preserving generic context and

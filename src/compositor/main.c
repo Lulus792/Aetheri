@@ -1,0 +1,355 @@
+/* Private software-output bring-up. Not an installed/trusted desktop session. */
+#include <drm_fourcc.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+#include <wayland-server-core.h>
+#include <wlr/backend.h>
+#include <wlr/backend/headless.h>
+#include <wlr/render/allocator.h>
+#include <wlr/render/pixman.h>
+#include <wlr/types/wlr_buffer.h>
+#include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_output.h>
+#include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_subcompositor.h>
+#include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/util/log.h>
+
+enum { OUTPUT_LIMIT = 3, WINDOW_LIMIT = 64, CAPTURE_LIMIT = 16 };
+struct server;
+struct output {
+    struct server *server;
+    struct wlr_output *output;
+    struct wlr_scene_output *scene;
+    struct wl_listener frame;
+    struct wl_listener destroy;
+    unsigned index;
+    unsigned capture;
+    uint64_t commits;
+};
+struct window {
+    struct server *server;
+    struct wlr_xdg_toplevel *toplevel;
+    struct wlr_scene_tree *tree;
+    struct wl_list link;
+    struct wl_listener commit, destroy, map, unmap, maximize, fullscreen;
+    unsigned home;
+};
+struct server {
+    struct wl_display *display;
+    struct wlr_backend *backend;
+    struct wlr_renderer *renderer;
+    struct wlr_allocator *allocator;
+    struct wlr_scene *scene;
+    struct wlr_output_layout *layout;
+    struct wlr_xdg_shell *shell;
+    struct wl_listener new_toplevel;
+    struct output outputs[OUTPUT_LIMIT];
+    struct wl_list windows;
+    unsigned output_count, window_count, next_home, capture;
+    int capture_fd;
+    bool failed;
+};
+
+static void fail(struct server *s, const char *message) {
+    fprintf(stderr, "compositor: %s\n", message);
+    s->failed = true;
+    wl_display_terminate(s->display);
+}
+
+static bool capture(struct output *o, struct wlr_buffer *buffer) {
+    void *pixels = NULL;
+    uint32_t format = 0;
+    size_t stride = 0;
+    if (!buffer || !wlr_buffer_begin_data_ptr_access(buffer,
+            WLR_BUFFER_DATA_PTR_ACCESS_READ, &pixels, &format, &stride)) return false;
+    bool ok = false;
+    FILE *file = NULL;
+    if ((format != DRM_FORMAT_XRGB8888 && format != DRM_FORMAT_ARGB8888) ||
+            buffer->width <= 0 || buffer->width > 3840 || buffer->height <= 0 ||
+            buffer->height > 2160 || stride < (size_t)buffer->width * 4) goto done;
+    char name[64];
+    int n = snprintf(name, sizeof(name), "capture-%u-output-%u.ppm", o->capture, o->index);
+    if (n <= 0 || (size_t)n >= sizeof(name)) goto done;
+    int fd = openat(o->server->capture_fd, name,
+        O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+    if (fd < 0) goto done;
+    file = fdopen(fd, "wb");
+    if (!file) { close(fd); goto done; }
+    if (fprintf(file, "P6\n%d %d\n255\n", buffer->width, buffer->height) < 0) goto done;
+    unsigned char row[3840 * 3];
+    for (int y = 0; y < buffer->height; ++y) {
+        const unsigned char *src = (const unsigned char *)pixels + (size_t)y * stride;
+        for (int x = 0; x < buffer->width; ++x) {
+            row[(size_t)x * 3] = src[(size_t)x * 4 + 2];
+            row[(size_t)x * 3 + 1] = src[(size_t)x * 4 + 1];
+            row[(size_t)x * 3 + 2] = src[(size_t)x * 4];
+        }
+        if (fwrite(row, 3, (size_t)buffer->width, file) != (size_t)buffer->width) goto done;
+    }
+    ok = true;
+done:
+    if (file && fclose(file) != 0) ok = false;
+    wlr_buffer_end_data_ptr_access(buffer);
+    return ok;
+}
+
+static void output_frame(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct output *o = wl_container_of(listener, o, frame);
+    if (!wlr_scene_output_needs_frame(o->scene)) {
+        /* A client can request pacing without damaging any pixels. */
+        struct timespec now;
+        if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) fail(o->server, "frame clock failed");
+        else wlr_scene_output_send_frame_done(o->scene, &now);
+        return;
+    }
+    struct wlr_output_state state;
+    wlr_output_state_init(&state);
+    bool ok = wlr_scene_output_build_state(o->scene, &state, NULL);
+    if (ok) ok = wlr_output_commit_state(o->output, &state);
+    if (ok) {
+        ++o->commits;
+        if (o->capture) {
+            ok = capture(o, state.buffer);
+            if (ok) printf("CAPTURE %u %u\n", o->capture, o->index);
+            o->capture = 0;
+        }
+        struct timespec now;
+        if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) ok = false;
+        else wlr_scene_output_send_frame_done(o->scene, &now);
+    }
+    wlr_output_state_finish(&state);
+    if (!ok) fail(o->server, "output render/commit/capture failed");
+}
+
+static void output_destroy(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct output *o = wl_container_of(listener, o, destroy);
+    wl_list_remove(&o->frame.link);
+    wl_list_remove(&o->destroy.link);
+    o->output = NULL;
+    o->scene = NULL;
+}
+
+static void configure(struct window *w) {
+    struct server *s = w->server;
+    struct wlr_xdg_toplevel *top = w->toplevel;
+    struct output *o = &s->outputs[w->home];
+    if (top->requested.fullscreen_output) {
+        for (unsigned i = 0; i < s->output_count; ++i) {
+            if (s->outputs[i].output == top->requested.fullscreen_output) o = &s->outputs[i];
+        }
+    }
+    bool full = top->requested.fullscreen;
+    bool max = top->requested.maximized && !full;
+    struct wlr_output_layout_output *place = wlr_output_layout_get(s->layout, o->output);
+    wlr_scene_node_set_position(&w->tree->node, place->x + (full || max ? 0 : 40),
+        place->y + (full || max ? 0 : 40));
+    wlr_xdg_toplevel_set_fullscreen(top, full);
+    wlr_xdg_toplevel_set_maximized(top, max);
+    wlr_xdg_toplevel_set_size(top, full || max ? o->output->width : 0,
+        full || max ? o->output->height : 0);
+    wlr_xdg_surface_schedule_configure(top->base);
+}
+
+static void window_request(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, maximize);
+    if (w->toplevel->base->initialized) configure(w);
+}
+static void window_fullscreen(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, fullscreen);
+    if (w->toplevel->base->initialized) configure(w);
+}
+static void window_commit(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, commit);
+    if (w->toplevel->base->initial_commit) {
+        wlr_xdg_toplevel_set_wm_capabilities(w->toplevel,
+            WLR_XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE | WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN);
+        configure(w);
+    }
+}
+static void window_map(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, map);
+    printf("MAP %u\n", w->home);
+}
+static void window_unmap(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, unmap);
+    printf("UNMAP %u\n", w->home);
+}
+static void window_destroy(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct window *w = wl_container_of(listener, w, destroy);
+    wl_list_remove(&w->commit.link);
+    wl_list_remove(&w->destroy.link);
+    wl_list_remove(&w->map.link);
+    wl_list_remove(&w->unmap.link);
+    wl_list_remove(&w->maximize.link);
+    wl_list_remove(&w->fullscreen.link);
+    wl_list_remove(&w->link);
+    --w->server->window_count;
+    /* The xdg scene helper independently retires its tree on surface destroy. */
+    free(w);
+}
+static void new_toplevel(struct wl_listener *listener, void *data) {
+    struct server *s = wl_container_of(listener, s, new_toplevel);
+    struct wlr_xdg_toplevel *top = data;
+    if (s->window_count >= WINDOW_LIMIT) {
+        wl_client_post_implementation_error(wl_resource_get_client(top->resource), "private window limit");
+        return;
+    }
+    struct window *w = calloc(1, sizeof(*w));
+    if (!w) { wl_client_post_no_memory(wl_resource_get_client(top->resource)); return; }
+    w->server = s;
+    w->toplevel = top;
+    w->home = s->next_home++ % s->output_count;
+    w->tree = wlr_scene_xdg_surface_create(&s->scene->tree, top->base);
+    if (!w->tree) { free(w); wl_client_post_no_memory(wl_resource_get_client(top->resource)); return; }
+    w->commit.notify = window_commit;
+    w->destroy.notify = window_destroy;
+    w->map.notify = window_map;
+    w->unmap.notify = window_unmap;
+    w->maximize.notify = window_request;
+    w->fullscreen.notify = window_fullscreen;
+    wl_signal_add(&top->base->surface->events.commit, &w->commit);
+    wl_signal_add(&top->events.destroy, &w->destroy);
+    wl_signal_add(&top->base->surface->events.map, &w->map);
+    wl_signal_add(&top->base->surface->events.unmap, &w->unmap);
+    wl_signal_add(&top->events.request_maximize, &w->maximize);
+    wl_signal_add(&top->events.request_fullscreen, &w->fullscreen);
+    wl_list_insert(&s->windows, &w->link);
+    ++s->window_count;
+}
+
+static int signal_event(int number, void *data) {
+    struct server *s = data;
+    if (number == SIGINT || number == SIGTERM) wl_display_terminate(s->display);
+    else if (number == SIGUSR2) {
+        uint64_t count = 0;
+        for (unsigned i = 0; i < s->output_count; ++i) count += s->outputs[i].commits;
+        printf("STATS windows=%u commits=%" PRIu64 "\n", s->window_count, count);
+    } else if (s->capture_fd >= 0 && s->capture < CAPTURE_LIMIT) {
+        ++s->capture;
+        for (unsigned i = 0; i < s->output_count; ++i) {
+            struct output *o = &s->outputs[i];
+            if (o->capture) { fail(s, "capture already pending"); return 0; }
+            o->capture = s->capture;
+            wlr_damage_ring_add_whole(&o->scene->damage_ring);
+            wlr_output_schedule_frame(o->output);
+        }
+    }
+    return 0;
+}
+
+static int private_directory(const char *path) {
+    if (!path || path[0] != '/') return -1;
+    int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (fd < 0) return -1;
+    struct stat st;
+    if (fstat(fd, &st) != 0 || st.st_uid != getuid() || (st.st_mode & 0777) != 0700) {
+        close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+int main(int argc, char **argv) {
+    if (argc != 4 || strcmp(argv[1], "--headless") || strlen(argv[2]) > 48 ||
+            strspn(argv[2], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[2]) ||
+            argv[2][0] == '\0' || getuid() == 0 || getuid() != geteuid() || getgid() != getegid()) {
+        fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n");
+        return 2;
+    }
+    int runtime = private_directory(getenv("XDG_RUNTIME_DIR"));
+    if (runtime < 0) { fprintf(stderr, "private 0700 XDG_RUNTIME_DIR required\n"); return 2; }
+    close(runtime);
+    struct server s = {.capture_fd = -1, .output_count = OUTPUT_LIMIT};
+    if (strcmp(argv[3], "-")) {
+        s.capture_fd = private_directory(argv[3]);
+        if (s.capture_fd < 0) return 2;
+    }
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    wlr_log_init(WLR_ERROR, NULL);
+    wl_list_init(&s.windows);
+    s.display = wl_display_create();
+    if (!s.display) { if (s.capture_fd >= 0) close(s.capture_fd); return 1; }
+    struct wl_event_loop *loop = wl_display_get_event_loop(s.display);
+    struct wl_event_source *signals[4] = {0};
+    const int numbers[] = {SIGINT, SIGTERM, SIGUSR1, SIGUSR2};
+    int result = 1;
+    for (unsigned i = 0; i < 4; ++i) {
+        signals[i] = wl_event_loop_add_signal(loop, numbers[i], signal_event, &s);
+        if (!signals[i]) goto done;
+    }
+    s.backend = wlr_headless_backend_create(loop);
+    s.renderer = wlr_pixman_renderer_create();
+    if (!s.backend || !s.renderer) goto done;
+    s.allocator = wlr_allocator_autocreate(s.backend, s.renderer);
+    s.scene = wlr_scene_create();
+    s.layout = wlr_output_layout_create(s.display);
+    if (!s.allocator || !s.scene || !s.layout || !wlr_renderer_init_wl_display(s.renderer, s.display) ||
+            !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display)) goto done;
+    const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
+    const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
+    if (!wlr_scene_rect_create(&s.scene->tree, 8320, 2160, background)) goto done;
+    int x = 0;
+    for (unsigned i = 0; i < OUTPUT_LIMIT; ++i) {
+        struct output *o = &s.outputs[i];
+        o->server = &s;
+        o->index = i;
+        o->output = wlr_headless_add_output(s.backend, (unsigned)widths[i], (unsigned)heights[i]);
+        if (!o->output) goto done;
+        o->destroy.notify = output_destroy;
+        wl_signal_add(&o->output->events.destroy, &o->destroy);
+        o->frame.notify = output_frame;
+        wl_signal_add(&o->output->events.frame, &o->frame);
+        if (!wlr_output_init_render(o->output, s.allocator, s.renderer)) goto done;
+        struct wlr_output_state state;
+        wlr_output_state_init(&state);
+        wlr_output_state_set_enabled(&state, true);
+        wlr_output_state_set_custom_mode(&state, widths[i], heights[i], 60000);
+        bool ok = wlr_output_commit_state(o->output, &state);
+        wlr_output_state_finish(&state);
+        if (!ok || !wlr_output_layout_add(s.layout, o->output, x, 0)) goto done;
+        o->scene = wlr_scene_output_create(s.scene, o->output);
+        if (!o->scene) goto done;
+        wlr_scene_output_set_position(o->scene, x, 0);
+        x += widths[i];
+    }
+    s.shell = wlr_xdg_shell_create(s.display, 5);
+    if (!s.shell) goto done;
+    s.new_toplevel.notify = new_toplevel;
+    wl_signal_add(&s.shell->events.new_toplevel, &s.new_toplevel);
+    if (wl_display_add_socket(s.display, argv[2]) != 0 || !wlr_backend_start(s.backend)) goto done;
+    printf("READY %s outputs=3 renderer=pixman\n", argv[2]);
+    wl_display_run(s.display);
+    result = s.failed ? 1 : 0;
+done:
+    wl_display_destroy_clients(s.display);
+    if (s.shell) wl_list_remove(&s.new_toplevel.link);
+    if (s.backend) wlr_backend_destroy(s.backend);
+    if (s.scene) wlr_scene_node_destroy(&s.scene->tree.node);
+    if (s.layout) wlr_output_layout_destroy(s.layout);
+    if (s.allocator) wlr_allocator_destroy(s.allocator);
+    if (s.renderer) wlr_renderer_destroy(s.renderer);
+    for (unsigned i = 0; i < 4; ++i) if (signals[i]) wl_event_source_remove(signals[i]);
+    wl_display_destroy(s.display);
+    if (s.capture_fd >= 0) close(s.capture_fd);
+    return result;
+}

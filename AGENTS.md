@@ -598,6 +598,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   The existing Windows carrier is not this feature; no absolute host-crash or
   escape guarantee, TCG security fallback or implicit host-management exposure.
 - No invented commands, screenshots, measurements or hardware acceptance.
+- The optional private C17 compositor now exists; read spec/graphics.md and its
+  separate graphics-inputs.json. Default builds stay graphics-OFF. Headless Pixman
+  pixel tests are not input/session/hardware or app-lifecycle acceptance. Keep its
+  private socket/captures and unprivileged test children separate from the retained
+  old execution intent. Exact wlroots/Wayland dependency changes require review.
 - The user confirmed the current workstation is the main-PC target and requires
   future AM5 portability. Read brains/aetheri/knowledge/testumgebung.md.
   Keep the x86-64/UEFI baseline vendor-neutral; no unconditional -march=native.

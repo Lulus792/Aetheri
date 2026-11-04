@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Private compositor — 4 November 2026
+
+- [Scope/build/evidence](../../spec/graphics.md), [input lock](../../spec/graphics-inputs.json),
+  [native server](../../src/compositor/main.c),
+  [independent consumer](../../tests/test_compositor_client.c) and
+  [pixel/lifetime runner](../../tools/test_compositor.py). Results in STATE are
+  private software-output checks, not physical or trusted-session acceptance.
+- Upstream wlroots 0.20.2 source/build options/license and Fedora package signatures
+  were reviewed. Expat 2.9.0 changes and its unresolved-security notice were read.
+  Primary references and limits are collected in the graphics document.
+
 ## Current service main-process boundary — 4 November 2026
 
 - [Native process API](../../src/linux/process.h), [implementation](../../src/linux/process.c),

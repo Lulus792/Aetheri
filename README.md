@@ -21,6 +21,11 @@ Normal app launch, document access and the desktop remain in progress. There is
 no original Aetheri image, installer or working Aetheri application yet. The
 [current state](brains/aetheri/STATE.md) records exact implementation and test limits.
 
+A separate [private Wayland compositor](spec/graphics.md) now renders native
+windows on three virtual outputs. Maximize, fullscreen, restore and independent
+window/connection teardown pass composed-pixel and sanitizer checks. Physical
+display/input, a trusted session and ordinary app integration remain work.
+
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
 [Architecture options](brains/aetheri/knowledge/architecture-options.md) ·
@@ -48,8 +53,9 @@ app's managed state, not just its executable. A custom browser should avoid feed
 promotions and sponsored clutter, with content filtering under user control.
 
 The agreed starting point is C17, targeted Rust and small adapters where justified,
-glibc and selected maintained technical backends. NexaUI is the preferred toolkit
-candidate; Physim should migrate to it when ready.
+glibc and selected maintained technical backends. Early app UI can use suitable
+working foundations such as SDL3 while NexaUI develops, then migrate per app when
+its required scope is ready. Physim should migrate to NexaUI when ready.
 
 The selected architecture uses an original wlroots-based Wayland compositor,
 selected systemd components, SQLite component metadata, a versioned read-only

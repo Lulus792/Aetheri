@@ -12,6 +12,7 @@ option(AETHERI_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitize
 option(AETHERI_PRIVILEGED_TESTS "Run privileged probes in the disposable guest" OFF)
 option(AETHERI_LINUX_IPC "Build the native sd-bus peer integration" OFF)
 option(AETHERI_POLICY_PROBES "Build the disposable SELinux policy probe (does not install policy)" OFF)
+option(AETHERI_COMPOSITOR "Build the private headless Wayland compositor prototype" OFF)
 
 find_package(OpenSSL 3.5.9 REQUIRED COMPONENTS Crypto)
 if(NOT OPENSSL_VERSION VERSION_LESS "3.6.0")
@@ -140,6 +141,53 @@ if(AETHERI_LINUX_IPC)
 endif()
 
 include(CTest)
+
+if(AETHERI_COMPOSITOR)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots-0.20=0.20.2)
+    pkg_check_modules(WAYLAND_SERVER REQUIRED IMPORTED_TARGET wayland-server=1.26.0)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client=1.26.0)
+    pkg_check_modules(PIXMAN REQUIRED IMPORTED_TARGET pixman-1=0.46.2)
+    pkg_check_modules(DRM REQUIRED IMPORTED_TARGET libdrm=2.4.134)
+    pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+    pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols=1.49)
+    find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
+    set(AETHERI_XDG_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
+    set(AETHERI_XDG_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/xdg-shell-protocol.h")
+    set(AETHERI_XDG_CLIENT "${CMAKE_CURRENT_BINARY_DIR}/generated/xdg-shell-client-protocol.h")
+    set(AETHERI_XDG_CODE "${CMAKE_CURRENT_BINARY_DIR}/generated/xdg-shell-protocol.c")
+    add_custom_command(OUTPUT "${AETHERI_XDG_HEADER}" "${AETHERI_XDG_CLIENT}" "${AETHERI_XDG_CODE}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+        COMMAND "${WAYLAND_SCANNER}" server-header "${AETHERI_XDG_XML}" "${AETHERI_XDG_HEADER}"
+        COMMAND "${WAYLAND_SCANNER}" client-header "${AETHERI_XDG_XML}" "${AETHERI_XDG_CLIENT}"
+        COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_XDG_XML}" "${AETHERI_XDG_CODE}"
+        DEPENDS "${AETHERI_XDG_XML}" VERBATIM)
+    add_executable(aetheri-compositor src/compositor/main.c "${AETHERI_XDG_HEADER}")
+    target_include_directories(aetheri-compositor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    target_compile_definitions(aetheri-compositor PRIVATE _GNU_SOURCE WLR_USE_UNSTABLE)
+    target_compile_options(aetheri-compositor PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    target_link_libraries(aetheri-compositor PRIVATE PkgConfig::WLROOTS PkgConfig::WAYLAND_SERVER PkgConfig::PIXMAN PkgConfig::DRM)
+    if(AETHERI_SANITIZERS)
+        target_compile_options(aetheri-compositor PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(aetheri-compositor PRIVATE -fsanitize=address,undefined)
+    endif()
+    if(BUILD_TESTING)
+        add_executable(test_compositor_client tests/test_compositor_client.c "${AETHERI_XDG_CLIENT}" "${AETHERI_XDG_CODE}")
+        target_include_directories(test_compositor_client PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+        target_compile_definitions(test_compositor_client PRIVATE _GNU_SOURCE)
+        target_compile_options(test_compositor_client PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        target_link_libraries(test_compositor_client PRIVATE PkgConfig::WAYLAND_CLIENT)
+        if(AETHERI_SANITIZERS)
+            target_compile_options(test_compositor_client PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(test_compositor_client PRIVATE -fsanitize=address,undefined)
+        endif()
+        add_test(NAME compositor.wayland COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor.py"
+            $<TARGET_FILE:aetheri-compositor> $<TARGET_FILE:test_compositor_client>
+            "${CMAKE_CURRENT_BINARY_DIR}")
+        set_tests_properties(compositor.wayland PROPERTIES TIMEOUT 45)
+    endif()
+endif()
 if(AETHERI_POLICY_PROBES)
     add_executable(probe_policy tests/probe_policy.c)
     target_compile_definitions(probe_policy PRIVATE _GNU_SOURCE)
