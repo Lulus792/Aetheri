@@ -531,6 +531,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   migration/vector tests. No installed pair wire, cross-boot/lost-handle or
   post-retirement Root-replacement recovery is implied. Preserve the old failed
   fixture; do not migrate it to turn native metadata into runtime proof.
+- linux/process now has optional observe_main/verify_main/observe_self_main APIs:
+  active actual MainPID, no ControlPID/Unit.Job, with the original retained peer
+  and repeated UID/label/unit/invocation/cgroup checks. Read spec/runtime.md's
+  current-service-main section. Generic/activating registration stays unchanged.
+  Root discovery and active broker use require strict main checks; cache tests
+  mock this explicitly, while linux.process tests actual same-unit subordinate
+  rejection and typed property faults. No numeric MainPID reopen/ExecMainPID
+  history/remote self-pin substitution, new capability or policy permission.
+  Normal v2 owned inputs were updated and enforcing check/broker-check passed;
+  services are stopped/gates closed. Old isolated v6/User v4 fixtures stay intact.
+  A service-main snapshot is not current image, future-effect/holder fencing or
+  old volume/clone admission. Retained host UUID/PID/command files have no original
+  independent disk-object witness; never invent it retroactively.
 - catalogue/interruption.h now adds explicit v8 cross-boot maintenance after v7:
   immutable AETHINT1 bindings (248 bytes) and four distinct 352-byte receipts.
   Read spec/runtime.md's cross-boot section; run catalogue.interruptions and

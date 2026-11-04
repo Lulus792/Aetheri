@@ -103,7 +103,7 @@ int ae_broker_verify(struct ae_broker *broker, const struct ae_peer *peer, sd_bu
     if (!same_connection(&broker->peer, peer)) return -EACCES;
     struct ae_process_context expected = broker->context;
     struct ae_broker_identity identity = broker->identity;
-    int result = ae_process_verify(peer, system, &expected);
+    int result = ae_process_verify_main(peer, system, &expected);
     if (result == 0) result = name_alive(system, peer->unique_name);
     if (result == 0 && (!same_connection(&broker->peer, peer) ||
         !ae_process_context_equal(&broker->context, &expected) || memcmp(&identity, &broker->identity, sizeof identity) != 0)) result = -ESTALE;

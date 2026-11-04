@@ -1,8 +1,48 @@
 # State
 
-4 November 2026 — separate native cross-boot interruption transactions.
+4 November 2026 — strict current service main-process checks and confined integration.
 
 ## Current update
+
+Root discovery and active retained-broker verification now require the actual
+PID1 MainPID, no ControlPID and no pending Unit.Job, alongside the held authenticated
+ProcessFD/current UID/label/unit/invocation/cgroup proof. Generic process and
+activating-registration APIs stay unchanged. A self-only strict observer does
+not substitute for a missing remote caller pin. See [boundary](../../spec/runtime.md#current-service-main-process-boundary).
+
+Release passes six targeted process/identity/lifetime/boot/broker/admission checks
+(3.94 s); Debug ASan/UBSan passes process/broker/admission 3/3 (1.24 s). Actual
+same-unit children pass generic observation and fail strict remote/self main
+checks; typed PID1 faults/drift/short reads preserve outputs/FD counts. Complete
+Release/Debug builds pass. No library, schema, wire or policy permission changed.
+All 202 host/snapshot/guest source hashes agree. All 28 SQL/XML files match the
+retained v8 working-file hashes and Git-normalized committed blobs; 678 local
+Markdown file targets resolve.
+
+The verified stopped normal bootstrap was updated through update-owned, then
+actual enforcing/capability-empty Root/User discovery/check/broker-check passed.
+User replacement and Root-only restart with retained User passed; Root FDs changed
+12 -> 11 on User departure. Final authority image SHA-256 is
+67c564f3304fe76b58684d1b4c989fd1106f21e68a2a60f26bd91b4516743324.
+Normal v2 epochs/account, 41 static file hashes and writer-lock inodes remain;
+both owners' gates are closed and services stopped. The dynamic broker-unit slot
+matches the selected new User exactly. The initial snapshot assertion included
+that intentionally mutable slot; its original evidence remains and the corrected
+check validates the controller's exact expected bytes, not a broad exemption.
+
+The old failed fixture's distinct Root v6/User v4 catalogue hashes/controller/
+17 static inputs remain unchanged and unsettled. No target dispatch, original
+identity replacement, migration, release or purge occurred. Old host process
+records contain no independent original disk-object witness; this is a provenance
+gap, not permission to infer continuity from UUID/path/content. Next bind reviewed
+continuity and current image/unit/epoch admission into the separate v8 coordinator.
+Normal-service proof alone cannot authorize that old isolated authority's release.
+Independent compositor/early UI bring-up may proceed on a private development
+surface while that legacy continuity boundary is reviewed. Review exact wlroots/
+SDL dependencies first, preserve the retained intent, and keep final visual
+choices with the user; a graphical test is not app-lifecycle acceptance.
+
+Previous native interruption checkpoint:
 
 The explicit v8 maintenance contract now records cross-boot interruption separately
 from a successful v3 run close. Both owners enroll immutable AETHINT1 current-

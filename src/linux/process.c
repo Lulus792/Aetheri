@@ -46,7 +46,24 @@ static int identity(const struct ae_peer *peer, struct pidfd_info *info)
     return ae_peer_alive(peer);
 }
 
-static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering)
+static int idle_job(sd_bus_message *properties)
+{
+    uint32_t job=0; const char *path=NULL;
+    int r=sd_bus_message_enter_container(properties,'v',"(uo)");
+    if (r<=0) return r<0 ? r : -EBADMSG;
+    r=sd_bus_message_enter_container(properties,'r',"uo");
+    if (r<=0) return r<0 ? r : -EBADMSG;
+    r=sd_bus_message_read(properties,"uo",&job,&path);
+    if (r<=0) return r<0 ? r : -EBADMSG;
+    if (job!=0) return -EAGAIN;
+    if (strcmp(path,"/")!=0) return -EBADMSG;
+    r=sd_bus_message_exit_container(properties);
+    if (r<=0) return r<0 ? r : -EBADMSG;
+    r=sd_bus_message_exit_container(properties);
+    return r>0 ? 0 : r<0 ? r : -EBADMSG;
+}
+
+static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering, int main_only)
 {
     sd_bus_message *reply = NULL;
     int result = sd_bus_call_method(bus, "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
@@ -94,10 +111,14 @@ static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_pr
             if (result > 0) result = sd_bus_message_read_array(properties, 'y', &invocation, &size);
             if (result > 0 && (size != sizeof context->invocation || memcmp(context->invocation, invocation, size) != 0)) result = -ESTALE;
             if (result > 0) { found |= 4U; result = sd_bus_message_exit_container(properties); }
+        } else if (main_only && strcmp(key,"Job")==0) {
+            if (found & 8U) { result=-EBADMSG; break; }
+            result=idle_job(properties);
+            if (result==0) found|=8U;
         } else result = sd_bus_message_skip(properties, "v");
         if (result >= 0) result = sd_bus_message_exit_container(properties);
     }
-    if (result == 0 && found != 7U) result = -ENODATA;
+    if (result == 0 && found != (main_only ? 15U : 7U)) result = -ENODATA;
     if (result >= 0 && sd_bus_message_exit_container(properties) <= 0) result = -EBADMSG;
     char *cgroup = NULL;
     size_t length = strlen(context->unit);
@@ -105,6 +126,13 @@ static int manager_context(const struct ae_peer *peer, sd_bus *bus, struct ae_pr
     if (result >= 0) result = sd_bus_get_property_string(bus, "org.freedesktop.systemd1", path,
                             "org.freedesktop.systemd1.Service", "ControlGroup", NULL, &cgroup);
     if (result >= 0) result = copy_text(context->cgroup, sizeof context->cgroup, cgroup);
+    if (result>=0 && main_only) {
+        uint32_t main_pid=0,control_pid=0;
+        result=sd_bus_get_property_trivial(bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","MainPID",NULL,'u',&main_pid);
+        if (result>=0 && (main_pid==0 || main_pid>INT32_MAX || main_pid!=(uint32_t)peer->connection_pid)) result=-EACCES;
+        if (result>=0) result=sd_bus_get_property_trivial(bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","ControlPID",NULL,'u',&control_pid);
+        if (result>=0 && control_pid!=0) result=-EAGAIN;
+    }
     free(cgroup);
     sd_bus_message_unref(properties);
     sd_bus_message_unref(reply);
@@ -132,7 +160,7 @@ static int cgroup_identity(const char *path, uint64_t expected)
     return result;
 }
 
-static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering)
+static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_process_context *context, int registering, int main_only)
 {
     struct pidfd_info info;
     int result = identity(peer, &info);
@@ -140,7 +168,7 @@ static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_proce
     if (result == 0 && getpidcon_raw(peer->connection_pid, &label) != 0) result = -errno;
     if (result == 0) result = copy_text(context->label, sizeof context->label, label);
     if (result == 0 && strcmp(context->label, peer->connection_label) != 0) result = -ESTALE;
-    if (result == 0) result = manager_context(peer, bus, context, registering);
+    if (result == 0) result = manager_context(peer, bus, context, registering, main_only);
     if (result == 0) result = sd_pidfd_get_cgroup(peer->pidfd, &cgroup);
     if (result == 0 && strcmp(cgroup, context->cgroup) != 0) result = -ESTALE;
     if (result == 0) result = cgroup_identity(cgroup, info.cgroupid);
@@ -157,13 +185,13 @@ static int observe_once(const struct ae_peer *peer, sd_bus *bus, struct ae_proce
     return result;
 }
 
-static int observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output, int registering)
+static int observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output, int registering, int main_only)
 {
     if (peer == NULL || system_bus == NULL || output == NULL || peer->pidfd < 0 || peer->connection_pid <= 0 ||
         memchr(peer->connection_label, 0, sizeof peer->connection_label) == NULL || peer->connection_label[0] == 0) return -EINVAL;
     struct ae_process_context first = {0}, second = {0};
-    int result = observe_once(peer, system_bus, &first, registering);
-    if (result == 0) result = observe_once(peer, system_bus, &second, registering);
+    int result = observe_once(peer, system_bus, &first, registering, main_only);
+    if (result == 0) result = observe_once(peer, system_bus, &second, registering, main_only);
     if (result == 0 && !ae_process_context_equal(&first, &second)) result = -ESTALE;
     if (result == 0) *output = second;
     return result;
@@ -171,12 +199,21 @@ static int observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_pro
 
 int ae_process_observe(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output)
 {
-    return observe(peer, system_bus, output, 0);
+    return observe(peer, system_bus, output, 0, 0);
 }
 
 int ae_process_observe_registration(const struct ae_peer *peer, sd_bus *system_bus, struct ae_process_context *output)
 {
-    return observe(peer, system_bus, output, 1);
+    return observe(peer, system_bus, output, 1, 0);
+}
+
+int ae_process_observe_main(const struct ae_peer *peer,sd_bus *system_bus,struct ae_process_context *output)
+{ return observe(peer,system_bus,output,0,1); }
+int ae_process_verify_main(const struct ae_peer *peer,sd_bus *system_bus,const struct ae_process_context *expected)
+{
+    if (!expected) return -EINVAL;
+    struct ae_process_context actual; int r=ae_process_observe_main(peer,system_bus,&actual);
+    return r==0 && !ae_process_context_equal(expected,&actual) ? -ESTALE : r;
 }
 
 int ae_process_verify(const struct ae_peer *peer, sd_bus *system_bus, const struct ae_process_context *expected)
@@ -188,7 +225,7 @@ int ae_process_verify(const struct ae_peer *peer, sd_bus *system_bus, const stru
     return result;
 }
 
-int ae_process_observe_self(sd_bus *system_bus, struct ae_process_context *output)
+static int observe_self(sd_bus *system_bus, struct ae_process_context *output,int main_only)
 {
     if (system_bus == NULL || output == NULL) return -EINVAL;
     struct ae_peer self = AE_PEER_INIT;
@@ -200,10 +237,15 @@ int ae_process_observe_self(sd_bus *system_bus, struct ae_process_context *outpu
     int result = getcon_raw(&label) == 0 ? 0 : -errno;
     if (result == 0) result = copy_text(self.connection_label, sizeof self.connection_label, label);
     freecon(label);
-    if (result == 0) result = ae_process_observe(&self, system_bus, output);
+    if (result == 0) result = observe(&self, system_bus, output,0,main_only);
     ae_peer_clear(&self);
     return result;
 }
+
+int ae_process_observe_self(sd_bus *system_bus,struct ae_process_context *output)
+{ return observe_self(system_bus,output,0); }
+int ae_process_observe_self_main(sd_bus *system_bus,struct ae_process_context *output)
+{ return observe_self(system_bus,output,1); }
 
 int ae_process_identity_encode(const struct ae_process_identity *identity,uint8_t output[AE_PROCESS_IDENTITY_BYTES])
 {

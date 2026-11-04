@@ -4,6 +4,25 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Current service main-process boundary — 4 November 2026
+
+- [Native process API](../../src/linux/process.h), [implementation](../../src/linux/process.c),
+  [actual component/fault tests](../../tests/test_process.c),
+  [Root discovery](../../src/authority/main.c) and [broker use](../../src/authority/broker.c):
+  optional actual MainPID/no Job/control process, no numeric reopen or new privilege.
+- [systemd D-Bus manual](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html):
+  inspected current manual (262) MainPID versus historical ExecMainPID, ControlPID,
+  Unit.Job and GetUnitByPIDFD. Actual carrier is systemd 259.10, with separate native
+  and enforcing endpoint acceptance; newer documentation is not version adoption.
+- [Existing controller](../../tools/p0_services.py): reviewed stopped input update,
+  independently selected dynamic broker-unit publication, check and broker-check.
+  Final enforcing Release results and image digest are in STATE. Root/User stayed
+  capability-empty; all static records and stable writer locks were checked.
+- Retained host process/command records were read without modification: UUID/PID/
+  launch data, no original independent disk-object witness. They cannot be promoted
+  to a retrospective volume/clone proof. Old fixture hashes/pending state remain
+  unchanged. Private controller evidence remains in the guest release build tree.
+
 ## Native cross-boot interruption journal — 4 November 2026
 
 - [Native contract/codecs](../../src/catalogue/interruption.h),

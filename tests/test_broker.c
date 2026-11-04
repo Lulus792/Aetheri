@@ -21,7 +21,8 @@ int __wrap_ae_process_observe_registration(const struct ae_peer *peer, sd_bus *b
     *out = observed;
     return 0;
 }
-int __wrap_ae_process_verify(const struct ae_peer *peer, sd_bus *bus, const struct ae_process_context *expected)
+/* Controlled main-service context; actual PID1 coverage is in linux.process. */
+int __wrap_ae_process_verify_main(const struct ae_peer *peer, sd_bus *bus, const struct ae_process_context *expected)
 {
     (void)peer; (void)bus;
     if (invalidate != NULL) { ae_broker_clear(invalidate); invalidate = NULL; }

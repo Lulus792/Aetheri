@@ -24,7 +24,9 @@ int ae_broker_bind(struct ae_broker *broker, struct ae_peer *peer, sd_bus *syste
                    sd_event *event, const struct ae_broker_identity *identity,
                    const char *protected_unit, const uint8_t boot[16]);
 /* Borrow current message capture. Checks same bus/sender and live current context;
- * rechecks binding after nested manager calls. This is not a catalogue/launch fence.
+ * rechecks binding after nested manager calls. Active use additionally requires
+ * PID1 MainPID agreement with no current job/control process. Registration may
+ * still precede notify readiness. This is not a catalogue/launch fence.
  */
 int ae_broker_verify(struct ae_broker *broker, const struct ae_peer *peer, sd_bus *system);
 void ae_broker_clear(struct ae_broker *broker);

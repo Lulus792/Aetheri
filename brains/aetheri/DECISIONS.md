@@ -1,5 +1,19 @@
 # Decisions
 
+## Admit service mains explicitly — 4 November 2026
+
+Add optional strict main-process observation, preserving generic context and
+activating-registration semantics. Root discovery checks its calling main; active
+broker use checks the retained original connection is PID1's current MainPID with
+no job/control process. Never reopen a numeric MainPID or use ExecMainPID history.
+Keep original connection/pidfd and post-call cache revalidation. No extra privilege.
+
+Protected unit/code/image and replacement/future-effect exclusion remain separate
+admission obligations. Current main status does not establish old-boot volume or
+clone continuity. Preserve old host records and the failed fixture; do not create
+retrospective origin witnesses or replace its epochs with the normal bootstrap's.
+See [source/runtime evidence](../../spec/runtime.md#current-service-main-process-boundary).
+
 ## Distinct cross-boot interruption history — 4 November 2026
 
 Use explicit v8 immutable current-owner bindings and interruption steps instead

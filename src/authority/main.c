@@ -368,7 +368,7 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
         if (authority->broker.peer.pidfd >= 0 && ae_peer_alive(&authority->broker.peer) == -ESRCH) ae_broker_clear(&authority->broker);
         struct ae_process_context supervised;
         sd_id128_t invocation;
-        result = ae_process_observe_self(sd_bus_message_get_bus(message), &supervised);
+        result = ae_process_observe_self_main(sd_bus_message_get_bus(message), &supervised);
         if (result != 0 || sd_id128_get_invocation(&invocation) != 0 ||
             supervised.uid != authority->uid || !context_is(supervised.label, "aetheri_system_t") ||
             memcmp(invocation.bytes, supervised.invocation, sizeof supervised.invocation) != 0 ||

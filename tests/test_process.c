@@ -45,13 +45,83 @@ int __wrap_ioctl(int fd, unsigned long request, ...)
     return result;
 }
 
+static int short_job;
+int __wrap_sd_bus_message_read(sd_bus_message *message,const char *types,...)
+{
+    va_list args; va_start(args,types); int r=sd_bus_message_readv(message,types,args); va_end(args);
+    if (r>0 && short_job && strcmp(types,"uo")==0) { short_job=0; return 0; }
+    return r;
+}
+static unsigned int main_fault,main_calls,job_fault,job_calls;
+int __real_sd_bus_get_property_trivial(sd_bus *,const char *,const char *,const char *,const char *,sd_bus_error *,char,void *);
+int __wrap_sd_bus_get_property_trivial(sd_bus *bus,const char *destination,const char *path,const char *interface,
+    const char *member,sd_bus_error *error,char type,void *value)
+{
+    int r=__real_sd_bus_get_property_trivial(bus,destination,path,interface,member,error,type,value);
+    if (r<0 || !main_fault || strcmp(interface,"org.freedesktop.systemd1.Service")!=0) return r;
+    CHECK(type=='u');
+    if (strcmp(member,"MainPID")==0) {
+        ++main_calls;
+        if (main_fault==1 || (main_fault==5 && main_calls==2)) *(uint32_t *)value=0;
+        if (main_fault==2) *(uint32_t *)value^=1U;
+        if (main_fault==3) *(uint32_t *)value=UINT32_MAX;
+        if (main_fault==4) return -EIO;
+        if (main_fault==7) return -ENODATA;
+        if (main_fault==8) return -EBADMSG;
+    } else if (strcmp(member,"ControlPID")==0 && main_fault==6) *(uint32_t *)value=1;
+    return r;
+}
+static void job_entry(sd_bus_message *reply,unsigned int kind)
+{
+    CHECK(sd_bus_message_open_container(reply,'e',"sv")>=0 && sd_bus_message_append(reply,"s","Job")>=0);
+    if (kind==4) {
+        CHECK(sd_bus_message_open_container(reply,'v',"s")>=0 && sd_bus_message_append(reply,"s","wrong type")>=0);
+    } else {
+        CHECK(sd_bus_message_open_container(reply,'v',"(uo)")>=0);
+        CHECK(sd_bus_message_append(reply,"(uo)",kind==1 ? 1U : 0U,(kind==1 || kind==5) ? "/org/freedesktop/systemd1/job/1" : "/")>=0);
+    }
+    CHECK(sd_bus_message_close_container(reply)>=0 && sd_bus_message_close_container(reply)>=0);
+}
+/* Real PID1 context throughout; only the returned Job property is controlled.
+ * Copy other properties from the actual reply, not a synthetic actor envelope. */
+int __wrap_sd_bus_call_method(sd_bus *bus,const char *destination,const char *path,const char *interface,
+    const char *member,sd_bus_error *error,sd_bus_message **reply,const char *types,...)
+{
+    va_list args; va_start(args,types); const char *requested=NULL;
+    if (types && strcmp(types,"s")==0) { va_list copy; va_copy(copy,args); requested=va_arg(copy,const char *); va_end(copy); }
+    int r=sd_bus_call_methodv(bus,destination,path,interface,member,error,reply,types,args); va_end(args);
+    if (r<0 || !job_fault || strcmp(destination,"org.freedesktop.systemd1")!=0 || strcmp(member,"GetAll")!=0 ||
+        !requested || strcmp(requested,"org.freedesktop.systemd1.Unit")!=0) return r;
+    ++job_calls; if (job_fault==6 && job_calls==1) return r;
+    CHECK(reply && *reply); sd_bus_message *call=NULL,*changed=NULL,*original=*reply;
+    CHECK(sd_bus_message_new_method_call(bus,&call,destination,path,interface,member)>=0 && sd_bus_message_append(call,"s",requested)>=0 &&
+        sd_bus_message_seal(call,1,0)>=0 && sd_bus_message_new_method_return(call,&changed)>=0);
+    CHECK(sd_bus_message_enter_container(original,'a',"{sv}")>0 && sd_bus_message_open_container(changed,'a',"{sv}")>=0);
+    while ((r=sd_bus_message_enter_container(original,'e',"sv"))>0) {
+        const char *key=NULL; CHECK(sd_bus_message_read(original,"s",&key)>0);
+        if (strcmp(key,"Job")==0) {
+            CHECK(sd_bus_message_skip(original,"v")>=0);
+            unsigned int kind=job_fault==6 ? 1U : job_fault;
+            if (kind!=2) job_entry(changed,kind);
+            if (kind==3) job_entry(changed,kind);
+        } else {
+            CHECK(sd_bus_message_open_container(changed,'e',"sv")>=0 && sd_bus_message_append(changed,"s",key)>=0 &&
+                sd_bus_message_copy(changed,original,0)>=0 && sd_bus_message_close_container(changed)>=0);
+        }
+        CHECK(sd_bus_message_exit_container(original)>0);
+    }
+    CHECK(r==0 && sd_bus_message_exit_container(original)>0 && sd_bus_message_close_container(changed)>=0 &&
+        sd_bus_message_seal(changed,2,0)>=0 && sd_bus_message_rewind(changed,1)>=0);
+    sd_bus_message_unref(call); sd_bus_message_unref(original); *reply=changed; return 1;
+}
+
 struct server {
     sd_bus *system;
     struct ae_peer retained;
     struct ae_process_context context;
     struct ae_process_identity identity;
     char unit[256];
-    unsigned int calls;
+    unsigned int calls,helpers;
 };
 
 static int descriptors(void)
@@ -76,10 +146,15 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
     if (result != 0) fprintf(stderr, "observe: %s (%d)\n", strerror(-result), result);
     CHECK(result == 0 && actual.uid == geteuid() && strcmp(actual.unit, state->unit) == 0);
     CHECK(ae_process_verify(&peer, state->system, &actual) == 0);
+    CHECK(state->helpers==state->calls+1);
+    struct ae_process_context main_context;
+    CHECK(ae_process_observe_main(&peer,state->system,&main_context)==0 && ae_process_context_equal(&main_context,&actual));
+    CHECK(ae_process_verify_main(&peer,state->system,&actual)==0);
     if (state->calls == 1) {
         CHECK(strcmp(actual.unit, state->context.unit) == 0 && memcmp(actual.boot, state->context.boot, sizeof actual.boot) == 0);
         CHECK(memcmp(actual.invocation, state->context.invocation, sizeof actual.invocation) != 0);
         CHECK(ae_process_verify(&peer, state->system, &state->context) == -ESTALE);
+        CHECK(ae_process_verify_main(&peer,state->system,&state->context)==-ESTALE);
         CHECK(ae_peer_alive(&state->retained) == -ESRCH);
         CHECK(ae_process_reidentify(&state->identity,&peer,state->system,&actual)==-ESTALE);
         ae_peer_clear(&state->retained);
@@ -102,6 +177,7 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
             default: wrong.label[0] ^= 1; break;
         }
         CHECK(ae_process_verify(&peer, state->system, &wrong) == -ESTALE);
+        CHECK(ae_process_verify_main(&peer,state->system,&wrong)==-ESTALE);
     }
     struct ae_process_context untouched;
     memset(&untouched, 0xa5, sizeof untouched);
@@ -121,6 +197,27 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
         CHECK(memcmp(&untouched, &sentinel, sizeof sentinel) == 0);
     }
     fault = 0;
+    const int main_errors[]={0,-EACCES,-EACCES,-EACCES,-EIO,-EACCES,-EAGAIN,-ENODATA,-EBADMSG};
+    int main_baseline=descriptors();
+    for (main_fault=1;main_fault<=8;++main_fault) {
+        main_calls=0; untouched=sentinel;
+        CHECK(ae_process_observe_main(&peer,state->system,&untouched)==main_errors[main_fault]);
+        CHECK(memcmp(&untouched,&sentinel,sizeof untouched)==0 && descriptors()==main_baseline);
+        if (main_fault==5) CHECK(main_calls==2);
+    }
+    main_fault=0;
+    const int job_errors[]={0,-EAGAIN,-ENODATA,-EBADMSG,0,-EBADMSG,-EAGAIN};
+    for (job_fault=1;job_fault<=6;++job_fault) {
+        job_calls=0; untouched=sentinel; int failed=ae_process_observe_main(&peer,state->system,&untouched);
+        CHECK(job_fault==4 ? failed<0 : failed==job_errors[job_fault]);
+        CHECK(memcmp(&untouched,&sentinel,sizeof untouched)==0 && descriptors()==main_baseline);
+        if (job_fault==6) CHECK(job_calls==2);
+    }
+    job_fault=0;
+    short_job=1; untouched=sentinel;
+    CHECK(ae_process_observe_main(&peer,state->system,&untouched)==-EBADMSG && !short_job && memcmp(&untouched,&sentinel,sizeof untouched)==0);
+    CHECK(descriptors()==main_baseline);
+    CHECK(ae_process_observe_main(&peer,state->system,&untouched)==0);
     struct ae_process_identity identity,identity_marker; memset(&identity_marker,0xa5,sizeof identity_marker);
     identity_fd=peer.pidfd;
     for (inode_fault=1;inode_fault<=2;++inode_fault) {
@@ -139,11 +236,34 @@ static int check_call(sd_bus_message *message, void *userdata, sd_bus_error *err
     return sd_bus_reply_method_return(message, "");
 }
 
+static int subordinate_call(sd_bus_message *message,void *userdata,sd_bus_error *error)
+{
+    (void)error; struct server *s=userdata; struct ae_peer peer=AE_PEER_INIT;
+    CHECK(s->helpers==s->calls && s->calls<2 && ae_peer_capture(message,&peer)==0);
+    struct ae_process_context actual,marker,unchanged; memset(&marker,0xa5,sizeof marker); unchanged=marker;
+    CHECK(ae_process_observe(&peer,s->system,&actual)==0 && actual.uid==1000 && strcmp(actual.unit,s->unit)==0);
+    CHECK(ae_process_observe_main(&peer,s->system,&unchanged)==-EACCES && memcmp(&unchanged,&marker,sizeof marker)==0);
+    CHECK(ae_process_verify_main(&peer,s->system,&actual)==-EACCES);
+    ae_peer_clear(&peer); ++s->helpers; return sd_bus_reply_method_return(message,"");
+}
+
 static const sd_bus_vtable methods[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("Check", "", "", check_call, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Subordinate", "", "", subordinate_call, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END
 };
+
+static void subordinate(const char *destination)
+{
+    sd_bus *bus=NULL,*system=NULL; CHECK(sd_bus_open_user(&bus)>=0 && sd_bus_open_system(&system)>=0);
+    struct ae_process_context context,marker; memset(&marker,0xa5,sizeof marker); context=marker;
+    CHECK(ae_process_observe_self(system,&context)==0); context=marker;
+    CHECK(ae_process_observe_self_main(system,&context)==-EACCES && memcmp(&context,&marker,sizeof marker)==0);
+    sd_bus_error error=SD_BUS_ERROR_NULL;
+    CHECK(sd_bus_call_method(bus,destination,"/org/aetheri/TestProcess","org.aetheri.TestProcess1","Subordinate",&error,NULL,"")>=0);
+    sd_bus_error_free(&error); sd_bus_flush_close_unref(system); sd_bus_flush_close_unref(bus);
+}
 
 static int client(const char *destination)
 {
@@ -155,9 +275,13 @@ static int client(const char *destination)
         struct ae_process_context self;
         sd_id128_t invocation;
         CHECK(ae_process_observe_self(system, &self) == 0);
+        struct ae_process_context main_self; CHECK(ae_process_observe_self_main(system,&main_self)==0 && ae_process_context_equal(&self,&main_self));
         CHECK(sd_id128_get_invocation(&invocation) == 0 && memcmp(self.invocation, invocation.bytes, sizeof self.invocation) == 0);
     }
     CHECK(descriptors() == baseline);
+    pid_t helper=fork(); CHECK(helper>=0);
+    if (!helper) { subordinate(destination); _exit(0); }
+    int status; CHECK(waitpid(helper,&status,0)==helper && WIFEXITED(status) && WEXITSTATUS(status)==0);
     sd_bus_flush_close_unref(system);
     CHECK(sd_bus_set_method_call_timeout(bus, 15000000) >= 0);
     sd_bus_error error = SD_BUS_ERROR_NULL;
@@ -229,12 +353,13 @@ int main(int argc, char **argv)
         int status = 0;
         CHECK(waitpid(runner, &status, 0) == runner && WIFEXITED(status) && WEXITSTATUS(status) == 0);
     }
-    CHECK(ae_process_verify(&state.retained, state.system, &state.context) == -ESRCH);
+    CHECK(state.helpers==2 && ae_process_verify(&state.retained, state.system, &state.context) == -ESRCH);
+    CHECK(ae_process_verify_main(&state.retained,state.system,&state.context)==-ESRCH);
     struct ae_process_identity identity,identity_marker; memset(&identity_marker,0xa5,sizeof identity_marker); identity=identity_marker;
     CHECK(ae_process_identify(&state.retained,state.system,&state.context,&identity)==-ESRCH && memcmp(&identity,&identity_marker,sizeof identity)==0);
     ae_peer_clear(&state.retained);
     sd_bus_flush_close_unref(state.system);
     sd_bus_flush_close_unref(bus);
-    puts("process: real bus ProcessFD/current UID+label, invocation/cgroup, seven stale bindings, same-name restart, missing/changed observations, exit and FD balance passed");
+    puts("process: actual MainPID/self, same-unit subordinate rejection, MainPID/ControlPID/Job fault/drift checks, generic UID/label/invocation/cgroup/identity restart checks and FD balance passed");
     return 0;
 }

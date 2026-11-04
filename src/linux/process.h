@@ -32,10 +32,24 @@ int ae_process_observe(const struct ae_peer *peer, sd_bus *system_bus,
 int ae_process_observe_registration(const struct ae_peer *peer, sd_bus *system_bus,
                                     struct ae_process_context *output);
 int ae_process_context_equal(const struct ae_process_context *a, const struct ae_process_context *b);
+/* Stricter active-service snapshot for CURRENT authority actor admission:
+ * require the held bus-authenticated process itself is PID1's current MainPID,
+ * no ControlPID and no pending Unit.Job, twice with the existing context checks.
+ * Same-unit children still pass generic observe but cannot pass this API. Never
+ * open the numeric MainPID, use historical ExecMainPID or infer actor image/
+ * code provenance, future-effect exclusion or cross-boot continuity from this.
+ * MAINPID can be reassigned; caller independently admits protected supervisor
+ * configuration/policy and serializes actor replacement. No registration variant
+ * is implied; an activating service/pending start job remains unadmitted.
+ * No new permission/process/SQL effect; outputs unchanged on error. */
+int ae_process_observe_main(const struct ae_peer *,sd_bus *,struct ae_process_context *);
+int ae_process_verify_main(const struct ae_peer *,sd_bus *,const struct ae_process_context *);
 /* The only local pidfd_open path: pin this calling process itself. Never use
  * this to replace a caller's required bus-authenticated ProcessFD.
  */
 int ae_process_observe_self(sd_bus *system_bus, struct ae_process_context *output);
+/* Strict main check of the calling process only, never a replacement peer pin. */
+int ae_process_observe_self_main(sd_bus *,struct ae_process_context *);
 /* Expected must come from the trusted supervisor/launch registry, never an app.
  * Matching does not itself register a broker/app, verify target exec, check a
  * catalogue gate or authorize a document. Recheck at admission, not once forever.

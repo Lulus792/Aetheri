@@ -4377,3 +4377,93 @@ settled. Actual cross-boot continuity/current-actor/fencing integration, a confi
 wire/coordinator, early/unfinished launches, general grant/holder settlement and
 complete removal remain necessary. Normal v2 services/capabilities/policy stay
 unchanged; metadata tests cannot close the quarantined v6 attempt.
+
+## Current service main-process boundary
+
+The optional strict functions in [linux/process.h](../src/linux/process.h) now
+distinguish an active service's main process from another process in that same
+unit/invocation/cgroup. ae_process_observe_main and ae_process_verify_main retain
+the existing bus-authenticated ProcessFD, PIDFD_GET_INFO UID/kernel identity,
+current label, active unit/invocation, cgroup and repeated-context checks. They
+add these PID1 facts on both observations:
+
+- Unit.Job is present exactly once, has the expected (uo) type, and contains
+  zero job ID and the carrier's no-job object path /. Missing, duplicate,
+  malformed, short-read or non-idle observations cannot admit an actor.
+- Service.MainPID is a current positive signed-PID-range value matching the
+  process already pinned by the authenticated connection. Never open this
+  numeric PID or substitute the historical ExecMainPID property.
+- Service.ControlPID is zero. A current job/control process requires retry or
+  reconciliation; it is not proof of quiescence or an authority lease release.
+
+ae_process_observe_self_main applies the same check only to the calling process,
+using the existing narrowly allowed self-pin path. It cannot stand in for a
+missing caller ProcessFD. Generic observe/verify and registration retain their
+previous meaning: a legitimate same-unit subordinate with its own authenticated
+connection can still pass the generic context check. The held ProcessFD identifies
+the authenticated connection's process, not every writer of an inherited or
+delegated connection. Keep authority control connections process-owned and
+independently exclude other holders. No native context encoding, schema, D-Bus XML or public capability
+changes. No additional capability, ptrace permission or cross-UID executable read.
+
+Root's GetProtocolInfo now uses strict self observation. Active broker use now
+calls strict main verification on the retained original registered connection,
+then rechecks name/binding after nested manager calls. Registration can still
+observe the independently selected Type=notify service while activating; that
+does not make it active or main-admitted. Same-connection identity and departure
+handling remain mandatory. Losing a broker closes its pin, never an app lease.
+
+MainPID is a bounded current observation, not immutable image provenance. A
+service can support main-process reassignment; caller admission must protect the
+selected supervisor configuration/code/policy and serialize replacement. Neither
+an idle-job snapshot nor this API excludes a future dispatch. Current image,
+host namespace, old-volume/clone continuity and complete holder fencing remain
+separate. A new matching unit/name/UID does not inherit an old run or authority.
+
+### Executed main-process and confined endpoint checks
+
+The extended linux.process component uses two actual capability-empty UID-1000
+services with the same unit name across restart. Each main process forks a real
+subordinate in its own unit and invocation. The subordinate passes generic
+observation, while both remote and self strict main checks reject it. Main
+observation/verification succeeds for the actual main, rejects stale context,
+and fails after exit. This administrative component uses its existing SELinux
+context, not a production Root/User-domain claim.
+
+Controlled PID1-property failures additionally exercise zero/foreign/overflow
+MainPID, property errors, a changed second observation, a nonzero ControlPID,
+pending/missing/duplicate/wrong-type/inconsistent Job and a short tuple read.
+Job mutations copy the other fields from actual PID1 replies. Error outputs and
+FD counts remain unchanged. The broker cache component explicitly mocks the
+stricter context; its actual name-loss/pidfd events are still real.
+
+Final Release passes process, identity, lifetime, boot, broker and connected-owner
+admission checks 6/6 (3.94 s). Debug ASan/UBSan passes process/broker/admission 3/3
+(1.24 s). Both complete native builds pass. Generic app/starter process identity
+and lifetime behavior is retained; strict main selection is not imposed on apps.
+
+The reviewed update-owned controller then updated only the verified stopped
+normal v2 bootstrap's selected programs; no policy permission was added. Actual
+Root/User discovery, XML/capability denials and broker-check passed enforcing and
+capability-empty. User replacement and Root-only restart with User retained both
+passed. Departure reduced Root FD count from 12 to 11, then replacement restored
+the retained binding. The final selected Release authority SHA-256 is
+67c564f3304fe76b58684d1b4c989fd1106f21e68a2a60f26bd91b4516743324.
+Controller input/result evidence stays under the guest release build directory.
+
+Afterward, both normal v2 owners retain their epochs/account, stable writer.lock
+inodes and closed gates; services are stopped. All 41 static file hashes agree.
+The protected broker-unit slot deliberately changes on replacement and exactly
+matches the independently selected current User unit. An initial preservation
+assertion wrongly treated that dynamic slot as static; its before evidence was
+retained, the controller's exact publication contract was checked, and the final
+check validates its expected contents rather than ignoring the file.
+
+This tests the existing normal authorities, not admission into the isolated old
+execution fixture's epochs. Its Root v6/User v4 catalogues, pending controller
+and 17 static inputs remain protected and unsettled. No new target launch,
+cross-boot migration/release, handle reconstruction or fixture retirement follows.
+The retained old host records contain UUID/PID/command metadata but no preexisting
+independent disk-object witness. Do not invent one retroactively or turn a fresh
+normal-service proof into old-volume/clone admission. The remaining recovery
+coordinator needs separately reviewed continuity and current-actor/source bindings.

@@ -13,6 +13,10 @@ The complete local NexaUI handoff maps all 102 current UI requirements and start
 with a Wayland-only consumer profile plus a native Settings view. Exact candidate
 adoption follows the relevant app scope; the whole catalogue need not be finished
 before Aetheri can have working UI.
+Independent private Wayland compositor/UI bring-up can progress while old-boot
+recovery provenance is reviewed. It must not redispatch/replace the quarantined
+app attempt or claim lifecycle/hardware acceptance. Final product designs remain
+deferred for user review; dependency/renderer/input plumbing is engineering work.
 
 ## Browser
 
@@ -75,6 +79,13 @@ The [v8 contract](../../spec/runtime.md#cross-boot-interruption-transactions) do
 not itself settle the retained fixture. Early/unfinished launch interruption,
 general exported/delegated grant/holder settlement and coordinated pruning remain
 separate engineering gates, with no new personal product question required.
+Strict live main-process admission now works in the normal Root/User endpoints,
+including actual replacement/restart checks. This is a different authority realm
+from the quarantined test. Bind protected current image/unit/epoch selection and
+reviewed continuity into recovery before any v8 mutation of its old catalogues.
+The retained host UUID/PID/command files lack an original independent disk-object
+witness; engineering review must address that legacy provenance gap explicitly.
+Do not silently synthesize it from the current candidate's matching metadata.
 See [active test](../../spec/runtime.md#interrupted-active-root-test).
 
 Current implemented boundary: the explicit successful fixed run now closes through
