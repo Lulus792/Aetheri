@@ -4,6 +4,19 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native input/nested presentation — 4 November 2026
+
+- [Current graphics boundary](../../spec/graphics.md), [input ownership](../../src/compositor/input.c),
+  [native input test](../../tools/test_compositor_input.py) and
+  [nested presentation test](../../tools/test_compositor_nested.py). Final
+  Release/sanitizer results, dependency identity and limits are recorded in STATE.
+- [Pinned coordinate patch](../../patches/wlroots-0.20.2-pointer-enter.patch),
+  [source builder](../../tools/build_graphics.py), upstream 0.20.2 pointer/seat/
+  cursor source and native negative control: immediate enter/click is required,
+  with correct named-output mapping and no added test motion to hide the gap.
+- Current upstream seat/nested API and Wayland input protocol were reviewed;
+  their primary links and pinned-release limits are in the graphics document.
+
 ## Private compositor — 4 November 2026
 
 - [Scope/build/evidence](../../spec/graphics.md), [input lock](../../spec/graphics-inputs.json),

@@ -13,8 +13,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <wayland-client-core.h>
 #include <wlr/backend.h>
 #include <wlr/backend/headless.h>
+#include <wlr/backend/wayland.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/pixman.h>
 #include <wlr/types/wlr_buffer.h>
@@ -26,41 +28,11 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
-enum { OUTPUT_LIMIT = 3, WINDOW_LIMIT = 64, CAPTURE_LIMIT = 16 };
-struct server;
-struct output {
-    struct server *server;
-    struct wlr_output *output;
-    struct wlr_scene_output *scene;
-    struct wl_listener frame;
-    struct wl_listener destroy;
-    unsigned index;
-    unsigned capture;
-    uint64_t commits;
-};
-struct window {
-    struct server *server;
-    struct wlr_xdg_toplevel *toplevel;
-    struct wlr_scene_tree *tree;
-    struct wl_list link;
-    struct wl_listener commit, destroy, map, unmap, maximize, fullscreen;
-    unsigned home;
-};
-struct server {
-    struct wl_display *display;
-    struct wlr_backend *backend;
-    struct wlr_renderer *renderer;
-    struct wlr_allocator *allocator;
-    struct wlr_scene *scene;
-    struct wlr_output_layout *layout;
-    struct wlr_xdg_shell *shell;
-    struct wl_listener new_toplevel;
-    struct output outputs[OUTPUT_LIMIT];
-    struct wl_list windows;
-    unsigned output_count, window_count, next_home, capture;
-    int capture_fd;
-    bool failed;
-};
+#include "server.h"
+#include "input.h"
+#ifdef AETHERI_INPUT_TEST
+#include "compositor_input_driver.h"
+#endif
 
 static void fail(struct server *s, const char *message) {
     fprintf(stderr, "compositor: %s\n", message);
@@ -139,14 +111,38 @@ static void output_destroy(struct wl_listener *listener, void *data) {
     struct output *o = wl_container_of(listener, o, destroy);
     wl_list_remove(&o->frame.link);
     wl_list_remove(&o->destroy.link);
+    wl_list_remove(&o->request_state.link);
     o->output = NULL;
     o->scene = NULL;
+    if (o->server->nested && !o->server->shutting_down) wl_display_terminate(o->server->display);
+}
+static void output_request_state(struct wl_listener *listener, void *data) {
+    struct output *o = wl_container_of(listener, o, request_state);
+    struct wlr_output_event_request_state *event = data;
+    const struct wlr_output_state *state = event->state;
+    if (state->committed & WLR_OUTPUT_STATE_MODE) {
+        if (state->mode_type != WLR_OUTPUT_STATE_MODE_CUSTOM || state->custom_mode.width < 64 ||
+                state->custom_mode.width > 3840 || state->custom_mode.height < 64 || state->custom_mode.height > 2160) {
+            fail(o->server, "parent output size outside private profile"); return;
+        }
+    }
+    if (!wlr_output_commit_state(o->output, state)) fail(o->server, "parent resize failed");
+}
+static void backend_destroy(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct server *s = wl_container_of(listener, s, backend_destroy);
+    ae_input_stop_backend(s->input);
+    wl_list_remove(&s->backend_destroy.link);
+    s->backend = NULL;
+    if (!s->shutting_down) fail(s, "parent backend lost");
 }
 
 static void configure(struct window *w) {
     struct server *s = w->server;
     struct wlr_xdg_toplevel *top = w->toplevel;
     struct output *o = &s->outputs[w->home];
+    struct wlr_output *at = wlr_output_layout_output_at(s->layout, w->x, w->y);
+    for (unsigned i = 0; i < s->output_count; ++i) if (s->outputs[i].output == at) o = &s->outputs[i];
     if (top->requested.fullscreen_output) {
         for (unsigned i = 0; i < s->output_count; ++i) {
             if (s->outputs[i].output == top->requested.fullscreen_output) o = &s->outputs[i];
@@ -154,9 +150,11 @@ static void configure(struct window *w) {
     }
     bool full = top->requested.fullscreen;
     bool max = top->requested.maximized && !full;
+    if (!o->output) { fail(s, "selected output disappeared"); return; }
     struct wlr_output_layout_output *place = wlr_output_layout_get(s->layout, o->output);
-    wlr_scene_node_set_position(&w->tree->node, place->x + (full || max ? 0 : 40),
-        place->y + (full || max ? 0 : 40));
+    if (!place) { fail(s, "selected output layout disappeared"); return; }
+    wlr_scene_node_set_position(&w->tree->node, full || max ? place->x : w->x,
+        full || max ? place->y : w->y);
     wlr_xdg_toplevel_set_fullscreen(top, full);
     wlr_xdg_toplevel_set_maximized(top, max);
     wlr_xdg_toplevel_set_size(top, full || max ? o->output->width : 0,
@@ -186,26 +184,39 @@ static void window_commit(struct wl_listener *listener, void *data) {
 static void window_map(struct wl_listener *listener, void *data) {
     (void)data;
     struct window *w = wl_container_of(listener, w, map);
+    ae_input_map(w);
     printf("MAP %u\n", w->home);
 }
 static void window_unmap(struct wl_listener *listener, void *data) {
     (void)data;
     struct window *w = wl_container_of(listener, w, unmap);
+    ae_input_unmap(w);
     printf("UNMAP %u\n", w->home);
 }
 static void window_destroy(struct wl_listener *listener, void *data) {
     (void)data;
     struct window *w = wl_container_of(listener, w, destroy);
+    if (w->mapped) ae_input_unmap(w);
     wl_list_remove(&w->commit.link);
     wl_list_remove(&w->destroy.link);
     wl_list_remove(&w->map.link);
     wl_list_remove(&w->unmap.link);
     wl_list_remove(&w->maximize.link);
     wl_list_remove(&w->fullscreen.link);
+    wl_list_remove(&w->move.link);
+    wl_list_remove(&w->resize.link);
     wl_list_remove(&w->link);
     --w->server->window_count;
     /* The xdg scene helper independently retires its tree on surface destroy. */
     free(w);
+}
+static void window_move(struct wl_listener *listener, void *data) {
+    struct window *w = wl_container_of(listener, w, move);
+    ae_input_move(w, data);
+}
+static void window_resize(struct wl_listener *listener, void *data) {
+    struct window *w = wl_container_of(listener, w, resize);
+    ae_input_resize(w, data);
 }
 static void new_toplevel(struct wl_listener *listener, void *data) {
     struct server *s = wl_container_of(listener, s, new_toplevel);
@@ -219,20 +230,32 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
     w->server = s;
     w->toplevel = top;
     w->home = s->next_home++ % s->output_count;
+    if (!s->outputs[w->home].scene) {
+        free(w);
+        wl_client_post_implementation_error(wl_resource_get_client(top->resource), "output unavailable");
+        return;
+    }
+    w->x = s->outputs[w->home].scene->x + 40;
+    w->y = 40;
     w->tree = wlr_scene_xdg_surface_create(&s->scene->tree, top->base);
     if (!w->tree) { free(w); wl_client_post_no_memory(wl_resource_get_client(top->resource)); return; }
+    w->tree->node.data = w;
     w->commit.notify = window_commit;
     w->destroy.notify = window_destroy;
     w->map.notify = window_map;
     w->unmap.notify = window_unmap;
     w->maximize.notify = window_request;
     w->fullscreen.notify = window_fullscreen;
+    w->move.notify = window_move;
+    w->resize.notify = window_resize;
     wl_signal_add(&top->base->surface->events.commit, &w->commit);
     wl_signal_add(&top->events.destroy, &w->destroy);
     wl_signal_add(&top->base->surface->events.map, &w->map);
     wl_signal_add(&top->base->surface->events.unmap, &w->unmap);
     wl_signal_add(&top->events.request_maximize, &w->maximize);
     wl_signal_add(&top->events.request_fullscreen, &w->fullscreen);
+    wl_signal_add(&top->events.request_move, &w->move);
+    wl_signal_add(&top->events.request_resize, &w->resize);
     wl_list_insert(&s->windows, &w->link);
     ++s->window_count;
 }
@@ -248,6 +271,7 @@ static int signal_event(int number, void *data) {
         ++s->capture;
         for (unsigned i = 0; i < s->output_count; ++i) {
             struct output *o = &s->outputs[i];
+            if (!o->output || !o->scene) { fail(s, "capture output disappeared"); return 0; }
             if (o->capture) { fail(s, "capture already pending"); return 0; }
             o->capture = s->capture;
             wlr_damage_ring_add_whole(&o->scene->damage_ring);
@@ -270,16 +294,28 @@ static int private_directory(const char *path) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4 || strcmp(argv[1], "--headless") || strlen(argv[2]) > 48 ||
+    bool nested = argc > 1 && !strcmp(argv[1], "--nested");
+    int expected_argc = nested ? 5 : 4;
+#ifdef AETHERI_INPUT_TEST
+    if (nested) return 2;
+    expected_argc = 5;
+    struct input_driver *driver = NULL;
+#endif
+    if (argc != expected_argc || (!nested && strcmp(argv[1], "--headless")) || strlen(argv[2]) > 48 ||
             strspn(argv[2], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[2]) ||
             argv[2][0] == '\0' || getuid() == 0 || getuid() != geteuid() || getgid() != getegid()) {
-        fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n");
+        fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n"
+                        "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n");
         return 2;
     }
+    if (nested && (getenv("WAYLAND_SOCKET") || strlen(argv[4]) > 48 || !argv[4][0] ||
+            strspn(argv[4], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[4]) ||
+            !strcmp(argv[2], argv[4]))) return 2;
     int runtime = private_directory(getenv("XDG_RUNTIME_DIR"));
     if (runtime < 0) { fprintf(stderr, "private 0700 XDG_RUNTIME_DIR required\n"); return 2; }
     close(runtime);
-    struct server s = {.capture_fd = -1, .output_count = OUTPUT_LIMIT};
+    struct server s = {.capture_fd = -1, .output_count = OUTPUT_LIMIT, .nested = nested};
+    struct wl_display *parent = NULL;
     if (strcmp(argv[3], "-")) {
         s.capture_fd = private_directory(argv[3]);
         if (s.capture_fd < 0) return 2;
@@ -297,9 +333,15 @@ int main(int argc, char **argv) {
         signals[i] = wl_event_loop_add_signal(loop, numbers[i], signal_event, &s);
         if (!signals[i]) goto done;
     }
-    s.backend = wlr_headless_backend_create(loop);
+    if (nested) {
+        parent = wl_display_connect(argv[4]);
+        if (!parent) goto done;
+        s.backend = wlr_wl_backend_create(loop, parent);
+    } else s.backend = wlr_headless_backend_create(loop);
     s.renderer = wlr_pixman_renderer_create();
     if (!s.backend || !s.renderer) goto done;
+    s.backend_destroy.notify = backend_destroy;
+    wl_signal_add(&s.backend->events.destroy, &s.backend_destroy);
     s.allocator = wlr_allocator_autocreate(s.backend, s.renderer);
     s.scene = wlr_scene_create();
     s.layout = wlr_output_layout_create(s.display);
@@ -308,48 +350,69 @@ int main(int argc, char **argv) {
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
     if (!wlr_scene_rect_create(&s.scene->tree, 8320, 2160, background)) goto done;
+    s.input = ae_input_create(&s);
+    if (!s.input || (nested && !wlr_backend_start(s.backend))) goto done;
     int x = 0;
     for (unsigned i = 0; i < OUTPUT_LIMIT; ++i) {
         struct output *o = &s.outputs[i];
         o->server = &s;
         o->index = i;
-        o->output = wlr_headless_add_output(s.backend, (unsigned)widths[i], (unsigned)heights[i]);
+        o->output = nested ? wlr_wl_output_create(s.backend) :
+            wlr_headless_add_output(s.backend, (unsigned)widths[i], (unsigned)heights[i]);
         if (!o->output) goto done;
         o->destroy.notify = output_destroy;
         wl_signal_add(&o->output->events.destroy, &o->destroy);
+        o->request_state.notify = output_request_state;
+        wl_signal_add(&o->output->events.request_state, &o->request_state);
+        if (nested) wlr_wl_output_set_title(o->output, "Aetheri private desktop");
         o->frame.notify = output_frame;
         wl_signal_add(&o->output->events.frame, &o->frame);
         if (!wlr_output_init_render(o->output, s.allocator, s.renderer)) goto done;
         struct wlr_output_state state;
         wlr_output_state_init(&state);
         wlr_output_state_set_enabled(&state, true);
-        wlr_output_state_set_custom_mode(&state, widths[i], heights[i], 60000);
+        wlr_output_state_set_custom_mode(&state, widths[i], heights[i], nested ? 0 : 60000);
         bool ok = wlr_output_commit_state(o->output, &state);
         wlr_output_state_finish(&state);
         if (!ok || !wlr_output_layout_add(s.layout, o->output, x, 0)) goto done;
         o->scene = wlr_scene_output_create(s.scene, o->output);
         if (!o->scene) goto done;
         wlr_scene_output_set_position(o->scene, x, 0);
+        ae_input_map_outputs(s.input);
         x += widths[i];
     }
     s.shell = wlr_xdg_shell_create(s.display, 5);
     if (!s.shell) goto done;
     s.new_toplevel.notify = new_toplevel;
     wl_signal_add(&s.shell->events.new_toplevel, &s.new_toplevel);
-    if (wl_display_add_socket(s.display, argv[2]) != 0 || !wlr_backend_start(s.backend)) goto done;
+#ifdef AETHERI_INPUT_TEST
+    char *end = NULL;
+    long input_fd = strtol(argv[4], &end, 10);
+    if (!end || *end || input_fd < 3 || input_fd > INT32_MAX) goto done;
+    driver = input_driver_start(&s, (int)input_fd);
+    if (!driver) goto done;
+#endif
+    if (wl_display_add_socket(s.display, argv[2]) != 0 || (!nested && !wlr_backend_start(s.backend))) goto done;
     printf("READY %s outputs=3 renderer=pixman\n", argv[2]);
     wl_display_run(s.display);
     result = s.failed ? 1 : 0;
 done:
+    s.shutting_down = true;
     wl_display_destroy_clients(s.display);
+#ifdef AETHERI_INPUT_TEST
+    input_driver_close(driver);
+#endif
     if (s.shell) wl_list_remove(&s.new_toplevel.link);
+    ae_input_stop_backend(s.input);
     if (s.backend) wlr_backend_destroy(s.backend);
+    ae_input_destroy(s.input);
     if (s.scene) wlr_scene_node_destroy(&s.scene->tree.node);
     if (s.layout) wlr_output_layout_destroy(s.layout);
     if (s.allocator) wlr_allocator_destroy(s.allocator);
     if (s.renderer) wlr_renderer_destroy(s.renderer);
     for (unsigned i = 0; i < 4; ++i) if (signals[i]) wl_event_source_remove(signals[i]);
     wl_display_destroy(s.display);
+    if (parent) wl_display_disconnect(parent);
     if (s.capture_fd >= 0) close(s.capture_fd);
     return result;
 }

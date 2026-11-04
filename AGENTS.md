@@ -599,8 +599,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   escape guarantee, TCG security fallback or implicit host-management exposure.
 - No invented commands, screenshots, measurements or hardware acceptance.
 - The optional private C17 compositor now exists; read spec/graphics.md and its
-  separate graphics-inputs.json. Default builds stay graphics-OFF. Headless Pixman
-  pixel tests are not input/session/hardware or app-lifecycle acceptance. Keep its
+  separate graphics-inputs.json. Native input and explicit nested output are tested;
+  its wlroots pointer-enter patch and fresh build helper are pinned there. Default
+  builds stay graphics-OFF. These tests are not physical/trusted-session or app-
+  lifecycle acceptance. The input-FD driver is a separate test executable. Keep its
   private socket/captures and unprivileged test children separate from the retained
   old execution intent. Exact wlroots/Wayland dependency changes require review.
 - The user confirmed the current workstation is the main-PC target and requires

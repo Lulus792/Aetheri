@@ -17,9 +17,10 @@ Independent private Wayland compositor/UI bring-up can progress while old-boot
 recovery provenance is reviewed. It must not redispatch/replace the quarantined
 app attempt or claim lifecycle/hardware acceptance. Final product designs remain
 deferred for user review; dependency/renderer/input plumbing is engineering work.
-The private wlroots 0.20.2/Pixman headless prototype now passes native pixel and
-sanitizer checks. Next implement actual input/focus and a visible private output;
-physical/session/app integration remains open. See [current scope](../../spec/graphics.md).
+The private wlroots 0.20.2/Pixman prototype now passes native input/focus, nested
+presentation and pixel/sanitizer checks. Next integrate an app view and session
+behavior; physical/trusted-session acceptance remains open. The narrow upstream
+coordinate patch is separately pinned. See [current scope](../../spec/graphics.md).
 
 ## Browser
 

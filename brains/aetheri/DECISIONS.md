@@ -1,5 +1,20 @@
 # Decisions
 
+## Native seat and explicit nested presentation — 4 November 2026
+
+Keep input ownership in one private compositor module: native keymaps, click focus,
+provisional Alt+Tab, retained implicit grabs and current-origin/seat/serial checks
+for move/resize. Retain backend keyboard maps; US is the fallback. Device state
+and current client resource binding are different observations. Add explicit named
+parent Wayland mode without automatic fallback. Test input enters only a separate
+inherited-FD fixture executable, never the ordinary desktop binary.
+
+The accepted wlroots 0.20.2 source needs a narrow pointer-enter coordinate patch
+for immediate nested clicks; pin the original/result/patch and preserve upstream
+licenses in fresh private builds. Do not mask the failure with an extra test
+motion. Actual nested/private input acceptance does not establish hardware,
+trusted-session or lifecycle authority. See [contract/evidence](../../spec/graphics.md).
+
 ## Bring up the original compositor privately — 4 November 2026
 
 Use the selected wlroots family at reviewed 0.20.2 with a minimal private Pixman/

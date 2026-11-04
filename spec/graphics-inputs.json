@@ -175,5 +175,11 @@
       "version": "expat-2.9.0-1.fc44.x86_64; MIT",
       "evidence": "https://packages.fedoraproject.org/pkgs/expat/"
     }
-  ]
+  ],
+  "pointer_enter_patch": {
+    "path": "patches/wlroots-0.20.2-pointer-enter.patch",
+    "sha256": "9a2b238f7ed80ca153227ff2ea0e3df083e85ff1deb5249381e35c8289e1a029",
+    "original_sha256": "f5e3ef516cd54837cc5b8f08a2c0b3ac8d6b22b40dda2c9152fb0de4b42f1881",
+    "patched_sha256": "40a85488459f256185476bee8e5f1054c193fb84b2c7264a1b44e185eb1631bc"
+  }
 }

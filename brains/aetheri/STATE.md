@@ -1,8 +1,42 @@
 # State
 
-4 November 2026 — private native compositor and strict service-main integration.
+4 November 2026 — native input/focus and nested compositor presentation.
 
 ## Current update
+
+The private compositor now has native pointer/keyboard seat delivery, click and
+provisional Alt+Tab focus, serial-bound move/resize, implicit-grab retention and
+device replacement. US fallback and backend-provided German keymaps are tested.
+Explicit nested mode creates three native windows in a named parent Wayland
+display; actual parent-composed pixels and two-output input forwarding pass.
+Parent loss ends the child without fallback. See [current boundary](../../spec/graphics.md).
+
+The final Release suite passes 3/3 (5.93 s); Debug ASan/UBSan with separately
+instrumented patched wlroots passes 3/3 (9.83 s). The 11 rendering, 8 input and 3
+nested workflow checks include 42 matching lossless image hashes per profile.
+The same final binaries fail the intended nested input control with unpatched
+wlroots. No test executable remains live. The input driver is a separate compiled
+test program with an inherited socket; production has no driver symbols or FD
+argument. No virtual-input global, extra installed library family, policy grant,
+public capability, permanent process or lifecycle/catalogue mutation was added.
+
+A narrow wlroots 0.20.2 patch forwards the actual enter coordinates before an
+immediate click; archive/patch/preimage/result hashes are pinned. A fresh-only
+unprivileged builder reproduces both dependency profiles and preserves licensing.
+Earlier unpatched builds/evidence remain separate. This is private native input
+and presentation acceptance, not physical devices/displays, a trusted session,
+ordinary app readiness or the full experiment desktop. Next integrate a real app
+view and session behavior while continuing the separate old-intent recovery work.
+Final product/UI choices remain with the user.
+
+All 215 host/snapshot/guest source hashes agree. The default Release build and
+five existing core/broker/boot checks pass (0.24 s); 28 frozen SQL/XML files and
+the retained old Root/User catalogues plus 17 static files/profile are unchanged.
+The old controller remains running/recover-handoff bookkeeping, not a live app
+or a settled operation. 698 local Markdown file targets resolve. No new package
+was installed for this input work; existing xkeyboard-config 2.47 is used.
+
+Previous first-render checkpoint (ec32e0f):
 
 The optional C17 wlroots compositor now renders actual xdg-shell windows into
 three private software outputs (1080p/1440p/4K), with maximize/fullscreen/restore,

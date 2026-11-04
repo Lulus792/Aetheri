@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "client check failed: %s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); } } while (0)
@@ -38,6 +39,17 @@ struct app {
     struct wl_list buffers;
     struct view views[2];
     uint32_t shell_version;
+    bool input;
+    struct wl_seat *seat;
+    struct wl_pointer *pointer;
+    struct wl_keyboard *keyboard;
+    struct view *pointer_focus, *keyboard_focus;
+    struct xkb_context *xkb;
+    struct xkb_keymap *keymap;
+    struct xkb_state *key_state;
+    unsigned grab_mode;
+    uint32_t last_button;
+    struct wl_callback *sync;
 };
 static void release(void *data, struct wl_buffer *object) {
     struct buffer *b = data;
@@ -141,6 +153,120 @@ static void output_mode(void *data, struct wl_output *output, uint32_t flags, in
     if (flags & WL_OUTPUT_MODE_CURRENT) printf("OUTPUT_MODE %d %d\n", width, height);
 }
 static const struct wl_output_listener output_listener = {.geometry = output_geometry, .mode = output_mode};
+static struct view *find_view(struct app *a, struct wl_surface *surface) {
+    for (unsigned i = 0; i < 2; ++i) if (a->views[i].surface == surface) return &a->views[i];
+    CHECK(false);
+    return NULL;
+}
+static void synced(void *data, struct wl_callback *callback, uint32_t serial) {
+    (void)serial;
+    struct app *a = data;
+    CHECK(a->sync == callback);
+    wl_callback_destroy(callback); a->sync = NULL; puts("INPUT_SYNC");
+}
+static const struct wl_callback_listener sync_listener = {.done = synced};
+static void input_sync(struct app *a) {
+    CHECK(!a->sync);
+    a->sync = wl_display_sync(a->display);
+    CHECK(a->sync && wl_callback_add_listener(a->sync, &sync_listener, a) == 0);
+}
+static void pointer_enter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y) {
+    (void)pointer; (void)serial;
+    struct app *a = data; a->pointer_focus = find_view(a, surface);
+    printf("POINTER_ENTER %u %.2f %.2f\n", a->pointer_focus->index, wl_fixed_to_double(x), wl_fixed_to_double(y));
+}
+static void pointer_leave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface) {
+    (void)pointer; (void)serial; (void)surface;
+    struct app *a = data;
+    puts("POINTER_LEAVE"); a->pointer_focus = NULL;
+}
+static void pointer_motion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t x, wl_fixed_t y) {
+    (void)pointer; (void)time;
+    struct app *a = data; CHECK(a->pointer_focus);
+    printf("MOTION %u %.2f %.2f\n", a->pointer_focus->index, wl_fixed_to_double(x), wl_fixed_to_double(y));
+}
+static void pointer_button(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
+    (void)pointer; (void)time;
+    struct app *a = data; CHECK(a->pointer_focus);
+    printf("BUTTON %u %u %u\n", a->pointer_focus->index, button, state);
+    if (!state) return;
+    a->last_button = serial;
+    if (a->grab_mode == 1) xdg_toplevel_move(a->pointer_focus->top, a->seat, serial);
+    if (a->grab_mode == 2) xdg_toplevel_resize(a->pointer_focus->top, a->seat, serial, XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT);
+    if (a->grab_mode == 3) xdg_toplevel_move(a->views[1].top, a->seat, serial);
+    if (a->grab_mode) { a->grab_mode = 0; input_sync(a); }
+}
+static void pointer_axis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value) {
+    (void)pointer; (void)time; (void)axis;
+    struct app *a = data; CHECK(a->pointer_focus);
+    printf("AXIS %u %.2f\n", a->pointer_focus->index, wl_fixed_to_double(value));
+}
+static void pointer_frame(void *data, struct wl_pointer *pointer) { (void)data; (void)pointer; }
+static void axis_source(void *data, struct wl_pointer *pointer, uint32_t source) { (void)data; (void)pointer; (void)source; }
+static void axis_stop(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis) { (void)data; (void)pointer; (void)time; (void)axis; }
+static void axis_discrete(void *data, struct wl_pointer *pointer, uint32_t axis, int32_t step) { (void)data; (void)pointer; (void)axis; (void)step; }
+static const struct wl_pointer_listener pointer_listener = {.enter = pointer_enter, .leave = pointer_leave,
+    .motion = pointer_motion, .button = pointer_button, .axis = pointer_axis, .frame = pointer_frame,
+    .axis_source = axis_source, .axis_stop = axis_stop, .axis_discrete = axis_discrete};
+static void keyboard_keymap(void *data, struct wl_keyboard *keyboard, uint32_t format, int32_t fd, uint32_t size) {
+    (void)keyboard;
+    struct app *a = data;
+    CHECK(format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 && size && size <= 1024 * 1024);
+    char *text = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    CHECK(text != MAP_FAILED && text[size - 1] == '\0');
+    struct xkb_keymap *map = xkb_keymap_new_from_string(a->xkb, text, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    CHECK(map);
+    xkb_state_unref(a->key_state); xkb_keymap_unref(a->keymap);
+    a->keymap = map; a->key_state = xkb_state_new(map); CHECK(a->key_state);
+    CHECK(munmap(text, size) == 0 && close(fd) == 0);
+    puts("KEYMAP");
+}
+static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys) {
+    (void)keyboard; (void)serial;
+    struct app *a = data; a->keyboard_focus = find_view(a, surface);
+    uint32_t *key;
+    wl_array_for_each(key, keys) CHECK(*key != 15); /* compositor-consumed Tab */
+    printf("KEYBOARD_ENTER %u\n", a->keyboard_focus->index);
+}
+static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface) {
+    (void)keyboard; (void)serial; (void)surface;
+    struct app *a = data; a->keyboard_focus = NULL; puts("KEYBOARD_LEAVE");
+}
+static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t code, uint32_t state) {
+    (void)keyboard; (void)serial; (void)time;
+    struct app *a = data; CHECK(a->key_state && a->keyboard_focus);
+    uint32_t character = xkb_state_key_get_utf32(a->key_state, code + 8);
+    printf("KEY %u %u %u %u\n", a->keyboard_focus->index, code, state, character);
+}
+static void keyboard_modifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
+    (void)keyboard; (void)serial;
+    struct app *a = data; CHECK(a->key_state);
+    (void)xkb_state_update_mask(a->key_state, depressed, latched, locked, 0, 0, group);
+    printf("MODIFIERS %u\n", depressed);
+}
+static void repeat_info(void *data, struct wl_keyboard *keyboard, int32_t rate, int32_t delay) {
+    (void)data; (void)keyboard; CHECK(rate >= 0 && delay >= 0);
+}
+static const struct wl_keyboard_listener keyboard_listener = {.keymap = keyboard_keymap, .enter = keyboard_enter,
+    .leave = keyboard_leave, .key = keyboard_key, .modifiers = keyboard_modifiers, .repeat_info = repeat_info};
+static void seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
+    struct app *a = data;
+    if ((caps & WL_SEAT_CAPABILITY_POINTER) && !a->pointer) {
+        a->pointer = wl_seat_get_pointer(seat); CHECK(a->pointer);
+        CHECK(wl_pointer_add_listener(a->pointer, &pointer_listener, a) == 0);
+    } else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && a->pointer) {
+        wl_pointer_release(a->pointer); a->pointer = NULL; a->pointer_focus = NULL;
+    }
+    if ((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !a->keyboard) {
+        a->keyboard = wl_seat_get_keyboard(seat); CHECK(a->keyboard);
+        CHECK(wl_keyboard_add_listener(a->keyboard, &keyboard_listener, a) == 0);
+    } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && a->keyboard) {
+        wl_keyboard_release(a->keyboard); a->keyboard = NULL; a->keyboard_focus = NULL;
+    }
+    printf("CAPS %u\n", caps);
+}
+static void seat_name(void *data, struct wl_seat *seat, const char *name) { (void)data; (void)seat; CHECK(!strcmp(name, "seat0")); }
+static const struct wl_seat_listener seat_listener = {.capabilities = seat_capabilities, .name = seat_name};
 static void global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
     struct app *a = data;
     if (!strcmp(interface, "wl_compositor")) {
@@ -159,6 +285,10 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
         struct wl_output *output = wl_registry_bind(registry, name, &wl_output_interface, 1);
         CHECK(output && wl_output_add_listener(output, &output_listener, a) == 0);
         a->outputs[a->output_count++] = output;
+    } else if (a->input && !strcmp(interface, "wl_seat")) {
+        CHECK(!a->seat && version >= 5);
+        a->seat = wl_registry_bind(registry, name, &wl_seat_interface, 5);
+        CHECK(a->seat && wl_seat_add_listener(a->seat, &seat_listener, a) == 0);
     }
 }
 static void global_remove(void *data, struct wl_registry *registry, uint32_t name) {
@@ -190,8 +320,10 @@ static void destroy_view(struct view *v) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    CHECK(argc == 1 || (argc == 2 && !strcmp(argv[1], "--legacy")));
-    struct app a = {.shell_version = argc == 2 ? 3 : 5};
+    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input"))));
+    struct app a = {.shell_version = argc == 2 && !strcmp(argv[1], "--legacy") ? 3 : 5,
+                    .input = argc == 2 && !strcmp(argv[1], "--input")};
+    if (a.input) { a.xkb = xkb_context_new(XKB_CONTEXT_NO_ENVIRONMENT_NAMES); CHECK(a.xkb); }
     wl_list_init(&a.buffers);
     a.display = wl_display_connect(NULL);
     CHECK(a.display);
@@ -224,6 +356,10 @@ int main(int argc, char **argv) {
             }
             else if (c == 'd') { destroy_view(&a.views[1]); printf("DESTROY 1\n"); }
             else if (c == 'c') { CHECK(!a.views[1].surface); create_view(&a, 1); }
+            else if (a.input && c == 'g') { a.grab_mode = 1; puts("ARM_MOVE"); }
+            else if (a.input && c == 'z') { a.grab_mode = 2; puts("ARM_RESIZE"); }
+            else if (a.input && c == 'h') { a.grab_mode = 3; puts("ARM_FOREIGN"); }
+            else if (a.input && c == 't') { xdg_toplevel_move(a.views[0].top, a.seat, a.last_button); input_sync(&a); }
             else CHECK(false);
         }
     }
@@ -236,7 +372,12 @@ int main(int argc, char **argv) {
     wl_shm_destroy(a.shm);
     wl_compositor_destroy(a.compositor);
     wl_registry_destroy(a.registry);
+    if (a.sync) wl_callback_destroy(a.sync);
+    if (a.pointer) wl_pointer_release(a.pointer);
+    if (a.keyboard) wl_keyboard_release(a.keyboard);
+    if (a.seat) wl_seat_destroy(a.seat);
     wl_display_disconnect(a.display);
+    xkb_state_unref(a.key_state); xkb_keymap_unref(a.keymap); xkb_context_unref(a.xkb);
     puts("CLOSED");
     return 0;
 }

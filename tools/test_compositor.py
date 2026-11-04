@@ -102,6 +102,7 @@ def main():
         wait(lambda: "READY " in log("server"), "private compositor ready", (server,))
         collision = subprocess.run([str(compositor), "--headless", env["WAYLAND_DISPLAY"], "-"],
                                    env=env, capture_output=True, timeout=8)
+        (root / "collision.log").write_bytes(collision.stdout + collision.stderr)
         assert collision.returncode == 1
         client = start(consumer, "client")
         wait(lambda: "FRAME 0 360 220 0\n" in log("client") and "FRAME 1 360 220 0\n" in log("client"), "two native mapped windows", (server, client))

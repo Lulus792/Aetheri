@@ -22,9 +22,10 @@ no original Aetheri image, installer or working Aetheri application yet. The
 [current state](brains/aetheri/STATE.md) records exact implementation and test limits.
 
 A separate [private Wayland compositor](spec/graphics.md) now renders native
-windows on three virtual outputs. Maximize, fullscreen, restore and independent
-window/connection teardown pass composed-pixel and sanitizer checks. Physical
-display/input, a trusted session and ordinary app integration remain work.
+windows on three virtual outputs or inside a named parent Wayland display.
+Native keyboard/pointer focus, move/resize, fullscreen and independent teardown
+pass protocol, composed-pixel and sanitizer checks. Physical display/input, a
+trusted session and ordinary app integration remain work.
 
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
