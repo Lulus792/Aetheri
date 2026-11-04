@@ -4,6 +4,32 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Current-boot observation — 4 November 2026
+
+- [Native contract](../../src/linux/boot.h), [implementation](../../src/linux/boot.c),
+  [independent vector](../../spec/vectors/boot-context-v1.json),
+  [native checks](../../tests/test_boot.c) and [Python runner](../../tools/test_boot_native.py):
+  process-owned procfs/nsfs observations, failure/output/FD ownership and actual
+  private namespace/file-substitution checks. Results and limits are in
+  [STATE](STATE.md) and the [runtime contract](../../spec/runtime.md#read-only-current-boot-observation).
+- [systemd sd_id128_get_boot manual](https://www.freedesktop.org/software/systemd/man/latest/sd_id128_get_boot.html):
+  inspected current manual (262); boot ID is read from procfs and cached internally.
+  The actual carrier uses systemd-libs 259.10-1.fc44, not that latest manual version.
+  A kernel-instance UUID is not independent machine/volume/clone authentication.
+- [Linux PID namespaces](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html):
+  unshare changes subsequent children; pid_for_children is empty before the first
+  child. Actual carrier behavior exposed ENOENT, now rejected as binding drift.
+- [Linux time namespaces](https://man7.org/linux/man-pages/man7/time_namespaces.7.html):
+  monotonic/boot clocks and subsequent-child scope; explains why uptime alone and
+  a caller's unchanged current time-namespace link are insufficient checks.
+- Administrative Release/Debug build-local old-fixture inspectors joined protected
+  original metadata/store to current proc observations. Rechecked original v6
+  catalogue/controller and 17 persistent input hashes unchanged afterward. This
+  proves metadata agreement only, never current actor admission or lease release.
+  The opt-in Python runner also verifies both catalogue/controller/static hashes
+  after positive inspection and five private preflight refusals in each build.
+  Independent quiescence remains mandatory; no hot journal is opened/recovered.
+
 ## UI foundation and complete NexaUI handoff — 4 November 2026
 
 User requests: use suitable available UI foundations such as SDL3 without waiting

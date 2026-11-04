@@ -4122,3 +4122,127 @@ and commit faults, child exits, successive owner replacements, old/quiet closure
 retention, post-release User replacement, closed gates, grant retention, missing
 start evidence, overflow, immutability and unchanged outputs. They do not prove
 an installed recovery coordinator or settle the quarantined carrier attempt.
+
+## Read-only current-boot observation
+
+[linux/boot.h](../src/linux/boot.h) captures and rechecks the current kernel boot
+and the observer's PID, cgroup and time namespace bindings. This is a prerequisite
+for a separate cross-boot protocol, not that protocol or a lease-settlement API.
+It makes no database, bus, signal, namespace-entry or policy change. Ordinary
+execution-profile loading still rejects a different current boot.
+
+The caller must independently admit trusted host procfs and host namespace scope
+before capture. Matching self namespace numbers cannot establish initial/host
+scope, machine continuity, catalogue/volume provenance or snapshot/clone exclusion.
+The module neither opens numeric PID paths nor reads PID1 namespace links. No
+new ptrace permission, capability, installed service or MAC rule is introduced.
+
+The process-owned observer retains five descriptors: the proc root, original
+boot_id file and three self namespace objects. Repeated observation joins held
+and named proc/boot objects through their unique mount, inode, filesystem and
+owner/type/mode observations. Boot-file lookup uses fixed beneath/no-symlink
+openat2 resolution; legitimate proc/sys submounts are allowed. Only procfs regular
+0444 root-owned boot files are accepted. A bounded read requires exactly the
+canonical lowercase UUIDv4 plus newline, and compares held/named bytes with the
+original observation and libsystemd's cached sd_id128_get_boot result.
+
+The exact self PID/cgroup/time namespace links are intentionally followed and
+checked against retained nsfs objects before and after boot reads. The PID/time
+for_children links must agree too: unshare can change children without moving the
+caller. An empty pid_for_children after CLONE_NEWPID returns ENOENT before the
+first child; this missing required binding is latched ESTALE, not retryable
+absence. Changed trusted objects/bindings likewise latch stale. Other read or
+parse failures preserve the output and do not themselves prove permanent drift.
+Inherited observer use/close returns ECHILD; local close only releases its FDs.
+
+ae_boot_observe_other compares against an independently retained original UUIDv4.
+The same UUID returns EALREADY without changing output. A different UUID is an
+observation, not proof of chronological order, the end of an older kernel,
+original-process drain or safe removal. Never reconstruct an old ProcessFD,
+unit/cgroup handle or current actor from the frame.
+
+### AETHBOT1 bytes
+
+The canonical observation frame is exactly 48 bytes, with no text, lengths,
+timestamps or machine identifier. All integers are unsigned big-endian.
+
+| Offset | Bytes | Value |
+| --- | --- | --- |
+| 0 | 8 | ASCII AETHBOT1 |
+| 8 | 16 | Current kernel boot UUIDv4 |
+| 24 | 8 | Nonzero held PID namespace inode |
+| 32 | 8 | Nonzero held cgroup namespace inode |
+| 40 | 8 | Nonzero held time namespace inode |
+
+The full nonzero uint64 range is accepted for namespace observations. Native and
+Python codecs agree against the independent [frozen vector](vectors/boot-context-v1.json).
+Malformed/truncated/extra bytes and invalid UUID/zero namespace fields fail without
+changing native output. The frame/digest is metadata, not bearer authorization.
+
+### Executed observation checks
+
+The explicit carrier profile adds linux.boot and linux.boot_namespaces. The first
+uses independent Python bytes and native codec/proc observations with allocation,
+required-statx-mask, partial namespace-open, I/O/EOF/malformed/oversized/cached-ID
+faults, EINTR, fork/drift rejection and descriptor-balance checks. The second is
+root-only, guarded by the enforcing UEFI disposable-carrier marker and DMI name.
+Its child-local PID/cgroup/time/mount namespace changes and identical-content
+boot-file bind substitution must be rejected. All mounts stay in private child
+namespaces; there is no lifecycle or global policy mutation.
+
+On the existing kernel 6.19.10-300.fc44 / systemd-libs 259.10-1.fc44 carrier,
+Final Release passed 2/2 (0.09 s) and Debug ASan/UBSan passed 2/2 (0.18 s). The initial
+PID-for-children case exposed the ENOENT classification above; the corrected
+source passed without changing the expected drift outcome. Complete Release and
+Debug builds passed; 196 host/snapshot/guest source hashes agree. Host byte
+contracts pass 23/23. This is administrative/nonprivileged component evidence,
+not acceptance in an installed confined Root service.
+
+### Protected old-fixture inspection
+
+The build-local probe_execution_runtime inspect-boot path is explicitly
+administrative and read-only. In an independently selected private mount namespace,
+the retained fixture root is bound over the probe's fixed root. It loads protected
+original profile metadata, opens the existing catalogue without begin_runtime or
+migration, checks original handoff/starter/app/User metadata and rechecks the
+sealed code store. It checks unchanged catalogue context and current boot again
+before reporting. It does not dispatch, recover, close, retire or release anything.
+Normal service load paths and installed fixture binaries remain unchanged.
+
+Inspection requires independently fenced/quiescent inputs. The normal catalogue
+connection is read-write and can create its lock or recover a hot journal; before
+opening it, this path requires existing regular root-owned 0600 lock/database
+files and absent journal/WAL/SHM sidecars. The same preflight repeats after close.
+It cannot itself establish external quiescence or exclude a racing foreign writer.
+Do not point it at a live authority or an unreviewed pending database.
+
+The opt-in administrative test command on this exact preserved carrier is:
+
+    sudo -n python3 /home/aetheri/source/tools/test_boot_native.py --inspection /home/aetheri/build/release/probe_execution_runtime
+
+Use the debug build path for ASan/UBSan. The tool requires the exact retained
+token/catalogue/static hashes and refuses original sidecars. Alongside the actual
+positive inspection, five private shadow-system-directory cases reject missing
+or symlinked locks and each journal/WAL/SHM name before SQLite opens. Shadow
+evidence and both original catalogues/controller/static inputs remain unchanged.
+All five refusals and the positive inspection pass in Release and Debug. These
+synthetic sidecars test preservation only; they are not real interrupted commits
+or SQLite recovery acceptance. No normal CTest invokes old-fixture inspection.
+
+Both Release and Debug probes compared original boot
+751f2367-b57d-4344-ba57-5474d04e090e with current boot
+7e6602b8-721b-4aa1-8b31-33cbb81d5c8c. Protected profile SHA-256 was
+c5044a7c1538346fe68df813bbb887f0dc6a3b8ad6adeb20cdc3cc34de20c768;
+original catalogue revision remained 17. Current PID/cgroup/time namespace inodes
+were 4026531836 / 4026531835 / 4026531834. These are diagnostic observations,
+not persistent machine authentication. Afterwards the original Root v6 catalogue
+hash, controller token/pending state and all 17 persistent static-input hashes
+still agreed; uncertain dispatch, running lease and zero closure/recovery-owner
+rows remained. The lost four handles were not recreated.
+
+Cross-boot settlement still needs independently admitted same-machine/catalogue/
+volume and anti-clone provenance, current Root/User identities, original and
+delegated-holder/future-effect fencing, and a distinct durable interruption/close
+protocol. Do not weaken v3/v6/v7 checks or fabricate User quiescence/end evidence.
+No SQL/XML/schema version, public capability, installed policy or dependency
+selection changed here.

@@ -16,6 +16,17 @@ class InvalidContract(ValueError):
 MAX_RECORD = 131072
 MAX_INT = 2**63 - 1
 
+def boot_context(value):
+    fields(value,'boot pid_namespace cgroup_namespace time_namespace')
+    boot=rawhex(value['boot'],16)
+    require(boot[6]>>4==4 and boot[8]&0xc0==0x80,'boot UUIDv4')
+    return b'AETHBOT1'+boot+struct.pack('>QQQ',*(integer(value[key],2**64-1,1) for key in ('pid_namespace','cgroup_namespace','time_namespace')))
+
+def read_boot_context(data):
+    require(type(data) is bytes and len(data)==48 and data[:8]==b'AETHBOT1','boot context frame')
+    value=dict(boot=data[8:24].hex(),**dict(zip(('pid_namespace','cgroup_namespace','time_namespace'),struct.unpack('>QQQ',data[24:]))))
+    require(boot_context(value)==data,'boot context canonical form'); return value
+
 def process_identity(value):
     fields(value,'boot pidfd_id')
     return b'AETHPID1'+rawhex(value['boot'],16)+struct.pack('>Q',integer(value['pidfd_id'],2**64-1,1))

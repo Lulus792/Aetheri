@@ -1,5 +1,22 @@
 # Decisions
 
+## Separate boot observation from interruption settlement — 4 November 2026
+
+Use a process-owned read-only Linux observer before designing cross-boot closure.
+Join independently trusted procfs, exact boot file and self PID/cgroup/time
+namespace bindings, including for_children. Compare raw canonical boot UUID
+against libsystemd's cached value; retain objects and reject drift. Avoid PID1
+namespace reads, numeric-PID reopening, ptrace grants and additional privilege.
+
+AETHBOT1 records only current-kernel context. A different UUID does not establish
+machine/volume/catalogue continuity, boot order, old-process end or absence of
+clones/other holders/future effects. Keep existing same-boot APIs strict. The
+administrative build-local old-fixture inspector may check protected historical
+metadata/store without starting a runtime; it cannot become an installed recovery
+endpoint. Actual interruption settlement requires a separate durable contract
+and independently admitted actors/provenance/fencing. See [implementation and
+evidence](../../spec/runtime.md#read-only-current-boot-observation).
+
 ## UI must not wait for toolkit completion — 4 November 2026
 
 The user prefers suitable working foundations such as SDL3 for early UI, with

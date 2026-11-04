@@ -531,6 +531,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   migration/vector tests. No installed pair wire, cross-boot/lost-handle or
   post-retirement Root-replacement recovery is implied. Preserve the old failed
   fixture; do not migrate it to turn native metadata into runtime proof.
+- linux/boot.h now provides read-only AETHBOT1 current-kernel/proc/self PID/cgroup/
+  time namespace observation (48 bytes). Read spec/runtime.md's boot section; run
+  linux.boot and the explicitly privileged linux.boot_namespaces carrier checks.
+  Independent trusted host scope remains mandatory; self IDs never prove initial
+  scope. No PID1 namespace reads/numeric-PID opens/ptrace or new policy permission.
+  Different boot is not chronology, machine/volume/clone provenance, original end,
+  holder drain or release authority. The build-local administrative inspect-boot
+  checks original protected metadata/store without beginning a runtime; it does
+  not change normal load checks or settle the retained v6 fixture. Cross-boot
+  interruption/closure, current actors and future-effect fencing remain work.
+  Inspection requires independent quiescence/fencing and existing regular lock/DB
+  with no journal/WAL/SHM; the ordinary SQLite connection is read-write and must
+  not perform incidental hot-journal recovery. The explicit --inspection Python
+  runner tests the preserved fixture plus private shadow refusals, never dispatch.
 - Keep a small number of coherent modules/documents. Explain every major directory,
   dependency, resident service and generated artifact.
 - Design ownership and complete app removal from the beginning; read

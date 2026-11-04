@@ -8,6 +8,7 @@
 #include "launcher/execution.h"
 #include "linux/image.h"
 #include "linux/lifetime.h"
+#include "linux/boot.h"
 #include "catalogue/lifetime.h"
 #include "core/digest.h"
 #include <errno.h>
@@ -1118,6 +1119,49 @@ static void drive_recovery(void)
         (uint32_t)peer.connection_pid,rootiv,rt,digest,(unsigned long long)revision,pid,(unsigned long long)group,removed ? "true" : "false",failed ? "true" : "false",iv,bt);
     ae_peer_clear(&peer); sd_bus_creds_unref(creds); sd_bus_message_unref(call); sd_bus_message_unref(reply); sd_bus_error_free(&error); sd_bus_flush_close_unref(bus);
 }
+/* The ordinary catalogue connection may create a missing lock or recover a hot
+ * journal. Inspection therefore requires independently fenced/quiescent inputs,
+ * an existing lock/database and no sidecars before using the ordinary getters.
+ * This preflight does not establish that external quiescence itself. */
+static void inspection_catalogue_check(void)
+{
+    int parent=open(ROOT "/system",O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC); struct stat st;
+    CHECK(parent>=3 && fstat(parent,&st)==0 && st.st_uid==0 && st.st_gid==0 && (st.st_mode&07777)==0700);
+    const char *files[]={"writer.lock","catalogue.sqlite3"};
+    for (size_t n=0;n<2;++n) CHECK(fstatat(parent,files[n],&st,AT_SYMLINK_NOFOLLOW)==0 &&
+        S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 && st.st_nlink==1 && (st.st_mode&07777)==0600);
+    const char *sidecars[]={"catalogue.sqlite3-journal","catalogue.sqlite3-wal","catalogue.sqlite3-shm"};
+    for (size_t n=0;n<3;++n) CHECK(fstatat(parent,sidecars[n],&st,AT_SYMLINK_NOFOLLOW)<0 && errno==ENOENT);
+    CHECK(close(parent)==0);
+}
+/* Administrative read-only inspection in an independently selected private
+ * mount namespace with independently fenced/quiescent original inputs.
+ * Never starts a runtime, adopts an app or releases a lease.
+ * Ordinary load()/service paths still require the original current boot. */
+static void inspect_boot(void)
+{
+    uint8_t profile_hash[32]; CHECK(ae_execution_profile_load(&p,profile_hash)==0);
+    struct ae_boot *observer=NULL; struct ae_boot_context before,after;
+    CHECK(ae_boot_capture(&observer)==0 && ae_boot_observe_other(observer,p.boot,&before)==0);
+    inspection_catalogue_check();
+    catalogue(ROOT,0); struct ae_catalogue_info old,again; CHECK(ae_catalogue_get_info(store,&old)==0 && memcmp(old.boot_id,p.boot,16)==0);
+    struct ae_handoff_snapshot handoff; CHECK(ae_catalogue_get_handoff(store,&p,&handoff)==0);
+    struct ae_execution_process_snapshot starter_record,app_record;
+    CHECK(ae_catalogue_get_execution_process(store,&p,AE_EXECUTION_STARTER,&starter_record)==0 && ae_catalogue_get_execution_process(store,&p,AE_EXECUTION_APP,&app_record)==0);
+    CHECK(starter_record.process.pidfd_id==app_record.process.pidfd_id && app_record.process.pidfd_id==handoff.original.process.pidfd_id);
+    original_user_record(0);
+    struct ae_execution_sources sources=AE_EXECUTION_SOURCES_INIT; uint8_t publisher[16];
+    CHECK(ae_execution_code_open(&p,&sources,publisher)==0); ae_execution_sources_clear(&sources);
+    CHECK(ae_catalogue_get_info(store,&again)==0 && memcmp(&old,&again,sizeof old)==0 && ae_catalogue_close(&store)==0);
+    inspection_catalogue_check();
+    CHECK(ae_boot_observe_other(observer,p.boot,&after)==0 && memcmp(&before,&after,sizeof before)==0 && ae_boot_close(&observer)==0);
+    sd_id128_t previous,current; memcpy(previous.bytes,p.boot,16); memcpy(current.bytes,before.boot,16);
+    char a[33],b[33],digest[65]; sd_id128_to_string(previous,a); sd_id128_to_string(current,b);
+    for (size_t n=0;n<32;++n) snprintf(digest+2*n,3,"%02x",profile_hash[n]);
+    printf("AETHERI_BOOT_INSPECTION {\"original_boot\":\"%s\",\"current_boot\":\"%s\",\"profile_sha256\":\"%s\",\"pid_namespace\":%llu,\"cgroup_namespace\":%llu,\"time_namespace\":%llu,\"catalogue_revision\":%lld}\n",
+        a,b,digest,(unsigned long long)before.pid_namespace,(unsigned long long)before.cgroup_namespace,(unsigned long long)before.time_namespace,(long long)old.revision);
+    puts("Different current boot and protected original metadata/store agree; no machine continuity, actor/drain admission or lease settlement proved.");
+}
 int main(int argc,char **argv)
 {
     if (argc==2 && (strcmp(argv[1],"user-serve")==0 || strcmp(argv[1],"user-deny")==0 || strcmp(argv[1],"user-serve-active")==0)) {
@@ -1125,6 +1169,7 @@ int main(int argc,char **argv)
         uint8_t digest[32]; CHECK(ae_execution_profile_load(&p,digest)==0); load(ROOT); user_serve(strcmp(argv[1],"user-deny")==0); return 0;
     }
     CHECK(geteuid()==0 && (argc==2 || argc==3)); const char *root=argc==3 ? argv[2] : ROOT;
+    if (strcmp(argv[1],"inspect-boot")==0) { CHECK(argc==2); inspect_boot(); return 0; }
     if (argc==2 && (strcmp(argv[1],"serve")==0 || strcmp(argv[1],"serve-handoff")==0 || strcmp(argv[1],"serve-active")==0)) {
         active_mode=strcmp(argv[1],"serve-active")==0; handoff_mode=active_mode || strcmp(argv[1],"serve-handoff")==0;
         incoming_count=sd_listen_fds_with_names(1,&incoming_names); CHECK(incoming_count==0 || (handoff_mode && incoming_count==4));

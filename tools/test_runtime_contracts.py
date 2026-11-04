@@ -11,6 +11,16 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_boot_context_vector_and_boundaries(self):
+        vector=rc.load_json((ROOT/'spec/vectors/boot-context-v1.json').read_bytes())
+        data=rc.boot_context(vector['input'])
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_boot_context(data),vector['input'])
+        for key,value in (('boot','00'*16),('boot','ff'*16),('pid_namespace',0),('cgroup_namespace',2**64),('time_namespace',True)):
+            bad=deepcopy(vector['input']); bad[key]=value; self.rejects(rc.boot_context,bad)
+        for n in range(48): self.rejects(rc.read_boot_context,data[:n])
+        self.rejects(rc.read_boot_context,data+b'\0'); self.rejects(rc.read_boot_context,b'Z'+data[1:])
+
     def test_run_recovery_pair_vector_and_boundaries(self):
         vector=rc.load_json((ROOT/'spec/vectors/run-recovery-pair-v1.json').read_bytes())
         expected=dict(profile_digest=rc.digest(bytes.fromhex(vector['profile_hex'])),original_user_runtime=vector['original_user_runtime'])

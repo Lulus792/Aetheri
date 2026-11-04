@@ -1,8 +1,45 @@
 # State
 
-4 November 2026 — practical UI direction and full NexaUI adoption handoff.
+4 November 2026 — native boot observation and protected old-fixture inspection.
 
 ## Current update
+
+Native linux/boot now joins retained/named procfs boot objects, bounded raw/cached
+UUID checks and held PID/cgroup/time namespaces, including child bindings. It
+rejects drift/fork reuse without acquiring privilege or changing lifecycle state.
+AETHBOT1 is a canonical 48-byte observation, not machine/volume/clone provenance
+or original-process end proof. Host scope still requires independent admission.
+See [runtime boundary](../../spec/runtime.md#read-only-current-boot-observation).
+
+The build-local administrative inspect-boot path now checks the original protected
+profile/catalogue/handoff/starter/app/User metadata and sealed code against the
+current boot in a private mount namespace. Release and Debug ASan/UBSan both pass:
+original boot 751f2367-b57d-4344-ba57-5474d04e090e differs from the current
+7e6602b8-721b-4aa1-8b31-33cbb81d5c8c; original catalogue revision stays 17.
+This does not admit replacement actors or prove safe closure. Normal loader
+boot checks, installed fixture files, SQL/XML, policy and capabilities stay fixed.
+
+Native boot suites pass Release 2/2 (0.09 s) and Debug ASan/UBSan 2/2 (0.18 s),
+including actual child-local namespace changes and identical-content boot-file
+substitution. The first PID-for-children test exposed a real missing-binding
+classification error; ENOENT now latches drift, and the expected outcome passes.
+Full Release/Debug builds pass, all 196 host/snapshot/guest source hashes agree,
+647 local Markdown file targets resolve, and host byte contracts pass 23/23
+(0.039 s at final check). No new confined
+service acceptance is claimed. The existing VM is running and enforcing; this
+boot-observer checkpoint did not reboot it or redispatch the failed app test.
+The administrative inspection now refuses missing/symlinked locks and any
+journal/WAL/SHM before ordinary SQLite open. Its positive case and five private
+negative shadow cases pass in Release and Debug with unchanged inputs. It still
+requires independent quiescence/fencing; it is not a read-only SQLite API or
+permission to inspect a live authority.
+
+After the probes, the original controller/pending intent, Root v6 catalogue hash
+and all 17 persistent static-input hashes still agree. Dispatch is uncertain,
+lease running, handoff observed/revision 2, with no closure/recovery-owner rows or
+hot journal. Next implement the separate durable cross-boot interruption/closure
+contract and independent provenance/current-actor/future-effect/holder admission;
+do not migrate or settle the retained fixture from different-boot metadata alone.
 
 The user prefers working foundations such as SDL3 for early app UI without
 waiting for NexaUI completion, with per-app migration when suitable. wlroots
@@ -22,13 +59,13 @@ format. Existing NexaUI HEAD and all 104 prior local status entries/file hashes
 are unchanged; only the authorized handoff file was added. No message was sent
 to another chat and no NexaUI code or consumer pin was modified/published.
 
-The carrier was again found stopped at this continuation. Dead-process and
+Before this boot-observer checkpoint the carrier was again found stopped. Dead-process and
 failed AF_UNIX connection checks preceded preservation of host metadata/socket
 and an offline boot. Current observed boot is
 7e6602b8-721b-4aa1-8b31-33cbb81d5c8c, enforcing. The old failed Root v6 catalogue
 hash below still agrees with its original pending intent/running lease/no
-closure. Cross-boot evidence work remains unfinished; no current code change
-settles that attempt. Current UI steering was handled before that implementation.
+closure. Cross-boot settlement remains unfinished; the read-only observer above
+cannot settle that attempt. Current UI steering was handled before this work.
 
 The user requires an early experiment environment and general VM support. They
 selected a complete Aetheri desktop first, persistent changes until explicit reset

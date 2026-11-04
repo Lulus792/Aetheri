@@ -63,6 +63,13 @@ target. Persistent catalogues and original User expectation remain protected.
 Separate new-User admission/quiescence and cross-boot/lost-handle settlement are
 required; same-boot pairing cannot settle that quarantined attempt. This is
 engineering work, not a pending personal product decision.
+The read-only native boot observer and administrative protected-metadata/store
+inspection now pass in Release and ASan/UBSan. Different boot metadata alone
+cannot close the intent. Next specify the separate durable interruption outcome,
+independent same-machine/catalogue/volume and snapshot/clone provenance, current
+Root/User enrollment and all-holder/future-effect fencing. Preserve successful
+start receipts and old evidence; do not fabricate original live handles or User
+quiet receipts. See [boot boundary](../../spec/runtime.md#read-only-current-boot-observation).
 See [active test](../../spec/runtime.md#interrupted-active-root-test).
 
 Current implemented boundary: the explicit successful fixed run now closes through
