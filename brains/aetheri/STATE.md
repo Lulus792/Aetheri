@@ -1,6 +1,55 @@
 # State
 
-31 October 2026 — original live app survives Root replacement; recovery interrupted.
+4 November 2026 — experiment desktop added; previous carrier boot lost.
+
+## Current update
+
+The user requires an early experiment environment and general VM support. They
+selected a complete Aetheri desktop first, persistent changes until explicit reset
+and individually permitted personal files/network/devices. The [plan](knowledge/experiment-environments.md)
+and milestone 4a record isolation, resource pressure, reset/interruption and AI
+acceptance. This feature is planned; there is no complete Aetheri desktop yet.
+
+At this continuation the recorded QEMU process was dead and AF_UNIX QMP refused
+connection. The stale socket and old host process/command/source metadata were
+preserved under ignored local/carrier-interruption-2026-11-04 before booting the
+existing disk offline. The user confirmed that the Codex usage limit interrupted
+agent work. Cause/time of VM-process termination were not separately established.
+The new guest boot is 525715ac-42d5-4059-8658-df208f0e501b, enforcing. Prior PID1
+handles and /run retention units are gone; they cannot be reconstructed from IDs.
+
+The old failed intent remains quarantined at its original path and pending
+recover-handoff. Root v6 catalogue SHA-256 still equals
+bdfca485ed5079d62afc2270946cfd9999a354b2240a51c9914b4c64e9291f2d:
+uncertain dispatch, running lease, observed/revision-2 handoff and no closure.
+User v4 also has no closure. No old catalogue, controller or protected fixture
+was migrated/reset/retired. Same-boot retained-handle recovery can no longer
+settle that attempt. A separate reviewed cross-boot/lost-handle protocol is needed;
+do not fabricate old process pins or turn a fresh successful test into settlement.
+
+Native paired-owner v7 recovery now exists only in separate temporary-catalogue
+tests. Both owners independently enroll AETHRCP1 and can close a successful
+original run after User replacement without changing start results or v3/v6
+checks. Further replacement needs another admitted pair; Root can forward a
+historical release to a newer User without restoring a lease. Actual actor/drain/
+holder admission remains a caller obligation. No installed wire or live recovery
+is implied. See [paired contract](../../spec/runtime.md#paired-owner-closure-transactions).
+
+Release passes 4/4 targeted native suites (357.58 s): original lifetime, strict
+Root recovery, paired-owner recovery and populated Python/native interoperability.
+The pair suite has 12 controlled-evidence scenarios, with real SQLite mutation/
+commit faults and child exits. Host contracts pass 48/48 (107.271 s); the two v7
+migrations were repeated after the final SQL/frozen-v6 guard (24.655 s). Host byte
+vectors pass 22/22; VM/tool guards pass 50/50 (3.047 s). Debug ASan/UBSan paired
+recovery passes all 12 scenarios (135.00 s); complete Release/Debug builds pass.
+All 191 host/snapshot/guest source hashes agree. Local Markdown file targets pass
+(628 links; anchors/external URLs excluded). No old held catalogue was used for
+these mutations. The experiment-desktop feature still has no runtime acceptance.
+
+This does not restore lost guest-boot evidence or enable installed recovery.
+Older statements below about retained live handles describe the 31 October
+checkpoint, not the current boot. Normal Root/User v2 retain two closed gates
+each and the controller is stopped with no pending operation.
 
 ## Confirmed
 

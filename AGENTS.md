@@ -505,19 +505,32 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   dereference UID1000 proc/exe; the source now keeps current image verification
   in the reidentified User. That source correction is NOT installed in the held
   failed fixture. App/User later expired; no actual recovery closure passed.
-  Preserve the exact fixture/controller/units/module/target and FOUR PID1 store
-  handles. Its Root v6 still has uncertain dispatch, running lease, observed
+  On 4 November QEMU was found dead; offline carrier reboot confirms those four
+  volatile handles and /run units/target are gone. Preserve the exact persistent
+  fixture/controller/module and old evidence. Its Root v6 still has uncertain dispatch, running lease, observed
   handoff revision 2, no closure and no recovery-owner row. Evidence is under the
   guest build's active-recovery-failure-0f04cd9ae92d4500a42177e3e14de76b.
-  Never reset failed units, drop the store/target, retire this fixture or rerun
+  Never reconstruct old handles from IDs, retire this fixture or rerun
   from fresh app/operation IDs to obtain a passing test. Original User metadata
   is not a live ProcessFD or proof of its complete drain. Next implement separate
-  replaced-User admission/quiescence and original-ended-app recovery, preserving
-  v6's strict original-User boundary. Normal v2 inputs remain closed. Native
+  replaced-User admission/quiescence and separate cross-boot/lost-handle recovery,
+  preserving v6's strict original-User boundary. Normal v2 inputs remain closed. Native
   Release/Debug metadata checks ran only as administrative unconfined observers;
   they do not prove live User reidentification or the remaining RPC sequence.
 - Existing projects are read-only references unless a scoped change is requested.
   Physim's future NexaUI migration is a requirement, not an order to modify it here.
+- Native catalogue/lifetime.h now adds explicit v7 paired-owner close-only APIs
+  and AETHRCP1 (232 bytes). Read spec/runtime.md's paired-owner section. Root v6
+  and User v4 upgrade independently; create stays v2 and open never migrates.
+  Original v3/v6 runtime/User checks and frozen SQL/XML stay unchanged. Both
+  owners separately enroll the exact current pair after independent original/all
+  prior User drain, current actor/image, holder and future-effect admission.
+  Digests never prove those facts. Root can forward historical release to a new
+  User without changing the lease. Old uncertain receipts never rearm; another
+  actor replacement needs new admission. Run catalogue.owner_recovery and host
+  migration/vector tests. No installed pair wire, cross-boot/lost-handle or
+  post-retirement Root-replacement recovery is implied. Preserve the old failed
+  fixture; do not migrate it to turn native metadata into runtime proof.
 - Keep a small number of coherent modules/documents. Explain every major directory,
   dependency, resident service and generated artifact.
 - Design ownership and complete app removal from the beginning; read
@@ -532,6 +545,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Do not expand shared WSL storage on D: casually.
 - UI remains a user decision. Later prepare multiple alternatives with keyboard,
   focus, scaling, three-monitor, accessibility and error-state behavior.
+- Early experiment environments are now required: complete Aetheri desktop first,
+  persistent changes until explicit reset, and individual personal-file/network/
+  device permission (4 November 2026). Read knowledge/experiment-environments.md
+  under brains/aetheri. Plan hardware-virtualized isolation for guest root/kernel
+  and later AI work, resource limits and complete VM-state ownership/removal.
+  The existing Windows carrier is not this feature; no absolute host-crash or
+  escape guarantee, TCG security fallback or implicit host-management exposure.
 - No invented commands, screenshots, measurements or hardware acceptance.
 - The user confirmed the current workstation is the main-PC target and requires
   future AM5 portability. Read brains/aetheri/knowledge/testumgebung.md.

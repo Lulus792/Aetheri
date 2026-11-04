@@ -155,14 +155,18 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
         "PRAGMA application_id=1096042581; PRAGMA user_version=2;");
     if (result==0 && version>=3) result=extend_schema_v3(db,kind);
     if (result==0 && version>=4) result=extend_schema_v4(db,kind);
-    if (result==0 && version>=5) {
-        if (kind!=AE_CATALOGUE_SYSTEM) return -EPROTONOSUPPORT;
+    if (result==0 && version>=5 && kind==AE_CATALOGUE_SYSTEM) {
         for (size_t n=0;result==0 && ae_schema_system_v5[n];++n) result=exec_sql(db,ae_schema_system_v5[n]);
         if (result==0) result=exec_sql(db,"PRAGMA user_version=5");
     }
-    if (result==0 && version==6) {
+    if (result==0 && version>=6 && kind==AE_CATALOGUE_SYSTEM) {
         for (size_t n=0;result==0 && ae_schema_system_v6[n];++n) result=exec_sql(db,ae_schema_system_v6[n]);
         if (result==0) result=exec_sql(db,"PRAGMA user_version=6");
+    }
+    if (result==0 && version==7) {
+        const char *const *extension=kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v7 : ae_schema_user_v7;
+        for (size_t n=0;result==0 && extension[n];++n) result=exec_sql(db,extension[n]);
+        if (result==0) result=exec_sql(db,"PRAGMA user_version=7");
     }
     return result;
 }
@@ -304,7 +308,7 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2 && value != 3 && value != 4 && !((value==5 || value==6) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
+    if (result == 0 && value != 2 && value != 3 && value != 4 && value != 7 && !((value==5 || value==6) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
     if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
@@ -880,6 +884,21 @@ int ae_catalogue_upgrade_recovery(struct ae_catalogue *store)
     if (r==0 && version==5) {
         for (size_t n=0;r==0 && ae_schema_system_v6[n];++n) r=exec_sql(store->db,ae_schema_system_v6[n]);
         if (r==0) r=exec_sql(store->db,"PRAGMA user_version=6");
+    }
+    if (r==0) r=validate(store);
+    return fixture_commit(store,r);
+}
+
+int ae_catalogue_upgrade_owner_recovery(struct ae_catalogue *store)
+{
+    int r=still_named(store); if (r==0) r=exec_sql(store->db,"BEGIN EXCLUSIVE"); if (r!=0) return r;
+    r=validate(store); sqlite3_int64 version=0; if (r==0) r=scalar_int(store->db,"PRAGMA user_version",&version);
+    int source=store->identity.kind==AE_CATALOGUE_SYSTEM ? 6 : 4;
+    if (r==0 && version!=source && version!=7) r=-EPROTONOSUPPORT;
+    if (r==0 && version==source) {
+        const char *const *sql=store->identity.kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v7 : ae_schema_user_v7;
+        for (size_t n=0;r==0 && sql[n];++n) r=exec_sql(store->db,sql[n]);
+        if (r==0) r=exec_sql(store->db,"PRAGMA user_version=7");
     }
     if (r==0) r=validate(store);
     return fixture_commit(store,r);
@@ -2347,8 +2366,8 @@ static int require_execution_process(struct ae_catalogue *s,const struct ae_exec
     (void)hash;
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
     struct ae_execution_process_snapshot snapshot;
-    if (r==0 && version!=2 && version!=3 && version!=4 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
-    if (r==0 && (version==4 || version==5 || version==6)) {
+    if (r==0 && version!=2 && version!=3 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && (version==4 || version==5 || version==6 || version==7)) {
         r=process_catalogue_row(s,p,(enum ae_execution_process_role)role,&snapshot);
         if (r==0) r=ae_execution_process_match(p,e,&snapshot.process);
     }
@@ -2759,7 +2778,7 @@ static int process_catalogue_begin(struct ae_catalogue *s,const struct ae_execut
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=4 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info;
     if (r==0) r=read_info(s,&info);
     int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
@@ -2878,7 +2897,7 @@ static int handoff_begin(struct ae_catalogue *s,const struct ae_execution_profil
     if (!s || s->identity.kind!=AE_CATALOGUE_SYSTEM) return -EPERM;
     int r=process_catalogue_begin(s,p,write); if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=5 && version!=6) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=5 && version!=6 && version!=7) r=-EPROTONOSUPPORT;
     return r==0 ? 0 : fixture_commit(s,r);
 }
 static int handoff_row(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_handoff_snapshot *output)
@@ -3113,7 +3132,7 @@ static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=3 && version!=4 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=3 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     if (r!=0) return fixture_commit(s,r);
     return 0;
 }
@@ -3166,7 +3185,7 @@ static int run_recovery_current(struct ae_catalogue *s,const struct ae_execution
     const struct ae_execution_evidence *e,struct run_values *v)
 {
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=6) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=6 && version!=7) r=-EPROTONOSUPPORT;
     if (r==0) r=run_recovery_context(s,p,c);
     struct ae_handoff_snapshot h;
     if (r==0) r=handoff_row(s,p,&h);
@@ -3192,6 +3211,95 @@ static int run_recovery_owner(struct ae_catalogue *s,struct run_values *v,int cr
     if (r==0) r=run_statement(s,v,RUN_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL,NULL,0);
     return r;
 }
+/* v7 pairs bind new actors to immutable original start/process metadata. The
+ * supplied hashes never substitute for independent live/dead actor/holder proof. */
+static int run_pair_current(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,struct run_values *v)
+{
+    uint8_t raw[AE_RUN_PAIR_BYTES]; int r=ae_run_pair_encode(p,pair,raw);
+    sqlite3_int64 version=0; if (r==0) r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=7) r=-EPROTONOSUPPORT;
+    struct ae_catalogue_info info; if (r==0) r=read_info(s,&info);
+    int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
+    if (r==0 && (memcmp(info.authority_epoch,system ? p->system_epoch : p->broker_epoch,16)!=0 ||
+        memcmp(info.boot_id,p->boot,16)!=0 || memcmp(info.runtime_incarnation,system ? pair->root_runtime : pair->user_runtime,16)!=0 ||
+        (!system && memcmp(s->identity.owner,p->account,16)!=0))) r=-ESTALE;
+    struct ae_execution_process_snapshot process;
+    if (r==0) r=process_catalogue_row(s,p,AE_EXECUTION_APP,&process);
+    if (r==0) r=ae_execution_process_match(p,e,&process.process);
+    if (r==0 && system) {
+        struct ae_handoff_snapshot h; r=handoff_row(s,p,&h);
+        uint8_t wire[AE_HANDOFF_MAX],hash[32]; size_t size=0;
+        if (r==0) r=ae_handoff_encode(&h.original,wire,sizeof wire,&size);
+        if (r==0) r=ae_sha256_bytes(wire,size,hash);
+        if (r==0 && memcmp(hash,pair->handoff_digest,32)!=0) r=-ESTALE;
+        const uint8_t zero[16]={0};
+        if (r==0 && (memcmp(pair->root_runtime,p->system_runtime,16)==0 ?
+            memcmp(h.observer_runtime,zero,16)!=0 :
+            h.state<AE_HANDOFF_OBSERVED || memcmp(h.observer_runtime,pair->root_runtime,16)!=0)) r=-ESTALE;
+    }
+    if (r==0) v->v[system ? 10 : 12]=FB(system ? pair->root_runtime : pair->user_runtime,16);
+    return r;
+}
+static int run_pair_row(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_run_pair *pair)
+{
+    uint8_t raw[AE_RUN_PAIR_BYTES],profile[384],hash[32],digest[32],value[384];
+    int r=ae_run_pair_encode(p,pair,raw);
+    if (r==0) r=ae_execution_encode(p,profile);
+    if (r==0) r=ae_sha256_bytes(profile,sizeof profile,hash);
+    if (r==0) r=ae_sha256_bytes(raw,sizeof raw,digest);
+    sqlite3_stmt *q=NULL;
+    if (r==0) r=failure(sqlite3_prepare_v2(s->db,"SELECT profile,profile_digest,binding,binding_digest,recorded_unix_ms FROM run_recovery_pairs WHERE launch_id=? AND root_runtime=? AND user_runtime=?",-1,&q,NULL));
+    const void *ids[]={p->launch,pair->root_runtime,pair->user_runtime};
+    for (int n=0;r==0 && n<3;++n) r=failure(sqlite3_bind_blob(q,n+1,ids[n],16,SQLITE_TRANSIENT));
+    if (r==0) { int code=sqlite3_step(q); if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code); }
+    const void *expected[]={profile,hash,raw,digest}; const int sizes[]={384,32,AE_RUN_PAIR_BYTES,32};
+    for (int n=0;r==0 && n<4;++n) { r=projection_blob(q,n,value,sizes[n]); if (r==0 && memcmp(value,expected[n],(size_t)sizes[n])!=0) r=-EEXIST; }
+    if (r==0 && (sqlite3_column_type(q,4)!=SQLITE_INTEGER || sqlite3_column_int64(q,4)<0 || sqlite3_step(q)!=SQLITE_DONE)) r=-EUCLEAN;
+    int final=failure(sqlite3_finalize(q)); return r==0 ? final : r;
+}
+static int run_pair_require(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,struct run_values *v)
+{ int r=run_pair_current(s,p,e,pair,v); return r==0 ? run_pair_row(s,p,pair) : r; }
+static int run_pair_root_context(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,const struct ae_run_pair *pair)
+{
+    uint8_t raw[AE_RUN_PAIR_BYTES]; int r=ae_run_pair_encode(p,pair,raw);
+    if (r==0) r=reservation_context(s,c);
+    if (r==0 && (c->uid!=1000 || memcmp(s->identity.authority_epoch,p->system_epoch,16)!=0 || memcmp(c->boot,p->boot,16)!=0 ||
+        memcmp(c->account,p->account,16)!=0 || memcmp(c->broker_epoch,p->broker_epoch,16)!=0 ||
+        memcmp(c->system_runtime,pair->root_runtime,16)!=0 || memcmp(c->broker_runtime,pair->user_runtime,16)!=0)) r=-ESTALE;
+    return r;
+}
+int ae_catalogue_enroll_run_pair(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,int64_t stamp)
+{
+    struct run_values v; int r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
+    r=run_pair_current(s,p,e,pair,&v); int missing=0;
+    if (r==0) { r=run_pair_row(s,p,pair); missing=r==-ENOENT; }
+    if (missing) {
+        int64_t count=0;
+        const char *admission=s->identity.kind==AE_CATALOGUE_SYSTEM ? RUN_INPUT "SELECT count(*) " RUN_ROOT
+            "WHERE l.close_cause_epoch IS NULL AND ((l.state IN ('observed','closing','uncertain') AND lease.state='running') OR "
+            "(l.state='terminal' AND lease.state='released' AND EXISTS(SELECT 1 FROM run_closures c WHERE c.launch_id=p.launch AND c.profile=p.profile AND c.state='released')))" :
+            RUN_INPUT "SELECT count(*) " RUN_USER "WHERE l.state IN ('recovery_required','stopping') "
+            "AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) "
+            "AND EXISTS(SELECT 1 FROM admission_gates WHERE subject_kind='data' AND subject_ref=p.d AND state='closed')";
+        r=run_statement(s,&v,admission,&count,NULL,0); if (r==0 && count!=1) r=-EAGAIN;
+        struct ae_catalogue_info info; if (r==0) r=read_info(s,&info);
+        if (r==0 && info.revision==INT64_MAX) r=-EOVERFLOW;
+        uint8_t raw[AE_RUN_PAIR_BYTES],digest[32]; if (r==0) r=ae_run_pair_encode(p,pair,raw);
+        if (r==0) r=ae_sha256_bytes(raw,sizeof raw,digest);
+        sqlite3_stmt *q=NULL;
+        if (r==0) r=failure(sqlite3_prepare_v2(s->db,"INSERT INTO run_recovery_pairs VALUES(?,?,?,?,?,?,?,?)",-1,&q,NULL));
+        const void *values[]={p->launch,pair->root_runtime,pair->user_runtime,v.profile,v.hash,raw,digest}; const int sizes[]={16,16,16,384,32,AE_RUN_PAIR_BYTES,32};
+        for (int n=0;r==0 && n<7;++n) r=failure(sqlite3_bind_blob(q,n+1,values[n],sizes[n],SQLITE_TRANSIENT));
+        if (r==0) r=failure(sqlite3_bind_int64(q,8,stamp));
+        if (r==0) { int code=sqlite3_step(q); r=code==SQLITE_DONE ? 0 : failure(code); if (r==0 && sqlite3_changes(s->db)!=1) r=-EUCLEAN; }
+        int final=failure(sqlite3_finalize(q)); if (r==0) r=final;
+        if (r==0) r=run_statement(s,&v,RUN_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL,NULL,0);
+    }
+    return fixture_commit(s,r);
+}
 int ae_catalogue_get_run_receipt(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,enum ae_run_receipt_kind kind,struct ae_run_receipt *output)
 {
     if (!output) return -EINVAL;
@@ -3204,14 +3312,15 @@ int ae_catalogue_get_run_receipt(struct ae_catalogue *s,const struct ae_executio
     return r;
 }
 static int begin_run_close(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *context,
-    const struct ae_execution_evidence *e,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *output,int recovery)
+    const struct ae_execution_evidence *e,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *output,int recovery,const struct ae_run_pair *pair)
 {
     if (!output || !started) return -EINVAL;
     int r=ae_execution_completion_match(p,e,started->observation_digest,started);
-    if (r==0) r=recovery ? run_recovery_context(s,p,context) : run_root_context(s,p,context);
+    if (r==0) r=recovery==2 ? run_pair_root_context(s,p,context,pair) : recovery ? run_recovery_context(s,p,context) : run_root_context(s,p,context);
     if (r!=0) return r;
     struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
-    if (recovery) r=run_recovery_current(s,p,context,e,&v);
+    if (recovery==2) r=run_pair_require(s,p,e,pair,&v);
+    else if (recovery) r=run_recovery_current(s,p,context,e,&v);
     uint8_t raw[AE_EXECUTION_COMPLETION_BYTES]; if (r==0) r=ae_execution_completion_encode(started,raw);
     if (r==0) r=ae_sha256_bytes(raw,sizeof raw,v.start);
     memcpy(v.obs,started->observation_digest,32); v.v[23]=FI(started->revision); v.v[24]=FI(started->completed_unix_ms);
@@ -3219,7 +3328,7 @@ static int begin_run_close(struct ae_catalogue *s,const struct ae_execution_prof
     if (r==0) r=RQ("SELECT count(*) " RUN_ROOT "WHERE done.evidence_digest=p.start AND observed.evidence_digest=p.obs AND o.revision=p.srev AND o.completed_unix_ms=p.stime",&match);
     if (r==0 && match!=1) r=-ESTALE;
     if (r==0) r=run_existing(s,&v,&exists);
-    if (r==0 && recovery) {
+    if (r==0 && recovery==1) {
         int64_t released=0;
         r=RQ("SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND state='released'",&released);
         /* Historical completion cannot enroll another recovery owner. */
@@ -3228,7 +3337,8 @@ static int begin_run_close(struct ae_catalogue *s,const struct ae_execution_prof
     struct ae_run_receipt result=run_receipt(&v,e,AE_RUN_ROOT_CLOSING,v.start,e->context_digest,1,stamp);
     if (r==0 && exists) r=run_receipt_row(s,&v,AE_RUN_ROOT_CLOSING,&result);
     if (r==0 && !exists) {
-        const char *fresh=recovery ? RUN_INPUT "SELECT count(*) " RUN_ROOT "WHERE l.state='uncertain' AND lease.state='running' AND l.close_cause_epoch IS NULL AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>6)" :
+        const char *fresh=recovery==2 ? RUN_INPUT "SELECT count(*) " RUN_ROOT "WHERE l.state IN ('observed','uncertain') AND lease.state='running' AND l.close_cause_epoch IS NULL AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>6)" :
+            recovery ? RUN_INPUT "SELECT count(*) " RUN_ROOT "WHERE l.state='uncertain' AND lease.state='running' AND l.close_cause_epoch IS NULL AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>6)" :
             RUN_INPUT "SELECT count(*) " RUN_ROOT "WHERE l.state='observed' AND lease.state='running' AND l.close_cause_epoch IS NULL AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.op AND step_no>6)";
         r=run_statement(s,&v,fresh,&match,NULL,0);
         if (r==0 && match!=1) r=-EAGAIN;
@@ -3244,32 +3354,41 @@ static int begin_run_close(struct ae_catalogue *s,const struct ae_execution_prof
 }
 int ae_catalogue_begin_run_close(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
     const struct ae_execution_evidence *e,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *out)
-{ return begin_run_close(s,p,c,e,started,stamp,out,0); }
+{ return begin_run_close(s,p,c,e,started,stamp,out,0,NULL); }
 int ae_catalogue_recover_begin_run_close(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
     const struct ae_execution_evidence *e,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *out)
-{ return begin_run_close(s,p,c,e,started,stamp,out,1); }
-int ae_catalogue_quiesce_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
-    const struct ae_run_receipt *begin,int64_t stamp,struct ae_run_receipt *output)
+{ return begin_run_close(s,p,c,e,started,stamp,out,1,NULL); }
+static int quiesce_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *begin,int64_t stamp,struct ae_run_receipt *output,const struct ae_run_pair *pair)
 {
     if (!output) return -EINVAL;
     int r=ae_run_receipt_match(p,e,AE_RUN_ROOT_CLOSING,begin); if (r!=0) return r;
     struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
     if (s->identity.kind!=AE_CATALOGUE_USER) r=-EPERM;
+    if (r==0 && pair) r=run_pair_require(s,p,e,pair,&v);
     memcpy(v.start,begin->previous_digest,32); uint8_t hash[32]={0};
     if (r==0) r=ae_run_receipt_encode(begin,v.beg);
     if (r==0) r=ae_sha256_bytes(v.beg,sizeof v.beg,hash);
     int64_t match=0; int exists=0;
     if (r==0) r=RQ("SELECT count(*) " RUN_USER "WHERE done.evidence_digest=p.start",&match);
     if (r==0 && match!=1) r=-ESTALE;
+    if (r==0 && pair) {
+        r=RQ("SELECT count(*) FROM p WHERE NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND EXISTS(SELECT 1 FROM admission_gates WHERE subject_kind='data' AND subject_ref=p.d AND state='closed')",&match);
+        if (r==0 && match!=1) r=-EAGAIN;
+    }
     if (r==0) r=run_existing(s,&v,&exists);
     struct ae_run_receipt result=run_receipt(&v,e,AE_RUN_USER_QUIET,hash,e->context_digest,1,stamp);
     if (r==0 && exists) {
-        r=RQ("SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND begin_receipt=p.beg AND state IN ('closing','released')",&match);
+        const char *allowed=pair ? RUN_INPUT "SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND begin_receipt=p.beg AND state IN ('closing','uncertain','released')" :
+            RUN_INPUT "SELECT count(*) FROM run_closures,p WHERE launch_id=p.launch AND begin_receipt=p.beg AND state IN ('closing','released')";
+        r=run_statement(s,&v,allowed,&match,NULL,0);
         if (r==0 && match!=1) r=-EEXIST;
         if (r==0) r=run_receipt_row(s,&v,AE_RUN_USER_QUIET,&result);
     }
     if (r==0 && !exists) {
-        r=RQ("SELECT count(*) " RUN_USER "WHERE l.state='running' AND l.readiness='ready' AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>4)",&match);
+        const char *fresh=pair ? RUN_INPUT "SELECT count(*) " RUN_USER "WHERE l.state='recovery_required' AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>4)" :
+            RUN_INPUT "SELECT count(*) " RUN_USER "WHERE l.state='running' AND l.readiness='ready' AND o.completed_unix_ms<=p.stamp AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM operation_steps WHERE operation_id=p.uop AND step_no>4)";
+        r=run_statement(s,&v,fresh,&match,NULL,0);
         if (r==0 && match!=1) r=-EAGAIN;
         if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision) " RUN_USER,&match);
         if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
@@ -3282,15 +3401,16 @@ int ae_catalogue_quiesce_user_run(struct ae_catalogue *s,const struct ae_executi
     return r;
 }
 static int release_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *context,
-    const struct ae_execution_evidence *e,const struct ae_run_receipt *quiet,const uint8_t end_digest[32],int64_t stamp,struct ae_run_receipt *output,int recovery)
+    const struct ae_execution_evidence *e,const struct ae_run_receipt *quiet,const uint8_t end_digest[32],int64_t stamp,struct ae_run_receipt *output,int recovery,const struct ae_run_pair *pair)
 {
     if (!output || !end_digest) return -EINVAL;
     int r=ae_run_receipt_match(p,e,AE_RUN_USER_QUIET,quiet);
-    if (r==0) r=recovery ? run_recovery_context(s,p,context) : run_root_context(s,p,context);
+    if (r==0) r=recovery==2 ? run_pair_root_context(s,p,context,pair) : recovery ? run_recovery_context(s,p,context) : run_root_context(s,p,context);
     if (r!=0) return r;
     struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
-    if (recovery) r=run_recovery_current(s,p,context,e,&v);
-    if (r==0 && recovery) r=run_recovery_owner(s,&v,0);
+    if (recovery==2) r=run_pair_require(s,p,e,pair,&v);
+    else if (recovery) r=run_recovery_current(s,p,context,e,&v);
+    if (r==0 && recovery==1) r=run_recovery_owner(s,&v,0);
     int exists=0; if (r==0) r=run_existing(s,&v,&exists); if (r==0 && !exists) r=-ENOENT;
     struct ae_run_receipt begin,result; uint8_t hash[32]; int64_t match=0,revision=0,released=0;
     if (r==0) r=run_receipt_row(s,&v,AE_RUN_ROOT_CLOSING,&begin);
@@ -3325,10 +3445,10 @@ static int release_run(struct ae_catalogue *s,const struct ae_execution_profile 
 }
 int ae_catalogue_release_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
     const struct ae_execution_evidence *e,const struct ae_run_receipt *quiet,const uint8_t hash[32],int64_t stamp,struct ae_run_receipt *out)
-{ return release_run(s,p,c,e,quiet,hash,stamp,out,0); }
+{ return release_run(s,p,c,e,quiet,hash,stamp,out,0,NULL); }
 int ae_catalogue_recover_release_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
     const struct ae_execution_evidence *e,const struct ae_run_receipt *quiet,const uint8_t hash[32],int64_t stamp,struct ae_run_receipt *out)
-{ return release_run(s,p,c,e,quiet,hash,stamp,out,1); }
+{ return release_run(s,p,c,e,quiet,hash,stamp,out,1,NULL); }
 int ae_catalogue_get_recovered_run_receipt(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
     const struct ae_execution_evidence *e,enum ae_run_receipt_kind kind,struct ae_run_receipt *out)
 {
@@ -3343,13 +3463,14 @@ int ae_catalogue_get_recovered_run_receipt(struct ae_catalogue *s,const struct a
     if (r==0) r=ae_run_receipt_match(p,e,kind,&result);
     r=fixture_commit(s,r); if (r==0) *out=result; return r;
 }
-int ae_catalogue_end_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
-    const struct ae_run_receipt *released,int64_t stamp,struct ae_user_launch_snapshot *output)
+static int end_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *released,int64_t stamp,struct ae_user_launch_snapshot *output,const struct ae_run_pair *pair)
 {
     if (!output) return -EINVAL;
     int r=ae_run_receipt_match(p,e,AE_RUN_ROOT_RELEASED,released); if (r!=0) return r;
     struct run_values v; r=run_begin(s,p,e,stamp,&v,1); if (r!=0) return r;
     if (s->identity.kind!=AE_CATALOGUE_USER) r=-EPERM;
+    if (r==0 && pair) r=run_pair_require(s,p,e,pair,&v);
     int exists=0; if (r==0) r=run_existing(s,&v,&exists); if (r==0 && !exists) r=-ENOENT;
     struct ae_run_receipt quiet; uint8_t hash[32]; int64_t match=0,done=0;
     if (r==0) r=run_receipt_row(s,&v,AE_RUN_USER_QUIET,&quiet);
@@ -3363,7 +3484,9 @@ int ae_catalogue_end_user_run(struct ae_catalogue *s,const struct ae_execution_p
         if (r==0 && match!=1) r=-EEXIST;
     }
     if (r==0 && !done) {
-        r=RQ("SELECT count(*) " RUN_USER RUN_ROW "WHERE c.state='closing' AND c.began_unix_ms<=p.stamp AND l.state='stopping' AND l.readiness='unavailable' AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch)",&match);
+        const char *pending=pair ? RUN_INPUT "SELECT count(*) " RUN_USER RUN_ROW "WHERE c.state IN ('closing','uncertain') AND c.began_unix_ms<=p.stamp AND l.state IN ('stopping','recovery_required') AND l.readiness='unavailable' AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch) AND EXISTS(SELECT 1 FROM admission_gates WHERE subject_kind='data' AND subject_ref=p.d AND state='closed')" :
+            RUN_INPUT "SELECT count(*) " RUN_USER RUN_ROW "WHERE c.state='closing' AND c.began_unix_ms<=p.stamp AND l.state='stopping' AND l.readiness='unavailable' AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch)";
+        r=run_statement(s,&v,pending,&match,NULL,0);
         if (r==0 && match!=1) r=-EAGAIN;
         if (r==0) r=RQ("SELECT max(m.catalogue_revision,l.revision,c.revision) " RUN_USER RUN_ROW,&match);
         if (r==0 && match==INT64_MAX) r=-EOVERFLOW;
@@ -3375,6 +3498,36 @@ int ae_catalogue_end_user_run(struct ae_catalogue *s,const struct ae_execution_p
     if (r==0) r=user_launch_row(s,p->user_operation,&result);
     r=fixture_commit(s,r); if (r==0) *output=result;
     return r;
+}
+int ae_catalogue_quiesce_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *begin,int64_t stamp,struct ae_run_receipt *out)
+{ return quiesce_user_run(s,p,e,begin,stamp,out,NULL); }
+int ae_catalogue_end_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_receipt *released,int64_t stamp,struct ae_user_launch_snapshot *out)
+{ return end_user_run(s,p,e,released,stamp,out,NULL); }
+int ae_catalogue_pair_begin_run_close(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const struct ae_run_pair *pair,const struct ae_execution_completion *started,int64_t stamp,struct ae_run_receipt *out)
+{ return pair ? begin_run_close(s,p,c,e,started,stamp,out,2,pair) : -EINVAL; }
+int ae_catalogue_pair_release_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const struct ae_run_pair *pair,const struct ae_run_receipt *quiet,const uint8_t hash[32],int64_t stamp,struct ae_run_receipt *out)
+{ return pair ? release_run(s,p,c,e,quiet,hash,stamp,out,2,pair) : -EINVAL; }
+int ae_catalogue_pair_quiesce_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,const struct ae_run_receipt *begin,int64_t stamp,struct ae_run_receipt *out)
+{ return pair ? quiesce_user_run(s,p,e,begin,stamp,out,pair) : -EINVAL; }
+int ae_catalogue_pair_end_user_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,const struct ae_run_receipt *released,int64_t stamp,struct ae_user_launch_snapshot *out)
+{ return pair ? end_user_run(s,p,e,released,stamp,out,pair) : -EINVAL; }
+int ae_catalogue_pair_get_run_receipt(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct ae_run_pair *pair,enum ae_run_receipt_kind kind,struct ae_run_receipt *out)
+{
+    if (!out || !pair) return -EINVAL;
+    struct run_values v; int r=run_begin(s,p,e,0,&v,0); if (r!=0) return r;
+    r=run_pair_require(s,p,e,pair,&v); int exists=0;
+    if (r==0) r=run_existing(s,&v,&exists);
+    if (r==0 && !exists) r=-ENOENT;
+    struct ae_run_receipt result; if (r==0) r=run_receipt_row(s,&v,kind,&result);
+    if (r==0) r=ae_run_receipt_match(p,e,kind,&result);
+    r=fixture_commit(s,r); if (r==0) *out=result; return r;
 }
 #undef RUN_INPUT
 #undef RUN_ROOT

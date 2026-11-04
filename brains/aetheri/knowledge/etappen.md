@@ -10,6 +10,7 @@ remain a proposal.
 | 2: Build and boot | Versioned kernel/userspace build and VM definition | Own image boots to a defined serial result within budget |
 | 3: Base userspace | Init/supervision, processes, files, diagnostics, original shell and original language | Defined syntax/jobs/errors, persistence and controlled failures work |
 | 4: Graphic proof | Input/display path, toolkit candidate, simple real app | Text, focus, clipboard and scaling in target userspace |
+| 4a: Experiment desktop | Complete useful Aetheri desktop in a separately owned, resettable VM | Guest OS experiments/reset and bounded host-resource/file/network isolation pass; before daily-use installation |
 | 5: Personal workflows | Terminal/editor, Files/Settings, Physim, browser integration | Agreed tasks work, including multiple monitors and failures |
 | 6: Daily-use readiness | Isolation, encryption, backups, recoverable updates and installer | Personal-data and recovery acceptance gates pass |
 | 7: Hardware acceptance | Laptop profile, then separate RTX 2080 Ti main-PC profile | Agreed GPU, WLAN, Bluetooth, audio, three-monitor input/display and power cases pass |
@@ -21,6 +22,13 @@ and removal/review conditions. User design reviews do not certify native behavio
 Every adopted dependency needs a purpose and an installation/runtime footprint.
 Do not create all future source directories or detailed app screens before they
 have a concrete purpose. Planning remains revisable after practical evidence.
+
+On 4 November 2026 the user prioritized a full Aetheri desktop for early safe
+experiments, followed by AI-controlled work and general VM support. This inserts
+the early desktop gate above; it does not wait for daily-use readiness or every
+planned app. Controller/storage/isolation work can precede the graphical session.
+See [experiment environments](experiment-environments.md). This feature is planned,
+not implemented by the existing development carrier.
 
 Packaging and complete removal are architecture-level requirements from the start.
 Exercise ownership/purge cases before app distribution, not only at final cleanup.

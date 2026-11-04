@@ -26,6 +26,12 @@ management and image/PDF viewing. Prefer one coherent management UI for monitors
 audio, Bluetooth, keyboards and mice over separate vendor-style utilities.
 Supported device capabilities still require an explicit hardware matrix.
 
+An early experiment environment must run a complete Aetheri desktop in an
+isolated, resettable VM. OS changes and later AI-controlled work stay inside it;
+general VM support is also required. The user selected the full desktop first
+on 4 November 2026. See [experiment environments](knowledge/experiment-environments.md)
+for recommended boundaries, delivery order and unexecuted acceptance criteria.
+
 ## Experience and visibility
 
 Free windows, dock/taskbar, global search; macOS-inspired calm, compact dark themes,
@@ -126,8 +132,9 @@ recognize an original still-live process through a fresh authenticated connectio
 Separate immutable v4 records now persist the original profile/context in each
 owner's catalogue. Native close-only Root recovery now requires current retained-handle observation
 and the still-original User. Actual active-run Root/User restart reconciliation
-and early-start/lost-handle recovery remain necessary. Current normal catalogues/gates remain
-unchanged and closed.
+and early-start/lost-handle recovery remain necessary. The carrier was found
+stopped on 4 November; its old catalogues remain unchanged, but same-boot retained
+handles are lost. See STATE before continuing that quarantined attempt.
 
 The full desktop and original applications, normal session/app provisioning,
 an original bootable image/installer, updates and hardware/performance acceptance

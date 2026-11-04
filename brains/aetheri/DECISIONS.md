@@ -1,5 +1,36 @@
 # Decisions
 
+## Early experiment desktop — 4 November 2026
+
+The user requires an early isolated place for OS experiments and later AI work,
+plus general VM support. They selected a complete Aetheri desktop first and
+confirmed persistent changes until explicit reset, with individual permission
+for personal files, network and devices. Treat the guest and its administrator
+as untrusted; no automatic promotion to the real OS or access to host credentials.
+
+Recommend hardware virtualization for kernel/root experiments, bounded resources,
+an immutable base with separate writable state and stopped-VM reset first.
+App namespaces share the kernel and cannot serve this whole use case. Exact VM
+backend/releases remain subject to dependency/security review. The current carrier
+does not implement this product feature. See [plan and acceptance](knowledge/experiment-environments.md).
+
+## Paired close-only maintenance — 4 November 2026
+
+Keep v3 original-runtime and v6 original-User checks unchanged. Add an explicit
+v7 pair binding per owner for a replaced User with an original/replaced Root,
+same boot/epochs/account. Independently verify all prior User owners' drain and
+both current actor contexts outside SQLite; hashes record that evidence only.
+Preserve original start/process/closing/quiet/release receipts. Further actor
+replacement needs another admitted pair; terminal Root may forward historical
+receipts without restoring a lease. No installed wire or production admission.
+See [native contract](../../spec/runtime.md#paired-owner-closure-transactions).
+
+The Codex usage limit interrupted agent work (user confirmation). The recorded
+QEMU process was separately found dead. Preserve the old failed intent after
+the carrier reboot; its volatile handles are lost. A same-boot protocol cannot
+recreate them or settle the quarantined lease. Cross-boot/lost-handle recovery
+needs separate evidence and a reviewed protocol. No fresh test can stand in for it.
+
 ## Initial direction — 25 October 2026
 
 Aetheri is a Linux-based personal daily-use OS, developed through Codex. Priorities

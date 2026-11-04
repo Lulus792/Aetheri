@@ -1,5 +1,9 @@
 # Knowledge and proposals
 
+- [Experiment environments](experiment-environments.md): early complete desktop
+  in a resettable VM, later AI work, confirmed persistence/sharing choices and
+  proposed isolation/resource/reset acceptance; no runtime acceptance yet.
+
 - [Minimal contract extension and first Linux prototype](first-linux-prototype.md):
   accepted scope, current five-table/schema-v2 contracts, nine added methods,
   carrier/resources and outstanding Linux acceptance gates.

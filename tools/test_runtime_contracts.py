@@ -11,6 +11,21 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_run_recovery_pair_vector_and_boundaries(self):
+        vector=rc.load_json((ROOT/'spec/vectors/run-recovery-pair-v1.json').read_bytes())
+        expected=dict(profile_digest=rc.digest(bytes.fromhex(vector['profile_hex'])),original_user_runtime=vector['original_user_runtime'])
+        data=rc.run_recovery_pair(vector['input'],**expected)
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_run_recovery_pair(data,**expected),vector['input'])
+        for key,value in (('root_runtime','00'*16),('root_runtime','ff'*16),('user_runtime',vector['original_user_runtime']),
+                          ('profile_digest','11'*32),('user_end_digest','00'*32),('handoff_digest','ff')):
+            bad=deepcopy(vector['input']); bad[key]=value
+            with self.assertRaises(rc.InvalidContract): rc.run_recovery_pair(bad,**expected)
+        for n in range(len(data)):
+            with self.assertRaises(rc.InvalidContract): rc.read_run_recovery_pair(data[:n],**expected)
+        for bad in (data+b'\0',b'Z'+data[1:],data[:8]+b'\0'*32+data[40:]):
+            with self.assertRaises(rc.InvalidContract): rc.read_run_recovery_pair(bad,**expected)
+
     def test_handoff_vector_and_adversarial_inputs(self):
         vector=rc.load_json((ROOT/'spec/vectors/execution-handoff-v1.json').read_bytes())
         data=rc.execution_handoff(vector['input'])

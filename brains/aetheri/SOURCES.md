@@ -4,6 +4,31 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Experiment environments — 4 November 2026
+
+User confirmed the complete desktop first, persistent experiments until explicit
+reset and individually permitted personal-file/network/device access. The
+[scoped plan](knowledge/experiment-environments.md) records unexecuted acceptance
+criteria and the inspected QEMU/libvirt primary-source links. Current upstream
+manuals support the mechanism/limits, not a selected build or runtime acceptance.
+
+## Paired-owner native recovery — 4 November 2026
+
+- [v7 common schema](../../spec/schema/common-v7.sql),
+  [Root guards](../../spec/schema/system-v7.sql), [User guards](../../spec/schema/user-v7.sql),
+  [native contracts](../../src/catalogue/lifetime.h) and
+  [owner transactions](../../src/catalogue/store.c): original evidence/receipts
+  stay fixed; current pair enrollment, no effect replay or runtime readiness.
+- [Independent frame vector](../../spec/vectors/run-recovery-pair-v1.json),
+  [Python encoder](../../tools/runtime_contracts.py), [native tests](../../tests/test_launch.c),
+  [migration tests](../../tools/test_contracts.py) and
+  [interop](../../tools/test_catalogue_native.py): real SQLite with controlled
+  already-admitted actor/drain facts, not live admission. Results/limits in STATE.
+- Read-only carrier inspection after boot: original Root catalogue hash still
+  agrees, original intent remains uncertain/running with no closure, old /run
+  units and PID1 handles absent. Old metadata is not replacement kernel proof.
+  Host interruption metadata/stale socket are retained only under ignored local/.
+
 ## Private code reservation — 27 October 2026
 
 - Original [catalogue API](../../src/catalogue/reservation.h),

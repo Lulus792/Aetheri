@@ -1,6 +1,6 @@
 # Versioned catalogue and API contracts
 
-31 October 2026. P0 contract implementation. These files define SQLite structure,
+4 November 2026. P0 contract implementation. These files define SQLite structure,
 migration behavior and D-Bus messages; they do not implement the Linux authorities,
 SELinux policy, document transport or process supervision.
 
@@ -31,6 +31,8 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [common-v3](schema/common-v3.sql), [system-v3](schema/system-v3.sql), [user-v3](schema/user-v3.sql) | Explicit additive run-closure journal after frozen v2; no existing table rewrite |
 | [common-v4](schema/common-v4.sql), [system-v4](schema/system-v4.sql), [user-v4](schema/user-v4.sql) | Immutable original-process records after frozen v3; role-specific enrollment and retention guards |
 | [system-v6](schema/system-v6.sql) | Explicit Root recovery-owner records and guarded closure admission after frozen v5 |
+| [common-v7](schema/common-v7.sql), [system-v7](schema/system-v7.sql), [user-v7](schema/user-v7.sql) | Explicit paired-owner close-only recovery after Root v6/User v4; immutable original evidence and current pair binding |
+| [run-recovery-pair-v1.json](vectors/run-recovery-pair-v1.json) | Independent 232-byte AETHRCP1 vector; no actor authentication or process-drain proof |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
 | [documents-v1.xml](api/documents-v1.xml) | Five new caller-scoped document methods |
@@ -44,7 +46,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact v2/v3/v4 (Root also v5) opening and explicit additive upgrades under the retained owner lock |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v7/User v2–v4,v7 opening and explicit upgrades under the retained owner lock |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
@@ -103,7 +105,7 @@ documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
 authorization or validate incoming messages by themselves.
 
-The initial v1/v2 snapshots retain complete definitions; v3/v4 and Root v5/v6 compose their additions.
+The initial v1/v2 snapshots retain complete definitions; v3/v4, Root v5/v6 and paired-owner v7 compose their additions.
 The v2 bootstrap and migration consume the same target SQL. This avoids separate
 handwritten migration copies of every CHECK/trigger. Frozen v1/v2/v3 hashes in the
 test suite detect accidental changes to those sources.
@@ -112,9 +114,24 @@ test suite detect accidental changes to those sources.
 
 The separate [active Root integration](runtime.md#interrupted-active-root-test)
 now has actual live-original transfer/OBSERVE evidence, but its recovery closure
-failed and its original User later expired. Preserve its held lease, four PID1
-handles and exact fixture. New-User recovery is the next implementation step;
+failed and its original User later expired. Its old boot subsequently ended;
+four volatile PID1 handles are lost. Preserve the original lease and exact fixture.
+New-User and cross-boot/lost-handle recovery remain implementation work;
 the new optional test is not a passing active-run acceptance result.
+
+Explicit v7 adds one immutable `run_recovery_pairs` table per owner and replaces
+only each closure-insert trigger. Migrate quiesced Root v6/User v4 independently
+through `migrate_owner_recovery` or native `ae_catalogue_upgrade_owner_recovery`;
+default creation stays v2 and open never migrates. Old rows/revisions/gates and
+all v1–v6 sources remain unchanged. User v5/v6 remain unsupported.
+
+Separate paired APIs accept a replaced User with an original or replaced Root,
+same account/authority epochs/boot and independently verified actor/drain evidence.
+Both owners enroll the exact 232-byte binding separately. Exact retries preserve
+original receipts/start results; no rearm, readiness or dispatch. Root can enroll
+after release to forward historical closure to another admitted User, with no
+lease mutation. Post-retirement Root replacement and cross-boot/lost-handle
+settlement are outside this native contract. See [paired recovery](runtime.md#paired-owner-closure-transactions).
 
 Root-only v6 adds immutable per-runtime `run_recovery_owners` observations and
 narrowly extends closure insertion after a same-boot Root replacement. The native
@@ -256,7 +273,7 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact v2/v3/v4 (Root also v5) validation and startup-context writes.
+The C17 store implements v2 creation, exact Root v2–v7/User v2–v4,v7 validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
 The later explicit v3/v4 upgrades add independent run/process evidence; published

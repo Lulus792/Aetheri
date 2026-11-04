@@ -60,3 +60,33 @@ int ae_run_end_digest(const struct ae_execution_profile *p,const struct ae_execu
     put(bytes+104,end->cgroup_id,8); put(bytes+112,end->pid,4); bytes[116]=(uint8_t)end->group_removed; bytes[117]=(uint8_t)end->unit_failed;
     return ae_sha256_bytes(bytes,sizeof bytes,output);
 }
+static int pair_nonzero(const uint8_t *p,size_t size)
+{ unsigned int value=0; for (size_t n=0;n<size;++n) value|=p[n]; return value!=0; }
+int ae_run_pair_encode(const struct ae_execution_profile *p,const struct ae_run_pair *v,uint8_t output[AE_RUN_PAIR_BYTES])
+{
+    if (!v || !output) return -EINVAL;
+    uint8_t raw[AE_RUN_PAIR_BYTES]={0}; memcpy(raw,"AETHRCP1",8);
+    int r=ae_execution_digest(p,raw+8); if (r!=0) return r;
+    const uint8_t *runtimes[]={v->root_runtime,v->user_runtime};
+    for (size_t n=0;n<2;++n) {
+        if ((runtimes[n][6]>>4)!=4 || (runtimes[n][8]&0xc0)!=0x80) return -EBADMSG;
+        memcpy(raw+40+16*n,runtimes[n],16);
+    }
+    if (memcmp(v->user_runtime,p->broker_runtime,16)==0) return -ESTALE;
+    const uint8_t *digests[]={v->original_user_digest,v->user_end_digest,v->handoff_digest,v->root_context_digest,v->user_context_digest};
+    for (size_t n=0;n<5;++n) { if (!pair_nonzero(digests[n],32)) return -EBADMSG; memcpy(raw+72+32*n,digests[n],32); }
+    memcpy(output,raw,sizeof raw); return 0;
+}
+int ae_run_pair_decode(const struct ae_execution_profile *p,const uint8_t *raw,size_t size,struct ae_run_pair *output)
+{
+    if (!raw || !output) return -EINVAL;
+    if (size!=AE_RUN_PAIR_BYTES || memcmp(raw,"AETHRCP1",8)!=0) return -EBADMSG;
+    struct ae_run_pair v;
+    memcpy(v.root_runtime,raw+40,16); memcpy(v.user_runtime,raw+56,16);
+    uint8_t *digests[]={v.original_user_digest,v.user_end_digest,v.handoff_digest,v.root_context_digest,v.user_context_digest};
+    for (size_t n=0;n<5;++n) memcpy(digests[n],raw+72+32*n,32);
+    uint8_t check[AE_RUN_PAIR_BYTES]; int r=ae_run_pair_encode(p,&v,check);
+    if (r==0 && memcmp(raw,check,sizeof check)!=0) r=-ESTALE;
+    if (r==0) *output=v;
+    return r;
+}

@@ -135,6 +135,12 @@ def main():
                 'fresh','existing-close','twice','lost-begin','lost-release',
                 'begin-crash-before','begin-crash-after','release-crash-before','release-crash-after',
                 'overflow-owner','overflow-release','unobserved','wrong-user','wrong-boot','missing-start'))
+        if len(sys.argv)==4 and sys.argv[3]=='owner-recovery':
+            vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/run-recovery-pair-v1.json').read_bytes())
+            encoded=root/'pair.vector'; encoded.write_bytes(bytes.fromhex(vector['profile_hex'])+bytes.fromhex(vector['hex'])+bytes.fromhex(vector['sha256']))
+            subprocess.run([executable,'pair-codec',encoded],check=True,timeout=10)
+            scenarios=tuple('exec-pair-'+case for case in ('fresh','faults','crashes','original-root','existing-close','existing-quiet',
+                'twice','after-release','guards','overflow','missing-start','wrong-boot'))
         with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"

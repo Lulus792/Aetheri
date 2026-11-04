@@ -36,13 +36,23 @@ profile. Hibernate remains separate. Confirm microphone/special peripheral featu
 
 ## Architecture and security
 
+Experiment environments: the full Aetheri desktop is the first priority, changes
+persist until explicit reset, and personal files/network/devices require separate
+permission (user confirmation, 4 November 2026). No remaining product question
+blocks controller/isolation work. Later choose name/UI, optional disposable
+sessions, detailed AI workflow and supported imported guests/devices. Exact
+backend/resource limits and enforcement need engineering review and measurements.
+See [experiment environments](knowledge/experiment-environments.md).
+
 Current implementation priority: reconcile retained attempt
 0f04cd9ae92d4500a42177e3e14de76b after both original Root/User were lost. Actual
 active Root replacement/handle OBSERVE worked before a direct cross-UID image
-check failed; the original User later expired. Its four PID1 handles, target,
-catalogues and original User expectation remain protected. Separate new-User
-admission/quiescence and already-ended original-app recovery must precede another
-live test. This is engineering work, not a pending personal product decision.
+check failed; the original User later expired. On 4 November the carrier was
+found stopped; the new boot has lost the four volatile PID1 handles and /run
+target. Persistent catalogues and original User expectation remain protected.
+Separate new-User admission/quiescence and cross-boot/lost-handle settlement are
+required; same-boot pairing cannot settle that quarantined attempt. This is
+engineering work, not a pending personal product decision.
 See [active test](../../spec/runtime.md#interrupted-active-root-test).
 
 Current implemented boundary: the explicit successful fixed run now closes through

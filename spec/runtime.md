@@ -3964,6 +3964,21 @@ early starter/error-channel recovery and production holder admission remain work
 
 ## Interrupted active Root test
 
+Current correction, 4 November 2026: the Codex usage limit interrupted agent work
+(user confirmation). On resumption the recorded QEMU process was dead and QMP
+refused connection. After preserving host metadata and the stale socket, the
+existing carrier disk booted offline with boot ID
+525715ac-42d5-4059-8658-df208f0e501b. The old `/run` units/target and all four
+PID1 handles are gone. Their cause/time of loss was not independently established.
+The failed Root catalogue hash remains
+bdfca485ed5079d62afc2270946cfd9999a354b2240a51c9914b4c64e9291f2d,
+with the original uncertain dispatch/running lease/observed revision-2 handoff
+and no closure. No persistent fixture/controller/catalogue was reset or migrated.
+All subsequent retained-live-handle statements in this section describe the
+31 October observation. Same-boot recovery cannot now settle this attempt;
+cross-boot/lost-handle settlement needs a separate protocol. Preserve quarantine,
+never reconstruct old handles or replace the intent for a passing result.
+
 The separate optional `--recover-active` mode in
 [test_execution_runtime.py](../tools/test_execution_runtime.py) is unfinished
 integration work. It selects explicit Root v6/User v4 and starts the original App
@@ -4033,3 +4048,77 @@ User file and compare it to the native original handoff in a private mount names
 They make no runtime change and prove metadata agreement only, not confined live
 User reidentification. Host malformed-frame checks pass. Normal v2 authorities and
 gates remain verified/quiet; the temporary active-test infrastructure is retained.
+
+## Paired-owner closure transactions
+
+The explicit v7 native contract in [lifetime.h](../src/catalogue/lifetime.h)
+adds close-only recovery after User replacement, with either the original Root
+or a currently observed replacement Root. It is library metadata logic, not an
+installed recovery endpoint or a proof of live actor admission. The new User must
+have a different runtime from the original profile. Original authority epochs,
+account, boot, successful start, app process and receipts remain immutable.
+
+The canonical AETHRCP1 frame is exactly 232 bytes. There are no lengths, text,
+padding, native pointers, descriptor numbers or trailing bytes:
+
+| Offset | Size | Value |
+| --- | --- | --- |
+| 0 | 8 | ASCII AETHRCP1 |
+| 8 | 32 | SHA-256 of original canonical AETHEXE1 |
+| 40 | 16 | Current Root runtime UUIDv4 |
+| 56 | 16 | Current replacement User runtime UUIDv4 |
+| 72 | 32 | Independently retained original User provenance digest |
+| 104 | 32 | Evidence digest for every prior User owner's drain and future-effect/holder fencing |
+| 136 | 32 | Original canonical AETHHND1 digest |
+| 168 | 32 | Current admitted Root process/unit/invocation/image context digest |
+| 200 | 32 | Current admitted User process/unit/invocation/image context digest |
+
+The five evidence digests must be nonzero. They record independently verified
+facts; a matching digest is never authentication, original process capture,
+quiescence or end proof. Before every cross-owner use, the caller must authenticate
+the actual current counterpart, recheck its own/counterpart context, original
+provenance, all prior owners' drain, future-effect fences and delegated holders.
+A dead PID, unit name, broker UUID or absence of a bus name cannot do this.
+
+Each catalogue independently enrolls the exact binding under
+`(LaunchId, RootRuntime, UserRuntime)`. Enrollment compares the immutable original
+app/process profile and complete successful-start joins, same current local
+runtime/epochs/boot/account and its owner's admissible state. Root additionally
+compares the original handoff digest and current OBSERVE (or original Root's
+still-pending handoff). User requires a closed data gate and no grant/access rows.
+Neither owner opens the other's database. The caller must confirm the same pair
+at the authenticated counterpart before forwarding any receipt.
+
+`pair_begin_run_close` preserves or creates the original Root closing receipt.
+`pair_quiesce_user_run` closes the replaced User's recovery-required run, with
+zero grants/accesses and a closed data gate checked again. Existing uncertain
+closures keep their original closing/quiet bytes and remain uncertain until end;
+they never become ready or return to closing. `pair_release_run` still requires
+independent original-app end/holder/future-effect evidence and an authenticated
+quiet receipt. It atomically records Root release, terminal dispatch and released
+lease. `pair_end_user_run` requires authenticated correlated release and marks the
+already quiet User run exited. Start operations/steps/revisions never change.
+
+A further actor replacement requires another independently admitted binding;
+earlier bindings cannot authorize it. Lost commit acknowledgements preserve
+outputs and require exact observation/retry. An exact enrollment retry is only
+historical acknowledgement, never renewed admission. Root may enroll a later
+pair after terminal/released state solely to forward the immutable original
+receipts to a new User. It still needs matching original/current handoff provenance
+and complete start/process/closure joins. No gate/lease/readiness is reopened.
+Post-retirement replacement of Root is unsupported because it cannot re-OBSERVE
+discarded handles. Cross-boot, missing original handles, early/unfinished starts,
+production holder admission and complete removal remain separate work.
+
+The 136-byte v3 closure receipts are unchanged. Current pair authority comes
+from the independently admitted process/connection and its local immutable pair,
+not a new interpretation of old receipt bytes. Original v3 APIs keep their exact
+runtime checks; v6 Root recovery still accepts only the original User. Normal v2
+catalogues/capabilities and all existing SQL/XML versions remain unchanged.
+
+Run `catalogue.owner_recovery` and contract/migration/vector tests. They exercise
+real owner SQLite with controlled already-admitted actor/drain facts, statement
+and commit faults, child exits, successive owner replacements, old/quiet closure
+retention, post-release User replacement, closed gates, grant retention, missing
+start evidence, overflow, immutability and unchanged outputs. They do not prove
+an installed recovery coordinator or settle the quarantined carrier attempt.

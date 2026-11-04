@@ -1,7 +1,8 @@
 # Start here
 
 Aetheri is a planned Linux-based personal desktop OS with original applications.
-Updated 31 October 2026 for the retained interrupted active-Root integration.
+Updated 4 November 2026 for early experiment-desktop requirements and the lost
+carrier boot; read current STATE before relying on earlier retained-handle evidence.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.
@@ -18,7 +19,8 @@ Updated 31 October 2026 for the retained interrupted active-Root integration.
    [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),
-   [testing](knowledge/testumgebung.md) and [milestones](knowledge/etappen.md).
+   [testing](knowledge/testumgebung.md), [experiment environments](knowledge/experiment-environments.md)
+   and [milestones](knowledge/etappen.md).
 
 [Sources](SOURCES.md) identifies original evidence. Inbox holds unprocessed notes,
 knowledge holds scoped findings/proposals, journal holds handoffs and archive history.

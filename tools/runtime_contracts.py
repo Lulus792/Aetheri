@@ -92,6 +92,27 @@ def read_execution_handoff(data):
         pid_namespace=pidns,cgroup_namespace=cgroupns,events_inode=inode,events_mount=mount,events_mode=mode,events_uid=uid,events_gid=gid)
     require(execution_handoff(value)==data,'handoff canonical form'); return value
 
+def run_recovery_pair(value, *, profile_digest=None, original_user_runtime=None):
+    fields(value,'profile_digest root_runtime user_runtime original_user_digest user_end_digest handoff_digest root_context_digest user_context_digest')
+    digest=rawhex(value['profile_digest'],32)
+    if profile_digest is not None: require(value['profile_digest']==profile_digest,'pair profile')
+    out=b'AETHRCP1'+digest
+    for key in ('root_runtime','user_runtime'):
+        runtime=rawhex(value[key],16)
+        require(runtime[6]>>4==4 and runtime[8]&0xc0==0x80,'pair runtime UUIDv4')
+        out+=runtime
+    if original_user_runtime is not None: require(value['user_runtime']!=original_user_runtime,'replacement User required')
+    for key in ('original_user_digest','user_end_digest','handoff_digest','root_context_digest','user_context_digest'):
+        digest=rawhex(value[key],32); require(any(digest),'pair evidence required'); out+=digest
+    return out
+
+def read_run_recovery_pair(data, **expected):
+    require(type(data) is bytes and len(data)==232 and data[:8]==b'AETHRCP1','pair frame')
+    keys=('profile_digest','root_runtime','user_runtime','original_user_digest','user_end_digest','handoff_digest','root_context_digest','user_context_digest')
+    offsets=(8,40,56,72,104,136,168,200,232)
+    value={key:data[offsets[n]:offsets[n+1]].hex() for n,key in enumerate(keys)}
+    require(run_recovery_pair(value,**expected)==data,'pair canonical form'); return value
+
 def run_receipt(value):
     fields(value,'kind profile_digest invocation previous_digest evidence_digest revision unix_ms')
     tags={'root_closing':b'AETHCLS1','user_quiet':b'AETHQSC1','root_released':b'AETHEND1'}

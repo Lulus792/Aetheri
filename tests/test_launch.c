@@ -25,7 +25,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strcmp(sql,"PRAGMA user_version=7")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -823,6 +823,185 @@ static void run_recovery_test(struct ae_catalogue **root,struct ae_catalogue *us
     CHECK(ae_catalogue_get_run_receipt(*root,p,e,AE_RUN_ROOT_RELEASED,&out)<0);
     CHECK(ae_catalogue_close(root)==0 && ae_catalogue_open(rd,ri,root)==0);
 }
+struct pair_test_result { struct ae_run_receipt receipt; struct ae_user_launch_snapshot launch; };
+struct pair_test {
+    struct ae_catalogue *root,*user;
+    const struct ae_execution_profile *profile;
+    const struct ae_execution_evidence *root_app,*user_app;
+    const struct ae_execution_completion *started;
+    struct ae_launch_context context;
+    struct ae_run_pair pair;
+    struct ae_run_receipt begin,quiet,released;
+    uint8_t end[32];
+};
+static int pair_stage(struct pair_test *t,int stage,int64_t stamp,struct pair_test_result *out)
+{
+    const struct ae_execution_profile *p=t->profile;
+    switch (stage) {
+    case 0: return ae_catalogue_enroll_run_pair(t->root,p,t->root_app,&t->pair,stamp);
+    case 1: return ae_catalogue_enroll_run_pair(t->user,p,t->user_app,&t->pair,stamp);
+    case 2: return ae_catalogue_pair_begin_run_close(t->root,p,&t->context,t->root_app,&t->pair,t->started,stamp,&out->receipt);
+    case 3: return ae_catalogue_pair_quiesce_user_run(t->user,p,t->user_app,&t->pair,&t->begin,stamp,&out->receipt);
+    case 4: return ae_catalogue_pair_release_run(t->root,p,&t->context,t->root_app,&t->pair,&t->quiet,t->end,stamp,&out->receipt);
+    case 5: return ae_catalogue_pair_end_user_run(t->user,p,t->user_app,&t->pair,&t->released,stamp,&out->launch);
+    default: return -EINVAL;
+    }
+}
+/* Actual owner SQLite; all supplied actor/drain facts are controlled fixtures.
+ * No installed admission, ProcessFD restoration or live recovery is implied. */
+static void owner_recovery_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,
+    const struct ae_execution_profile *p,const struct ae_launch_context *original,const struct ae_execution_evidence *e,
+    const struct ae_execution_evidence *ue,const struct ae_execution_completion *started,const struct ae_execution_handoff *h,
+    const char *rd,const char *ud,const char *scenario)
+{
+    struct ae_catalogue_identity ui={.kind=AE_CATALOGUE_USER}; memcpy(ui.authority_epoch,p->broker_epoch,16); memcpy(ui.owner,p->account,16);
+    CHECK(ae_catalogue_upgrade_handoffs(*root)==0 && ae_catalogue_upgrade_recovery(*root)==0);
+    int faults=strstr(scenario,"faults")!=NULL,crashes=strstr(scenario,"crashes")!=NULL;
+    uint8_t before[32],after[32];
+    for (int owner=0;owner<2;++owner) {
+        struct ae_catalogue **slot=owner ? user : root; const char *directory=owner ? ud : rd;
+        int old=owner ? 4 : 6; database_digest(directory,before);
+        if (faults) {
+            /* Both extensions have two common + five owner statements + version. */
+            for (int n=1;n<=8;++n) { ddl_fault=n; ddl_number=0;
+                CHECK(ae_catalogue_upgrade_owner_recovery(*slot)==-EIO && !ddl_fault && scalar(directory,"PRAGMA user_version")==old);
+                database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+            }
+            commit_fault=1; CHECK(ae_catalogue_upgrade_owner_recovery(*slot)==-EIO && scalar(directory,"PRAGMA user_version")==old);
+            commit_fault=2; CHECK(ae_catalogue_upgrade_owner_recovery(*slot)==-EIO && scalar(directory,"PRAGMA user_version")==7);
+        } else CHECK(ae_catalogue_upgrade_owner_recovery(*slot)==0);
+        CHECK(ae_catalogue_close(slot)==0 && ae_catalogue_open(directory,owner ? &ui : ri,slot)==0);
+        database_digest(directory,before); CHECK(ae_catalogue_upgrade_owner_recovery(*slot)==0);
+        database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+    }
+    struct ae_handoff_result handoff;
+    CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_PREPARE,h,124150,&handoff)==0);
+    struct pair_test t={.root=*root,.user=*user,.profile=p,.root_app=e,.user_app=ue,.started=started,.context=*original};
+    edit(rd,"UPDATE admission_gates SET state='closed',revision=revision+1");
+    memset(t.end,0x65,32);
+    id(t.pair.root_runtime,strstr(scenario,"original-root") ? 5 : 6); id(t.pair.user_runtime,52);
+    memset(t.pair.original_user_digest,0x61,32); memset(t.pair.user_end_digest,0x62,32);
+    memset(t.pair.root_context_digest,0x64,32); memset(t.pair.user_context_digest,0x65,32);
+    uint8_t raw[AE_HANDOFF_MAX]; size_t size=0; CHECK(ae_handoff_encode(h,raw,sizeof raw,&size)==0 && ae_sha256_bytes(raw,size,t.pair.handoff_digest)==0);
+    int prior_close=strstr(scenario,"existing-close") || strstr(scenario,"existing-quiet");
+    if (prior_close) CHECK(ae_catalogue_begin_run_close(*root,p,original,e,started,124160,&t.begin)==0);
+    if (strstr(scenario,"existing-quiet")) CHECK(ae_catalogue_quiesce_user_run(*user,p,ue,&t.begin,124170,&t.quiet)==0);
+    CHECK(ae_catalogue_begin_runtime(*user,p->boot,t.pair.user_runtime)==0);
+    memcpy(t.context.broker_runtime,t.pair.user_runtime,16); memcpy(t.context.system_runtime,t.pair.root_runtime,16);
+    if (!strstr(scenario,"original-root")) {
+        CHECK(ae_catalogue_begin_runtime(*root,p->boot,t.pair.root_runtime)==0);
+        CHECK(ae_catalogue_enroll_run_pair(*root,p,e,&t.pair,124180)==-ESTALE);
+        CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,h,124181,&handoff)==0);
+    }
+    struct pair_test_result out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+    CHECK(ae_catalogue_recover_begin_run_close(*root,p,&t.context,e,started,124190,&out.receipt)==-ESTALE);
+    CHECK(ae_catalogue_quiesce_user_run(*user,p,ue,&t.begin,124190,&out.receipt)<0);
+    CHECK(ae_catalogue_pair_begin_run_close(*root,p,&t.context,e,&t.pair,started,124190,&out.receipt)==-ENOENT);
+    CHECK(memcmp(&out,&marker,sizeof out)==0);
+    if (strstr(scenario,"missing-start")) {
+        edit(rd,"DELETE FROM operation_steps WHERE step_no=6"); CHECK(ae_catalogue_enroll_run_pair(*root,p,e,&t.pair,124190)==-EAGAIN); return;
+    }
+    if (strstr(scenario,"overflow")) {
+        edit(ud,"UPDATE authority_meta SET catalogue_revision=9223372036854775807");
+        CHECK(ae_catalogue_enroll_run_pair(*user,p,ue,&t.pair,124190)==-EOVERFLOW && scalar(ud,"SELECT count(*) FROM run_recovery_pairs")==0); return;
+    }
+    if (strstr(scenario,"wrong-boot")) {
+        uint8_t boot[16]; id(boot,8); id(t.pair.user_runtime,53);
+        CHECK(ae_catalogue_begin_runtime(*user,boot,t.pair.user_runtime)==0);
+        CHECK(ae_catalogue_enroll_run_pair(*user,p,ue,&t.pair,124190)==-ESTALE && scalar(ud,"SELECT count(*) FROM run_recovery_pairs")==0); return;
+    }
+    if (strstr(scenario,"guards")) {
+        struct ae_run_pair wrong=t.pair; wrong.handoff_digest[0]^=1;
+        CHECK(ae_catalogue_enroll_run_pair(*root,p,e,&wrong,124190)==-ESTALE);
+        wrong=t.pair; id(wrong.root_runtime,9); CHECK(ae_catalogue_enroll_run_pair(*root,p,e,&wrong,124190)==-ESTALE);
+        wrong=t.pair; id(wrong.user_runtime,54); CHECK(ae_catalogue_enroll_run_pair(*user,p,ue,&wrong,124190)==-ESTALE);
+        edit(ud,"UPDATE admission_gates SET state='open',revision=revision+1");
+        CHECK(ae_catalogue_enroll_run_pair(*user,p,ue,&t.pair,124190)==-EAGAIN);
+        edit(ud,"UPDATE admission_gates SET state='closed',revision=revision+1");
+        /* The original request fingerprint covers boot; changing only boot is
+         * malformed before the current-runtime stale-context check. */
+        struct ae_execution_profile bad=*p; id(bad.boot,8); CHECK(ae_catalogue_enroll_run_pair(*user,&bad,ue,&t.pair,124190)==-EBADMSG);
+    }
+    int64_t root_revision=scalar(rd,"SELECT revision FROM operations"),user_revision=scalar(ud,"SELECT revision FROM operations");
+    const int writes[]={2,2,3,3,4,3};
+    for (int stage=0;stage<6;++stage) {
+        int owner=stage==1 || stage==3 || stage==5;
+        const char *directory=owner ? ud : rd; struct ae_catalogue **slot=owner ? user : root;
+        if (strstr(scenario,"guards") && (stage==3 || stage==5)) {
+            edit(ud,"UPDATE admission_gates SET state='open',revision=revision+1");
+            CHECK(pair_stage(&t,stage,124300+stage,&out)==-EAGAIN);
+            edit(ud,"UPDATE admission_gates SET state='closed',revision=revision+1");
+            if (stage==3) {
+                edit(ud,"INSERT INTO resources(resource_id,owner_scope,kind,fixture_root_ref,locator,display_name,observed_boot_id,broker_incarnation,observed_device,observed_inode,observed_size,state) SELECT X'00000000000040008000000000000070',owner_scope_ref,'file',X'00000000000040008000000000000071','document','Document',current_boot_id,runtime_incarnation,1,1,1,'bound' FROM authority_meta; INSERT INTO grants SELECT X'00000000000040008000000000000072',X'00000000000040008000000000000070',launch_id,install_id,data_epoch_id,X'00000000000040008000000000000073','read','native','launch','pending',1 FROM launches");
+                CHECK(pair_stage(&t,stage,124300+stage,&out)==-EAGAIN);
+                edit(ud,"UPDATE grants SET state='closing',revision=revision+1; UPDATE grants SET state='revoked',revision=revision+1");
+                CHECK(pair_stage(&t,stage,124300+stage,&out)==-EAGAIN);
+                edit(ud,"DELETE FROM grants"); /* No document/FD in this metadata fixture. */
+                sqlite3 *db=database(ud);
+                CHECK(sqlite3_exec(db,"UPDATE run_recovery_pairs SET recorded_unix_ms=999999",NULL,NULL,NULL)==SQLITE_CONSTRAINT);
+                CHECK(sqlite3_exec(db,"DELETE FROM run_recovery_pairs",NULL,NULL,NULL)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
+            }
+        }
+        if (stage==4 && strstr(scenario,"twice")) {
+            struct ae_run_pair old=t.pair; id(t.pair.root_runtime,7); id(t.pair.user_runtime,53);
+            t.pair.user_end_digest[0]^=1; t.pair.root_context_digest[0]^=1; t.pair.user_context_digest[0]^=1;
+            CHECK(ae_catalogue_begin_runtime(*root,p->boot,t.pair.root_runtime)==0 && ae_catalogue_begin_runtime(*user,p->boot,t.pair.user_runtime)==0);
+            memcpy(t.context.system_runtime,t.pair.root_runtime,16); memcpy(t.context.broker_runtime,t.pair.user_runtime,16);
+            CHECK(ae_catalogue_pair_get_run_receipt(*user,p,ue,&old,AE_RUN_USER_QUIET,&out.receipt)==-ESTALE);
+            CHECK(ae_catalogue_handoff(*root,p,AE_HANDOFF_OBSERVE,h,124260,&handoff)==0);
+            CHECK(pair_stage(&t,stage,124270,&out)==-ENOENT);
+            CHECK(pair_stage(&t,0,124261,&out)==0 && pair_stage(&t,1,124262,&out)==0);
+            CHECK(pair_stage(&t,2,124263,&out)==0 && memcmp(&out.receipt,&t.begin,sizeof t.begin)==0);
+            CHECK(pair_stage(&t,3,124264,&out)==0 && memcmp(&out.receipt,&t.quiet,sizeof t.quiet)==0);
+            CHECK(scalar(rd,"SELECT state='uncertain' FROM run_closures")==1 && scalar(ud,"SELECT state='uncertain' FROM run_closures")==1);
+        }
+        if (stage==5 && strstr(scenario,"after-release")) {
+            id(t.pair.user_runtime,53); t.pair.user_end_digest[0]^=1; t.pair.user_context_digest[0]^=1;
+            CHECK(ae_catalogue_begin_runtime(*user,p->boot,t.pair.user_runtime)==0); memcpy(t.context.broker_runtime,t.pair.user_runtime,16);
+            CHECK(pair_stage(&t,0,124280,&out)==0 && pair_stage(&t,1,124281,&out)==0);
+            CHECK(pair_stage(&t,2,124282,&out)==0 && memcmp(&out.receipt,&t.begin,sizeof t.begin)==0);
+            CHECK(pair_stage(&t,3,124283,&out)==0 && memcmp(&out.receipt,&t.quiet,sizeof t.quiet)==0);
+            CHECK(pair_stage(&t,4,124284,&out)==0 && memcmp(&out.receipt,&t.released,sizeof t.released)==0);
+            CHECK(scalar(rd,"SELECT state='released' FROM generation_leases")==1);
+        }
+        database_digest(directory,before); out=marker;
+        if (faults) {
+            for (int n=1;n<=writes[stage];++n) {
+                step_fault=n; step_number=0; CHECK(pair_stage(&t,stage,124300+stage,&out)==-EIO && !step_fault && memcmp(&out,&marker,sizeof out)==0);
+                database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+            }
+            commit_fault=1; CHECK(pair_stage(&t,stage,124300+stage,&out)==-EIO && memcmp(&out,&marker,sizeof out)==0);
+            database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+            commit_fault=2; CHECK(pair_stage(&t,stage,124300+stage,&out)==-EIO && memcmp(&out,&marker,sizeof out)==0);
+        }
+        if (crashes) {
+            for (int mode=1;mode<=2;++mode) {
+                CHECK(ae_catalogue_close(slot)==0); pid_t child=fork(); CHECK(child>=0);
+                if (!child) { struct ae_catalogue *fresh=NULL; CHECK(ae_catalogue_open(directory,owner ? &ui : ri,&fresh)==0);
+                    if (owner) t.user=fresh; else t.root=fresh;
+                    crash_mode=mode; (void)pair_stage(&t,stage,124300+stage,&out); _exit(90);
+                }
+                int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==70+mode);
+                CHECK(ae_catalogue_open(directory,owner ? &ui : ri,slot)==0); if (owner) t.user=*slot; else t.root=*slot;
+                if (mode==1) { database_digest(directory,after); CHECK(memcmp(before,after,32)==0); }
+            }
+        }
+        CHECK(pair_stage(&t,stage,124300+stage,&out)==0);
+        if (stage==2) t.begin=out.receipt;
+        if (stage==3) t.quiet=out.receipt;
+        if (stage==4) t.released=out.receipt;
+        if (stage==5) CHECK(strcmp(out.launch.state,"exited")==0);
+        database_digest(directory,before); CHECK(pair_stage(&t,stage,999999,&out)==0); database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
+        CHECK(scalar(rd,"SELECT revision FROM operations")==root_revision && scalar(ud,"SELECT revision FROM operations")==user_revision);
+    }
+    struct ae_run_pair conflict=t.pair; conflict.user_end_digest[0]^=1;
+    CHECK(ae_catalogue_enroll_run_pair(*root,p,e,&conflict,999999)==-EEXIST && ae_catalogue_enroll_run_pair(*user,p,ue,&conflict,999999)==-EEXIST);
+    CHECK(scalar(rd,"SELECT count(*) FROM run_recovery_owners")==0);
+    CHECK(scalar(rd,"SELECT state='released' FROM generation_leases")==1 && scalar(ud,"SELECT state='exited' FROM launches")==1);
+    CHECK(ae_catalogue_pair_get_run_receipt(*root,p,e,&t.pair,AE_RUN_ROOT_RELEASED,&out.receipt)==0 && memcmp(&out.receipt,&t.released,sizeof t.released)==0);
+    CHECK(ae_catalogue_pair_get_run_receipt(*user,p,ue,&t.pair,AE_RUN_USER_QUIET,&out.receipt)==0 && memcmp(&out.receipt,&t.quiet,sizeof t.quiet)==0);
+    CHECK(scalar(rd,"SELECT count(*) FROM admission_gates WHERE state='open'")==0 && scalar(ud,"SELECT count(*) FROM admission_gates WHERE state='open'")==0);
+}
 static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,
     const struct ae_execution_profile *p,struct ae_launch_context *context,const struct ae_execution_evidence *e,const char *rd,const char *scenario)
 {
@@ -910,6 +1089,9 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     struct ae_execution_completion completed;
     CHECK(ae_catalogue_complete_execution(*root,p,context,e,app_hash,124100,&completed)==0);
     CHECK(ae_catalogue_finish_user_execution(*user,p,&ue,app_hash,&completed,124101,&launch)==0);
+    if (strncmp(scenario,"exec-pair-",10)==0) {
+        owner_recovery_test(root,user,ri,p,context,e,&ue,&completed,&handoff,rd,ud,scenario); return;
+    }
     if (strncmp(scenario,"exec-recover-",13)==0) {
         run_recovery_test(root,*user,ri,p,context,e,&ue,&completed,&handoff,rd,ud,scenario); return;
     }
@@ -940,7 +1122,7 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
     struct ae_execution_evidence e={0}; id(e.invocation,66); memset(e.context_digest,2,32);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
     if (strncmp(scenario,"exec-process-",13)==0 || strncmp(scenario,"exec-handoff-",13)==0 || strncmp(scenario,"exec-bridge-",12)==0 ||
-        strncmp(scenario,"exec-recover-",13)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
+        strncmp(scenario,"exec-recover-",13)==0 || strncmp(scenario,"exec-pair-",10)==0) { process_journal_test(root,user_slot,identity,&p,c,&e,directory,scenario); return; }
     CHECK(ae_catalogue_authorize_user_execution(user,&p)==0 && ae_catalogue_authorize_user_execution(*root,&p)==-EPERM);
     struct ae_execution_profile wrong=p; wrong.storage[15]++;
     CHECK(ae_catalogue_authorize_user_execution(user,&wrong)==-ESTALE);
@@ -1101,6 +1283,30 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
 }
 int main(int argc,char **argv)
 {
+    if (argc==3 && strcmp(argv[1],"pair-codec")==0) {
+        uint8_t data[648],raw[233],hash[32]; FILE *file=fopen(argv[2],"rb");
+        CHECK(file && fread(data,1,sizeof data,file)==sizeof data && fgetc(file)==EOF && fclose(file)==0);
+        struct ae_execution_profile p; CHECK(ae_execution_decode(data,384,&p)==0);
+        struct ae_run_pair pair,marker; memset(&marker,0xa5,sizeof marker);
+        CHECK(ae_run_pair_decode(&p,data+384,232,&pair)==0 && pair.user_runtime[15]==52);
+        CHECK(ae_run_pair_encode(&p,&pair,raw)==0 && memcmp(raw,data+384,232)==0);
+        CHECK(ae_sha256_bytes(raw,232,hash)==0 && memcmp(hash,data+616,32)==0);
+        for (size_t n=0;n<232;++n) { pair=marker;
+            CHECK(ae_run_pair_decode(&p,data+384,n,&pair)==-EBADMSG && memcmp(&pair,&marker,sizeof pair)==0);
+        }
+        pair=marker; CHECK(ae_run_pair_decode(&p,data+384,233,&pair)==-EBADMSG && memcmp(&pair,&marker,sizeof pair)==0);
+        const size_t offsets[]={0,46,48,62,64};
+        for (size_t n=0;n<5;++n) { memcpy(raw,data+384,232); raw[offsets[n]]=255; pair=marker;
+            CHECK(ae_run_pair_decode(&p,raw,232,&pair)==-EBADMSG && memcmp(&pair,&marker,sizeof pair)==0);
+        }
+        for (size_t n=0;n<5;++n) { memcpy(raw,data+384,232); memset(raw+72+n*32,0,32);
+            CHECK(ae_run_pair_decode(&p,raw,232,&pair)==-EBADMSG);
+        }
+        memcpy(raw,data+384,232); raw[8]^=1; CHECK(ae_run_pair_decode(&p,raw,232,&pair)==-ESTALE);
+        CHECK(ae_run_pair_decode(&p,data+384,232,&pair)==0); memcpy(pair.user_runtime,p.broker_runtime,16); memset(raw,0xa5,sizeof raw);
+        CHECK(ae_run_pair_encode(&p,&pair,raw)==-ESTALE); for (size_t n=0;n<sizeof raw;++n) CHECK(raw[n]==0xa5);
+        return 0;
+    }
     if (argc==3 && strcmp(argv[1],"handoff-codec")==0) {
         uint8_t data[2981],raw[AE_HANDOFF_MAX],hash[32]; FILE *file=fopen(argv[2],"rb"); CHECK(file);
         size_t total=fread(data,1,sizeof data,file); CHECK(!ferror(file) && feof(file) && fclose(file)==0 && total>=388+374+32);

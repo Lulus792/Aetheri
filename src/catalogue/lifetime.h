@@ -75,4 +75,42 @@ int ae_catalogue_recover_release_run(struct ae_catalogue *,const struct ae_execu
     const struct ae_launch_context *,const struct ae_execution_evidence *,const struct ae_run_receipt *,const uint8_t [32],int64_t,struct ae_run_receipt *);
 int ae_catalogue_get_recovered_run_receipt(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_launch_context *,const struct ae_execution_evidence *,enum ae_run_receipt_kind,struct ae_run_receipt *);
+
+enum { AE_RUN_PAIR_BYTES=232 };
+struct ae_run_pair {
+    uint8_t root_runtime[16],user_runtime[16];
+    uint8_t original_user_digest[32],user_end_digest[32],handoff_digest[32];
+    uint8_t root_context_digest[32],user_context_digest[32];
+};
+/* Canonical AETHRCP1 maintenance evidence. Hashes record independently verified
+ * original User provenance, ALL prior User owners' drain/future-effect fences,
+ * and BOTH current admitted process/unit/image
+ * contexts. Neither hashes nor this record prove those facts or authorize IPC.
+ * Every prior User owner must be independently drained/fenced before replacement; no
+ * dead PID reconstruction, old-runtime reuse or generic supervisor-only app drain.
+ * Root may be original or replaced; User MUST be a new runtime, same epochs/boot.
+ * Caller authenticates/rechecks counterpart and local context before each use. */
+int ae_run_pair_encode(const struct ae_execution_profile *,const struct ae_run_pair *,uint8_t [AE_RUN_PAIR_BYTES]);
+int ae_run_pair_decode(const struct ae_execution_profile *,const uint8_t *,size_t,struct ae_run_pair *);
+/* Explicit v7 metadata only. Enrollment verifies complete original successful
+ * start/app evidence, current local runtime, actual-provenance bindings supplied
+ * by caller, Root's original/current handoff and User's closed data gate/no grants
+ * or accesses. No foreign catalogue is opened. Both owners enroll independently;
+ * caller confirms the exact same pair at the authenticated counterpart. Existing
+ * pair retries preserve later state; no automatic ownership or effect adoption.
+ * Root may enroll after release only to forward historical receipts to a new
+ * User. Its original/current handoff provenance must still match; no restored
+ * lease or rearmed run. Post-retirement replacement of Root is not supported. */
+int ae_catalogue_enroll_run_pair(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_execution_evidence *,const struct ae_run_pair *,int64_t);
+int ae_catalogue_pair_begin_run_close(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_launch_context *,
+    const struct ae_execution_evidence *,const struct ae_run_pair *,const struct ae_execution_completion *,int64_t,struct ae_run_receipt *);
+int ae_catalogue_pair_quiesce_user_run(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_evidence *,
+    const struct ae_run_pair *,const struct ae_run_receipt *,int64_t,struct ae_run_receipt *);
+int ae_catalogue_pair_release_run(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_launch_context *,
+    const struct ae_execution_evidence *,const struct ae_run_pair *,const struct ae_run_receipt *,const uint8_t [32],int64_t,struct ae_run_receipt *);
+int ae_catalogue_pair_end_user_run(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_evidence *,
+    const struct ae_run_pair *,const struct ae_run_receipt *,int64_t,struct ae_user_launch_snapshot *);
+int ae_catalogue_pair_get_run_receipt(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_evidence *,
+    const struct ae_run_pair *,enum ae_run_receipt_kind,struct ae_run_receipt *);
 #endif
