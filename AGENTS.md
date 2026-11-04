@@ -531,6 +531,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   migration/vector tests. No installed pair wire, cross-boot/lost-handle or
   post-retirement Root-replacement recovery is implied. Preserve the old failed
   fixture; do not migrate it to turn native metadata into runtime proof.
+- catalogue/interruption.h now adds explicit v8 cross-boot maintenance after v7:
+  immutable AETHINT1 bindings (248 bytes) and four distinct 352-byte receipts.
+  Read spec/runtime.md's cross-boot section; run catalogue.interruptions and
+  contract/migration/vector tests. Normal create stays v2; open never migrates.
+  SQL v1-v7/XML and original/same-boot checks stay unchanged. Original successful
+  start/app evidence is mandatory; early/unfinished starts are separate work.
+  Further owner/boot replacement requires fresh independently admitted bindings
+  at BOTH owners; old stages/results never change or rearm effects. Hashes and
+  boot IDs are not continuity/clone/current-actor/holder/future-effect proof.
+  Tests use controlled admission with real SQLite; no installed wire/coordinator
+  or real retained-fixture settlement follows. Keep its v6/User v4 unchanged.
 - linux/boot.h now provides read-only AETHBOT1 current-kernel/proc/self PID/cgroup/
   time namespace observation (48 bytes). Read spec/runtime.md's boot section; run
   linux.boot and the explicitly privileged linux.boot_namespaces carrier checks.

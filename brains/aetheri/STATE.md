@@ -1,8 +1,50 @@
 # State
 
-4 November 2026 — native boot observation and protected old-fixture inspection.
+4 November 2026 — separate native cross-boot interruption transactions.
 
 ## Current update
+
+The explicit v8 maintenance contract now records cross-boot interruption separately
+from a successful v3 run close. Both owners enroll immutable AETHINT1 current-
+actor/provenance/fencing metadata, then Root BEGIN / User QUIET / Root RELEASE /
+User EXIT append distinct immutable receipts with atomic local launch/lease effects.
+Original completed start results, process records and old closure receipts remain
+unchanged. Another owner/boot replacement enrolls a fresh binding and continues
+the actual historical chain without adopting a run or rewriting earlier steps.
+See [native boundary](../../spec/runtime.md#cross-boot-interruption-transactions).
+
+Normal creation stays v2; v7 -> v8 is explicit under the retained owner lock.
+Open validates exact supported versions without migrating. SQL v1-v7/XML remain
+unchanged. The native path requires original successful completion and original
+app evidence; early/unfinished starts and general grant/access settlement remain
+separate. Both current actors, original machine/catalogue/volume and anti-clone
+continuity, all prior actors/holders and future-effect fencing must be independently
+verified by the caller. Stored hashes/boot IDs/receipts are not those proofs.
+
+Final Release catalogue.interruptions passes twelve controlled-evidence scenarios
+(109.86 s); Debug ASan/UBSan passes the same twelve (136.34 s). They use real SQLite,
+every mutation/commit fault, actual child exits before/after commit, synthetic
+boot/runtime replacement, terminal historical retries, old v3 closing/quiet,
+wrong predecessor, current-context drift, inconsistent redundant binding metadata,
+gate drift, overflow and missing start evidence. Original process records and old
+close/quiet receipt bytes are included in the final preservation assertions. Host contracts/
+migrations pass 50/50 (200.260 s), including both v8 owner migrations at every
+boundary, process exit, full disk and source drift. Byte contracts pass 24/24
+(0.062 s). Full Release/Debug builds pass. The shared-history/refactor checkpoint
+passed original lifetime, strict Root recovery, paired recovery and interop 4/4
+(357.54 s); its exact source snapshot/log are retained under ignored local/.
+Final changes only strengthen new interruption binding-row validation/tests;
+final populated v2-v8 Python/native interop also passes (3.74 s). All 202 final
+host/snapshot/guest source hashes agree, 25 existing SQL/XML files are byte-for-byte
+unchanged and 668 local Markdown file targets resolve. No installed acceptance follows.
+
+The retained real fixture is NOT upgraded, settled or retired. No new live app
+test, carrier reboot, installed service/wire, public capability, policy permission
+or dependency adoption is part of this native contract work. Next integrate
+independently admitted current actors and actual cross-boot continuity/fencing;
+different-boot metadata alone cannot authorize the quarantined v6 release.
+
+Previous boot-observer checkpoint:
 
 Native linux/boot now joins retained/named procfs boot objects, bounded raw/cached
 UUID checks and held PID/cgroup/time namespaces, including child bindings. It
@@ -37,8 +79,8 @@ permission to inspect a live authority.
 After the probes, the original controller/pending intent, Root v6 catalogue hash
 and all 17 persistent static-input hashes still agree. Dispatch is uncertain,
 lease running, handoff observed/revision 2, with no closure/recovery-owner rows or
-hot journal. Next implement the separate durable cross-boot interruption/closure
-contract and independent provenance/current-actor/future-effect/holder admission;
+hot journal. At that checkpoint the separate cross-boot transaction contract and
+independent provenance/current-actor/future-effect/holder admission were pending;
 do not migrate or settle the retained fixture from different-boot metadata alone.
 
 The user prefers working foundations such as SDL3 for early app UI without

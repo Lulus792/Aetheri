@@ -141,6 +141,13 @@ def main():
             subprocess.run([executable,'pair-codec',encoded],check=True,timeout=10)
             scenarios=tuple('exec-pair-'+case for case in ('fresh','faults','crashes','original-root','existing-close','existing-quiet',
                 'twice','after-release','guards','overflow','missing-start','wrong-boot'))
+        if len(sys.argv)==4 and sys.argv[3]=='interruptions':
+            vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/run-interruption-v1.json').read_bytes())
+            encoded=root/'interruption.vector'
+            encoded.write_bytes(bytes.fromhex(vector['profile_hex'])+bytes.fromhex(vector['hex'])+bytes.fromhex(vector['sha256'])+
+                                b''.join(bytes.fromhex(item['hex'])+bytes.fromhex(item['sha256']) for item in vector['receipts']))
+            subprocess.run([executable,'interruption-codec',encoded],check=True,timeout=10)
+            scenarios=tuple('exec-interrupt-'+case for case in ('fresh','faults','crashes','owners','reboot','after-release','existing-close','existing-quiet','guards','gates','overflow','missing-start'))
         with private_bus(root) if len(sys.argv)==4 and sys.argv[3]=="wire" else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"

@@ -103,6 +103,46 @@ def read_execution_handoff(data):
         pid_namespace=pidns,cgroup_namespace=cgroupns,events_inode=inode,events_mount=mount,events_mode=mode,events_uid=uid,events_gid=gid)
     require(execution_handoff(value)==data,'handoff canonical form'); return value
 
+def interruption_binding(value,*,profile_digest=None,original_boot=None,original_root_runtime=None,original_user_runtime=None):
+    keys=('profile_digest','boot','root_runtime','user_runtime','continuity_digest','fence_digest','boot_context_digest','root_context_digest','user_context_digest')
+    fields(value,' '.join(keys)); out=b'AETHINT1'+rawhex(value['profile_digest'],32)
+    if profile_digest is not None: require(value['profile_digest']==profile_digest,'interruption profile')
+    for key in keys[1:4]:
+        identifier=rawhex(value[key],16); require(identifier[6]>>4==4 and identifier[8]&0xc0==0x80,'interruption UUIDv4'); out+=identifier
+    for key,old in (('boot',original_boot),('root_runtime',original_root_runtime),('user_runtime',original_user_runtime)):
+        if old is not None: require(value[key]!=old,'new boot and owners required')
+    require(value['root_runtime']!=value['user_runtime'],'distinct interruption owners')
+    for key in keys[4:]:
+        digest=rawhex(value[key],32); require(any(digest),'independent evidence required'); out+=digest
+    return out
+
+
+def read_interruption_binding(data,**expected):
+    require(type(data) is bytes and len(data)==248 and data[:8]==b'AETHINT1','interruption binding frame')
+    keys=('profile_digest','boot','root_runtime','user_runtime','continuity_digest','fence_digest','boot_context_digest','root_context_digest','user_context_digest')
+    offsets=(8,40,56,72,88,120,152,184,216,248)
+    value={key:data[offsets[n]:offsets[n+1]].hex() for n,key in enumerate(keys)}
+    require(interruption_binding(value,**expected)==data,'interruption binding canonical form'); return value
+
+
+def interruption_receipt(value,**expected):
+    fields(value,'kind binding invocation previous_digest context_digest revision unix_ms')
+    kind=integer(value['kind'],4,1); tags=(b'AETHIBG1',b'AETHIQU1',b'AETHIRL1',b'AETHIEX1')
+    rest=b''
+    for key,size in (('invocation',16),('previous_digest',32),('context_digest',32)):
+        raw=rawhex(value[key],size); require(any(raw),'interruption receipt evidence'); rest+=raw
+    return tags[kind-1]+interruption_binding(value['binding'],**expected)+rest+struct.pack('>QQ',integer(value['revision'],MAX_INT,1),integer(value['unix_ms']))
+
+
+def read_interruption_receipt(data,**expected):
+    tags=(b'AETHIBG1',b'AETHIQU1',b'AETHIRL1',b'AETHIEX1')
+    require(type(data) is bytes and len(data)==352 and data[:8] in tags,'interruption receipt frame')
+    value=dict(kind=tags.index(data[:8])+1,binding=read_interruption_binding(data[8:256],**expected),invocation=data[256:272].hex(),
+               previous_digest=data[272:304].hex(),context_digest=data[304:336].hex())
+    value['revision'],value['unix_ms']=struct.unpack('>QQ',data[336:])
+    require(interruption_receipt(value,**expected)==data,'interruption receipt canonical form'); return value
+
+
 def run_recovery_pair(value, *, profile_digest=None, original_user_runtime=None):
     fields(value,'profile_digest root_runtime user_runtime original_user_digest user_end_digest handoff_digest root_context_digest user_context_digest')
     digest=rawhex(value['profile_digest'],32)

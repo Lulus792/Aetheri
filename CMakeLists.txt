@@ -41,8 +41,9 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
             spec/schema/common-v4.sql spec/schema/system-v4.sql spec/schema/user-v4.sql
             spec/schema/system-v5.sql spec/schema/system-v6.sql
             spec/schema/common-v7.sql spec/schema/system-v7.sql spec/schema/user-v7.sql
+            spec/schema/common-v8.sql spec/schema/system-v8.sql spec/schema/user-v8.sql
     VERBATIM)
-add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c "${AETHERI_SCHEMA_SOURCE}")
+add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c src/catalogue/interruption.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
 target_compile_definitions(aetheri_catalogue PRIVATE _GNU_SOURCE)
 target_compile_options(aetheri_catalogue PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -177,6 +178,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.owner_recovery COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" owner-recovery)
     set_tests_properties(catalogue.owner_recovery PROPERTIES TIMEOUT 360)
+    add_test(NAME catalogue.interruptions COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" interruptions)
+    set_tests_properties(catalogue.interruptions PROPERTIES TIMEOUT 360)
     add_test(NAME catalogue.processes COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" processes)
     set_tests_properties(catalogue.processes PROPERTIES TIMEOUT 240)

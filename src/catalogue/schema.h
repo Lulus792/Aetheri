@@ -13,4 +13,7 @@ extern const char *const ae_schema_system_v6[];
 extern const char *const ae_schema_system_v7[];
 extern const char *const ae_schema_user_v7[];
 
+extern const char *const ae_schema_system_v8[];
+extern const char *const ae_schema_user_v8[];
+
 #endif

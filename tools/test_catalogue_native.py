@@ -29,7 +29,7 @@ def main():
                 cc.migrate_v1_to_v2(db, kind, backup=backup)
                 expected = rows(db)
             os.chmod(path, 0o600)
-            for version in ((2,3,4,5,6,7) if kind == 'system' else (2,3,4,7)):
+            for version in ((2,3,4,5,6,7,8) if kind == 'system' else (2,3,4,7,8)):
                 if version > 2:
                     with closing(sqlite3.connect(path)) as db:
                         (cc.migrate_owner_recovery if version==7 else getattr(cc,f'migrate_v{version-1}_to_v{version}'))(db,kind)

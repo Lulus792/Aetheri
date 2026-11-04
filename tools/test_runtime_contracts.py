@@ -11,6 +11,26 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_interruption_vectors_and_invalid_bindings(self):
+        vector=rc.load_json((ROOT/'spec/vectors/run-interruption-v1.json').read_bytes())
+        profile=bytes.fromhex(vector['profile_hex'])
+        expected=dict(profile_digest=rc.digest(profile),original_boot=profile[72:88].hex(),original_root_runtime=profile[24:40].hex(),original_user_runtime=profile[56:72].hex())
+        data=rc.interruption_binding(vector['input'],**expected)
+        self.assertEqual(data.hex(),vector['hex']); self.assertEqual(rc.digest(data),vector['sha256'])
+        self.assertEqual(rc.read_interruption_binding(data,**expected),vector['input'])
+        for key,old in (('boot',expected['original_boot']),('root_runtime',expected['original_root_runtime']),('user_runtime',expected['original_user_runtime']),('boot','00'*16),('continuity_digest','00'*32),('user_runtime',vector['input']['root_runtime'])):
+            value=deepcopy(vector['input']); value[key]=old; self.rejects(lambda v:rc.interruption_binding(v,**expected),value)
+        for n in range(248): self.rejects(rc.read_interruption_binding,data[:n])
+        self.rejects(rc.read_interruption_binding,data+b'0')
+        for item in vector['receipts']:
+            raw=rc.interruption_receipt(item['input'],**expected)
+            self.assertEqual(raw.hex(),item['hex']); self.assertEqual(rc.digest(raw),item['sha256'])
+            self.assertEqual(rc.read_interruption_receipt(raw,**expected),item['input'])
+            for n in range(352): self.rejects(rc.read_interruption_receipt,raw[:n])
+            for key,value in (('kind',0),('kind',True),('revision',0),('unix_ms',2**63),('context_digest','00'*32)):
+                bad=deepcopy(item['input']); bad[key]=value; self.rejects(rc.interruption_receipt,bad)
+            self.rejects(rc.read_interruption_receipt,raw+b'0'); self.rejects(rc.read_interruption_receipt,b'Z'+raw[1:])
+
     def test_boot_context_vector_and_boundaries(self):
         vector=rc.load_json((ROOT/'spec/vectors/boot-context-v1.json').read_bytes())
         data=rc.boot_context(vector['input'])

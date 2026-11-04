@@ -26,7 +26,7 @@ struct ae_catalogue_info {
  *
  * Explicit create uses O_EXCL; open never creates/replaces/migrates a database.
  * Both retain a separate CLOEXEC writer.lock, require rollback journaling and
- * validate exact Root v2-v7/User v2-v4,v7 schema/metadata.
+ * validate exact Root v2-v8/User v2-v4,v7-v8 schema/metadata.
  * A runtime unique mount identity pins the
  * directory; later calls reject a named bind-mount replacement even for the same
  * inode/device. This is not durable volume registration. Outputs remain unchanged on failure.
@@ -59,6 +59,10 @@ int ae_catalogue_upgrade_recovery(struct ae_catalogue *);
  * epochs/runtimes/gates stay fixed. Replaces only closure-insert admission; no
  * recovery enrollment/holder proof/effect. Open/create never perform upgrades. */
 int ae_catalogue_upgrade_owner_recovery(struct ae_catalogue *);
+/* Explicit quiesced-owner v7 -> v8 cross-boot interruption journal. Adds no
+ * rows, runtime/gate changes or process admission. Unknown commits inspect the
+ * same retained database; exact v8 retry validates without rewriting history. */
+int ae_catalogue_upgrade_interruptions(struct ae_catalogue *);
 /* Commit fresh runtime + boot. Existing open gates close; closing gates keep
  * their durable cause. Triggers mark recovery obligations. This does not settle
  * holders, reopen gates or establish a global service-readiness gate. Reusing

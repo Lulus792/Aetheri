@@ -4,6 +4,27 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native cross-boot interruption journal — 4 November 2026
+
+- [Native contract/codecs](../../src/catalogue/interruption.h),
+  [implementation](../../src/catalogue/interruption.c),
+  [owner transactions](../../src/catalogue/store.c),
+  [common v8 schema](../../spec/schema/common-v8.sql),
+  [Root guards](../../spec/schema/system-v8.sql) and
+  [User guards](../../spec/schema/user-v8.sql): externally admitted current
+  contexts and continuity/fencing recorded separately from original start/closure.
+- [Independent vector](../../spec/vectors/run-interruption-v1.json),
+  [native scenarios](../../tests/test_launch.c),
+  [Python migrations](../../tools/catalogue_contracts.py) and
+  [migration checks](../../tools/test_contracts.py): real SQLite and actual child
+  exit/commit faults with controlled actor/boot/holder facts. Results/limits in STATE.
+- [SQLite atomic commit](https://www.sqlite.org/atomiccommit.html): inspected
+  rollback-journal transaction/recovery and hardware assumptions. This describes
+  the engine mechanism, not actual power-loss acceptance for Aetheri hardware.
+- [SQLite binding contracts](https://www.sqlite.org/c3ref/bind_blob.html): inspected
+  NULL blob-pointer semantics and SQLITE_TRANSIENT ownership. Native stage writes
+  copy bounded blobs; BEGIN has a SQL NULL predecessor, not an empty blob.
+
 ## Current-boot observation — 4 November 2026
 
 - [Native contract](../../src/linux/boot.h), [implementation](../../src/linux/boot.c),

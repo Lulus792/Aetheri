@@ -4246,3 +4246,134 @@ delegated-holder/future-effect fencing, and a distinct durable interruption/clos
 protocol. Do not weaken v3/v6/v7 checks or fabricate User quiescence/end evidence.
 No SQL/XML/schema version, public capability, installed policy or dependency
 selection changed here.
+
+## Cross-boot interruption transactions
+
+The separate [interruption.h](../src/catalogue/interruption.h) contract now adds
+native v8 maintenance for an originally successful launch whose old kernel and
+volatile observation handles are gone. It preserves the successful start result
+and records interruption separately from a successful v3 run close. It does not
+reconstruct ProcessFDs, fabricate an original User quiet receipt, adopt a run,
+restore readiness or dispatch code. Early/unfinished starts require a separate
+contract; this path requires both owners' original completed start history and
+the locally enrolled original app witness.
+
+The caller must independently establish continuity of the original machine,
+catalogue and volume, exclude relevant snapshot/clone instances, admit both
+current Root/User process/unit/image contexts, fence all original and intervening
+owners/holders, and exclude future dispatch/delegation/export effects. Recheck
+these facts and the authenticated counterpart before each fresh transaction.
+Fencing evidence must include independently protected original User provenance
+and all intervening owner expectations; never select the original User from a
+current candidate's UUID/unit/name. The preserved AETHUSR1 file is provenance
+metadata, not a substitute for current actor or complete end/holder evidence.
+Both owners independently enroll the exact same current binding. A boot UUID,
+namespace number, context hash or stored receipt cannot supply those facts.
+The catalogue never opens the other owner's database.
+
+### Immutable current-owner bindings
+
+The canonical AETHINT1 binding is 248 bytes, with no lengths or variable text.
+
+| Offset | Bytes | Value |
+| --- | --- | --- |
+| 0 | 8 | ASCII AETHINT1 |
+| 8 | 32 | Original complete AETHEXE1 profile SHA-256 |
+| 40 | 16 | Independently observed current boot UUIDv4, different from original |
+| 56 | 16 | Current Root runtime UUIDv4, different from original Root |
+| 72 | 16 | Current User runtime UUIDv4, different from original User and current Root |
+| 88 | 32 | Independently verified machine/catalogue/volume and anti-clone continuity digest |
+| 120 | 32 | Independently verified original/intervening actor, holder and future-effect fencing digest |
+| 152 | 32 | Independently admitted current boot-context observation digest |
+| 184 | 32 | Current independently admitted Root process/unit/image context digest |
+| 216 | 32 | Current independently admitted User process/unit/image context digest |
+
+All five evidence digests must be nonzero. They are records of externally checked
+facts, never proof or capabilities by themselves. The binding is immutable in
+run_interruption_bindings, keyed by launch and both current runtimes. An exact
+retry retains the original time/bytes. Conflicting bytes for that same pair are
+rejected. Fresh enrollment requires the local current boot/runtime/epoch/account,
+closed relevant gate, original completed operation/steps and original app witness.
+User additionally requires no grants/access leases for that launch. Root admission
+requires the current authenticated fixed UID-1000 account/broker context.
+
+### Separate interruption receipts and local effects
+
+Each canonical receipt is 352 bytes, using unsigned big-endian integers:
+
+| Offset | Bytes | Value |
+| --- | --- | --- |
+| 0 | 8 | Kind-specific magic below |
+| 8 | 248 | Full original binding for the actor that recorded THIS stage |
+| 256 | 16 | Original invocation |
+| 272 | 32 | Previous receipt digest; BEGIN uses the original successful start-result digest |
+| 304 | 32 | Original local app observation context digest |
+| 336 | 8 | Local catalogue revision committed with this stage, 1 through INT64_MAX |
+| 344 | 8 | Recorded real-time milliseconds, 0 through INT64_MAX |
+
+The full binding lets a replacement owner validate historical frame structure
+without pretending its old actor is current. Authentication/provenance of a
+cross-owner receipt is still the caller's obligation. Real-time stamps may go
+backwards across boots; local revisions and receipt links order the journal.
+
+| Stage | Owner / magic | Required predecessor | Atomic local effect |
+| --- | --- | --- | --- |
+| BEGIN | Root / AETHIBG1 | Exact original AETHLCR1 successful start result | Append stage; fence original dispatch to closing; retain running lease |
+| QUIET | User / AETHIQU1 | Authenticated Root BEGIN matching original start result | Append stage; mark original launch stopping/readiness unknown; require no grants/accesses |
+| RELEASE | Root / AETHIRL1 | Authenticated User QUIET linked to the local BEGIN; fresh independently verified end/holder/future-effect admission | Append stage; atomically make original dispatch terminal and lease released |
+| EXIT | User / AETHIEX1 | Authenticated Root RELEASE linked to the local QUIET | Append stage; mark original launch exited/readiness unknown |
+
+run_interruption_steps is append-only, keyed by original launch and stage. Each
+local record binds the exact original profile/invocation/context/start-result,
+its locally enrolled stage binding, the predecessor bytes and the immutable
+receipt/revision/time. Native retries validate those bytes and their chain. Each
+fresh stage, its local launch/lease state and catalogue revision commit together.
+Counter overflow or uncertain COMMIT preserves outputs; re-read/retry the same
+intent instead of restoring a backup or minting replacement app identities.
+
+Another Root/User replacement or kernel change requires a newly admitted binding
+in BOTH catalogues. Already committed stages keep their original bindings and
+receipts; the next stage links the actual historical predecessor. A current pair
+may forward historical terminal receipts without restoring a lease. Exact retries
+do not repeat earlier effects or change later gates/state. Bindings and steps
+cannot be updated; SQL retention guards prevent pruning before local run/lease
+settlement. Coordinated cross-owner acknowledgement, archival and complete purge
+remain separate work. An old uncertain v3 close remains historical; no v3 quiet,
+end or release evidence is invented to make it look successful.
+
+### Explicit schema boundary and evidence
+
+Normal create remains v2; open validates exact supported schemas without migration.
+ae_catalogue_upgrade_interruptions and development migrate_v7_to_v8 require a
+quiesced v7 owner under its retained lock and add only the two tables/guards.
+They change no original row, runtime, operation, revision, gate or process record.
+Each owner upgrades independently. Exact v8 retry validates; lost acknowledgement
+inspects the same database. All SQL v1-v7 and existing XML remain unchanged.
+Existing original/same-boot APIs retain their original admission conditions.
+
+The [frozen vector](vectors/run-interruption-v1.json) independently assembles the
+248-byte binding and all four 352-byte receipt kinds. Python/native tests cover
+canonical bytes, digests, truncation, invalid values and unchanged error outputs.
+catalogue.interruptions uses real SQLite with controlled already-admitted actor/
+continuity/fencing facts. Twelve scenarios exercise migrations, every mutation
+fault, lost commits, actual child exit before/after commit, synthetic boot/runtime
+replacement between stages, historical terminal forwarding, existing v3 close/
+quiet, wrong predecessor, gate drift, overflow and missing start completion.
+Original operations/steps/links remain byte-equivalent in the tested successful
+flows; final checks also retain original process records and old close/quiet
+receipt bytes. The guards scenario checks current-context mismatch and controlled
+corruption of redundant binding metadata with the exact immutable SQL guard
+restored. Native validation rejects that inconsistency before acknowledging the
+binding. Synthetic boot IDs are not actual carrier reboots or production admission.
+
+Final Release passed all twelve scenarios (109.86 s), Debug ASan/UBSan passed
+the same twelve (136.34 s), and final populated Python/native v2-v8 interop passed
+(3.74 s). Host contracts/migrations pass
+50/50 (200.260 s) and byte contracts pass 24/24 (0.062 s). See current STATE for
+the earlier shared-history regression checkpoint and exact source/result scope.
+All 202 final host/snapshot/guest source hashes agree; all 25 preexisting SQL/XML
+files remain byte-for-byte unchanged. No preserved carrier catalogue was migrated or
+settled. Actual cross-boot continuity/current-actor/fencing integration, a confined
+wire/coordinator, early/unfinished launches, general grant/holder settlement and
+complete removal remain necessary. Normal v2 services/capabilities/policy stay
+unchanged; metadata tests cannot close the quarantined v6 attempt.

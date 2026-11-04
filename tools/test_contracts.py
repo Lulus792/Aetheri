@@ -209,6 +209,46 @@ raise RuntimeError('checkpoint missed')
             with self.assertRaises(cc.ContractError): cc.migrate_owner_recovery(db,kind)
             self.assertEqual(rows(db),before)
 
+    def test_v8_interruption_migrations_all_boundaries(self):
+        for kind in ('system','user'):
+            db=self.pair_source('interrupt-'+kind,kind); cc.migrate_owner_recovery(db,kind)
+            before=rows(db); signature=cc.signature(db)
+            for phase in ['locked']+['statement_'+str(n) for n in range(len(cc.extension_v8(kind)))]+['version_set','validated']:
+                def fail(where):
+                    if where==phase: raise RuntimeError(where)
+                with self.assertRaisesRegex(RuntimeError,phase): cc.migrate_v7_to_v8(db,kind,checkpoint=fail)
+                cc.validate(db,kind,7); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+            def lost(where):
+                if where=='committed': raise RuntimeError('unknown acknowledgement')
+            with self.assertRaisesRegex(RuntimeError,'unknown'): cc.migrate_v7_to_v8(db,kind,checkpoint=lost)
+            cc.validate(db,kind,8); self.assert_preserved(db,before)
+            after=rows(db); self.assertFalse(cc.migrate_v7_to_v8(db,kind)); self.assertEqual(rows(db),after)
+            fresh=self.connect('fresh8-'+kind); cc.bootstrap(fresh,kind,8); self.assertEqual(cc.signature(db),cc.signature(fresh))
+
+    def test_v8_interruption_migration_process_exit_and_full_disk(self):
+        code='''import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[3]: os._exit(75)
+cc.migrate_v7_to_v8(db,sys.argv[2],checkpoint=checkpoint)
+raise RuntimeError('checkpoint missed')
+'''
+        for kind in ('system','user'):
+            for phase in ('statement_4','version_set','committed'):
+                name='interrupt-exit-'+kind+'-'+phase; db=self.pair_source(name,kind); cc.migrate_owner_recovery(db,kind); before=rows(db)
+                path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+                self.assertEqual(subprocess.run([sys.executable,'-c',code,path,kind,phase],cwd=ROOT/'tools',timeout=20).returncode,75)
+                db=self.connect(name); cc.validate(db,kind,8 if phase=='committed' else 7); self.assert_preserved(db,before)
+                self.assertEqual(cc.migrate_v7_to_v8(db,kind),phase!='committed')
+            db=self.pair_source('interrupt-full-'+kind,kind); cc.migrate_owner_recovery(db,kind); db.execute('VACUUM'); before=rows(db)
+            db.execute('PRAGMA max_page_count='+str(db.execute('PRAGMA page_count').fetchone()[0]))
+            with self.assertRaises(sqlite3.OperationalError): cc.migrate_v7_to_v8(db,kind)
+            cc.validate(db,kind,7); self.assertEqual(rows(db),before)
+            db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE foreign_interruption(value)'); db.commit(); before=rows(db)
+            with self.assertRaises(cc.ContractError): cc.migrate_v7_to_v8(db,kind)
+            self.assertEqual(rows(db),before)
+
     def handoff_source(self,name):
         db=self.connect(name); legacy(db,'system')
         cc.migrate_v1_to_v2(db,'system',backup=self.connect('backup-'+name))

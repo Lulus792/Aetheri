@@ -7,6 +7,7 @@
 #include "catalogue/setup.h"
 #include "catalogue/execution.h"
 #include "catalogue/lifetime.h"
+#include "catalogue/interruption.h"
 #include "catalogue/handoff.h"
 #include "core/root.h"
 #include "core/fixture.h"
@@ -163,10 +164,15 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
         for (size_t n=0;result==0 && ae_schema_system_v6[n];++n) result=exec_sql(db,ae_schema_system_v6[n]);
         if (result==0) result=exec_sql(db,"PRAGMA user_version=6");
     }
-    if (result==0 && version==7) {
+    if (result==0 && version>=7) {
         const char *const *extension=kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v7 : ae_schema_user_v7;
         for (size_t n=0;result==0 && extension[n];++n) result=exec_sql(db,extension[n]);
         if (result==0) result=exec_sql(db,"PRAGMA user_version=7");
+    }
+    if (result==0 && version>=8) {
+        const char *const *extension=kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v8 : ae_schema_user_v8;
+        for (size_t n=0;result==0 && extension[n];++n) result=exec_sql(db,extension[n]);
+        if (result==0) result=exec_sql(db,"PRAGMA user_version=8");
     }
     return result;
 }
@@ -308,7 +314,7 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2 && value != 3 && value != 4 && value != 7 && !((value==5 || value==6) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
+    if (result == 0 && value != 2 && value != 3 && value != 4 && value != 7 && value != 8 && !((value==5 || value==6) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
     if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
@@ -902,6 +908,20 @@ int ae_catalogue_upgrade_owner_recovery(struct ae_catalogue *store)
     }
     if (r==0) r=validate(store);
     return fixture_commit(store,r);
+}
+
+int ae_catalogue_upgrade_interruptions(struct ae_catalogue *s)
+{
+    int r=still_named(s); if (r==0) r=exec_sql(s->db,"BEGIN EXCLUSIVE"); if (r!=0) return r;
+    r=validate(s); sqlite3_int64 version=0; if (r==0) r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
+    if (r==0 && version==7) {
+        const char *const *sql=s->identity.kind==AE_CATALOGUE_SYSTEM ? ae_schema_system_v8 : ae_schema_user_v8;
+        for (size_t n=0;r==0 && sql[n];++n) r=exec_sql(s->db,sql[n]);
+        if (r==0) r=exec_sql(s->db,"PRAGMA user_version=8");
+    }
+    if (r==0) r=validate(s);
+    return fixture_commit(s,r);
 }
 
 int ae_catalogue_fixture_accept(struct ae_catalogue *store, const struct ae_fixture_request *request,
@@ -2366,8 +2386,8 @@ static int require_execution_process(struct ae_catalogue *s,const struct ae_exec
     (void)hash;
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
     struct ae_execution_process_snapshot snapshot;
-    if (r==0 && version!=2 && version!=3 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
-    if (r==0 && (version==4 || version==5 || version==6 || version==7)) {
+    if (r==0 && version!=2 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && (version==4 || version==5 || version==6 || version==7 || version==8)) {
         r=process_catalogue_row(s,p,(enum ae_execution_process_role)role,&snapshot);
         if (r==0) r=ae_execution_process_match(p,e,&snapshot.process);
     }
@@ -2778,7 +2798,7 @@ static int process_catalogue_begin(struct ae_catalogue *s,const struct ae_execut
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info;
     if (r==0) r=read_info(s,&info);
     int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
@@ -2897,7 +2917,7 @@ static int handoff_begin(struct ae_catalogue *s,const struct ae_execution_profil
     if (!s || s->identity.kind!=AE_CATALOGUE_SYSTEM) return -EPERM;
     int r=process_catalogue_begin(s,p,write); if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=5 && version!=6 && version!=7) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=5 && version!=6 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
     return r==0 ? 0 : fixture_commit(s,r);
 }
 static int handoff_row(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_handoff_snapshot *output)
@@ -3105,7 +3125,8 @@ static int run_statement(struct ae_catalogue *s,const struct run_values *v,const
 #define RQ(sql,out) run_statement(s,&v,RUN_INPUT sql,out,NULL,0)
 #define RB(sql,out,bytes) run_statement(s,&v,RUN_INPUT sql,NULL,out,bytes)
 #define RUN_ROOT "FROM p JOIN authority_meta m ON m.singleton=1 AND m.kind='system' AND m.authority_epoch=p.se AND m.runtime_incarnation=p.sr AND m.current_boot_id=p.boot " \
-    "JOIN launch_dispatches l ON l.launch_id=p.launch AND l.lease_id=p.lease AND l.root_operation_id=p.op AND l.broker_epoch=p.be AND l.broker_incarnation=p.br AND l.account_scope_ref=p.account AND l.install_ref=p.i AND l.generation_ref=p.g AND l.data_epoch_ref=p.d AND l.boot_id=p.boot AND l.invocation_ref=p.inv AND l.install_gate_revision=p.igate AND l.ready_data_gate_revision=p.dgate AND l.action_id='run' AND l.session_ref='p0' AND l.seat_ref='none' " \
+    RUN_ROOT_HISTORY
+#define RUN_ROOT_HISTORY "JOIN launch_dispatches l ON l.launch_id=p.launch AND l.lease_id=p.lease AND l.root_operation_id=p.op AND l.broker_epoch=p.be AND l.broker_incarnation=p.br AND l.account_scope_ref=p.account AND l.install_ref=p.i AND l.generation_ref=p.g AND l.data_epoch_ref=p.d AND l.boot_id=p.boot AND l.invocation_ref=p.inv AND l.install_gate_revision=p.igate AND l.ready_data_gate_revision=p.dgate AND l.action_id='run' AND l.session_ref='p0' AND l.seat_ref='none' " \
     "JOIN operations o ON o.operation_id=p.op AND o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch " \
     "JOIN plans plan ON plan.plan_id=o.plan_id AND plan.kind='launch' AND plan.authority_epoch=p.se AND plan.scope_ref=p.account AND plan.action_id='run' " \
     "JOIN generation_leases lease ON lease.lease_id=p.lease JOIN generations g ON g.generation_id=p.g AND g.artifact_id=p.artifact " \
@@ -3116,7 +3137,8 @@ static int run_statement(struct ae_catalogue *s,const struct run_values *v,const
     "JOIN operation_steps observed ON observed.operation_id=p.op AND observed.step_no=5 AND observed.action='verify' AND observed.subject_kind='launch' AND observed.subject_ref=p.launch AND observed.state='applied' " \
     "JOIN operation_steps done ON done.operation_id=p.op AND done.step_no=6 AND done.action='reconcile' AND done.subject_kind='launch' AND done.subject_ref=p.launch AND done.state='applied' "
 #define RUN_USER "FROM p JOIN authority_meta m ON m.singleton=1 AND m.kind='user' AND m.authority_epoch=p.be AND m.owner_scope_ref=p.account AND m.runtime_incarnation=p.br AND m.current_boot_id=p.boot " \
-    "JOIN launches l ON l.launch_id=p.launch AND l.operation_id=p.uop AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.boot_id=p.boot AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.invocation_ref=p.inv AND l.session_ref='p0' AND l.seat_ref='none' " \
+    RUN_USER_HISTORY
+#define RUN_USER_HISTORY "JOIN launches l ON l.launch_id=p.launch AND l.operation_id=p.uop AND l.lease_ref=p.lease AND l.system_epoch=p.se AND l.boot_id=p.boot AND l.install_id=p.i AND l.generation_ref=p.g AND l.data_epoch_id=p.d AND l.invocation_ref=p.inv AND l.session_ref='p0' AND l.seat_ref='none' " \
     "JOIN operations o ON o.operation_id=p.uop AND o.state='completed' AND o.outcome='applied' AND o.result_kind='launch' AND o.result_ref=p.launch " \
     "JOIN plans plan ON plan.plan_id=o.plan_id AND plan.kind='launch' AND plan.authority_epoch=p.be AND plan.scope_ref=p.account AND plan.action_id='run' " \
     "JOIN operation_links link ON link.operation_id=p.uop AND link.link_no=0 AND link.state='completed' AND link.remote_epoch=p.se AND link.remote_operation_ref=p.op " \
@@ -3132,7 +3154,7 @@ static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=3 && version!=4 && version!=7 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     if (r!=0) return fixture_commit(s,r);
     return 0;
 }
@@ -3185,7 +3207,7 @@ static int run_recovery_current(struct ae_catalogue *s,const struct ae_execution
     const struct ae_execution_evidence *e,struct run_values *v)
 {
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=6 && version!=7) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=6 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
     if (r==0) r=run_recovery_context(s,p,c);
     struct ae_handoff_snapshot h;
     if (r==0) r=handoff_row(s,p,&h);
@@ -3218,7 +3240,7 @@ static int run_pair_current(struct ae_catalogue *s,const struct ae_execution_pro
 {
     uint8_t raw[AE_RUN_PAIR_BYTES]; int r=ae_run_pair_encode(p,pair,raw);
     sqlite3_int64 version=0; if (r==0) r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=7) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info; if (r==0) r=read_info(s,&info);
     int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
     if (r==0 && (memcmp(info.authority_epoch,system ? p->system_epoch : p->broker_epoch,16)!=0 ||
@@ -3529,9 +3551,173 @@ int ae_catalogue_pair_get_run_receipt(struct ae_catalogue *s,const struct ae_exe
     if (r==0) r=ae_run_receipt_match(p,e,kind,&result);
     r=fixture_commit(s,r); if (r==0) *out=result; return r;
 }
+/* Cross-boot interruption is deliberately separate from successful v3 closure. */
+struct interruption_values { struct run_values run; uint8_t raw[248],hash[32]; };
+static int interruption_query(struct ae_catalogue *s,const char *sql,const struct fixture_value *a,size_t size,int64_t *number,void *blob,int bytes)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,sql,-1,&q,NULL));
+    for (size_t n=0;r==0 && n<size;++n) r=failure(a[n].size<0 ? sqlite3_bind_int64(q,(int)n+1,a[n].number) : sqlite3_bind_blob(q,(int)n+1,a[n].bytes,a[n].size,SQLITE_TRANSIENT));
+    if (r==0) {
+        int code=sqlite3_step(q);
+        if (number || blob) {
+            if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code);
+            else {
+                if (number) { if (sqlite3_column_type(q,0)!=SQLITE_INTEGER) r=-EUCLEAN; else *number=sqlite3_column_int64(q,0); }
+                else r=projection_blob(q,0,blob,bytes);
+                if (r==0 && sqlite3_step(q)!=SQLITE_DONE) r=-EUCLEAN;
+            }
+        } else { r=code==SQLITE_DONE ? 0 : failure(code); if (r==0 && sqlite3_changes(s->db)!=1) r=-EUCLEAN; }
+    }
+    int final=failure(sqlite3_finalize(q)); return r==0 ? final : r;
+}
+static int interruption_begin(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const struct ae_interruption_binding *b,int64_t stamp,struct interruption_values *v)
+{
+    int r=run_inputs(s,p,e,stamp,&v->run);
+    if (r==0) r=ae_interruption_binding_encode(p,b,v->raw);
+    if (r==0) r=ae_sha256_bytes(v->raw,sizeof v->raw,v->hash);
+    if (r==0) r=exec_sql(s->db,"BEGIN IMMEDIATE");
+    if (r!=0) return r;
+    sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (r==0 && version!=8) r=-EPROTONOSUPPORT;
+    struct ae_catalogue_info info; if (r==0) r=read_info(s,&info);
+    int root=s->identity.kind==AE_CATALOGUE_SYSTEM;
+    if (r==0 && (memcmp(info.boot_id,b->boot,16)!=0 || memcmp(info.runtime_incarnation,root ? b->root_runtime : b->user_runtime,16)!=0 ||
+        memcmp(s->identity.authority_epoch,root ? p->system_epoch : p->broker_epoch,16)!=0 || (!root && memcmp(s->identity.owner,p->account,16)!=0))) r=-ESTALE;
+    if (r==0 && root) {
+        r=reservation_context(s,c);
+        if (r==0 && (c->uid!=1000 || memcmp(c->boot,b->boot,16)!=0 || memcmp(c->system_runtime,b->root_runtime,16)!=0 ||
+            memcmp(c->broker_runtime,b->user_runtime,16)!=0 || memcmp(c->broker_epoch,p->broker_epoch,16)!=0 || memcmp(c->account,p->account,16)!=0)) r=-ESTALE;
+    } else if (r==0 && c) r=-EINVAL;
+    /* Original history remains bound to the OLD boot/runtimes, never rewritten. */
+    if (r==0) r=run_statement(s,&v->run,root ? RUN_INPUT "SELECT done.evidence_digest FROM p " RUN_ROOT_HISTORY :
+        RUN_INPUT "SELECT done.evidence_digest FROM p " RUN_USER_HISTORY,NULL,v->run.start,32);
+    int64_t count=0;
+    if (r==0) r=run_statement(s,&v->run,root ? RUN_INPUT "SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op" :
+        RUN_INPUT "SELECT count(*) FROM operation_steps,p WHERE operation_id=p.uop",&count,NULL,0);
+    if (r==0 && count!=(root ? 7 : 5)) r=-ESTALE;
+    struct ae_execution_process_snapshot original;
+    if (r==0) r=process_catalogue_row(s,p,AE_EXECUTION_APP,&original);
+    if (r==0) r=ae_execution_process_match(p,e,&original.process);
+    return r==0 ? 0 : fixture_commit(s,r);
+}
+static int interruption_gates(struct ae_catalogue *s,const struct run_values *v)
+{
+    int64_t count=0; int root=s->identity.kind==AE_CATALOGUE_SYSTEM;
+    int r=run_statement(s,v,root ? RUN_INPUT "SELECT count(*) FROM admission_gates,p WHERE subject_kind='install' AND subject_ref=p.i AND state='closed'" :
+        RUN_INPUT "SELECT count(*) FROM admission_gates,p WHERE subject_kind='data' AND subject_ref=p.d AND state='closed' AND NOT EXISTS(SELECT 1 FROM grants WHERE launch_id=p.launch) AND NOT EXISTS(SELECT 1 FROM access_leases WHERE launch_id=p.launch)",&count,NULL,0);
+    return r==0 && count!=1 ? -EAGAIN : r;
+}
+static int interruption_binding_row(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_interruption_binding *b,struct interruption_values *v)
+{
+    struct fixture_value a[]={FB(p->launch,16),FB(b->root_runtime,16),FB(b->user_runtime,16),FB(v->hash,32),FB(p->boot,16),FB(b->boot,16),FB(v->run.profile,384),FB(v->run.hash,32)};
+    uint8_t stored[248]; int r=interruption_query(s,"SELECT binding FROM run_interruption_bindings WHERE launch_id=?1 AND root_runtime=?2 AND user_runtime=?3",a,3,NULL,stored,248);
+    if (r==0 && memcmp(stored,v->raw,248)!=0) r=-EEXIST;
+    int64_t count=0;
+    if (r==0) r=interruption_query(s,"SELECT count(*) FROM run_interruption_bindings WHERE launch_id=?1 AND root_runtime=?2 AND user_runtime=?3 AND binding_digest=?4 AND original_boot=?5 AND current_boot=?6 AND profile=?7 AND profile_digest=?8 AND recorded_unix_ms>=0",a,8,&count,NULL,0);
+    return r==0 && count!=1 ? -EUCLEAN : r;
+}
+int ae_catalogue_enroll_interruption(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const struct ae_interruption_binding *b,int64_t stamp)
+{
+    struct interruption_values v; int r=interruption_begin(s,p,c,e,b,stamp,&v); if (r!=0) return r;
+    r=interruption_binding_row(s,p,b,&v); int fresh=r==-ENOENT; if (fresh) r=interruption_gates(s,&v.run);
+    int64_t revision=0;
+    if (r==0 && fresh) r=run_statement(s,&v.run,RUN_INPUT "SELECT catalogue_revision FROM authority_meta WHERE singleton=1",&revision,NULL,0);
+    if (r==0 && fresh && revision==INT64_MAX) r=-EOVERFLOW;
+    if (r==0 && fresh) {
+        struct fixture_value a[]={FB(p->launch,16),FB(b->root_runtime,16),FB(b->user_runtime,16),FB(p->boot,16),FB(b->boot,16),
+            FB(v.run.profile,384),FB(v.run.hash,32),FB(v.raw,248),FB(v.hash,32),FI(stamp)};
+        r=interruption_query(s,"INSERT INTO run_interruption_bindings VALUES(?,?,?,?,?,?,?,?,?,?)",a,10,NULL,NULL,0);
+        if (r==0) r=run_statement(s,&v.run,RUN_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL,NULL,0);
+    }
+    return fixture_commit(s,r);
+}
+static int interruption_receipt_row(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_execution_evidence *e,
+    const struct run_values *v,enum ae_interruption_kind kind,struct ae_interruption_receipt *out)
+{
+    struct fixture_value key[]={FB(p->launch,16),FI(kind)}; uint8_t raw[352];
+    int r=interruption_query(s,"SELECT receipt FROM run_interruption_steps WHERE launch_id=? AND kind=?",key,2,NULL,raw,352);
+    struct ae_interruption_receipt value={0};
+    if (r==0) r=ae_interruption_receipt_decode(p,raw,352,&value);
+    if (r==0 && (value.kind!=kind || memcmp(value.invocation,e->invocation,16)!=0 || memcmp(value.context_digest,e->context_digest,32)!=0)) r=-EUCLEAN;
+    uint8_t binding[248],hash[32]; if (r==0) r=ae_interruption_binding_encode(p,&value.binding,binding);
+    if (r==0) r=ae_sha256_bytes(binding,sizeof binding,hash);
+    const uint8_t *operation=s->identity.kind==AE_CATALOGUE_SYSTEM ? p->root_operation : p->user_operation;
+    struct fixture_value a[]={FB(p->launch,16),FI(kind),FB(v->profile,384),FB(v->hash,32),FB(e->invocation,16),FB(e->context_digest,32),FB(v->start,32),FB(hash,32),FB(binding,248),FI(0),FI(0),FB(operation,16),FB(p->boot,16),FB(value.binding.boot,16),FB(value.binding.root_runtime,16),FB(value.binding.user_runtime,16)};
+    if (r==0) { a[9]=FI(value.revision); a[10]=FI(value.unix_ms); }
+    int64_t count=0;
+    if (r==0) r=interruption_query(s,"SELECT count(*) FROM run_interruption_steps s JOIN run_interruption_bindings b ON b.launch_id=s.launch_id AND b.binding_digest=s.binding_digest WHERE s.launch_id=?1 AND s.kind=?2 AND s.profile=?3 AND s.profile_digest=?4 AND s.invocation_ref=?5 AND s.context_digest=?6 AND s.start_result_digest=?7 AND s.binding_digest=?8 AND b.binding=?9 AND s.revision=?10 AND s.recorded_unix_ms=?11 AND s.start_operation_id=?12 AND b.profile=?3 AND b.profile_digest=?4 AND b.original_boot=?13 AND b.current_boot=?14 AND b.root_runtime=?15 AND b.user_runtime=?16 AND b.recorded_unix_ms>=0",a,16,&count,NULL,0);
+    if (r==0 && count!=1) r=-EUCLEAN;
+    if (r==0 && kind==AE_INTERRUPTION_BEGIN && memcmp(value.previous_digest,v->start,32)!=0) r=-EUCLEAN;
+    if (r==0 && kind!=AE_INTERRUPTION_BEGIN) {
+        uint8_t previous[352],digest[32]; struct ae_interruption_receipt prior;
+        r=interruption_query(s,"SELECT prior_receipt FROM run_interruption_steps WHERE launch_id=? AND kind=?",key,2,NULL,previous,352);
+        if (r==0) r=ae_interruption_receipt_decode(p,previous,sizeof previous,&prior);
+        if (r==0) r=ae_sha256_bytes(previous,sizeof previous,digest);
+        if (r==0 && (prior.kind!=(enum ae_interruption_kind)(kind-1) || memcmp(prior.invocation,e->invocation,16)!=0 || memcmp(digest,value.previous_digest,32)!=0)) r=-EUCLEAN;
+    }
+    if (r==0) *out=value;
+    return r;
+}
+int ae_catalogue_interrupt_run(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_execution_evidence *e,const struct ae_interruption_binding *b,enum ae_interruption_kind kind,
+    const struct ae_interruption_receipt *prior,const struct ae_execution_completion *started,int64_t stamp,struct ae_interruption_receipt *out)
+{
+    if (!out || kind<1 || kind>4 || (kind==AE_INTERRUPTION_BEGIN ? (!started || prior) : (started || !prior))) return -EINVAL;
+    struct interruption_values v; int r=interruption_begin(s,p,c,e,b,stamp,&v); if (r!=0) return r;
+    int root=s->identity.kind==AE_CATALOGUE_SYSTEM;
+    if ((root && kind!=1 && kind!=3) || (!root && kind!=2 && kind!=4)) r=-EPERM;
+    if (r==0) r=interruption_binding_row(s,p,b,&v);
+    uint8_t previous[32],prior_raw[352];
+    if (r==0 && kind==1) {
+        uint8_t complete[200]; r=ae_execution_completion_match(p,e,started->observation_digest,started);
+        if (r==0) r=ae_execution_completion_encode(started,complete);
+        if (r==0) r=ae_sha256_bytes(complete,sizeof complete,previous);
+        if (r==0 && memcmp(previous,v.run.start,32)!=0) r=-ESTALE;
+    } else if (r==0) {
+        r=ae_interruption_receipt_encode(p,prior,prior_raw);
+        if (r==0 && (prior->kind!=(enum ae_interruption_kind)(kind-1) || memcmp(prior->invocation,e->invocation,16)!=0)) r=-ESTALE;
+        if (r==0) r=ae_sha256_bytes(prior_raw,sizeof prior_raw,previous);
+        if (r==0 && kind==2 && memcmp(prior->previous_digest,v.run.start,32)!=0) r=-ESTALE;
+        if (r==0 && kind>=3) {
+            struct ae_interruption_receipt own; uint8_t hash[32];
+            r=interruption_receipt_row(s,p,e,&v.run,(enum ae_interruption_kind)(kind-2),&own);
+            if (r==0) r=ae_interruption_receipt_digest(p,&own,hash);
+            if (r==0 && memcmp(prior->previous_digest,hash,32)!=0) r=-ESTALE;
+        }
+    }
+    struct ae_interruption_receipt result; int fresh=0;
+    if (r==0) { r=interruption_receipt_row(s,p,e,&v.run,kind,&result); fresh=r==-ENOENT; if (fresh) r=0; }
+    if (r==0 && !fresh && memcmp(result.previous_digest,previous,32)!=0) r=-EEXIST;
+    if (r==0 && fresh) r=interruption_gates(s,&v.run);
+    int64_t revision=0,count=0;
+    if (r==0 && fresh) r=run_statement(s,&v.run,RUN_INPUT "SELECT catalogue_revision FROM authority_meta WHERE singleton=1",&revision,NULL,0);
+    if (r==0 && fresh) r=run_statement(s,&v.run,root ? RUN_INPUT "SELECT max(d.revision,l.revision) FROM launch_dispatches d JOIN generation_leases l ON l.lease_id=d.lease_id,p WHERE d.launch_id=p.launch AND d.state IN ('observed','closing','uncertain') AND d.close_cause_epoch IS NULL AND l.state='running'" :
+        RUN_INPUT "SELECT revision FROM launches,p WHERE launch_id=p.launch AND state IN ('recovery_required','stopping')",&count,NULL,0);
+    if (r==0 && fresh && (revision==INT64_MAX || count==INT64_MAX)) r=-EOVERFLOW;
+    if (r==0 && fresh) {
+        result=(struct ae_interruption_receipt){.kind=kind,.binding=*b,.revision=revision+1,.unix_ms=stamp};
+        memcpy(result.invocation,e->invocation,16); memcpy(result.context_digest,e->context_digest,32); memcpy(result.previous_digest,previous,32);
+        uint8_t raw[352]; r=ae_interruption_receipt_encode(p,&result,raw);
+        const uint8_t *operation=root ? p->root_operation : p->user_operation;
+        struct fixture_value a[]={FB(p->launch,16),FI(kind),FB(operation,16),FB(v.run.profile,384),FB(v.run.hash,32),FB(e->invocation,16),FB(e->context_digest,32),FB(v.run.start,32),FB(v.hash,32),kind==1 ? FB(NULL,0) : FB(prior_raw,352),FB(raw,352),FI(result.revision),FI(stamp)};
+        if (r==0) r=interruption_query(s,"INSERT INTO run_interruption_steps VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",a,13,NULL,NULL,0);
+        if (r==0 && root) r=run_statement(s,&v.run,kind==1 ? RUN_INPUT "UPDATE launch_dispatches SET state='closing',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)" :
+            RUN_INPUT "UPDATE launch_dispatches SET state='terminal',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL,NULL,0);
+        if (r==0 && kind==3) r=run_statement(s,&v.run,RUN_INPUT "UPDATE generation_leases SET state='released',revision=revision+1 WHERE lease_id=(SELECT lease FROM p)",NULL,NULL,0);
+        if (r==0 && !root) r=run_statement(s,&v.run,kind==2 ? RUN_INPUT "UPDATE launches SET state='stopping',readiness='unknown',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)" :
+            RUN_INPUT "UPDATE launches SET state='exited',readiness='unknown',revision=revision+1 WHERE launch_id=(SELECT launch FROM p)",NULL,NULL,0);
+        if (r==0) r=run_statement(s,&v.run,RUN_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1",NULL,NULL,0);
+    }
+    r=fixture_commit(s,r); if (r==0) *out=result; return r;
+}
+
 #undef RUN_INPUT
 #undef RUN_ROOT
+#undef RUN_ROOT_HISTORY
 #undef RUN_USER
+#undef RUN_USER_HISTORY
 #undef RUN_ROW
 #undef RQ
 #undef RB

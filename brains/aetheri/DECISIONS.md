@@ -1,5 +1,22 @@
 # Decisions
 
+## Distinct cross-boot interruption history — 4 November 2026
+
+Use explicit v8 immutable current-owner bindings and interruption steps instead
+of manufacturing v3 successful-run end/quiet evidence after volatile handles are
+lost. BEGIN / QUIET / RELEASE / EXIT commit local effects with separate receipts;
+keep original completed starts and prior receipts unchanged. Real-time stamps
+are not cross-boot chronology. A further owner/boot replacement requires new
+independently verified admission at both owners, retaining the earlier chain.
+
+This first interruption path requires a successfully started original run and
+original app witness. Early/unfinished starts and general grants/holders remain
+separate implementation gates. Native SQLite records externally admitted facts;
+it cannot establish physical machine/volume/clone continuity or current actor/
+holder/future-effect safety. Keep all older schemas and original/same-boot checks
+unchanged, use explicit quiesced migration and do not touch the preserved v6
+attempt until actual admission exists. See [contract/evidence](../../spec/runtime.md#cross-boot-interruption-transactions).
+
 ## Separate boot observation from interruption settlement — 4 November 2026
 
 Use a process-owned read-only Linux observer before designing cross-boot closure.

@@ -32,6 +32,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [common-v4](schema/common-v4.sql), [system-v4](schema/system-v4.sql), [user-v4](schema/user-v4.sql) | Immutable original-process records after frozen v3; role-specific enrollment and retention guards |
 | [system-v6](schema/system-v6.sql) | Explicit Root recovery-owner records and guarded closure admission after frozen v5 |
 | [common-v7](schema/common-v7.sql), [system-v7](schema/system-v7.sql), [user-v7](schema/user-v7.sql) | Explicit paired-owner close-only recovery after Root v6/User v4; immutable original evidence and current pair binding |
+| [common-v8](schema/common-v8.sql), [system-v8](schema/system-v8.sql), [user-v8](schema/user-v8.sql), [interruption.h](../src/catalogue/interruption.h), [vector](vectors/run-interruption-v1.json) | Separate cross-boot interruption bindings/stages after v7; preserve original successful start, no installed continuity/actor/fencing admission |
 | [run-recovery-pair-v1.json](vectors/run-recovery-pair-v1.json) | Independent 232-byte AETHRCP1 vector; no actor authentication or process-drain proof |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
@@ -46,7 +47,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v7/User v2–v4,v7 opening and explicit upgrades under the retained owner lock |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v8/User v2–v4,v7–v8 opening and explicit upgrades under the retained owner lock |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
@@ -106,7 +107,7 @@ documents.read-small.v1, access.revoke.v1 and runtime.dispatch.v1 capabilities.
 XML annotations describe required lengths/limits/visibility; they do not enforce
 authorization or validate incoming messages by themselves.
 
-The initial v1/v2 snapshots retain complete definitions; v3/v4, Root v5/v6 and paired-owner v7 compose their additions.
+The initial v1/v2 snapshots retain complete definitions; v3/v4, Root v5/v6, paired-owner v7 and interruption v8 compose their additions.
 The v2 bootstrap and migration consume the same target SQL. This avoids separate
 handwritten migration copies of every CHECK/trigger. Frozen v1/v2/v3 hashes in the
 test suite detect accidental changes to those sources.
@@ -125,6 +126,16 @@ only each closure-insert trigger. Migrate quiesced Root v6/User v4 independently
 through `migrate_owner_recovery` or native `ae_catalogue_upgrade_owner_recovery`;
 default creation stays v2 and open never migrates. Old rows/revisions/gates and
 all v1–v6 sources remain unchanged. User v5/v6 remain unsupported.
+
+Explicit v8 adds immutable cross-boot binding and interruption-step tables per
+owner, without changing v1-v7 SQL or the original successful start/closure
+receipts. Upgrade quiesced v7 owners separately with migrate_v7_to_v8 or native
+ae_catalogue_upgrade_interruptions. Root BEGIN -> User QUIET -> Root RELEASE ->
+User EXIT form a separate receipt chain; another admitted owner/boot binding can
+continue it without rewriting history. This is metadata implementation, not
+actual boot/volume/anti-clone/current-actor/holder admission. See the
+[full boundary](runtime.md#cross-boot-interruption-transactions). Normal creation
+stays v2, open never migrates and installed capabilities remain empty.
 
 Separate paired APIs accept a replaced User with an original or replaced Root,
 same account/authority epochs/boot and independently verified actor/drain evidence.
@@ -274,7 +285,7 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact Root v2–v7/User v2–v4,v7 validation and startup-context writes.
+The C17 store implements v2 creation, exact Root v2–v8/User v2–v4,v7–v8 validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
 The later explicit v3/v4 upgrades add independent run/process evidence; published

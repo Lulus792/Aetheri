@@ -142,6 +142,10 @@ and the still-original User. Actual active-run Root/User restart reconciliation
 and early-start/lost-handle recovery remain necessary. The carrier was found
 stopped on 4 November; its old catalogues remain unchanged, but same-boot retained
 handles are lost. See STATE before continuing that quarantined attempt.
+The separate v8 native interruption journal now retains successful start results
+while closing an old-boot run through newly admitted owner bindings and a distinct
+receipt chain. Controlled SQLite tests do not establish real continuity/actor/
+holder admission; the preserved real attempt remains unsettled.
 
 The full desktop and original applications, normal session/app provisioning,
 an original bootable image/installer, updates and hardware/performance acceptance

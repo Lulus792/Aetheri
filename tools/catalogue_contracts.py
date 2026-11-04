@@ -31,8 +31,10 @@ def statements(text):
 
 
 def source(kind, version):
-    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5, 6, 7) or (version in (5,6) and kind!='system'):
+    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5, 6, 7, 8) or (version in (5,6) and kind!='system'):
         raise ContractError("unsupported catalogue kind/version")
+    if version==8:
+        return source(kind,7)+extension_v8(kind)
     if version==3:
         return source(kind,2)+extension_v3(kind)
     if version==4:
@@ -106,6 +108,31 @@ def migrate_owner_recovery(db,kind,*,checkpoint=None):
         for n,statement in enumerate(extension_v7(kind)):
             db.execute(statement); mark('statement_'+str(n))
         db.execute('PRAGMA user_version=7'); mark('version_set'); validate(db,kind,7); mark('validated')
+        db.commit(); mark('committed')
+    except BaseException:
+        if db.in_transaction: db.rollback()
+        raise
+    return True
+
+
+def extension_v8(kind):
+    if kind not in APPLICATION_IDS: raise ContractError('unsupported catalogue kind')
+    return [sql for name in ('common',kind)
+            for sql in statements((ROOT/f'spec/schema/{name}-v8.sql').read_text(encoding='utf-8'))]
+
+
+def migrate_v7_to_v8(db,kind,*,checkpoint=None):
+    if kind not in APPLICATION_IDS or db.in_transaction: raise ContractError('idle owner connection required')
+    if db.execute('PRAGMA user_version').fetchone()[0]==8:
+        validate(db,kind,8); return False
+    configure(db)
+    def mark(phase):
+        if checkpoint: checkpoint(phase)
+    try:
+        db.execute('BEGIN EXCLUSIVE'); validate(db,kind,7); mark('locked')
+        for n,statement in enumerate(extension_v8(kind)):
+            db.execute(statement); mark('statement_'+str(n))
+        db.execute('PRAGMA user_version=8'); mark('version_set'); validate(db,kind,8); mark('validated')
         db.commit(); mark('committed')
     except BaseException:
         if db.in_transaction: db.rollback()
