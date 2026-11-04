@@ -1,8 +1,69 @@
 # State
 
-4 November 2026 — native input/focus and nested compositor presentation.
+4 November 2026 — first native Settings development view.
 
 ## Current update
+
+The optional C17 Settings view now reads actual display observations from the
+private Aetheri Wayland session. Display selection/refresh, native keyboard and
+pointer controls, per-window appearance/language/text size, focus scrolling and
+native border resize work. App observations/selection stay independent of SDL.
+See [build, dependency and acceptance boundary](../../spec/settings.md).
+
+Release passes settings.model/settings.native 2/2 (4.43 s); Debug ASan/UBSan
+passes 2/2 (5.59 s). Aetheri code and the selected Debug wlroots are instrumented;
+SDL/text/Mesa remain reviewed Release libraries. The four composed Settings
+workflows produce 12 matching image hashes in both profiles. Native evidence
+covers dark/light, DE/EN, 100/200% text and 760x480/1100x760 logical windows at
+the current 1x output density. All four Release captures were visually inspected.
+High-contrast/150% controls exist; their complete native/accessibility acceptance
+and physical mixed-DPI checks remain open. Screenreader/AT-SPI is not implemented.
+
+The existing compositor rendering/input/nested suites pass 3/3 in each new build
+(Release 5.81 s, Debug 9.57 s). Their 42 additional image hashes match across
+profiles: 54 native images per profile in total. Original lossless captures and
+logs remain in the private build artifacts. The measured one-second Settings
+idle interval has zero new frames and zero CPU ticks in both profiles; this is
+a bounded observation, not a whole-session performance budget.
+
+The accepted SDL direction now has reviewed exact SDL3 3.4.20, SDL_ttf 3.2.2,
+FreeType 2.15.0, HarfBuzz 15.0.0 and Liberation Sans inputs. Actual execution
+rejected the initial pure-software SDL window profile. The working path uses
+OpenGL ES with explicitly selected Mesa llvmpipe in the VM. Three matching GCC
+toolchain RPMs and 17 signed EGL/Mesa runtime packages were installed only in the
+dedicated guest. The latter add about 205 MiB; Fedora Mesa brings X11 client
+libraries, while SDL's X11 backend is disabled and no X server is used. The broad
+GL development package is not installed: only pinned EGL/GLES2/KHR headers are
+read as data into a private build SDK. Exact dependencies/licenses are recorded.
+
+Native close exposed SDL's null dereference when the optional data device is
+absent. One pinned null guard retains the existing normal cleanup. The identical
+final app binary still SIGSEGVs with unpatched SDL in the independent negative
+control and closes normally with the selected patch. Original failures/core
+dumps remain. No clipboard capability was fabricated to avoid the bug.
+An explicit owned cache directory contains Mesa shader data; both successful
+test runs record 17 files / 2,115,023 bytes there. This is development cache
+ownership, not StorageRef admission, a hard disk quota or production removal.
+
+The ordinary Release build completes and the five selected existing core/broker/
+boot checks pass (0.19 s). The old Root/User catalogue hashes and 17 static files/
+profile are unchanged; its running/recover-handoff controller remains unresolved
+historical bookkeeping. No lease, authority gate, SQL/XML contract, policy grant,
+normal installed API or foreign project was changed. The NexaUI handoff now
+records 103 requirements/13 surface groups, including installer/recovery UI.
+All 223 host/snapshot/guest source hashes and 200 private dependency artifacts
+match. The 25 cached UI inputs/patch and 28 frozen SQL/XML files are verified;
+713 local Markdown file targets resolve. No selected UI test executable remains
+live. The dedicated VM is still verified running with host-local AF_UNIX QMP.
+
+This is the first native development app view, not a complete/admitted Settings
+app or desktop. Actual system-settings backends, accessible controls, managed
+cache/app/session provisioning, recovery coordination, the original system image/
+installer, full experiment desktop and physical hardware acceptance remain work.
+Next connect real session/application ownership and accessibility; keep final
+visual choices with the user and the retained old intent protected.
+
+Previous compositor input/nested checkpoint (af90a50):
 
 The private compositor now has native pointer/keyboard seat delivery, click and
 provisional Alt+Tab focus, serial-bound move/resize, implicit-grab retention and

@@ -7,9 +7,13 @@ later NexaUI migration where useful. Missing NexaUI features must not hold up th
 OS or applications. NexaUI may still be used per application when the necessary
 scope is ready; full toolkit completion is not an adoption prerequisite.
 
-Use SDL3 as the preferred platform foundation for early application surfaces,
-subject to an exact dependency/build/security/license review before adding it.
-This selects a direction, not an installed package/version or a proven speed gain.
+Use SDL3 as the preferred platform foundation for early application surfaces.
+The first exact dependency/build/license profile and native execution evidence
+are now recorded in [Settings](../../../spec/settings.md): SDL3/SDL_ttf plus a private
+FreeType/HarfBuzz stack, OpenGL ES and explicit Mesa software rendering in the VM.
+The attempted renderer-free SDL Wayland path was unsuitable. This is a measured
+development integration, not a proven speed gain over NexaUI or physical-driver
+acceptance.
 The compositor remains our wlroots-based Wayland server. SDL3 handles client
 windows, input and graphics integration; it is not a widget toolkit, compositor,
 terminal emulator, shell, browser engine or complete accessibility solution.
@@ -47,11 +51,13 @@ or tested by this inspection.
 
 The user subsequently requested the full requirement list for NexaUI to support
 all agreed Aetheri UI. The authorized `NEXT_AETHERI_UI.md` in the local NexaUI
-folder now contains 102 identified requirements and 12 app/shell surface groups,
+folder now contains 103 identified requirements and 13 app/system surface groups,
 with priority, source-evidence status and observable acceptance. It covers build/
 package, native Wayland windows, rendering/content surfaces, text/editing/IME,
 layouts/controls, input, accessibility, themes/localization/host seams, performance/
-lifetime and adoption evidence. Existing API families are not labelled missing.
+lifetime and adoption evidence, including installation, first-run and recovery
+presentation. Existing API families are not labelled missing. Source records are
+mapped in the handoff; new product decisions extend it without renumbering IDs.
 
 The implementation order still starts with the confirmed Wayland-only consumer
 gap and a real Settings view, then app interaction, desktop/content adapters and

@@ -151,3 +151,11 @@ The full desktop and original applications, normal session/app provisioning,
 an original bootable image/installer, updates and hardware/performance acceptance
 remain required. Backend fixtures and individual software tests do not complete
 that scope. Product/UI alternatives will be reviewed with the user later.
+
+The first [native Settings development view](../../spec/settings.md) now uses
+reviewed SDL3/SDL_ttf/FreeType/HarfBuzz and an actual Wayland/OpenGL ES path. It
+reads current virtual-display observations and offers temporary per-window
+preferences. Native input, scaling/reflow, pixels, close and sanitizer checks
+exist; ordinary app admission, real settings backends, native accessibility and
+physical-driver acceptance remain work. This is a provisional view whose model
+can be retained during NexaUI migration.

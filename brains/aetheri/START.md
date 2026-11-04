@@ -1,8 +1,9 @@
 # Start here
 
 Aetheri is a planned Linux-based personal desktop OS with original applications.
-Updated 4 November 2026 for native input/nested presentation, strict service-main admission
-and interruption transactions; read STATE before relying on retained-handle evidence.
+Updated 4 November 2026 for the native Settings view, input/nested presentation,
+strict service-main admission and interruption transactions. Read STATE before
+relying on retained-handle evidence.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.
@@ -19,7 +20,7 @@ and interruption transactions; read STATE before relying on retained-handle evid
    [application lifecycle](knowledge/app-lifecycle.md).
 5. [Questions](QUESTIONS.md): remaining architecture/product details.
 6. [Technology discussion](knowledge/technology-options.md), [NexaUI](knowledge/nexaui.md),
-   [private compositor](../../spec/graphics.md),
+   [private compositor](../../spec/graphics.md), [native Settings](../../spec/settings.md),
    [testing](knowledge/testumgebung.md), [experiment environments](knowledge/experiment-environments.md)
    and [milestones](knowledge/etappen.md).
 

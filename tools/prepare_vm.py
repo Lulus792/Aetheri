@@ -53,10 +53,10 @@ def fetch(cache, record):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("fetch", "verify"))
-    parser.add_argument("--profile", choices=("carrier", "graphics"), default="carrier",
-                        help="optional private graphics inputs are separate from the base carrier")
+    parser.add_argument("--profile", choices=("carrier", "graphics", "ui"), default="carrier",
+                        help="optional private graphics/UI inputs are separate from the base carrier")
     args = parser.parse_args()
-    manifest = "graphics-inputs.json" if args.profile == "graphics" else "vm-inputs.json"
+    manifest = {"carrier": "vm-inputs.json", "graphics": "graphics-inputs.json", "ui": "ui-inputs.json"}[args.profile]
     config = json.loads((ROOT / "spec" / manifest).read_text(encoding="utf-8"))
     if config["format"] != 1:
         raise ValueError("unknown input lock format")

@@ -585,7 +585,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   focus, scaling, three-monitor, accessibility and error-state behavior.
 - User now prefers working UI foundations such as SDL3 instead of waiting for
   NexaUI completion. Read brains/aetheri/knowledge/nexaui.md. Review exact SDL3/
-  text/widget dependencies before adoption; no installed version is selected.
+  text/widget dependencies before adoption; the first exact development profile
+  and runtime limits are now in spec/settings.md.
   Keep app models/commands/persistence toolkit-independent and wlroots compositor
   separate. NexaUI can be adopted per app when its required scope is ready. The
   authorized local NEXT_AETHERI_UI.md note is a handoff, not permission to alter
@@ -605,6 +606,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   lifecycle acceptance. The input-FD driver is a separate test executable. Keep its
   private socket/captures and unprivileged test children separate from the retained
   old execution intent. Exact wlroots/Wayland dependency changes require review.
+- Optional AETHERI_SETTINGS now builds the native development view in src/settings;
+  read spec/settings.md and spec/ui-inputs.json. Keep its model toolkit-independent.
+  The selected SDL Wayland profile uses OpenGL ES; the initial no-renderer profile
+  could not create a framebuffer. Private builds pin SDL/text sources and one
+  optional-data-device null guard. Do not advertise clipboard merely to avoid that
+  client bug. The VM uses explicitly selected llvmpipe; hardware/AT-SPI/normal app
+  admission and settings backends remain work. Supply an explicit owned 0700
+  development shader-cache directory; it is not a StorageRef or disk quota.
+  Preserve unpatched close-time core dumps and the same-binary negative control.
+  Source/headers and guest graphics RPMs are reviewed separately; do not install
+  broad GL development packages, change shared host/WSL settings or infer physical
+  GPU acceptance. SDK/Mesa Release libraries are not ASan-instrumented by the
+  current app Debug check. The default Settings option stays OFF.
 - The user confirmed the current workstation is the main-PC target and requires
   future AM5 portability. Read brains/aetheri/knowledge/testumgebung.md.
   Keep the x86-64/UEFI baseline vendor-neutral; no unconditional -march=native.

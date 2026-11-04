@@ -1,0 +1,300 @@
+{
+  "format": 1,
+  "purpose": "Optional private Wayland/OpenGL ES Settings development with Mesa software rendering in the guest; not normal app admission",
+  "reviewed": "2026-11-04",
+  "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "inputs": [
+    {
+      "name": "SDL3-3.4.20.tar.gz",
+      "version": "release-3.4.20",
+      "url": "https://github.com/libsdl-org/SDL/releases/download/release-3.4.20/SDL3-3.4.20.tar.gz",
+      "size": 15656494,
+      "algorithm": "sha256",
+      "digest": "f3bb06f55bed9557227a700af2ea62e49497ebdf58037732a731a5fb3ef8581f",
+      "evidence": "https://github.com/libsdl-org/SDL/releases/tag/release-3.4.20",
+      "license": "Zlib",
+      "archive_root": "SDL3-3.4.20"
+    },
+    {
+      "name": "SDL3_ttf-3.2.2.tar.gz",
+      "version": "release-3.2.2",
+      "url": "https://github.com/libsdl-org/SDL_ttf/releases/download/release-3.2.2/SDL3_ttf-3.2.2.tar.gz",
+      "size": 1545950,
+      "algorithm": "sha256",
+      "digest": "63547d58d0185c833213885b635a2c0548201cc8f301e6587c0be1a67e1e045d",
+      "evidence": "https://github.com/libsdl-org/SDL_ttf/releases/tag/release-3.2.2",
+      "license": "Zlib",
+      "archive_root": "SDL3_ttf-3.2.2"
+    },
+    {
+      "name": "freetype-VER-2-15-0.tar.gz",
+      "version": "2.15.0",
+      "url": "https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-15-0/freetype-VER-2-15-0.tar.gz",
+      "size": 2591768,
+      "algorithm": "sha256",
+      "digest": "87c7f1f8699b91e89f773f7dcfa505b044e1dae67f62a55d4e29c3afdcac4fb8",
+      "evidence": "https://freetype.org/",
+      "license": "FTL (selected dual-license option)",
+      "archive_root": "freetype-VER-2-15-0"
+    },
+    {
+      "name": "harfbuzz-15.0.0.tar.xz",
+      "version": "15.0.0",
+      "url": "https://github.com/harfbuzz/harfbuzz/releases/download/15.0.0/harfbuzz-15.0.0.tar.xz",
+      "size": 20396372,
+      "algorithm": "sha256",
+      "digest": "968536e9abd782f07f7954044c0c4020199fcdd39b41d221ec42d2a3be4a44df",
+      "evidence": "https://github.com/harfbuzz/harfbuzz/releases/tag/15.0.0",
+      "license": "MIT-Modern-Variant",
+      "archive_root": "harfbuzz-15.0.0"
+    },
+    {
+      "name": "gcc-c++-16.2.1-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/gcc/16.2.1/2.fc44/data/signed/6d9f90a6/x86_64/gcc-c++-16.2.1-2.fc44.x86_64.rpm",
+      "size": 18191031,
+      "algorithm": "sha256",
+      "digest": "79f6642db8c5ba0433041feb6e33c6dc487e1e2f4dd81eb94e5e615983e25cce",
+      "version": "gcc-c++-16.2.1-2.fc44.x86_64; GCC licenses and runtime exception",
+      "evidence": "https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html"
+    },
+    {
+      "name": "libstdc++-devel-16.2.1-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/gcc/16.2.1/2.fc44/data/signed/6d9f90a6/x86_64/libstdc++-devel-16.2.1-2.fc44.x86_64.rpm",
+      "size": 6265723,
+      "algorithm": "sha256",
+      "digest": "d5e8e08c38e676fe2be6e7498aa273cdfaaa08a36a385c63f09ae20216fc54cc",
+      "version": "libstdc++-devel-16.2.1-2.fc44.x86_64; GCC licenses and runtime exception",
+      "evidence": "https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html"
+    },
+    {
+      "name": "libstdc++-16.2.1-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/gcc/16.2.1/2.fc44/data/signed/6d9f90a6/x86_64/libstdc++-16.2.1-2.fc44.x86_64.rpm",
+      "size": 1049046,
+      "algorithm": "sha256",
+      "digest": "09f74b1a9b640c8273998240cb0b219c8f1fbca51197d49ec4dc8ecde39fa7ec",
+      "version": "libstdc++-16.2.1-2.fc44.x86_64; GCC licenses and runtime exception",
+      "evidence": "https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html"
+    },
+    {
+      "name": "libglvnd-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-1.7.0-9.fc44.x86_64.rpm",
+      "size": 117450,
+      "algorithm": "sha256",
+      "digest": "212df4a80c24320c53477d6d4a1fae424c58bbe475761d04a74c648c350a5fdc",
+      "version": "libglvnd-1.7.0-9.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+      "size": 38094,
+      "algorithm": "sha256",
+      "digest": "30286b1e16ab7830a0d9e34dc82fcc0234d3cfc7dbb937940bb3fc7b38b84272",
+      "version": "libglvnd-egl-1.7.0-9.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+      "size": 29289,
+      "algorithm": "sha256",
+      "digest": "c23493344e44f01306d96e9639eff3b168af74b75262b2ad16b11d666b7b6fbd",
+      "version": "libglvnd-gles-1.7.0-9.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "size": 165971,
+      "algorithm": "sha256",
+      "digest": "825f800af6106893ee976a860b7ecadd9655ada9029747053f8bbdf98cefee4f",
+      "version": "libglvnd-devel-1.7.0-9.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+      "use": "headers read as data, not installed"
+    },
+    {
+      "name": "mesa-libEGL-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-libEGL-26.2.5-1.fc44.x86_64.rpm",
+      "size": 144433,
+      "algorithm": "sha256",
+      "digest": "4ae0e3d0efb86555b48f7639f3940cf9ea8bf16fe35a9145bd3b90661cb608f7",
+      "version": "mesa-libEGL-26.2.5-1.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND BSD-3-Clause AND SGI-B-2.0",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+      "size": 14502730,
+      "algorithm": "sha256",
+      "digest": "2c8033d42d624a9f7a60f10b52950dd1f4042ac91acfe06a00f70f2c799cfbd2",
+      "version": "mesa-dri-drivers-26.2.5-1.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND BSD-3-Clause AND SGI-B-2.0",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "mesa-libgbm-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-libgbm-26.2.5-1.fc44.x86_64.rpm",
+      "size": 15511,
+      "algorithm": "sha256",
+      "digest": "d40d9a107f9824b1102d928589ffadeedcc1ce5baa74ac8b307a9e9aa1ca0084",
+      "version": "mesa-libgbm-26.2.5-1.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND BSD-3-Clause AND SGI-B-2.0",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "mesa-filesystem-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-filesystem-26.2.5-1.fc44.x86_64.rpm",
+      "size": 9360,
+      "algorithm": "sha256",
+      "digest": "39fabbd5f105c9b454028487dca23e729db2a370f069de7d3e693acd6a4c334e",
+      "version": "mesa-filesystem-26.2.5-1.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND BSD-3-Clause AND SGI-B-2.0",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "llvm-libs-22.1.8-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/llvm/22.1.8/4.fc44/data/signed/6d9f90a6/x86_64/llvm-libs-22.1.8-4.fc44.x86_64.rpm",
+      "size": 35736228,
+      "algorithm": "sha256",
+      "digest": "c033e24457336cc887611599a180b623893cefaf2ad0a540741fdd812b20a81d",
+      "version": "llvm-libs-22.1.8-4.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "Apache-2.0 WITH LLVM-exception OR NCSA",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "llvm-filesystem-22.1.8-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/llvm/22.1.8/4.fc44/data/signed/6d9f90a6/x86_64/llvm-filesystem-22.1.8-4.fc44.x86_64.rpm",
+      "size": 10255,
+      "algorithm": "sha256",
+      "digest": "c3a50a21b34d66693388fbb86371d0cc815c3218fbdc89bdecccdf4599a0d008",
+      "version": "llvm-filesystem-22.1.8-4.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "Apache-2.0 WITH LLVM-exception OR NCSA",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libX11-1.8.13-3.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/x86_64/libX11-1.8.13-3.fc44.x86_64.rpm",
+      "size": 696289,
+      "algorithm": "sha256",
+      "digest": "a3aa5c9199b442e13e5cf4d0996294397057606bef0a349df3a20cc921663041",
+      "version": "libX11-1.8.13-3.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND X11",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libX11-xcb-1.8.13-3.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/x86_64/libX11-xcb-1.8.13-3.fc44.x86_64.rpm",
+      "size": 11093,
+      "algorithm": "sha256",
+      "digest": "952df583a1a31dadbbbdd875d9efe5d091a8b6896e182cff44270345b9671884",
+      "version": "libX11-xcb-1.8.13-3.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND X11",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libX11-common-1.8.13-3.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/noarch/libX11-common-1.8.13-3.fc44.noarch.rpm",
+      "size": 179489,
+      "algorithm": "sha256",
+      "digest": "2db18bf693dfb285a17e520a4007063edb4c88b4f2ac2ed6e66ffab1e318c37d",
+      "version": "libX11-common-1.8.13-3.fc44.noarch",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT AND X11",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libXau-1.0.12-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libXau/1.0.12/4.fc44/data/signed/6d9f90a6/x86_64/libXau-1.0.12-4.fc44.x86_64.rpm",
+      "size": 34530,
+      "algorithm": "sha256",
+      "digest": "2aef79919b82c4d76dd28ef4c81fc86d7d790b4abcbac4e418d541b29cf82fca",
+      "version": "libXau-1.0.12-4.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "MIT-open-group",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libxcb/1.17.0/7.fc44/data/signed/6d9f90a6/x86_64/libxcb-1.17.0-7.fc44.x86_64.rpm",
+      "size": 243678,
+      "algorithm": "sha256",
+      "digest": "f997c30c7203d9c150f7c4982dd4d4c4c94b3e2cdfd5aec7ed3afa55370f0162",
+      "version": "libxcb-1.17.0-7.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "X11",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "libxshmfence-1.3.2-8.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libxshmfence/1.3.2/8.fc44/data/signed/6d9f90a6/x86_64/libxshmfence-1.3.2-8.fc44.x86_64.rpm",
+      "size": 13533,
+      "algorithm": "sha256",
+      "digest": "c25f27024419607d84725563bdde157887dd8c90b767beaf10745826715ccc5e",
+      "version": "libxshmfence-1.3.2-8.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "HPND-sell-variant",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/lm_sensors/3.6.0/24.fc44/data/signed/6d9f90a6/x86_64/lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm",
+      "size": 42940,
+      "algorithm": "sha256",
+      "digest": "8baa6be6981022632fad26a741e598c7e89c864494c676a3b4a9433f7899e4bc",
+      "version": "lm_sensors-libs-3.6.0-24.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "LGPL-2.1-or-later",
+      "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "spirv-tools-libs-2026.1-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/spirv-tools/2026.1/1.fc44/data/signed/6d9f90a6/x86_64/spirv-tools-libs-2026.1-1.fc44.x86_64.rpm",
+      "size": 1825635,
+      "algorithm": "sha256",
+      "digest": "1a0aa8095ec306a62bd5a439c33faeaeb0c34749d0263024f756a5cc67f172ea",
+      "version": "spirv-tools-libs-2026.1-1.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/",
+      "license": "Apache-2.0",
+      "use": "guest EGL/software-renderer runtime"
+    }
+  ],
+  "font": {
+    "package": "liberation-sans-fonts-2.1.5-15.fc44.noarch",
+    "path": "/usr/share/fonts/liberation-sans-fonts/LiberationSans-Regular.ttf",
+    "sha256": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+    "license": "OFL-1.1-RFN",
+    "license_path": "/usr/share/licenses/liberation-sans-fonts/LICENSE"
+  },
+  "graphics_sdk": {
+    "headers": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+    "runtime": [
+      "libglvnd-egl",
+      "libglvnd-gles"
+    ],
+    "runtime_evr": "1:1.7.0-9.fc44"
+  },
+  "optional_data_device_patch": {
+    "path": "patches/sdl3-3.4.20-optional-data-device.patch",
+    "sha256": "26aa5f1bba71c2030b744c6c5f2023253d6f8f1854ba00ecc7264d22912bf231",
+    "source": "src/video/wayland/SDL_waylandevents.c",
+    "original_sha256": "5973a4382e8aa1f29444f2b7f6f83f3d3581d1661c7404093431e117f022ab55",
+    "patched_sha256": "f973c1c2555d1e7ad0855a8479ebbaee52ccee1cb9744f314a7b12b66d6fcec6",
+    "reason": "A compositor may omit wl_data_device_manager. Keyboard leave must not dereference the absent data device. Retain normal offer cleanup when present."
+  }
+}

@@ -1,5 +1,31 @@
 # Decisions
 
+## First native Settings view and measured SDL boundary — 4 November 2026
+
+Use a small toolkit-independent C17 display/selection model and an opt-in SDL3
+view before full NexaUI adoption. Pin SDL 3.4.20, SDL_ttf 3.2.2, FreeType 2.15.0,
+HarfBuzz 15.0.0 and the reviewed Liberation Sans asset. The existing matched C++
+toolchain is needed only inside HarfBuzz; Aetheri code stays C17. Full Fedora SDL
+development packages pull an unnecessarily broad desktop transaction, so build
+the selected source libraries into a private prefix with their licenses.
+
+Actual native evidence ruled out a pure-software SDL window path: Wayland lacks
+a direct SDL framebuffer implementation and needs a renderer for that fallback.
+Select OpenGL ES with reviewed libglvnd/Mesa runtime inputs; the VM uses explicitly
+selected llvmpipe, while physical drivers remain separate acceptance. Fedora's
+Mesa runtime has X11 library dependencies; SDL itself has only Wayland enabled.
+Extract only EGL/GLES2/KHR development headers from a pinned signed RPM as data.
+No X server, new permanent service or global host/WSL setting is required.
+
+The real close exposed SDL's missing null guard for an absent optional Wayland
+data device. Pin a one-condition source correction, retaining original core dumps
+and normal offer cleanup. Do not invent clipboard support to mask a client bug.
+Keep the shader cache in an explicit owned development directory with its own
+budget, not an unexplained account-wide write. This is not admitted StorageRef
+ownership or complete app removal. Final visual design, native accessibility,
+normal launch/session admission and actual system-settings backends remain work.
+See [scope and evidence](../../spec/settings.md).
+
 ## Native seat and explicit nested presentation — 4 November 2026
 
 Keep input ownership in one private compositor module: native keymaps, click focus,
@@ -83,7 +109,7 @@ models/commands/services/persistence independent of toolkit types. The composito
 remains wlroots; SDL3 supplies no complete widget or accessibility stack.
 Source review and a scoped local NexaUI handoff are in [suitability](knowledge/nexaui.md).
 The user then requested a complete SDK adoption catalogue for all agreed Aetheri
-UI. The local NEXT_AETHERI_UI.md now identifies 102 requirements and 12 surface
+UI. The local NEXT_AETHERI_UI.md now identifies 103 requirements and 13 surface
 groups with priorities, source status and acceptance, beginning with the build
 profile/first app rather than a full-toolkit completion prerequisite.
 

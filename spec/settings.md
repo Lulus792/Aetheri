@@ -1,0 +1,211 @@
+# Native Settings development view
+
+4 November 2026. The first app view uses SDL3 for its Wayland window, native
+input and OpenGL ES presentation, SDL_ttf for text, FreeType for rasterization
+and HarfBuzz for shaping.
+It is an opt-in C17 development executable, not an installed/admitted app or a
+complete Settings application. Final visual design remains with the user.
+
+## Behavior and responsibility
+
+`src/settings/model.*` contains transient observations and selection without
+SDL, font or renderer types. Display IDs are session-local; they never enter a
+catalogue or become device/permission identity. A snapshot is validated before
+replacement. Failed or oversized snapshots retain the old observation marked
+stale; selection follows the same display through reordering and falls back to
+the first remaining display on removal. There is a deliberate 16-display bound.
+
+`src/settings/main.c` owns the window, renderer, font, bounded control
+geometry, event loop and presentation. It reads actual SDL display names/current
+modes/content scale. An absent refresh rate is shown as unavailable. It does not
+invent a physical display/GPU identity from headless output observations.
+
+The three pages are:
+
+- **Displays:** observed displays, selection, current mode/scale/refresh and refresh.
+  There is no apply action before a real backend exists.
+- **Appearance:** dark, light or high-contrast palette and 100/150/200% text.
+- **Language:** English or German labels.
+
+Appearance/language choices affect this window until it closes. There is no
+system mutation, app configuration file, resident helper, network request, catalogue
+write or authority RPC. The selected Mesa driver does create a shader cache.
+Development launches must supply `--cache` with an existing owned, nonsymlink
+0700 directory; the app selects that cache path before graphics initialization
+and requests a 32 MiB driver cache budget. This is not a hard disk quota or
+StorageRef admission; same-UID development code and trusted ancestors remain
+prerequisites. The eventual admitted app needs its managed cache allocation.
+Tests keep shader data in their own retained artifact root rather than adding
+unexplained files to the account-wide cache. App models/commands/persistence
+remain outside the toolkit so NexaUI views can replace SDL incrementally.
+
+Tab/Shift-Tab select controls; Enter/Space activate; F5 refreshes displays;
+Page Up/Down and the wheel scroll; Ctrl+Q or Close exits. Focus follows controls
+through reflow and automatically scrolls into view. The provisional client
+header and borders issue native Wayland move/resize requests through SDL hit
+testing. Content is clipped to its scrolling viewport. The minimum logical
+window is 760 × 480; the initial size is 1100 × 760. These are development
+dimensions, not a user-approved final design.
+
+There are no animations or transparent materials yet. Opaque palettes preserve
+readability without depending on blur support. The main thread waits for native
+events and redraws changed/exposed views; it has no continuous frame/timer loop.
+`--diagnostics` prints observation counts, non-private numeric display facts,
+frame/state/control geometry and orderly close. It grants no input-injection API.
+
+## Reviewed dependency profile
+
+[ui-inputs.json](ui-inputs.json) pins four upstream archives, three matching
+signed Fedora toolchain RPMs and the separately reviewed EGL/Mesa inputs, separately from the base/graphics profiles. This
+review selected exact release/build/license inputs; it is not a comprehensive
+security audit or approval of arbitrary fonts/content engines.
+
+| Component | Version/license | Purpose |
+| --- | --- | --- |
+| SDL3 | 3.4.20, Zlib | Wayland client window/input, OpenGL ES presentation |
+| SDL_ttf | 3.2.2, Zlib | Font/text wrapper around the selected rasterizer/shaper |
+| FreeType | 2.15.0, FTL selected from its dual license | TrueType font rasterization |
+| HarfBuzz | 15.0.0, MIT-Modern-Variant | Text shaping; C++ is dependency-internal, Aetheri remains C17 |
+| Liberation Sans | 2.1.5-15.fc44, OFL-1.1-RFN | Existing guest font, exact regular-face hash pinned |
+| GCC C++/libstdc++ development/runtime | 16.2.1-2.fc44, GCC licenses/runtime exception | Matching HarfBuzz build tools; existing C compiler remains unchanged |
+
+SDL3's release notes include Wayland/window fixes. FreeType/HarfBuzz release
+notes include later parser/lifetime fixes than the original guest versions;
+the selected copies therefore live in a private prefix instead of linking those
+older system text libraries. The complete Fedora SDL development transaction
+would have installed 123 packages and upgraded 16, including unrelated desktop
+families. The three reviewed GCC-family RPMs were installed, followed by 17 signed EGL/
+Mesa runtime packages (about 205 MiB additional installed size). The runtime
+selection includes libglvnd 1.7.0-9.fc44, Mesa 26.2.5-1.fc44, LLVM 22.1.8-4.fc44
+and their pinned transitive dependencies. Fedora Mesa includes X11 client
+libraries even though SDL uses only Wayland; no X server is installed or used.
+The separate libglvnd-devel RPM is read as header data, never installed. Exact
+SPDX declarations, versions and hashes are in the input manifest; retain the
+installed Fedora licenses, including LGPL obligations for lm_sensors-libs.
+The app links dynamically to these libraries; original Aetheri code remains MIT.
+
+The source builder enables Wayland and OpenGL ES, disabling SDL X11, libdecor,
+desktop OpenGL, Vulkan/GPU, audio, camera, joystick/haptics/HID and sensor
+subsystems. The private test explicitly selects Mesa llvmpipe and two worker
+threads in its child environment, without exposing a physical GPU. This is a
+software implementation of the GL API, not SDL's `software` window renderer or
+physical-driver acceptance. Normal app launches do not set those test variables.
+
+An initial pure-software SDL build could not create a Wayland window framebuffer:
+SDL's Wayland backend has no direct window-framebuffer callbacks and falls back
+to an accelerated renderer for window surfaces. Disabling all such renderers was
+therefore unsuitable. That original failure is retained. A temporary build-check
+patch was discarded. An earlier license-copy path mistake is retained separately
+from the final fresh build.
+
+The real consumer also exposed a separate SDL 3.4.20 close-time null dereference:
+`keyboard_handle_leave` unconditionally reads `seat->data_device->selection_offer`
+when the compositor supplies no optional clipboard manager. The retained core
+dump identifies that instruction and null base. The narrow
+[optional-data-device patch](../patches/sdl3-3.4.20-optional-data-device.patch) guards
+the absent object while retaining existing cleanup when it exists. The builder
+checks archive/patch/preimage/result hashes. No clipboard protocol is advertised
+merely to avoid the client bug, and clipboard/offer acceptance remains separate.
+This is the only adopted SDL source patch.
+
+HarfBuzz builds core shaping/FreeType integration, without utilities/tests/docs,
+subset/raster/vector/GPU or optional integrations. FreeType disables optional
+compression/image helpers and its HarfBuzz integration to avoid a dependency
+cycle; SDL_ttf invokes the separately required HarfBuzz shaper. This is a narrow
+trusted-TTF development profile, not general untrusted font-format acceptance.
+SDL_ttf's optional SVG support is disabled.
+
+`build_ui.py` requires a fresh unprivileged Linux workspace, validates cached
+archives, safely extracts them, builds into its own prefix and retains commands,
+logs, library hashes, font and licenses. Its build-local SDK reads only EGL/GLES2/
+KHR headers from the pinned devel RPM and creates explicit links to the independently
+installed libglvnd runtime. It executes no package scriptlets. It never runs a package manager or
+downloads a missing source. An interrupted build remains for inspection.
+The app and CMake reject mismatched selected dependency
+versions rather than silently accepting a different runtime.
+
+This software is based in part on the work of the FreeType Team. Third-party
+licenses are copied into the private prefix; original Aetheri code remains MIT.
+Preserve those notices when packaging the eventual app/system.
+
+Primary references: [SDL release](https://github.com/libsdl-org/SDL/releases/tag/release-3.4.20),
+[SDL_ttf release](https://github.com/libsdl-org/SDL_ttf/releases/tag/release-3.2.2),
+[FreeType](https://freetype.org/),
+[HarfBuzz release](https://github.com/harfbuzz/harfbuzz/releases/tag/15.0.0),
+[SDL event wait](https://wiki.libsdl.org/SDL3/SDL_WaitEvent),
+[Mesa 26.2.5](https://docs.mesa3d.org/relnotes/26.2.5.html),
+[llvmpipe](https://docs.mesa3d.org/drivers/llvmpipe.html) and
+[libglvnd](https://github.com/NVIDIA/libglvnd) and
+[Mesa cache controls](https://docs.mesa3d.org/envvars.html#mesa-shader-cache-dir). Exact pinned source
+headers, CMake/Meson files and included license/change files are authoritative for
+the selected profile.
+
+## Build and native checks
+
+On the host, cache/verify only:
+
+```sh
+python tools/prepare_vm.py fetch --profile ui
+python tools/prepare_vm.py verify --profile ui
+```
+
+Transfer the exact archives and source snapshot to the dedicated development
+guest. Review/signature-check the exact GCC-family and 17-package EGL/Mesa runtime
+transactions there before installing them. Keep the libglvnd-devel header RPM in
+the cache for read-only extraction; do not install it. Do not install this profile
+on the Windows host or shared WSL.
+In an unprivileged guest account, with the reviewed graphics prefix already built:
+
+```sh
+python tools/build_ui.py /path/to/cache /path/to/fresh-ui-work
+export UI_PREFIX=/path/to/fresh-ui-work/prefix
+export GRAPHICS_PREFIX=/path/to/reviewed-wlroots/prefix
+export PKG_CONFIG_PATH="$UI_PREFIX/lib/pkgconfig:$GRAPHICS_PREFIX/lib/pkgconfig"
+export LD_LIBRARY_PATH="$UI_PREFIX/lib:$GRAPHICS_PREFIX/lib"
+cmake -S . -B /path/to/app-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DAETHERI_SETTINGS=ON -DAETHERI_COMPOSITOR=ON \
+  -DCMAKE_PREFIX_PATH="$UI_PREFIX" \
+  -DAETHERI_SETTINGS_TEST_FONT="$UI_PREFIX/share/aetheri-fonts/LiberationSans-Regular.ttf"
+cmake --build /path/to/app-build -j2
+ctest --test-dir /path/to/app-build -R '^settings\.' --output-on-failure
+```
+
+Both Settings/compositor options default OFF. The combined native check requires
+the explicitly selected reviewed font. Run the app against an already running
+private Wayland session:
+
+```sh
+mkdir -m 700 /path/to/private-settings-cache
+WAYLAND_DISPLAY=private-socket /path/to/app-build/aetheri-settings \
+  --font "$UI_PREFIX/share/aetheri-fonts/LiberationSans-Regular.ttf" \
+  --cache /path/to/private-settings-cache
+```
+
+The model tests cover snapshot rejection, stale-state preservation, selection
+across reordering/removal and safe self-refresh. The native integration uses the
+separate inherited-FD compositor test executable, actual Wayland seat events,
+real SDL buffers and composed-output captures. Native resize waits for the
+actual client resize request in the private server wire trace before moving the
+grab; a driver input ACK alone is not acknowledgement of that later request.
+The initial incorrectly ordered test and its original failure are retained. It checks three real virtual
+modes, selection/refresh, keyboard and pointer control, loaded private libraries,
+themes, German/200% text, native minimum-size resize, focus scrolling, idle CPU/
+frame counts, clean close, failed-font cleanup, explicit cache input and refusal
+of unavailable-display fallback. It does
+not call SDL_PushEvent or expose a control socket in the ordinary app/compositor.
+All screenshots/logs are test artifacts, not the final product design.
+
+Executed results are recorded in [STATE](../brains/aetheri/STATE.md); intended
+checks above are not evidence until their selected binaries actually pass.
+
+## Remaining acceptance
+
+Native semantics/AT-SPI and a screenreader workflow are still required. SDL3 and
+SDL_ttf do not supply a complete accessible widget toolkit; this view must not
+be represented as a daily-use accessible Settings app. IME/text editing,
+clipboard, full settings backends/async failure handling, session admission,
+persistence/removal, mixed-density physical monitors, hardware GPU, suspend and
+render/display recovery remain work. Current scale controls change text, not a
+physical monitor or system scale. Real native 2x output evidence is separate
+from 200% text. Normal authority gates/capabilities and the retained old execution
+intent remain unchanged. Graphics/UI evidence cannot settle that old lifecycle.

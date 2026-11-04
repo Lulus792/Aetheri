@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native Settings view — 4 November 2026
+
+- [Scope/build/evidence](../../spec/settings.md), [pinned sources/RPMs/font](../../spec/ui-inputs.json),
+  [private source builder](../../tools/build_ui.py), [independent app model](../../src/settings/model.h)
+  and [native input/pixel runner](../../tools/test_settings_ui.py). Read STATE for
+  executed checks and limits; this does not establish ordinary app admission.
+- Pinned SDL3 3.4.20 and SDL_ttf 3.2.2 headers/build/source/license files,
+  FreeType 2.15.0 changes/FTL, HarfBuzz 15.0.0 release/build/license and the existing
+  Liberation Sans regular face/license. Primary release links are in the scope
+  document. Existing system text versions are not substituted for private ones.
+- SDL Wayland framebuffer source and the retained first native failure ruled out
+  the renderer-free profile. Signed Fedora libglvnd/Mesa/LLVM runtime inventories
+  and SPDX declarations, Mesa 26.2.5 release notes and llvmpipe documentation bound
+  the new OpenGL ES profile. This is not physical Intel/NVIDIA/AMD acceptance.
+- A real close-time core dump and identical final app binary with unpatched SDL
+  expose the missing optional-data-device guard. The pinned source patch and
+  positive native close are separate evidence from future clipboard support.
+- Mesa's documented shader-cache controls inform the explicit private development
+  cache path/budget. This is not production allocation, quota or removal proof.
+
 ## Native input/nested presentation — 4 November 2026
 
 - [Current graphics boundary](../../spec/graphics.md), [input ownership](../../src/compositor/input.c),

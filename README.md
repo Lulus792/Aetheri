@@ -17,9 +17,12 @@ This works for the fixed test profile. General session provisioning, restart
 recovery, document access and full app removal are still in progress.
 See the [runtime contracts](spec/runtime.md#separate-durable-run-closure).
 
-Normal app launch, document access and the desktop remain in progress. There is
-no original Aetheri image, installer or working Aetheri application yet. The
-[current state](brains/aetheri/STATE.md) records exact implementation and test limits.
+Normal app launch, document access and the desktop remain in progress. The first
+[native Settings development view](spec/settings.md) reads actual virtual-display
+information and supports keyboard input, per-window themes, text size and DE/EN.
+An original Aetheri image, installer and admitted daily-use applications remain
+work. The [current state](brains/aetheri/STATE.md) records exact implementation
+and test limits.
 
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.
