@@ -22,7 +22,11 @@ deferred for user review; dependency/renderer/input plumbing is engineering work
 The private wlroots 0.20.2/Pixman prototype now passes native input/focus, nested
 presentation and clipboard transport checks, with a working development Settings
 view. Normal app/session and accessible UI integration remain engineering work;
-physical/trusted-session acceptance remains open. Both the coordinate and private
+physical/trusted-session acceptance remains open. The separate optional
+[DRM session](../../spec/session.md) now exercises the carrier's actual connector
+and PS/2 input with logind. A reusable development controller, visible console,
+normal admitted session and lock/resume integration remain engineering work.
+Both the coordinate and private
 clipboard integration patches are pinned. See [current scope](../../spec/graphics.md).
 
 ## Browser

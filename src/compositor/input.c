@@ -336,7 +336,10 @@ void ae_input_map_outputs(struct ae_input *in) {
 }
 static void new_input(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, new_input);
-    if (!ae_input_add(in, data)) wl_display_terminate(in->server->display);
+    if (!ae_input_add(in, data)) {
+        in->server->failed = true;
+        wl_display_terminate(in->server->display);
+    }
 }
 static void begin(struct window *w, struct wlr_seat_client *seat, uint32_t serial, uint32_t edges) {
     struct ae_input *in = w->server->input;

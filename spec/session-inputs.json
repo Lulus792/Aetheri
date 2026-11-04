@@ -1,0 +1,107 @@
+{
+  "format": 1,
+  "purpose": "Optional dedicated-carrier DRM/libinput development session; not production session admission",
+  "reviewed": "2026-11-04",
+  "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "inputs": [
+    {
+      "name": "libinput-1.31.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libinput/1.31.3/1.fc44/data/signed/6d9f90a6/x86_64/libinput-1.31.3-1.fc44.x86_64.rpm",
+      "size": 284508,
+      "algorithm": "sha256",
+      "digest": "6d187c79c517affeb59b7aa6becaa127d15f1423e35b766625c89249a019cbe2",
+      "version": "libinput-1.31.3-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libinput/"
+    },
+    {
+      "name": "libinput-devel-1.31.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libinput/1.31.3/1.fc44/data/signed/6d9f90a6/x86_64/libinput-devel-1.31.3-1.fc44.x86_64.rpm",
+      "size": 44915,
+      "algorithm": "sha256",
+      "digest": "3b911628e705076a78814c733dfe09fe424d4dc3f8e6c43ea4fcc9aaef42f32f",
+      "version": "libinput-devel-1.31.3-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libinput/"
+    },
+    {
+      "name": "libseat-0.9.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/seatd/0.9.3/1.fc44/data/signed/6d9f90a6/x86_64/libseat-0.9.3-1.fc44.x86_64.rpm",
+      "size": 31589,
+      "algorithm": "sha256",
+      "digest": "63506cb0fd101d4255bb9a4e52dc8e44744dc8b4b2876ea13ce6d4284daaf8f3",
+      "version": "libseat-0.9.3-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/seatd/"
+    },
+    {
+      "name": "libseat-devel-0.9.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/seatd/0.9.3/1.fc44/data/signed/6d9f90a6/x86_64/libseat-devel-0.9.3-1.fc44.x86_64.rpm",
+      "size": 10595,
+      "algorithm": "sha256",
+      "digest": "30a4d57d02280340fe10502c8220197315ab9cf84d04c82e8bb78184a9ff2f3e",
+      "version": "libseat-devel-0.9.3-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/seatd/"
+    },
+    {
+      "name": "libdisplay-info-0.3.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libdisplay-info/0.3.0/1.fc44/data/signed/6d9f90a6/x86_64/libdisplay-info-0.3.0-1.fc44.x86_64.rpm",
+      "size": 91775,
+      "algorithm": "sha256",
+      "digest": "375a094eefecdff511111b40bbe4a776218af02051957e82c5a233de6cd30d49",
+      "version": "libdisplay-info-0.3.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libdisplay-info/"
+    },
+    {
+      "name": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libdisplay-info/0.3.0/1.fc44/data/signed/6d9f90a6/x86_64/libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm",
+      "size": 31033,
+      "algorithm": "sha256",
+      "digest": "f87296e286c5e4884045d742a740318b732c4082146bd6ee187898e64b817e11",
+      "version": "libdisplay-info-devel-0.3.0-1.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libdisplay-info/"
+    },
+    {
+      "name": "libwacom-2.19.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libwacom/2.19.0/1.fc44/data/signed/6d9f90a6/x86_64/libwacom-2.19.0-1.fc44.x86_64.rpm",
+      "size": 53653,
+      "algorithm": "sha256",
+      "digest": "ba5748e8c52fbde3d73ca6791e04c861c3a818d454245fd4f1de3b3e229cec22",
+      "version": "libwacom-2.19.0-1.fc44.x86_64; HPND",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libwacom/"
+    },
+    {
+      "name": "libwacom-data-2.19.0-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libwacom/2.19.0/1.fc44/data/signed/6d9f90a6/noarch/libwacom-data-2.19.0-1.fc44.noarch.rpm",
+      "size": 355212,
+      "algorithm": "sha256",
+      "digest": "5099f8e569baba02dc1343ab49316a3c9876b981e2b51a40636d2b988d946921",
+      "version": "libwacom-data-2.19.0-1.fc44.noarch; HPND",
+      "evidence": "https://packages.fedoraproject.org/pkgs/libwacom/"
+    },
+    {
+      "name": "mtdev-1.1.6-12.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mtdev/1.1.6/12.fc44/data/signed/6d9f90a6/x86_64/mtdev-1.1.6-12.fc44.x86_64.rpm",
+      "size": 21692,
+      "algorithm": "sha256",
+      "digest": "03a269b7e899a2a57b51aa2328268a82ceec8e456db62bf304d5ab1be56055e6",
+      "version": "mtdev-1.1.6-12.fc44.x86_64; MIT",
+      "evidence": "https://packages.fedoraproject.org/pkgs/mtdev/"
+    },
+    {
+      "name": "hwdata-0.412-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/hwdata/0.412/1.fc44/data/signed/6d9f90a6/noarch/hwdata-0.412-1.fc44.noarch.rpm",
+      "size": 1798675,
+      "algorithm": "sha256",
+      "digest": "ffb9a07e488b23a81fc682b9c1acd66be3e5e0839f5199e302440fc7c31f8ecd",
+      "version": "hwdata-0.412-1.fc44.noarch; GPL-2.0-or-later",
+      "evidence": "https://packages.fedoraproject.org/pkgs/hwdata/"
+    },
+    {
+      "name": "hwdata-devel-0.412-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/hwdata/0.412/1.fc44/data/signed/6d9f90a6/noarch/hwdata-devel-0.412-1.fc44.noarch.rpm",
+      "size": 9234,
+      "algorithm": "sha256",
+      "digest": "c927a45c06ceb67579162cd8e6159561a9464c2bd11e4c3da75881161ec187ce",
+      "version": "hwdata-devel-0.412-1.fc44.noarch; GPL-2.0-or-later",
+      "evidence": "https://packages.fedoraproject.org/pkgs/hwdata/"
+    }
+  ]
+}

@@ -17,6 +17,12 @@
 #include <wlr/backend.h>
 #include <wlr/backend/headless.h>
 #include <wlr/backend/wayland.h>
+#ifdef AETHERI_DRM_SESSION
+#include <wlr/backend/drm.h>
+#include <wlr/backend/libinput.h>
+#include <wlr/backend/multi.h>
+#include <wlr/backend/session.h>
+#endif
 #include <wlr/render/allocator.h>
 #include <wlr/render/pixman.h>
 #include <wlr/types/wlr_buffer.h>
@@ -81,6 +87,7 @@ done:
 static void output_frame(struct wl_listener *listener, void *data) {
     (void)data;
     struct output *o = wl_container_of(listener, o, frame);
+    if (o->server->failed || o->server->shutting_down || !o->scene) return;
     if (!wlr_scene_output_needs_frame(o->scene)) {
         /* A client can request pacing without damaging any pixels. */
         struct timespec now;
@@ -116,6 +123,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
     o->output = NULL;
     o->scene = NULL;
     if (o->server->nested && !o->server->shutting_down) wl_display_terminate(o->server->display);
+    if (o->server->drm && !o->server->shutting_down) fail(o->server, "development output lost");
 }
 static void output_request_state(struct wl_listener *listener, void *data) {
     struct output *o = wl_container_of(listener, o, request_state);
@@ -137,6 +145,106 @@ static void backend_destroy(struct wl_listener *listener, void *data) {
     s->backend = NULL;
     if (!s->shutting_down) fail(s, "parent backend lost");
 }
+
+#ifdef AETHERI_DRM_SESSION
+static void session_destroyed(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct server *s = wl_container_of(listener, s, session_destroy);
+    wl_list_remove(&s->session_active.link);
+    wl_list_init(&s->session_active.link);
+    wl_list_remove(&s->session_destroy.link);
+    wl_list_init(&s->session_destroy.link);
+    s->session = NULL;
+    if (!s->shutting_down) fail(s, "development session lost");
+}
+
+static void session_active(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct server *s = wl_container_of(listener, s, session_active);
+    /* No trusted lock/resume policy yet: exit instead of delivering stale input. */
+    if (!s->session->active && !s->shutting_down) fail(s, "development seat deactivated");
+}
+
+static void drm_output(struct wl_listener *listener, void *data) {
+    struct server *s = wl_container_of(listener, s, new_output);
+    struct wlr_output *raw = data;
+    struct wlr_output_mode *mode = wlr_output_preferred_mode(raw);
+    if (!wlr_output_is_drm(raw) || s->output_count >= OUTPUT_LIMIT || !mode ||
+            mode->width < 64 || mode->width > 3840 || mode->height < 64 || mode->height > 2160) {
+        fail(s, "DRM output outside development profile"); return;
+    }
+    unsigned index = s->output_count++;
+    struct output *o = &s->outputs[index];
+    o->server = s; o->index = index; o->output = raw;
+    o->destroy.notify = output_destroy;
+    wl_signal_add(&raw->events.destroy, &o->destroy);
+    o->request_state.notify = output_request_state;
+    wl_signal_add(&raw->events.request_state, &o->request_state);
+    o->frame.notify = output_frame;
+    wl_signal_add(&raw->events.frame, &o->frame);
+    if (!wlr_output_init_render(raw, s->allocator, s->renderer)) {
+        fail(s, "DRM rendering initialization failed"); return;
+    }
+    struct wlr_output_state state;
+    wlr_output_state_init(&state);
+    wlr_output_state_set_enabled(&state, true);
+    wlr_output_state_set_mode(&state, mode);
+    bool ok = wlr_output_commit_state(raw, &state);
+    wlr_output_state_finish(&state);
+    int x = 0;
+    for (unsigned i = 0; i < index; ++i) {
+        if (!s->outputs[i].output) { fail(s, "earlier DRM output lost"); return; }
+        x += s->outputs[i].output->width;
+    }
+    if (!ok || !wlr_output_layout_add(s->layout, raw, x, 0) ||
+            !(o->scene = wlr_scene_output_create(s->scene, raw))) {
+        fail(s, "DRM output commit/layout failed"); return;
+    }
+    wlr_scene_output_set_position(o->scene, x, 0);
+    ae_input_map_outputs(s->input);
+    printf("OUTPUT %u %dx%d refresh=%d\n", index, raw->width, raw->height, raw->refresh);
+}
+
+static struct wlr_backend *session_backend(struct server *s, struct wl_event_loop *loop, const char *card) {
+    const char *seat_backend = getenv("LIBSEAT_BACKEND");
+    if (!seat_backend || strcmp(seat_backend, "logind")) return NULL;
+    s->session = wlr_session_create(loop);
+    if (s->session) {
+        s->session_destroy.notify = session_destroyed;
+        wl_signal_add(&s->session->events.destroy, &s->session_destroy);
+    }
+    /* Activation is asynchronous. Wait only for this same session; never reopen
+       or substitute another backend after a delayed/lost activation. */
+    struct timespec deadline, now;
+    if (clock_gettime(CLOCK_MONOTONIC, &deadline) != 0) return NULL;
+    deadline.tv_sec += 5;
+    while (s->session && !s->session->active) {
+        if (clock_gettime(CLOCK_MONOTONIC, &now) != 0 || now.tv_sec > deadline.tv_sec ||
+                (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec)) break;
+        if (wl_event_loop_dispatch(loop, 100) < 0) break;
+    }
+    if (!s->session || !s->session->active || strcmp(s->session->seat, "seat0")) {
+        fprintf(stderr, "development session requires the active local seat0 VT\n");
+        return NULL;
+    }
+    s->session_active.notify = session_active;
+    wl_signal_add(&s->session->events.active, &s->session_active);
+    struct wlr_backend *multi = wlr_multi_backend_create(loop);
+    if (!multi) return NULL;
+    struct wlr_device *device = wlr_session_open_file(s->session, card);
+    struct wlr_backend *drm = device ? wlr_drm_backend_create(s->session, device, NULL) : NULL;
+    if (!drm || !wlr_multi_backend_add(multi, drm)) {
+        if (drm) wlr_backend_destroy(drm);
+        wlr_backend_destroy(multi); return NULL;
+    }
+    struct wlr_backend *input = wlr_libinput_backend_create(s->session);
+    if (!input || !wlr_multi_backend_add(multi, input)) {
+        if (input) wlr_backend_destroy(input);
+        wlr_backend_destroy(multi); return NULL;
+    }
+    return multi;
+}
+#endif
 
 static void configure(struct window *w) {
     struct server *s = w->server;
@@ -222,7 +330,7 @@ static void window_resize(struct wl_listener *listener, void *data) {
 static void new_toplevel(struct wl_listener *listener, void *data) {
     struct server *s = wl_container_of(listener, s, new_toplevel);
     struct wlr_xdg_toplevel *top = data;
-    if (s->window_count >= WINDOW_LIMIT) {
+    if (!s->output_count || s->window_count >= WINDOW_LIMIT) {
         wl_client_post_implementation_error(wl_resource_get_client(top->resource), "private window limit");
         return;
     }
@@ -296,33 +404,43 @@ static int private_directory(const char *path) {
 
 int main(int argc, char **argv) {
     bool nested = argc > 1 && !strcmp(argv[1], "--nested");
-    int expected_argc = nested ? 5 : 4;
+    bool drm = false;
+#ifdef AETHERI_DRM_SESSION
+    drm = argc > 1 && !strcmp(argv[1], "--drm");
+#endif
+    int expected_argc = nested || drm ? 5 : 4;
 #ifdef AETHERI_INPUT_TEST
     if (nested) return 2;
     expected_argc = 5;
     struct input_driver *driver = NULL;
 #endif
-    if (argc != expected_argc || (!nested && strcmp(argv[1], "--headless")) || strlen(argv[2]) > 48 ||
+    if (argc != expected_argc || (!nested && !drm && strcmp(argv[1], "--headless")) || strlen(argv[2]) > 48 ||
             strspn(argv[2], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[2]) ||
             argv[2][0] == '\0' || getuid() == 0 || getuid() != geteuid() || getgid() != getegid()) {
         fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n"
-                        "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n");
+                        "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
+                        "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- /dev/dri/cardN\n");
         return 2;
     }
     if (nested && (getenv("WAYLAND_SOCKET") || strlen(argv[4]) > 48 || !argv[4][0] ||
             strspn(argv[4], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[4]) ||
             !strcmp(argv[2], argv[4]))) return 2;
+    if (drm && (strncmp(argv[4], "/dev/dri/card", 13) || !argv[4][13] ||
+            strlen(argv[4] + 13) > 2 || strspn(argv[4] + 13, "0123456789") != strlen(argv[4] + 13))) return 2;
     int runtime = private_directory(getenv("XDG_RUNTIME_DIR"));
     if (runtime < 0) { fprintf(stderr, "private 0700 XDG_RUNTIME_DIR required\n"); return 2; }
     close(runtime);
-    struct server s = {.capture_fd = -1, .output_count = OUTPUT_LIMIT, .nested = nested};
+    struct server s = {.capture_fd = -1, .output_count = drm ? 0 : OUTPUT_LIMIT, .nested = nested, .drm = drm};
+    wl_list_init(&s.session_active.link);
+    wl_list_init(&s.session_destroy.link);
+    wl_list_init(&s.new_output.link);
     struct wl_display *parent = NULL;
     if (strcmp(argv[3], "-")) {
         s.capture_fd = private_directory(argv[3]);
         if (s.capture_fd < 0) return 2;
     }
     setvbuf(stdout, NULL, _IOLBF, 0);
-    wlr_log_init(WLR_ERROR, NULL);
+    wlr_log_init(drm ? WLR_INFO : WLR_ERROR, NULL);
     wl_list_init(&s.windows);
     s.display = wl_display_create();
     if (!s.display) { if (s.capture_fd >= 0) close(s.capture_fd); return 1; }
@@ -334,6 +452,10 @@ int main(int argc, char **argv) {
         signals[i] = wl_event_loop_add_signal(loop, numbers[i], signal_event, &s);
         if (!signals[i]) goto done;
     }
+#ifdef AETHERI_DRM_SESSION
+    if (drm) s.backend = session_backend(&s, loop, argv[4]);
+    else
+#endif
     if (nested) {
         parent = wl_display_connect(argv[4]);
         if (!parent) goto done;
@@ -351,11 +473,11 @@ int main(int argc, char **argv) {
             !wlr_data_device_manager_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
-    if (!wlr_scene_rect_create(&s.scene->tree, 8320, 2160, background)) goto done;
+    if (!wlr_scene_rect_create(&s.scene->tree, drm ? 11520 : 8320, 2160, background)) goto done;
     s.input = ae_input_create(&s);
     if (!s.input || (nested && !wlr_backend_start(s.backend))) goto done;
     int x = 0;
-    for (unsigned i = 0; i < OUTPUT_LIMIT; ++i) {
+    for (unsigned i = 0; !drm && i < OUTPUT_LIMIT; ++i) {
         struct output *o = &s.outputs[i];
         o->server = &s;
         o->index = i;
@@ -387,6 +509,12 @@ int main(int argc, char **argv) {
     if (!s.shell) goto done;
     s.new_toplevel.notify = new_toplevel;
     wl_signal_add(&s.shell->events.new_toplevel, &s.new_toplevel);
+#ifdef AETHERI_DRM_SESSION
+    if (drm) {
+        s.new_output.notify = drm_output;
+        wl_signal_add(&s.backend->events.new_output, &s.new_output);
+    }
+#endif
 #ifdef AETHERI_INPUT_TEST
     char *end = NULL;
     long input_fd = strtol(argv[4], &end, 10);
@@ -395,7 +523,8 @@ int main(int argc, char **argv) {
     if (!driver) goto done;
 #endif
     if (wl_display_add_socket(s.display, argv[2]) != 0 || (!nested && !wlr_backend_start(s.backend))) goto done;
-    printf("READY %s outputs=3 renderer=pixman\n", argv[2]);
+    if (s.failed || !s.output_count) goto done;
+    printf("READY %s outputs=%u renderer=pixman\n", argv[2], s.output_count);
     wl_display_run(s.display);
     result = s.failed ? 1 : 0;
 done:
@@ -405,6 +534,7 @@ done:
     input_driver_close(driver);
 #endif
     if (s.shell) wl_list_remove(&s.new_toplevel.link);
+    wl_list_remove(&s.new_output.link);
     ae_input_stop_backend(s.input);
     if (s.backend) wlr_backend_destroy(s.backend);
     ae_input_destroy(s.input);
@@ -412,6 +542,11 @@ done:
     if (s.layout) wlr_output_layout_destroy(s.layout);
     if (s.allocator) wlr_allocator_destroy(s.allocator);
     if (s.renderer) wlr_renderer_destroy(s.renderer);
+#ifdef AETHERI_DRM_SESSION
+    wl_list_remove(&s.session_active.link);
+    wl_list_remove(&s.session_destroy.link);
+    if (s.session) wlr_session_destroy(s.session);
+#endif
     for (unsigned i = 0; i < 4; ++i) if (signals[i]) wl_event_source_remove(signals[i]);
     wl_display_destroy(s.display);
     if (parent) wl_display_disconnect(parent);

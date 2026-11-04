@@ -1,8 +1,76 @@
 # State
 
-4 November 2026 — native clipboard transport and focus-bound selection.
+4 November 2026 — actual DRM/libinput development session.
 
 ## Current update
+
+The optional compositor now drives an actual KMS connector and evdev devices
+through a selected DRM/libinput/logind profile. The existing virtual VGA/bochs-drm
+and PS/2 devices work without reboot or virtual GPU replacement. An explicit
+ordinary UID1000 PAM/logind session on an inspected free tty2 displays Settings
+at 1280x800/74.994 Hz. Both processes have zero capabilities and NoNewPrivileges;
+Fedora remains enforcing. No device chmod/group, new policy grant, root compositor,
+seatd daemon or host/WSL change was needed. See [scope/build/operations](../../spec/session.md).
+
+`AETHERI_DRM_SESSION` is separately opt-in and requires the reviewed session-capable
+wlroots profile; ordinary builds stay unchanged. A missing/wrong libseat backend
+or malformed card never falls back or publishes a socket. Root is refused, and
+the actual headless-only library candidate fails configuration at the missing
+DRM feature check. The normal executable exposes no input-test global/driver.
+Initial activation waits on the same session with a five-second monotonic bound;
+unexpected session destruction invalidates its pointer. Deactivation/output loss
+currently exits rather than pretending lock/resume policy exists.
+
+Eleven supplementary exact signed RPMs are pinned in session-inputs.json. Ten
+packages were added and hwdata updated; the offline no-weak-deps transaction adds
+about 3 MiB net. All signatures match the full Fedora44 key. libinput 1.31.3,
+libseat 0.9.3, libdisplay-info 0.3.0, hwdata 0.412 and existing libudev259 build the
+same pinned wlroots0.20.2 with DRM/libinput/session, Pixman and DRM dumb allocation;
+optional GL/Vulkan/GBM/libliftoff remain disabled in that library. Existing SDL
+Settings still uses the separately reviewed GLES/llvmpipe path.
+
+Release passes 7/7 Settings/compositor tests (10.96 s); Debug ASan/UBSan with a
+separately instrumented wlroots passes 7/7 (16.09 s). This includes five safe
+backend/card negative cases in the new session argument test. The four image
+suites produce 54 equal hashes per profile; all 108 compressed originals were
+decoded and reverified. The ordinary default Release build and five selected
+existing core/broker/boot tests pass (0.20 s). Seven host cache/input guards pass.
+
+Actual QMP key/mouse events traverse PS/2 -> Linux/libinput -> Wayland -> SDL.
+Tab/Enter, a native pointer Light-theme click, German and 200% text work in the
+Release DRM session. Original PNGs were visually inspected. One idle second has
+unchanged CPU ticks for both processes and 28 compositor commits before/after.
+Ctrl+Q closes Settings with status0; VT deactivation ends the provisional server
+with status1. A fresh Debug DRM session then reacquires that same card, displays
+Settings and native keyboard navigation, and closes both processes with status0
+without a sanitizer finding. Two initial DRM PNGs are byte-identical across
+profiles. Actual Debug process/unit/context/mapped-library evidence is retained.
+After the final input-enrollment failure flag correction, both final native DRM
+profiles were exercised again on inspected free tty8, outside the carrier's
+checked automatic-VT range. Exact live binary/unit/context/library hashes and
+original PID1 success events are retained for both; final initial/Appearance PNGs
+are byte-equal. Collected transient-unit defaults are never used as exit evidence.
+
+The initial inactive-VT/getty race, direct init_t home-exec denial, wrong test font
+prefix and nonpersistent configure environment are retained as original setup
+failures. Native mouse transitions need separate QMP batches; a combined PS/2
+down/up can coalesce into no click. The optional carrier pam_lastlog2 warning is
+recorded, with no PAM weakening or claim of login-manager acceptance.
+
+All 227 host/snapshot/guest source hashes agree, eleven transferred RPM hashes
+agree and the 28 frozen SQL/XML files are raw-byte unchanged. The old Root/User
+catalogue hashes and sixteen static files plus protected profile remain unchanged;
+running/recover-handoff is still historical unresolved bookkeeping. No selected
+new compositor/Settings process or PAM session remains; tty1 is active. These
+test exits are never old-intent drain/release evidence.
+
+Next: reusable supervised development start/stop, a visible VM console and the
+desktop shell/apps, with normal admitted session/app confinement, trusted lock/
+resume and actual settings backends. Original boot image/installer, full persistent
+resettable experiment desktop and physical hardware acceptance remain required.
+No normal authority capability, catalogue migration or final UI design changed.
+
+Previous clipboard checkpoint (5c68764):
 
 The private compositor now supports real Wayland clipboard selection and FD
 transfer between independently connected clients. Publications/clears require

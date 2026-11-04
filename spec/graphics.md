@@ -6,6 +6,11 @@ It uses wlroots for protocol/scene/backend primitives and Pixman for
 software rendering. This opt-in executable is not an installed desktop session,
 app sandbox or replacement for the lifecycle authorities.
 
+An additional opt-in [DRM development session](session.md) now drives the actual
+virtual connector and PS/2 input through libinput/logind on the dedicated carrier.
+It has a separate dependency/build profile and does not change the default
+headless/nested selection or imply a trusted session, lock or resume policy.
+
 ## Implemented scope
 
 The explicit `--headless` mode creates three virtual outputs: 1920×1080,
@@ -65,10 +70,11 @@ Native consumers observe actual seat events without linking the compositor.
 - Supply an owned, nonsymlink, 0700 `XDG_RUNTIME_DIR` and a bounded socket basename.
   Its ancestors and the same-UID development environment remain trusted
   prerequisites; this is not hostile-user or namespace admission.
-- Only the explicitly selected headless or nested Wayland backend and Pixman
-  renderer are constructed. There is no hardware autodetection, fallback or startup
-  shell command. A parent display is used only by the explicit nested mode; no
-  DRM session or physical input device is opened directly.
+- Only the explicitly selected backend and Pixman renderer are constructed.
+  Headless/nested modes open no DRM session or physical input device. The separate
+  DRM build/mode requests one named card and seat input through logind; there is
+  no hardware/backend fallback or startup shell command. A parent display is used
+  only by the explicit nested mode.
 - The server owns display/backend/scene/allocator/renderer and signal sources;
   each window owns its listeners. The xdg scene helper retires its surface tree.
   Shutdown first destroys clients, then outputs and renderer resources.

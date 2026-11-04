@@ -4,6 +4,35 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Explicit DRM development session — 4 November 2026
+
+- [Session contract/evidence boundary](../../spec/session.md),
+  [input pins](../../spec/session-inputs.json),
+  [fresh library builder](../../tools/build_graphics.py),
+  [native compositor](../../src/compositor/main.c) and
+  [safe negative cases](../../tools/test_compositor_session.py).
+- Exact pinned wlroots 0.20.2 DRM/multi/session/allocator source and public headers
+  were read: DRM owns its opened device after successful construction, the session
+  closes remaining devices on destruction, and Pixman can use the DRM dumb allocator.
+  The archive and unchanged private patch hashes remain in graphics-inputs.json.
+- [pam_systemd](https://www.freedesktop.org/software/systemd/man/latest/pam_systemd.html)
+  and [systemd execution environment](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)
+  explain session registration/PAM/TTY responsibility. Live pages describe 262;
+  installed carrier 259 manuals/configuration and actual logind session properties
+  were checked separately. They are not evidence of a completed Aetheri login manager.
+- [libinput introduction](https://wayland.freedesktop.org/libinput/doc/latest/)
+  identifies its display-server input role. The current page is 1.32; exact Fedora
+  1.31.3 and libseat 0.9.3 inputs, licenses, dependency closure and compatibility
+  were checked through package metadata/signatures and actual builds/runs. The
+  upstream seatd tag/raw-source web requests were blocked; do not claim those
+  pages were read or that signatures establish absence of vulnerabilities.
+- Private original results are under local/session-review-2026-11-04 and the
+  dedicated guest's session-release/session-debug builds and dev-session directories.
+  Actual QMP captures, process/unit/context/library observations and preserved
+  first failures supplement native suites. Two initial DRM images match byte for
+  byte across Release/Debug. Full physical/trusted-session/lock/resume acceptance
+  is still absent. Normal authorities and the old execution intent are unchanged.
+
 ## Native clipboard — 4 November 2026
 
 - [Clipboard contract](../../spec/graphics.md#native-clipboard-selection),

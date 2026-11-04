@@ -159,3 +159,8 @@ preferences. Native input, scaling/reflow, pixels, close and sanitizer checks
 exist; ordinary app admission, real settings backends, native accessibility and
 physical-driver acceptance remain work. This is a provisional view whose model
 can be retained during NexaUI migration.
+
+The optional DRM development session now displays this view on the carrier's
+actual virtual connector with logind/libinput and ordinary UID1000 processes.
+Normal session/app confinement, desktop shell, trusted lock/resume and physical
+driver acceptance remain separate work. See [session boundary](../../spec/session.md).

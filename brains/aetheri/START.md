@@ -4,6 +4,8 @@ Aetheri is a planned Linux-based personal desktop OS with original applications.
 Updated 4 November 2026 for native clipboard, the Settings view and nested input,
 strict service-main admission and interruption transactions. Read STATE before
 relying on retained-handle evidence.
+The separate [DRM development session](../../spec/session.md) now has actual
+virtual-display/input evidence; normal session and lock/resume admission remain open.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

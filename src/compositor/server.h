@@ -39,11 +39,13 @@ struct server {
     struct ae_input *input;
     struct wl_listener new_toplevel;
     struct wl_listener backend_destroy;
+    struct wl_listener new_output, session_active, session_destroy;
+    struct wlr_session *session;
     struct output outputs[OUTPUT_LIMIT];
     struct wl_list windows;
     unsigned output_count, window_count, next_home, capture;
     int capture_fd;
-    bool failed, nested, shutting_down;
+    bool failed, nested, drm, shutting_down;
 };
 
 

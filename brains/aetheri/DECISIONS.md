@@ -1,5 +1,26 @@
 # Decisions
 
+## Use an explicit unprivileged DRM development profile — 4 November 2026
+
+Extend the existing compositor with one selected DRM card, libinput and libseat's
+logind backend. Keep headless/nested defaults and separate minimal wlroots builds.
+The carrier already has bochs-drm and PS/2 devices, so no reboot, virtual GPU
+replacement or host display listener is needed. Pixman plus the built-in DRM
+dumb allocator avoids additional wlroots renderer/GBM/libliftoff requirements.
+Pin/review the eleven supplementary Fedora RPMs before offline installation.
+
+Use an actual local PAM/logind session as UID1000 with empty capabilities, without
+device chmod/groups, root compositor or policy grants. Initial activation is
+asynchronous; wait on the same session with a bounded monotonic deadline. A
+temporary development service conflicts with only its inspected free VT's getty.
+Never displace a preexisting user session. Exit on deactivation/device/session
+loss until trusted lock/resume policy exists; do not claim suspend acceptance.
+
+Actual KMS pixels, device input, process context, cleanup/reacquisition and native
+sanitizer tests are separate from protocol/headless evidence. Development output
+and a successful fresh session cannot settle the protected old execution intent.
+Keep complete desktop/app/image/hardware goals open. See [contract](../../spec/session.md).
+
 ## Native clipboard stays focus-bound and producer-owned — 4 November 2026
 
 Add ordinary Wayland clipboard transport to the private compositor before app
