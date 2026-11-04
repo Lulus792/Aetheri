@@ -4,6 +4,27 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Development supervisor and native viewer — 4 November 2026
+
+- [Development guide/contracts](../../spec/development-session.md),
+  [controller/supervisor](../../tools/development_session.py),
+  [contract/file/child-process checks](../../tools/test_development_session.py) and
+  [host VM runner](../../tools/run_vm.py).
+- [QEMU invocation/display options](https://www.qemu.org/docs/master/system/invocation.html)
+  describes native SDL, GL and window-close behavior. The installed 11.1.0 reports
+  its compiled display backends; actual QMP confirms the selected SDL options.
+  The existing reviewed host-tool extraction supplies SDL2; no noVNC or other
+  viewer dependency was adopted. This does not replace SDL3 for Aetheri apps.
+- Actual systemd259 Type=notify/NotifyAccess=main/PAM/RemainAfterExit behavior is
+  exercised by fixed native carrier sessions. The existing installed manual's
+  main-versus-child PAM scope distinction is reflected in the supervisor boundary.
+  Numeric process/unit observations are not normal app admission or production drain.
+- Private original evidence is under local/session-controller-review-2026-11-04:
+  both VM boot snapshots, native session records/journals, actual idempotence
+  negatives, idle ticks, QMP PNGs and the deliberate cleanup-guard counterexample.
+  Ten Linux checks execute without skips. Native Windows app/window inspection
+  attempts timed out; host-window metadata and QMP pixels are narrower evidence.
+
 ## Explicit DRM development session — 4 November 2026
 
 - [Session contract/evidence boundary](../../spec/session.md),

@@ -1,5 +1,23 @@
 # Decisions
 
+## Keep development supervision separate from production admission — 4 November 2026
+
+Use one ordinary-user development supervisor inside an explicit PAM/logind unit,
+retaining both native child handles through stop/reap. A submitted first frame
+drives Type=notify startup; RemainAfterExit preserves the original result until
+the root controller records it. Keep the root controller short-lived with a
+separate bounded version1 journal, original boot/unit/invocation checks, no
+automatic effect replay and historical completed-stop receipts. Do not turn this
+Python development tool into the production session manager or normal app API.
+
+Reuse the already provisioned QEMU SDL2 frontend as an optional native test console:
+GL/window-close shutdown off, private AF_UNIX QMP, no VNC/host share/clipboard bridge.
+This avoids a new viewer/websocket dependency and leaves Aetheri's SDL3 UI unchanged.
+Changing frontend requires an explicit graceful carrier restart. Verify protected
+old bytes before/after and leave its unresolved intent untouched. Windows-native
+UI inspection timed out; do not promote QMP guest pixels to host-input acceptance.
+See [guide/contracts/evidence](../../spec/development-session.md).
+
 ## Use an explicit unprivileged DRM development profile — 4 November 2026
 
 Extend the existing compositor with one selected DRM card, libinput and libseat's

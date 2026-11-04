@@ -173,6 +173,7 @@ library provenance; a system-font path is not that provenance.
 Final profile tests and the fresh Debug DRM reacquisition are recorded in STATE.
 No frozen SQL/XML, installed authority capability or protected old execution
 catalogue changes. These development sessions cannot settle that old intent.
-Next: a reusable supervised development-session controller, visible VM console,
-desktop shell, normal session/app admission, trusted lock/resume, device settings,
+The [supervised development controller and native console](development-session.md)
+now provide repeatable start/status/stop with their own narrow test boundary.
+Next: desktop shell, normal session/app admission, trusted lock/resume, device settings,
 original boot image/installer and separate physical hardware acceptance.

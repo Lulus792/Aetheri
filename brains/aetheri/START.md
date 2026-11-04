@@ -6,6 +6,8 @@ strict service-main admission and interruption transactions. Read STATE before
 relying on retained-handle evidence.
 The separate [DRM development session](../../spec/session.md) now has actual
 virtual-display/input evidence; normal session and lock/resume admission remain open.
+For repeatable start/status/stop and the native VM window, see the
+[development session guide](../../spec/development-session.md).
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

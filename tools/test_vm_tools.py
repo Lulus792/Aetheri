@@ -634,6 +634,18 @@ class VmTools(unittest.TestCase):
             with self.assertRaises(ValueError):
                 vm.start(True, offline=True)
 
+    def test_native_console_retains_local_devices_and_private_qmp(self):
+        hidden = vm.command(False, offline=True)
+        visible = vm.command(False, offline=True, console=True)
+        index = hidden.index("-display") + 1
+        self.assertEqual(hidden[index], "none")
+        self.assertEqual(visible[index], "sdl,gl=off,window-close=off")
+        visible[index] = hidden[index]
+        self.assertEqual(visible, hidden)
+        with patch.object(vm, "prepare", side_effect=AssertionError("mutated guest")):
+            with self.assertRaisesRegex(ValueError, "existing guest boot"):
+                vm.start(True, console=True)
+
     def test_atomic_state_preserves_previous_file_when_temp_already_exists(self):
         path = self.guest / "process.json"
         path.write_text("previous", encoding="utf-8")

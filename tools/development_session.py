@@ -1,0 +1,435 @@
+"""Explicit dedicated-carrier UI session. Development infrastructure, not app admission.
+
+Windows: start/status/stop via the verified P0 SSH connection.
+Linux --guest: root-only controller; --supervise: ordinary-user child supervisor.
+No installed service, public API, catalogue writer or automatic retry.
+"""
+import argparse
+from contextlib import contextmanager
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import selectors
+import signal
+import socket
+import stat
+import subprocess
+import sys
+import time
+import uuid
+
+CONTROL = Path("/var/lib/aetheri-development-session")
+USER_ROOT = Path("/home/aetheri/development-sessions")
+SOURCE = Path("/home/aetheri/source/tools/development_session.py")
+UI = Path("/home/aetheri/deps/ui-gles-release-02/prefix")
+PROFILES = ("release", "debug")
+PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
+
+
+def build_for(profile):
+    return Path("/home/aetheri/build/session-" + profile)
+
+
+def run(*args, timeout=25):
+    return subprocess.check_output(args, text=True, stderr=subprocess.PIPE, timeout=timeout).strip()
+
+
+def digest(path):
+    with Path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def owned(path, uid, mode, directory=False):
+    s = Path(path).lstat()
+    kind = stat.S_ISDIR if directory else stat.S_ISREG
+    if not kind(s.st_mode) or s.st_uid != uid or stat.S_IMODE(s.st_mode) != mode:
+        raise RuntimeError("unexpected development object owner/type/mode: " + str(path))
+    if not directory and (s.st_nlink != 1 or s.st_size > 65536):
+        raise RuntimeError("unexpected development record bounds")
+
+
+def save(record):
+    # A preexisting .next is an unresolved write, never disposable retry debris.
+    temporary = CONTROL / "active.next"
+    data = (json.dumps(record, indent=2) + "\n").encode()
+    if len(data) > 65536:
+        raise RuntimeError("development record exceeded its bound")
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(data); stream.flush(); os.fsync(stream.fileno())
+    os.replace(temporary, CONTROL / "active.json")
+    fd = os.open(CONTROL, os.O_RDONLY | os.O_DIRECTORY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
+
+
+def validate(record, carrier):
+    if record.get("format") != 1 or record.get("carrier") != carrier or record.get("profile") not in PROFILES:
+        raise RuntimeError("foreign development record/profile")
+    token = record.get("token", "")
+    if not isinstance(token, str) or re.fullmatch("[0-9a-f]{32}", token) is None:
+        raise RuntimeError("invalid development token")
+    if record.get("unit") != "aetheri-development-" + token + ".service" or record.get("phase") not in PHASES:
+        raise RuntimeError("invalid development unit/state")
+    if str(uuid.UUID(record["boot"])) != record["boot"]:
+        raise RuntimeError("invalid development boot")
+    if record.get("invocation") is not None and re.fullmatch("[0-9a-f]{32}", record["invocation"]) is None:
+        raise RuntimeError("invalid original development invocation")
+    return record
+
+
+def load(carrier, token=None):
+    active = CONTROL / "active.json"
+    if not active.exists():
+        return None
+    owned(active, 0, 0o600)
+    record = validate(json.loads(active.read_text()), carrier)
+    if token is not None and token != record["token"]:
+        path = CONTROL / "history" / (token + ".json")
+        owned(path, 0, 0o600)
+        record = validate(json.loads(path.read_text()), carrier)
+        if record["token"] != token or record["phase"] != "closed":
+            raise RuntimeError("nonterminal development history")
+    return record
+
+
+def properties(unit):
+    names = ("LoadState", "ActiveState", "SubState", "MainPID", "ExecMainPID", "ExecMainStatus",
+             "ExecMainCode", "InvocationID", "ControlGroup", "Result", "Type", "RemainAfterExit", "User")
+    return dict(line.split("=", 1) for line in run("systemctl", "show", unit,
+                *["--property=" + name for name in names]).splitlines())
+
+
+def require_original(record, props):
+    if Path("/proc/sys/kernel/random/boot_id").read_text().strip() != record["boot"]:
+        raise RuntimeError("different boot: development session needs manual reconciliation")
+    if props["InvocationID"] != record["invocation"] or props["ExecMainPID"] != str(record["pid"]):
+        raise RuntimeError("original development unit was lost or replaced")
+    if props["MainPID"] not in ("0", str(record["pid"])):
+        raise RuntimeError("development main process changed")
+    if props["RemainAfterExit"] != "yes" or props["Type"] != "notify" or props["User"] != "aetheri":
+        raise RuntimeError("development unit configuration drift")
+
+
+def free_seat():
+    for row in json.loads(run("loginctl", "list-sessions", "--json=short")):
+        if row.get("seat") == "seat0":
+            raise RuntimeError("an existing local session owns seat0")
+    text = run("systemd-analyze", "cat-config", "systemd/logind.conf")
+    values = {"NAutoVTs": 6, "ReserveVT": 6}
+    for name, value in re.findall(r"^\s*(NAutoVTs|ReserveVT)\s*=\s*(\d+)\s*$", text, re.M):
+        values[name] = int(value)
+    if values["NAutoVTs"] >= 8 or values["ReserveVT"] == 8:
+        raise RuntimeError("tty8 is in this carrier's automatic VT range")
+    if Path("/sys/class/tty/tty0/active").read_text().strip() != "tty1":
+        raise RuntimeError("start requires the inspected tty1 baseline")
+    if subprocess.run(["systemctl", "is-active", "--quiet", "getty@tty8.service"]).returncode == 0:
+        raise RuntimeError("tty8 has a login service")
+    tty = os.stat("/dev/tty8").st_rdev
+    for p in Path("/proc").iterdir():
+        if not p.name.isdigit(): continue
+        try: current = int((p / "stat").read_text().rsplit(")", 1)[1].split()[4])
+        except (FileNotFoundError, ProcessLookupError): continue
+        if current == tty:
+            raise RuntimeError("tty8 already has a controlling process")
+
+
+def start(record, carrier, profile):
+    if record and record["phase"] != "closed":
+        raise RuntimeError("an existing development intent must be observed/stopped first")
+    free_seat()
+    if record:
+        history = CONTROL / "history" / (record["token"] + ".json")
+        if history.exists():
+            owned(history, 0, 0o600)
+            if history.read_bytes() != (CONTROL / "active.json").read_bytes():
+                raise RuntimeError("development history conflicts")
+        else:
+            fd = os.open(history, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write((CONTROL / "active.json").read_bytes()); stream.flush(); os.fsync(stream.fileno())
+            fd = os.open(history.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try: os.fsync(fd)
+            finally: os.close(fd)
+    token = uuid.uuid4().hex
+    build = build_for(profile)
+    binaries = {str(build / name): digest(build / name) for name in ("aetheri-compositor", "aetheri-settings")}
+    record = dict(format=1, token=token, carrier=carrier, profile=profile,
+                  boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+                  unit="aetheri-development-" + token + ".service", phase="preparing",
+                  invocation=None, pid=None, binaries=binaries, created_unix=time.time(), exit=None)
+    save(record)
+    if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
+    owned(USER_ROOT, 1000, 0o700, directory=True)
+    base = USER_ROOT / token; base.mkdir(mode=0o700); os.chown(base, 1000, 1000)
+    for name in ("runtime", "cache"):
+        path = base / name; path.mkdir(mode=0o700); os.chown(path, 1000, 1000)
+    record["phase"] = "starting"; save(record)
+    args = ["systemd-run", "--unit=" + record["unit"], "--service-type=notify",
+            "--property=NotifyAccess=main", "--property=RemainAfterExit=yes", "--property=User=aetheri",
+            "--property=Group=aetheri", "--property=PAMName=login", "--property=TTYPath=/dev/tty8",
+            "--property=StandardInput=tty", "--property=StandardOutput=journal", "--property=StandardError=journal",
+            "--property=TTYReset=yes", "--property=NoNewPrivileges=yes", "--property=CapabilityBoundingSet=",
+            "--property=AmbientCapabilities=", "--property=Restart=no", "--property=KillMode=control-group",
+            "--property=SendSIGKILL=no", "--property=TimeoutStartSec=15", "--property=TimeoutStopSec=10",
+            "--property=Conflicts=getty@tty8.service", "--property=After=getty@tty8.service",
+            "--setenv=XDG_SESSION_TYPE=wayland", "--setenv=XDG_SESSION_CLASS=user",
+            "--setenv=XDG_SEAT=seat0", "--setenv=XDG_VTNR=8", "--setenv=LIBSEAT_BACKEND=logind",
+            "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token]
+    # Start the unit without waiting for READY, then activate its inspected VT.
+    # No second start is permitted if either dispatch acknowledgement is lost.
+    args.insert(1, "--no-block")
+    run(*args); run("chvt", "8")
+    deadline = time.monotonic() + 16
+    while True:
+        props = properties(record["unit"])
+        if props["ActiveState"] == "active" and props["SubState"] == "running": break
+        if props["ActiveState"] == "failed" or time.monotonic() >= deadline:
+            raise RuntimeError("development startup did not become ready; preserve the pending intent")
+        time.sleep(0.05)
+    invocation = props["InvocationID"]
+    if re.fullmatch("[0-9a-f]{32}", invocation) is None or int(props["MainPID"]) <= 1:
+        raise RuntimeError("missing actual development invocation/process")
+    record.update(invocation=invocation, pid=int(props["MainPID"]), phase="running")
+    require_original(record, props)
+    pin = os.pidfd_open(record["pid"])
+    try:
+        import select
+        poller = select.poll(); poller.register(pin, select.POLLIN)
+        if poller.poll(0): raise RuntimeError("development supervisor already exited")
+        proc = Path("/proc") / str(record["pid"])
+        status = dict(line.split(":", 1) for line in (proc / "status").read_text().splitlines())
+        if any(set(status[key].split()) != {"1000"} for key in ("Uid", "Gid")) or status["NoNewPrivs"].strip() != "1":
+            raise RuntimeError("development supervisor credentials differ")
+        if any(int(status[key], 16) for key in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")):
+            raise RuntimeError("development supervisor retained capabilities")
+        record["observed_label"] = (proc / "attr/current").read_bytes().rstrip(b"\0").decode()
+        record["observed_start_ticks"] = (proc / "stat").read_text().rsplit(")", 1)[1].split()[19]
+        if poller.poll(0): raise RuntimeError("development supervisor exited during observation")
+        require_original(record, properties(record["unit"]))
+    finally: os.close(pin)
+    save(record)
+    return record
+
+
+def stop(record):
+    if record["phase"] == "closed": return record  # Historical; never act on a later session.
+    if record["phase"] not in ("running",):
+        raise RuntimeError("pending/uncertain development effect needs manual reconciliation")
+    props = properties(record["unit"]); require_original(record, props)
+    if props["MainPID"] != "0":
+        pin = os.pidfd_open(int(props["MainPID"]))
+        try:
+            import select
+            poller = select.poll(); poller.register(pin, select.POLLIN)
+            record["phase"] = "stopping"; save(record)
+            # RemainAfterExit retains the original status; stop only its main actor.
+            run("systemctl", "kill", "--kill-whom=main", "--signal=SIGTERM", record["unit"])
+            deadline = time.monotonic() + 12
+            while True:
+                props = properties(record["unit"]); require_original(record, props)
+                if props["MainPID"] == "0": break
+                if time.monotonic() >= deadline: raise RuntimeError("development supervisor still alive")
+                time.sleep(0.05)
+            if not poller.poll(0): raise RuntimeError("original development process pin is not terminal")
+        finally: os.close(pin)
+    else:
+        record["phase"] = "stopping"; save(record)
+    if props["ControlGroup"]:
+        events = Path("/sys/fs/cgroup" + props["ControlGroup"]) / "cgroup.events"
+        if "populated 1" in events.read_text(): raise RuntimeError("development service still populated")
+    sessions = json.loads(run("loginctl", "list-sessions", "--json=short"))
+    if any(row.get("seat") == "seat0" for row in sessions):
+        raise RuntimeError("development PAM session still present")
+    record.update(phase="exited", exit=dict(code=int(props["ExecMainCode"]), status=int(props["ExecMainStatus"]), result=props["Result"]))
+    save(record)
+    # Capture status before explicit unit retirement can trigger garbage collection.
+    run("systemctl", "stop", record["unit"])
+    run("chvt", "1")
+    record["phase"] = "closed"; save(record)
+    return record
+
+
+@contextmanager
+def locked(create=False):
+    import fcntl
+    if create and not CONTROL.exists(): CONTROL.mkdir(mode=0o700)
+    owned(CONTROL, 0, 0o700, directory=True)
+    if any(p.name not in ("history", "writer.lock", "active.json", "active.next") for p in CONTROL.iterdir()):
+        raise RuntimeError("unknown development control entry")
+    history = CONTROL / "history"
+    if create and not history.exists(): history.mkdir(mode=0o700)
+    owned(history, 0, 0o700, directory=True)
+    fd = os.open(CONTROL / "writer.lock", os.O_RDWR | (os.O_CREAT if create else 0) | os.O_NOFOLLOW, 0o600)
+    try:
+        owned(CONTROL / "writer.lock", 0, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (CONTROL / "active.next").exists(): raise RuntimeError("unacknowledged development record write")
+        yield
+    finally: os.close(fd)
+
+
+def notify(message):
+    name = os.environ.get("NOTIFY_SOCKET")
+    if not name: raise RuntimeError("development supervisor requires its notify unit")
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+        sock.connect("\0" + name[1:] if name.startswith("@") else name)
+        sock.sendall(message.encode())
+
+
+def observation(record):
+    if record is None: return dict(kind="absent")
+    if record["phase"] == "closed": return dict(kind="historical_closed")
+    props = properties(record["unit"])
+    if record["invocation"] is None:
+        return dict(kind="pending_unbound", candidate_unit=props)
+    try: require_original(record, props)
+    except RuntimeError as error: return dict(kind="recovery_required", reason=str(error), candidate_unit=props)
+    kind = "original_exit" if props["MainPID"] == "0" else "live"
+    return dict(kind=kind, original_unit=props)
+
+
+def supervise(profile, token):
+    if os.getuid() != 1000 or os.getuid() != os.geteuid():
+        raise RuntimeError("development supervisor requires the ordinary carrier account")
+    base = USER_ROOT / token
+    for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
+    build = build_for(profile)
+    env = {**os.environ, "XDG_RUNTIME_DIR": str(base / "runtime"), "LIBSEAT_BACKEND": "logind",
+           "WAYLAND_DISPLAY": "aetheri-development", "LIBGL_ALWAYS_SOFTWARE": "1",
+           "GALLIUM_DRIVER": "llvmpipe", "LP_NUM_THREADS": "2"}
+    for key in ("WAYLAND_SOCKET", "DISPLAY", "SDL_VIDEO_DRIVER", "SDL_RENDER_DRIVER"): env.pop(key, None)
+    selector = selectors.DefaultSelector()
+    reader, writer = socket.socketpair(); reader.setblocking(False); writer.setblocking(False)
+    old_wakeup = signal.set_wakeup_fd(writer.fileno())
+    stopping = False; failed = False; children = {}; buffers = {}; ready = set(); terminated = set(); notified = False
+    def signalled(number, frame):
+        nonlocal stopping
+        if number in (signal.SIGTERM, signal.SIGINT): stopping = True
+    for number in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD): signal.signal(number, signalled)
+    selector.register(reader, selectors.EVENT_READ, "signal")
+    def spawn(role, args):
+        child = subprocess.Popen(args, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        os.set_blocking(child.stdout.fileno(), False)
+        children[role] = child; buffers[role] = b""
+        selector.register(child.stdout, selectors.EVENT_READ, role)
+    spawn("compositor", [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"])
+    deadline = time.monotonic() + 12
+    try:
+        while True:
+            if not stopping and not notified and time.monotonic() >= deadline: failed = True; stopping = True
+            if stopping:
+                for role in ("settings", "compositor"):
+                    child = children.get(role)
+                    if not child: continue
+                    if child.poll() is None:
+                        if role not in terminated: child.terminate(); terminated.add(role)
+                        break  # Stop/reap Settings before stopping the compositor.
+                if all(child.poll() is not None for child in children.values()):
+                    # A requested stop may produce 0 or SIGTERM, but never hide
+                    # a sanitizer/cleanup failure. Drain each original pipe too.
+                    if any(child.returncode not in (0, -signal.SIGTERM) for child in children.values()): failed = True
+                    if all(key.data == "signal" for key in selector.get_map().values()): break
+            timeout = max(0, deadline - time.monotonic()) if not stopping and not notified else None
+            for key, _ in selector.select(timeout):
+                role = key.data
+                if role == "signal":
+                    try: reader.recv(4096)
+                    except BlockingIOError: pass
+                    continue
+                data = os.read(key.fileobj.fileno(), 8192)
+                if not data:
+                    if buffers[role]:
+                        print(role + ": " + buffers[role].decode(errors="replace"), flush=True)
+                        buffers[role] = b""
+                    selector.unregister(key.fileobj); key.fileobj.close(); continue
+                buffers[role] += data
+                if len(buffers[role]) > 65536: raise RuntimeError("development child output exceeded bound")
+                while b"\n" in buffers[role]:
+                    line, buffers[role] = buffers[role].split(b"\n", 1)
+                    if not line.startswith((b"VIEW ", b"CONTROL ", b"LAYOUT ")):
+                        print(role + ": " + line.decode(errors="replace"), flush=True)
+                    if line.startswith(b"READY ") and role not in ready:
+                        ready.add(role)
+                        if role == "compositor":
+                            spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                                               "--cache", str(base / "cache"), "--diagnostics"])
+                    if role == "settings" and line.startswith(b"LAYOUT ") and len(ready) == 2 and not notified:
+                        notify("READY=1\nSTATUS=Settings submitted its first development frame")
+                        notified = True
+            for role, child in children.items():
+                code = child.poll()
+                if code is not None and role not in terminated:
+                    if role != "settings" or code != 0 or not notified: failed = True
+                    stopping = True
+        print("SESSION_END " + json.dumps({role: child.returncode for role, child in children.items()}), flush=True)
+        return 1 if failed else 0
+    except BaseException as error:
+        print("SUPERVISOR_ERROR " + str(error), flush=True)
+        for child in children.values():
+            if child.poll() is None: child.terminate()
+        # Retain original child handles on a stuck shutdown, rather than leaving
+        # them behind or escalating to an unreviewed force-kill policy.
+        while any(child.poll() is None for child in children.values()):
+            for key, _ in selector.select():
+                if key.data == "signal":
+                    try: reader.recv(4096)
+                    except BlockingIOError: pass
+                else:
+                    data = os.read(key.fileobj.fileno(), 8192)
+                    if not data: selector.unregister(key.fileobj); key.fileobj.close()
+        return 1
+    finally:
+        signal.set_wakeup_fd(old_wakeup)
+        selector.close(); reader.close(); writer.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("start", "status", "stop"), nargs="?", default="status")
+    parser.add_argument("--profile", choices=PROFILES, default="release")
+    parser.add_argument("--token")
+    parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+    if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
+    if args.supervise:
+        if args.token is None: raise ValueError("supervision requires its selected development token")
+        return supervise(args.profile, args.token)
+    if not args.guest:
+        import shlex
+        import run_vm as vm
+        if not vm.running(): raise RuntimeError("dedicated VM identity is not verified")
+        command = ["sudo", "-n", "python3", SOURCE.as_posix(), args.action, "--guest", "--carrier-uuid", vm.config()["uuid"], "--profile", args.profile]
+        if args.token: command += ["--token", args.token]
+        elif args.action == "stop":
+            probe = [*command]; probe[4] = "status"
+            result = subprocess.check_output([sys.executable, str(Path(__file__).parent / "run_vm.py"), "ssh", shlex.join(probe)], stderr=subprocess.PIPE, creationflags=vm.FLAGS)
+            token = (json.loads(result).get("record") or {}).get("token")
+            if not token: raise RuntimeError("no current development token")
+            command += ["--token", token]
+        return subprocess.call([sys.executable, str(Path(__file__).parent / "run_vm.py"), "ssh", shlex.join(command)],
+                               stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, creationflags=vm.FLAGS)
+    if os.getuid() != 0 or args.carrier_uuid is None: raise RuntimeError("explicit root-only disposable carrier command required")
+    carrier = str(uuid.UUID(args.carrier_uuid))
+    if Path("/sys/class/dmi/id/product_uuid").read_text().strip().lower() != carrier or Path("/sys/class/dmi/id/product_name").read_text().strip() != "Aetheri P0 disposable VM":
+        raise RuntimeError("not the independently selected disposable carrier")
+    if run("getenforce") != "Enforcing": raise RuntimeError("carrier must remain enforcing")
+    if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
+    with locked(create=args.action == "start"):
+        record = load(carrier, args.token)
+        if args.action == "start": record = start(record, carrier, args.profile)
+        elif args.action == "stop":
+            if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
+            record = stop(record)
+        result = dict(format=1, record=record)
+        result["observation"] = observation(record)
+        print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -31,6 +31,11 @@ pass protocol, composed-pixel and sanitizer checks. Clipboard bytes now transfer
 between separate native clients with focus/serial checks and source cleanup.
 Physical display/input, a trusted session and ordinary app integration remain work.
 
+The optional [development session](spec/development-session.md) now starts the
+compositor and Settings on the carrier's actual virtual display/input. It has a
+repeatable start/status/stop command and an optional native QEMU console. This
+continues desktop development while normal session/app admission remains closed.
+
 [Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
 [Decisions](brains/aetheri/DECISIONS.md) ·
 [Architecture options](brains/aetheri/knowledge/architecture-options.md) ·

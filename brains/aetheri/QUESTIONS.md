@@ -24,8 +24,9 @@ presentation and clipboard transport checks, with a working development Settings
 view. Normal app/session and accessible UI integration remain engineering work;
 physical/trusted-session acceptance remains open. The separate optional
 [DRM session](../../spec/session.md) now exercises the carrier's actual connector
-and PS/2 input with logind. A reusable development controller, visible console,
-normal admitted session and lock/resume integration remain engineering work.
+and PS/2 input with logind. A reusable development controller/native console now
+exists in the [development guide](../../spec/development-session.md). Host-window
+input acceptance, normal admitted session and lock/resume remain engineering work.
 Both the coordinate and private
 clipboard integration patches are pinned. See [current scope](../../spec/graphics.md).
 

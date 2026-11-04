@@ -1,8 +1,61 @@
 # State
 
-4 November 2026 — actual DRM/libinput development session.
+4 November 2026 — repeatable development supervision and native VM console.
 
 ## Current update
+
+The [development controller](../../spec/development-session.md) now provides
+start/status/stop through the verified dedicated-carrier connection. Its separate
+root-owned version1 journal keeps original boot/unit/invocation/result and refuses
+pending-effect replay. Closed-token stop retries are historical even while a newer
+session is live. An ordinary UID1000 helper retains both native children, notifies
+PID1 after the first submitted Settings frame, sleeps on pipes/signal wakeups,
+stops/reaps children and drains final output. Planned shutdown cannot conceal a
+cleanup/sanitizer failure. RemainAfterExit keeps the exact original process result
+until root records it and retires the unit; no permanent privileged daemon is added.
+
+The optional `run_vm.py --offline --console boot` reuses QEMU's existing native
+SDL2 viewer with GL/window-close shutdown off. QMP confirms those actual options;
+the running Windows process has its own QEMU window. No new viewer dependency,
+VNC/listener, host folder/clipboard bridge, policy or host/WSL setting was added.
+Aetheri Settings still uses SDL3. The dedicated guest shut down with QEMU exit0
+and PID absence before the console boot; its new BootId is
+124d6ce8-6ff6-4ed8-a8c8-51aeaa87f056. All nineteen protected old catalogue/static/
+profile hashes match before/after. The old intent stays unresolved and unchanged.
+
+Actual final Release and Debug controller sessions display Settings and close
+with retained original supervisor status0. Debug journals have no sanitizer
+finding. Their guest PNGs are byte-identical and were visually checked through
+the original QMP capture. Actual duplicate start, foreign token and old completed
+stop during a new live session are rejected or historical without altering the
+current record/process. Native Ctrl+Q becomes original_exit with the original
+status retained, then explicit stop closes the attempt. One idle second has
+unchanged ticks across supervisor, two native programs and the sd-pam helper.
+
+Ten Linux contract/file/child-process tests pass without skips, covering stale
+owner/boot rejection, interrupted writes, acknowledgement loss, missing first
+submitted frame and child/cleanup failure with final pipe drain. The unchanged
+test rejects a deliberate cleanup-outcome guard mutation. Five common contracts
+pass on Windows; five Linux-only cases are skipped there and executed in Linux.
+Five selected host VM identity/console/network guards pass. Existing native SDK/
+compositor/Settings sources and frozen SQL/XML are unchanged by this tool slice.
+
+Windows native app/window inspection timed out in both available automation paths.
+Window metadata, QMP display options and guest pixels are narrower evidence;
+Windows keyboard/mouse grabbing and host-window visual acceptance remain open.
+Controller tests retain dedicated records/caches for inspection; no production
+app-state purge or general power-loss reconciliation is implemented. Both final
+attempts are closed and their native programs/supervisors are gone. The VM itself
+remains booted with its native console; normal authority capabilities stay closed.
+All 229 host/snapshot/guest source hashes agree. The 28 frozen SQL/XML files remain
+raw-byte unchanged and 746 local Markdown file targets resolve. The development
+control history is root-owned, bounded and separate from the preserved old intent.
+
+Next: original desktop shell/dock/search and app launching, then the remaining
+normal admitted session, trusted lock/resume, app backends and full experiment
+desktop. Original image/installer and physical hardware acceptance remain required.
+
+Previous DRM checkpoint (bebd4da):
 
 The optional compositor now drives an actual KMS connector and evdev devices
 through a selected DRM/libinput/logind profile. The existing virtual VGA/bochs-drm

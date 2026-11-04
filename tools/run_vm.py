@@ -228,7 +228,9 @@ def prepare():
     return disk, nvram
 
 
-def command(install, offline=False):
+def command(install, offline=False, console=False):
+    if install and console:
+        raise ValueError("the native console is only available for an existing guest boot")
     disk, nvram = VM / "system.qcow2", VM / "nvram.fd"
     args = [str(QEMU), "-name", "aetheri-p0", "-uuid", config()["uuid"],
             "-machine", "pc-q35-11.1,accel=whpx", "-cpu", "host,vmx=off,svm=off", "-smp", "2", "-m", "8192M",
@@ -238,7 +240,8 @@ def command(install, offline=False):
             "-drive", f"if=none,id=p0disk,format=qcow2,file={disk}",
             "-device", "virtio-blk-pci,drive=p0disk,serial=AETHERI_P0_ONLY",
             "-netdev", f"user,id=net0,{'restrict=on,' if offline else ''}hostfwd=tcp:127.0.0.1:{SSH_PORT}-:22",
-            "-device", "virtio-net-pci,netdev=net0", "-display", "none",
+            "-device", "virtio-net-pci,netdev=net0", "-display",
+            "sdl,gl=off,window-close=off" if console else "none",
             "-serial", f"file:{VM / ('install-serial.log' if install else 'serial.log')}",
             "-qmp", f"unix:{VM / 'qmp.sock'},server=on,wait=off", "-no-reboot"]
     if install:
@@ -253,12 +256,14 @@ def command(install, offline=False):
     return args
 
 
-def start(install, retry=False, offline=False):
+def start(install, retry=False, offline=False, console=False):
     with launch_guard():
-        return start_locked(install, retry, offline)
+        return start_locked(install, retry, offline, console)
 
 
-def start_locked(install, retry=False, offline=False):
+def start_locked(install, retry=False, offline=False, console=False):
+    if install and console:
+        raise ValueError("the native console is only available for an existing guest boot")
     if install and offline:
         raise ValueError("network installation requires network access")
     if running():
@@ -279,10 +284,10 @@ def start_locked(install, retry=False, offline=False):
         handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(VM / "http"))
         server = http.server.ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
-    args = command(install, offline)
+    args = command(install, offline, console)
     (VM / "last-command.json").write_text(json.dumps(args, indent=2), encoding="utf-8")
     with (VM / ("install-qemu.log" if install else "qemu.log")).open("ab") as log:
-        state = {"uuid": config()["uuid"], "install": install, "offline": offline,
+        state = {"uuid": config()["uuid"], "install": install, "offline": offline, "console": console,
                  "started_unix": time.time(), "state": "starting"}
         write_state(state_file, state)
         process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
@@ -306,11 +311,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--retry-install", action="store_true", help="explicitly reinstall this disposable guest")
     parser.add_argument("--offline", action="store_true", help="restrict guest networking to host forwarding")
+    parser.add_argument("--console", action="store_true", help="boot with the existing native SDL viewer; close cannot power off")
     parser.add_argument("action", choices=("install", "boot", "status", "ssh", "poweroff"))
     parser.add_argument("remote", nargs=argparse.REMAINDER)
     args = parser.parse_args()
+    if args.console and args.action != "boot":
+        raise ValueError("--console is only valid with boot")
     if args.action in ("install", "boot"):
-        return start(args.action == "install", args.retry_install, args.offline)
+        return start(args.action == "install", args.retry_install, args.offline, args.console)
     if args.action == "status":
         active = running()
         record = VM / "process.json"
