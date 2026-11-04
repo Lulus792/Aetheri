@@ -4,6 +4,22 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## UI foundation and complete NexaUI handoff — 4 November 2026
+
+User requests: use suitable available UI foundations such as SDL3 without waiting
+for NexaUI; provide a full SDK requirement list and a pasteable chat start request.
+The [suitability review](knowledge/nexaui.md) records the inspected SDL primary
+manuals and pinned NexaUI README/CMake/header/concept/native-test sources at
+05e28bb16c1e60ac339cd9428ff2d3afbafc21f6. Read-only ls-remote confirmed that main;
+the local primary checkout is a different protected revision. No fresh runtime
+acceptance, benchmark, implementation or package adoption follows from inspection.
+
+Authorized local NEXT_AETHERI_UI.md: 102 unique requirement IDs with priorities,
+bounded source-evidence status and acceptance; 12 app/shell surfaces and delivery
+order. Structural/link and scope checks pass. All 104 previous NexaUI local
+status entries/file hashes and HEAD were rechecked unchanged after writing it.
+The handoff remains local/uncommitted in NexaUI; no automatic chat dispatch.
+
 ## Experiment environments — 4 November 2026
 
 User confirmed the complete desktop first, persistent experiments until explicit

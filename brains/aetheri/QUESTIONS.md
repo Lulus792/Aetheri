@@ -4,6 +4,16 @@ The main language/library/ownership policy is agreed. Do not ask the original
 foundation questions again. Remaining decisions belong to architecture or concrete
 product behavior.
 
+UI foundation: the user permits suitable available choices such as SDL3 now,
+with later NexaUI migration and no global toolkit-completion blocker. The current
+review selects SDL3 as the preferred early app platform direction, while retaining
+per-app NexaUI adoption when justified. Exact SDL/text/widget releases and native
+acceptance remain engineering work; no additional permission question is needed.
+The complete local NexaUI handoff maps all 102 current UI requirements and starts
+with a Wayland-only consumer profile plus a native Settings view. Exact candidate
+adoption follows the relevant app scope; the whole catalogue need not be finished
+before Aetheri can have working UI.
+
 ## Browser
 
 B1. Which everyday sites define acceptance? Are browser extensions, DRM streaming,

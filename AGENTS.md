@@ -545,6 +545,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Do not expand shared WSL storage on D: casually.
 - UI remains a user decision. Later prepare multiple alternatives with keyboard,
   focus, scaling, three-monitor, accessibility and error-state behavior.
+- User now prefers working UI foundations such as SDL3 instead of waiting for
+  NexaUI completion. Read brains/aetheri/knowledge/nexaui.md. Review exact SDL3/
+  text/widget dependencies before adoption; no installed version is selected.
+  Keep app models/commands/persistence toolkit-independent and wlroots compositor
+  separate. NexaUI can be adopted per app when its required scope is ready. The
+  authorized local NEXT_AETHERI_UI.md note is a handoff, not permission to alter
+  NexaUI implementation, other consumer pins or send another chat a message.
 - Early experiment environments are now required: complete Aetheri desktop first,
   persistent changes until explicit reset, and individual personal-file/network/
   device permission (4 November 2026). Read knowledge/experiment-environments.md

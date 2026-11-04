@@ -30,13 +30,13 @@ inside an Aetheri daemon.
 | Build and release | Pinned inputs, target profiles, manifests, images, license/verification records and signing pipeline | Development tools; no installed resident build service |
 | Platform foundation | Kernel, drivers, systemd service/session lifecycle and maintained hardware backends | Existing configured processes/modules; inventory their actual installed/active set |
 | Compositor | Wayland surfaces, focus/input routing, physical outputs, composition, secure lock enforcement | Original wlroots-based compositor while a graphical session runs |
-| Desktop shell | Dock, launcher/global search UI, desktop visuals and notification presentation | Original unprivileged NexaUI client, restartable separately from compositor |
+| Desktop shell | Dock, launcher/global search UI, desktop visuals and notification presentation | Original unprivileged UI client, restartable separately from compositor; current toolkit direction in nexaui.md |
 | User broker | Trusted app launch records, per-user grants/integrations and mediation for apps | One trusted broker per active user; shared across that user's sessions with explicit session/seat identity |
 | System authority | Package/store ownership, base deployments, machine-wide operations and recoverable change journal | Small privileged service, activated on demand; scoped helpers/workers only when needed |
 | Document and permission mediation | Selected-file/device access, trusted picker workflow and grant lifetime | Logical user-broker modules plus an on-demand UI/backend; not a mandatory daemon per capability |
 | Authentication / lock | Authentication through a maintained backend; trusted lock presentation | Restricted authentication path and lock UI only when required; no passwords in desktop-shell code |
 | Device adapters | Translate display/audio/WLAN/Bluetooth operations and observed backend state | Shared client code or narrow broker modules calling the actual backend; no replacement hardware state database |
-| Shared app libraries | NexaUI, typed Aetheri client API, reusable text/document/model code | In-process libraries, not services |
+| Shared app libraries | Selected UI foundation, typed Aetheri client API, reusable text/document/model code | In-process libraries, not services; SDL3 preferred initially and NexaUI adoption per app after review |
 | Applications | Browser, Terminal, Editor, Files, Settings/Software, Physim and NexaCloud workflows | Independent app processes and justified helpers |
 | Terminal sessions and plugins | PTYs/jobs, pane/session state and extension execution | App-owned workers; separate persistence only when explicitly selected |
 

@@ -1,5 +1,19 @@
 # Decisions
 
+## UI must not wait for toolkit completion — 4 November 2026
+
+The user prefers suitable working foundations such as SDL3 for early UI, with
+later NexaUI migration. Use SDL3 as the preferred early app platform direction;
+review exact release/dependencies before adoption. NexaUI can be chosen per app
+if the needed scope is ready, without waiting for the entire SDK. Keep app
+models/commands/services/persistence independent of toolkit types. The compositor
+remains wlroots; SDL3 supplies no complete widget or accessibility stack.
+Source review and a scoped local NexaUI handoff are in [suitability](knowledge/nexaui.md).
+The user then requested a complete SDK adoption catalogue for all agreed Aetheri
+UI. The local NEXT_AETHERI_UI.md now identifies 102 requirements and 12 surface
+groups with priorities, source status and acceptance, beginning with the build
+profile/first app rather than a full-toolkit completion prerequisite.
+
 ## Early experiment desktop — 4 November 2026
 
 The user requires an early isolated place for OS experiments and later AI work,

@@ -57,6 +57,13 @@ input, crypto, browser and document foundations where justified. Useful maintain
 audio/Bluetooth/WLAN backends need not be replaced merely to increase original code.
 Exact component versions and transitive footprints must be reviewed before adoption.
 NexaUI remains subject to suitability and performance acceptance.
+Early app UI should use a suitable available foundation such as SDL3; the user
+does not want unfinished NexaUI work to hold back the OS. Keep toolkit-independent
+app logic and migrate views later where useful. NexaUI may be selected per app
+when the required scope is ready. See [current UI direction](knowledge/nexaui.md).
+The user also requested a complete NexaUI requirement catalogue so it can supply
+all planned Aetheri presentation. A local SDK handoff now covers those requirements;
+OS services/content engines retain their separate responsibilities.
 
 Selected architecture: controlled modular system (B), an original Wayland
 compositor based on wlroots, selected systemd/session/sleep components and SQLite

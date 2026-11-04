@@ -1,8 +1,34 @@
 # State
 
-4 November 2026 — experiment desktop added; previous carrier boot lost.
+4 November 2026 — practical UI direction and full NexaUI adoption handoff.
 
 ## Current update
+
+The user prefers working foundations such as SDL3 for early app UI without
+waiting for NexaUI completion, with per-app migration when suitable. wlroots
+remains the compositor. Exact SDL/text/widget dependencies are not yet installed
+or pinned by this direction. App models/commands/persistence must remain toolkit-
+independent; SDL3 itself supplies no complete widget/accessibility stack.
+
+The published NexaUI main was inspected at 05e28bb16c1e60ac339cd9428ff2d3afbafc21f6
+through a read-only remote query and local committed objects. Public widget/text/
+Wayland families exist, while the Linux build unconditionally requires X11 and
+documented numeric-input/nested-overlay scope and native acceptance remain work.
+No fresh NexaUI build or performance comparison is claimed. At the user's
+request, NEXT_AETHERI_UI.md in its local project now holds 102 unique requirements
+and 12 app/shell surface groups, each with priority/source status/acceptance.
+It includes delivery order, responsibility boundaries and a maintainer return
+format. Existing NexaUI HEAD and all 104 prior local status entries/file hashes
+are unchanged; only the authorized handoff file was added. No message was sent
+to another chat and no NexaUI code or consumer pin was modified/published.
+
+The carrier was again found stopped at this continuation. Dead-process and
+failed AF_UNIX connection checks preceded preservation of host metadata/socket
+and an offline boot. Current observed boot is
+7e6602b8-721b-4aa1-8b31-33cbb81d5c8c, enforcing. The old failed Root v6 catalogue
+hash below still agrees with its original pending intent/running lease/no
+closure. Cross-boot evidence work remains unfinished; no current code change
+settles that attempt. Current UI steering was handled before that implementation.
 
 The user requires an early experiment environment and general VM support. They
 selected a complete Aetheri desktop first, persistent changes until explicit reset
@@ -15,7 +41,7 @@ connection. The stale socket and old host process/command/source metadata were
 preserved under ignored local/carrier-interruption-2026-11-04 before booting the
 existing disk offline. The user confirmed that the Codex usage limit interrupted
 agent work. Cause/time of VM-process termination were not separately established.
-The new guest boot is 525715ac-42d5-4059-8658-df208f0e501b, enforcing. Prior PID1
+That first observed guest reboot was 525715ac-42d5-4059-8658-df208f0e501b, enforcing. Prior PID1
 handles and /run retention units are gone; they cannot be reconstructed from IDs.
 
 The old failed intent remains quarantined at its original path and pending
