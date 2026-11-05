@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
 #include "readline.h"
+#include "completion.h"
 #include "text/grapheme.h"
 #include <limits.h>
 #include <poll.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <time.h>
@@ -78,6 +80,35 @@ static int draw(struct ae_shell_terminal *t,struct ae_line_editor *e,bool submit
     }
     return ae_shell_jobs_write(t,output,used);
 }
+static bool completion_cancelled(void *context) {
+    struct ae_shell_terminal *t=context;struct pollfd event={t->signals,POLLIN,0};
+    return ae_shell_jobs_check(t)!=0 || poll(&event,1,0)!=0;
+}
+static int complete(struct ae_shell_terminal *t,struct ae_line_editor *e,bool *rejected) {
+    size_t size,cursor;const char *text=ae_line_text(e,&size,&cursor);
+    struct ae_shell_completion suggestions;
+    enum ae_completion_status status=ae_shell_complete(text,size,cursor,getenv("PATH"),completion_cancelled,t,&suggestions);
+    if (status==AE_COMPLETION_CANCELLED) return 0; /* Original signal read owns cancellation. */
+    const char *message=NULL;
+    if (status==AE_COMPLETION_READY && suggestions.replacement_size) {
+        if (!ae_line_replace(e,suggestions.begin,suggestions.end,suggestions.replacement,suggestions.replacement_size)) {
+            message="completion did not fit or could not be recorded";*rejected=true;
+        }
+        else return 0;
+    } else if (status==AE_COMPLETION_READY) {
+        int result=ae_shell_jobs_write(t,"\n",1);if (result) return result;
+        for (size_t i=0;i<suggestions.count;++i) {
+            const char *value=suggestions.values+suggestions.items[i].offset;char quoted[AE_LINE_BYTES+1];size_t used;
+            if (!ae_shell_quote(value,strlen(value),quoted,sizeof(quoted),&used)) { message="completion display limit reached";break; }
+            result=ae_shell_jobs_write(t,quoted,used);if (result) return result;
+            result=ae_shell_jobs_write(t,"\n",1);if (result) return result;
+        }
+        if (!message) return 0;
+    } else message=status==AE_COMPLETION_NONE ? "no completion matches" : status==AE_COMPLETION_LIMIT ? "completion limit reached; narrow the prefix" :
+        status==AE_COMPLETION_IO ? "completion directory unavailable" : "completion needs a literal token at the cursor";
+    char output[128];int n=snprintf(output,sizeof(output),"\n%s\n",message);
+    return n<0 || (size_t)n>=sizeof(output) ? -1 : ae_shell_jobs_write(t,output,(size_t)n);
+}
 static bool sequence(struct ae_line_editor *e,const char *s) {
     if (!strcmp(s,"[D") || !strcmp(s,"OD")) return ae_line_edit(e,AE_LINE_LEFT);
     if (!strcmp(s,"[C") || !strcmp(s,"OC")) return ae_line_edit(e,AE_LINE_RIGHT);
@@ -112,8 +143,9 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
         if (n<=0 || t->shutdown_signal) goto done;
         if (!blocked && pending_size && (b<32 || b==127)) blocked=!flush(e,pending,&pending_size);
         if (b==21) {
-            if (blocked || seq_size || utf_need) ae_line_clear(e);else (void)ae_line_edit(e,AE_LINE_KILL_START);
-            blocked=false;seq_size=utf_size=utf_need=pending_size=0;
+            if (blocked || seq_size || utf_need) { ae_line_clear(e);blocked=false; }
+            else blocked=!ae_line_edit(e,AE_LINE_KILL_START);
+            seq_size=utf_size=utf_need=pending_size=0;
         }
         else if (blocked) { if (b=='\n' || b=='\r') { const char message[]="\ninput rejected; Ctrl+U or Ctrl+C resets the whole draft\n";if (ae_shell_jobs_write(t,message,sizeof(message)-1)) goto done; } }
         else if (seq_size) {
@@ -143,17 +175,18 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
         } else if (b==4) {
             size_t size,cursor;(void)ae_line_text(e,&size,&cursor);
             if (!size) { result=0;goto done; }
-            (void)ae_line_edit(e,AE_LINE_DELETE);
+            blocked=!ae_line_edit(e,AE_LINE_DELETE);
         } else if (b==1) (void)ae_line_edit(e,AE_LINE_HOME);
         else if (b==2) (void)ae_line_edit(e,AE_LINE_LEFT);
         else if (b==5) (void)ae_line_edit(e,AE_LINE_END);
         else if (b==6) (void)ae_line_edit(e,AE_LINE_RIGHT);
-        else if (b==8 || b==127) (void)ae_line_edit(e,AE_LINE_BACKSPACE);
-        else if (b==11) (void)ae_line_edit(e,AE_LINE_KILL_END);
-        else if (b==23) (void)ae_line_edit(e,AE_LINE_WORD_BACK);
+        else if (b==8 || b==127) blocked=!ae_line_edit(e,AE_LINE_BACKSPACE);
+        else if (b==11) blocked=!ae_line_edit(e,AE_LINE_KILL_END);
+        else if (b==23) blocked=!ae_line_edit(e,AE_LINE_WORD_BACK);
         else if (b==25) blocked=!ae_line_edit(e,AE_LINE_YANK);
         else if (b==14 || b==16) blocked=!ae_line_history(e,b==14 ? 1 : -1);
-        else if (b==9) blocked=!ae_line_insert(e,"    ",4);
+        else if (b==31 || b==30) blocked=!ae_line_undo(e,b==31 ? -1 : 1);
+        else if (b==9) { shown=complete(t,e,&blocked);if (shown) { result=shown==-2 ? -2 : -1;goto done; } }
         else if (b!=12) {
             if (b<32) blocked=true;
             else {

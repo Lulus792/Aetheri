@@ -4,11 +4,13 @@ import json
 import os
 from pathlib import Path
 import signal
+import sys
 import termios
 import time
 import unittest
 
 import test_shell_interactive as native
+ALLOCATION=str(Path(sys.argv.pop(1)).resolve())
 
 PROMPT=rb'\r\x1b\[Kaetheri> \r\x1b\[9C'
 
@@ -33,6 +35,44 @@ class OwnEditor(unittest.TestCase):
         self.file('deleted',b'abc')
         self.command(b"printf killed\x01\x0b\x19 > yanked")
         self.file('yanked',b'killed')
+
+    def test_undo_redo_keeps_text_cursor_and_completed_token_separate(self):
+        self.command(b"printf 'ac'\x02\x02b\x1f\x1e\x05 > undone")
+        self.file('undone',b'abc')
+        (self.t.root/'alpha-one').write_bytes(b'one');(self.t.root/'alpha-two').write_bytes(b'two')
+        self.t.send(b'cat alpha\t');self.t.expect(rb"'alpha-'")
+        self.t.send(b'\t');self.t.expect(rb"'alpha-one'\r\n'alpha-two'")
+        self.command(b'\x1f\x1eone > prefix-proof');self.file('prefix-proof',b'one')
+
+    def test_literal_completion_never_runs_a_candidate_or_splits_a_filename(self):
+        helper=self.t.root/'marker-command';helper.write_text("#!/bin/sh\nprintf command\n: > candidate-ran\n");helper.chmod(0o700)
+        self.t.send(b'./marker-c\t');self.t.expect(rb"'./marker-command' ")
+        self.assertFalse((self.t.root/'candidate-ran').exists())
+        self.command(b'> command-proof');self.file('command-proof',b'command');self.file('candidate-ran',b'')
+        (self.t.root/"value $;'with space").write_bytes(b'literal')
+        self.command(b'cat val\t > literal-proof');self.file('literal-proof',b'literal')
+        (self.t.root/'space dir').mkdir();(self.t.root/'space dir/nested data').write_bytes(b'nested')
+        self.command(b'cat spa\tnes\t > nested-proof');self.file('nested-proof',b'nested')
+
+    def test_undo_or_completion_cannot_reopen_a_rejected_draft(self):
+        self.t.send(b'touch rejected-undo\x00\x1f\x1e\t\n');self.t.expect(rb'input rejected; Ctrl\+U or Ctrl\+C')
+        self.assertFalse((self.t.root/'rejected-undo').exists())
+        self.t.send(b'\x15');self.t.expect(PROMPT)
+        self.command(b'\x1f\x1eprintf fresh > clean-draft');self.file('clean-draft',b'fresh')
+        self.assertFalse((self.t.root/'rejected-undo').exists())
+
+    def test_failed_edit_allocation_blocks_every_raw_delete_or_cut(self):
+        for name,move,key in (('backspace',b'',b'\x7f'),('delete',b'\x02',b'\x04'),('cut-start',b'',b'\x15'),
+                              ('cut-end',b'\x01',b'\x0b'),('word',b'',b'\x17'),('csi-delete',b'\x02',b'\x1b[3~'),('completion',b'',b'\t')):
+            t=native.Terminal('allocation-'+name,binary=ALLOCATION,args=('-i','--edit'))
+            try:
+                if name=='completion':(t.root/'failed-edit-target').touch()
+                t.expect(PROMPT);t.send(b'touch failed-edit'+move+key+b'\n')
+                t.expect(rb'input rejected; Ctrl\+U or Ctrl\+C')
+                self.assertFalse((t.root/'failed-edit').exists())
+                t.send(b'\x15');t.expect(PROMPT);t.send(b'printf fresh > after-failure\n');t.expect(PROMPT)
+                self.assertEqual((t.root/'after-failure').read_bytes(),b'fresh')
+            finally:t.close()
 
     def test_grapheme_units_keep_actual_utf8_command_bytes(self):
         self.command("printf 'Aäj́👩‍💻🇩🇪Z'".encode()+b'\x02'+b'\x7f'*4+b'!\x05 > unicode-proof')
@@ -110,5 +150,6 @@ Path('child-input').write_bytes(os.read(0,128))
 
 if __name__=='__main__':
     print('Own-editor native evidence:',native.ROOT,flush=True)
-    (native.ROOT/'editor-inputs.json').write_text(json.dumps({'shell':native.SHELL,'sha256':hashlib.sha256(Path(native.SHELL).read_bytes()).hexdigest()},indent=2)+'\n')
+    (native.ROOT/'editor-inputs.json').write_text(json.dumps({'shell':native.SHELL,'sha256':hashlib.sha256(Path(native.SHELL).read_bytes()).hexdigest(),
+        'allocation_producer':ALLOCATION,'allocation_sha256':hashlib.sha256(Path(ALLOCATION).read_bytes()).hexdigest()},indent=2)+'\n')
     unittest.main()

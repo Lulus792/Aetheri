@@ -17,9 +17,9 @@ now adds a real PTY, native SDL3 input/output, stable text selection and bounded
 native clipboard/paste review and an owned SDL preedit view. An optional
 [built-in Compose provider](../../spec/compose.md) now has real native and virtual
 DRM keyboard-to-shell evidence. The [own line editor](../../spec/line-editor.md)
-now provides whole-grapheme editing and bounded in-memory history in the actual
-terminal, with native PTY and virtual DRM evidence. External IMEs, completion/
-undo, modal editing, panes, persistent
+now provides whole-grapheme editing, bounded in-memory history/undo and literal
+Tab completion in the actual terminal, with native PTY and virtual DRM evidence.
+External IMEs, advanced completion/search, modal editing, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
 NexaUI requirements and the initial chat message have already been delivered.

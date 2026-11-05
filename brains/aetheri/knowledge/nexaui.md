@@ -16,6 +16,8 @@ must not displace Aetheri implementation. Older inspections below are history.
 5 November incremental consumer update: the existing catalogue's integration
 cases now reference our [own line-editor contract](../../../spec/line-editor.md),
 including app-owned grapheme offsets/history/draft and whole-draft rejection.
+The same case now includes bounded undo/redo and literal completion ownership,
+with no automatic execution on suggestion selection or history mutation on undo.
 This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
 remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
 

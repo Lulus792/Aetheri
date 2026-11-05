@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Undo and literal completion — 5 November 2026
+
+- Original [editor](../../src/shell/editor.c),
+  [completion API/implementation](../../src/shell/completion.c) and
+  [adapter](../../src/shell/readline.c), plus independent
+  [production-parser round trips](../../tests/test_shell_completion.c).
+  No runtime dependency family is added. The reviewed
+  [readdir contract](https://man7.org/linux/man-pages/man3/readdir.3.html)
+  distinguishes end/error and borrowed entries; this code copies bounded names
+  and obtains metadata rather than assuming d_type. The
+  [faccessat contract](https://man7.org/linux/man-pages/man2/faccessat.2.html)
+  supplies an advisory real-user executable check, not race-free authority or
+  proof of a future execution. Actual shell identity restrictions remain separate.
+- All 29 affected groups pass Release 67.21s / final ASan+UBSan 93.22s. Thirteen actual
+  PTY cases and twelve graphical provider cases run per profile. Independent
+  copied-source quote/redo mutants fail unchanged assertions. Actual virtual DRM
+  keys restore exact undo/redo pixels and complete a quoted-space filename before
+  explicit command effects. Exact roots, candidate distinctions and remaining
+  limitations are in the [record](journal/2026-11-05-line-assist.md).
+
 ## Own shell line editing — 5 November 2026
 
 - [Contract](../../spec/line-editor.md), original

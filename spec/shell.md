@@ -94,7 +94,8 @@ Files are ordinary user-owned files, not managed installation/private-data state
 The separate [development terminal](terminal.md) now supplies a real PTY, bounded
 cell/history model and SDL3 graphical view. Its explicit `-i --edit` profile now
 supplies [our own grapheme-aware line editor and bounded history](line-editor.md).
-Persistent sessions, completion/undo/search, functions/typed values, terminal compatibility and
+The editor now also has bounded undo/redo and literal command/path completion.
+Persistent sessions, search/advanced completion, functions/typed values, terminal compatibility and
 panes/plugins remain required work. No production service/profile, normal launcher
 or system shell is replaced.
 
@@ -161,7 +162,7 @@ dependencies; the Release shell itself has only libc in its ELF NEEDED entries.
 
 ```sh
 cmake -S /home/aetheri/source -B /home/aetheri/build/session-release -DAETHERI_SHELL=ON
-cmake --build /home/aetheri/build/session-release --target aetheri-shell test_shell_parse test_shell_failure
+cmake --build /home/aetheri/build/session-release --parallel 2
 ctest --test-dir /home/aetheri/build/session-release -R '^shell[.]' --output-on-failure
 /home/aetheri/build/session-release/aetheri-shell -c 'help'
 ```

@@ -10,8 +10,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   original child input/modes. Unicode18 generated data uses separate Unicode-3.0
   licensing; reproduce with tools/generate_graphemes.py downloads --check. Run
   text.graphemes, shell groups and relevant terminal/desktop/Compose integration.
-  Grapheme segmentation is not shaping; undo/completion/modal editor/panes and
-  persistent sessions remain work. Preserve the quarantined old runtime.
+  Bounded undo/redo and literal command/path completion now exist. Preserve undo
+  grouping/branch/budget and clear/reset/history lifetimes; no undo may revive
+  blocked input. Completion only proposes literal quoted tokens, with no exec,
+  cwd/env mutation or content reads. Keep budgets/cancellation and real parser
+  round trips; filesystem hints never authorize later operations. Run shell.completion
+  plus editor/native/terminal/provider groups. No programmable completion/daemon.
+  Grapheme segmentation is not shaping; advanced completion/search, modal editor,
+  panes and persistent sessions remain work. Preserve the quarantined old runtime.
 - NexaUI handoff is delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place:
   periodic evidence-based checks may add requirements or update existing rows.
   Do not recreate the catalogue, repeat its overview, generate another NexaUI

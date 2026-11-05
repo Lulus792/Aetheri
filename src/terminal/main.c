@@ -600,6 +600,9 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (key==SDLK_F6) { a->german=!a->german;a->dirty=true; }
         else if (key==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }
         else if (key==SDLK_F8) { a->font_points=a->font_points==16 ? 20 : a->font_points==20 ? 24 : a->font_points==24 ? 32 : 16;a->dirty=true; }
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && (key==SDLK_Z || key==SDLK_Y)) {
+            unsigned char c=key==SDLK_Z ? 31 : 30;input(a,&c,1);
+        }
         else if ((mod&SDL_KMOD_CTRL) && key>=SDLK_A && key<=SDLK_Z) { unsigned char c=(unsigned char)(key-SDLK_A+1);input(a,&c,1); }
         else if (key==SDLK_RETURN || key==SDLK_KP_ENTER) input(a,"\r",1);
         else if (key==SDLK_BACKSPACE) input(a,"\177",1);

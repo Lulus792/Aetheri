@@ -1,5 +1,24 @@
 # Decisions
 
+## Keep undo local and completion advisory — 5 November 2026
+
+Add bounded copied text/cursor snapshots to the original editor. Group adjacent
+typing independently of read batches; distinguish successful edit from failed
+allocation, and discard redo only after a new successful edit. History navigation
+and reset delimit the undo lifetime so rejected/previous commands cannot be
+revived. Provisional graphical Ctrl+Shift+Z/Y preserve Ctrl+Z job control; final
+bindings remain product work. No persistent undo/session policy is selected.
+
+Use an original bounded literal completer around the existing shell grammar and
+glibc directory APIs. Builtins, PATH executables and files/directories are hints;
+quote each applied token as data and require explicit Enter for effects. Avoid
+shell-script/plugin evaluation, content reads and new resident processes. Keep
+query/name/entry budgets and cooperative signal cancellation. Individual remote
+filesystem calls can still block; a cancellable provider is later work, not a
+claimed hard deadline. No existing security authority or library family changes.
+See [contract](../../spec/line-editor.md) and
+[actual evidence](journal/2026-11-05-line-assist.md).
+
 ## Keep line editing original and toolkit-independent — 5 November 2026
 
 Use an original bounded C17 draft/history model plus a separate Linux terminal

@@ -54,7 +54,8 @@ and a tested command runner with explicit `-i`/ephemeral job control. Its spelli
 recommendation, not final user approval of the language. POSIX compatibility,
 typed values/functions and final interactive job/session behavior remain open.
 The [own single-line editor](../../spec/line-editor.md) now supplies grapheme
-editing and bounded in-memory history. Final bindings, completion/search/undo,
+editing, bounded in-memory history/undo and literal command/path Tab completion.
+Final bindings, advanced completion/search,
 modal editing, panes and durable session/history policies remain work; its
 provisional controls do not settle those product questions.
 The prototype refuses exit/EOF with open jobs; hangup waits for original direct

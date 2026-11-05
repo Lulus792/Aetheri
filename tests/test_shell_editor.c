@@ -12,7 +12,34 @@ static void expect(struct ae_line_editor *e,const char *text,size_t cursor) {
     size_t boundaries[AE_LINE_BYTES+1],count;CHECK(ae_text_graphemes(p,n,boundaries,AE_LINE_BYTES+1,&count));
     bool found=false;for (size_t i=0;i<count;++i) found|=boundaries[i]==c;CHECK(found);
 }
+static void undo_checks(void) {
+    struct ae_line_editor *e=ae_line_create();CHECK(e);
+    CHECK(ae_line_insert(e,"a",1));CHECK(ae_line_insert(e,"j́",3));
+    CHECK(ae_line_undo(e,-1));expect(e,"",0);CHECK(ae_line_undo(e,1));expect(e,"aj́",4);
+    CHECK(ae_line_edit(e,AE_LINE_LEFT));CHECK(ae_line_insert(e,"x",1));expect(e,"axj́",2);
+    CHECK(ae_line_undo(e,-1));expect(e,"aj́",1);
+    fail_malloc=true;CHECK(!ae_line_insert(e,"new",3));CHECK(!ae_line_undo(e,1));fail_malloc=false;
+    expect(e,"aj́",1);CHECK(ae_line_undo(e,1));expect(e,"axj́",2);
+    CHECK(ae_line_undo(e,-1));CHECK(ae_line_insert(e,"y",1));CHECK(ae_line_undo(e,1));expect(e,"ayj́",2);
+    CHECK(!ae_line_replace(e,3,4,"z",1));expect(e,"ayj́",2);
+    CHECK(ae_line_edit(e,AE_LINE_END));CHECK(ae_line_edit(e,AE_LINE_KILL_START));expect(e,"",0);
+    CHECK(ae_line_undo(e,-1));expect(e,"ayj́",5);CHECK(ae_line_undo(e,1));expect(e,"",0);
+    CHECK(ae_line_edit(e,AE_LINE_YANK));expect(e,"ayj́",5);
+    CHECK(ae_line_remember(e));ae_line_clear(e);CHECK(ae_line_insert(e,"draft",5));CHECK(ae_line_history(e,-1));
+    CHECK(ae_line_undo(e,-1));expect(e,"ayj́",5);CHECK(ae_line_edit(e,AE_LINE_BACKSPACE));
+    CHECK(ae_line_undo(e,-1));expect(e,"ayj́",5);CHECK(ae_line_history(e,1));expect(e,"draft",5);
+    CHECK(ae_line_undo(e,-1));expect(e,"draft",5);
+    ae_line_clear(e);CHECK(ae_line_undo(e,1));expect(e,"",0);
+    for (unsigned i=0;i<100;++i) { CHECK(ae_line_edit(e,AE_LINE_END));CHECK(ae_line_insert(e,"x",1)); }
+    for (unsigned i=0;i<128;++i) CHECK(ae_line_undo(e,-1));
+    char expected[AE_LINE_BYTES+1];memset(expected,'x',36);expected[36]=0;expect(e,expected,36);
+    ae_line_clear(e);memset(expected,'a',AE_LINE_BYTES);expected[AE_LINE_BYTES]=0;CHECK(ae_line_insert(e,expected,AE_LINE_BYTES));
+    for (unsigned i=0;i<20;++i) { char c=(char)('A'+i);CHECK(ae_line_replace(e,0,1,&c,1)); }
+    for (unsigned i=0;i<100;++i) CHECK(ae_line_undo(e,-1));
+    expected[0]='E';expect(e,expected,1);ae_line_destroy(e);
+}
 int main(void) {
+    undo_checks();
     struct ae_line_editor *e=ae_line_create();CHECK(e);
     CHECK(ae_line_insert(e,"Aäj́👩‍💻🇩🇪Z",strlen("Aäj́👩‍💻🇩🇪Z")));
     CHECK(ae_line_edit(e,AE_LINE_LEFT));expect(e,"Aäj́👩‍💻🇩🇪Z",25);

@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — own grapheme-aware shell line editor.
+5 November 2026 — bounded undo/redo and literal shell completion.
 
 ## Coordination
 
@@ -11,10 +11,43 @@ message, repeat its overview or ask for it to be pasted after compaction without
 a new explicit request. The earlier handoff messages are history. This chat
 continues Aetheri implementation; NexaUI SDK implementation has its own owner.
 
-Preserve the quarantined old runtime. The Compose milestone below does not
+Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The [own editor](../../spec/line-editor.md) now has bounded undo/redo and literal
+command/path Tab completion. Consecutive typing is grouped; successful new edits
+discard redo. History traversal/reset/acceptance define separate undo lifetimes,
+and blocked input cannot be revived. The graphical terminal sends provisional
+Ctrl+Shift+Z/Y chords while preserving Ctrl+Z job control and existing preedit/
+clipboard routing. History/undo stay in memory under independent byte/count limits.
+
+The original completion module only reads advisory directory/PATH metadata and
+returns sorted/deduplicated, safely quoted literal replacements. It never runs a
+candidate, opens file contents, changes cwd/environment or treats a hint as
+authority. Query limits and cooperative cancellation preserve the whole draft;
+remote filesystem calls can still block. No daemon/thread/runtime library is added.
+
+All 29 affected groups pass Release 67.21s / ASan+UBSan 93.22s, with thirteen actual
+editor PTY cases and twelve graphical provider cases per profile. Unchanged
+tests reject copied-source quote and stale-redo mutants. The final ordinary DRM
+session proves actual undo/redo pixels, quoted-space Tab file effects and original
+ordered shutdown. See the [record](journal/2026-11-05-line-assist.md).
+
+The final read-only audit matches 303 host/snapshot/guest sources, 28 frozen
+SQL/XML and 19 protected old hashes without sidecars. It verifies 673 copied
+native files, 186 raw native images, 22 console files and 983 local Markdown targets.
+Final native/console binary hashes agree; the enforcing carrier is idle on tty1
+after original-session retirement. NexaUI's existing case was updated in place.
+
+Next app work is history search and the own modal editor/panes/session model.
+Advanced completion, fully cancellable remote lookup, accessible text/external
+IME, normal admitted sessions/apps, remaining apps, image/installer, hardware and
+the early complete experiment desktop remain required. Final bindings/design/
+durable history policy remain product work. Preserve the old quarantined intent.
+
+## Own line editor — historical checkpoint
 
 The graphical terminal now starts `aetheri-shell -i --edit`, using our
 [toolkit-free line editor](../../spec/line-editor.md). It supplies whole-grapheme

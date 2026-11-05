@@ -27,7 +27,8 @@ an understandable installation/runtime footprint.
   and virtual DRM evidence. External IME and trusted session integration remain work.
   The explicit development desktop now starts/reuses it independently of Settings.
   The terminal now uses our [own line editor](../../spec/line-editor.md), with
-  whole-grapheme edits and bounded in-memory history. Completion/undo/search,
+  whole-grapheme edits, bounded in-memory history/undo and literal Tab completion.
+  Search/advanced completion,
   own panes/modal editor, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
