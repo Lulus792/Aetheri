@@ -24,6 +24,12 @@ module. Do not build a speculative universal widget abstraction or duplicate a
 large toolkit in anticipation of migration. A later migration replaces views
 incrementally while retaining those application contracts and data formats.
 
+The first [SDL3 desktop consumer](../../../spec/desktop-ui.md) now follows this
+boundary: its C17 query/window model has no toolkit types, while the adapter owns
+custom Wayland roles, painting and input translation. A fixed development owner
+handles actual app processes independently. This is working SDL evidence, not a
+completed NexaUI adoption gate or permission to modify its SDK/consumer pins.
+
 Text layout/shaping, IME, editing, accessibility semantics and keyboard focus
 remain explicit work. An SDL-only rectangle/text demo does not satisfy them.
 Choose the needed text/widget foundations by evidence; preserve reduced motion,

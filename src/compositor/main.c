@@ -33,6 +33,7 @@
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/types/wlr_viewporter.h>
 #include <wlr/util/log.h>
 
 #include "server.h"
@@ -500,7 +501,7 @@ int main(int argc, char **argv) {
     s.layout = wlr_output_layout_create(s.display);
     if (!s.allocator || !s.scene || !s.layout || !wlr_renderer_init_wl_display(s.renderer, s.display) ||
             !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display) ||
-            !wlr_data_device_manager_create(s.display)) goto done;
+            !wlr_data_device_manager_create(s.display) || !wlr_viewporter_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
     if (!wlr_scene_rect_create(&s.scene->tree, drm ? 11520 : 8320, 2160, background)) goto done;

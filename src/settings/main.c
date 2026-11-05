@@ -320,7 +320,8 @@ int main(int argc, char **argv) {
     if (setenv("MESA_SHADER_CACHE_DIR",cache,1) || setenv("MESA_SHADER_CACHE_MAX_SIZE","32M",1)) return 1;
     setvbuf(stdout,NULL,_IOLBF,0);
     ae_settings_init(&a.model);
-    if (!SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) {
+    if (!SDL_SetAppMetadata("Aetheri Settings","0.0.1","org.aetheri.Settings") ||
+            !SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) {
         fprintf(stderr,"settings: initialization: %s\n",SDL_GetError()); SDL_Quit(); return 1;
     }
     int ft_major,ft_minor,ft_patch,hb_major,hb_minor,hb_patch;

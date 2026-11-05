@@ -77,6 +77,8 @@ def validate(record, carrier):
         raise RuntimeError("invalid development boot")
     if record.get("invocation") is not None and re.fullmatch("[0-9a-f]{32}", record["invocation"]) is None:
         raise RuntimeError("invalid original development invocation")
+    if not isinstance(record.get("desktop", False), bool):
+        raise RuntimeError("invalid development desktop profile")
     return record
 
 
@@ -136,7 +138,7 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile):
+def start(record, carrier, profile, desktop=False):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
     free_seat()
@@ -155,11 +157,12 @@ def start(record, carrier, profile):
             finally: os.close(fd)
     token = uuid.uuid4().hex
     build = build_for(profile)
-    binaries = {str(build / name): digest(build / name) for name in ("aetheri-compositor", "aetheri-settings")}
+    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop") if desktop else ("aetheri-compositor", "aetheri-settings")
+    binaries = {str(build / name): digest(build / name) for name in names}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
-                  invocation=None, pid=None, binaries=binaries, created_unix=time.time(), exit=None)
+                  invocation=None, pid=None, binaries=binaries, desktop=desktop, created_unix=time.time(), exit=None)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -178,6 +181,7 @@ def start(record, carrier, profile):
             "--setenv=XDG_SESSION_TYPE=wayland", "--setenv=XDG_SESSION_CLASS=user",
             "--setenv=XDG_SEAT=seat0", "--setenv=XDG_VTNR=8", "--setenv=LIBSEAT_BACKEND=logind",
             "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token]
+    if desktop: args.append("--desktop")
     # Start the unit without waiting for READY, then activate its inspected VT.
     # No second start is permitted if either dispatch acknowledgement is lost.
     args.insert(1, "--no-block")
@@ -291,7 +295,7 @@ def observation(record):
     return dict(kind=kind, original_unit=props)
 
 
-def supervise(profile, token):
+def supervise(profile, token, desktop=False):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     base = USER_ROOT / token
@@ -310,18 +314,40 @@ def supervise(profile, token):
         if number in (signal.SIGTERM, signal.SIGINT): stopping = True
     for number in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD): signal.signal(number, signalled)
     selector.register(reader, selectors.EVENT_READ, "signal")
-    def spawn(role, args):
-        child = subprocess.Popen(args, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    launch_owner = launch_client = shell_server = shell_client = None
+    launches = 0; app_history = []
+    if desktop:
+        shell_server, shell_client = socket.socketpair()
+        launch_owner, launch_client = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        launch_owner.setblocking(False)
+        selector.register(launch_owner, selectors.EVENT_READ, "launch")
+    def spawn(role, args, pass_fds=(), child_env=None):
+        if role in children: raise RuntimeError("previous development child is not fully drained")
+        child = subprocess.Popen(args, env=child_env or env, pass_fds=pass_fds, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         os.set_blocking(child.stdout.fileno(), False)
         children[role] = child; buffers[role] = b""
         selector.register(child.stdout, selectors.EVENT_READ, role)
-    spawn("compositor", [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"])
+    compositor_args = [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"]
+    if desktop: compositor_args += ["--shell-fd", str(shell_server.fileno())]
+    spawn("compositor", compositor_args, (shell_server.fileno(),) if desktop else ())
+    if shell_server: shell_server.close()
+    def reply(value):
+        if launch_owner is None or launch_owner.send(value) != len(value):
+            raise RuntimeError("uncertain development launch reply")
+    def recycle_settings():
+        child = children.get("settings")
+        if not child or child.poll() is None or not child.stdout.closed: return False
+        if child.returncode != 0: raise RuntimeError("Settings failed during desktop use")
+        app_history.append(dict(pid=child.pid, status=child.returncode))
+        del children["settings"]; del buffers["settings"]; ready.discard("settings"); terminated.discard("settings")
+        if not stopping and launch_owner is not None: reply(b"X1")
+        return True
     deadline = time.monotonic() + 12
     try:
         while True:
             if not stopping and not notified and time.monotonic() >= deadline: failed = True; stopping = True
             if stopping:
-                for role in ("settings", "compositor"):
+                for role in ("settings", "desktop", "compositor"):
                     child = children.get(role)
                     if not child: continue
                     if child.poll() is None:
@@ -339,6 +365,32 @@ def supervise(profile, token):
                     try: reader.recv(4096)
                     except BlockingIOError: pass
                     continue
+                if role == "launch":
+                    import array
+                    value, ancillary, flags, _ = launch_owner.recvmsg(8, socket.CMSG_SPACE(4*4), socket.MSG_CMSG_CLOEXEC)
+                    for level, kind, payload in ancillary:
+                        if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                            fds = array.array("i"); fds.frombytes(payload[:len(payload)-len(payload)%fds.itemsize])
+                            for fd in fds: os.close(fd)
+                    if not value and not ancillary:
+                        selector.unregister(launch_owner); launch_owner.close(); launch_owner = None
+                        continue
+                    if value not in (b"L1", b"Q1") or ancillary or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
+                        raise RuntimeError("invalid development launch packet")
+                    if value == b"Q1": stopping = True; continue
+                    if stopping: continue  # No new effects after the shutdown fence.
+                    recycle_settings()
+                    child = children.get("settings")
+                    if child and child.poll() is None: reply(b"A1"); continue
+                    if child or launches >= 128: reply(b"E1"); continue
+                    launches += 1
+                    try:
+                        spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                                           "--cache", str(base / "cache"), "--diagnostics"])
+                    except OSError:
+                        # Popen reports an exec failure after reaping its failed child.
+                        reply(b"E1"); continue
+                    reply(b"A1"); continue
                 data = os.read(key.fileobj.fileno(), 8192)
                 if not data:
                     if buffers[role]:
@@ -349,22 +401,32 @@ def supervise(profile, token):
                 if len(buffers[role]) > 65536: raise RuntimeError("development child output exceeded bound")
                 while b"\n" in buffers[role]:
                     line, buffers[role] = buffers[role].split(b"\n", 1)
-                    if not line.startswith((b"VIEW ", b"CONTROL ", b"LAYOUT ")):
+                    if not line.startswith((b"VIEW ", b"CONTROL ", b"LAYOUT ", b"DRAWN ")):
                         print(role + ": " + line.decode(errors="replace"), flush=True)
                     if line.startswith(b"READY ") and role not in ready:
                         ready.add(role)
                         if role == "compositor":
-                            spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
-                                               "--cache", str(base / "cache"), "--diagnostics"])
-                    if role == "settings" and line.startswith(b"LAYOUT ") and len(ready) == 2 and not notified:
-                        notify("READY=1\nSTATUS=Settings submitted its first development frame")
+                            if desktop:
+                                spawn("desktop", [str(build / "aetheri-desktop"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                                                  "--cache", str(base / "cache"), "--launcher-fd", str(launch_client.fileno()), "--diagnostics"],
+                                      (shell_client.fileno(), launch_client.fileno()), {**env, "WAYLAND_SOCKET": str(shell_client.fileno())})
+                                shell_client.close(); launch_client.close()
+                            else:
+                                spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                                                   "--cache", str(base / "cache"), "--diagnostics"])
+                    first = "desktop" if desktop else "settings"
+                    if role == first and line.startswith(b"LAYOUT ") and {"compositor", first} <= ready and not notified:
+                        notify("READY=1\nSTATUS=" + first.capitalize() + " submitted its first development frame")
                         notified = True
-            for role, child in children.items():
+            if desktop and not stopping: recycle_settings()
+            for role, child in list(children.items()):
                 code = child.poll()
                 if code is not None and role not in terminated:
-                    if role != "settings" or code != 0 or not notified: failed = True
+                    if desktop and role == "settings" and code == 0 and notified: continue
+                    if role != ("desktop" if desktop else "settings") or code != 0 or not notified:
+                        if not (desktop and role == "compositor" and code == 0 and notified): failed = True
                     stopping = True
-        print("SESSION_END " + json.dumps({role: child.returncode for role, child in children.items()}), flush=True)
+        print("SESSION_END " + json.dumps({"children": {role: child.returncode for role, child in children.items()}, "settings_history": app_history}), flush=True)
         return 1 if failed else 0
     except BaseException as error:
         print("SUPERVISOR_ERROR " + str(error), flush=True)
@@ -384,6 +446,8 @@ def supervise(profile, token):
     finally:
         signal.set_wakeup_fd(old_wakeup)
         selector.close(); reader.close(); writer.close()
+        for channel in (launch_owner, launch_client, shell_server, shell_client):
+            if channel is not None: channel.close()
 
 
 def main():
@@ -391,6 +455,7 @@ def main():
     parser.add_argument("action", choices=("start", "status", "stop"), nargs="?", default="status")
     parser.add_argument("--profile", choices=PROFILES, default="release")
     parser.add_argument("--token")
+    parser.add_argument("--desktop", action="store_true", help="explicit native dock/search development session")
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
@@ -398,12 +463,13 @@ def main():
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
-        return supervise(args.profile, args.token)
+        return supervise(args.profile, args.token, args.desktop)
     if not args.guest:
         import shlex
         import run_vm as vm
         if not vm.running(): raise RuntimeError("dedicated VM identity is not verified")
         command = ["sudo", "-n", "python3", SOURCE.as_posix(), args.action, "--guest", "--carrier-uuid", vm.config()["uuid"], "--profile", args.profile]
+        if args.desktop: command.append("--desktop")
         if args.token: command += ["--token", args.token]
         elif args.action == "stop":
             probe = [*command]; probe[4] = "status"
@@ -421,7 +487,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

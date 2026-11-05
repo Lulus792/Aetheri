@@ -213,7 +213,11 @@ static void layer_commit(struct wl_listener *listener, void *data) {
 static void layer_map(struct wl_listener *listener, void *data) {
     (void)data;
     struct layer *l = wl_container_of(listener, l, map);
-    if (!profile(l)) { wl_client_post_implementation_error(l->desktop->client, "unsupported desktop map state"); return; }
+    if (!profile(l)) {
+        wl_client_post_implementation_error(l->desktop->client, "unsupported desktop map state: logical=%dx%d acknowledged=%ux%u",
+            l->surface->surface->current.width,l->surface->surface->current.height,
+            l->surface->current.actual_width,l->surface->current.actual_height); return;
+    }
     ae_desktop_arrange(l->desktop);
 }
 static void layer_unmap(struct wl_listener *listener, void *data) {

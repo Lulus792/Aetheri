@@ -1,9 +1,10 @@
 # Private desktop connection
 
 5 November 2026. The compositor now has a separate development-shell connection
-and native role/focus integration. The current consumer is a protocol test with
-solid-color surfaces. The product dock/search UI, app-start mediation and normal
-session admission remain to be implemented.
+and native role/focus integration. The separate [SDL3 development desktop](desktop-ui.md)
+now provides dock/search, observed tasks and fixed Settings launch. The solid-color
+protocol consumer remains an independent test. Normal session/app admission and
+the finished product design remain work.
 
 ## Responsibilities
 
@@ -104,7 +105,7 @@ The upstream layer protocol is byte-identical to the already pinned wlroots
 0.20.2 source; CMake checks its pinned hash. No library family, ordinary authority
 profile, lifecycle SQL or D-Bus contract changes for this integration.
 
-## Native acceptance
+## Initial protocol acceptance checkpoint
 
 Build the existing compositor test targets, then run:
 
@@ -152,21 +153,19 @@ These diagnostic color blocks are not a product design or visual/accessibility
 acceptance. No physical monitor, screenreader, suspend/resume or production
 shell/process confinement is established by this result.
 
-## Next implementation
+## Consumer integration
 
-Implement the separate SDL3 desktop client using the reviewed UI dependency
-profile: compact dock, keyboard-search view, observed task list and existing-
-window activation. Keep models/commands free of SDL/NexaUI types and replace only
-the view when a suitable NexaUI scope passes its gates. Validate role/configure
-ordering through actual custom-role SDL surfaces before enabling the client in
-the development controller.
+The separate [SDL3 desktop client](desktop-ui.md) now uses the reviewed UI dependency
+profile for a compact dock, keyboard search, observed tasks and current-window
+activation. Its model/commands have no SDL/NexaUI types. The later view migration
+still requires suitable NexaUI gates. Actual custom SDL role/configure tests and
+an explicit `--desktop` development-controller mode now exist.
 
-Add a separate bounded inherited channel from that client to the development
-supervisor for fixed Settings launch and exit observations. Do not accept arbitrary
-argv/paths or launch inside the compositor. Settings close should return to the
-desktop, with single-instance behavior based on retained child handles and actual
-window observations. Finish actual keyboard/pixel/error/idle checks and ordered
-Settings → desktop → compositor shutdown before advertising that workflow.
+Its separate bounded inherited channel requests only fixed Settings launch and
+development shutdown. No arbitrary argv/path or compositor-side spawning is
+accepted. Settings close returns to the desktop, and a live original child is
+reused. The [consumer guide](desktop-ui.md) records keyboard/pixel/error/idle and
+ordered-shutdown evidence separately from this original protocol checkpoint.
 
 The full original desktop/apps, normal admitted session, lock/resume, persistent
 experiment desktop VM, original bootable image/installer and physical hardware

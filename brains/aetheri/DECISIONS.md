@@ -1,5 +1,23 @@
 # Decisions
 
+## Keep the SDL desktop model and app owner separate — 5 November 2026
+
+Use custom-role SDL3 windows for the private dock/search connection, with the same
+reviewed text/GLES stack as Settings. Keep bounded query/window selection outside
+toolkit types. Offer wlroots' existing standard viewporter, create renderers after
+configure and repaint once more after native resize on the measured carrier path.
+Retain strict acknowledged logical dimensions rather than accepting wrong geometry.
+Premultiplied clear colors preserve the real background outside the dock.
+
+Use a separate inherited fixed-command channel to the original development owner.
+Only that owner selects/spawns Settings and retains/reaps its child. Pending
+requests are not repeated; one live slot is reused. User close fences new starts
+and waits for owner-ordered Settings/desktop/compositor shutdown. No arbitrary
+paths/argv, incoming FDs, auto-reconnect or production launch privilege is added.
+The transient Python owner is development infrastructure. App-ID matching is
+visual grouping, never process/installation/permission proof. See
+[consumer contract and acceptance](../../spec/desktop-ui.md).
+
 ## Separate the development desktop connection — 5 November 2026
 
 Use one independently inherited AF_UNIX stream endpoint for the private shell

@@ -1,13 +1,14 @@
 # Start here
 
 Aetheri is a planned Linux-based personal desktop OS with original applications.
-Updated 4 November 2026 for native clipboard, the Settings view and nested input,
-strict service-main admission and interruption transactions. Read STATE before
+Updated 5 November 2026 for the SDL desktop and fixed app owner, native clipboard,
+Settings/nested input and the separate admission/interruption work. Read STATE before
 relying on retained-handle evidence.
 The separate [DRM development session](../../spec/session.md) now has actual
 virtual-display/input evidence; normal session and lock/resume admission remain open.
-The [private desktop connection](../../spec/desktop.md) now has native role/focus/
-foreign-client tests; its dock/search consumer is still a diagnostic probe.
+The [private desktop connection](../../spec/desktop.md) has native role/focus/
+foreign-client tests. The [SDL3 desktop](../../spec/desktop-ui.md) now provides
+dock/search, window selection and fixed Settings launch in the explicit carrier mode.
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
 

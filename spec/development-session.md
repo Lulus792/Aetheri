@@ -1,6 +1,6 @@
 # Running the development desktop
 
-4 November 2026. This starts the native Aetheri compositor and Settings in the
+5 November 2026. This starts the native Aetheri compositor and selected UI in the
 dedicated Fedora carrier. It is a development workflow, not the finished desktop,
 an Aetheri system image, normal app admission or the resettable experiment product.
 
@@ -17,6 +17,7 @@ That command remains attached to the VM. Use another terminal for the session:
 
 ```sh
 python tools/development_session.py start
+python tools/development_session.py start --desktop
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
@@ -37,7 +38,11 @@ mouse grabbing and Windows keyboard forwarding still need separate acceptance:
 both available native-UI inspection paths timed out. Guest pixels/input are
 tested through QMP; do not call that a completed Windows interaction test.
 
-Settings can close with Ctrl+Q. The development supervisor then ends the compositor
+Choose one start command. `--desktop` opens the [dock/search client](desktop-ui.md)
+with Settings launched on demand; closing Settings leaves this desktop running.
+Ctrl+Q while search has focus asks the owner to stop Settings, desktop and compositor
+in order. In the original Settings-only mode, Settings can close with Ctrl+Q.
+The development supervisor then ends the compositor
 and retains the original service result. Run `stop` to retire the inspected unit
 and return to tty1. `stop --token TOKEN` selects a specific original development
 attempt. Repeating a completed stop returns history and cannot stop a newer one.
@@ -59,14 +64,17 @@ It creates one transient Type=notify unit as UID/GID1000 with PAMName=login,
 NotifyAccess=main, RemainAfterExit=yes, no capabilities, NoNewPrivileges, no restart
 and no forced SIGKILL. It changes no login-manager configuration or policy.
 
-The ordinary-user Python supervisor is a development tool. It retains two actual
-Popen child handles, starts the compositor, then Settings. It notifies PID1 only
-after the selected Settings has submitted its first frame, not merely printed
+The ordinary-user Python supervisor is a development tool. It retains actual
+Popen child handles, starting compositor then Settings or the selected desktop.
+The desktop mode has one on-demand Settings slot, a private inherited Wayland
+connection and a bounded fixed-command channel. It notifies PID1 only
+after the selected first UI has submitted its first frame, not merely printed
 READY. This is a development startup signal, not the Aetheri app READY protocol
 or proof of admitted code, data, grants or visible host presentation.
 
-The supervisor sleeps on child pipes and signal wakeups. Closing Settings stops
-the compositor; an explicit stop ends Settings first, then the compositor. Each
+The supervisor sleeps on child pipes, its optional command channel and signal
+wakeups. Settings-only close stops the compositor. Desktop mode keeps the shell
+alive; an explicit or owner-requested stop ends Settings, desktop, then compositor. Each
 child is waited/reaped. Pending pipe output is drained, and requested termination
 cannot hide a nonzero cleanup/sanitizer result. Stuck children retain their handles;
 the tool does not silently escalate to force-kill. The existing sd-pam child is
@@ -87,7 +95,7 @@ as a dependency of the future production desktop.
 | `history/TOKEN.json` | Root, closed original attempts; never changed by historical stop |
 | `active.next` | Root, an interrupted/uncertain write; never removed automatically |
 | `/home/aetheri/development-sessions/TOKEN/runtime` | UID1000, private development Wayland socket directory |
-| `cache` beside that runtime | UID1000, Settings shader cache with the existing soft budget |
+| `cache` beside that runtime | UID1000, development-view shader cache with the existing soft budget |
 | system journal | Native and supervisor diagnostics, filtered to avoid per-control layout spam |
 
 These dedicated folders make the development footprint explicit. They are retained
@@ -119,7 +127,7 @@ must become terminal; service population and logind seat state are inspected
 before the unit is retired and tty1 restored. These fixed-program checks cannot
 settle production holders, leases or the older quarantined execution attempt.
 
-## Evidence
+## Settings-only evidence checkpoint — 4 November
 
 - First actual start/stop on the old carrier boot completed normally.
 - The carrier shut down with QEMU status0/PID absence, then booted the same
@@ -141,5 +149,6 @@ settle production holders, leases or the older quarantined execution attempt.
 
 Original results live in the private session-controller review directory and the
 dedicated guest. No frozen SQL/XML, normal authority capability, physical disk,
-shared WSL setup or other project was changed. Next is the actual desktop shell
-and app launcher; normal session/app policy and hardware acceptance remain open.
+shared WSL setup or other project was changed. The [desktop client/evidence](desktop-ui.md)
+now adds the explicit dock/search/app-start workflow. Normal session/app policy,
+the finished apps, experiment product and hardware acceptance remain open.

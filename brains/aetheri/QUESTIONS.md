@@ -27,6 +27,10 @@ physical/trusted-session acceptance remains open. The separate optional
 and PS/2 input with logind. A reusable development controller/native console now
 exists in the [development guide](../../spec/development-session.md). Host-window
 input acceptance, normal admitted session and lock/resume remain engineering work.
+The [SDL3 desktop](../../spec/desktop-ui.md) now adds native dock/search, current
+window selection and fixed Settings launch with real carrier supervision. Final
+visual design, complete editing/IME, assistive semantics and physical acceptance
+remain open; no personal design approval is inferred from this prototype.
 Both the coordinate and private
 clipboard integration patches are pinned. See [current scope](../../spec/graphics.md).
 

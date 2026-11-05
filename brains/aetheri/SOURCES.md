@@ -4,6 +4,39 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## SDL3 desktop and fixed app owner — 5 November 2026
+
+- [Consumer contract and limits](../../spec/desktop-ui.md),
+  [toolkit-independent model](../../src/desktop/model.h),
+  [native UI adapter](../../src/desktop/main.c),
+  [actual UI/input/pixel checks](../../tools/test_desktop_ui.py) and
+  [controller/child-process checks](../../tools/test_development_session.py).
+- [SDL custom Wayland guide](https://wiki.libsdl.org/SDL3/README-wayland), read
+  5 November, describes custom surfaces, logical resize and SDL-managed viewport/
+  scale. Pinned SDL 3.4.20 source/example and Wayland-window/event/signal code were
+  inspected separately. The existing wlroots viewporter is used without changing
+  library inputs. This does not prove every driver or fractional-scale profile.
+- Final native suites: 10/10 Release (22.34 s), 10/10 ASan/UBSan (39.59 s), plus
+  11/11 Linux controller/file/generated-process checks (0.763 s). The unchanged
+  process-order test rejects a desktop-before-Settings mutation at its independent
+  live-marker/exit-status assertions. Other protocol/source contracts stay frozen.
+- Private local/desktop-ui-2026-11-05 retains native reports, original/failed
+  pixels, exact source and binary observations, explicit carrier records/journals
+  and QMP PNGs. Initial wrong EGL size, stale test-focus wait, doubled alpha and
+  transient missing dock remain traceable; final tests check actual geometry and
+  transparency. A first credential assertion incorrectly included PID1's PAM
+  bookkeeping helper; later observations distinguish it from the supervised apps.
+- Native comparisons exposed two early captures of an old counter/theme state.
+  The final test waits for copied view-state/frame-done observations: all 99 raw
+  image hashes per profile agree and all 198 gzip originals verify. Frame-done
+  remains distinct from physical presentation or app readiness. Final reviewed
+  DRM sessions also have matching guest PNGs and original successful close results.
+- Actual carrier workflows exercise first launch, process reuse, close/reopen,
+  historical stop isolation and ordered/user-requested shutdown. Final compiled
+  views also run on the real DRM carrier in Release/Debug and retain original
+  supervisor status0. Guest PNGs match; no native Windows input/grab, physical
+  monitor, complete native assistive or production session/app acceptance follows.
+
 ## Private desktop connection — 5 November 2026
 
 - [Contract and native acceptance](../../spec/desktop.md),

@@ -641,7 +641,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   can discover/bind layer-shell/control; no UID/title/app-ID or numeric-PID proof.
   Keep view state, compositor focus policy and fixed-app supervisor launches
   separate. Neither private global exists without --shell-fd. The current native
-  consumer is diagnostic only; no SDL product shell/controller app-start channel
-  or production session/lock/app authority is implemented. Unexpected shell loss
+  protocol consumer stays diagnostic; a separate SDL development consumer and
+  fixed Settings owner channel now exist in spec/desktop-ui.md. No production
+  session/lock/app authority is implemented. Unexpected shell loss
   fails this development session; retire acknowledges only orderly departure,
   never lifecycle/lease settlement. Preserve old intents and normal empty caps.
+- AETHERI_DESKTOP is opt-in and requires the compositor. Read spec/desktop-ui.md.
+  Keep models/commands toolkit-independent, SDL custom roles/high-density scaling
+  in the adapter and fixed app paths/process handles in the development owner.
+  Initial configure precedes EGL allocation; retain strict logical geometry and
+  correct premultiplied clear colors. The selected carrier needs one bounded
+  follow-up repaint after resize. Idle is event-driven. Both channel directions
+  reject ancillary FDs/truncation; no unknown request is replayed. User Q1 fences
+  new launches and waits for Settings -> desktop -> compositor stop order. A1 is
+  only an original child observation, never app READY/admission or lease release.
+  App-ID grouping grants no privilege. SDL/SDK/Mesa instrumentation limits and
+  unresolved native a11y/text/physical/session gates remain explicit.

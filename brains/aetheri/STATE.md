@@ -1,8 +1,51 @@
 # State
 
-5 November 2026 — private desktop role/focus connection; product shell remains next.
+5 November 2026 — usable SDL3 development dock/search and fixed Settings launch.
 
 ## Current update
+
+The original [desktop client](../../spec/desktop-ui.md) now supplies a compact
+dock, DE/EN keyboard search and observed window selection on up to three outputs.
+Its bounded C17 model is separate from SDL/NexaUI. Actual SDL custom roles use
+the existing private compositor connection, initial configure before renderer
+allocation and SDL-owned viewports. Correct premultiplied clear colors and a
+bounded resize follow-up repaint fix the observed transparent/missing-dock frames.
+The compositor adds the standard viewporter from its already pinned library;
+no new dependency family, installed policy or normal authority capability changes.
+
+The explicit development controller's `--desktop` mode now starts the shell and
+launches fixed Settings on request. It owns one original Popen slot, reuses a live
+child and recycles a finished child only after its output pipe is drained. Two-byte
+inherited messages carry no paths/argv/FDs. Pending starts are not repeated; channel
+loss/invalid packets fail without reconnect. User Ctrl+Q asks the owner to fence
+new effects and stop Settings, desktop and compositor in order. This is development
+supervision, not normal app admission, readiness, lifetime recovery or lease release.
+
+All ten native Settings/compositor/desktop checks pass in Release (22.34 s) and
+Debug ASan/UBSan (39.59 s). They cover model limits, native pixels/input, multiple
+outputs, small-layout reflow, app start/activation/close, pending/error/empty
+states, transparency, idle, owner close and malformed/lost-channel cases. All
+eleven Linux controller/file/generated-process tests pass (0.763 s); the unchanged
+ordering test rejects a deliberate desktop-before-app shutdown mutation. Actual
+DRM controller sessions exercise fixed Settings start, close/reopen/reuse and
+original result retention. Records/journals/guest PNGs remain under
+local/desktop-ui-2026-11-05. See the guide for exact evidence and remaining gates.
+All 99 image hashes per profile agree and all 198 compressed originals verify.
+Final native Release/Debug DRM captures also match after actual Settings launch;
+controller stop and user-requested ordered shutdown retain original status0.
+All 240 host/snapshot/guest source hashes match; the 28 frozen SQL/XML contracts
+and nineteen protected old catalogue/static/profile hashes remain unchanged.
+The VM stays booted/enforcing on tty1 with no active Aetheri unit/native program
+or seat0 session. No old execution intent is settled by these development tests.
+
+This is a provisional development UI. Native assistive semantics, complete
+editing/IME, 200% text and physical mixed DPI, final visuals, ordinary admitted
+sessions/apps, trusted lock/resume and real settings backends remain work. The
+full terminal/editor/shell, browser, Files, device/software/VM applications,
+original image/installer and persistent experiment desktop remain required.
+The protected old running/recover-handoff intent is separate and remains unresolved.
+
+## Private connection checkpoint — 5 November 2026
 
 The compositor now accepts one original inherited AF_UNIX stream connection for
 private development desktop control and layer-shell v5. A global filter denies
@@ -23,10 +66,9 @@ a deliberately weakened global filter at the precise foreign-discovery assertion
 The upstream layer XML is copied from the already pinned wlroots archive with its
 license intact and a CMake hash check. No new library family/policy is installed.
 
-The current desktop consumer paints diagnostic color blocks only. A designed
-SDL3 dock/search client, its fixed-app supervisor channel and native development-
-controller integration are the next work. The controller remains in its previous
-closed state; no normal shell/session capabilities are advertised. The nineteen
+At this earlier checkpoint the desktop consumer painted diagnostic color blocks
+only; the separate consumer integration is now described above. No normal shell/
+session capabilities are advertised. The nineteen
 protected old catalogue/static/profile hashes remain unchanged and all 28 frozen
 SQL/XML contracts are raw-byte identical. The old running/recover-handoff intent
 stays unresolved. The VM remains booted/enforcing on tty1 with no active Aetheri
