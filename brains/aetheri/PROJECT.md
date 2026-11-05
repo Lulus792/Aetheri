@@ -163,7 +163,9 @@ can be retained during NexaUI migration.
 The optional DRM development session now displays this view on the carrier's
 actual virtual connector with logind/libinput and ordinary UID1000 processes.
 The separate [SDL3 desktop](../../spec/desktop-ui.md) now adds a dock/search view
-and fixed Settings start/close/reopen. Its model is reusable for later NexaUI
+and fixed Settings start/close/reopen. Initial bounds keep this reviewed consumer
+above the dock; keyboard maximize/restore and selected-output reconfiguration now
+have native evidence. Its model is reusable for later NexaUI
 adoption. Normal session/app confinement, the finished shell/design, trusted lock/
 resume and physical-driver acceptance remain separate work. See
 [session boundary](../../spec/session.md).

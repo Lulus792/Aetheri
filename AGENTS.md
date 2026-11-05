@@ -657,3 +657,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   only an original child observation, never app READY/admission or lease release.
   App-ID grouping grants no privilege. SDL/SDK/Mesa instrumentation limits and
   unresolved native a11y/text/physical/session gates remain explicit.
+- Window desired maximize/fullscreen modes are compositor-owned, separate from
+  client requested/committed state. Super+Up/Down requires actual app focus and
+  refuses shell focus, pointer interactions and fullscreen; consume both arrows.
+  Initial v4+ bounds are advisory and exclude dock/margins, not client clipping.
+  Reconfigure against the current selected output, never only the home index.
+  Read spec/desktop-ui.md's later work-area evidence; physical/general off-screen
+  recovery and fullscreen dock policy remain open.

@@ -28,6 +28,7 @@ without a Settings process; launch it from the dock or search.
 | Action | Behavior |
 | --- | --- |
 | Super+Space | Open/close search on the output under the pointer |
+| Super+Up / Super+Down in an app | Maximize to its work area / restore normal size |
 | Search button | Open search there, including moving it from another output |
 | Type / Backspace | Append valid UTF-8 or remove the last scalar |
 | Tab / Shift+Tab / Up / Down | Select a matching app/window result |
@@ -41,6 +42,22 @@ creates another original child after the previous process and output pipe have
 fully ended. A launch request while Settings still runs retains that child and
 raises its observed window where available. The app ID used for visual grouping
 is descriptive; the launch owner independently selects its fixed executable.
+
+Normal-window configure bounds now recommend the selected output's usable area,
+including the dock and the provisional 40px placement margins on sufficiently
+large outputs. The reviewed SDL client uses those initial bounds. On the actual
+1280×800 carrier, Settings opens at 1100×636, maximizes to 1280×716 and restores
+to 1100×636. Its footer remains above the dock. These are advisory xdg-shell v4+
+bounds, not forced clipping or a promise that every client respects them. Legacy
+v3 clients remain supported without that event. User resizing can exceed the
+recommendation; general off-screen recovery/minimum-size policy remains work.
+
+Super+Up/Down consumes both arrow events and acts only on the actual app keyboard
+focus. Search focus, a pointer interaction or fullscreen blocks it. Restore does
+not mean minimize or fullscreen exit. Compositor desired modes are separate from
+client requests and committed protocol state; no optimistic state is reported as
+an acknowledged client resize. Output changes follow the selected output rather
+than a window's original placement output.
 
 ## Module and resource ownership
 
@@ -149,10 +166,10 @@ old dock count and the frame before a theme key was handled. This observation is
 not a presentation-time, physical scanout or app READY contract. The ordinary
 development startup notification still means the first submitted layout.
 
-The complete Settings/compositor/desktop suite runs in Release and ASan/UBSan.
-The final runs pass 10/10 in 22.34 seconds and 10/10 in 39.59 seconds respectively.
-All 99 native image hashes per profile agree; all 198 compressed originals were
-decompressed and checked against their recorded raw-byte hashes.
+The initial SDL desktop suite ran in Release and ASan/UBSan.
+Those checkpoint runs passed 10/10 in 22.34 seconds and 10/10 in 39.59 seconds respectively.
+At that checkpoint, all 99 native image hashes per profile agreed; all 198
+compressed originals were decompressed and checked against their recorded hashes.
 Separate Linux supervisor tests exercise actual generated child programs and
 verify one live app and Settings → desktop → compositor stop order. Their
 unchanged order test rejects a deliberately reversed shutdown implementation.
@@ -165,6 +182,17 @@ The final `*-reviewed-*` Release/Debug sessions use the frame-observation build;
 their actual DRM PNGs are byte-identical. Release closes through the controller,
 Debug through the desktop's owner request while Settings still runs. Both original
 supervisor results are status0 and all three native children end successfully.
+
+The subsequent work-area tests reproduce the original overflow using the old
+compositor and real Settings. Updated native tests cover initial bounds, keyboard
+maximize/restore, suppression during search/grabs/fullscreen and resizing a
+fullscreen window on a different selected output. All ten checks pass in Release
+across focused runs and in ASan/UBSan's complete 10/10 run (36.88 s), followed by
+the extended selected-output test in both profiles. All 108 image hashes per
+profile agree and all 216 compressed originals verify. Actual DRM sessions repeat
+normal/maximized/restored states and owner-ordered shutdown. All three Release/
+Debug captures match, and normal/restored images are also byte-identical. These
+later original results are under `local/workarea-2026-11-05`.
 The existing PID1 sd-pam helper is separately observed bookkeeping, not an app
 with an asserted identical execution context. No new PAM/policy configuration is
 installed. The carrier's previously observed optional pam_lastlog2 loader warning
@@ -172,7 +200,7 @@ remains; this does not establish a finished login/PAM profile.
 
 The design is provisional. Screenreader/AT-SPI semantics, complete text/IME,
 200% text and mixed physical DPI, final design/materials/assets, arbitrary app
-catalogue/launch admission, free-window initial work-area fitting, fullscreen
+catalogue/launch admission, general off-screen/minimum-size handling, fullscreen
 dock policy, trusted lock/resume and physical drivers remain work. The full
 terminal/editor/shell, browser, Files, device/software/VM tools, original image/
 installer and persistent experiment desktop are still required. A working carrier

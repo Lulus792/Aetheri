@@ -107,8 +107,10 @@ def main():
         syncs = log().count("INPUT_SYNC\n")
         event("B 272 1")
         wait(lambda: log().count("INPUT_SYNC\n") > syncs, "admitted move request")
+        key(125,True);key(103,True);key(103,False);key(125,False)
         event("M 160 140"); event("B 272 0")
         snapshot("serial-bound move", {0: [(45, 45, bg), (105, 85, blue)], 1: [(45, 45, green)]})
+        assert "CONFIG 0 1920 1080 0\n" not in log(),"maximize bypassed active move grab"
         command("z", "ARM_RESIZE\n")
         syncs = log().count("INPUT_SYNC\n")
         event("B 272 1")

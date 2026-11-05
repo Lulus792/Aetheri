@@ -1,5 +1,22 @@
 # Decisions
 
+## Let the compositor own desired window modes — 5 November 2026
+
+Keep compositor-desired maximize/fullscreen modes separate from wlroots' client
+request fields and committed protocol state. Client requests update the relevant
+desired mode; compositor keyboard controls update only that mode. Super+Up/Down
+is a provisional development binding, consumed as a complete pair, with actual
+app keyboard focus and no search/pointer/fullscreen interaction. Pending desired
+max/full state also blocks a new move/resize before the client commits it.
+
+Send normal-window configure bounds from the selected usable output, excluding
+the dock and initial 40px margins where the output is large enough. These remain
+advisory, with no invented enforcement or legacy-v3 support claim for that event.
+Use current/explicit fullscreen output lookup for subsequent changes, not the
+original home index. Keep initial fitting separate from future arbitrary-client
+off-screen/minimum-size and fullscreen dock policy. No new dependency, authority
+capability or final product design is selected. [Native evidence](../../spec/desktop-ui.md).
+
 ## Keep the SDL desktop model and app owner separate — 5 November 2026
 
 Use custom-role SDL3 windows for the private dock/search connection, with the same

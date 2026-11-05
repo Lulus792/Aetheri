@@ -1,8 +1,37 @@
 # State
 
-5 November 2026 — usable SDL3 development dock/search and fixed Settings launch.
+5 November 2026 — initial work-area fitting and keyboard window management.
 
 ## Current update
+
+The development compositor now sends advisory v4+ normal-window bounds excluding
+the dock and provisional placement margins. Actual Settings opens fully above
+the dock on the 1280×800 carrier: 1100×636 normally, 1280×716 maximized, then back
+to 1100×636. Super+Up/Down consumes both arrow events and acts only on actual app
+focus outside search, pointer interaction and fullscreen. Desired compositor modes
+remain separate from client requests/committed state. Reconfiguration follows the
+current selected output, including fullscreen away from the original placement.
+
+The native test reproduces the original overflow with the old build. All ten
+Release checks pass across focused runs; Debug ASan/UBSan passes 10/10 in 36.88 s.
+The extended selected-output test then passes in both profiles. All 108 image
+hashes per profile match and all 216 gzip originals verify. Real DRM sessions in
+both profiles repeat normal/maximized/restored geometry and ordered shutdown with
+original status0. Their three guest captures match, including exact normal/restore
+identity. Evidence is retained under local/workarea-2026-11-05; the [consumer
+guide](../../spec/desktop-ui.md) distinguishes these checks from the prior checkpoint.
+All 240 host/snapshot/guest source hashes agree; all 28 frozen SQL/XML and nineteen
+protected old catalogue/static/profile hashes remain unchanged, without SQLite
+sidecars. The VM remains booted/enforcing on tty1 with no active Aetheri unit,
+native compositor/UI process or seat0 session. All 795 local Markdown file targets
+resolve; external links and anchors were not part of that file-target check.
+
+Bounds are recommendations, not arbitrary-client clipping. General off-screen/
+minimum-size handling, fullscreen dock policy, assistive/IME/physical acceptance,
+normal session/app admission and the remaining full OS/apps/image/experiment work
+remain open. The protected old execution intent is separate and unresolved.
+
+## SDL desktop checkpoint — 5 November 2026
 
 The original [desktop client](../../spec/desktop-ui.md) now supplies a compact
 dock, DE/EN keyboard search and observed window selection on up to three outputs.

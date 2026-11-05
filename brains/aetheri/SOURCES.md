@@ -4,6 +4,29 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Normal work area and keyboard modes — 5 November 2026
+
+- [Compositor](../../src/compositor/main.c), [input](../../src/compositor/input.c),
+  [private desktop checks](../../tools/test_desktop.py) and
+  [real Settings checks](../../tools/test_desktop_ui.py). The initial new assertion
+  fails against the old compositor at missing 1100×636 fitting. Its original
+  settings.log is retained at session-release/desktop-ui-c5fze6_n in the guest.
+- Installed `wayland-protocols-devel-1.49-1.fc44` stable xdg-shell XML and pinned
+  wlroots 0.20.2 set_bounds/requested/current declarations were read. The reviewed
+  SDL 3.4.20 Wayland-window source clamps initial floating geometry to received
+  bounds. The attempted web retrieval was unavailable; no newer upstream version
+  or unexecuted generic-client behavior is claimed. Inputs remain unchanged.
+- Release's ten checks pass across focused runs; Debug's full 10/10 passes in
+  36.88 s. The final selected-output extension passes separately in Release
+  (6.06 s) and ASan/UBSan (10.50 s). A stale test wait initially reused the earlier
+  keyboard-maximize frame when testing a new client request; requiring a fresh
+  frame fixes that harness error without relaxing native pixel assertions.
+- local/workarea-2026-11-05 retains original native reports, 108 matching raw-image
+  hashes per profile with all 216 gzip originals verified, and actual DRM session
+  records/journals/PNG comparisons. Normal/maximized/restored captures match
+  between profiles; original/restore PNGs match within each. Both original unit
+  results retain status0 and all three native children end successfully.
+
 ## SDL3 desktop and fixed app owner — 5 November 2026
 
 - [Consumer contract and limits](../../spec/desktop-ui.md),

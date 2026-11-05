@@ -1,6 +1,6 @@
 # Private compositor bring-up
 
-4 November 2026. `aetheri-compositor` is the first original C17 Wayland server in
+5 November 2026. `aetheri-compositor` is the first original C17 Wayland server in
 Aetheri. Its input module now supplies a native seat and nested output mode.
 It uses wlroots for protocol/scene/backend primitives and Pixman for
 software rendering. This opt-in executable is not an installed desktop session,
@@ -15,8 +15,9 @@ headless/nested selection or imply a trusted session, lock or resume policy.
 
 The optional [private desktop connection](desktop.md) adds compositor-side dock/
 search roles, work-area reservation and control of existing windows bound to
-the original connection. Its native consumer is a diagnostic protocol probe; product
-shell UI and app-start supervision are next. Neither global exists without an
+the original connection. A separate [SDL desktop](desktop-ui.md) now provides
+dock/search and fixed development Settings launch; the protocol probe remains
+independent. Neither global exists without an
 explicit inherited shell endpoint. Existing no-shell modes remain available.
 
 The explicit `--headless` mode creates three virtual outputs: 1920×1080,
@@ -32,6 +33,17 @@ minimized-state claim. Frame callbacks, including commits without surface damage
 are served. An unchanged scene does not keep committing output buffers; an
 explicit client frame request can require one new commit. This is an observed
 idle-commit result, not a CPU/wakeup or hardware benchmark.
+
+Normal-window v4+ bounds now exclude the dock and initial placement margins.
+The reviewed SDL consumer follows them when first opening; arbitrary clients
+are not forcibly clipped. Compositor desired maximize/fullscreen state is
+separate from client requests and committed state. Provisional Super+Up/Down
+maximizes/restores only the actual focused app outside shell focus, pointer grabs
+and fullscreen. Both arrow events are consumed. Current-output lookup, including
+explicit fullscreen selection, drives later work-area/output reconfiguration;
+original placement is not used as a substitute. See [consumer behavior and native
+evidence](desktop-ui.md). General off-screen recovery and fullscreen dock policy
+remain open.
 
 ## Native input and nested presentation
 

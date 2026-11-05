@@ -249,39 +249,60 @@ static struct wlr_backend *session_backend(struct server *s, struct wl_event_loo
 }
 #endif
 
-void ae_server_configure(struct window *w) {
+struct output *ae_server_window_output(struct window *w) {
     struct server *s = w->server;
-    struct wlr_xdg_toplevel *top = w->toplevel;
     struct output *o = &s->outputs[w->home];
     struct wlr_output *at = wlr_output_layout_output_at(s->layout, w->x, w->y);
     for (unsigned i = 0; i < s->output_count; ++i) if (s->outputs[i].output == at) o = &s->outputs[i];
-    if (top->requested.fullscreen_output) {
+    if (w->is_fullscreen && w->toplevel->requested.fullscreen_output) {
         for (unsigned i = 0; i < s->output_count; ++i) {
-            if (s->outputs[i].output == top->requested.fullscreen_output) o = &s->outputs[i];
+            if (s->outputs[i].output == w->toplevel->requested.fullscreen_output) o = &s->outputs[i];
         }
     }
-    bool full = top->requested.fullscreen;
-    bool max = top->requested.maximized && !full;
-    if (!o->output) { fail(s, "selected output disappeared"); return; }
+    return o->output ? o : NULL;
+}
+void ae_server_configure(struct window *w) {
+    struct server *s = w->server;
+    struct wlr_xdg_toplevel *top = w->toplevel;
+    struct output *o = ae_server_window_output(w);
+    bool full = w->is_fullscreen;
+    bool max = w->maximized && !full;
+    if (!o) { fail(s, "selected output disappeared"); return; }
     struct wlr_output_layout_output *place = wlr_output_layout_get(s->layout, o->output);
     if (!place) { fail(s, "selected output layout disappeared"); return; }
+    int usable_height = o->output->height - o->reserved_bottom;
+    int padding_x = o->output->width >= 400 ? 40 : 0;
+    int padding_y = usable_height >= 400 ? 40 : 0;
+    /* These are advisory normal-window bounds, not a mandatory clip or proof
+       that an arbitrary client follows them. Legacy xdg versions omit the event. */
+    wlr_xdg_toplevel_set_bounds(top, o->output->width - 2 * padding_x, usable_height - 2 * padding_y);
+    if (!w->mapped && top->base->initial_commit && !full && !max) {
+        w->x = place->x + padding_x; w->y = place->y + padding_y;
+    }
     wlr_scene_node_set_position(&w->tree->node, full || max ? place->x : w->x,
         full || max ? place->y : w->y);
     wlr_xdg_toplevel_set_fullscreen(top, full);
     wlr_xdg_toplevel_set_maximized(top, max);
     wlr_xdg_toplevel_set_size(top, full || max ? o->output->width : 0,
-        full ? o->output->height : max ? o->output->height - o->reserved_bottom : 0);
+        full ? o->output->height : max ? usable_height : 0);
     wlr_xdg_surface_schedule_configure(top->base);
+}
+void ae_server_maximize(struct window *w, bool maximized) {
+    if (!w || !w->mapped || w->is_fullscreen || w->maximized == maximized) return;
+    w->maximized = maximized;
+    ae_server_configure(w);
 }
 
 static void window_request(struct wl_listener *listener, void *data) {
     (void)data;
     struct window *w = wl_container_of(listener, w, maximize);
+    w->maximized = w->toplevel->requested.maximized;
     if (w->toplevel->base->initialized) ae_server_configure(w);
 }
 static void window_fullscreen(struct wl_listener *listener, void *data) {
     (void)data;
     struct window *w = wl_container_of(listener, w, fullscreen);
+    w->is_fullscreen = w->toplevel->requested.fullscreen;
     if (w->toplevel->base->initialized) ae_server_configure(w);
 }
 static void window_commit(struct wl_listener *listener, void *data) {

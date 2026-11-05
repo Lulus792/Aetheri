@@ -202,7 +202,9 @@ static void top_close(void *data, struct xdg_toplevel *top) {
     CHECK(false);
 }
 static void top_bounds(void *data, struct xdg_toplevel *top, int32_t width, int32_t height) {
-    (void)data; (void)top; (void)width; (void)height;
+    (void)top; struct view *v=data;
+    CHECK(width > 0 && height > 0 && width <= 3840 && height <= 2160);
+    printf("BOUNDS %u %d %d\n",v->index,width,height);
 }
 static void top_capabilities(void *data, struct xdg_toplevel *top, struct wl_array *capabilities) {
     (void)top;

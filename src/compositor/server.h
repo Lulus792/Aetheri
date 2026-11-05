@@ -28,7 +28,7 @@ struct window {
     uint32_t id;
     unsigned home;
     int x, y;
-    bool mapped;
+    bool mapped, maximized, is_fullscreen;
 };
 struct server {
     struct wl_display *display;
@@ -54,6 +54,8 @@ struct server {
 };
 
 void ae_server_configure(struct window *window);
+struct output *ae_server_window_output(struct window *window);
+void ae_server_maximize(struct window *window, bool maximized);
 
 
 #endif

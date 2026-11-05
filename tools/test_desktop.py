@@ -104,6 +104,16 @@ def main():
         cases.append("same-UID ordinary connection cannot discover or bind either private global, even by exact known ID")
         client = start(client_bin, "app", ("--input",))
         wait(lambda: "KEYBOARD_ENTER 1\n" in log("app") and "WINDOW 2 " in log("main-desktop"), "real app windows", (server, desktop, client))
+        wait(lambda: "BOUNDS 0 1840 916\n" in log("app") and "BOUNDS 1 2480 1276\n" in log("app"),
+             "normal bounds include dock and placement margins",(server,desktop,client))
+        event("M 100 100");event("B 272 1");event("B 272 0")
+        key(125,True);key(103,True);key(103,False);key(125,False)
+        wait(lambda:"FRAME 0 1920 996 0\n" in log("app"),"native keyboard maximize",(server,desktop,client))
+        restored=log("app").count("FRAME 0 360 220 0\n")
+        key(125,True);key(108,True);key(108,False);key(125,False)
+        wait(lambda:log("app").count("FRAME 0 360 220 0\n")>restored,"native keyboard restore",(server,desktop,client))
+        assert not re.search(r"KEY 0 (103|108) [01] ",log("app")),"compositor shortcut leaked to client"
+        cases.append("advisory normal bounds reserve dock/margins; native Super+Up/Down maximizes/restores without forwarding either arrow event")
         command(client, "u")
         wait(lambda: "Grüße " + "ä" * 124 in log("main-desktop"), "bounded Unicode metadata", (server, desktop, client))
         title = next(line.split(" ", 3)[3].split(" | ", 1)[0] for line in log("main-desktop").splitlines() if "Grüße " in line)
@@ -112,8 +122,9 @@ def main():
         dock, search, blue, bg = (52, 64, 90), (32, 42, 64), (41, 99, 196), (16, 20, 28)
         snapshot("dock on all three outputs", {0: [(45, 45, blue), (100, 1070, dock)],
             1: [(100, 1430, dock)], 2: [(100, 2150, dock), (100, 100, bg)]})
+        maximized = log("app").count("FRAME 0 1920 996 0\n")
         command(client, "m")
-        wait(lambda: "FRAME 0 1920 996 0\n" in log("app"), "maximized window excludes dock", (server, desktop, client))
+        wait(lambda: log("app").count("FRAME 0 1920 996 0\n") > maximized, "maximized window excludes dock", (server, desktop, client))
         snapshot("maximized app respects reserved dock", {0: [(1900, 990, blue), (100, 1070, dock)]})
         event("M 100 100"); key(125, True); key(57, True); key(57, False); key(125, False)
         wait(lambda: "TOGGLE 0\n" in log("main-desktop"), "global search shortcut", (server, desktop, client))
@@ -128,6 +139,7 @@ def main():
         wait(lambda: log("main-desktop").count("ENTER 0\n") > enters, "replacement keyboard returns to search", (server, desktop, client))
         before_keys = len(re.findall(r"^KEY ", log("app"), re.M))
         key(56, True); key(15, True); key(15, False); key(56, False)
+        key(125,True);key(108,True);key(108,False);key(125,False)
         command(desktop, "a")
         wait(lambda: "ACTIVATED 1 0\n" in log("main-desktop"), "activation cannot bypass exclusive search", (server, desktop, client))
         assert len(re.findall(r"^KEY ", log("app"), re.M)) == before_keys
@@ -139,7 +151,7 @@ def main():
         wait(lambda: "KEY 0 48 1 98\n" in log("app"), "normal input restored", (server, desktop, client))
         command(desktop, "s")
         wait(lambda: "ACTIVATED 4294967295 0\n" in log("main-desktop"), "stale window denied", (server, desktop, client))
-        snapshot("collapsed search restores app and dock", {0: [(100, 100, blue), (100, 1070, dock)]})
+        snapshot("collapsed search restores app and dock", {0: [(100, 100, blue), (1900, 990, blue), (100, 1070, dock)]})
         event("O 0 1600 900")
         wait(lambda: "PAINT 0 1600 84\n" in log("main-desktop") and "FRAME 0 1600 816 0\n" in log("app"),
              "output resize reconfigures dock and maximized app", (server, desktop, client))
@@ -167,6 +179,21 @@ def main():
         assert log("main-desktop").count("PAINT ") == paints + 1
         before = stats(); time.sleep(0.35); assert stats() == before
         cases.append("global shortcut pair consumed, exclusive search focus and Alt+Tab fence, exact activation, stale ID denial, no configure/redraw loop")
+        command(client,"f")
+        wait(lambda:"FRAME 0 3840 2160 1\n" in log("app"),"fullscreen on selected third output",(server,desktop,client))
+        key(125,True);key(108,True);key(108,False);key(125,False)
+        event("O 2 3520 1980")
+        wait(lambda:"FRAME 0 3520 1980 1\n" in log("app") and "PAINT 2 3520 84\n" in log("main-desktop"),
+             "selected output resize updates fullscreen despite original home",(server,desktop,client))
+        snapshot("fullscreen follows selected output size with dock overlay",{2:[(3500,1800,blue),(100,1970,dock)]})
+        full_frames=log("app").count("FRAME 0 3840 2160 1\n")
+        event("O 2 3840 2160")
+        wait(lambda:log("app").count("FRAME 0 3840 2160 1\n")>full_frames,"selected fullscreen output restored",(server,desktop,client))
+        restored=log("app").count("FRAME 0 1920 996 0\n")
+        command(client,"r")
+        wait(lambda:log("app").count("FRAME 0 1920 996 0\n")>restored,
+             "fullscreen exit preserves underlying maximize despite ignored shortcut",(server,desktop,client))
+        cases.append("output changes follow current selected output; Super+Down cannot change the underlying fullscreen/maximize state")
         command(client, "d")
         wait(lambda: "CLOSED_WINDOW 2\n" in log("main-desktop"), "close event", (server, desktop, client))
         command(client, "c")

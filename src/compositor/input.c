@@ -280,6 +280,16 @@ static void key(struct wl_listener *listener, void *data) {
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;
     }
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && (e->keycode == KEY_UP || e->keycode == KEY_DOWN) &&
+            (wlr_keyboard_get_modifiers(k->keyboard) & WLR_MODIFIER_LOGO)) {
+        k->suppressed[e->keycode] = true;
+        /* Never redirect a shell key, pending pointer grab or stale focus to
+           a window that no longer owns the actual keyboard surface. */
+        if (!in->grabbed && !in->seat->pointer_state.button_count && ae_input_focused(in, in->focused) &&
+                !ae_desktop_keyboard_surface(in->server->desktop))
+            ae_server_maximize(in->focused, e->keycode == KEY_UP);
+        return;
+    }
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode == KEY_SPACE &&
             (wlr_keyboard_get_modifiers(k->keyboard) & WLR_MODIFIER_LOGO)) {
         struct wlr_output *o = wlr_output_layout_output_at(in->server->layout, in->cursor->x, in->cursor->y);
@@ -402,7 +412,7 @@ static void begin(struct window *w, struct wlr_seat_client *seat, uint32_t seria
     if (!w->mapped || in->grabbed || !seat || seat->seat != in->seat || !surface ||
             wlr_surface_get_root_surface(surface) != w->toplevel->base->surface ||
             !wlr_seat_validate_pointer_grab_serial(in->seat, surface, serial) ||
-            w->toplevel->current.fullscreen || w->toplevel->current.maximized) return;
+            w->is_fullscreen || w->maximized || w->toplevel->current.fullscreen || w->toplevel->current.maximized) return;
     if (w->toplevel->base->geometry.width < 1 || w->toplevel->base->geometry.width > 3840 ||
             w->toplevel->base->geometry.height < 1 || w->toplevel->base->geometry.height > 2160) return;
     in->grabbed = w; in->edges = edges;

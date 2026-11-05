@@ -54,10 +54,11 @@ def main():
 
     def shortcut():
         before = log().count("FOCUS 0\n")
-        stable = log().count("STABLE 0 1920x1080\n")
+        stable_line = f"STABLE 0 1920x{output_heights[0]}\n"
+        stable = log().count(stable_line)
         event("M 100 100"); key(125, True); tap(57); key(125, False)
         wait(lambda: log().count("FOCUS 0\n") > before,"new search focus",(server,desktop))
-        wait(lambda: log().count("STABLE 0 1920x1080\n") > stable,"new search allocation",(server,desktop))
+        wait(lambda: log().count(stable_line) > stable,"new search allocation",(server,desktop))
 
     def typing(value):
         codes = dict(zip("abcdefghijklmnopqrstuvwxyz", (30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
@@ -96,9 +97,9 @@ def main():
             if i == 0:
                 assert len({pixels[j:j+3] for j in range(0, len(pixels), 3)}) > 20
                 if dock:
-                    offset=(1020*w+760)*3
+                    offset=((h-60)*w+760)*3
                     assert tuple(pixels[offset:offset+3]) in ((38,46,63),(44,72,108),(0,0,0)), (label,"missing dock",tuple(pixels[offset:offset+3]))
-                    outside=(1020*w+10)*3
+                    outside=((h-60)*w+10)*3
                     assert tuple(pixels[outside:outside+3]) == (16,20,28), (label,"transparent dock/background alpha",tuple(pixels[outside:outside+3]))
             packed = p.with_suffix(".ppm.gz"); packed.write_bytes(gzip.compress(raw, mtime=0)); p.unlink()
             images.append({"case": label, "output": i, "file": packed.name, "sha256": hashlib.sha256(raw).hexdigest()})
@@ -130,6 +131,9 @@ def main():
         typing("settings")
         wait(lambda: "query=settings " in log(), "filter Settings", (server, desktop))
         snapshot("Settings search result")
+        output_heights[0]=800
+        event("O 0 1920 800")
+        wait(lambda:"STABLE 0 1920x800\n" in log(),"short output before app creation",(server,desktop))
         tap(28)
         assert launch_owner.recv(16) == b"L1"
         # Hold the reply: repeated Enter must not repeat an uncertain request.
@@ -141,11 +145,21 @@ def main():
         stable = log().count("STABLE 0 1920x84\n")
         launch_owner.sendall(b"A1")
         wait(lambda: "windows=1" in log() and "LAYOUT " in log("settings"), "actual Settings window", (server, desktop, settings))
+        wait(lambda:bool(re.search(r"VIEW .* size=1100x636\n",log("settings"))),
+             "initial Settings respects dock and placement bounds",(server,desktop,settings))
         wait(lambda:all(re.findall(r"VIEW \d+ output="+str(i)+r" .* windows=(\d+)",log())[-1]=='1' for i in range(3)),
              "all dock window observations painted",(server,desktop,settings))
         wait(lambda: log().rfind("search=0") > log().rfind("search=1"), "collapse search", (server, desktop, settings))
         wait(lambda: log().count("STABLE 0 1920x84\n") > stable,"new compact allocation",(server,desktop,settings))
         snapshot("Settings and dock coexist")
+        key(125,True);tap(103);key(125,False)
+        wait(lambda:bool(re.search(r"VIEW .* size=1920x716\n",log("settings"))),
+             "global keyboard maximize uses work area",(server,desktop,settings))
+        snapshot("keyboard maximized Settings leaves dock visible")
+        key(125,True);tap(108);key(125,False)
+        wait(lambda:len(re.findall(r"VIEW .* size=1100x636\n",log("settings")))>=2,
+             "keyboard restore retains normal client size",(server,desktop,settings))
+        snapshot("keyboard restored Settings retains initial bounds")
         shortcut(); tap(15); tap(28)
         wait(lambda: "ACTIVATED 1 1\n" in log(), "keyboard task activation", (server, desktop, settings))
         key(29,True);tap(16);key(29,False)

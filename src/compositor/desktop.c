@@ -195,8 +195,7 @@ void ae_desktop_arrange(struct ae_desktop *d) {
         o->reserved_bottom = bottom;
         struct window *w;
         wl_list_for_each(w, &d->server->windows, link)
-            if (w->home == i && w->toplevel->base->initialized &&
-                    (w->toplevel->requested.maximized || w->toplevel->requested.fullscreen))
+            if (ae_server_window_output(w) == o && w->toplevel->base->initialized)
                 ae_server_configure(w);
     }
     struct wlr_surface *keyboard = ae_desktop_keyboard_surface(d);
