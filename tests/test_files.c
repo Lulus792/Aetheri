@@ -21,7 +21,9 @@ int main(void) {
     CHECK(ae_files_entry(f,0)->kind==AE_FILES_DIRECTORY);select_name(f,"bad\nname");CHECK(!strcmp(ae_files_entry(f,ae_files_selected(f))->label,"bad\\x0aname"));
     select_name(f,"ümlaut.txt");CHECK(!strcmp(ae_files_entry(f,ae_files_selected(f))->label,"ümlaut.txt"));
     CHECK(ae_files_up(f)==AE_FILES_ROOT);select_name(f,"escape");CHECK(ae_files_enter(f)==AE_FILES_UNSUPPORTED);int directory=-1,witness=-1;char leaf[256];CHECK(ae_files_open_selected(f,&directory,&witness,leaf)==AE_FILES_UNSUPPORTED && directory==-1 && witness==-1);
+    CHECK(ae_files_hold_selected(f,&directory,&witness,leaf)==AE_FILES_UNSUPPORTED && directory==-1 && witness==-1);
     select_name(f,"pipe");CHECK(ae_files_open_selected(f,&directory,&witness,leaf)==AE_FILES_UNSUPPORTED);
+    select_name(f,"docs");CHECK(ae_files_hold_selected(f,&directory,&witness,leaf)==AE_FILES_OK && directory>=4 && witness>=4 && !strcmp(leaf,"docs"));close(directory);close(witness);
     ae_files_hidden(f,true);CHECK(ae_files_count(f)==8 && ae_files_filter(f,"alpha",5) && ae_files_count(f)==1);CHECK(!ae_files_filter(f,"\xff",1) && ae_files_count(f)==1);
     CHECK(ae_files_open_selected(f,&directory,&witness,leaf)==AE_FILES_OK && directory>=4 && witness>=4 && !strcmp(leaf,"alpha.txt"));
     CHECK(!renameat(root,"alpha.txt",root,"old-alpha"));put(root,"alpha.txt","replacement");struct ae_editor_file *file=NULL;struct ae_document *document=NULL;

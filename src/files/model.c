@@ -100,13 +100,15 @@ unsigned ae_files_depth(const struct ae_files *f) { return f ? f->depth : 0; }
 const char *ae_files_query(const struct ae_files *f) { return f ? f->query : ""; }
 const char *ae_files_folder(const struct ae_files *f) { return f ? f->folders[f->depth] : ""; }
 int ae_files_directory(const struct ae_files *f) { if (!f) { errno=EINVAL;return -1; }return fcntl(f->directories[f->depth],F_DUPFD_CLOEXEC,4); }
-enum ae_files_result ae_files_open_selected(const struct ae_files *f,int *directory,int *witness,char leaf[AE_FILES_NAME+1]) {
+static enum ae_files_result hold_selected(const struct ae_files *f,int *directory,int *witness,char leaf[AE_FILES_NAME+1],bool allow_directory) {
     if (!directory || !witness || directory==witness || !leaf) return AE_FILES_INVALID;
     *directory=*witness=-1;leaf[0]=0;const struct ae_files_entry *e=f ? ae_files_entry(f,f->selected) : NULL;
-    if (!e || e->kind!=AE_FILES_REGULAR) return AE_FILES_UNSUPPORTED;
+    if (!e || (e->kind!=AE_FILES_REGULAR && !(allow_directory && e->kind==AE_FILES_DIRECTORY))) return AE_FILES_UNSUPPORTED;
     int pin=openat(f->directories[f->depth],e->name,O_PATH|O_CLOEXEC|O_NOFOLLOW);if (pin<0) return AE_FILES_CHANGED;
     if (!identity(e,pin)) { close(pin);return AE_FILES_CHANGED; }
     if (pin<4) { int copy=fcntl(pin,F_DUPFD_CLOEXEC,4);close(pin);if (copy<0) return AE_FILES_IO;pin=copy; }
     int parent=fcntl(f->directories[f->depth],F_DUPFD_CLOEXEC,4);if (parent<0) { close(pin);return AE_FILES_IO; }
     *directory=parent;*witness=pin;memcpy(leaf,e->name,strlen(e->name)+1);return AE_FILES_OK;
 }
+enum ae_files_result ae_files_open_selected(const struct ae_files *f,int *directory,int *witness,char leaf[AE_FILES_NAME+1]) { return hold_selected(f,directory,witness,leaf,false); }
+enum ae_files_result ae_files_hold_selected(const struct ae_files *f,int *directory,int *witness,char leaf[AE_FILES_NAME+1]) { return hold_selected(f,directory,witness,leaf,true); }

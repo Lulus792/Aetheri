@@ -37,4 +37,7 @@ const struct ae_files_entry *ae_files_entry(const struct ae_files *files,size_t 
    Their identity is transient and FD-bound, not durable authorization. Leaf is
    literal copied bytes, never command text. Failed admission leaves outputs -1. */
 enum ae_files_result ae_files_open_selected(const struct ae_files *files,int *directory,int *witness,char leaf[AE_FILES_NAME+1]);
+/* Same transient selected-object checks, but also accepts a directory. Does not
+   authorize mutation or turn its FD into a grant. Owned outputs as above. */
+enum ae_files_result ae_files_hold_selected(const struct ae_files *files,int *directory,int *witness,char leaf[AE_FILES_NAME+1]);
 #endif

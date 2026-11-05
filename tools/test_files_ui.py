@@ -97,7 +97,7 @@ def main():
         control(38); wait(lambda: state(filter=1), "filter focus")
         typing(query); wait(lambda: state(count=count), "actual filtered rows")
 
-    def capture(label):
+    def capture(label, active_output=0):
         time.sleep(.10)
         seq = len(images)//3+1; server.send_signal(signal.SIGUSR1)
         wait(lambda: all(f"CAPTURE {seq} {i}\n" in log("server") for i in range(3)), label)
@@ -106,7 +106,7 @@ def main():
             raw = path.read_bytes(); magic, geometry, peak, pixels = raw.split(b"\n", 3)
             w, h = map(int, geometry.split())
             assert magic == b"P6" and peak == b"255" and len(pixels) == w*h*3
-            if i == 0:
+            if i == active_output:
                 bg = (0,0,0) if state(contrast=1) else (16,20,28)
                 assert tuple(pixels[(50*w+50)*3:(50*w+50)*3+3]) == bg
                 ink = sum(tuple(pixels[(y*w+x)*3:(y*w+x)*3+3]) != bg
@@ -209,12 +209,44 @@ def main():
         control(22); typing("created.txt"); tap(28)
         wait(lambda: (folder/"created.txt").is_file() and state(dialog=0, creating=0), "native create-only file completed")
         assert (folder/"created.txt").read_bytes() == b"" and (folder/"created.txt").stat().st_mode & 0o777 == 0o600
+        tap(60); wait(lambda: state(dialog=1, renaming=1, name_bytes=11), "F2 holds selected original file")
+        tap(1); wait(lambda: state(dialog=0), "rename cancellation")
+        assert (folder/"created.txt").exists()
+        click(580,65); wait(lambda: state(dialog=1, renaming=1), "native rename button is not title drag")
+        control(22); typing("alpha.txt"); tap(28)
+        wait(lambda: "RENAME attempt=1 result=2" in log() and state(dialog=1, creating=0), "rename destination conflict")
+        assert (folder/"alpha.txt").read_bytes() == b"alpha\n" and (folder/"created.txt").read_bytes() == b""
+        control(22); typing("renamed.txt")
+        tap(64);tap(65)
+        for _ in range(3):tap(66)
+        wait(lambda:state(dialog=1,renaming=1,scale="2.00",german=1,contrast=1),"minimum German 200 percent rename preview")
+        capture("rename preview retains old and new names at German 200 percent")
+        tap(28); wait(lambda: "RENAME attempt=2 result=1" in log() and state(dialog=0), "native no-replace rename")
+        assert not (folder/"created.txt").exists() and (folder/"renamed.txt").read_bytes()==b""
+        tap(66);tap(64);tap(65);wait(lambda:state(scale="1.00",german=0,contrast=0),"rename view preferences restored")
+        tap(60); wait(lambda: state(dialog=1), "rename stale-source dialog")
+        (folder/"renamed.txt").rename(folder/"moved-original.txt")
+        (folder/"renamed.txt").write_bytes(b"foreign occupant")
+        control(22); typing("stale-target.txt"); tap(28)
+        wait(lambda: state(stale=1, creating=0), "source replacement rejects preview")
+        assert (folder/"renamed.txt").read_bytes()==b"foreign occupant" and not (folder/"stale-target.txt").exists()
+        capture("changed source cannot retarget the rename")
+        tap(28); time.sleep(.1); assert not (folder/"stale-target.txt").exists()
+        tap(1); wait(lambda: state(dialog=0), "stale preview cancelled")
+        assert (folder/"renamed.txt").read_bytes()==b"foreign occupant"
+        (folder/"renamed.txt").unlink(); (folder/"moved-original.txt").rename(folder/"renamed.txt")
+        control(19)
+        filter_to("scratch",1); tap(60); wait(lambda: state(dialog=1), "directory rename preview")
+        control(22); typing("workspace"); tap(28)
+        wait(lambda: "RENAME attempt=3 result=1" in log() and state(dialog=0), "directory renamed")
+        tap(28); wait(lambda: state(depth=1,count=0), "renamed directory opens")
+        tap(14); wait(lambda: state(depth=0), "return from renamed directory")
         # Mismatched releases between the two creation buttons cannot open either dialog.
         event("M 455 110"); event("B 272 1"); event("M 580 110"); event("B 272 0")
         time.sleep(.1); assert state(dialog=0)
         click(455,110); wait(lambda: state(dialog=1), "actual new-file button")
         tap(1); wait(lambda: state(dialog=0), "pointer dialog cancellation")
-        filter_to("created", 1); tap(28)
+        filter_to("renamed.txt", 1); tap(28)
         wait(lambda: "READY wayland opengles2 editor=" in log(), "owned Terminal and actual editor")
         terminal_pid = int(re.findall(r"^OPEN pid=(\d+)", log(), re.M)[-1])
         editor_pid = int(re.findall(r"READY .* editor=(\d+)", log())[-1])
@@ -223,6 +255,11 @@ def main():
         # The second client maps on output 1, and the server focuses it.
         wait(lambda: int(terminal_view().get("sequence", "0")) > 1 and "FOCUS 1\n" in log()
              and f"DRAWN {terminal_view().get('frame')}\n" in log(), "editor rendered and native keyboard focus admitted")
+        focused=log().count("FOCUS 1\n")
+        click(150,200); tap(60)
+        wait(lambda: state(dialog=0,child=terminal_pid), "own document blocks rename admission")
+        assert "RENAME attempt=4" not in log()
+        click(2020,200);wait(lambda:log().count("FOCUS 1\n")>focused,"original document focus restored")
         typing("ihello ", editor=True)
         control(44)  # A direct document has no shell that could resume a stopped job.
         time.sleep(.15)
@@ -232,7 +269,7 @@ def main():
         capture("Terminal close presents the dirty-editor choice")
         tap(1); time.sleep(.16); typing("world ", editor=True)
         control(31)
-        wait(lambda: (folder/"created.txt").read_bytes() == b"hello world ", "new file edited and saved exactly")
+        wait(lambda: (folder/"renamed.txt").read_bytes() == b"hello world ", "new renamed file edited and saved exactly")
         assert (folder/"alpha.txt").read_bytes() == b"alpha\n"
         capture("newly created file saved in owned editor terminal")
         control(16)
@@ -262,6 +299,9 @@ def main():
                       "cancel does not create", "overflow and invalid names cannot create a retained prefix",
                       "existing-file conflict is create-only", "corrected explicit name creates an empty 0600 file",
                       "new file opens in own editor and saves exact bytes", "creation pointer release does not click through",
+                      "rename preview/cancel and native button", "rename never replaces a destination",
+                      "source replacement invalidates the retained preview", "directory rename retains navigation",
+                      "own document must end before rename admission",
                       "overflow filter cannot open the retained matching prefix",
                       "actual selected-FD save", "Terminal close retains dirty-editor cancel",
                       "direct document Ctrl+Z does not strand a stopped editor",
@@ -301,8 +341,42 @@ def main():
         assert pending.wait(timeout=8) == 0; children.remove(pending)
         assert "CREATE attempt=1 result=7 kind=1" in log() and "CLOSED files" in log()
         assert (pending_folder/"unknown-folder").is_dir()
+        # The separate rename hook loses a reply only after the real name change.
+        rename_folder=root/"rename-documents"; rename_folder.mkdir(mode=0o700)
+        (rename_folder/"original.txt").write_bytes(b"retained bytes")
+        files_log="rename-fault"; rename_args=list(args); rename_args[1]=rename_folder
+        rename_app=start(fault_bin,files_log,*rename_args)
+        wait(lambda: state(count=1), "rename-fault Files")
+        tap(60); wait(lambda: state(dialog=1,renaming=1), "rename-fault preview")
+        control(22); typing("unknown-name"); tap(28)
+        wait(lambda: "FAULT_RENAMED entry" in log() and state(creating=1), "real rename waiting for lost reply")
+        tap(65); wait(lambda: state(contrast=1,creating=1), "rename worker does not block UI")
+        (root/"release-rename").write_bytes(b"release\n")
+        wait(lambda: state(unknown=1,creating=0,renaming=1), "unknown rename retained")
+        assert not (rename_folder/"original.txt").exists() and (rename_folder/"unknown-name").read_bytes()==b"retained bytes"
+        capture("unknown rename shows original and proposed names", active_output=2)
+        tap(28); wait(lambda: state(dialog=0), "unknown rename inspection closed")
+        control(49); wait(lambda: state(dialog=1,unknown=1,renaming=1,name_focus=1), "creation cannot bypass unknown rename")
+        control(22); typing("another"); tap(28)
+        wait(lambda: state(dialog=0,unknown=1), "inspection remains read-only")
+        assert log().count("FAULT_RENAMED entry")==1 and not (rename_folder/"another").exists()
+        control(16); assert rename_app.wait(timeout=8)==0; children.remove(rename_app)
+        (root/"release-rename").unlink()
+        close_folder=root/"rename-close-documents"; close_folder.mkdir(mode=0o700)
+        (close_folder/"original.txt").write_bytes(b"retained on close")
+        files_log="rename-close"; close_args=list(args);close_args[1]=close_folder
+        rename_close=start(fault_bin,files_log,*close_args);wait(lambda: state(count=1), "rename close Files")
+        tap(60);wait(lambda:state(dialog=1,renaming=1),"rename close preview")
+        control(22);typing("unknown-name");tap(28)
+        wait(lambda:"FAULT_RENAMED entry" in log() and state(creating=1),"rename close in flight")
+        control(16);time.sleep(.1);assert rename_close.poll() is None
+        (root/"release-rename").write_bytes(b"release\n")
+        assert rename_close.wait(timeout=8)==0;children.remove(rename_close)
+        assert (close_folder/"unknown-name").read_bytes()==b"retained on close" and "RENAME attempt=1 result=7" in log()
         cases.extend(["real lost mkdir acknowledgement is unknown, never retried", "unknown inspection cannot edit or create",
-                      "creation worker keeps UI responsive", "close waits for original in-flight creation and preserves its effect"])
+                      "creation worker keeps UI responsive", "close waits for original in-flight creation and preserves its effect",
+                      "lost rename acknowledgement blocks creation and rename", "unknown rename retains original names and bytes",
+                      "close waits for original rename worker without rollback"])
         absent = start(files_bin, "absent", *args, extra_env={**env,"WAYLAND_DISPLAY":"absent","DISPLAY":":199"})
         assert absent.wait(timeout=8) == 1; children.remove(absent)
         server.terminate(); assert server.wait(timeout=8) == 0; children.remove(server)

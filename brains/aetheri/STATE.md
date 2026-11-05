@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — create-only Files workflow and worker-owned creation outcomes.
+5 November 2026 — bound same-folder rename previews and no-replace worker outcomes.
 
 ## Coordination
 
@@ -14,6 +14,38 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now previews same-folder renames through F2 or its pointer control. The
+original source witness, parent and both literal names remain bound. Source
+replacement invalidates the preview; a Files-owned document must end first.
+One worker attempts RENAME_NOREPLACE and the parent flush without UI blocking.
+The destination guard is atomic; source matching is not compare-and-swap and does
+not exclude hostile writers. Unknown outcomes retain the operation/names and
+block creation/rename; unknown rename also blocks new document starts. No rollback,
+replay, candidate cleanup, normal write grant or durable restart recovery follows.
+
+All 44 affected groups pass Release (115.35s) and ASan+UBSan (224.08s). After the
+sole final source change adds the original-folder label, Files and both owner
+modes pass targeted 3/3 revalidation in each profile (48.23s/60.32s). Source delta
+and unchanged other-binary hashes are checked. Each final Files native profile
+has 41 cases/39 images; independent copied-source controls reject removing the
+replay guard or original-source recheck. The actual final-binary DRM session
+proves file/directory rename, inode/mode preservation, exact Editor save, conflict,
+cancel, navigation and workspace retention across reopen/session retirement.
+
+Final audit: 336 matching source inputs; 28 frozen SQL/XML and nineteen protected
+old-runtime hashes unchanged, no old SQLite sidecars; 1,123 retained native files,
+324 images/nine special records and fourteen stable DRM captures. The enforcing
+carrier is idle on tty1 without known native actors, an Aetheri unit or seat0
+session. The quarantined old running/recover-handoff intent remains unresolved.
+See [record](journal/2026-11-05-files-rename.md) and `local/files-rename-2026-11-05`.
+
+Next: copy/cross-folder move and removal previews with recoverable document
+management, followed by richer handlers. Normal admission/grants, durable recovery,
+full app removal, other apps, OS image/installer and the complete resettable
+experiment desktop remain required. Keep the full objective active.
+
+## Create-only Files workflow — completed checkpoint
 
 Files now creates an empty file or folder through pointer controls or Ctrl+N /
 Ctrl+Shift+N. A retained parent and immutable literal name bind each single-attempt

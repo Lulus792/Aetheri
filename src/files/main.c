@@ -3,6 +3,7 @@
 #include "model.h"
 #include "launch.h"
 #include "create.h"
+#include "rename.h"
 #include "text/grapheme.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -27,6 +28,9 @@ struct app {
     bool dialog,name_bad;unsigned name_focus,creations;int create_dir;
     enum ae_files_create_kind create_kind;char name[AE_FILES_NAME+1],folder[AE_FILES_LABEL+1],create_message[256];size_t name_size;
     struct ae_files_create *creation,*unknown;SDL_Thread *creator;atomic_bool create_done;
+    bool renaming,rename_stale;unsigned renames;int rename_witness;SDL_FRect rename_button;
+    char original[AE_FILES_NAME+1],original_label[AE_FILES_LABEL+1];
+    struct ae_files_rename *rename_op,*rename_unknown;
 };
 static volatile sig_atomic_t signal_writer=-1,stopping;
 static void signalled(int number) { stopping=number;int saved=errno;unsigned char b=1;if (signal_writer>=0) (void)write(signal_writer,&b,1);errno=saved; }
@@ -36,6 +40,7 @@ static int wake_worker(void *data) {
 }
 static bool busy(const struct app *a) { return a->child.pid>0 && !a->child.ended; }
 static bool creating(const struct app *a) { return a->creator!=NULL; }
+static bool unresolved(const struct app *a) { return a->unknown!=NULL || a->rename_unknown!=NULL; }
 static const char *tr(const struct app *a,const char *en,const char *de) { return a->german ? de : en; }
 static void message(struct app *a,const char *s) { snprintf(a->message,sizeof(a->message),"%s",s);a->dirty=true; }
 static void fail(struct app *a,const char *s) { fprintf(stderr,"files: %s: %s\n",s,SDL_GetError());a->failed=true;a->closing=true;if (!busy(a) && !creating(a)) a->running=false; }
@@ -52,34 +57,63 @@ static void move(struct app *a,int amount) {
 static void dialog_close(struct app *a) {
     if (creating(a)) return;
     if (a->create_dir>=0) close(a->create_dir);
+    if (a->rename_witness>=0) close(a->rename_witness);
+    a->rename_witness=-1;
     a->create_dir=-1;a->dialog=false;a->pressed=0;a->dirty=true;
 }
 static void request_close(struct app *a) {
-    a->closing=true;if (creating(a)) message(a,tr(a,"Waiting for the creation result","Warten auf das Ergebnis des Anlegens"));
+    a->closing=true;if (creating(a)) message(a,tr(a,"Waiting for the file operation result","Warten auf das Ergebnis der Dateiaktion"));
     else { dialog_close(a);if (busy(a)) message(a,tr(a,"Close the document window first; Files is waiting","Zuerst das Dokumentfenster schließen; Dateien wartet"));else a->running=false; }
 }
 static void dialog_open(struct app *a,enum ae_files_create_kind kind) {
     if (a->closing || creating(a)) return;
     a->pressed=0;a->query_focus=false;a->name_focus=0;a->name_bad=false;*a->create_message=0;
-    if (a->unknown) {
-        a->dialog=true;a->name_focus=1;snprintf(a->name,sizeof(a->name),"%s",ae_files_create_leaf(a->unknown));a->name_size=strlen(a->name);
+    if (unresolved(a)) {
+        a->renaming=a->rename_unknown!=NULL;a->dialog=true;a->name_focus=1;snprintf(a->name,sizeof(a->name),"%s",a->renaming ? ae_files_rename_new(a->rename_unknown) : ae_files_create_leaf(a->unknown));a->name_size=strlen(a->name);
         snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Outcome unknown. Inspect; do not retry.","Ergebnis unklar. Prüfen; nicht wiederholen."));
     } else {
         if (a->creations>=256) { message(a,tr(a,"Creation limit reached; reopen Files","Limit für das Anlegen erreicht; Dateien neu öffnen"));return; }
         int fd=ae_files_directory(a->files);if (fd<0) { message(a,tr(a,"Cannot retain the target folder","Zielordner kann nicht festgehalten werden"));return; }
         if (a->create_dir>=0) close(a->create_dir);
-        a->create_dir=fd;a->create_kind=kind;a->name_size=0;*a->name=0;
+        a->renaming=false;a->rename_stale=false;a->create_dir=fd;a->create_kind=kind;a->name_size=0;*a->name=0;
         snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));a->dialog=true;
     }
     a->dirty=true;
 }
+static void rename_open(struct app *a) {
+    if (a->closing || creating(a)) return;
+    if (unresolved(a)) { dialog_open(a,AE_FILES_CREATE_FILE);return; }
+    if (a->child.pid>0) { message(a,tr(a,"Close the document before renaming","Dokument vor dem Umbenennen schließen"));return; }
+    if (a->query_bad || !a->rows) return;
+    if (a->renames>=256) { message(a,tr(a,"Rename limit reached; reopen Files","Umbenennen-Limit erreicht; Dateien neu öffnen"));return; }
+    const struct ae_files_entry *e=ae_files_entry(a->files,ae_files_selected(a->files));if (!e) return;
+    enum ae_files_result r=ae_files_hold_selected(a->files,&a->create_dir,&a->rename_witness,a->original);
+    if (r!=AE_FILES_OK) { result(a,r);return; }
+    snprintf(a->original_label,sizeof(a->original_label),"%s",e->label);snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));
+    a->name_size=ae_files_create_name(a->original,strlen(a->original)) ? strlen(a->original) : 0;
+    memcpy(a->name,a->original,a->name_size);a->name[a->name_size]=0;
+    a->renaming=true;a->rename_stale=false;a->dialog=true;a->name_bad=false;a->name_focus=0;a->query_focus=false;a->pressed=0;*a->create_message=0;a->dirty=true;
+}
 static int create_worker(void *data) {
-    struct app *a=data;(void)ae_files_create_apply(a->creation);
+    struct app *a=data;if (a->renaming) (void)ae_files_rename_apply(a->rename_op);else (void)ae_files_create_apply(a->creation);
     atomic_store_explicit(&a->create_done,true,memory_order_release);
     SDL_Event e={.type=a->event};(void)SDL_PushEvent(&e);return 0;
 }
+static void rename_submit(struct app *a) {
+    if (a->closing || creating(a) || unresolved(a) || a->rename_stale || a->name_bad || !ae_files_create_name(a->name,a->name_size) || !strcmp(a->original,a->name)) return;
+    enum ae_files_rename_result r;a->rename_op=ae_files_rename_prepare(a->create_dir,a->rename_witness,a->original,strlen(a->original),a->name,a->name_size,&r);
+    if (!a->rename_op) {
+        if (r==AE_FILES_RENAME_CHANGED) a->rename_stale=true;
+        snprintf(a->create_message,sizeof(a->create_message),"%s",r==AE_FILES_RENAME_CHANGED ? tr(a,"Source changed. Cancel and refresh.","Quelle geändert. Abbrechen und aktualisieren.") : r==AE_FILES_RENAME_DENIED ? tr(a,"Private writable folder and owned entry required","Privater Ordner und eigener Eintrag nötig") : tr(a,"Rename not prepared; nothing changed","Umbenennen nicht vorbereitet; nichts geändert"));a->dirty=true;return;
+    }
+    atomic_store(&a->create_done,false);a->creator=SDL_CreateThread(create_worker,"files-rename",a);
+    if (!a->creator) { ae_files_rename_close(a->rename_op);a->rename_op=NULL;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Worker unavailable; nothing changed","Worker nicht verfügbar; nichts geändert")); }
+    else { ++a->renames;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Renaming… Please wait","Wird umbenannt… Bitte warten")); }
+    a->dirty=true;
+}
 static void create_submit(struct app *a) {
-    if (a->closing || creating(a) || a->unknown || a->name_bad || !ae_files_create_name(a->name,a->name_size)) return;
+    if (a->renaming) { rename_submit(a);return; }
+    if (a->closing || creating(a) || unresolved(a) || a->name_bad || !ae_files_create_name(a->name,a->name_size)) return;
     enum ae_files_create_result r;a->creation=ae_files_create_prepare(a->create_dir,a->create_kind,a->name,a->name_size,&r);
     if (!a->creation) {
         snprintf(a->create_message,sizeof(a->create_message),"%s",r==AE_FILES_CREATE_DENIED ? tr(a,"A private writable folder is required","Ein privater beschreibbarer Ordner ist nötig") : r==AE_FILES_CREATE_NOMEM ? tr(a,"Not enough memory; nothing created","Nicht genug Speicher; nichts angelegt") : tr(a,"Cannot prepare creation; nothing created","Anlegen nicht vorbereitet; nichts angelegt"));a->dirty=true;return;
@@ -89,9 +123,30 @@ static void create_submit(struct app *a) {
     else { ++a->creations;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Creating… Please wait","Wird angelegt… Bitte warten")); }
     a->dirty=true;
 }
+static void rename_update(struct app *a) {
+    enum ae_files_rename_result r=ae_files_rename_status(a->rename_op);
+    if (a->diagnostics) printf("RENAME attempt=%u result=%u\n",a->renames,(unsigned)r);
+    if (r==AE_FILES_RENAME_DONE) {
+        dialog_close(a);a->query_bad=false;(void)ae_files_filter(a->files,"",0);
+        if (a->name[0]=='.') { a->show_hidden=true;ae_files_hidden(a->files,true); }
+        if (ae_files_refresh(a->files)==AE_FILES_OK) {
+            for (size_t i=0;i<ae_files_count(a->files);++i) if (!strcmp(ae_files_entry(a->files,i)->name,a->name)) { (void)ae_files_select(a->files,i);break; }
+            reveal(a);message(a,tr(a,"Renamed","Umbenannt"));
+        } else message(a,tr(a,"Renamed; refresh failed. Do not repeat.","Umbenannt; Ansicht nicht aktualisiert. Nicht wiederholen."));
+    } else if (r==AE_FILES_RENAME_UNKNOWN) {
+        a->rename_unknown=a->rename_op;a->rename_op=NULL;a->name_focus=1;
+        snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Outcome unknown. Inspect both names.","Ergebnis unklar. Beide Namen prüfen."));
+        message(a,tr(a,"Rename outcome unknown; creation and renaming blocked","Umbenennen unklar; Anlegen und Umbenennen gesperrt"));
+    } else {
+        if (r==AE_FILES_RENAME_CHANGED) a->rename_stale=true;
+        snprintf(a->create_message,sizeof(a->create_message),"%s",r==AE_FILES_RENAME_CONFLICT ? tr(a,"Name already exists. Choose another name.","Name bereits vorhanden. Anderen Namen wählen.") : r==AE_FILES_RENAME_CHANGED ? tr(a,"Source changed. Cancel and refresh.","Quelle geändert. Abbrechen und aktualisieren.") : tr(a,"Not renamed. Inspect the source.","Nicht umbenannt. Quelle prüfen."));
+    }
+    ae_files_rename_close(a->rename_op);a->rename_op=NULL;a->dirty=true;if (a->closing) request_close(a);
+}
 static void create_update(struct app *a) {
     if (!creating(a) || !atomic_load_explicit(&a->create_done,memory_order_acquire)) return;
     SDL_WaitThread(a->creator,NULL);a->creator=NULL;
+    if (a->renaming) { rename_update(a);return; }
     enum ae_files_create_result r=ae_files_create_status(a->creation);
     if (a->diagnostics) printf("CREATE attempt=%u result=%u kind=%u\n",a->creations,(unsigned)r,(unsigned)a->create_kind);
     if (r==AE_FILES_CREATE_DONE) {
@@ -116,6 +171,7 @@ static void activate(struct app *a) {
     if (a->closing || a->query_bad) return;
     const struct ae_files_entry *e=ae_files_entry(a->files,ae_files_selected(a->files));if (!e) return;
     if (e->kind==AE_FILES_DIRECTORY) { result(a,ae_files_enter(a->files));return; }
+    if (a->rename_unknown) { message(a,tr(a,"Inspect the unknown rename before opening documents","Unklares Umbenennen vor dem Öffnen von Dokumenten prüfen"));return; }
     if (a->launches>=256) { message(a,tr(a,"Document-start limit reached; reopen Files","Dokumentstart-Limit erreicht; Dateien neu öffnen"));return; }
     if (busy(a) || a->child.pid>0) { message(a,tr(a,"One document window at a time","Nur ein Dokumentfenster gleichzeitig"));return; }
     int directory=-1,witness=-1;char leaf[AE_FILES_NAME+1];enum ae_files_result r=ae_files_open_selected(a->files,&directory,&witness,leaf);
@@ -165,22 +221,27 @@ static void draw_dialog(struct app *a,int w,int h,unsigned fg) {
     float width=fminf((float)w-32,720),height=154*a->scale+80,x=((float)w-width)/2,y=((float)h-height)/2;
     fill(a,(SDL_FRect){x-2,y-2,width+4,height+4},a->contrast ? 0xffffff : 0x6e91c2);
     fill(a,(SDL_FRect){x,y,width,height},a->contrast ? 0 : 0x1b2230);
-    text(a,a->unknown ? tr(a,"Inspect creation","Anlegen prüfen") : a->create_kind==AE_FILES_CREATE_DIRECTORY ? tr(a,"New folder","Neuer Ordner") : tr(a,"New file","Neue Datei"),x+16,y+12,width-32,20,fg);
-    text(a,a->folder,x+16,y+18+26*a->scale,width-32,14,0xa5b7d0);
+    text(a,unresolved(a) ? tr(a,"Inspect file operation","Dateiaktion prüfen") : a->renaming ? tr(a,"Rename","Umbenennen") : a->create_kind==AE_FILES_CREATE_DIRECTORY ? tr(a,"New folder","Neuer Ordner") : tr(a,"New file","Neue Datei"),x+16,y+12,width-32,20,fg);
+    text(a,a->renaming ? a->original_label : a->folder,x+16,y+18+26*a->scale,width-32,14,0xa5b7d0);
+    if (a->renaming) {
+        float fy=y+18+40*a->scale;
+        text(a,tr(a,"Folder:","Ordner:"),x+16,fy,50*a->scale,10,0xa5b7d0);
+        text(a,a->folder,x+16+50*a->scale,fy,width-32-50*a->scale,10,0xa5b7d0);
+    }
     a->name_field=(SDL_FRect){x+16,y+28+46*a->scale,width-32,24*a->scale+16};
-    fill(a,a->name_field,a->name_bad ? 0x613538 : a->name_focus==0 && !a->unknown ? 0x29466b : 0x10141c);
+    fill(a,a->name_field,a->name_bad ? 0x613538 : a->name_focus==0 && !unresolved(a) && !a->rename_stale ? 0x29466b : 0x10141c);
     if (*a->name) name_text(a,a->name_field.x+8,a->name_field.y+6,a->name_field.w-16,fg);
-    else text(a,tr(a,"Name","Name"),a->name_field.x+8,a->name_field.y+6,a->name_field.w-16,16,0xa5b7d0);
+    else text(a,a->renaming ? tr(a,"New name","Neuer Name") : tr(a,"Name","Name"),a->name_field.x+8,a->name_field.y+6,a->name_field.w-16,16,0xa5b7d0);
     float status=a->name_field.y+a->name_field.h+8;
-    text(a,*a->create_message ? a->create_message : tr(a,"Existing entries are never replaced","Vorhandene Einträge werden nie ersetzt"),x+16,status,width-32,12,a->name_bad || a->unknown ? 0xffbdad : fg);
-    text(a,a->name_bad ? tr(a,"Ctrl+U clears the rejected name","Strg+U löscht den abgewiesenen Namen") : a->unknown ? tr(a,"Further creation is blocked in this window","Weiteres Anlegen in diesem Fenster gesperrt") : tr(a,"Enter create · Tab change focus · Escape cancel","Enter anlegen · Tab Fokus · Escape abbrechen"),x+16,status+16*a->scale+4,width-32,12,0xa5b7d0);
+    text(a,*a->create_message ? a->create_message : tr(a,"Existing entries are never replaced","Vorhandene Einträge werden nie ersetzt"),x+16,status,width-32,12,a->name_bad || unresolved(a) || a->rename_stale ? 0xffbdad : fg);
+    text(a,a->name_bad ? tr(a,"Ctrl+U clears the rejected name","Strg+U löscht den abgewiesenen Namen") : unresolved(a) ? tr(a,"Further creation/rename blocked in this window","Weiteres Anlegen/Umbenennen hier gesperrt") : a->rename_stale ? tr(a,"Cancel, then refresh the folder","Abbrechen, dann den Ordner aktualisieren") : a->renaming ? tr(a,"Ctrl+U name · Enter rename · Escape cancel","Strg+U Name · Enter OK · Escape zurück") : tr(a,"Enter create · Tab change focus · Escape cancel","Enter anlegen · Tab Fokus · Escape abbrechen"),x+16,status+16*a->scale+4,width-32,12,0xa5b7d0);
     const char *recovery=ae_files_create_recovery(a->unknown);
     if (recovery) text(a,recovery,x+16,status+32*a->scale+8,width-32,12,0xffbdad);
     float button=(width-40)/2,bh=22*a->scale+16,by=y+height-bh-16;
     a->cancel=(SDL_FRect){x+16,by,button,bh};a->submit=(SDL_FRect){x+24+button,by,button,bh};
-    fill(a,a->cancel,a->name_focus==1 ? 0x29466b : 0x10141c);text(a,a->unknown ? tr(a,"Back","Zurück") : tr(a,"Cancel","Abbrechen"),a->cancel.x+10,by+6,button-20,14,fg);
-    bool enabled=!creating(a) && !a->unknown && !a->name_bad && ae_files_create_name(a->name,a->name_size) && !a->closing;
-    fill(a,a->submit,enabled ? a->name_focus==2 ? 0x416b9e : 0x29466b : 0x10141c);text(a,tr(a,"Create","Anlegen"),a->submit.x+10,by+6,button-20,14,enabled ? fg : 0xa5b7d0);
+    fill(a,a->cancel,a->name_focus==1 ? 0x29466b : 0x10141c);text(a,unresolved(a) ? tr(a,"Back","Zurück") : tr(a,"Cancel","Abbrechen"),a->cancel.x+10,by+6,button-20,14,fg);
+    bool enabled=!creating(a) && !unresolved(a) && !a->rename_stale && !a->name_bad && ae_files_create_name(a->name,a->name_size) && !a->closing && (!a->renaming || strcmp(a->name,a->original));
+    fill(a,a->submit,enabled ? a->name_focus==2 ? 0x416b9e : 0x29466b : 0x10141c);text(a,a->renaming ? tr(a,"Rename","Umbenennen") : tr(a,"Create","Anlegen"),a->submit.x+10,by+6,button-20,14,enabled ? fg : 0xa5b7d0);
 }
 static void draw(struct app *a) {
     int w,h,pw,ph;if (!SDL_GetWindowSize(a->window,&w,&h) || !SDL_GetWindowSizeInPixels(a->window,&pw,&ph)) { fail(a,"size");return; }
@@ -190,6 +251,8 @@ static void draw(struct app *a) {
     float header=32*a->scale+24,control=26*a->scale+16;a->top=header+2*control+12;a->bottom=(float)h-(48*a->scale+16);a->row_height=34*a->scale+18;
     a->rows=a->bottom>a->top ? (size_t)((a->bottom-a->top)/a->row_height) : 0;reveal(a);
     text(a,tr(a,"Files","Dateien"),20,12,(float)w-40,24,fg);
+    a->rename_button=(SDL_FRect){(float)w-20-120*a->scale,8,120*a->scale,control-4};fill(a,a->rename_button,panel);
+    text(a,tr(a,"Rename","Umbenennen"),a->rename_button.x+8,13,a->rename_button.w-16,14,fg);
     a->new_file=(SDL_FRect){(float)w-20-240*a->scale,header,110*a->scale,control-4};a->new_folder=(SDL_FRect){a->new_file.x+a->new_file.w+8,header,120*a->scale,control-4};
     text(a,ae_files_folder(a->files),20,header,a->new_file.x-36,14,0xa5b7d0);
     fill(a,a->new_file,panel);fill(a,a->new_folder,panel);
@@ -208,11 +271,11 @@ static void draw(struct app *a) {
     }
     if (!ae_files_count(a->files)) text(a,tr(a,"No matching entries","Keine passenden Einträge"),28,a->top,(float)w-56,16,fg);
     char footer[160];snprintf(footer,sizeof(footer),"%zu / %zu · %s",ae_files_count(a->files),ae_files_total(a->files),tr(a,"Enter open · Alt+Up back · Ctrl+R refresh","Enter öffnen · Alt+Hoch zurück · Strg+R neu"));
-    text(a,a->unknown ? tr(a,"Creation outcome unknown; do not retry","Ergebnis des Anlegens unklar; nicht wiederholen") : a->closing && *a->message ? a->message : !a->rows ? tr(a,"Enlarge the window to browse","Fenster zum Navigieren vergrößern") : *a->message ? a->message : footer,20,a->bottom+4,(float)w-40,12,fg);text(a,tr(a,"F6 language · F7 contrast · F8 text · Ctrl+Q close","F6 Sprache · F7 Kontrast · F8 Text · Strg+Q schließen"),20,a->bottom+24*a->scale,(float)w-40,12,0xa5b7d0);
+    text(a,unresolved(a) ? tr(a,"File operation outcome unknown; do not retry","Ergebnis der Dateiaktion unklar; nicht wiederholen") : a->closing && *a->message ? a->message : !a->rows ? tr(a,"Enlarge the window to browse","Fenster zum Navigieren vergrößern") : *a->message ? a->message : footer,20,a->bottom+4,(float)w-40,12,fg);text(a,tr(a,"F2 rename · F6 language · F7 contrast · F8 text · Ctrl+Q close","F2 umbenennen · F6 Sprache · F7 Kontrast · F8 Text · Strg+Q schließen"),20,a->bottom+24*a->scale,(float)w-40,12,0xa5b7d0);
     if (a->dialog) draw_dialog(a,w,h,fg);
     if (!SDL_RenderPresent(a->renderer)) fail(a,"present");
     a->dirty=false;++a->frames;
-    if (a->diagnostics) printf("VIEW frame=%u count=%zu total=%zu selected=%zu top=%zu rows=%zu depth=%u scale=%.2f german=%d contrast=%d filter=%d rejected=%d child=%d width=%d height=%d dialog=%d name_bytes=%zu name_bad=%d name_focus=%u creating=%d unknown=%d\n",a->frames,ae_files_count(a->files),ae_files_total(a->files),ae_files_selected(a->files),a->first,a->rows,ae_files_depth(a->files),(double)a->scale,a->german,a->contrast,a->query_focus,a->query_bad,a->child.pid,w,h,a->dialog,a->name_size,a->name_bad,a->name_focus,creating(a),a->unknown!=NULL);
+    if (a->diagnostics) printf("VIEW frame=%u count=%zu total=%zu selected=%zu top=%zu rows=%zu depth=%u scale=%.2f german=%d contrast=%d filter=%d rejected=%d child=%d width=%d height=%d dialog=%d name_bytes=%zu name_bad=%d name_focus=%u creating=%d unknown=%d renaming=%d stale=%d\n",a->frames,ae_files_count(a->files),ae_files_total(a->files),ae_files_selected(a->files),a->first,a->rows,ae_files_depth(a->files),(double)a->scale,a->german,a->contrast,a->query_focus,a->query_bad,a->child.pid,w,h,a->dialog,a->name_size,a->name_bad,a->name_focus,creating(a),unresolved(a),a->renaming,a->rename_stale);
 }
 static bool inside(SDL_FRect r,float x,float y) { return r.w>0 && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h; }
 static unsigned target(struct app *a,float x,float y,size_t *row) {
@@ -220,6 +283,7 @@ static unsigned target(struct app *a,float x,float y,size_t *row) {
     if (a->dialog) { *row=0;if (inside(a->name_field,x,y)) return 7;if (inside(a->cancel,x,y)) return 8;if (inside(a->submit,x,y)) return 9;return 0; }
     if (inside(a->new_file,x,y)) return 5;
     if (inside(a->new_folder,x,y)) return 6;
+    if (inside(a->rename_button,x,y)) return 10;
     *row=0;if (inside(a->back,x,y)) return 1;if (inside(a->hidden,x,y)) return 2;if (inside(a->search,x,y)) return 3;
     if (y>=a->top && y<a->bottom && a->rows && x>=16) { size_t n=(size_t)((y-a->top)/a->row_height);if (n<a->rows && a->first+n<ae_files_count(a->files)) { *row=a->first+n;return 4; } }return 0;
 }
@@ -234,10 +298,10 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
     if (r) return SDL_HITTEST_RESIZE_RIGHT;
     if (t) return SDL_HITTEST_RESIZE_TOP;
     if (b) return SDL_HITTEST_RESIZE_BOTTOM;
-    return p->y<44 && !a->dialog ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
+    return p->y<44 && !a->dialog && !inside(a->rename_button,(float)p->x,(float)p->y) ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
 }
 static void name_input(struct app *a,const char *input) {
-    if (a->unknown || creating(a) || a->name_bad || a->name_focus!=0) return;
+    if (unresolved(a) || a->rename_stale || creating(a) || a->name_bad || a->name_focus!=0) return;
     size_t n=strlen(input);char next[AE_FILES_NAME+1];
     if (n<=AE_FILES_NAME-a->name_size) {
         memcpy(next,a->name,a->name_size);memcpy(next+a->name_size,input,n+1);size_t size=a->name_size+n;
@@ -251,11 +315,11 @@ static void dialog_key(struct app *a,SDL_Keycode key,SDL_Keymod mod) {
     if (creating(a)) return;
     if (key==SDLK_ESCAPE) dialog_close(a);
     else if (key==SDLK_TAB) {
-        a->name_focus=a->unknown ? 1 : (a->name_focus+((mod&SDL_KMOD_SHIFT) ? 2u : 1u))%3;a->dirty=true;
+        a->name_focus=unresolved(a) ? 1 : (a->name_focus+((mod&SDL_KMOD_SHIFT) ? 2u : 1u))%3;a->dirty=true;
     } else if (key==SDLK_RETURN) { if (a->name_focus==1) dialog_close(a);else create_submit(a); }
-    else if (!a->unknown && a->name_focus==0 && (mod&SDL_KMOD_CTRL) && key==SDLK_U) {
+    else if (!unresolved(a) && !a->rename_stale && a->name_focus==0 && (mod&SDL_KMOD_CTRL) && key==SDLK_U) {
         a->name_bad=false;*a->name=0;a->name_size=0;*a->create_message=0;a->dirty=true;
-    } else if (!a->unknown && a->name_focus==0 && !a->name_bad && key==SDLK_BACKSPACE && a->name_size) {
+    } else if (!unresolved(a) && !a->rename_stale && a->name_focus==0 && !a->name_bad && key==SDLK_BACKSPACE && a->name_size) {
         size_t offsets[AE_FILES_NAME+1],count;
         if (ae_text_graphemes(a->name,a->name_size,offsets,AE_FILES_NAME+1,&count)) { a->name_size=offsets[count-2];a->name[a->name_size]=0;*a->create_message=0;a->dirty=true; }
     }
@@ -270,6 +334,7 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (k==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }
         else if (k==SDLK_F8) { a->scale=a->scale==1 ? 1.25f : a->scale==1.25f ? 1.5f : a->scale==1.5f ? 2 : 1;a->dirty=true; }
         else if (a->dialog) dialog_key(a,k,mod);
+        else if (k==SDLK_F2) rename_open(a);
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_N) dialog_open(a,(mod&SDL_KMOD_SHIFT) ? AE_FILES_CREATE_DIRECTORY : AE_FILES_CREATE_FILE);
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_R) result(a,ae_files_refresh(a->files));
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_H) { a->show_hidden=!a->show_hidden;ae_files_hidden(a->files,a->show_hidden);reveal(a);a->dirty=true; }
@@ -291,17 +356,18 @@ static void event(struct app *a,const SDL_Event *e) {
     else if (e->type==SDL_EVENT_MOUSE_BUTTON_UP && e->button.button==SDL_BUTTON_LEFT) {
         size_t row;unsigned hit=target(a,e->button.x,e->button.y,&row),pressed=a->pressed;a->pressed=0;if (hit!=pressed) return;
         if (a->dialog) {
-            if (!creating(a)) { if (hit==7 && !a->unknown) { a->name_focus=0;a->dirty=true; }else if (hit==8) dialog_close(a);else if (hit==9) { a->name_focus=2;create_submit(a);a->dirty=true; } }
+            if (!creating(a)) { if (hit==7 && !unresolved(a)) { a->name_focus=0;a->dirty=true; }else if (hit==8) dialog_close(a);else if (hit==9) { a->name_focus=2;create_submit(a);a->dirty=true; } }
         } else if (hit==1) result(a,ae_files_up(a->files));
         else if (hit==2) { a->show_hidden=!a->show_hidden;ae_files_hidden(a->files,a->show_hidden);reveal(a);a->dirty=true; }
         else if (hit==3) { a->query_focus=true;a->dirty=true; }
         else if (hit==4 && row==a->pressed_row && ae_files_select(a->files,row)) { a->query_focus=false;a->dirty=true;if (e->button.clicks==2) activate(a); }
         else if (hit==5 || hit==6) dialog_open(a,hit==5 ? AE_FILES_CREATE_FILE : AE_FILES_CREATE_DIRECTORY);
+        else if (hit==10) rename_open(a);
     } else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) a->pressed=0;
     else if (e->type==SDL_EVENT_WINDOW_EXPOSED || e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) { a->pressed=0;a->dirty=true; }
 }
 int main(int argc,char **argv) {
-    struct app a={.child={.pid=-1,.pin=-1},.wake={-1,-1},.create_dir=-1,.scale=1,.running=true,.dirty=true};const char *root=NULL,*font=NULL;
+    struct app a={.child={.pid=-1,.pin=-1},.wake={-1,-1},.create_dir=-1,.rename_witness=-1,.scale=1,.running=true,.dirty=true};const char *root=NULL,*font=NULL;
     atomic_init(&a.create_done,false);
     for (int i=1;i<argc;++i) {
         const char **slot=!strcmp(argv[i],"--root") ? &root : !strcmp(argv[i],"--font") ? &font : !strcmp(argv[i],"--cache") ? &a.cache : !strcmp(argv[i],"--terminal") ? &a.terminal : !strcmp(argv[i],"--editor") ? &a.editor : !strcmp(argv[i],"--terminal-font") ? &a.terminal_font : NULL;
@@ -327,6 +393,7 @@ int main(int argc,char **argv) {
 done:
     if (a.creator) { SDL_WaitThread(a.creator,NULL);a.creator=NULL; }
     ae_files_create_close(a.creation);ae_files_create_close(a.unknown);if (a.create_dir>=0) close(a.create_dir);
+    ae_files_rename_close(a.rename_op);ae_files_rename_close(a.rename_unknown);if (a.rename_witness>=0) close(a.rename_witness);
     if (a.worker) { atomic_store(&a.active,false);unsigned char b=1;(void)write(a.wake[1],&b,1);SDL_WaitThread(a.worker,NULL); }
     signal_writer=-1;for (unsigned i=0;i<2;++i) if (a.wake[i]>=0) close(a.wake[i]);
     if (a.child.pid>0) { if (!a.child.ended) { fputs("files: refusing to retire a live document child\n",stderr);return 125; }(void)ae_files_child_close(&a.child); }

@@ -1,6 +1,7 @@
 # Development Files
 
 `aetheri-files` browses a selected directory, creates a new empty file or folder,
+renames a selected file/folder without replacing another entry,
 and opens a text document in our
 [editor](editor.md), inside a separately owned [Terminal](terminal.md) window.
 Navigation and filtering use an original C17 model; SDL3 supplies the Wayland
@@ -59,6 +60,7 @@ substring of the original name. It does not search document contents.
 | Ctrl+R | Read a fresh complete directory snapshot |
 | Ctrl+N / New file | Name and create an empty file without replacing an entry |
 | Ctrl+Shift+N / New folder | Name and create a folder without replacing an entry |
+| F2 / Rename | Preview and rename the selected file/folder in its current folder |
 | F6 / F7 / F8 | DE/EN labels, contrast, text size 100/125/150/200 percent |
 | Ctrl+Q | Close Files, waiting if its document window is still alive |
 
@@ -120,6 +122,54 @@ document work remain possible. Closing releases memory/FDs only, never deletes
 possible entries or stages. This prototype has no durable restart journal:
 reopening Files does not reconcile an earlier unknown outcome. Inspect the
 original target rather than assuming absence or automatically retrying.
+
+## Renaming a selected entry
+
+F2 or Rename opens a same-folder preview with the original escaped label and an
+editable new literal name. The original name is prefilled when valid for the new
+name rules; Ctrl+U replaces it. An unchanged name cannot be submitted. Cancel has
+no filesystem effect. Name validation, rejected-prefix fencing, keyboard focus,
+text scaling and the single worker are shared with creation.
+
+Files holds the selected parent and an `O_PATH` witness for a regular file or
+directory, checking the snapshot's device/inode/type. Links and other object kinds
+are not admitted. A document owned by this Files window must end before a rename
+preview can open; this does not fence independently opened external writers.
+The separate `files/rename.h` operation duplicates the parent/witness and copies
+both literal names during effect-free preparation. Source ownership/type and the
+private writable parent are checked before dispatch. A replaced/missing source
+invalidates the preview: cancel and refresh instead of adopting its replacement.
+
+The destination uses Linux `renameat2(RENAME_NOREPLACE)`, with no replace, copy or
+unlink fallback. A destination already observed before dispatch is a conflict and
+remains unchanged, including a dangling link. A racing destination is still
+protected by the kernel's no-replace flag. After dispatch, any error is UNKNOWN;
+do not infer that no rename occurred from an error, including on a network
+filesystem. A successful call is followed by parent fsync and new/old-name
+observations. Existing file contents are not rewritten or hashed. Directory
+contents, permissions and other hard links retain their normal filesystem meaning.
+
+The destination nonreplacement guarantee is atomic. The source identity check
+is **not a source-inode compare-and-swap**: another writer can replace a name
+between checking and the syscall. This local prototype assumes ordinary cooperative
+use and does not claim hostile-writer exclusion, a write grant, mount/volume
+identity, app admission or a managed rename transaction. See the
+[Linux rename contract](https://man7.org/linux/man-pages/man2/rename.2.html).
+Production brokered mutation fencing remains separate work.
+
+Apply attempts once; repeated calls only return the original outcome. Lost
+rename/flush acknowledgements retain the original operation and both names.
+There is no automatic retry, reversal, candidate deletion or restart journal.
+UNKNOWN in either creation or rename blocks both kinds of new mutation for this
+window. Buttons reopen read-only inspection. An unknown rename also blocks new
+document starts, while directory browsing remains possible. Closing waits for
+an in-flight worker and releases memory/FDs only. Reopening the app is not recovery.
+
+Confirmed success refreshes, clears the filter, reveals a dot-name if necessary
+and selects the new name. A refresh failure is separate from confirmed rename.
+The prototype admits at most 256 rename worker attempts per Files lifetime.
+Cross-folder moves, cross-filesystem copy/move, bulk operations and removal are
+not supplied by this same-folder operation.
 
 ## Selected document handoff
 
@@ -186,8 +236,18 @@ file and use a separate test-only binary to hold then lose a real mkdir reply.
 That binary proves responsive UI, blocked repeat attempts and close waiting for
 the original worker. The ordinary Files executable contains no fault hook.
 
+`files.rename` checks held source/parent identity, same-folder file/directory
+rename, retained contents, collisions, raw old names, private-parent drift,
+allocation failure, destination races and lost real rename/flush replies.
+Native cases add preview/cancel, the non-drag pointer button, German 200-percent
+minimum-viewport use, source replacement, navigation after directory rename,
+own-document admission fencing and exact save after file rename. The alternate
+test binary additionally holds/loses a real rename acknowledgement and proves
+responsive inspection, no mutation bypass and worker-owned close.
+
 Still required: normal admitted desktop/app integration, brokered document access and
 revocation, richer navigation/details, file operations with previews/recovery,
 image/PDF handlers, multiple documents, accessible semantics and hardware/monitor
-acceptance. Files does not yet copy, rename or delete entries. Creation here is
-ordinary local development I/O, not a production document-grant write API.
+acceptance. Files does not yet copy, move across folders or delete entries.
+Creation and same-folder rename here are ordinary local development I/O, not a
+production document-grant write API.

@@ -1,5 +1,18 @@
 # Decisions
 
+## Keep rename previews bound to an original source — 5 November 2026
+
+Use a separate C17 same-folder operation with an owned parent/O_PATH source witness
+and immutable old/new leaves. Recheck the source before a single
+`renameat2(RENAME_NOREPLACE)` attempt; flush the parent and observe both names after
+success. Destination nonreplacement is atomic; source matching is not a kernel
+compare-and-swap and does not exclude a hostile writer. No replace/copy/unlink
+fallback, rollback or restart-recovery inference. A source change invalidates
+the preview. Unknown creation/rename blocks both kinds of new mutation for that
+window; unknown rename also blocks new document starts. The existing worker owns
+the attempt until result/close. A Files-owned document must end before rename
+admission. See [contract](../../spec/files.md#renaming-a-selected-entry).
+
 ## Keep local Files creation create-only and single-attempt — 5 November 2026
 
 Reuse the editor's existing staged create-only save for new empty files and
