@@ -1,20 +1,55 @@
 # State
 
-5 November 2026 — executable own modal editor in the terminal.
+5 November 2026 — bounded document undo/redo and one-shot signal exit.
 
 ## Coordination
 
-**NexaUI handoff: delivered, not an outstanding task.** The user clarified on
-5 November that routine reviews should only extend or correct the existing
-[catalogue](D:/NexaUI/NEXT_AETHERI_UI.md). Do not generate another chat/start
-message, repeat its overview or ask for it to be pasted after compaction without
-a new explicit request. The earlier handoff messages are history. This chat
-continues Aetheri implementation; NexaUI SDK implementation has its own owner.
+**NexaUI: handoff delivered; catalogue maintenance only; no pending chat message.**
+New needs go into the [existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md).
+Carry this status forward after compaction; follow the
+[maintenance rule](knowledge/nexaui.md#maintenance-rule--confirmed-5-november-2026).
+NexaUI SDK implementation has its own owner; resume the current Aetheri task below.
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The document now owns bounded byte-delta undo/redo, adjacent same-line typing
+groups and original cursor/logical content states. Limits are 1,024 complete
+entries and 32MiB charged entry storage; oldest entries evict only after a new
+successful edit. All text/index/history growth is preflighted; failures preserve
+redo. Traversal reuses grow-only capacities. A separate monotonic revision keeps
+stale save replies invalid while history can return to the clean saved state.
+No file/save/grant effect follows from undo or redo.
+
+Normal `u` / Ctrl+R and existing terminal Ctrl+Shift+Z/Y chords use that owner.
+Changed history returns to Normal; unknown save/export fences remain separate.
+The signal reader now drains further queued managed signals after its first exit
+decision. Actual old-code tests found duplicate emergency copies and suspension
+after a stop arrived during a controlled copy. The new guard passes both tests.
+Visual/PTY review also found and corrected a swallowed key after fast Escape;
+non-CSI/SS3 next input now receives ordinary processing after cancellation.
+
+After the Escape correction, all 35 affected groups pass Release (77.86s) and
+ASan+UBSan (107.45s), including eighteen actual editor PTY cases and seventeen
+provider cases per profile. Both unchanged-test omission controls reject the
+broken copies. The ordinary DRM desktop proves grouped undo/redo, saved-state
+return, new-branch rejection and exact final file bytes at 100/200-percent scaling.
+The final original attempt closes successfully and returns the same shell.
+The read-only audit matches 319 host/snapshot/guest sources, 28 frozen SQL/XML
+and 19 protected hashes without sidecars. Retained evidence: 888 native files,
+204 raw images, six special-node records and eighteen final stable console files
+(eighteen earlier console files retained separately). The enforcing carrier is
+idle on tty1. See the [record](journal/2026-11-05-editor-history.md) and
+`local/editor-history-2026-11-05`.
+Next app work is document search/selection
+and broader editor/pane/session behavior. General signal/crash recovery, normal
+app/document admission, accessible text, other apps, OS image/installer, hardware
+and the complete resettable experiment desktop remain required. Preserve the
+quarantined runtime and its independent lifetime/provenance obligations.
+
+## Executable modal editor — historical checkpoint
 
 The opt-in [own modal editor](../../spec/editor.md) now joins the original
 document/modal/file libraries to a pure terminal-cell view and foreground app.

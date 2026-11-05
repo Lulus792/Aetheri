@@ -1,5 +1,5 @@
 """Actual shell -> full-screen editor -> restored shell, effects and original pins."""
-import hashlib,json,os,signal,sys,termios,time,unittest
+import hashlib,json,os,select,signal,sys,termios,time,unittest
 from pathlib import Path
 EDITOR=str(Path(sys.argv.pop(1)).resolve());FAULT=str(Path(sys.argv.pop(1)).resolve())
 import test_shell_interactive as native
@@ -87,8 +87,8 @@ class Editor(unittest.TestCase):
         self.t.send(':help\n');self.wait(lambda f:b'keyboard help' in f)
         for i in range(32):
             self.t.send('j');self.wait(lambda f:True)
-            if b'Undo/search/panes' in self.frame():break
-        self.assertIn(b'Undo/search/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
+            if b'Search/panes' in self.frame():break
+        self.assertIn(b'Search/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
         self.t.send(':q\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),b'kept')
     def test_suspend_bg_refuses_terminal_and_fg_restores_same_buffer(self):
         self.start();self.insert('suspended');self.t.send(b'\x1a');self.shell()
@@ -98,6 +98,53 @@ class Editor(unittest.TestCase):
         self.start();self.insert('emergency');signal.pidfd_send_signal(self.pin,signal.SIGTERM);self.shell()
         files=list(self.t.root.glob('.aetheri-editor-recovery-*'));self.assertEqual(len(files),1);self.assertEqual(files[0].read_bytes(),b'emergency')
         self.assertFalse((self.t.root/'document').exists())
+    def test_queued_terminations_make_only_one_emergency_copy(self):
+        self.start();self.insert('queued termination')
+        signal.pidfd_send_signal(self.pin,signal.SIGSTOP)
+        self.t.expect(PROMPT)
+        for sig in (signal.SIGHUP,signal.SIGTERM,signal.SIGTSTP):signal.pidfd_send_signal(self.pin,sig)
+        self.t.send('fg\n');self.shell()
+        self.assertTrue(select.select([self.pin],[],[],2)[0], 'terminating original editor suspended again')
+        files=list(self.t.root.glob('.aetheri-editor-recovery-*'));self.assertEqual(len(files),1)
+        self.assertEqual(files[0].read_bytes(),b'queued termination')
+        self.assertFalse((self.t.root/'document').exists())
+    def test_stop_during_emergency_copy_does_not_restart_suspension(self):
+        self.t.send('export AETHERI_TEST_EDITOR_FAILURE hold-first-sync\n');self.t.expect(PROMPT)
+        self.start(fault=True);self.insert('late stop');signal.pidfd_send_signal(self.pin,signal.SIGTERM)
+        deadline=time.monotonic()+5
+        while not (self.t.root/'editor-sync-ready').exists():
+            self.assertLess(time.monotonic(),deadline);self.t.pump(.01)
+        signal.pidfd_send_signal(self.pin,signal.SIGTSTP)
+        fd=os.open(self.t.root/'editor-sync-release',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
+        self.shell();self.assertTrue(select.select([self.pin],[],[],2)[0], 'termination restarted suspension')
+        files=list(self.t.root.glob('.aetheri-editor-recovery-*'));self.assertEqual(len(files),1)
+        self.assertEqual(files[0].read_bytes(),b'late stop')
+    def test_undo_redo_groups_cursor_and_saved_state(self):
+        self.start(existing=b'old');self.t.send('A');self.wait(lambda f:b'INSERT' in f);self.t.send('abc\x1b');self.wait(lambda f:b'NORMAL' in f)
+        self.t.send('u');self.wait(lambda f:b'Undone' in f and b'clean' in f);self.assertEqual((self.t.root/'document').read_bytes(),b'old')
+        self.t.send(b'\x12');self.wait(lambda f:b'Redone' in f and b'oldabc' in f and b'modified' in f)
+        self.t.send(b'\x13');self.wait(lambda f:b'Saved' in f);self.assertEqual((self.t.root/'document').read_bytes(),b'oldabc')
+        self.t.send('A');self.wait(lambda f:b'INSERT' in f);self.t.send('d\x1b');self.wait(lambda f:b'NORMAL' in f)
+        self.t.send('u');self.wait(lambda f:b'Undone' in f and b'clean' in f);self.t.send(':q\n');self.shell()
+    def test_undo_unknown_stays_fenced_and_new_edit_discards_redo(self):
+        self.t.send('export AETHERI_TEST_EDITOR_FAILURE directory-after\n');self.t.expect(PROMPT)
+        self.start(existing=b'base',fault=True);self.insert('first-');self.t.send(b'\x13');self.wait(lambda f:b'SAVE UNKNOWN' in f)
+        self.t.send('u');self.wait(lambda f:b'Undone' in f and b'SAVE UNKNOWN' in f and b'clean' in f)
+        self.assertEqual((self.t.root/'document').read_bytes(),b'first-base')
+        self.t.send('i');self.wait(lambda f:b'INSERT' in f);self.t.send('new-\x1b');self.wait(lambda f:b'NORMAL' in f)
+        self.t.send(b'\x12');self.wait(lambda f:b'No later edit' in f);self.t.send(':export recovered\n');self.wait(lambda f:b'Copy saved' in f)
+        self.assertEqual((self.t.root/'recovered').read_bytes(),b'new-base');self.t.send(':q\n');self.wait(lambda f:b'[e] Copy' in f)
+        self.t.send('d');self.wait(lambda f:b'Type DISCARD' in f);self.t.send('DISCARD\n');self.shell()
+    def test_insert_history_aliases_exit_insert_without_stopping_job(self):
+        self.start();self.t.send('i');self.wait(lambda f:b'INSERT' in f);self.t.send('j́'.encode());self.wait(lambda f:b'modified' in f)
+        self.t.send(b'\x1f');self.wait(lambda f:b'Undone' in f and b'NORMAL' in f and b'clean' in f)
+        self.t.send(b'\x1e');self.wait(lambda f:b'Redone' in f and b'NORMAL' in f);self.t.send(':wq\n');self.shell()
+        self.assertEqual((self.t.root/'document').read_bytes(),'j́'.encode())
+    def test_fast_escape_then_undo_or_save_does_not_drop_the_next_key(self):
+        self.start();self.t.send('ialpha\x1bu');self.wait(lambda f:b'Undone' in f and b'clean' in f)
+        self.assertFalse((self.t.root/'document').exists());self.t.send(b'\x12');self.wait(lambda f:b'Redone' in f and b'alpha' in f)
+        self.t.send('A gamma\x1b\x13');self.wait(lambda f:b'Saved' in f);self.assertEqual((self.t.root/'document').read_bytes(),b'alpha gamma')
+        self.t.send(':q\n');self.shell()
 if __name__=='__main__':
     print('Modal editor PTY evidence:',native.ROOT,flush=True)
     print('Binaries:',json.dumps({p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in (EDITOR,FAULT,native.SHELL)}),flush=True)

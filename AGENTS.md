@@ -4,6 +4,22 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- NexaUI coordination: the requirement catalogue and initial chat message are
+  delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place when new requirements
+  or evidence warrant a change; otherwise leave it unchanged. Do not generate or
+  repeat a chat/start message or ask the user to paste one unless newly requested.
+  After compaction, carry forward **handoff delivered; catalogue maintenance only;
+  no pending chat message** and resume the actual task in STATE. Historical handoff
+  records are not new assignments. See brains/aetheri/knowledge/nexaui.md.
+- Document now owns bounded delta undo/redo: read spec/editor.md. Keep monotonic
+  revisions distinct from logical saved-state identity. New successful edits
+  discard redo; failed admission/allocation must preserve it. Preallocate before
+  mutation; raw inverse grapheme splits are private original-history only. Reuse
+  retained capacity on traversal and evict complete entries within both budgets.
+  Modal/UI history never acknowledges or rearms an uncertain save. Run
+  editor.history/document/modal/file/native plus provider groups. Signal exit
+  now drains remaining queued managed signals without repeating effects after
+  its first decision; retain the test-only fsync gate, not a production hook.
 - AETHERI_EDITOR now builds the separate aetheri-editor development executable.
   Read spec/editor.md: main joins existing document/modal/file libraries to the
   pure bounded view. UNKNOWN is independent of clean state; q/CtrlQ must not
@@ -13,7 +29,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   rejection and no reads beyond quit are required. Below 30x8 refuse hidden
   editing/commands. Stop restores modes; background resume stops again. Emergency
   signal copies are best effort, not durable recovery. Run editor/native plus
-  shell/terminal/provider groups. Normal grants, undo/search/panes/accessibility
+  shell/terminal/provider groups. Normal grants, search/panes/accessibility
   and final UI remain work; preserve the quarantined runtime.
 - editor/file.h now supplies a separate local development load/save adapter.
   Read spec/editor.md: repeated original byte/metadata checks are not atomic CAS
@@ -29,7 +45,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   New src/editor document/modal are pure model libraries, not an editor executable
   or file/save authority. Read spec/editor.md: UTF-8/ending/gap/line/grapheme and
   allocation/revision contracts. mark_clean is only local generation state.
-  The app owns its separate view/commands; document undo and full reconciliation remain work.
+  The app owns its separate view/commands; full reconciliation remains work.
   Keep installed profiles/capabilities and quarantined old intent unchanged.
 - The graphical terminal now selects the own `-i --edit` single-line profile.
   Read `spec/line-editor.md`: toolkit-free editor/history, original terminal/OFD
@@ -45,15 +61,6 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   plus editor/native/terminal/provider groups. No programmable completion/daemon.
   Grapheme segmentation is not shaping; advanced completion/richer search, modal editor app,
   panes and persistent sessions remain work. Preserve the quarantined old runtime.
-- NexaUI handoff is delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place:
-  periodic evidence-based checks may add requirements or update existing rows.
-  If nothing relevant changed, leave the catalogue unchanged and resume Aetheri;
-  do not turn the check into a repeated user-facing overview or chat handoff.
-  Do not recreate the catalogue, repeat its overview, generate another NexaUI
-  chat/start message or ask the user to paste it after a context compaction.
-  Only prepare another chat message on a new explicit user request. Continue
-  Aetheri implementation independently; a routine NexaUI check is not a new task
-  handoff or permission to change its SDK/consumer pins.
 - Optional built-in Compose is documented in `spec/compose.md`: build and runtime
   opt-ins, reviewed embedded data/license, no external input-method/virtual-keyboard
   global. Retain original field/client/focus admission, including pending enable

@@ -62,8 +62,11 @@ provisional controls do not settle those product questions.
 The [own file editor](../../spec/editor.md) now runs as an actual development
 terminal command, with Normal/Insert, local file I/O and explicit save/close/
 create-only export. Full reconciliation/artifact inspection, brokered access,
-document undo/search/selection, plugins and accessible text remain engineering
+document search/selection, plugins and accessible text remain engineering
 work before final user UI review. This is not normal native document-grant transport.
+Bounded document undo/redo now exists with adjacent typing groups, count/byte
+budgets and saved-state return. Final history grouping/budget preferences and a
+possible undo tree are product questions; the first linear profile is reversible.
 The prototype refuses exit/EOF with open jobs; hangup waits for original direct
 children without forced killing. Final window/logout/reboot persistence and richer
 editor/multiplexer behavior remain product decisions, not implied by these tests.

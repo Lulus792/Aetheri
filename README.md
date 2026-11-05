@@ -39,7 +39,8 @@ launch remain work.
 The opt-in [own modal editor](spec/editor.md) now opens, edits and saves local
 files inside that terminal, with grapheme-aware Normal/Insert controls, preserved
 line endings/metadata and explicit close choices. Uncertain saves stay fenced;
-create-only export can retain a recovery copy. Document undo/search, plugins,
+create-only export can retain a recovery copy. Its bounded undo/redo restores
+typing groups and the saved content state. Document search, plugins,
 panes, accessible document integration and ordinary brokered access remain work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys

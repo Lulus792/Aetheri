@@ -25,9 +25,15 @@ enum ae_modal_mode ae_modal_mode(const struct ae_modal *m) { return m ? m->mode 
 enum ae_document_result ae_modal_text(struct ae_modal *m,const char *text,size_t size) {
     if (!m || m->mode!=AE_MODAL_INSERT) return AE_DOCUMENT_INVALID;
     struct ae_document_info info;if (!ae_document_info(m->document,&info)) return AE_DOCUMENT_INVALID;
-    enum ae_document_result result=ae_document_replace(m->document,info.cursor,info.cursor,text,size);
+    enum ae_document_result result=ae_document_type(m->document,text,size);
     if (result==AE_DOCUMENT_OK) m->vertical=false;
     return result;
+}
+enum ae_document_result ae_modal_history(struct ae_modal *m,int direction,bool *changed) {
+    if (!m) return AE_DOCUMENT_INVALID;
+    enum ae_document_result r=ae_document_history(m->document,direction,changed);
+    if (r==AE_DOCUMENT_OK && *changed) { m->mode=AE_MODAL_NORMAL;m->vertical=false;if (!normalize(m)) return AE_DOCUMENT_INVALID; }
+    return r;
 }
 static const char *ending(const struct ae_modal *m,size_t row,const struct ae_document_line *line,size_t *size) {
     struct ae_document_line previous;size_t bytes=line->ending_size;
@@ -49,6 +55,7 @@ static enum ae_document_result vertical(struct ae_modal *m,int direction,struct 
 enum ae_document_result ae_modal_action(struct ae_modal *m,enum ae_modal_action action) {
     struct ae_document_info info;struct ae_document_line line;size_t row;
     if (!state(m,&info,&row,&line)) return AE_DOCUMENT_INVALID;
+    ae_document_history_break(m->document);
     if (action==AE_MODAL_UP || action==AE_MODAL_DOWN) return vertical(m,action==AE_MODAL_UP ? -1 : 1,&info,row,&line);
     if (action==AE_MODAL_ESCAPE) {
         if (m->mode==AE_MODAL_INSERT && info.cursor>line.start && !ae_document_step(m->document,-1)) return AE_DOCUMENT_INVALID;

@@ -154,7 +154,7 @@ bool ae_editor_view_render(struct ae_editor_view *v,const struct ae_modal *modal
         else if (!label(v,s->dialog ? s->dialog : s->message && *s->message ? s->message : "Ctrl+S Save  Ctrl+Q Close  :help",columns-1,NULL)) return false;
         if (s->dialog && !s->command) { x=0;y=rows-1; }
         if (s->help) {
-            static const char *help[]={"Aetheri keyboard help","Normal: h j k l / arrows; 0 $ / Home End","i/a/I/A insert; o/O open line; x delete; dd line","Insert: UTF-8 text; Enter newline; Backspace/Delete","Esc Normal/cancel; Ctrl+S save; Ctrl+Q close","Commands: :w :wq :q :q! :saveas NEW-PATH",":export NEW-PATH keeps original state; never overwrites","Save UNKNOWN: no retry; export or explicit discard","Ctrl+Z suspends; shell fg resumes; resize retains text","Undo/search/panes and accessible document API pending"};
+            static const char *help[]={"Aetheri keyboard help","Normal: h j k l / arrows; 0 $ / Home End","i/a/I/A insert; o/O open line; x delete; dd line","Insert: UTF-8 text; Enter newline; Backspace/Delete","u Undo; Ctrl+R Redo; Ctrl+Shift+Z/Y aliases","Esc Normal/cancel; Ctrl+S save; Ctrl+Q close","Commands: :w :wq :q :q! :saveas NEW-PATH",":export NEW-PATH keeps original state; never overwrites","Save UNKNOWN: no retry; export or explicit discard","Ctrl+Z suspends; shell fg resumes; resize retains text","Search/panes and accessible document API pending"};
             struct { const char *text;size_t size; } wrapped[128];unsigned total=0;
             for (size_t i=0;i<sizeof(help)/sizeof(*help);++i) {
                 const char *p=help[i];size_t remaining=strlen(p);

@@ -4,7 +4,7 @@
 document, modal controller, local file adapter and terminal-cell view. It runs
 inside the existing terminal as a foreground command. This remains a local
 development profile; normal document grants/admission, durable recovery, document
-undo/search/selection, plugins and panes remain work. The existing
+search/selection, plugins and panes remain work. The existing
 [shell line editor](line-editor.md) is a separate working component.
 
 ## Try it
@@ -37,6 +37,8 @@ or a new authority. `--help` describes the CLI without taking a terminal.
 | `o`, `O`; `x`; `dd` in Normal | Open a line, delete a grapheme, delete a line |
 | Arrows / `h j k l`, Home/End / `0 $` | Move; Insert uses arrows/Home/End |
 | Enter, Backspace, Delete in Insert | Newline or whole-grapheme edit |
+| `u`, Ctrl+R in Normal | Undo or redo the original document history |
+| Ctrl+Shift+Z/Y | Existing terminal chords for undo/redo; a changed result returns to Normal |
 | Escape; Ctrl+C/G | Normal mode, or cancel the current interaction |
 | Ctrl+S; `:w` | Save the current binding; ask for a new path when untitled |
 | Ctrl+Q; `:q` | Close if settled/clean; otherwise show close choices |
@@ -53,6 +55,8 @@ to 4,096 UTF-8 bytes. Invalid/control/overflow input blocks submission until
 Escape or Ctrl+U, rather than accepting a truncated prefix. Escape sequences
 have a bounded decoder and a 120ms deadline; lone Escape is distinguished from
 arrows. This is not a general terminal-protocol or untrusted-input parser.
+Escape followed promptly by a non-CSI/SS3 byte first cancels/enters Normal, then
+processes that next key. Fast Escape→`u` or Escape→Ctrl+S must not lose the action.
 
 The close dialog offers save/discard/cancel. An unknown save instead offers
 copy/discard/cancel; it cannot rearm the original write. `DISCARD` confirms leaving
@@ -94,6 +98,10 @@ directory must meet the same local directory rules. No background process,
 periodic history file or new runtime library is added. See
 [termios](https://man7.org/linux/man-pages/man3/termios.3.html) and
 [signalfd](https://man7.org/linux/man-pages/man2/signalfd.2.html).
+Once the signal reader has decided to exit, it drains its remaining queued
+managed signals without another copy, cancellation, suspension or exit-code rewrite.
+This does not stop SIGKILL, guarantee recovery storage, or settle arbitrary
+future signal/terminal/OS failure schedules.
 
 Keyboard/virtual scaling evidence does not establish screenreader acceptance.
 AT-SPI document semantics, external IME/bidi/complex shaping, light-theme design,
@@ -156,6 +164,56 @@ local state acknowledgement, **not a file write, durable receipt or permission**
 The separate file adapter must supply actual save evidence before acknowledging.
 An old asynchronous save result cannot mark newer edits clean. No backing file,
 path, app grant, StorageRef or account identity exists in this model.
+
+## Undo, redo and saved content
+
+The document owns copied forward/inverse byte deltas and the original before/
+after cursor. It retains at most 1,024 whole undo steps across both directions
+and 32MiB of requested entry/header storage. The fixed pointer table and allocator
+overhead are separate; preflight allocations can temporarily exceed the retained
+budget. Oldest complete entries are evicted only after a successful new edit.
+No history file, new service or whole-document snapshot per keystroke is added.
+
+`type` coalesces adjacent same-line insertions with geometric entry capacity.
+Newlines, other replacements and explicit interaction/cursor/history/save
+boundaries end that typing group. Delete/backspace/line actions are separate
+steps. Control actions delimit groups even when they make no text change.
+Undo/redo from the modal controller returns a changed document to Normal mode;
+the original valid cursor restores, then receives the normal end-of-line clamp.
+This is a bounded linear history, not exact Vim compatibility or an undo tree.
+
+All required text, line-index and history allocation precedes mutation. Failed
+text admission/allocation leaves text, cursor, revision, history and redo intact.
+A successful new edit discards the old redo branch; failed edits cannot do so.
+Undo/redo uses the retained grow-only text/index capacity and allocates no new
+history or document storage. Each traversal still moves/copies/validates relevant
+text and updates the flat line index; there is no constant-time or measured
+speed-superiority claim. New edits charge copied removed/inserted bytes plus
+entry capacity; copying a large replacement can be expensive.
+
+An edit can join graphemes, so reversing an original byte delta may begin inside
+the resulting cluster. Only the private history path may do this, bound to its
+exact original logical content state. Ordinary edits still require grapheme
+boundaries. Recorded canonical text/endings restore byte-for-byte; history is
+not a general raw-byte editing API.
+
+Every content change, undo and redo advances the monotonic revision. A separate
+document-only logical state identifies the current history position. Successful
+`mark_clean(current_revision)` acknowledges that state; returning to it by undo/
+redo becomes clean without rewinding the revision. Stale save acknowledgements
+still fail. Manually recreating identical bytes on a different branch need not
+become clean. These IDs have no component/run/storage/grant meaning.
+
+Cleanliness only describes the acknowledged document state. Undo/redo never
+touches a file, acknowledges another save, reopens an UNKNOWN binding or drops
+unsettled export holders. Export still leaves the original document history/
+dirty/uncertain state alone, apart from ending the current typing group.
+
+The [history tests](../tests/test_history.c) exercise grouped typing, saved-state
+return/stale acknowledgements, redo branching and allocation failures, Unicode
+combining/Prepend/flag joins and CRLF, actual count/32MiB eviction, allocation-free
+8MiB traversal and 5,000 independent snapshot-reference transitions. The reference
+requires substantial coverage of edits, undo, redo, cursor changes and save marks.
 
 ## Modal controller
 
@@ -266,3 +324,6 @@ write/flush/rename/close failures. Their evidence and limits are in the
 Current executable/view/PTY/provider evidence, initial failures and actual
 development-desktop limits are in the
 [application record](../brains/aetheri/journal/2026-11-05-editor-app.md).
+Bounded document history, one-shot queued-signal exit, fast Escape handling and
+the final current matrix/desktop evidence are in the
+[history record](../brains/aetheri/journal/2026-11-05-editor-history.md).

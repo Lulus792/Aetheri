@@ -51,7 +51,7 @@ static void failures(void) {
     budget=0;CHECK(ae_document_replace(d,1,2,text,sizeof(text))==AE_DOCUMENT_NOMEM);budget=-1;equal(d,"abc",3,0);
     char lines[64];memset(lines,'\n',sizeof(lines));budget=0;CHECK(ae_document_replace(d,1,2,lines,sizeof(lines))==AE_DOCUMENT_NOMEM);budget=-1;equal(d,"abc",3,0);
     for (size_t i=0;i<sizeof(text);++i) text[i]=i%50==49 ? '\n' : 'x';
-    budget=1;CHECK(ae_document_replace(d,1,2,text,sizeof(text))==AE_DOCUMENT_NOMEM);budget=-1;equal(d,"abc",3,0);
+    for (int i=0;i<3;++i) { budget=i;CHECK(ae_document_replace(d,1,2,text,sizeof(text))==AE_DOCUMENT_NOMEM);budget=-1;equal(d,"abc",3,0); }
     CHECK(ae_document_replace(d,1,2,text,sizeof(text))==AE_DOCUMENT_OK);
     char expected[5002];expected[0]='a';memcpy(expected+1,text,sizeof(text));expected[5001]='c';equal(d,expected,sizeof(expected),5001);ae_document_destroy(d);
     char *large=malloc(AE_DOCUMENT_LINE_BYTES+2);CHECK(large);memset(large,'a',AE_DOCUMENT_LINE_BYTES);large[AE_DOCUMENT_LINE_BYTES]='\n';large[AE_DOCUMENT_LINE_BYTES+1]='b';

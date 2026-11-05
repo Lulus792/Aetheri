@@ -4,6 +4,24 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Document history and queued termination — 5 November 2026
+
+- Original [document history](../../src/editor/document.c),
+  [modal owner](../../src/editor/modal.c),
+  [independent snapshot/reference and failure tests](../../tests/test_history.c)
+  and actual [PTY workflows](../../tools/test_editor_native.py).
+  Read [contract](../../spec/editor.md#undo-redo-and-saved-content) and
+  [record](journal/2026-11-05-editor-history.md) for budgets, observations and limits.
+  Deltas, state/revision semantics and cost statements follow this original code;
+  no new runtime engine or measured speed superiority is implied.
+- GNU's primary [Job Control Signals](https://www.gnu.org/s/libc/manual/pdf/libc.pdf)
+  text was available through indexed PDF search after the current HTML page timed
+  out. SIGCONT discards pending stop signals, so the stopped/continued duplicate-
+  termination case alone cannot prove a late stop. The separate controlled fsync
+  gate injects SIGTSTP during the actual emergency copy without another SIGCONT.
+  It fails the old reader and passes the one-shot effect guard. SIGKILL/power loss,
+  storage failure and arbitrary future schedules remain outside that evidence.
+
 ## Executable modal editor — 5 November 2026
 
 - Original [application](../../src/editor/main.c),

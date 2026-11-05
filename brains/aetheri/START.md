@@ -21,18 +21,16 @@ now provides whole-grapheme editing, bounded in-memory history/undo and literal
 Tab completion and history search in the actual terminal, with native PTY and
 virtual DRM evidence. The [modal editor](../../spec/editor.md) now has an opt-in
 executable with local load/edit/save, keyboard view and explicit save/close/export
-choices. Ordinary brokered access, durable recovery, document undo/search and
+choices, now with bounded document undo/redo and saved-state return.
+Ordinary brokered access, durable recovery, document search and
 full accessible text remain work.
 External IMEs, advanced completion/richer search, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
-NexaUI requirements and the initial chat message have already been delivered.
-Maintain the [existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) only when new
-requirements or evidence warrant a change. Do not regenerate a chat message or
-repeat the handoff after compaction unless the user explicitly requests one.
-If a review finds no relevant change, leave the list as it is; no repeat summary
-or new chat text is needed. Earlier handoff records are historical references.
-Resume actual Aetheri work from STATE.
+**NexaUI: handoff delivered; catalogue maintenance only; no pending chat message.**
+Add meaningful changes to the [existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md).
+After compaction, follow the [maintenance rule](knowledge/nexaui.md#maintenance-rule--confirmed-5-november-2026)
+and resume actual Aetheri work from STATE.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

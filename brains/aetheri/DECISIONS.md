@@ -1,5 +1,25 @@
 # Decisions
 
+## Keep document history bounded and save outcomes independent — 5 November 2026
+
+Use original forward/inverse byte deltas, with original cursors and logical
+content states, rather than a whole-file copy for every keystroke. Coalesce only
+adjacent same-line typing and retain a bounded linear history: 1,024 entries and
+32MiB charged entry storage, with complete oldest-entry eviction after commit.
+Preallocate all text/index/history growth; failed edits preserve redo. Revisions
+remain monotonic through traversal; saved-state return changes cleanliness
+without accepting a stale save acknowledgement. History is content-only and
+cannot release a write fence or settle an unknown file outcome. Raw inverse
+grapheme splits are internal to exact original-state history. General undo trees,
+final granularity/budgets and persistent history remain separate choices.
+
+Once signal handling chooses exit, drain already queued managed signals without
+repeating recovery/export/cancel/stop effects. The first actual counterexamples
+produced duplicate copies and a later stop during an emergency copy; explicit
+tests now cover both. This is not a global crash or future signal-schedule proof.
+See [contract](../../spec/editor.md) and
+[record](journal/2026-11-05-editor-history.md).
+
 ## Join the modal editor without inventing save authority — 5 November 2026
 
 Use the existing own terminal for an opt-in C17 foreground editor. Keep its pure

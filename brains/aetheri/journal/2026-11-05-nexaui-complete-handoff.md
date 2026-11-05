@@ -10,7 +10,7 @@ context compaction does not turn the completed handoff into another assignment.
 The original start text is now marked historical. Earlier entries below record
 past deliveries and are not instructions to repeat them.
 
-## Renewed request: current SDK reconciliation
+## Historical renewed request: SDK reconciliation — completed
 
 On the user's renewed request, updated the same NexaUI catalogue, preserving the
 103 IDs and thirteen app/system groups. Added a category index, explicit native
@@ -32,8 +32,9 @@ is claimed by this source/document review.
 
 Preserved existing NexaUI local work and the uncommitted Aetheri compositor/input
 implementation. No checkout, consumer pin, SDK source, VM state, other project,
-publication or other-chat message changed. The start message is in the catalogue
-and returned to the user to paste. Next owner: NexaUI implementation chat.
+publication or other-chat message changed. At that time the start message was
+placed in the catalogue and returned to the user to paste. That delivery is
+complete; no paste or new message is pending. SDK implementation has its own owner.
 
 Documentation validation passed: 103 unique catalogue IDs equal the inspected
 committed map; thirteen app/system rows and eight delivery packets are present.

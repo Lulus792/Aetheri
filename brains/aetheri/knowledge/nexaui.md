@@ -2,17 +2,17 @@
 
 ## Maintenance rule — confirmed 5 November 2026
 
-The complete [requirement catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) and initial
-chat message have been delivered. This is **ongoing catalogue maintenance**, not
-an outstanding handoff. Periodically inspect relevant SDK progress and add new
-requirements, or revise existing rows with concrete evidence; preserve stable
-IDs and record only meaningful changes. Do not create another catalogue or
-regenerate/repeat a NexaUI chat message after compaction. A new message requires
-a new explicit user request. Routine checks need no renewed user handoff and
-must not displace Aetheri implementation. Older inspections below are history.
-If a check finds no relevant delta, leave the catalogue unchanged. Add concrete
-new needs directly to the existing list; do not repeat its overview to the user
-or treat a historical handoff message as a new task after context compaction.
+| Item | Status | Next action |
+| --- | --- | --- |
+| [Requirement catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) | Delivered; maintained in place | Add new needs or correct existing rows when evidence warrants it; preserve IDs. |
+| Initial NexaUI chat/start message | Delivered; closed | None. Prepare another message only on a new explicit user request. |
+| Routine SDK review | Allowed alongside Aetheri work | Record meaningful changes in the catalogue; if nothing changed, leave it unchanged. |
+
+After compaction, carry forward **handoff delivered; catalogue maintenance only;
+no pending chat message**. Do not recreate the list, repeat its overview, ask the
+user to paste the old message or treat the historical records below as an open
+assignment. Continue the actual Aetheri task from STATE. SDK implementation and
+consumer-pin changes are separate work, not implied by catalogue maintenance.
 
 ## Current decision — 4 November 2026
 
@@ -28,6 +28,9 @@ save/close/create-only export choices. The existing case now also preserves
 uncertainty independently of clean content, additional export holders, explicit
 discard, focus return and minimum-viewport edit refusal. These are consumer
 contracts for a future view migration, not a toolkit-adoption or document-grant claim.
+Document delta undo/redo now also belongs to Aetheri: the existing case forwards
+edit/history commands, preserves saved logical-state versus monotonic revision,
+and refuses a competing widget undo stack or any history-based save acknowledgement.
 This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
 remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
 
@@ -66,29 +69,29 @@ scaling and unsupported-capability behavior. Prefer event-driven idle behavior
 and measure CPU/wakeups, frame response and actual memory on the target session.
 The user's final visual design remains a separate decision.
 
-### Current handoff reconciliation — 5 November 2026
+### Historical SDK reconciliation — 5 November 2026
 
-The renewed complete-list request updates the existing
+The full requirements review updated the existing
 [NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md), retaining all **103 stable IDs
-and 13 surface groups** rather than creating another backlog. A new read-only
+and 13 surface groups** rather than creating another backlog. At that time a read-only
 main query returned `d4c9aab9354feb4c9e045b960f4985468bec3253`; its 34-file change
 inventory from the previous inspected candidate, selected deltas, public contracts,
 selected implementation paths, requirement map and adoption report were reviewed. No SDK build/runtime
 test, checkout, consumer pin, publication or other-chat message was performed.
 
-Recognize newly existing multi-window owner-thread Wayland waiting, total-deadline
+The review recognized multi-window owner-thread Wayland waiting, total-deadline
 clipboard sends, initial configure bounds, field-selection restoration and the
-Settings in-memory uncertain-operation example. They are implementation/source
-evidence with scoped original reports, not full Aetheri acceptance. The SDK map
-has all 103 IDs but its application-ownership table still omits the thirteenth
-installer/first-run/recovery surface; reconcile that table without another D11.
+Settings in-memory uncertain-operation example. These were implementation/source
+evidence with scoped original reports, not full Aetheri acceptance. The inspected
+SDK map had all 103 IDs; its application-ownership table omitted the thirteenth
+installer/first-run/recovery surface. That was a table gap, not a missing D11 ID.
 
-The catalogue now has a category index, explicit composition-lifetime cases and
-eight delivery packets. First prepare one installed C17 Settings consumer for
-the actual Aetheri development compositor, preserving app models and process
-ownership. Assess numeric native input and nested overlays, then private shell
-input/semantics, dense terminal/editor, the remaining system/app compositions
-and content/VM seams. Keep working SDL views until each replacement passes.
+That review added a category index, explicit composition-lifetime cases and
+eight delivery packets to the catalogue. It recommended an installed C17 Settings
+consumer on the Aetheri development compositor before private shell and dense-text
+integration, preserving app models and process ownership. Those packets belong
+to the SDK/adoption backlog; this record does not request another user handoff.
+Keep working SDL views until each replacement passes.
 Final designs, persistence/product decisions and physical/human acceptance stay
 open. The initial start message was delivered; maintain the catalogue from here.
 

@@ -2,12 +2,28 @@
 #include "text/grapheme.h"
 #include <stdlib.h>
 #include <string.h>
+struct edit {
+    size_t begin,removed,inserted,capacity,before_cursor,after_cursor;
+    uint64_t before_state,after_state;bool typed;char data[];
+};
 struct ae_document {
     char *bytes;size_t capacity,gap_begin,gap_end,size,cursor;
-    size_t *starts,line_capacity,lines;uint64_t revision,clean;
+    size_t *starts,line_capacity,lines;uint64_t revision,state,clean;
+    struct edit *history[AE_DOCUMENT_HISTORY];size_t used,at,history_bytes;bool merging;
 };
 struct statistics { size_t breaks,first,last; };
 static void wipe(void *memory,size_t size) { volatile unsigned char *p=memory;while (size--) *p++=0; }
+static size_t edit_bytes(const struct edit *e) { return sizeof(*e)+e->capacity; }
+static void edit_free(struct edit *e) { if (e) { wipe(e,edit_bytes(e));free(e); } }
+static void drop_oldest(struct ae_document *d) {
+    d->history_bytes-=edit_bytes(d->history[0]);edit_free(d->history[0]);--d->used;if (d->at) --d->at;
+    memmove(d->history,d->history+1,d->used*sizeof(*d->history));
+}
+void ae_document_history_break(struct ae_document *d) { if (d) d->merging=false; }
+bool ae_document_history_info(const struct ae_document *d,struct ae_document_history_info *info) {
+    if (!d || !info) return false;
+    *info=(struct ae_document_history_info){d->at,d->used-d->at,d->history_bytes};return true;
+}
 static enum ae_document_result statistics(const char *text,size_t size,struct statistics *s) {
     *s=(struct statistics){0};if (size>AE_DOCUMENT_BYTES) return AE_DOCUMENT_LIMIT;
     if (!text && size) return AE_DOCUMENT_INVALID;
@@ -38,18 +54,19 @@ struct ae_document *ae_document_create(const char *text,size_t size,enum ae_docu
     if (size) { d->capacity=capacity(0,size,4096,AE_DOCUMENT_BYTES);d->bytes=malloc(d->capacity); }
     if (!d->starts || (size && !d->bytes)) { *result=AE_DOCUMENT_NOMEM;ae_document_destroy(d);return NULL; }
     if (size) memcpy(d->bytes,text,size);
-    d->size=d->gap_begin=size;d->gap_end=d->capacity;d->revision=d->clean=1;
+    d->size=d->gap_begin=size;d->gap_end=d->capacity;d->revision=d->state=d->clean=1;
     d->starts[0]=0;size_t row=1;for (size_t i=0;i<size;++i) if (text[i]=='\n') d->starts[row++]=i+1;
     return d;
 }
 void ae_document_destroy(struct ae_document *d) {
     if (!d) return;
     if (d->bytes) { wipe(d->bytes,d->capacity);free(d->bytes); }
+    for (size_t i=0;i<d->used;++i) edit_free(d->history[i]);
     free(d->starts);wipe(d,sizeof(*d));free(d);
 }
 bool ae_document_info(const struct ae_document *d,struct ae_document_info *info) {
     if (!d || !info) return false;
-    *info=(struct ae_document_info){d->size,d->lines,d->cursor,d->revision,d->revision!=d->clean};return true;
+    *info=(struct ae_document_info){d->size,d->lines,d->cursor,d->revision,d->state!=d->clean};return true;
 }
 bool ae_document_slice(const struct ae_document *d,size_t start,size_t size,struct ae_document_slice *slice) {
     if (!slice) return false;
@@ -95,7 +112,7 @@ static bool boundary(const struct ae_document *d,size_t position,size_t *row) {
 }
 bool ae_document_cursor(struct ae_document *d,size_t position) {
     size_t row;if (!boundary(d,position,&row)) return false;
-    d->cursor=position;return true;
+    d->cursor=position;d->merging=false;return true;
 }
 bool ae_document_step(struct ae_document *d,int direction) {
     if (!d || (direction!=-1 && direction!=1)) return false;
@@ -103,6 +120,7 @@ bool ae_document_step(struct ae_document *d,int direction) {
     if (!ae_document_row(d,d->cursor,&row) || !points(d,row,offsets,&count,&line)) return false;
     size_t at=0;while (at<count && line.start+offsets[at]<d->cursor) ++at;
     if (at==count || line.start+offsets[at]!=d->cursor) return false;
+    d->merging=false;
     if (direction>0) {
         if (at+1<count) d->cursor=line.start+offsets[at+1];else if (row+1<d->lines) d->cursor=d->starts[row+1];
     } else if (at) d->cursor=line.start+offsets[at-1];
@@ -116,16 +134,18 @@ static void move_gap(struct ae_document *d,size_t position) {
         size_t n=position-d->gap_begin;memmove(d->bytes+d->gap_begin,d->bytes+d->gap_end,n);d->gap_begin+=n;d->gap_end+=n;
     }
 }
-enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size) {
+static enum ae_document_result replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size,bool record,bool typing) {
     if (!d || begin>end || end>d->size) return AE_DOCUMENT_INVALID;
     if (size>AE_DOCUMENT_BYTES-(d->size-(end-begin))) return AE_DOCUMENT_LIMIT;
     struct statistics s;enum ae_document_result status=statistics(text,size,&s);if (status!=AE_DOCUMENT_OK) return status;
-    size_t first,last;if (!boundary(d,begin,&first) || !boundary(d,end,&last)) return AE_DOCUMENT_INVALID;
+    size_t first,last;
+    if (record ? (!boundary(d,begin,&first) || !boundary(d,end,&last)) : (!ae_document_row(d,begin,&first) || !ae_document_row(d,end,&last))) return AE_DOCUMENT_INVALID;
     if (begin==end && !size) return AE_DOCUMENT_OK;
     if (d->revision==UINT64_MAX) return AE_DOCUMENT_EXHAUSTED;
     size_t lines=d->lines-(last-first)+s.breaks;if (lines>AE_DOCUMENT_LINES) return AE_DOCUMENT_LIMIT;
     struct ae_document_line a,b;
     if (!ae_document_line(d,first,&a) || !ae_document_line(d,last,&b)) return AE_DOCUMENT_INVALID;
+    if (begin>a.start+a.size || end>b.start+b.size) return AE_DOCUMENT_INVALID;
     size_t prefix=begin-a.start,tail=b.start+b.size-end;
     if ((!s.breaks && prefix+size+tail>AE_DOCUMENT_LINE_BYTES) ||
         (s.breaks && (prefix+s.first>AE_DOCUMENT_LINE_BYTES || s.last+tail>AE_DOCUMENT_LINE_BYTES))) return AE_DOCUMENT_LIMIT;
@@ -143,6 +163,29 @@ enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,s
         new_lines=capacity(d->line_capacity,lines,64,AE_DOCUMENT_LINES);starts=malloc(new_lines*sizeof(*starts));
         if (!starts) { free(bytes);return AE_DOCUMENT_NOMEM; }
     }
+    /* All text/index/history allocation precedes mutation. Inverse deltas may
+       start inside a newly joined grapheme; only private original history can
+       select this raw byte path, with its exact logical current-state binding. */
+    struct edit *entry=NULL,*previous=NULL;size_t old_inserted=0;bool merge=false;
+    if (record) {
+        typing=typing && begin==end && !s.breaks;
+        if (typing && d->merging && d->at==d->used && d->at) {
+            previous=d->history[d->at-1];merge=previous->typed && !previous->removed && previous->begin+previous->inserted==begin && previous->after_state==d->state;
+        }
+        size_t removed=merge ? previous->removed : end-begin,inserted=size+(merge ? previous->inserted : 0u),need=removed+inserted;
+        if (merge && need<=previous->capacity) entry=previous;
+        else {
+            size_t allocation=capacity(merge ? previous->capacity : 0,need,64,2u*AE_DOCUMENT_BYTES);
+            entry=malloc(sizeof(*entry)+allocation);
+            if (!entry) { free(bytes);free(starts);return AE_DOCUMENT_NOMEM; }
+            *entry=(struct edit){.begin=merge ? previous->begin : begin,.removed=removed,.capacity=allocation,
+                .before_cursor=merge ? previous->before_cursor : d->cursor,.before_state=merge ? previous->before_state : d->state,.typed=typing};
+            if (merge) memcpy(entry->data,previous->data,removed+previous->inserted);
+            else if (removed) (void)ae_document_copy(d,begin,removed,entry->data,removed);
+        }
+        old_inserted=merge ? previous->inserted : 0;
+        if (entry!=previous && size) memcpy(entry->data+removed+old_inserted,text,size);
+    }
     size_t after=d->lines-last-1,at=first+1+s.breaks;size_t *index=starts ? starts : d->starts;
     if (starts) { memcpy(index,d->starts,(first+1)*sizeof(*index));memcpy(index+at,d->starts+last+1,after*sizeof(*index)); }
     else memmove(index+at,index+last+1,after*sizeof(*index));
@@ -157,9 +200,36 @@ enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,s
         move_gap(d,begin);d->gap_end+=end-begin;if (size) memcpy(d->bytes+d->gap_begin,text,size);d->gap_begin+=size;
     }
     if (starts) { free(d->starts);d->starts=starts;d->line_capacity=new_lines; }
-    d->size=new_size;d->lines=lines;d->cursor=cursor;++d->revision;return AE_DOCUMENT_OK;
+    d->size=new_size;d->lines=lines;d->cursor=cursor;++d->revision;
+    if (record) {
+        while (d->used>d->at) { struct edit *e=d->history[--d->used];d->history_bytes-=edit_bytes(e);edit_free(e); }
+        if (merge) {
+            if (entry==previous && size) memcpy(entry->data+entry->removed+old_inserted,text,size);
+            if (entry!=previous) { d->history_bytes-=edit_bytes(previous);edit_free(previous);d->history[d->at-1]=entry;d->history_bytes+=edit_bytes(entry); }
+        } else {
+            if (d->used==AE_DOCUMENT_HISTORY) drop_oldest(d);
+            d->history[d->used++]=entry;d->at=d->used;d->history_bytes+=edit_bytes(entry);
+        }
+        entry->inserted=old_inserted+size;entry->after_cursor=d->cursor;entry->after_state=d->state=d->revision;d->merging=typing;
+        while (d->history_bytes>AE_DOCUMENT_HISTORY_BYTES && d->used>1) drop_oldest(d);
+    }
+    return AE_DOCUMENT_OK;
+}
+enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size) { return replace(d,begin,end,text,size,true,false); }
+enum ae_document_result ae_document_type(struct ae_document *d,const char *text,size_t size) { return d ? replace(d,d->cursor,d->cursor,text,size,true,true) : AE_DOCUMENT_INVALID; }
+enum ae_document_result ae_document_history(struct ae_document *d,int direction,bool *changed) {
+    if (!changed) return AE_DOCUMENT_INVALID;
+    *changed=false;if (!d || (direction!=-1 && direction!=1)) return AE_DOCUMENT_INVALID;
+    if (direction<0 ? !d->at : d->at==d->used) { d->merging=false;return AE_DOCUMENT_OK; }
+    struct edit *entry=d->history[direction<0 ? d->at-1 : d->at];bool undo=direction<0;
+    if (d->state!=(undo ? entry->after_state : entry->before_state)) return AE_DOCUMENT_INVALID;
+    size_t remove=undo ? entry->inserted : entry->removed,insert=undo ? entry->removed : entry->inserted;
+    enum ae_document_result r=replace(d,entry->begin,entry->begin+remove,entry->data+(undo ? 0 : entry->removed),insert,false,false);
+    if (r!=AE_DOCUMENT_OK) return r;
+    d->cursor=undo ? entry->before_cursor : entry->after_cursor;d->state=undo ? entry->before_state : entry->after_state;
+    d->at=undo ? d->at-1 : d->at+1;d->merging=false;*changed=true;return AE_DOCUMENT_OK;
 }
 bool ae_document_mark_clean(struct ae_document *d,uint64_t revision) {
     if (!d || d->revision!=revision) return false;
-    d->clean=revision;return true;
+    d->clean=d->state;d->merging=false;return true;
 }

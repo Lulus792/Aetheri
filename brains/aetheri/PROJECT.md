@@ -31,7 +31,8 @@ an understandable installation/runtime footprint.
   Search now has bounded preview/cancel and separate acceptance/submission. The
   [modal editor](../../spec/editor.md) now joins document/Normal/Insert/local I/O
   to an actual terminal executable with explicit save/close/export decisions.
-  Document undo/search, rich selection/plugins and full accessible text remain.
+  Bounded document undo/redo now retains typing groups and the saved logical state.
+  Document search, rich selection/plugins and full accessible text remain.
   Richer shell search/advanced completion, own panes, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.

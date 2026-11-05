@@ -92,6 +92,7 @@ static const char *file_error(enum ae_editor_file_result r) {
     return "File operation failed";
 }
 static bool save(struct app *a) {
+    ae_document_history_break(a->document);
     if (uncertain(a)) { notice(a,file_error(AE_EDITOR_FILE_UNKNOWN));return false; }
     if (!a->file) { a->interaction=COMMAND;memcpy(a->command,"saveas ",8);a->command_size=7;notice(a,"Choose a new path; existing names are never overwritten");return false; }
     enum ae_editor_file_result r=ae_editor_file_save(a->file,a->document);notice(a,file_error(r));return r==AE_EDITOR_FILE_OK;
@@ -101,6 +102,7 @@ static void save_close(struct app *a) {
     else a->quit_after_save=!a->file && a->interaction==COMMAND;
 }
 static bool copy_to(struct app *a,const char *path,bool adopt) {
+    ae_document_history_break(a->document);
     if ((adopt && uncertain(a)) || a->pending_count==PENDING_EXPORTS) { notice(a,"Unsettled saves retained; no new save binding allowed");return false; }
     struct ae_editor_file *file=NULL;struct ae_document *copy=NULL;
     enum ae_editor_file_result r=bind_path(path,true,&file,&copy);
@@ -128,10 +130,12 @@ static bool copy_to(struct app *a,const char *path,bool adopt) {
     notice(a,r==AE_EDITOR_FILE_OK && !adopt ? "Copy saved; original document/save state retained" : file_error(r));return r==AE_EDITOR_FILE_OK;
 }
 static void close_request(struct app *a) {
+    ae_document_history_break(a->document);
     struct ae_document_info info;if (!ae_document_info(a->document,&info)) return;
     if (!info.dirty && !uncertain(a)) a->quit=true;else { a->interaction=CLOSE;a->help=false; }
 }
 static void command_start(struct app *a,const char *prefix,enum interaction mode) {
+    ae_document_history_break(a->document);
     a->interaction=mode;a->command_bad=false;a->command_size=strlen(prefix);memcpy(a->command,prefix,a->command_size+1);a->dd=false;a->help=false;
 }
 static void command_run(struct app *a) {
@@ -151,6 +155,11 @@ static void edit_result(struct app *a,enum ae_document_result r) {
     else notice(a,r==AE_DOCUMENT_NOMEM ? "Not enough memory; edit not applied" : r==AE_DOCUMENT_LIMIT ? "Document/line limit; edit not applied" : "Edit not supported in this mode");
 }
 static void action(struct app *a,enum ae_modal_action command) { a->dd=false;edit_result(a,ae_modal_action(a->modal,command)); }
+static void history(struct app *a,int direction) {
+    bool changed=false;a->dd=false;enum ae_document_result r=ae_modal_history(a->modal,direction,&changed);
+    if (r!=AE_DOCUMENT_OK) edit_result(a,r);
+    else notice(a,changed ? direction<0 ? "Undone" : "Redone" : direction<0 ? "No earlier edit" : "No later edit");
+}
 static void escape(struct app *a) {
     notice(a,"");
     a->quit_after_save=false;
@@ -176,6 +185,7 @@ static void text(struct app *a,const char *bytes,size_t size) {
     if (size!=1) { a->dd=false;return; }
     char c=*bytes;bool dd=a->dd;a->dd=false;
     switch (c) {
+    case 'u':history(a,-1);break;
     case ':':command_start(a,"",COMMAND);break;
     case 'h':action(a,AE_MODAL_LEFT);break;case 'j':action(a,AE_MODAL_DOWN);break;
     case 'k':action(a,AE_MODAL_UP);break;case 'l':action(a,AE_MODAL_RIGHT);break;
@@ -205,7 +215,7 @@ static void input(struct app *a,unsigned char b) {
     if (a->compact && b!=27 && b!=3 && b!=7 && b!=17) { a->seq_size=a->utf_size=a->utf_need=0;return; }
     if (a->seq_size) {
         if (a->seq_size==1) {
-            if (b!='[' && b!='O') { a->seq_size=0;escape(a);return; }
+            if (b!='[' && b!='O') { a->seq_size=0;escape(a);input(a,b);return; }
             a->sequence[0]=(char)b;a->seq_size=2;return;
         }
         size_t at=a->seq_size-1;if (at+1<sizeof(a->sequence)) { a->sequence[at]=(char)b;a->sequence[at+1]=0; }else a->seq_bad=true;
@@ -226,6 +236,7 @@ static void input(struct app *a,unsigned char b) {
     if (b==27) { a->seq_size=1;a->deadline=milliseconds()+120;return; }
     if (b>=128) { if (b>=0xc2 && b<=0xf4) { a->utf8[0]=(char)b;a->utf_size=1;a->utf_need=b<0xe0 ? 2u : b<0xf0 ? 3u : 4u; }else { notice(a,"Invalid UTF-8 input rejected");if (a->interaction==COMMAND || a->interaction==DISCARD) a->command_bad=true; }return; }
     if (b==3 || b==7) { escape(a);return; }
+    if (a->interaction==EDIT && !a->help && (b==30 || b==31 || (b==18 && ae_modal_mode(a->modal)==AE_MODAL_NORMAL))) { history(a,b==31 ? -1 : 1);return; }
     if (b==19 && a->interaction!=DISCARD) { (void)save(a);return; }
     if (b==17 && a->interaction!=DISCARD) { close_request(a);return; }
     if (b=='\r' || b=='\n') {
@@ -262,6 +273,7 @@ static void emergency(struct app *a) {
     else dprintf(2,"aetheri-editor: emergency copy failed; document/save state unresolved\n");
 }
 static void suspend_app(struct app *a) {
+    ae_document_history_break(a->document);
     screen_leave(a);a->seq_size=a->utf_size=a->utf_need=0;
     do { if (raise(SIGSTOP)) { emergency(a);a->result=1;a->quit=true;return; } } while (!owns(a));
     if (!screen_enter(a)) { emergency(a);a->result=1;a->quit=true; }
@@ -269,6 +281,9 @@ static void suspend_app(struct app *a) {
 static bool signals(struct app *a) {
     struct signalfd_siginfo s;ssize_t n;
     while ((n=read(a->signals,&s,sizeof(s)))==(ssize_t)sizeof(s)) {
+        /* A decided exit owns the remaining lifetime. Drain queued signals
+           without another copy, cancellation, stop or exit-result rewrite. */
+        if (a->quit) continue;
         if (s.ssi_signo==SIGHUP || s.ssi_signo==SIGTERM) { emergency(a);a->result=128+(int)s.ssi_signo;a->quit=true; }
         else if (s.ssi_signo==SIGINT || s.ssi_signo==SIGQUIT) escape(a);
         else if (s.ssi_signo==SIGTSTP) suspend_app(a);

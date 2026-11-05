@@ -145,6 +145,11 @@ def main():
             for points in (20,24,32):tap(66);wait(lambda:view().get("points")==points,"actual modal editor text scaling")
             tap(65);wait(lambda:view().get("contrast")==1,"actual high-contrast modal view")
             capture("actual modal editor at 200 percent high contrast")
+            before=view().get('sequence',0);typing('u');wait(lambda:view().get('sequence',0)>before and view().get('x')==8 and view().get('y')==2,"actual Normal undo after native Compose typing")
+            control(19);wait(lambda:view().get('x')==18 and view().get('y')==2,"actual editor Ctrl+R restores original typed group")
+            # Existing original bytes are not saved by undo/redo itself.
+            assert not (root/"editor-proof").exists()
+            cases.append("actual modal document undo/redo preserves the native Compose bytes and has no file effect")
             control(31);wait(lambda:(root/"editor-proof").exists() and (root/"editor-proof").read_bytes()=="hello j́\nsecond line".encode(),"real modal save exact grapheme/newline bytes")
             typing(":q\n");wait(lambda:select.select([editor_pin],[],[],0)[0] and view().get("x")==9,"same original editor exits back to shell")
             tap(66);tap(65)

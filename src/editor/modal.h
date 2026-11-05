@@ -18,4 +18,7 @@ const struct ae_document *ae_modal_document(const struct ae_modal *modal);
 enum ae_modal_mode ae_modal_mode(const struct ae_modal *modal);
 enum ae_document_result ae_modal_action(struct ae_modal *modal,enum ae_modal_action action);
 enum ae_document_result ae_modal_text(struct ae_modal *modal,const char *text,size_t size);
+/* Undo/redo original document deltas; a changed result returns to Normal mode.
+   This is content history, never a file/save acknowledgement or grant. */
+enum ae_document_result ae_modal_history(struct ae_modal *modal,int direction,bool *changed);
 #endif
