@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep document search literal and reversible — 5 November 2026
+
+Use a bounded case-sensitive single-line UTF-8 query with whole document-grapheme
+endpoints. Prefix-table scanning plus monotonic boundary admission handles
+overlapping/adversarial candidates without rescanning a line for every match.
+No new library, daemon, file index or persistent history. Preview is reversible;
+Enter chooses only a valid current match, while rejection/cancel preserves the
+previous accepted query. Recompute repeat locations after edits/undo. Keep search
+independent of save outcomes, and show the match and query focus at the minimum
+viewport. Regex, case folding, wrapping, replacement and final bindings remain
+separate product work. See the [contract](../../spec/editor.md#literal-document-search).
+
 ## Keep document history bounded and save outcomes independent — 5 November 2026
 
 Use original forward/inverse byte deltas, with original cursors and logical

@@ -18,13 +18,15 @@
 #include <time.h>
 #include <unistd.h>
 enum { COMMAND_BYTES=4096, PENDING_EXPORTS=8 };
-enum interaction { EDIT, COMMAND, CLOSE, DISCARD };
+enum interaction { EDIT, COMMAND, CLOSE, DISCARD, SEARCH };
 struct app {
     struct ae_document *document;struct ae_modal *modal;struct ae_editor_view *view;
     struct ae_editor_file *file,*pending[PENDING_EXPORTS];size_t pending_count;
     int tty,signals;pid_t group,session;struct termios modes,raw;sigset_t old_mask;bool masked,raw_set,alternate,quit,help,compact,dd,command_bad,quit_after_save;
     enum interaction interaction;char title[COMMAND_BYTES+1],command[COMMAND_BYTES+1],message[256];size_t command_size;
     char utf8[4],sequence[32];size_t utf_size,utf_need,seq_size;bool seq_bad;uint64_t deadline;int result;unsigned help_offset;
+    size_t search_origin,last_query_size;int search_direction,last_direction;
+    char last_query[AE_DOCUMENT_QUERY_BYTES+1];bool search_found,search_dirty;
 };
 static uint64_t milliseconds(void) { struct timespec t;if (clock_gettime(CLOCK_MONOTONIC,&t)) return 0;return (uint64_t)t.tv_sec*1000u+(uint64_t)t.tv_nsec/1000000u; }
 static void notice(struct app *a,const char *text) { (void)snprintf(a->message,sizeof(a->message),"%s",text); }
@@ -160,17 +162,41 @@ static void history(struct app *a,int direction) {
     if (r!=AE_DOCUMENT_OK) edit_result(a,r);
     else notice(a,changed ? direction<0 ? "Undone" : "Redone" : direction<0 ? "No earlier edit" : "No later edit");
 }
+static void search_preview(struct app *a) {
+    if (!a->search_dirty) return;
+    a->search_dirty=false;a->search_found=false;size_t position=0;
+    enum ae_document_result r=AE_DOCUMENT_INVALID;
+    if (!a->command_bad && a->command_size) r=ae_document_find(a->document,a->command,a->command_size,a->search_origin,a->search_direction,true,&a->search_found,&position);
+    if (r!=AE_DOCUMENT_OK) a->search_found=false;
+    if (!ae_modal_seek(a->modal,a->search_found ? position : a->search_origin)) { a->quit=true;a->result=1; }
+}
+static void search_start(struct app *a,int direction) {
+    struct ae_document_info info;if (!ae_document_info(a->document,&info)) return;
+    command_start(a,"",SEARCH);a->search_origin=info.cursor;a->search_direction=direction;a->search_dirty=true;
+}
+static void search_repeat(struct app *a,bool opposite) {
+    if (!a->last_query_size) { notice(a,"No accepted search");return; }
+    struct ae_document_info info;if (!ae_document_info(a->document,&info)) return;
+    bool found=false;size_t position=0;int direction=opposite ? -a->last_direction : a->last_direction;
+    enum ae_document_result r=ae_document_find(a->document,a->last_query,a->last_query_size,info.cursor,direction,false,&found,&position);
+    if (r==AE_DOCUMENT_OK && found && ae_modal_seek(a->modal,position)) notice(a,"Match; n next, N reverse");
+    else notice(a,"No further match; search does not wrap");
+}
+static bool text_entry(const struct app *a) { return a->interaction==COMMAND || a->interaction==DISCARD || a->interaction==SEARCH; }
+static void reject_entry(struct app *a) { if (text_entry(a)) { a->command_bad=true;a->search_dirty=true; } }
 static void escape(struct app *a) {
+    if (a->interaction==SEARCH && !ae_modal_seek(a->modal,a->search_origin)) { a->quit=true;a->result=1; }
     notice(a,"");
     a->quit_after_save=false;
     a->command_size=0;a->command[0]=0;a->command_bad=false;a->dd=false;a->help=false;
     if (a->interaction==EDIT) action(a,AE_MODAL_ESCAPE);else a->interaction=EDIT;
 }
 static void text(struct app *a,const char *bytes,size_t size) {
-    if (a->interaction==COMMAND || a->interaction==DISCARD) {
+    if (text_entry(a)) {
         if (a->command_bad) return;
-        if (size>COMMAND_BYTES-a->command_size) { a->command_bad=true;notice(a,"Command too long; Esc or Ctrl+U");return; }
-        memcpy(a->command+a->command_size,bytes,size);a->command_size+=size;a->command[a->command_size]=0;return;
+        size_t limit=a->interaction==SEARCH ? AE_DOCUMENT_QUERY_BYTES : COMMAND_BYTES;
+        if (size>limit-a->command_size) { reject_entry(a);notice(a,"Input too long; Esc or Ctrl+U");return; }
+        memcpy(a->command+a->command_size,bytes,size);a->command_size+=size;a->command[a->command_size]=0;a->search_dirty=true;return;
     }
     if (a->interaction==CLOSE) {
         if (size!=1) return;
@@ -185,6 +211,8 @@ static void text(struct app *a,const char *bytes,size_t size) {
     if (size!=1) { a->dd=false;return; }
     char c=*bytes;bool dd=a->dd;a->dd=false;
     switch (c) {
+    case '/':search_start(a,1);break;case '?':search_start(a,-1);break;
+    case 'n':search_repeat(a,false);break;case 'N':search_repeat(a,true);break;
     case 'u':history(a,-1);break;
     case ':':command_start(a,"",COMMAND);break;
     case 'h':action(a,AE_MODAL_LEFT);break;case 'j':action(a,AE_MODAL_DOWN);break;
@@ -213,6 +241,7 @@ static bool sequence(struct app *a) {
 }
 static void input(struct app *a,unsigned char b) {
     if (a->compact && b!=27 && b!=3 && b!=7 && b!=17) { a->seq_size=a->utf_size=a->utf_need=0;return; }
+    if (b==27 && a->utf_need) { a->utf_need=a->utf_size=0;reject_entry(a); }
     if (a->seq_size) {
         if (a->seq_size==1) {
             if (b!='[' && b!='O') { a->seq_size=0;escape(a);input(a,b);return; }
@@ -224,42 +253,51 @@ static void input(struct app *a,unsigned char b) {
         return;
     }
     if (a->utf_need) {
-        if ((b&0xc0)!=0x80) { a->utf_need=a->utf_size=0;if (a->interaction==COMMAND || a->interaction==DISCARD) a->command_bad=true;notice(a,"Invalid UTF-8 input rejected");return; }
+        if ((b&0xc0)!=0x80) { a->utf_need=a->utf_size=0;reject_entry(a);notice(a,"Invalid UTF-8 input rejected");return; }
         a->utf8[a->utf_size++]=(char)b;
         if (a->utf_size==a->utf_need) {
-            size_t at=0;uint32_t c;if (!ae_utf8_next(a->utf8,a->utf_size,&at,&c) || (c>=0x7f && c<=0x9f)) { if (a->interaction==COMMAND || a->interaction==DISCARD) a->command_bad=true;notice(a,"Invalid/control input rejected"); }
+            size_t at=0;uint32_t c;if (!ae_utf8_next(a->utf8,a->utf_size,&at,&c) || (c>=0x7f && c<=0x9f)) { reject_entry(a);notice(a,"Invalid/control input rejected"); }
             else text(a,a->utf8,a->utf_size);
             a->utf_need=a->utf_size=0;
         }
         return;
     }
     if (b==27) { a->seq_size=1;a->deadline=milliseconds()+120;return; }
-    if (b>=128) { if (b>=0xc2 && b<=0xf4) { a->utf8[0]=(char)b;a->utf_size=1;a->utf_need=b<0xe0 ? 2u : b<0xf0 ? 3u : 4u; }else { notice(a,"Invalid UTF-8 input rejected");if (a->interaction==COMMAND || a->interaction==DISCARD) a->command_bad=true; }return; }
+    if (b>=128) { if (b>=0xc2 && b<=0xf4) { a->utf8[0]=(char)b;a->utf_size=1;a->utf_need=b<0xe0 ? 2u : b<0xf0 ? 3u : 4u; }else { notice(a,"Invalid UTF-8 input rejected");reject_entry(a); }return; }
     if (b==3 || b==7) { escape(a);return; }
     if (a->interaction==EDIT && !a->help && (b==30 || b==31 || (b==18 && ae_modal_mode(a->modal)==AE_MODAL_NORMAL))) { history(a,b==31 ? -1 : 1);return; }
-    if (b==19 && a->interaction!=DISCARD) { (void)save(a);return; }
-    if (b==17 && a->interaction!=DISCARD) { close_request(a);return; }
+    if (b==19 && a->interaction!=DISCARD) { if (a->interaction==SEARCH) escape(a);(void)save(a);return; }
+    if (b==17 && a->interaction!=DISCARD) { if (a->interaction==SEARCH) escape(a);close_request(a);return; }
     if (b=='\r' || b=='\n') {
-        if (a->interaction==COMMAND) command_run(a);
+        if (a->interaction==SEARCH) {
+            search_preview(a);
+            if (!a->command_bad && a->search_found) {
+                memcpy(a->last_query,a->command,a->command_size+1);a->last_query_size=a->command_size;a->last_direction=a->search_direction;
+                a->interaction=EDIT;notice(a,"Match; n next, N reverse");
+            }
+        }
+        else if (a->interaction==COMMAND) command_run(a);
         else if (a->interaction==DISCARD) { if (!a->command_bad && !strcmp(a->command,"DISCARD")) { a->quit=true;a->result=uncertain(a) ? 2 : 0; }else notice(a,"Type DISCARD exactly; Esc cancels"); }
         else if (a->interaction==EDIT && !a->help && !a->compact && ae_modal_mode(a->modal)==AE_MODAL_INSERT) action(a,AE_MODAL_NEWLINE);
         return;
     }
-    if (b==21 && (a->interaction==COMMAND || a->interaction==DISCARD)) { a->command_size=0;a->command[0]=0;a->command_bad=false;return; }
+    if (b==21 && text_entry(a)) { a->command_size=0;a->command[0]=0;a->command_bad=false;a->search_dirty=true;return; }
     if (b==127 || b==8) {
-        if (a->interaction==COMMAND || a->interaction==DISCARD) { if (a->command_size && !a->command_bad) { size_t points[COMMAND_BYTES+1],count;if (ae_text_graphemes(a->command,a->command_size,points,COMMAND_BYTES+1,&count)) { a->command_size=points[count-2];a->command[a->command_size]=0; } } }
+        if (text_entry(a)) { if (a->command_size && !a->command_bad) { size_t points[COMMAND_BYTES+1],count;if (ae_text_graphemes(a->command,a->command_size,points,COMMAND_BYTES+1,&count)) { a->command_size=points[count-2];a->command[a->command_size]=0;a->search_dirty=true; } } }
         else if (a->interaction==EDIT && !a->help && !a->compact) action(a,AE_MODAL_BACKSPACE);
         return;
     }
     if (b=='\t' && a->interaction==EDIT && ae_modal_mode(a->modal)==AE_MODAL_INSERT) { text(a,"\t",1);return; }
-    if (b<32) { if (a->interaction==COMMAND || a->interaction==DISCARD) a->command_bad=true;notice(a,"Unsupported control; Esc cancels");return; }
+    if (b<32) { reject_entry(a);notice(a,"Unsupported control; Esc cancels");return; }
     char c=(char)b;text(a,&c,1);
 }
 static bool draw(struct app *a) {
     errno=0;
     struct winsize w;if (ioctl(a->tty,TIOCGWINSZ,&w)) return false;
+    if (a->interaction==SEARCH) search_preview(a);
     const char *dialog=a->interaction==CLOSE ? uncertain(a) ? "[e] Copy [d] Drop [Esc] Back" : "[s] Save [d] Drop [Esc] Back" : a->interaction==DISCARD ? "Type DISCARD; Esc cancels" : a->command_bad ? "REJECTED: Esc / Ctrl+U" : NULL;
-    struct ae_editor_view_state state={*a->title ? a->title : NULL,a->message,(a->interaction==COMMAND || a->interaction==DISCARD) ? a->command : NULL,dialog,uncertain(a),a->help,a->help_offset};
+    if (a->interaction==SEARCH && !a->command_bad) dialog=!a->command_size ? "Search: type text; Esc back" : a->search_found ? "Match: Enter choose; Esc back" : "No match; Esc back; Ctrl+U";
+    struct ae_editor_view_state state={.title=*a->title ? a->title : NULL,.message=a->message,.command=text_entry(a) ? a->command : NULL,.dialog=dialog,.uncertain=uncertain(a),.help=a->help,.help_offset=a->help_offset,.command_prefix=a->interaction==SEARCH ? a->search_direction>0 ? '/' : '?' : ':',.highlight_size=a->interaction==SEARCH && !a->command_bad && a->search_found ? a->command_size : 0};
     struct ae_editor_frame frame;if (!ae_editor_view_render(a->view,a->modal,&state,w.ws_col,w.ws_row,&frame)) { errno=EINVAL;return false; }
     if (a->help && a->help_offset>frame.help_max) a->help_offset=frame.help_max;
     a->compact=frame.compact;return write_tty(a,frame.bytes,frame.size,false);
@@ -317,7 +355,7 @@ int main(int argc,char **argv) {
                 /* Drain a bounded burst but never read beyond a completed quit:
                    following bytes still belong to the shell or next program. */
                 unsigned char b;ssize_t n=read(a.tty,&b,1);
-                if (n==1) { if (b==26 && !a.seq_size && !a.utf_need && a.interaction==EDIT) suspend_app(&a);else input(&a,b); }
+                if (n==1) { if (b==26 && !a.seq_size && !a.utf_need && (a.interaction==EDIT || a.interaction==SEARCH)) { if (a.interaction==SEARCH) escape(&a);suspend_app(&a); }else input(&a,b); }
                 else if (!n || (errno!=EAGAIN && errno!=EINTR)) { emergency(&a);a.result=1;a.quit=true;break; }
                 else break;
             }

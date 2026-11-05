@@ -135,7 +135,10 @@ bool ae_editor_view_render(struct ae_editor_view *v,const struct ae_modal *modal
                 if (!bytes_size) return false;
                 if (index==current && line.start+v->points[i]==info.cursor) x=8+painted;
                 if (width>available-painted) break;
-                if (!emit(v,bytes,bytes_size)) return false;
+                size_t position=line.start+v->points[i];
+                bool highlight=s->highlight_size && s->highlight_size<=info.size-info.cursor && position>=info.cursor && position-info.cursor<s->highlight_size;
+                if (highlight && !literal(v,"\033[7m")) return false;
+                if (!emit(v,bytes,bytes_size) || (highlight && !literal(v,"\033[0m"))) return false;
                 logical+=width;painted+=width;
             }
             if (index==current && info.cursor==line.start+line.size) x=8+painted;
@@ -149,12 +152,13 @@ bool ae_editor_view_render(struct ae_editor_view *v,const struct ae_modal *modal
         if (s->command) {
             const char *tail=s->command;size_t size=strlen(tail),at=0;
             while (size-at>columns-4u) { uint32_t code;size_t old=at;if (!ae_utf8_next(tail,size,&at,&code)) at=old+1; }
-            unsigned painted;if (!label(v,at ? "<" : ":",columns-1,NULL) || !label(v,tail+at,columns-2,&painted)) return false;x=1+painted;y=rows-1;
+            char prefix[2]={s->command_prefix ? s->command_prefix : ':',0};
+            unsigned painted;if (!label(v,at ? "<" : prefix,columns-1,NULL) || !label(v,tail+at,columns-2,&painted)) return false;x=1+painted;y=rows-1;
         }
         else if (!label(v,s->dialog ? s->dialog : s->message && *s->message ? s->message : "Ctrl+S Save  Ctrl+Q Close  :help",columns-1,NULL)) return false;
         if (s->dialog && !s->command) { x=0;y=rows-1; }
         if (s->help) {
-            static const char *help[]={"Aetheri keyboard help","Normal: h j k l / arrows; 0 $ / Home End","i/a/I/A insert; o/O open line; x delete; dd line","Insert: UTF-8 text; Enter newline; Backspace/Delete","u Undo; Ctrl+R Redo; Ctrl+Shift+Z/Y aliases","Esc Normal/cancel; Ctrl+S save; Ctrl+Q close","Commands: :w :wq :q :q! :saveas NEW-PATH",":export NEW-PATH keeps original state; never overwrites","Save UNKNOWN: no retry; export or explicit discard","Ctrl+Z suspends; shell fg resumes; resize retains text","Search/panes and accessible document API pending"};
+            static const char *help[]={"Aetheri keyboard help","Normal: h j k l / arrows; 0 $ / Home End","i/a/I/A insert; o/O open line; x delete; dd line","Insert: UTF-8 text; Enter newline; Backspace/Delete","u Undo; Ctrl+R Redo; Ctrl+Shift+Z/Y aliases","/ forward; ? backward literal search; n/N repeat","Search: Enter choose; Esc back; Ctrl+U clear","Esc Normal/cancel; Ctrl+S save; Ctrl+Q close","Commands: :w :wq :q :q! :saveas NEW-PATH",":export NEW-PATH keeps original state; never overwrites","Save UNKNOWN: no retry; export or explicit discard","Ctrl+Z suspends; shell fg resumes; resize retains text","Selection/panes and accessible document API pending"};
             struct { const char *text;size_t size; } wrapped[128];unsigned total=0;
             for (size_t i=0;i<sizeof(help)/sizeof(*help);++i) {
                 const char *p=help[i];size_t remaining=strlen(p);

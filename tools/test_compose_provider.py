@@ -62,6 +62,7 @@ def main():
         for c in text:
             if c==">":key(42,True);tap(52);key(42,False)
             elif c==":":key(42,True);tap(39);key(42,False)
+            elif c=="?":key(42,True);tap(53);key(42,False)
             else:tap(codes[c])
         wait(lambda:accepted()==target,"ordinary actual native input")
     def proof(name,text):
@@ -150,6 +151,10 @@ def main():
             # Existing original bytes are not saved by undo/redo itself.
             assert not (root/"editor-proof").exists()
             cases.append("actual modal document undo/redo preserves the native Compose bytes and has no file effect")
+            typing('?hello\n');wait(lambda:view().get('x')==8 and view().get('y')==1,"actual backward document search accepts original first-line match")
+            typing('/missing');wait(lambda:view().get('y')==view().get('rows',0)-1,"actual search query receives keyboard focus")
+            tap(1);wait(lambda:view().get('x')==8 and view().get('y')==1,"actual search cancel returns original document caret")
+            cases.append("actual native literal search accepts a match and restores document focus on cancel without file effects")
             control(31);wait(lambda:(root/"editor-proof").exists() and (root/"editor-proof").read_bytes()=="hello j́\nsecond line".encode(),"real modal save exact grapheme/newline bytes")
             typing(":q\n");wait(lambda:select.select([editor_pin],[],[],0)[0] and view().get("x")==9,"same original editor exits back to shell")
             tap(66);tap(65)

@@ -4,6 +4,18 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Literal document search — 5 November 2026
+
+- Original [read-only search](../../src/editor/document.c),
+  [modal jumps](../../src/editor/modal.c), [query owner](../../src/editor/main.c),
+  [inverse-match view](../../src/editor/view.c) and
+  [independent reference/limit test](../../tests/test_search.c).
+  The prefix-table scan, overlapping-candidate admission and cost bound follow
+  this source; no external implementation or runtime library was imported.
+  [Contract](../../spec/editor.md#literal-document-search) and
+  [record](journal/2026-11-05-editor-search.md) distinguish executed native/desktop
+  evidence from richer search and assistive/physical acceptance still required.
+
 ## Document history and queued termination — 5 November 2026
 
 - Original [document history](../../src/editor/document.c),

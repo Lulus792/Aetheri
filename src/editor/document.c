@@ -233,3 +233,41 @@ bool ae_document_mark_clean(struct ae_document *d,uint64_t revision) {
     if (!d || d->revision!=revision) return false;
     d->clean=d->state;d->merging=false;return true;
 }
+enum ae_document_result ae_document_find(const struct ae_document *d,const char *query,size_t size,size_t origin,int direction,bool inclusive,bool *found,size_t *position) {
+    if (!found || !position) return AE_DOCUMENT_INVALID;
+    *found=false;*position=0;
+    if (!d || !query || !size || origin>d->size || (direction!=-1 && direction!=1)) return AE_DOCUMENT_INVALID;
+    if (size>AE_DOCUMENT_QUERY_BYTES) return AE_DOCUMENT_LIMIT;
+    struct statistics s;enum ae_document_result r=statistics(query,size,&s);
+    if (r!=AE_DOCUMENT_OK || s.breaks) return AE_DOCUMENT_INVALID;
+    size_t prefix[AE_DOCUMENT_QUERY_BYTES]={0};
+    for (size_t i=1,j=0;i<size;++i) {
+        while (j && query[i]!=query[j]) j=prefix[j-1];
+        if (query[i]==query[j]) ++j;
+        prefix[i]=j;
+    }
+    /* Scan each relevant line once. KMP preserves overlapping candidates; two
+       monotonic boundary cursors avoid resegmenting a line for every match. */
+    for (size_t row=0;row<d->lines;++row) {
+        struct ae_document_line line;if (!ae_document_line(d,row,&line)) return AE_DOCUMENT_INVALID;
+        if (direction>0 && line.start+line.size<origin) continue;
+        if (direction<0 && line.start>origin) break;
+        if (line.size<size) continue;
+        char text[AE_DOCUMENT_LINE_BYTES];size_t offsets[AE_DOCUMENT_LINE_BYTES+1],count;
+        if (!ae_document_copy(d,line.start,line.size,text,sizeof(text)) || !ae_text_graphemes(text,line.size,offsets,AE_DOCUMENT_LINE_BYTES+1,&count)) return AE_DOCUMENT_INVALID;
+        size_t left=0,right=0;
+        for (size_t i=0,j=0;i<line.size;++i) {
+            while (j && text[i]!=query[j]) j=prefix[j-1];
+            if (text[i]==query[j]) ++j;
+            if (j!=size) continue;
+            size_t begin=i+1-size,end=i+1,absolute=line.start+begin;j=prefix[j-1];
+            while (left<count && offsets[left]<begin) ++left;
+            while (right<count && offsets[right]<end) ++right;
+            if (left==count || right==count || offsets[left]!=begin || offsets[right]!=end) continue;
+            bool eligible=direction>0 ? absolute>origin || (inclusive && absolute==origin) : absolute<origin || (inclusive && absolute==origin);
+            if (!eligible) continue;
+            *found=true;*position=absolute;if (direction>0) return AE_DOCUMENT_OK;
+        }
+    }
+    return AE_DOCUMENT_OK;
+}

@@ -33,6 +33,9 @@ edit/history commands, preserves saved logical-state versus monotonic revision,
 and refuses a competing widget undo stack or any history-based save acknowledgement.
 This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
 remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
+The same case now retains Aetheri-owned literal document search: reversible
+whole-grapheme preview, original cursor/prior-query restoration, fresh matching
+after edits and no text/command/save effects from accepting a search result.
 
 The user prefers a practical foundation such as SDL3 for early Aetheri UI, with
 later NexaUI migration where useful. Missing NexaUI features must not hold up the

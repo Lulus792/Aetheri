@@ -20,6 +20,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   editor.history/document/modal/file/native plus provider groups. Signal exit
   now drains remaining queued managed signals without repeating effects after
   its first decision; retain the test-only fsync gate, not a production hook.
+- Literal document search is app-owned: read spec/editor.md. ae_document_find is
+  read-only, bounded, case-sensitive and admits whole-grapheme endpoints only.
+  Preview/cancel preserves original cursor and prior accepted query; rejected
+  input cannot accept an old prefix. n/N recompute after edits, without wrapping.
+  No search settles UNKNOWN or changes text/revision/clean/history/file state.
+  Keep minimum-size query hints, inverse match and query focus. Run editor.search,
+  view/native/provider plus affected groups; accessible text/richer search remain.
+  Ordinary 200-percent search presentation has an unresolved counterexample in
+  STATE; stable screenshot pairs/file proofs do not establish visual acceptance.
 - AETHERI_EDITOR now builds the separate aetheri-editor development executable.
   Read spec/editor.md: main joins existing document/modal/file libraries to the
   pure bounded view. UNKNOWN is independent of clean state; q/CtrlQ must not

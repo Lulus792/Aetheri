@@ -21,4 +21,7 @@ enum ae_document_result ae_modal_text(struct ae_modal *modal,const char *text,si
 /* Undo/redo original document deltas; a changed result returns to Normal mode.
    This is content history, never a file/save acknowledgement or grant. */
 enum ae_document_result ae_modal_history(struct ae_modal *modal,int direction,bool *changed);
+/* Normal-only admitted grapheme cursor jump; resets the vertical goal/history
+   group without changing text, revision, saved state or undo/redo entries. */
+bool ae_modal_seek(struct ae_modal *modal,size_t position);
 #endif

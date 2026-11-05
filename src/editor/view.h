@@ -6,6 +6,8 @@ struct ae_editor_view;
 struct ae_editor_view_state {
     const char *title,*message,*command;
     const char *dialog;bool uncertain,help;unsigned help_offset;
+    char command_prefix; /* zero means ':', otherwise '/' or '?' for search */
+    size_t highlight_size; /* admitted whole-grapheme match at the document cursor */
 };
 struct ae_editor_frame { const char *bytes;size_t size;unsigned x,y;bool compact;unsigned help_max; };
 /* Owns reusable row/segmentation/frame scratch and viewport only. Borrowed frame

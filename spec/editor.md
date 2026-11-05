@@ -3,8 +3,8 @@
 5 November 2026. The opt-in `aetheri-editor` executable joins our original C17
 document, modal controller, local file adapter and terminal-cell view. It runs
 inside the existing terminal as a foreground command. This remains a local
-development profile; normal document grants/admission, durable recovery, document
-search/selection, plugins and panes remain work. The existing
+development profile; normal document grants/admission, durable recovery, rich
+selection/search, plugins and panes remain work. The existing
 [shell line editor](line-editor.md) is a separate working component.
 
 ## Try it
@@ -39,6 +39,9 @@ or a new authority. `--help` describes the CLI without taking a terminal.
 | Enter, Backspace, Delete in Insert | Newline or whole-grapheme edit |
 | `u`, Ctrl+R in Normal | Undo or redo the original document history |
 | Ctrl+Shift+Z/Y | Existing terminal chords for undo/redo; a changed result returns to Normal |
+| `/`, `?` in Normal | Forward/backward literal search with an in-memory preview |
+| Enter / Escape during search | Choose the preview match / restore the original cursor |
+| `n`, `N` in Normal | Next match in the accepted direction / reverse direction; no wrap |
 | Escape; Ctrl+C/G | Normal mode, or cancel the current interaction |
 | Ctrl+S; `:w` | Save the current binding; ask for a new path when untitled |
 | Ctrl+Q; `:q` | Close if settled/clean; otherwise show close choices |
@@ -66,6 +69,51 @@ Export is a recovery copy, not an acknowledgement that the original save settled
 Up to eight additional uncertain exports stay held; reaching that bound refuses
 more binding attempts. General cross-process recovery and an artifact inspector
 remain work.
+
+## Literal document search
+
+The first search is case-sensitive literal UTF-8 within one line, up to 256 query
+bytes. It has no regex, normalization, case folding, cross-line expression,
+automatic wrapping or persistent index. Matches must begin and end on complete
+document grapheme boundaries; searching `j` skips a combined `j́`, while the whole
+combined query can match it. CRLF and gap-buffer storage do not change offsets.
+
+`/` or `?` saves the original Normal cursor. Admitted query changes preview the
+first eligible forward/backward match including that position, with an inverse
+match highlight and keyboard focus on the query. No match or an empty/rejected
+query restores the original cursor; Enter cannot accept an old prefix/result.
+Enter chooses a valid match and remembers its query/direction. Escape restores
+the original cursor and leaves the previous accepted query intact. Ctrl+U clears
+the rejected/current query; Backspace removes a whole query grapheme. Invalid,
+unsupported-control or overflow input blocks acceptance until clear/cancel.
+Escape also cancels after an incomplete UTF-8 prefix. Save, close or suspension
+cancels the preview before its ordinary workflow.
+
+`n`/`N` recomputes from the current document, strictly beyond/before the current
+cursor; it never reuses a stored match offset after edits or undo. At the search
+boundary it reports no further match and keeps the cursor. Search never edits
+text, advances content revision, changes clean state, clears undo/redo entries,
+writes files or acknowledges uncertain saves. Enter chooses only the match and
+cannot execute a command. The modal owner resets vertical-motion goals on jumps.
+Ending a typing group is separate from changing retained history entries.
+
+The read-only `ae_document_find` uses an original prefix-table/KMP byte scan and
+one grapheme segmentation per relevant line. Overlapping candidates remain
+eligible. Two monotonic boundary cursors admit whole matches without rescanning
+a line for each candidate. For N scanned bytes, L line records, M query bytes and
+R fixed Unicode property ranges, the bound is O(N log R + L + M) time and
+O(maximum line bytes + maximum line grapheme count + M) scratch, with no heap
+allocation or new process. Backward lookup scans forwards to retain the last
+eligible match. Repeated query changes repeat that bounded synchronous scan;
+this is not a responsiveness or speed-superiority claim for maximum-size files.
+Viewport painting remains the existing terminal-cell fallback, not shaping or
+an accessible-text document interface.
+
+Current acceptance limit: an ordinary-desktop 200-percent search capture shows an
+unexpected no-match/document presentation despite correct saved bytes and a
+passing exact PTY counterpart. Its cause remains under investigation. The
+100-percent preview/cancel and native tests do not close that visual gate; see
+the [search record](../brains/aetheri/journal/2026-11-05-editor-search.md).
 
 ## View and terminal lifetime
 
@@ -327,3 +375,6 @@ development-desktop limits are in the
 Bounded document history, one-shot queued-signal exit, fast Escape handling and
 the final current matrix/desktop evidence are in the
 [history record](../brains/aetheri/journal/2026-11-05-editor-history.md).
+The [search record](../brains/aetheri/journal/2026-11-05-editor-search.md)
+tracks the literal-search model, query focus, minimum-size rendering and actual
+native/desktop evidence separately from richer search and accessibility work.

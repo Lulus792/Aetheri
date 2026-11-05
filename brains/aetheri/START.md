@@ -22,7 +22,8 @@ Tab completion and history search in the actual terminal, with native PTY and
 virtual DRM evidence. The [modal editor](../../spec/editor.md) now has an opt-in
 executable with local load/edit/save, keyboard view and explicit save/close/export
 choices, now with bounded document undo/redo and saved-state return.
-Ordinary brokered access, durable recovery, document search and
+Literal document search now provides reversible forward/backward previews.
+Ordinary brokered access, durable recovery, rich selection/search and
 full accessible text remain work.
 External IMEs, advanced completion/richer search, panes, persistent
 sessions and normal admitted app/session integration remain work.

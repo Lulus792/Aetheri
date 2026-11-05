@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — bounded document undo/redo and one-shot signal exit.
+5 November 2026 — reversible literal document search.
 
 ## Coordination
 
@@ -14,6 +14,35 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Literal document search now has a read-only whole-grapheme scan and actual
+Normal `/`/`?` query, inverse-match preview, Enter acceptance, Escape restoration
+and n/N repeat. It uses bounded original C17 code without a new library, file
+index or background process. Invalid/overflow/no-match queries cannot accept
+an old result or replace the prior accepted query. Repeat searches the current
+document after edits/undo. Save uncertainty and text/history remain independent.
+All 36 affected groups pass Release (84.41s) and ASan+UBSan (123.95s), including
+22 editor PTY cases and eighteen actual provider cases per profile. Strengthened
+view/native follow-ups pass 2/2 in each profile (6.19s/6.69s); a later exact
+repeat/clear/resize row case also passes independently in both. The unchanged
+copied-source search test rejects omitted whole-grapheme endpoint admission.
+The ordinary desktop proves 100-percent match/accept/repeat, exact-pixel cancel,
+exact saved bytes and return to the same shell; both original attempts retire.
+
+**Next: investigate the 200-percent search presentation counterexample.** The
+second attempt's final stable pair reports no match for `?zero` and shows
+unexpected document rendering, despite correct file bytes and a passing exact
+PTY counterpart. Earlier probes/first attempt show a highlighted prefix/full
+match. The cause is not established: do not infer an algorithm, renderer or test
+timing defect from this alone. Automated file/process/stable-pair success is not
+semantic visual acceptance. Keep the raw attempts and `visual-review.json`,
+reproduce with current original input/frame/geometry observations, then review
+the actual image. Do not start selection/panes to bypass that open UI issue.
+See the [record](journal/2026-11-05-editor-search.md) and
+`local/editor-search-2026-11-05`. The carrier is enforcing and idle on tty1;
+the old quarantined runtime remains unchanged and unresolved.
+
+## Document history — completed checkpoint
 
 The document now owns bounded byte-delta undo/redo, adjacent same-line typing
 groups and original cursor/logical content states. Limits are 1,024 complete

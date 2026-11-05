@@ -35,6 +35,13 @@ int main(void) {
     CHECK(contains(t,0,"note.txt"));
     s.command="export abcdefghijklmnopqrstuvwxyz0123456789";s.dialog="Type DISCARD; Esc cancels";
     CHECK(ae_editor_view_render(v,m,&s,30,8,&f) && f.y==7 && f.x<29);ae_terminal_feed(t,f.bytes,f.size);CHECK(contains(t,6,"Type DISCARD") && contains(t,7,"0123456789"));
+    CHECK(ae_modal_action(m,AE_MODAL_ESCAPE)==AE_DOCUMENT_OK && ae_modal_action(m,AE_MODAL_HOME)==AE_DOCUMENT_OK);
+    for (const char *prefix="/?";*prefix;++prefix) {
+        s.command="literal";s.command_prefix=*prefix;s.dialog="Match: Enter choose; Esc back";s.highlight_size=3;
+        CHECK(ae_editor_view_render(v,m,&s,30,8,&f) && f.y==7 && f.x==8);
+        ae_terminal_feed(t,f.bytes,f.size);CHECK(t->screen[7][0].code==(uint32_t)*prefix && contains(t,7,"literal") && contains(t,6,"Esc back"));
+        CHECK((t->screen[1][8].style&AE_TERM_REVERSE) && (t->screen[1][10].style&AE_TERM_REVERSE) && !(t->screen[1][11].style&AE_TERM_REVERSE));
+    }
     s.command=NULL;s.dialog=NULL;s.help=true;CHECK(ae_editor_view_render(v,m,&s,80,24,&f));ae_terminal_init(t,80,24,width);ae_terminal_feed(t,f.bytes,f.size);CHECK(contains(t,1,"keyboard help") && !t->unsupported);
     CHECK(!ae_editor_view_render(v,m,&s,513,24,&f));
     free(t);ae_editor_view_destroy(v);ae_modal_destroy(m);ae_document_destroy(d);return 0;

@@ -22,6 +22,10 @@ struct ae_modal *ae_modal_create(struct ae_document *document) {
 void ae_modal_destroy(struct ae_modal *m) { free(m); }
 const struct ae_document *ae_modal_document(const struct ae_modal *m) { return m ? m->document : NULL; }
 enum ae_modal_mode ae_modal_mode(const struct ae_modal *m) { return m ? m->mode : AE_MODAL_NORMAL; }
+bool ae_modal_seek(struct ae_modal *m,size_t position) {
+    if (!m || m->mode!=AE_MODAL_NORMAL || !ae_document_cursor(m->document,position)) return false;
+    m->vertical=false;return true;
+}
 enum ae_document_result ae_modal_text(struct ae_modal *m,const char *text,size_t size) {
     if (!m || m->mode!=AE_MODAL_INSERT) return AE_DOCUMENT_INVALID;
     struct ae_document_info info;if (!ae_document_info(m->document,&info)) return AE_DOCUMENT_INVALID;

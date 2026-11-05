@@ -5,6 +5,7 @@
 #include <stdint.h>
 enum { AE_DOCUMENT_BYTES=8*1024*1024, AE_DOCUMENT_LINES=65536, AE_DOCUMENT_LINE_BYTES=65536 };
 enum { AE_DOCUMENT_HISTORY=1024, AE_DOCUMENT_HISTORY_BYTES=32*1024*1024 };
+enum { AE_DOCUMENT_QUERY_BYTES=256 };
 enum ae_document_result { AE_DOCUMENT_OK, AE_DOCUMENT_INVALID, AE_DOCUMENT_LIMIT, AE_DOCUMENT_NOMEM, AE_DOCUMENT_EXHAUSTED };
 struct ae_document;
 struct ae_document_slice { const char *first,*second;size_t first_size,second_size; };
@@ -45,4 +46,12 @@ enum ae_document_result ae_document_history(struct ae_document *document,int dir
    save evidence; this neither writes nor proves durability/ownership. Stale
    generations fail, cursor motion does not change content generation. */
 bool ae_document_mark_clean(struct ae_document *document,uint64_t revision);
+/* Read-only case-sensitive literal, single-line search. Both match endpoints
+   must be whole document grapheme boundaries. Direction is -1/+1; include_origin
+   chooses >=/<= rather than strictly after/before origin. No wrapping, mutation,
+   allocation or file effects. Empty/invalid/unsupported-control/newline/oversized queries
+   fail; a valid no-match returns OK with found=false and position=0. */
+enum ae_document_result ae_document_find(const struct ae_document *document,
+    const char *query,size_t size,size_t origin,int direction,bool include_origin,
+    bool *found,size_t *position);
 #endif

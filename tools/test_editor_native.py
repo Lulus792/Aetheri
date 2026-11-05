@@ -85,10 +85,12 @@ class Editor(unittest.TestCase):
     def test_help_can_scroll_at_minimum_size_without_editing(self):
         self.start(existing=b'kept');termios.tcsetwinsize(self.t.master,(8,30));self.wait(lambda f:b'NORMAL' in f)
         self.t.send(':help\n');self.wait(lambda f:b'keyboard help' in f)
-        for i in range(32):
+        saw_search=False
+        for i in range(64):
             self.t.send('j');self.wait(lambda f:True)
-            if b'Search/panes' in self.frame():break
-        self.assertIn(b'Search/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
+            saw_search=saw_search or b'/ forward;' in self.frame()
+            if b'Selection/panes' in self.frame():break
+        self.assertTrue(saw_search);self.assertIn(b'Selection/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
         self.t.send(':q\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),b'kept')
     def test_suspend_bg_refuses_terminal_and_fg_restores_same_buffer(self):
         self.start();self.insert('suspended');self.t.send(b'\x1a');self.shell()
@@ -145,6 +147,54 @@ class Editor(unittest.TestCase):
         self.assertFalse((self.t.root/'document').exists());self.t.send(b'\x12');self.wait(lambda f:b'Redone' in f and b'alpha' in f)
         self.t.send('A gamma\x1b\x13');self.wait(lambda f:b'Saved' in f);self.assertEqual((self.t.root/'document').read_bytes(),b'alpha gamma')
         self.t.send(':q\n');self.shell()
+    def test_literal_search_preview_cancel_and_bidirectional_repeat(self):
+        original=b'zero cat\nmiddle cat\nlast cat';self.start(existing=original)
+        self.t.send('/cat');self.wait(lambda f:b'Match: Enter choose' in f and b'/cat' in f)
+        termios.tcsetwinsize(self.t.master,(8,30));self.wait(lambda f:b'Esc back' in f and b'/cat' in f)
+        termios.tcsetwinsize(self.t.master,(24,80));self.wait(lambda f:b'Esc back' in f)
+        self.t.send(b'\x1b');self.wait(lambda f:b'1:1 | clean' in f)
+        self.t.send('n');self.wait(lambda f:b'No accepted search' in f)
+        self.t.send('/cat\n');self.wait(lambda f:b'1:6 | clean' in f and b'Match; n next' in f)
+        for position in (b'2:8 | clean',b'3:6 | clean'):
+            self.t.send('n');self.wait(lambda f:position in f)
+        self.t.send('n');self.wait(lambda f:b'No further match' in f and b'3:6 | clean' in f)
+        self.t.send('N');self.wait(lambda f:b'2:8 | clean' in f)
+        self.t.send('?zero\n');self.wait(lambda f:b'1:1 | clean' in f)
+        self.assertEqual((self.t.root/'document').read_bytes(),original);self.t.send(':q\n');self.shell()
+    def test_rejected_search_cannot_accept_a_stale_prefix_or_replace_last_query(self):
+        self.start(existing=b'cat one cat two cat');self.t.send('/cat\n');self.wait(lambda f:b'Match; n next' in f)
+        self.t.send('/cat missing\n');self.wait(lambda f:b'No match' in f)
+        self.t.send(b'\x15'+b'c'*257+b'\n');self.wait(lambda f:b'REJECTED' in f)
+        self.t.send(b'\x1b');self.wait(lambda f:b'1:1 | clean' in f)
+        self.t.send('n');self.wait(lambda f:b'1:9 | clean' in f)
+        self.t.send(b'/cat\xff\n');self.wait(lambda f:b'REJECTED' in f)
+        self.t.send(b'\x1b');self.wait(lambda f:b'1:9 | clean' in f)
+        self.t.send('n');self.wait(lambda f:b'1:17 | clean' in f)
+        self.t.send(b'/cat\xc3\x1b');self.wait(lambda f:b'1:17 | clean' in f and b'REJECTED' not in f)
+        self.t.send(':q\n');self.shell()
+    def test_search_unicode_boundaries_and_recompute_after_document_edit(self):
+        self.start(existing='j́ j other\nj́'.encode());self.t.send('/j\n');self.wait(lambda f:b'1:3 | clean' in f)
+        self.t.send('/j́\n');self.wait(lambda f:b'2:1 | clean' in f)
+        self.t.send('x');self.wait(lambda f:b'modified' in f)
+        self.t.send('n');self.wait(lambda f:b'No further match' in f)
+        self.t.send(':wq\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),'j́ j other\n'.encode())
+    def test_search_does_not_settle_unknown_save_and_close_cancels_preview(self):
+        self.t.send('export AETHERI_TEST_EDITOR_FAILURE directory-after\n');self.t.expect(PROMPT)
+        self.start(existing=b'cat',fault=True);self.t.send(b'\x13');self.wait(lambda f:b'SAVE UNKNOWN' in f)
+        self.t.send('/cat');self.wait(lambda f:b'Match: Enter choose' in f)
+        self.t.send(b'\x11');self.wait(lambda f:b'[e] Copy' in f and b'SAVE UNKNOWN' in f)
+        self.t.send('d');self.wait(lambda f:b'Type DISCARD' in f);self.t.send('DISCARD\n');self.shell()
+    def test_search_repeat_resize_and_cleared_preview_keep_exact_document_rows(self):
+        self.start(existing=b'zero cat\nmiddle cat\nlast cat')
+        self.t.send('jj?cat\n');self.wait(lambda f:b'2:8 | clean' in f)
+        self.t.send('nnN');self.wait(lambda f:b'2:8 | clean' in f and b'Match; n next' in f)
+        self.t.send('/missing');self.wait(lambda f:b'No match' in f)
+        self.t.send(b'\x15cat');self.wait(lambda f:b'Match: Enter choose' in f)
+        self.t.send(b'\x1b');self.wait(lambda f:b'2:8 | clean' in f)
+        termios.tcsetwinsize(self.t.master,(12,50));self.wait(lambda f:b'2:8 | clean' in f)
+        self.t.send('?zero');frame=self.wait(lambda f:b'Match: Enter choose' in f and b'?zero' in f)
+        self.assertIn(b'zero',frame);self.assertIn(b'middle cat',frame);self.assertIn(b'last cat',frame)
+        self.t.send(b'\x1b');self.wait(lambda f:b'2:8 | clean' in f);self.t.send(':q\n');self.shell()
 if __name__=='__main__':
     print('Modal editor PTY evidence:',native.ROOT,flush=True)
     print('Binaries:',json.dumps({p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in (EDITOR,FAULT,native.SHELL)}),flush=True)
