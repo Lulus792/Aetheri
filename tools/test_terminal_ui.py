@@ -150,7 +150,7 @@ def main():
 
     sequence = 0
 
-    def snapshot(label, green=False):
+    def snapshot(label, green=False, selected=False):
         nonlocal sequence
         wait(lambda: view() and f"DRAWN {view()['frame']}\n" in log(), "latest compositor-observed frame")
         sequence += 1
@@ -164,6 +164,9 @@ def main():
             assert magic == b"P6" and peak == b"255" and len(pixels) == w*h*3
             if i == 0:
                 assert len({pixels[n:n+3] for n in range(0,len(pixels),3)}) > 20
+                if selected:
+                    count=sum(pixels[n:n+3]==b"\x30\x4e\x78" for n in range(0,len(pixels),3))
+                    assert count>200,(label,"actual selected cell background",count)
                 if green:
                     count = sum(pixels[n+1] > pixels[n]+25 and pixels[n+1] > pixels[n+2]+10 for n in range(0,len(pixels),3))
                     assert count > 80, (label,"actual green terminal output",count)
@@ -184,6 +187,38 @@ def main():
         typing("printf done > proof\n")
         wait(lambda: (root/"proof").is_file(), "typed command actual file effect")
         snapshot("actual ANSI output from native key input",green=True)
+        before_input=accepted()
+        control(30,shift=True)
+        wait(lambda:view().get("selection",0)>1,"keyboard selects actual retained terminal content")
+        snapshot("keyboard selection of actual terminal output",selected=True)
+        previous_frame=view()["frame"];control(46,shift=True);control(47,shift=True)
+        wait(lambda:view().get("frame",0)>previous_frame and view().get("selection",0)>1,"unavailable clipboard chords preserve selection")
+        assert accepted()==before_input,"clipboard chords must not become terminal interrupt/literal-next"
+        cases.append("unavailable clipboard chords do not send Ctrl+C or Ctrl+V to the PTY")
+        tap(1)
+        wait(lambda:view().get("selection")==0,"Escape clears selection without PTY input")
+        assert accepted()==before_input
+        grid=tuple(map(float,re.findall(r" grid_left=([\d.]+) grid_top=([\d.]+) cell_width=([\d.]+) cell_height=([\d.]+)$",log(),re.M)[-1]))
+        left,top,cw,ch=grid
+        # The private compositor's first normal-window placement is 40,40.
+        event(f"M {40+left+.1} {40+top+ch/2}");event("B 272 1")
+        wait(lambda:view().get("selecting")==1,"native selection drag starts in grid")
+        event(f"M {40+left+8*cw} {40+top+ch/2}");event("B 272 0")
+        wait(lambda:view().get("selection")==9 and view().get("selecting")==0,"eight native selected prompt cells")
+        snapshot("pointer cell selection and exact UTF-8 byte extent",selected=True)
+        control(105,shift=True)
+        wait(lambda:view().get("selection")==8,"keyboard contracts the same pointer selection")
+        assert accepted()==before_input
+        tap(1);wait(lambda:view().get("selection")==0,"selection escape")
+        event(f"M {40+left+cw} {40+top+ch/2}");event("B 272 1")
+        wait(lambda:view().get("selecting")==1,"second actual drag")
+        lost=log().count("FOCUS 0\n");event("D")
+        wait(lambda:log().count("FOCUS 0\n")>lost and view().get("selecting")==0,"focus loss cancels drag")
+        gained=log().count("FOCUS 1\n");event("A")
+        wait(lambda:log().count("FOCUS 1\n")>gained,"fresh keyboard restores actual terminal focus")
+        tap(1);wait(lambda:view().get("selection")==0,"clear empty anchor after focus return")
+        assert accepted()==before_input
+        cases.append("native keyboard/pointer selection, retained UTF-8 extent, focus-loss drag cancellation and Escape never become shell input")
         typing("printf '\\033[32m")
         layout(True)
         target=accepted()+len("Grüße".encode())
@@ -242,9 +277,14 @@ def main():
         tap(64);tap(65)
         wait(lambda:view().get("german")==1 and view().get("contrast")==1,"language and contrast frame applied")
         snapshot("German high-contrast terminal")
+        control(30,shift=True);wait(lambda:view().get("selection",0)>1,"select before text resize")
         tap(66);tap(66);tap(66)
         wait(lambda:view().get("points")==32,"200 percent text size")
+        assert view().get("selection")==0,"grid resize clears old selection geometry"
         snapshot("200 percent terminal text and cell resize")
+        control(30,shift=True);wait(lambda:view().get("selection",0)>1,"selection in current 200 percent geometry")
+        snapshot("German high-contrast selection at 200 percent text",selected=True)
+        tap(1);wait(lambda:view().get("selection")==0,"clear selection before idle measurement")
         def cpu_ticks():
             fields=Path(f"/proc/{current.pid}/stat").read_text().rsplit(")",1)[1].split()
             return int(fields[11])+int(fields[12])

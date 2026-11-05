@@ -1,8 +1,57 @@
 # State
 
-5 November 2026 — separate Terminal/Settings launch and ordered development ownership.
+5 November 2026 — stable terminal text selection and bounded UTF-8 export.
 
 ## Current update
+
+The [terminal](../../spec/terminal.md) now has toolkit-independent text selection
+with mouse drag, Ctrl+Shift+arrows/A and Escape-to-clear. Per-row content tokens
+move with history; edits, changed wrap boundaries, eviction and screen/size changes
+cannot retarget the selected text. Every selected row is checked, including the
+interior. Select-all excludes unused trailing screen rows. UTF-8 export handles
+wide/combining cells and actual soft versus hard wraps with atomic output bounds.
+It is an in-memory export API, not native clipboard copy/paste or a sandbox.
+
+Native keyboard/pointer tests measure unchanged PTY input counters, selected
+background pixels, drag cancellation after actual device/focus loss, Escape and
+200% text/contrast/locale behavior. Clipboard chords are reserved and report
+unavailable; they must not become Ctrl+C/Ctrl+V. A build-local model omitting the
+row-token validation is rejected by the unchanged test. A first fixture sent a
+button release after removing its pointer; the driver correctly rejected that
+invalid command. It now recreates devices without inventing an old-button release.
+
+The final five affected groups pass Release (18.44 s) and Debug ASan/UBSan
+(23.84 s), including actual desktop-owner integration. Terminal native has sixteen
+cases/thirty images per profile; owner adds seven cases/six images. All 72 raw
+image hashes verify. The model mutation without selected-row validation fails
+at the unchanged overwrite assertion. Actual final Debug DRM/QMP tests also
+select at 100/200% text, reserve clipboard chords without interrupt/literal-next,
+restore the exact baseline after Escape and close original processes/status0.
+Ten console PNGs form five stable pairs; the same binaries are in the native
+owner result. Earlier Release/pre-shortcut Debug runs remain historical.
+The device-removal fixture removes pointer and keyboard together; isolated
+keyboard-focus loss with a still-held pointer is not separately accepted.
+Evidence and scope are indexed under local/terminal-selection-2026-11-05.
+Third-party SDL/text/Mesa remain Release libraries; physical, host-window,
+production session and assistive acceptance are still separate.
+
+Final audit joins all 263 host/snapshot/guest source hashes, verifies all 28
+frozen SQL/XML and nineteen protected old catalogue/static/profile hashes without
+sidecars, and resolves all 857 local Markdown file targets (not URLs/anchors).
+The guest remains enforcing on tty1 without a known native test/app, running
+Aetheri unit or seat0 session. The unresolved old intent is unchanged.
+
+The existing SDL3 Wayland clipboard receive loop is synchronous, grows its buffer
+while reading and has no complete-transfer byte limit. Do not call its documented
+main-thread-only API from the worker. Next implement bounded async native transfer,
+complete-transfer deadlines/cancellation and reviewed multiline paste; existing
+native clipboard transport in the compositor alone does not supply app integration.
+No new package, service, policy, SQL/wire capability or persistent user data is added.
+Normal admitted sessions/apps, full IME, editor/panes/plugins/persistence, native
+accessibility, the image/installer, complete apps and experiment desktop remain
+required. The old running/recover-handoff intent remains separate and quarantined.
+
+## Two-app ownership checkpoint — 5 November 2026
 
 The [development desktop](../../spec/desktop-ui.md) now starts and reuses Terminal
 or Settings from dock/search, activates their observed windows, and permits either

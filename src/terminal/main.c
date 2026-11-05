@@ -30,7 +30,7 @@ struct app {
     unsigned char input[INPUT_BYTES];size_t input_count;
     float density,cell_w,cell_h,left,grid_y,bar_height,footer_height;
     unsigned font_points,applied_points;
-    bool running,failed,closing,dirty,diagnostics,german,contrast,close_pressed;
+    bool running,failed,closing,dirty,diagnostics,german,contrast,close_pressed,selecting;
     unsigned frame,drawn_frame;uint64_t input_bytes;struct wl_callback *frame_callback;
     const char *message;char ended_message[128];
 };
@@ -61,7 +61,7 @@ static int worker(void *data) {
 static const char *tr(struct app *a,const char *en,const char *de) { return a->german ? de : en; }
 static void close_request(struct app *a) {
     if (a->closing) return;
-    a->closing=true;a->dirty=true;
+    a->closing=true;a->dirty=true;a->selecting=false;
     if (a->pty.ended && a->pty.eof) { a->running=false;return; }
     if (ae_terminal_pty_hangup(&a->pty) && errno!=ESRCH) { a->failed=true;a->message="Shell hangup could not be acknowledged"; }
 }
@@ -140,6 +140,7 @@ static void layout(struct app *a) {
     if (rows<2) rows=2;
     if (rows>AE_TERM_ROWS) rows=AE_TERM_ROWS;
     if (a->model->cols!=(unsigned)cols || a->model->rows!=(unsigned)rows) {
+        a->selecting=false;
         if (ae_terminal_pty_resize(&a->pty,(unsigned)cols,(unsigned)rows) || !ae_terminal_resize(a->model,(unsigned)cols,(unsigned)rows)) error(a,"PTY/grid resize");
     }
     a->left=((float)w-(float)cols*a->cell_w)/2;
@@ -154,15 +155,18 @@ static void draw(struct app *a) {
     label(a,"×",(float)w-32,10,0xeff3fb);
     for (unsigned y=0;y<a->model->rows;++y) {
         const struct ae_term_cell *r=ae_terminal_row(a->model,y);
+        unsigned first=0,last=0;bool selected=ae_terminal_selected_range(a->model,y,&first,&last);
         for (unsigned x=0;x<a->model->cols;++x) {
             uint32_t bg=(r[x].style&AE_TERM_REVERSE) ? r[x].fg : r[x].bg;
             if (a->contrast && bg==0x10141c) bg=0;
+            if (selected && x>=first && x<last) bg=0x304e78;
             fill(a,(SDL_FRect){a->left+(float)x*a->cell_w,a->grid_y+(float)y*a->cell_h,a->cell_w,a->cell_h},bg);
         }
         for (unsigned x=0;x<a->model->cols;++x) {
             const struct ae_term_cell *c=&r[x];uint32_t fg=c->fg,bg=c->bg;
             if (c->style&AE_TERM_REVERSE) { uint32_t temp=fg;fg=bg;bg=temp; }
             if (a->contrast && bg==0x10141c) { bg=0;fg=fg==0xdce4ef ? 0xffffff : fg; }
+            if (selected && x>=first && x<last) fg=0xffffff;
             SDL_FRect box={a->left+(float)x*a->cell_w,a->grid_y+(float)y*a->cell_h,a->cell_w,a->cell_h};
             if (c->width && c->code!=' ' && c->code) {
                 struct glyph *g=glyph(a,c);SDL_FRect dest={box.x,box.y,g ? g->w : 0,g ? g->h : 0};
@@ -178,6 +182,7 @@ static void draw(struct app *a) {
     }
     const char *status=a->message ? a->message : a->closing ? tr(a,"Closing · waiting for shell/jobs","Schließen · Warten auf Shell/Jobs") :
         a->pty.ended ? tr(a,"Shell ended · waiting for terminal writers","Shell beendet · Warten auf Terminalausgabe") :
+        a->model->selection.count ? tr(a,"Selection · Esc clears","Auswahl · Esc löscht") :
         tr(a,"Ctrl+C/Z · Shift+PgUp/PgDn · Ctrl+Shift+Q","Strg+C/Z · Shift+Bild↑/↓ · Strg+Shift+Q");
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
     if (a->diagnostics) {
@@ -188,7 +193,7 @@ static void draw(struct app *a) {
     }
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
     a->dirty=false;++a->frame;
-    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d\n",a->frame,a->model->cols,a->model->rows,a->model->x,a->model->y,a->model->history_count,a->model->view,(unsigned long long)a->model->sequence,a->closing,a->pty.ended,a->pty.eof,a->german,a->contrast,a->font_points,w,h);
+    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->model->cols,a->model->rows,a->model->x,a->model->y,a->model->history_count,a->model->view,(unsigned long long)a->model->sequence,a->closing,a->pty.ended,a->pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->model),a->selecting,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
 }
 static void flush_input(struct app *a) {
     while (a->input_count && !a->pty.eof) {
@@ -203,6 +208,7 @@ static void flush_input(struct app *a) {
 static void input(struct app *a,const void *bytes,size_t size) {
     if (a->closing || a->pty.ended || a->pty.eof) return;
     if (size>sizeof(a->input)-a->input_count) { a->message="Input queue full; new input was not sent";a->dirty=true;return; }
+    if (a->model->selection.count) { ae_terminal_select_clear(a->model);a->selecting=false;a->dirty=true; }
     memcpy(a->input+a->input_count,bytes,size);a->input_count+=size;
     if (a->model->view) a->dirty=true;
     a->model->view=0;a->message=NULL;flush_input(a);
@@ -219,7 +225,7 @@ static void io_event(struct app *a) {
         if (n<0 && (errno==EAGAIN || errno==EWOULDBLOCK)) break;
         if (n<0) { error(a,"PTY output");break; }
         if (!n) break;
-        ae_terminal_feed(a->model,bytes,(size_t)n);budget-=(size_t)n;a->dirty=true;
+        ae_terminal_feed(a->model,bytes,(size_t)n);if (!a->model->selection.count) a->selecting=false;budget-=(size_t)n;a->dirty=true;
     }
     bool ended=a->pty.ended;
     if (!a->pty.ended && ae_terminal_pty_observe(&a->pty)<0) error(a,"original shell wait");
@@ -244,6 +250,14 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
     if (b) return SDL_HITTEST_RESIZE_BOTTOM;
     return (float)p->y<a->bar_height && p->x<w-48 ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
 }
+static bool selection_point(struct app *a,float x,float y,bool clamp,unsigned *row,unsigned *column) {
+    if (!isfinite(x) || !isfinite(y) || a->cell_w<=0 || a->cell_h<=0) return false;
+    float col=(x-a->left)/a->cell_w,line=(y-a->grid_y)/a->cell_h;
+    if (!clamp && (col<0 || col>=(float)a->model->cols || line<0 || line>=(float)a->model->rows)) return false;
+    col=fmaxf(0,fminf((float)a->model->cols,floorf(col+.5f)));
+    line=fmaxf(0,fminf((float)a->model->rows-1,floorf(line)));
+    *row=(unsigned)line;*column=(unsigned)col;return true;
+}
 static void event(struct app *a,const SDL_Event *e) {
     if (a->diagnostics && (e->type==SDL_EVENT_WINDOW_FOCUS_GAINED || e->type==SDL_EVENT_WINDOW_FOCUS_LOST)) printf("FOCUS %d\n",e->type==SDL_EVENT_WINDOW_FOCUS_GAINED);
     if (e->type==a->event) { if (e->user.code<0) error(a,"PTY event bridge");io_event(a);SDL_SignalSemaphore(a->ack);return; }
@@ -253,15 +267,43 @@ static void event(struct app *a,const SDL_Event *e) {
        state can already belong to a later queued key, or to an IME shortcut. */
     else if (e->type==SDL_EVENT_TEXT_INPUT) input(a,e->text.text,strlen(e->text.text));
     else if (e->type==SDL_EVENT_MOUSE_WHEEL && e->wheel.y!=0) { ae_terminal_scroll(a->model,e->wheel.y>0 ? 3 : -3);a->dirty=true; }
-    else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) a->close_pressed=false;
+    else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) { a->close_pressed=false;a->selecting=false;a->dirty=true; }
+    else if (e->type==SDL_EVENT_MOUSE_MOTION && a->selecting) {
+        unsigned row,column;
+        if (selection_point(a,e->motion.x,e->motion.y,true,&row,&column) && !ae_terminal_select_extend(a->model,row,column)) a->selecting=false;
+        a->dirty=true;
+    }
     else if ((e->type==SDL_EVENT_MOUSE_BUTTON_DOWN || e->type==SDL_EVENT_MOUSE_BUTTON_UP) && e->button.button==SDL_BUTTON_LEFT) {
         int w,h;SDL_GetWindowSize(a->window,&w,&h);bool hit=e->button.y<a->bar_height && e->button.x>(float)w-48;
-        if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN) a->close_pressed=hit;
-        else { if (hit && a->close_pressed) close_request(a);a->close_pressed=false; }
+        unsigned row,column;
+        if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            a->close_pressed=hit;a->selecting=false;
+            if (!hit && !a->closing && selection_point(a,e->button.x,e->button.y,false,&row,&column))
+                a->selecting=ae_terminal_select_begin(a->model,row,column);
+        } else {
+            if (hit && a->close_pressed) close_request(a);
+            if (a->selecting && selection_point(a,e->button.x,e->button.y,true,&row,&column)) (void)ae_terminal_select_extend(a->model,row,column);
+            a->close_pressed=false;a->selecting=false;
+        }
+        a->dirty=true;
     }
     else if (e->type==SDL_EVENT_KEY_DOWN) {
         SDL_Keycode key=e->key.key;SDL_Keymod mod=e->key.mod;
         if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && key==SDLK_Q) close_request(a);
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && (key==SDLK_C || key==SDLK_V)) {
+            /* Reserve clipboard chords: they must never become terminal
+               interrupt or literal-next while native transfer is unavailable. */
+            a->message=key==SDLK_C ? tr(a,"Copy unavailable","Kopieren nicht verfügbar") : tr(a,"Paste unavailable","Einfügen nicht verfügbar");a->dirty=true;
+        }
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_A) {
+            (void)ae_terminal_select_all(a->model);a->selecting=false;a->dirty=true;
+        }
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) &&
+                 (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_LEFT || key==SDLK_RIGHT)) {
+            (void)ae_terminal_select_step(a->model,key==SDLK_LEFT ? -1 : key==SDLK_RIGHT ? 1 : 0,key==SDLK_UP ? -1 : key==SDLK_DOWN ? 1 : 0);
+            a->selecting=false;a->dirty=true;
+        }
+        else if (key==SDLK_ESCAPE && a->model->selection.count) { if (!a->failed) a->message=NULL;ae_terminal_select_clear(a->model);a->selecting=false;a->dirty=true; }
         else if ((mod&SDL_KMOD_SHIFT) && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN)) { ae_terminal_scroll(a->model,key==SDLK_PAGEUP ? (int)a->model->rows/2 : -(int)a->model->rows/2);a->dirty=true; }
         else if (key==SDLK_F6) { a->german=!a->german;a->dirty=true; }
         else if (key==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }

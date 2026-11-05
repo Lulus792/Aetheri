@@ -703,7 +703,23 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   STOP may coalesce with CONT. Refuse foreign foreground takeover. Exit/EOF refuses
   open jobs; HUP/TERM signals still-waitable original direct children and waits
   without force-kill. Do not infer descendant/app/lease drain. Final persistence/
-  raw editing/terminal GUI remains open. Reject saturated raw canonical records
+  raw editing and normal terminal app integration remain open. Reject saturated raw canonical records
   before CR/delimiter trimming; no lossless kernel-editor claim. PTY test cleanup
   enrolls original pidfds while the private leader is unreaped; never rediscover
   a session from a stale numeric SID. Read spec/shell.md's interactive evidence.
+
+- AETHERI_TERMINAL supplies a separate graphical PTY owner; read spec/terminal.md.
+  Native selection retains every row's content-incarnation token through history
+  movement. Edits/erase/wrap changes, eviction, resize/reset/screen replacement
+  cannot retarget it. Tokens are process-local observations, never security or
+  durable identity. Copy sizing precedes writes; preserve wide/combining UTF-8,
+  real soft-wrap joins and atomic undersized-buffer failure. Ctrl+Shift+arrows/A
+  and selection Escape never enter the PTY. Accepted input clears selection;
+  focus loss cancels drag. UI handles stay outside the cell/selection model.
+  UTF-8 export is not native clipboard transport. The selected SDL Wayland read
+  path is synchronous without a complete-transfer byte limit; do not call its
+  main-thread-only API from the readiness worker or add unbounded UI paste.
+  Async request/offer/FD readiness, deadlines, cancellation and paste review remain
+  the next integration gate. Add no clipboard daemon/host bridge implicitly.
+  Native tests retain exact pixel/byte and stale-row mutation evidence; virtual
+  input and software rendering do not establish hardware/a11y acceptance.

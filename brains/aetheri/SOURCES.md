@@ -4,6 +4,42 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Stable terminal selection — 5 November 2026
+
+- [Model/export](../../src/terminal/model.c), [SDL adapter](../../src/terminal/main.c)
+  and [selection regression](../../tests/test_terminal_selection.c). Current five
+  affected groups pass Release (18.44 s) and ASan/UBSan (23.84 s), including the
+  actual desktop owner. Terminal native has 16 cases/30 images per profile; owner
+  adds seven cases/six images. All 72 compressed originals are verified.
+- Current guest logs: /home/aetheri/build/terminal-selection-guard-1asz2ogl.
+  Release native roots terminal-ui-zrg7pup6/desktop-owner-hgaoriln; Debug
+  terminal-ui-nfb066p2/desktop-owner-9k8wic5n. Local originals/index are under
+  local/terminal-selection-2026-11-05/shortcut-native. Earlier eight-group
+  checkpoint (27.21/38.20 s) predates the final diagnostic/selection/shortcut
+  refinements and is retained separately.
+- Build-local stale-row mutation under terminal-selection-source-bay3cdb1/negative
+  omits selected-row validation. The unchanged test rejects it with status1 at
+  selected-row overwrite. The first terminal-ui-lkrb7ho6 fixture wrongly sent a
+  button release after D removed both input devices; the server rejected it.
+  The corrected fixture adds devices without fabricating that old release.
+  Device removal covers pointer and keyboard together, not isolated keyboard
+  focus loss while the original pointer remains held.
+- Final actual Debug DRM token b8ae375a2778485fb6d819667b129f71 closes with all
+  three direct native children/status0; stdout is session-757.scope. Its ten QMP
+  PNGs form five matching pairs, and cleared pixels equal the original baseline.
+  It checks actual selection, unavailable clipboard chords and 200% text. The
+  final record binds the same app binaries as the native owner result. Earlier
+  Release and pre-shortcut Debug runs remain historical. These are virtual PS/2,
+  bochs-drm/logind and software-rendered results, not host-window or physical/a11y
+  acceptance. The preexisting optional PAM warning remains unchanged.
+- The pinned SDL3 3.4.20 archive's src/video/wayland/SDL_waylanddatamanager.c was
+  read for read_pipe, write_pipe and offer-receive behavior. The main-thread-only
+  [retrieval API](https://wiki.libsdl.org/SDL3/SDL_GetClipboardData),
+  [publication API](https://wiki.libsdl.org/SDL3/SDL_SetClipboardData) and public
+  [Wayland queue API](https://wayland.freedesktop.org/docs/html/apb.html) were
+  inspected. A per-wait timeout is not a complete-transfer deadline/size budget;
+  asynchronous app clipboard integration remains work in [terminal](../../spec/terminal.md).
+
 ## Terminal in the development desktop — 5 November 2026
 
 - Review then exposed the existing tools/test_development_session.py fixture

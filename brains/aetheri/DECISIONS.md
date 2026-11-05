@@ -1,5 +1,23 @@
 # Decisions
 
+## Retain selected row content identities before clipboard transport — 5 November 2026
+
+Use process-local nonreused row-content tokens that move with history and change
+on edits/erase/wrap changes. Retain every selected row token, not just endpoint
+coordinates. Preserve selection over unrelated output; reject changed or evicted
+selected content. Reset/resize/screen replacement clear it. Store soft-wrap extents
+so UTF-8 export preserves meaningful wrap spaces and omits wide-cell padding.
+Bound both token lists and text by the existing retained-grid limits. Keep the
+model independent of SDL/NexaUI; no durable/security identity follows from a token.
+
+Use pointer drag and Ctrl+Shift+arrows/A with shared selection state. Clear a drag
+on focus loss and selection on accepted input; selection Escape is not a PTY byte.
+Keep export separate from clipboard ownership. The pinned SDL Wayland receive path
+is synchronous and has no complete-transfer byte budget; do not move its
+main-thread-only call into the worker. Implement bounded async native transfer and
+paste review next, without a new daemon or a foreign client impersonating focus.
+See [terminal contract](../../spec/terminal.md).
+
 ## Separate fixed development app slots and retire their pipes — 5 November 2026
 
 Add Terminal beside Settings through an explicit private three-byte protocol2.

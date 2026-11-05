@@ -36,6 +36,10 @@ still separate. Test file operations explicitly choose their owned token folder.
 | Enter, Backspace, Tab | Forward to the canonical PTY editor; rich shell editing is separate work |
 | Ctrl+C / Ctrl+Z | Actual terminal interrupt/stop; the shell supplies `jobs`, `fg`, `bg` |
 | Shift+PageUp / Shift+PageDown, wheel | Navigate bounded scrollback; typing returns to live output |
+| Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
+| Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
+| Escape with a selection | Clear selection without forwarding Escape to the shell |
+| Ctrl+Shift+C / Ctrl+Shift+V | Report copy/paste unavailable; never forward these chords as interrupt or literal-next |
 | F6 | Toggle English/German terminal chrome, independently of keyboard layout |
 | F7 | Toggle higher-contrast chrome/default terminal colors; preserve explicit program colors |
 | F8 | Cycle text size 16, 20, 24 and 32; minimum window grows from 480×320 to 960×640 |
@@ -69,6 +73,27 @@ strings such as OSC52 have no clipboard, file, URL or execution side effects.
 CAN/SUB cancel a sequence; reset leaves alternate mode and clears history access.
 Reset is not a secure memory-wiping promise. `TERM=dumb` deliberately avoids
 advertising a complete terminal capability set; `COLORTERM` is removed.
+
+Each retained row also has a process-local content-incarnation token and soft-wrap
+extent. Tokens move with a row into history and never wrap/reuse. A content edit,
+erase or changed wrap extent creates another token; eviction removes the original.
+Selection retains the exact contiguous token list, not screen indices or merely
+its endpoints. Unrelated output can continue without changing the selection;
+any changed selected row invalidates it. Resize, reset and alternate-screen
+changes clear selection. These tokens carry no filesystem/process authority.
+
+The toolkit-free selection API exports exact scalar/combining UTF-8, omitting
+wide-cell continuations and joining real soft wraps. Hard line boundaries become
+newlines and trim trailing plain blanks. Wide-character wrap padding is excluded;
+meaningful spaces at a soft wrap remain. Size measurement precedes copying; a
+small destination fails without writing any byte. The retained-grid bound limits
+the maximum export; it is not an unbounded document buffer. Invalid/empty ranges
+return size0, while a selected blank range can export just a terminating NUL.
+
+Mouse drag and Ctrl+Shift+arrows/A operate the same model. Focus loss ends a drag
+without discarding a still-valid selection. Accepted PTY input clears selection;
+selection actions and Escape-to-clear never become shell bytes. Copy/paste chords currently report unavailable without sending Ctrl+C/Ctrl+V
+to the PTY: UTF-8 export is not OS clipboard ownership or transport.
 
 PTY creation/fork happens before SDL, Mesa or worker threads. The child becomes
 its own controlling-terminal session through `TIOCGPTPEER`, `setsid` and
@@ -109,11 +134,14 @@ license and reserved-name conditions. No new library or global package is instal
 `build_ui.py` still copies Sans only; it does not yet package this explicit Mono
 asset. An Aetheri distribution/font package remains future work.
 
-Run `ctest --test-dir BUILD -R '^terminal[.]' --output-on-failure` with all four
-terminal/test executables, shell and test compositor built. The groups cover:
+Run `ctest --test-dir BUILD -R '^terminal[.]' --output-on-failure` after building this opt-in profile, including its shell and test compositor.
+The groups cover:
 
 - `terminal.model`: split UTF-8, wide/combining cells, style/wrap, alternate/reset,
   history/resize and 20,000 deterministic hostile feeds.
+- `terminal.selection`: exact forward/reverse and wide/combining UTF-8, hard/soft
+  line boundaries, retained-row movement/eviction, changed interior rows, keyboard
+  extension, maximum retained history, token exhaustion and atomic copy bounds.
 - `terminal.pty`: actual shell IO/resize/hangup, retained slave writer after shell
   exit, and a still-live trusted helper after PTY EOF. Early close remains EBUSY.
 - `terminal.native`: actual Wayland keyboard input and SDL buffers, exact German
@@ -135,9 +163,10 @@ local abrupt-worker-exit mutation. Original failing artifacts are retained.
 
 ## Remaining work
 
-The fixed development launch owner/dock is connected. Next add
-selection/copy/paste, full text editing/IME, panes/editor/plugins and durable
-sessions. Complete terminal protocol coverage and declaration require their own
+The fixed development launch owner/dock and text selection are connected. Next add
+bounded asynchronous clipboard transport/paste review, full text editing/IME,
+panes/editor/plugins and durable sessions. Text selection/export now exist; shared
+clipboard copy/paste does not. Complete terminal protocol coverage and declaration require their own
 compatibility corpus. Images/PDF, accessibility and normal admitted app/session
 integration remain required. Physical mixed-DPI/GPU/input/suspend, light-theme and
 final visual acceptance are not established by virtual software-rendered images.
@@ -152,3 +181,48 @@ Primary API references: [SDL event posting](https://wiki.libsdl.org/SDL3/SDL_Pus
 [PTY ioctls](https://man7.org/linux/man-pages/man2/ioctl_tty.2.html) and
 [xterm control reference](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html).
 The last is a protocol reference, not a compatibility claim.
+
+## Selection checkpoint — 5 November 2026
+
+The five affected terminal/actual-owner groups pass Release (18.44 s) and Debug
+ASan/UBSan (23.84 s). Current native terminal tests have sixteen cases and thirty
+images per profile; the real-owner fixture adds seven cases/six images. All 72
+raw image hashes verify. The unchanged test rejects a build-local omission of
+selected-row validation. Device removal exercises pointer and keyboard together;
+it does not isolate keyboard focus loss while the original pointer stays held.
+
+The actual final Debug DRM session also checks normal/200% selection, unavailable
+copy/paste chords, exact pixel restoration after Escape and original ordered
+shutdown. Ten console images form five matching pairs. Original logs/results and
+exact sources/binaries are under `local/terminal-selection-2026-11-05` and the
+[project source index](../brains/aetheri/SOURCES.md). The preexisting optional PAM
+warning is unchanged. These are software/virtual results, not physical GPU,
+Windows host input, native assistive or complete clipboard acceptance.
+
+## Clipboard integration boundary — 5 November 2026
+
+The selected SDL3 3.4.20 archive's Wayland `read_pipe` / `Wayland_data_offer_receive`
+wait synchronously and grow the allocation while more bytes arrive. Its extended
+read timeout is five seconds per wait, not a complete-transfer deadline or byte
+budget. `SDL_GetClipboardData` is documented as main-thread-only. Do not call it
+from the PTY worker or expose an unbounded synchronous paste through the UI.
+The archive also loops writes with per-wait timing, so a bounded sender snapshot
+alone is not a complete responsiveness contract.
+
+Next implement owner-thread Wayland request/offer handling plus bounded nonblocking
+transfer readiness, complete-transfer deadlines and cancellation. Reuse the actual
+SDL connection/selected surface queue where the reviewed host contract permits it;
+a second client connection cannot inherit keyboard focus by having the same UID.
+`wl_proxy_get_queue` is a public API in the selected Wayland family, but this
+integration is still a proposal, not executed compatibility evidence. Preserve
+window/clipboard/transfer ownership independently; add no persistent clipboard
+helper or host bridge implicitly. A complete validated snapshot must precede any
+PTY bytes, with explicit review for multiline paste and no execution of control
+strings. Normal app/grant/lock integration remains separate work.
+
+Primary references inspected for this boundary:
+[SDL clipboard retrieval](https://wiki.libsdl.org/SDL3/SDL_GetClipboardData),
+[clipboard publication](https://wiki.libsdl.org/SDL3/SDL_SetClipboardData) and
+[Wayland client queues](https://wayland.freedesktop.org/docs/html/apb.html).
+Versioned source behavior above was read from the already pinned local SDL archive;
+live documentation is not evidence that another release has identical behavior.

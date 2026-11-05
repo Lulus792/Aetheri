@@ -19,7 +19,8 @@ an understandable installation/runtime footprint.
   [experimental command profile](../../spec/shell.md) now has a native parser and
   Linux runner, now with explicit interactive controlling-terminal/job management.
   The opt-in [graphical terminal](../../spec/terminal.md) now adds real PTY/SDL3
-  input/output, bounded cells/history and text sizing.
+  input/output, bounded cells/history, text sizing and stable mouse/keyboard
+  selection with toolkit-free UTF-8 export.
   The explicit development desktop now starts/reuses it independently of Settings.
   Rich shell editing, own panes/editor, persistent sessions and normal admitted app/session launch
   remain work.
