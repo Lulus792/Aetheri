@@ -1,5 +1,15 @@
 # Decisions
 
+## Maintain the delivered NexaUI catalogue — 5 November 2026
+
+The user confirmed that the initial NexaUI requirement list and chat handoff are
+complete. Keep [the existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) current through
+periodic evidence-based reviews and incremental additions or corrections. Preserve
+its requirement IDs; do not regenerate the list or its chat message after context
+compaction. Another NexaUI chat message requires a new explicit user request.
+This is catalogue maintenance alongside ongoing Aetheri development. See the
+[maintenance rule](knowledge/nexaui.md#maintenance-rule--confirmed-5-november-2026).
+
 ## Start native composition with a built-in provider — 5 November 2026
 
 Use an opt-in original C17 Compose/dead-key provider in the existing compositor

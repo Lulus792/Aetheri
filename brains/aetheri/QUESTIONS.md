@@ -11,8 +11,11 @@ per-app NexaUI adoption when justified. Exact SDL/text releases and the first
 native development view are now tested in [Settings](../../spec/settings.md).
 Complete widget/accessibility, normal session and physical-driver acceptance
 remain engineering work; no additional permission question is needed.
-The complete local NexaUI handoff maps all 103 current UI requirements and starts
-with a Wayland-only consumer profile plus a native Settings view. Exact candidate
+The delivered [NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) maps all 103 current
+UI requirements, beginning with a Wayland-only consumer profile and native
+Settings view. The initial list and chat handoff are complete; ongoing checks
+update the existing catalogue. Another chat message requires a new explicit user
+request, including after context compaction. Exact candidate
 adoption follows the relevant app scope; the whole catalogue need not be finished
 before Aetheri can have working UI.
 Independent private Wayland compositor/UI bring-up can progress while old-boot
