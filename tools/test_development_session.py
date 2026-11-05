@@ -14,6 +14,30 @@ import development_session as session
 
 
 class DevelopmentContracts(unittest.TestCase):
+    def test_native_key_tap_requires_valid_chord_and_verified_carrier(self):
+        import run_vm as host
+        with patch.object(host,"running") as live,patch.object(host,"qmp") as dispatch:
+            for chord in ((),('ctrl','ctrl'),('a','b','c','d','e'),('',),(None,)):
+                with self.subTest(chord=chord),self.assertRaises(ValueError):host.tap_keys(*chord)
+            live.assert_not_called();dispatch.assert_not_called()
+            live.return_value=False
+            with self.assertRaises(RuntimeError):host.tap_keys('ctrl','s')
+            dispatch.assert_not_called()
+
+    def test_unknown_native_key_dispatch_never_replays_a_press(self):
+        import run_vm as host
+        with patch.object(host,"running",return_value=True),patch.object(host,"qmp",side_effect=TimeoutError('lost acknowledgement')) as dispatch:
+            with self.assertRaises(TimeoutError):host.tap_keys('ctrl','shift','s')
+        self.assertEqual(dispatch.call_count,1)
+        command,args=dispatch.call_args.args;self.assertEqual(command,'input-send-event')
+        held=set();pressed=set()
+        for event in args['events']:
+            code=event['data']['key']['data']
+            if event['data']['down']:
+                self.assertNotIn(code,held);held.add(code);pressed.add(code)
+            else:self.assertIn(code,held);held.remove(code)
+        self.assertEqual(pressed,{'ctrl','shift','s'});self.assertFalse(held)
+
     def setUp(self):
         self.carrier = "0a174bc7-f17b-4799-9331-145ba3a5800c"
         self.record = dict(format=1, carrier=self.carrier, profile="release", token="a" * 32,

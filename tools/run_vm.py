@@ -132,6 +132,23 @@ def qmp(command, arguments=None):
         return reply["return"]
 
 
+def tap_keys(*keys):
+    """Make/break one bounded chord on the verified disposable VM.
+
+    One QMP request explicitly releases keys in reverse order. Unlike send-key,
+    no delayed key-up timer is used. The reply acknowledges QEMU dispatch, not
+    application input, focus or a rendered result; observe the original target.
+    On an unknown reply do not automatically send the chord again.
+    """
+    if not keys or len(keys)>4 or any(not isinstance(k,str) or not k for k in keys) or len(set(keys))!=len(keys):
+        raise ValueError("one to four distinct QMP qcodes required")
+    if not running():
+        raise RuntimeError("guest identity is not verified")
+    events=[{"type":"key","data":{"down":down,"key":{"type":"qcode","data":key}}}
+            for down,values in ((True,keys),(False,reversed(keys))) for key in values]
+    return qmp("input-send-event",{"events":events})
+
+
 def pid_alive(pid):
     if os.name != "nt":
         try:

@@ -27,8 +27,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   No search settles UNKNOWN or changes text/revision/clean/history/file state.
   Keep minimum-size query hints, inverse match and query focus. Run editor.search,
   view/native/provider plus affected groups; accessible text/richer search remain.
-  Ordinary 200-percent search presentation has an unresolved counterexample in
-  STATE; stable screenshot pairs/file proofs do not establish visual acceptance.
+  The old 200-percent no-match image contains zerr, not zero; read the native-key
+  input record before reopening it as a renderer/search defect. Use verified
+  tap_keys and actual target/text/frame gates; QMP success or stable pairs alone
+  do not establish intended text or visual acceptance. No timer cause is proven.
 - AETHERI_EDITOR now builds the separate aetheri-editor development executable.
   Read spec/editor.md: main joins existing document/modal/file libraries to the
   pure bounded view. UNKNOWN is independent of clean state; q/CtrlQ must not

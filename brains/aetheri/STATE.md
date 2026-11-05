@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — reversible literal document search.
+5 November 2026 — native input/result verification; document search confirmed.
 
 ## Coordination
 
@@ -29,18 +29,31 @@ copied-source search test rejects omitted whole-grapheme endpoint admission.
 The ordinary desktop proves 100-percent match/accept/repeat, exact-pixel cancel,
 exact saved bytes and return to the same shell; both original attempts retire.
 
-**Next: investigate the 200-percent search presentation counterexample.** The
-second attempt's final stable pair reports no match for `?zero` and shows
-unexpected document rendering, despite correct file bytes and a passing exact
-PTY counterpart. Earlier probes/first attempt show a highlighted prefix/full
-match. The cause is not established: do not infer an algorithm, renderer or test
-timing defect from this alone. Automated file/process/stable-pair success is not
-semantic visual acceptance. Keep the raw attempts and `visual-review.json`,
-reproduce with current original input/frame/geometry observations, then review
-the actual image. Do not start selection/panes to bypass that open UI issue.
-See the [record](journal/2026-11-05-editor-search.md) and
-`local/editor-search-2026-11-05`. The carrier is enforcing and idle on tty1;
-the old quarantined runtime remains unchanged and unresolved.
+**The earlier 200-percent no-match counterexample is resolved.** Complete glyph
+masks in the original image identify `zerr`, not the intended `zero`; no match
+is correct for that input. Pixel comparison does not establish corrupt document
+rendering. The old driver admitted stable pairs without checking actual text.
+Do not reopen that interpretation after compaction: preserve its raw evidence
+and read the [correction](journal/2026-11-05-native-key-input.md).
+
+The host tool now explicitly makes/breaks a bounded key chord, verifies the live
+carrier and never replays a lost dispatch acknowledgement. New controlled tests
+pass (14/14 Linux; eight executed/six Linux-only skips on Windows). An actual
+new PTY case distinguishes zerr/no-match from zero/match in both native profiles.
+The unchanged Debug editor passes a fresh original desktop attempt with observed
+printable commits, calibrated query-glyph/highlight gates, manual 200-percent
+review, exact file bytes, same-shell return and original ordered retirement.
+Evidence is in `local/editor-input-2026-11-05`: 26 stable console files, nine
+native evidence files, source/frozen/protected hash matches (320/28/19), no old
+SQLite sidecars and 1,072 valid local file targets. The existing C candidate stays
+unchanged; no repeated whole-suite build is claimed for this Python-tool repair.
+The original input mismatch's deeper timing/component cause is not established;
+no general QEMU/SDL/compositor defect or timer fix is claimed.
+
+Next app work is document selection and broader editor/pane/session behavior.
+Physical/trusted/assistive/session acceptance, other apps, OS image/installer and
+the full resettable experiment desktop remain required. The carrier is enforcing
+and idle on tty1; the old quarantined runtime remains unchanged and unresolved.
 
 ## Document history — completed checkpoint
 

@@ -1,5 +1,12 @@
 # Reversible literal document search
 
+**Interpretation corrected later on 5 November:** the alleged 200-percent `zero`
+counterexample below actually displays `zerr`; exact glyph comparison and a new
+observed-input desktop run resolve it. See the
+[native-input record](2026-11-05-native-key-input.md). Keep the raw original
+attempt/review, but do not repeat its earlier visual interpretation as a current
+search or renderer defect.
+
 5 November 2026. Adds original C17 read-only search and actual terminal-editor
 query/repeat controls. See the [contract](../../../spec/editor.md#literal-document-search)
 and [independent reference test](../../../tests/test_search.c).
@@ -53,7 +60,7 @@ Editor SHA-256: Release
 `8a8da1959f4af15fbab82429e27fb4f3dadde25137369c2c3c60d5d8e289154a`, Debug
 `eeb31a91b3e2e1f86770ad4761173c4d1ee16a2f58a70493fc9342a88d945131`.
 
-## Ordinary desktop evidence and open visual counterexample
+## Ordinary desktop evidence — historical finding, later corrected
 
 The first original attempt `509f2d736d8a42bc9a4a89a04d305fb0` reached the saved
 file proof, then its driver incorrectly used a relative `shell-proof` path in an
@@ -74,16 +81,16 @@ document bytes and a subsequent same-shell `restored` proof.
 
 Manual 100-percent image inspection confirms the whole match, query focus and
 accepted cursor. Cancel returns the exact original pixels. **The final
-200-percent stable pair does not establish visual acceptance:**
-`final-drm/preview-200-contrast-sample-3.png` reports no match for `?zero` and
-shows unexpected document rendering, whereas an earlier probe and first attempt
+200-percent stable pair did not establish visual acceptance:** the original
+review misread `final-drm/preview-200-contrast-sample-3.png` as no match for
+`?zero` and suspected unexpected document rendering, whereas an earlier probe and first attempt
 show a highlighted prefix/full match. File bytes remain correct. Preserve this
 counterexample and `visual-review.json`; do not relabel a successful automated
 capture/file test as a successful semantic image review. The exact PTY counterpart
 passes in both profiles, but that does not explain or close the desktop finding.
-Input/frame/geometry timing and graphics/integration remain hypotheses. The next
-task is a controlled reproduction and fix or evidence-based isolation before
-broader search presentation acceptance. No unavailable physical/assistive or
+Input/frame/geometry timing and graphics/integration were hypotheses, not proven
+causes. The subsequent input record corrects this interpretation and supplies
+fresh calibrated 200-percent evidence. No unavailable physical/assistive or
 normal-session acceptance is implied.
 
 Read-only final audit matches **320** host/snapshot/guest sources, **28** frozen

@@ -6,6 +6,15 @@ an Aetheri system image, normal app admission or the resettable experiment produ
 
 ## Use it
 
+For automated native keyboard probes, `tools/run_vm.py` provides
+`tap_keys(*qcodes)` on the independently verified disposable VM. It sends explicit
+press/release events for one chord in a single `input-send-event` request, without
+`send-key`'s delayed release timer. A returned QMP reply is dispatch acknowledgement,
+not proof of application input, current focus or a rendered result. Do not replay
+an uncertain press. Tests must observe the original target and verify the actual
+text/result; stable screenshot pairs alone can preserve the wrong query.
+See the [input investigation](../brains/aetheri/journal/2026-11-05-native-key-input.md).
+
 Run commands from the Aetheri checkout with the configured Python 3 interpreter.
 To boot an already prepared, stopped carrier with its native QEMU window:
 

@@ -195,6 +195,12 @@ class Editor(unittest.TestCase):
         self.t.send('?zero');frame=self.wait(lambda f:b'Match: Enter choose' in f and b'?zero' in f)
         self.assertIn(b'zero',frame);self.assertIn(b'middle cat',frame);self.assertIn(b'last cat',frame)
         self.t.send(b'\x1b');self.wait(lambda f:b'2:8 | clean' in f);self.t.send(':q\n');self.shell()
+    def test_distinct_query_bytes_cannot_be_inferred_from_typing_intent(self):
+        self.start();self.insert('zero cat\nmiddle cat\nlast cat')
+        self.t.send('?zerr');self.wait(lambda f:b'No match' in f and b'?zerr' in f)
+        self.t.send(b'\x15zero');self.wait(lambda f:b'Match: Enter choose' in f and b'?zero' in f)
+        self.t.send('\n');self.wait(lambda f:b'1:1 | modified' in f)
+        self.t.send(':wq\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),b'zero cat\nmiddle cat\nlast cat')
 if __name__=='__main__':
     print('Modal editor PTY evidence:',native.ROOT,flush=True)
     print('Binaries:',json.dumps({p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in (EDITOR,FAULT,native.SHELL)}),flush=True)

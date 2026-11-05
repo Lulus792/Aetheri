@@ -109,11 +109,13 @@ this is not a responsiveness or speed-superiority claim for maximum-size files.
 Viewport painting remains the existing terminal-cell fallback, not shaping or
 an accessible-text document interface.
 
-Current acceptance limit: an ordinary-desktop 200-percent search capture shows an
-unexpected no-match/document presentation despite correct saved bytes and a
-passing exact PTY counterpart. Its cause remains under investigation. The
-100-percent preview/cancel and native tests do not close that visual gate; see
-the [search record](../brains/aetheri/journal/2026-11-05-editor-search.md).
+The earlier 200-percent no-match capture was misread: its query glyphs are `zerr`,
+not `zero`. The corrected native-input check observes printable commits and
+requires the actual `zero` query plus all four highlighted document cells; the
+same editor binary passes the ordinary desktop check and manual image review.
+See the [input record](../brains/aetheri/journal/2026-11-05-native-key-input.md).
+This closes that specific counterexample, without proving physical input,
+assistive technology or normal admitted-session acceptance.
 
 ## View and terminal lifetime
 

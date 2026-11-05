@@ -6,6 +6,15 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Literal document search — 5 November 2026
 
+- [Native input correction](journal/2026-11-05-native-key-input.md): the original
+  no-match image's query glyphs are zerr, not zero. The actual pixel comparison,
+  PTY distinction and new observed-input desktop run supersede the earlier
+  suspected search/rendering defect. Original raw evidence stays retained.
+  [QEMU explicit events](https://www.qemu.org/docs/master/interop/qemu-qmp-ref.html#command-input-send-event)
+  and [timed send-key](https://www.qemu.org/docs/master/interop/qemu-qmp-ref.html#command-send-key)
+  are dispatch contracts, not proof of application input or text. No specific
+  timer/component cause is established by these observations.
+
 - Original [read-only search](../../src/editor/document.c),
   [modal jumps](../../src/editor/modal.c), [query owner](../../src/editor/main.c),
   [inverse-match view](../../src/editor/view.c) and
