@@ -46,7 +46,7 @@ int ae_terminal_pty_open(struct ae_terminal_pty *p,int source,unsigned cols,unsi
         if (unsetenv("WAYLAND_SOCKET") || fcntl(source,F_SETFD,FD_CLOEXEC)) _Exit(125);
         if (source>3 && close_range(3,(unsigned)source-1,0)) _Exit(125);
         if (close_range((unsigned)source+1,UINT_MAX,0)) _Exit(125);
-        char *args[]={"aetheri-shell","-i",NULL};execveat(source,"",args,environ,AT_EMPTY_PATH);_Exit(126);
+        char *args[]={"aetheri-shell","-i","--edit",NULL};execveat(source,"",args,environ,AT_EMPTY_PATH);_Exit(126);
     }
     p->pid=pid;close(slave);slave=-1;
     p->pin=(int)syscall(SYS_pidfd_open,pid,0);

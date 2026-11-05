@@ -10,6 +10,8 @@ separate work; the earlier fixture results retain their original scope.
 The opt-in C17 `aetheri-terminal` connects the original [Aetheri shell](shell.md)
 to an actual private PTY and an SDL3 Wayland/GLES view. It supports ordinary
 command input/output, bounded scrollback, colors and ephemeral shell job control.
+Its held shell now receives `-i --edit`, selecting our toolkit-free
+[line editor](line-editor.md) and bounded in-memory history.
 It is an early usable terminal, not the finished editor/multiplexer or a promise
 of xterm/Neovim compatibility. Final visual design remains open.
 
@@ -40,7 +42,8 @@ still separate. Test file operations explicitly choose their owned token folder.
 
 | Control | Behavior |
 | --- | --- |
-| Enter, Backspace, Tab | Forward to the canonical PTY editor; rich shell editing is separate work |
+| Enter, Backspace, Tab | Own shell editor: accept, delete preceding grapheme, insert four spaces |
+| Arrows, Home/End, Delete | Own shell cursor/history and whole-grapheme forward deletion; foreground programs receive the corresponding terminal bytes |
 | Ctrl+C / Ctrl+Z | Actual terminal interrupt/stop; the shell supplies `jobs`, `fg`, `bg` |
 | Shift+PageUp / Shift+PageDown, wheel | Navigate bounded scrollback; typing returns to live output |
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
@@ -86,7 +89,10 @@ parser work are bounded. Unsupported escape intermediates are consumed; control
 strings such as OSC52 have no clipboard, file, URL or execution side effects.
 CAN/SUB cancel a sequence; reset leaves alternate mode and clears history access.
 Reset is not a secure memory-wiping promise. `TERM=dumb` deliberately avoids
-advertising a complete terminal capability set; `COLORTERM` is removed.
+advertising a complete terminal capability set; `COLORTERM` is removed. The own
+shell's explicit `--edit` selects its narrow known cursor/erase contract without
+inferring capabilities from TERM. Grapheme editing does not change the grid's
+current shaping/font limits; the line adapter uses explicit display fallbacks.
 
 Each retained row also has a process-local content-incarnation token and soft-wrap
 extent. Tokens move with a row into history and never wrap/reuse. A content edit,

@@ -44,6 +44,8 @@ def main():
         tap(c)
         if shift:key(42,False)
         key(29,False)
+    def input_key(code,size):
+        before=accepted();tap(code);wait(lambda:accepted()==before+size,"actual native editor key bytes")
     def view():
         rows=re.findall(r"^VIEW (\d+) (.+)$",log(),re.M)
         if not rows:return {}
@@ -58,7 +60,9 @@ def main():
             if c==">":key(42,True);tap(52);key(42,False)
             else:tap(codes[c])
         wait(lambda:accepted()==target,"ordinary actual native input")
-    def proof(name,text):wait(lambda:(root/name).exists() and (root/name).read_bytes()==text,"real original shell effect "+name)
+    def proof(name,text):
+        wait(lambda:(root/name).exists() and (root/name).read_bytes()==text,"real original shell effect "+name)
+        wait(lambda:view().get('x')==9 and view().get('composition')==0,"original own-editor prompt after command effect")
     def compose():
         tap(127);wait(lambda:view().get("composition")==2,"real Menu/Compose key starts native preedit")
     def capture(label):
@@ -93,6 +97,17 @@ def main():
         wait(lambda:accepted()==before+3 and view().get("composition")==0,"native multi-scalar Compose commit")
         typing("' > combining-proof\n");proof("combining-proof","j́".encode())
         cases.append("a multi-scalar result preserves base plus combining mark bytes through original PTY and shell")
+        typing("printf '");before=accepted();compose();tap(40);tap(36)
+        wait(lambda:accepted()==before+3 and view().get("composition")==0,"native combining text reaches own line editor")
+        typing("x");input_key(105,3);input_key(14,1);input_key(107,3)
+        typing("' > cluster-delete-proof\n");proof("cluster-delete-proof",b"x")
+        cases.append("actual Compose result moves and deletes as one extended grapheme in the own shell editor")
+        typing("printf 'abxc'");input_key(102,3)
+        for _ in range(10):input_key(106,3)
+        input_key(111,4);input_key(107,3);typing(" > delete-proof\n");proof("delete-proof",b"abc")
+        (root/"delete-proof").rename(root/"delete-original")
+        input_key(103,3);input_key(28,1);proof("delete-proof",b"abc")
+        cases.append("actual Home/Delete/End edit and explicit history Up/Enter retain exact original command effects")
         before=accepted();compose();tap(1);wait(lambda:view().get("composition")==0,"native Escape cancels provider")
         assert accepted()==before
         typing("printf plain > plain-proof\n");proof("plain-proof",b"plain")

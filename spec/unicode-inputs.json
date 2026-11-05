@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "version": "18.0.0",
+  "inputs": [
+    {
+      "name": "unicode-18.0.0-GraphemeBreakProperty.txt",
+      "url": "https://www.unicode.org/Public/18.0.0/ucd/auxiliary/GraphemeBreakProperty.txt",
+      "size": 100009,
+      "algorithm": "sha256",
+      "digest": "0839dcb79e4ac639ecd538b1abf7c9d22e3f9dd265b7e182d33627aa4d75b45a"
+    },
+    {
+      "name": "unicode-18.0.0-GraphemeBreakTest.txt",
+      "url": "https://www.unicode.org/Public/18.0.0/ucd/auxiliary/GraphemeBreakTest.txt",
+      "size": 137090,
+      "algorithm": "sha256",
+      "digest": "b0cf047ee94485bbdc846de2b902f5f8a815f6b674f9d04223cddadd91c9df31"
+    },
+    {
+      "name": "unicode-18.0.0-DerivedCoreProperties.txt",
+      "url": "https://www.unicode.org/Public/18.0.0/ucd/DerivedCoreProperties.txt",
+      "size": 1159889,
+      "algorithm": "sha256",
+      "digest": "09c928886a178fcafd93c29e4bd59073a058e5a100b716d425cb563ab50f68c9"
+    },
+    {
+      "name": "unicode-18.0.0-emoji-data.txt",
+      "url": "https://www.unicode.org/Public/18.0.0/ucd/emoji/emoji-data.txt",
+      "size": 108719,
+      "algorithm": "sha256",
+      "digest": "80d00f8e616a0ef27fd6b8de3b758c06383b5d917e2977709578e68baf733bf1"
+    },
+    {
+      "name": "unicode-18.0.0-LICENSE.txt",
+      "url": "https://www.unicode.org/license.txt",
+      "size": 1995,
+      "algorithm": "sha256",
+      "digest": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+    }
+  ],
+  "reviewed": "2026-11-05",
+  "purpose": "Original C17 extended-grapheme segmentation for shell/editor; data only, no added runtime library",
+  "license": "Unicode-3.0; complete notice retained in src/text/UNICODE-LICENSE.txt",
+  "specification": "https://www.unicode.org/reports/tr29/tr29-49.html",
+  "provenance": "Versioned official Unicode HTTPS data plus separately hashed current license; locally observed digests, not upstream digital signatures"
+}

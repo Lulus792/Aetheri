@@ -26,7 +26,9 @@ an understandable installation/runtime footprint.
   [Compose/dead-key provider](../../spec/compose.md), with native keyboard-to-shell
   and virtual DRM evidence. External IME and trusted session integration remain work.
   The explicit development desktop now starts/reuses it independently of Settings.
-  Rich shell editing, own panes/editor, persistent sessions and normal admitted app/session launch
+  The terminal now uses our [own line editor](../../spec/line-editor.md), with
+  whole-grapheme edits and bounded in-memory history. Completion/undo/search,
+  own panes/modal editor, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
   This project does not silently start that migration.

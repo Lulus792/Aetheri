@@ -31,6 +31,7 @@ class Terminal:
         self.pid, self.master = pty.fork()
         if not self.pid:
             os.chdir(self.root)
+            if '--edit' in args:termios.tcsetwinsize(0,(24,80))
             os.execv(binary, [binary, *args])
         os.set_blocking(self.master, False)
         self.pin = os.pidfd_open(self.pid)
@@ -95,6 +96,7 @@ class Terminal:
                 pending = pending[n:]
             except BlockingIOError:
                 assert time.monotonic() < deadline, "PTY input did not become writable"
+                self.pump(.01)  # Real duplex peer must drain output while sending a large input.
                 select.select([], [self.master], [], .02)
 
     def foreground(self):

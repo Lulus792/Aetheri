@@ -59,7 +59,7 @@ not final large-script/interactive requirements.
 
 ## Execution boundary
 
-The opt-in Linux C17 executable accepts `-i`, `-c SOURCE`, `--file FILE` or `--stdin`.
+The opt-in Linux C17 executable accepts `-i [--edit]`, `-c SOURCE`, `--file FILE` or `--stdin`.
 It refuses root or mismatched real/effective IDs and requires open standard
 descriptors. This is not a complete capability/privilege admission check.
 `--stdin` remains noninteractive; `-c` may execute a
@@ -92,14 +92,16 @@ it never claims a rollback. Builtin environment changes last for this shell only
 Files are ordinary user-owned files, not managed installation/private-data state.
 
 The separate [development terminal](terminal.md) now supplies a real PTY, bounded
-cell/history model and SDL3 graphical view. Full own input editing, persistent
-sessions, completion/history, functions/typed values, terminal compatibility and
+cell/history model and SDL3 graphical view. Its explicit `-i --edit` profile now
+supplies [our own grapheme-aware line editor and bounded history](line-editor.md).
+Persistent sessions, completion/undo/search, functions/typed values, terminal compatibility and
 panes/plugins remain required work. No production service/profile, normal launcher
 or system shell is replaced.
 
 ## Interactive terminal and ephemeral jobs
 
-Run `aetheri-shell -i` inside an independently selected foreground process group
+Run `aetheri-shell -i --edit` for our line editor, or plain `-i` for canonical
+kernel editing, inside an independently selected foreground process group
 with its own group leader and canonical/ISIG Linux N_TTY controlling terminal.
 The executable retains that terminal FD and session/group observations; it does
 not create a login session, seize another foreground group or choose a fallback
@@ -134,11 +136,13 @@ the kernel coalesces the intermediate continued event.
 
 Normal completion/stopping requires the expected job/shell foreground before
 reclaiming the terminal. Foreign ownership fails with no automatic takeover.
-Stopped job termios is retained; shell termios is restored on return. Canonical
-editing currently belongs to N_TTY. Raw records of 4095 bytes or more are rejected
+Stopped job termios is retained; shell termios is restored on return. In plain
+`-i`, editing belongs to N_TTY. Raw records of 4095 bytes or more are rejected
 before trimming delimiters/CR, preventing the observed saturated-read prefix
 execution. This does not recover bytes the kernel already discarded and that
-were subsequently edited below the limit; a full own input editor remains work.
+were subsequently edited below the limit. The graphical terminal instead selects
+`-i --edit`, with its own bounded decoder and whole-draft rejection; see the
+[editor contract](line-editor.md). Neither profile implements a full modal editor.
 
 On terminal loss, SIGHUP or SIGTERM, this prototype signals only its still-waitable
 original direct children, continues stopped ones and waits for their observed end.

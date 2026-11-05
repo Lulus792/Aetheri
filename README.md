@@ -29,8 +29,11 @@ and scripts, with its own parser, quoting/variables, pipes, file redirections an
 basic cwd/environment builtins. Explicit `-i` adds foreground terminal ownership,
 Ctrl+C/Ctrl+Z and jobs/fg/bg. An opt-in [graphical terminal](spec/terminal.md) now
 connects it to a real PTY, bounded Unicode/color grid and SDL3 view, with native
-DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection. The syntax is experimental; rich
-editing, panes/editor, persistent sessions and admitted app/session launch remain work.
+DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection.
+The terminal now selects our [own line editor](spec/line-editor.md), with
+whole-grapheme editing and bounded in-memory history. The syntax is experimental;
+completion/undo, panes/modal editor, persistent sessions and admitted app/session
+launch remain work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
 and Compose sequences through native Wayland preedit/commit to the terminal and

@@ -1,5 +1,24 @@
 # Decisions
 
+## Keep line editing original and toolkit-independent — 5 November 2026
+
+Use an original bounded C17 draft/history model plus a separate Linux terminal
+adapter. The actual graphical terminal explicitly starts `-i --edit`; plain
+`-i` remains the canonical kernel-editor profile. Separate nonblocking `/dev/tty`
+ownership avoids changing command descriptors, and original modes are restored
+before dispatch. Invalid/oversize input blocks the whole draft until reset.
+
+Use Unicode 18.0.0 default extended-grapheme boundaries with exact reviewed data
+and the complete Unicode-3.0 notice, rather than adding a runtime Unicode library
+for this bounded task. Original C code implements the standard, including the
+version 18 GB9c rule. All 853 official vectors are checked. Segmentation does not
+provide width or shaping: retain the existing terminal cell profile and explicit
+complex-cluster display fallbacks without changing command bytes. History stays
+private/in-memory under byte and count budgets; persistent policy is deferred.
+There is no measured performance superiority or final shortcut/design claim.
+See the [contract](../../spec/line-editor.md) and
+[evidence](journal/2026-11-05-line-editor.md).
+
 ## Maintain the delivered NexaUI catalogue — 5 November 2026
 
 The user confirmed that the initial NexaUI requirement list and chat handoff are

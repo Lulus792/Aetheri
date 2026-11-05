@@ -31,7 +31,7 @@ static void settle(struct ae_terminal_pty *p) {
     CHECK(p->ended && p->eof);
 }
 int main(int argc,char **argv) {
-    if (argc==2 && !strcmp(argv[1],"-i")) {
+    if (argc==3 && !strcmp(argv[1],"-i") && !strcmp(argv[2],"--edit")) {
         /* Trusted test image: close the PTY but retain the original process.
            The alarm bounds failed-test cleanup without a numeric PID lookup. */
         CHECK(signal(SIGHUP,SIG_IGN)!=SIG_ERR);alarm(8);

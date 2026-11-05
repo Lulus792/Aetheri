@@ -17,14 +17,14 @@ struct ae_shell_job {
     int notified;
 };
 struct ae_shell_terminal {
-    int fd, signals, shutdown_signal;
+    int fd, signals, shutdown_signal, edit_fd;
     pid_t group, session;
     uint32_t next_id;
-    struct termios modes;
+    struct termios modes, edit_modes;
     sigset_t old_mask;
-    struct sigaction old_actions[8];
+    struct sigaction old_actions[9];
     unsigned actions;
-    bool masked, failed;
+    bool masked, failed, editing, resized, interrupted;
     struct ae_shell_job jobs[AE_SHELL_JOBS], *active;
 };
 /* Private ephemeral terminal owner. Requires an independently foreground,
@@ -36,6 +36,13 @@ bool ae_shell_jobs_busy(const struct ae_shell_terminal *terminal);
 int ae_shell_jobs_check(struct ae_shell_terminal *terminal);
 /* >=0 bytes/EOF; -2 interrupted input, -3 background notification, -1 shutdown. */
 ssize_t ae_shell_jobs_read(struct ae_shell_terminal *terminal,char *buffer,size_t length);
+/* Private own-editor mode only; independently joined nonblocking /dev/tty OFD.
+   No standard/background-job open-file-description flags are changed.
+   read timeout adds -4 timeout/-5 resize; normal read remains canonical-compatible.
+   write can stop on original signals/ownership loss; failure may follow output. */
+int ae_shell_jobs_edit_mode(struct ae_shell_terminal *terminal,bool enabled);
+ssize_t ae_shell_jobs_read_timeout(struct ae_shell_terminal *terminal,char *buffer,size_t length,int timeout_ms);
+int ae_shell_jobs_write(struct ae_shell_terminal *terminal,const char *bytes,size_t length);
 int ae_shell_jobs_shutdown(struct ae_shell_terminal *terminal);
 struct ae_shell_job *ae_shell_job_prepare(struct ae_shell_terminal *terminal,const char *label);
 int ae_shell_job_add(struct ae_shell_job *job,pid_t child);

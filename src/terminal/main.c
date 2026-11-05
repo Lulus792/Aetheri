@@ -605,6 +605,8 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (key==SDLK_BACKSPACE) input(a,"\177",1);
         else if (key==SDLK_TAB) input(a,"\t",1);
         else if (key==SDLK_ESCAPE) input(a,"\033",1);
+        else if (key==SDLK_HOME || key==SDLK_END) { char seq[]={27,'[',key==SDLK_HOME ? 'H' : 'F'};input(a,seq,sizeof(seq)); }
+        else if (key==SDLK_DELETE) input(a,"\033[3~",4);
         else if (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_RIGHT || key==SDLK_LEFT) { char seq[]={27,a->model->application_cursor ? 'O' : '[',key==SDLK_UP ? 'A' : key==SDLK_DOWN ? 'B' : key==SDLK_RIGHT ? 'C' : 'D'};input(a,seq,sizeof(seq)); }
     }
 }

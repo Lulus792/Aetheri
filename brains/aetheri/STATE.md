@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — built-in native Compose/dead-key provider.
+5 November 2026 — own grapheme-aware shell line editor.
 
 ## Coordination
 
@@ -15,6 +15,38 @@ Preserve the quarantined old runtime. The Compose milestone below does not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The graphical terminal now starts `aetheri-shell -i --edit`, using our
+[toolkit-free line editor](../../spec/line-editor.md). It supplies whole-grapheme
+movement/deletion, Home/End, cut/yank, horizontal viewports and copied bounded
+in-memory history with live-draft restoration. Invalid or oversized input blocks
+the whole draft until reset. No history file, new daemon or runtime library is
+added. The Linux adapter retains a separate nonblocking controlling-terminal OFD
+and restores original modes before dispatch without consuming subsequent program
+stdin. Plain canonical `-i` and existing job control remain available.
+
+Original Unicode 18 segmentation uses exact reviewed standard data and a retained
+Unicode-3.0 license. All 853 official vectors pass. All 28 affected groups pass
+Release 77.02s and ASan/UBSan 93.16s, including nine native PTY cases and ten actual
+Compose/provider cases per profile. An actual wide-cluster cursor counterexample
+was retained and fixed. A scratch GB11 omission fails the unchanged Unicode test.
+An ordinary virtual DRM session verifies real edit/history/grapheme file effects
+and exact preedit cancellation at 100/200 percent, then closes the original token.
+See the [dated record](journal/2026-11-05-line-editor.md) for exact identities,
+original fixture errors, generated-data provenance and remaining limits.
+
+The final audit matches 299 host/snapshot/guest sources, 28 frozen SQL/XML and 19
+protected old hashes without SQLite sidecars. All 967 local Markdown targets
+resolve. Final native/console binary hashes agree; the enforcing guest is idle
+on tty1 after original-session retirement.
+
+Next app work: undo/completion/search, the own modal editor and panes/session
+behavior. Normal admitted sessions/apps, external IME/accessible text, remaining
+apps, OS image/installer, hardware and complete experiment desktop remain work.
+Final UI, bindings and durable history/session policy remain open. Preserve the
+quarantined old runtime and its independent lifecycle/recovery obligations.
+
+## Built-in Compose provider — historical checkpoint
 
 The optional [built-in Compose provider](../../spec/compose.md) now connects real
 compositor key events to native v3, SDL preedit/commit, the original terminal PTY
@@ -493,7 +525,7 @@ The optional `run_vm.py --offline --console boot` reuses QEMU's existing native
 SDL2 viewer with GL/window-close shutdown off. QMP confirms those actual options;
 the running Windows process has its own QEMU window. No new viewer dependency,
 VNC/listener, host folder/clipboard bridge, policy or host/WSL setting was added.
-Aetheri Settings still uses SDL3. The dedicated guest shut down with QEMU exit0
+Aetheri Settings still uses SDL3. The dedicated guest shut down with QEMU exit 0
 and PID absence before the console boot; its new BootId is
 124d6ce8-6ff6-4ed8-a8c8-51aeaa87f056. All nineteen protected old catalogue/static/
 profile hashes match before/after. The old intent stays unresolved and unchanged.

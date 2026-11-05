@@ -4,6 +4,14 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- The graphical terminal now selects the own `-i --edit` single-line profile.
+  Read `spec/line-editor.md`: toolkit-free editor/history, original terminal/OFD
+  ownership and whole-draft invalid/overflow rejection. Preserve plain `-i` and
+  original child input/modes. Unicode18 generated data uses separate Unicode-3.0
+  licensing; reproduce with tools/generate_graphemes.py downloads --check. Run
+  text.graphemes, shell groups and relevant terminal/desktop/Compose integration.
+  Grapheme segmentation is not shaping; undo/completion/modal editor/panes and
+  persistent sessions remain work. Preserve the quarantined old runtime.
 - NexaUI handoff is delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place:
   periodic evidence-based checks may add requirements or update existing rows.
   Do not recreate the catalogue, repeat its overview, generate another NexaUI

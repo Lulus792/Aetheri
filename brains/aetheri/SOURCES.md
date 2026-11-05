@@ -4,6 +4,31 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Own shell line editing — 5 November 2026
+
+- [Contract](../../spec/line-editor.md), original
+  [grapheme implementation](../../src/text/grapheme.c),
+  [editor model](../../src/shell/editor.c),
+  [Linux adapter](../../src/shell/readline.c) and
+  [generator](../../tools/generate_graphemes.py).
+  [Unicode inputs](../../spec/unicode-inputs.json) records exact official 18.0.0
+  URLs, lengths, locally observed HTTPS-content digests and the complete separate
+  [license](../../src/text/UNICODE-LICENSE.txt). This adopts reviewed standard
+  data, not a new runtime library or digital-signature provenance claim.
+- Read [UAX29 revision 49](https://www.unicode.org/reports/tr29/tr29-49.html),
+  dated 1 September 2026, especially extended-grapheme GB9c/GB11/RI rules, official
+  properties/tests and [Unicode License V3](https://www.unicode.org/license.txt).
+  The original C test checks all 853 official vectors. The
+  [Linux termios reference](https://man7.org/linux/man-pages/man3/termios.3.html)
+  supplies mode/signal semantics; actual private-terminal joins and job/input
+  behavior are separately tested in the carrier.
+- Final 28 affected groups pass Release 77.02s / ASan+UBSan 93.16s; nine actual
+  editor PTY cases and ten graphical provider cases per profile. Separate
+  scratch negative control, actual wide-cluster counterexample, preserved fixture
+  errors, native file/image hashes and original virtual DRM session are in the
+  [record](journal/2026-11-05-line-editor.md). Their scope does not include normal
+  admission, physical hardware or a finished modal editor/multiplexer.
+
 ## Built-in native Compose — 5 November 2026
 
 - [Compose contract](../../spec/compose.md), original

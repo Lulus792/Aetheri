@@ -13,6 +13,12 @@ must not displace Aetheri implementation. Older inspections below are history.
 
 ## Current decision — 4 November 2026
 
+5 November incremental consumer update: the existing catalogue's integration
+cases now reference our [own line-editor contract](../../../spec/line-editor.md),
+including app-owned grapheme offsets/history/draft and whole-draft rejection.
+This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
+remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
+
 The user prefers a practical foundation such as SDL3 for early Aetheri UI, with
 later NexaUI migration where useful. Missing NexaUI features must not hold up the
 OS or applications. NexaUI may still be used per application when the necessary

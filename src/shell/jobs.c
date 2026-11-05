@@ -10,8 +10,9 @@
 #include <sys/signalfd.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
-static const int managed[]={SIGCHLD,SIGINT,SIGHUP,SIGTERM,SIGQUIT,SIGTSTP,SIGTTIN,SIGTTOU};
+static const int managed[]={SIGCHLD,SIGINT,SIGHUP,SIGTERM,SIGQUIT,SIGTSTP,SIGTTIN,SIGTTOU,SIGWINCH};
 static int failure(struct ae_shell_terminal *t,const char *message) {
     dprintf(2,"aetheri-shell: %s\n",message);t->failed=true;
     if (!t->shutdown_signal) t->shutdown_signal=SIGHUP;
@@ -75,6 +76,7 @@ static int signals(struct ae_shell_terminal *t) {
         if (n<0 && errno==EAGAIN) break;
         if (n!=(ssize_t)sizeof(info)) return failure(t,"terminal signal channel failed");
         if (info.ssi_signo==SIGINT) interrupted=1;
+        if (info.ssi_signo==SIGWINCH) t->resized=true;
         if ((info.ssi_signo==SIGHUP || info.ssi_signo==SIGTERM) && !t->shutdown_signal) t->shutdown_signal=(int)info.ssi_signo;
     }
     return interrupted;
@@ -88,7 +90,7 @@ int ae_shell_jobs_check(struct ae_shell_terminal *t) {
     return owns(t,t->group) ? 0 : failure(t,"terminal foreground owner changed; refusing takeover");
 }
 int ae_shell_jobs_open(struct ae_shell_terminal *t) {
-    memset(t,0,sizeof(*t));t->fd=t->signals=-1;t->group=getpgrp();t->session=getsid(0);
+    memset(t,0,sizeof(*t));t->fd=t->signals=t->edit_fd=-1;t->group=getpgrp();t->session=getsid(0);
     int discipline=-1;
     if (t->group!=getpid() || tcgetsid(0)!=t->session || tcgetpgrp(0)!=t->group ||
             tcgetattr(0,&t->modes) || !(t->modes.c_lflag&ICANON) || !(t->modes.c_lflag&ISIG) ||
@@ -98,10 +100,11 @@ int ae_shell_jobs_open(struct ae_shell_terminal *t) {
     if (t->fd<0) return failure(t,"cannot retain controlling terminal");
     sigset_t mask;sigemptyset(&mask);
     for (unsigned i=0;i<4;++i) sigaddset(&mask,managed[i]);
+    sigaddset(&mask,SIGWINCH);
     if (sigprocmask(SIG_BLOCK,&mask,&t->old_mask)) return failure(t,"cannot block terminal signals");
     t->masked=true;
-    for (unsigned i=0;i<8;++i) {
-        struct sigaction action={.sa_handler=i<4 ? SIG_DFL : SIG_IGN};sigemptyset(&action.sa_mask);
+    for (unsigned i=0;i<9;++i) {
+        struct sigaction action={.sa_handler=i<4 || i==8 ? SIG_DFL : SIG_IGN};sigemptyset(&action.sa_mask);
         if (sigaction(managed[i],&action,&t->old_actions[i])) return failure(t,"cannot configure terminal signal actions");
         ++t->actions;
     }
@@ -110,36 +113,111 @@ int ae_shell_jobs_open(struct ae_shell_terminal *t) {
     return 0;
 }
 void ae_shell_jobs_close(struct ae_shell_terminal *t) {
+    if (t->editing && owns(t,t->group)) (void)ae_shell_jobs_edit_mode(t,false);
+    if (t->edit_fd>=0) close(t->edit_fd);
     if (t->signals>=0) close(t->signals);
     if (t->fd>=0) close(t->fd);
     for (unsigned i=0;i<t->actions;++i) (void)sigaction(managed[i],&t->old_actions[i],NULL);
     if (t->masked) (void)sigprocmask(SIG_SETMASK,&t->old_mask,NULL);
 }
 ssize_t ae_shell_jobs_read(struct ae_shell_terminal *t,char *buffer,size_t length) {
+    return ae_shell_jobs_read_timeout(t,buffer,length,-1);
+}
+ssize_t ae_shell_jobs_read_timeout(struct ae_shell_terminal *t,char *buffer,size_t length,int timeout_ms) {
+    uint64_t deadline=0;
+    if (timeout_ms>=0) {
+        struct timespec now;
+        if (clock_gettime(CLOCK_MONOTONIC,&now) || now.tv_sec<0) return failure(t,"editor deadline clock failed");
+        deadline=(uint64_t)now.tv_sec*1000u+(uint64_t)now.tv_nsec/1000000u+(unsigned)timeout_ms;
+    }
     for (;;) {
+        if (t->interrupted) { t->interrupted=false;return -2; }
+        if (t->editing && t->resized) { t->resized=false;return -5; }
         if (reap(t,true)) return -3;
         if (t->shutdown_signal) return -1;
         if (!owns(t,t->group)) return failure(t,"terminal foreground owner changed; refusing takeover");
-        struct pollfd fds[2]={{t->fd,POLLIN,0},{t->signals,POLLIN,0}};int n;
-        do { n=poll(fds,2,-1); } while (n<0 && errno==EINTR);
+        int input=t->editing ? t->edit_fd : t->fd;
+        struct pollfd fds[2]={{input,POLLIN,0},{t->signals,POLLIN,0}};int n;
+        int remaining=-1;
+        if (timeout_ms>=0) {
+            struct timespec now;
+            if (clock_gettime(CLOCK_MONOTONIC,&now) || now.tv_sec<0) return failure(t,"editor deadline clock failed");
+            uint64_t tick=(uint64_t)now.tv_sec*1000u+(uint64_t)now.tv_nsec/1000000u;
+            if (tick>=deadline) return -4;
+            remaining=(int)(deadline-tick);
+        }
+        n=poll(fds,2,remaining);
+        if (n<0 && errno==EINTR) continue;
         if (n<0) return failure(t,"terminal event wait failed");
+        if (!n) return -4;
         if (fds[1].revents) {
             int interrupted=signals(t);
             if (t->shutdown_signal) return -1;
             bool printed=reap(t,true);
             if (interrupted>0) return -2;
             if (printed) return -3;
+            if (t->editing && t->resized) { t->resized=false;return -5; }
         }
         if (fds[0].revents&(POLLHUP|POLLERR|POLLNVAL)) { t->shutdown_signal=SIGHUP;return -1; }
         if (fds[0].revents&POLLIN) {
-            ssize_t got=read(t->fd,buffer,length);
-            if (got<0 && errno==EINTR) continue;
+            ssize_t got=read(input,buffer,length);
+            if (got<0 && (errno==EINTR || errno==EAGAIN)) continue;
             if (got<0) return failure(t,"controlling terminal read failed");
             return got;
         }
     }
 }
+static bool same_modes(const struct termios *a,const struct termios *b) {
+    return a->c_iflag==b->c_iflag && a->c_oflag==b->c_oflag && a->c_cflag==b->c_cflag && a->c_lflag==b->c_lflag &&
+        a->c_line==b->c_line && !memcmp(a->c_cc,b->c_cc,sizeof(a->c_cc)) && cfgetispeed(a)==cfgetispeed(b) && cfgetospeed(a)==cfgetospeed(b);
+}
+int ae_shell_jobs_edit_mode(struct ae_shell_terminal *t,bool enabled) {
+    if (!owns(t,t->group)) return failure(t,"editor terminal foreground owner changed");
+    if (enabled && t->shutdown_signal) return -1;
+    if (enabled==t->editing) return 0;
+    struct termios current;
+    if (tcgetattr(t->fd,&current) || !same_modes(&current,t->editing ? &t->edit_modes : &t->modes))
+        return failure(t,"editor terminal modes drifted; refusing replacement");
+    if (enabled && t->edit_fd<0) {
+        int fd=open("/dev/tty",O_RDWR|O_NOCTTY|O_CLOEXEC|O_NONBLOCK);unsigned original=0,selected=0;
+        if (fd<0) return failure(t,"cannot open private editor terminal");
+        if (ioctl(t->fd,TIOCGDEV,&original) || ioctl(fd,TIOCGDEV,&selected) || original!=selected ||
+            tcgetsid(fd)!=t->session || tcgetpgrp(fd)!=t->group) {
+            close(fd);return failure(t,"editor terminal differs from original controlling terminal");
+        }
+        t->edit_fd=fd;
+    }
+    if (enabled) {
+        t->edit_modes=t->modes;t->edit_modes.c_lflag&=(tcflag_t)~(ICANON|ECHO|ECHONL|IEXTEN|NOFLSH);
+        t->edit_modes.c_iflag&=(tcflag_t)~(IXON|IXOFF);t->edit_modes.c_cc[VMIN]=1;t->edit_modes.c_cc[VTIME]=0;
+    }
+    if (tcsetattr(t->fd,TCSANOW,enabled ? &t->edit_modes : &t->modes)) return failure(t,"cannot select editor terminal modes");
+    t->editing=enabled;
+    if (tcgetattr(t->fd,&current) || !same_modes(&current,enabled ? &t->edit_modes : &t->modes))
+        return failure(t,"editor terminal mode selection was not confirmed");
+    return owns(t,t->group) ? 0 : failure(t,"editor terminal owner changed during mode selection");
+}
+int ae_shell_jobs_write(struct ae_shell_terminal *t,const char *bytes,size_t length) {
+    if (!t->editing || t->edit_fd<0) return failure(t,"editor output outside its mode");
+    size_t done=0;
+    while (done<length) {
+        if (t->shutdown_signal || ae_shell_jobs_check(t)) return -1;
+        ssize_t n=write(t->edit_fd,bytes+done,length-done);
+        if (n>0) { done+=(size_t)n;continue; }
+        if (n<0 && errno==EINTR) continue;
+        if (n>=0 || errno!=EAGAIN) return failure(t,"editor terminal output failed");
+        struct pollfd fds[2]={{t->edit_fd,POLLOUT,0},{t->signals,POLLIN,0}};int ready;
+        do { ready=poll(fds,2,-1); } while (ready<0 && errno==EINTR);
+        if (ready<0 || (fds[0].revents&(POLLERR|POLLHUP|POLLNVAL))) return failure(t,"editor output wait failed");
+        if (fds[1].revents) {
+            int interrupted=signals(t);if (interrupted<0 || t->shutdown_signal) return -1;
+            if (interrupted) { t->interrupted=true;return -2; }
+        }
+    }
+    return 0;
+}
 struct ae_shell_job *ae_shell_job_prepare(struct ae_shell_terminal *t,const char *label) {
+    if (t->editing) { (void)failure(t,"editor has not yielded terminal modes before dispatch");return NULL; }
     (void)reap(t,true);
     if (ae_shell_jobs_check(t) || t->next_id==UINT32_MAX) return NULL;
     for (unsigned i=0;i<AE_SHELL_JOBS;++i) if (!t->jobs[i].id) {
