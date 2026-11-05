@@ -23,11 +23,13 @@ import uuid
 CONTROL = Path("/var/lib/aetheri-development-session")
 USER_ROOT = Path("/home/aetheri/development-sessions")
 SOURCE = Path("/home/aetheri/source/tools/development_session.py")
+PROJECT = Path(__file__).resolve().parents[1]
 UI = Path("/home/aetheri/deps/ui-gles-release-02/prefix")
 TERMINAL_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf")
 APP_SELECTORS = {b"S": "settings", b"T": "terminal", b"F": "files"}
 APP_ROLES = ("files", "terminal", "settings")  # Files retains its document owner before later views retire.
 PROFILES = ("release", "debug")
+SETTINGS_UIS = ("sdl", "nexaui")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
 
@@ -55,8 +57,76 @@ def terminal_assets():
     return values
 
 
-def application_command(role, build, cache):
+def settings_fingerprint(profile):
+    return hashlib.sha256(json.dumps(profile, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def validate_settings_profile(profile, build_profile):
+    if not isinstance(profile, dict) or set(profile) != {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256"}:
+        raise RuntimeError("invalid development Settings binding")
+    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+        raise RuntimeError("invalid development Settings build")
+    if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
+        raise RuntimeError("invalid development Settings revision")
+    if not isinstance(profile["version"], str) or re.fullmatch("[0-9]+\\.[0-9]+\\.[0-9]+", profile["version"]) is None:
+        raise RuntimeError("invalid development Settings version")
+    artifacts = profile["artifacts"]
+    expected = {"consumer-build/aetheri_model_view", "prefix/lib/libnexaui.so." + profile["version"]}
+    if not isinstance(artifacts, dict) or set(artifacts) != expected:
+        raise RuntimeError("invalid development Settings artifacts")
+    model = profile["model"]
+    if not isinstance(model, dict) or set(model) != {"src/settings/model.c", "src/settings/model.h"}:
+        raise RuntimeError("invalid development Settings model")
+    for value in (*artifacts.values(), *model.values(), profile["metadata_sha256"], profile["pin_sha256"]):
+        if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None:
+            raise RuntimeError("invalid development Settings digest")
+    return profile
+
+
+def settings_selection(build_profile, ui):
+    """Read-only developer consistency check, never production code admission.
+
+    The ordinary build account controls these mutable inputs. Hashing them is
+    not a sealed store, publisher trust, atomic exec pin or volume authentication.
+    """
+    if ui == "sdl": return None
+    if ui != "nexaui" or build_profile not in PROFILES:
+        raise RuntimeError("invalid Settings UI/profile")
+    try:
+        pin_path = PROJECT / "spec/nexaui-inputs.json"
+        with pin_path.open("rb") as stream: pin_bytes = stream.read(65537)
+        if len(pin_bytes) > 65536: raise RuntimeError("Settings pin exceeded bound")
+        pin = json.loads(pin_bytes)
+        build = Path(pin["development_builds"][build_profile])
+        if build.resolve() != build: raise RuntimeError("aliased Settings build")
+        owned(build, 1000, 0o700, directory=True)
+        metadata = build / "build.json"; owned(metadata, 1000, 0o644)
+        with metadata.open("rb") as stream: metadata_bytes = stream.read(65537)
+        if len(metadata_bytes) > 65536: raise RuntimeError("Settings metadata exceeded bound")
+        record = json.loads(metadata_bytes)
+        if record["revision"] != pin["revision"] or record["version"] != pin["version"] or record["atspi_compiled"] is not True or record["sanitizers"] is not (build_profile == "debug"):
+            raise RuntimeError("Settings candidate does not match selected build")
+        names = ("consumer-build/aetheri_model_view", "prefix/lib/libnexaui.so." + pin["version"])
+        selected = dict(revision=pin["revision"], version=pin["version"], build=str(build),
+                        artifacts={n: record["artifacts"][n] for n in names}, model=record["model"],
+                        metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(), pin_sha256=hashlib.sha256(pin_bytes).hexdigest())
+        validate_settings_profile(selected, build_profile)
+        for name, expected in selected["model"].items():
+            if digest(PROJECT / name) != expected: raise RuntimeError("Settings model changed")
+        for name, expected in selected["artifacts"].items():
+            path = build / name; current = path.lstat()
+            if path.resolve() != path or not stat.S_ISREG(current.st_mode) or current.st_uid != 1000 or stat.S_IMODE(current.st_mode) != 0o755 or current.st_nlink != 1 or current.st_size > 16*1024**2 or digest(path) != expected:
+                raise RuntimeError("Settings artifact changed")
+        return selected
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("Settings candidate check failed") from error
+
+
+def application_command(role, build, cache, settings_profile=None):
     if role == "settings":
+        if settings_profile is not None:
+            return [str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view"),
+                    "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"), "--cache", str(cache), "--diagnostics"]
         return [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--cache", str(cache), "--diagnostics"]
     if role == "terminal":
@@ -123,6 +193,15 @@ def validate(record, carrier):
         raise RuntimeError("invalid development desktop profile")
     if type(record.get("compose", False)) is not bool:
         raise RuntimeError("invalid development Compose profile")
+    ui = record.get("settings_ui", "sdl")
+    selected = record.get("settings_profile")
+    binding = record.get("settings_binding")
+    if ui not in SETTINGS_UIS or (ui == "sdl" and (selected is not None or binding is not None)):
+        raise RuntimeError("invalid development Settings selection")
+    if ui == "nexaui":
+        if not record.get("desktop", False): raise RuntimeError("NexaUI selection requires desktop")
+        validate_settings_profile(selected, record["profile"])
+        if binding != settings_fingerprint(selected): raise RuntimeError("development Settings binding changed")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
@@ -185,9 +264,13 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile, desktop=False, compose=False):
+def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl"):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
+    if settings_ui not in SETTINGS_UIS or (settings_ui == "nexaui" and not desktop):
+        raise RuntimeError("Settings UI requires its selected desktop profile")
+    selected = settings_selection(profile, settings_ui)
+    binding = settings_fingerprint(selected) if selected is not None else None
     free_seat()
     if record:
         history = CONTROL / "history" / (record["token"] + ".json")
@@ -205,13 +288,16 @@ def start(record, carrier, profile, desktop=False, compose=False):
     token = uuid.uuid4().hex
     build = build_for(profile)
     names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell", "aetheri-files", "aetheri-editor") if desktop else ("aetheri-compositor", "aetheri-settings")
+    if selected is not None: names = tuple(n for n in names if n != "aetheri-settings")
     binaries = {str(build / name): digest(build / name) for name in names}
+    if selected is not None: binaries.update({str(Path(selected["build"]) / n): h for n, h in selected["artifacts"].items()})
     assets = terminal_assets() if desktop else {}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
                   invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
                   launch_protocol=3 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
+    record.update(settings_ui=settings_ui, settings_profile=selected, settings_binding=binding)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -232,6 +318,7 @@ def start(record, carrier, profile, desktop=False, compose=False):
             "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token]
     if desktop: args.append("--desktop")
     if compose: args.append("--compose")
+    if selected is not None: args += ["--settings-ui", settings_ui, "--settings-binding", binding]
     # Start the unit without waiting for READY, then activate its inspected VT.
     # No second start is permitted if either dispatch acknowledgement is lost.
     args.insert(1, "--no-block")
@@ -345,9 +432,15 @@ def observation(record):
     return dict(kind=kind, original_unit=props)
 
 
-def supervise(profile, token, desktop=False, compose=False):
+def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
+    if settings_ui not in SETTINGS_UIS or (settings_ui == "nexaui" and not desktop):
+        raise RuntimeError("Settings UI requires its selected desktop profile")
+    selected = settings_selection(profile, settings_ui)
+    expected_binding = settings_fingerprint(selected) if selected is not None else None
+    if settings_binding != expected_binding:
+        raise RuntimeError("original Settings selection changed before supervision")
     base = USER_ROOT / token
     for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
     if desktop: owned(base / "documents", 1000, 0o700, directory=True)
@@ -454,8 +547,15 @@ def supervise(profile, token, desktop=False, compose=False):
                     if child and child.poll() is None: reply(b"A" + suffix); continue
                     if child or launches[role] >= 128: reply(b"E" + suffix); continue
                     launches[role] += 1
+                    if role == "settings" and selected is not None:
+                        try:
+                            if settings_selection(profile, settings_ui) != selected:
+                                raise RuntimeError("original Settings selection changed before spawn")
+                        except RuntimeError as error:
+                            print("SETTINGS_PROFILE_REJECTED " + str(error), flush=True)
+                            reply(b"E" + suffix); continue
                     try:
-                        spawn(role, application_command(role, build, base / "cache"))
+                        spawn(role, application_command(role, build, base / "cache", selected))
                     except OSError:
                         # Popen reports an exec failure after reaping its failed child.
                         if role in children: raise  # Later pipe setup failed after a real spawn.
@@ -526,16 +626,22 @@ def main():
     parser.add_argument("--token")
     parser.add_argument("--desktop", action="store_true", help="explicit native dock/search development session")
     parser.add_argument("--compose", action="store_true", help="opt-in built-in Compose provider (requires its reviewed build)")
+    parser.add_argument("--settings-ui", choices=SETTINGS_UIS, default="sdl", help="explicit development desktop Settings view")
+    parser.add_argument("--settings-binding", help=argparse.SUPPRESS)
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.compose and args.action != "start" and not args.supervise:
         raise ValueError("--compose selects a new start profile only")
+    if args.settings_ui != "sdl" and (not args.desktop or (args.action != "start" and not args.supervise)):
+        raise ValueError("--settings-ui nexaui requires a new --desktop start")
+    if args.settings_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.settings_binding) is None):
+        raise ValueError("Settings binding belongs to the original supervisor only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
-        return supervise(args.profile, args.token, args.desktop, args.compose)
+        return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding)
     if not args.guest:
         import shlex
         import run_vm as vm
@@ -543,6 +649,7 @@ def main():
         command = ["sudo", "-n", "python3", SOURCE.as_posix(), args.action, "--guest", "--carrier-uuid", vm.config()["uuid"], "--profile", args.profile]
         if args.desktop: command.append("--desktop")
         if args.compose: command.append("--compose")
+        if args.settings_ui != "sdl": command += ["--settings-ui", args.settings_ui]
         if args.token: command += ["--token", args.token]
         elif args.action == "stop":
             probe = [*command]; probe[4] = "status"
@@ -560,7 +667,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

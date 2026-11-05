@@ -29,7 +29,14 @@ def main():
                 (issuer, shell_server.fileno()))
 
     session.compositor_launch = compositor
-    return session.supervise("release", "fixture", desktop=True, compose=len(sys.argv)>5 and sys.argv[5]=="compose")
+    ui=os.environ.get("AETHERI_TEST_SETTINGS_UI","sdl")
+    if ui == "nexaui" and "AETHERI_TEST_SETTINGS_SOURCE" in os.environ:
+        session.PROJECT=Path(os.environ["AETHERI_TEST_SETTINGS_SOURCE"])
+    profile="debug" if "AETHERI_SANITIZERS:BOOL=ON" in (build/"CMakeCache.txt").read_text() else "release"
+    selected=session.settings_selection(profile,ui)
+    binding=session.settings_fingerprint(selected) if selected is not None else None
+    return session.supervise(profile, "fixture", desktop=True, compose=len(sys.argv)>5 and sys.argv[5]=="compose",
+                             settings_ui=ui,settings_binding=binding)
 
 
 if __name__ == "__main__":

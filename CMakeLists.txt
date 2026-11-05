@@ -613,6 +613,11 @@ if(AETHERI_COMPOSITOR)
                     add_test(NAME desktop.owner COMMAND Python3::Interpreter
                         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_development_desktop.py" "${CMAKE_CURRENT_BINARY_DIR}")
                     set_tests_properties(desktop.owner PROPERTIES TIMEOUT 90)
+                    if(AETHERI_NEXAUI_SETTINGS_PROBE)
+                        add_test(NAME desktop.owner_nexaui COMMAND Python3::Interpreter
+                            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_nexaui_owner.py" "${CMAKE_CURRENT_BINARY_DIR}")
+                        set_tests_properties(desktop.owner_nexaui PROPERTIES TIMEOUT 90 LABELS "nexaui")
+                    endif()
                       if(AETHERI_COMPOSE)
                           add_test(NAME desktop.owner_compose COMMAND Python3::Interpreter
                               "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_development_desktop.py" "${CMAKE_CURRENT_BINARY_DIR}"

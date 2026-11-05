@@ -24,13 +24,23 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+5 November development-owner update: the pinned external Settings consumer is now
+an explicit `--settings-ui nexaui` development profile with root/original-user/
+fresh-spawn binding checks. Native dock/search and actual QMP/PS2/DRM tests prove
+reuse, fresh lifetime, original Terminal/Files coexistence, local large-text
+preferences and ordered five-role retirement. Private-copy input drift rejects
+a new spawn without fallback. The default remains SDL; developer hashes are not
+sealed-code admission, and normal bus/final design/production integration remain.
+See [executed record](../journal/2026-11-05-nexaui-owner.md).
+
 5 November native assistive-transport update: the unchanged pinned consumer now
 passes a separate C17/libatspi peer and real private registry on the Aetheri
 compositor. Native radio state/actions, localized large text, semantic resize,
 display selection and Close are checked against independent original-model and
 pixel/process observations in Release and ASan/UBSan. The disabled-bridge negative
 fails correctly. This advances the prior unavailable-bus boundary; it does not
-establish human screenreader/focus-event or normal session/DRM owner acceptance.
+establish human screenreader/focus-event or normal production session acceptance.
+The subsequent owner update above records its separate development/DRM result.
 See [executed record](../journal/2026-11-05-nexaui-atspi.md). Defaults remain SDL.
 
 5 November Aetheri-side pilot: the pinned NexaUI `e71ee30` original-model Settings
@@ -39,7 +49,8 @@ private compositor, in Release and ASan/UBSan. Its software Wayland path has no
 SDL/X11/Vulkan dependency. Native pointer/keyboard, three output observations,
 German/high contrast/200%, narrow resize/restore and view lifetime checks pass.
 That first test bus is deliberately unavailable; the subsequent separate native
-AT-SPI test above supplies scoped action evidence. DRM owner integration remains.
+AT-SPI test above supplies scoped action evidence; the later owner entry records
+its separate opt-in development/DRM result.
 The working SDL app remains selected. See [probe contract](../../../spec/nexaui.md) and
 [record](../journal/2026-11-05-nexaui-settings.md). This advances the previous
 recommendation to an executed consumer probe, not global SDK/application adoption.

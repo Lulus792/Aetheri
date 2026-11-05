@@ -28,6 +28,7 @@ That command remains attached to the VM. Use another terminal for the session:
 python tools/development_session.py start
 python tools/development_session.py start --desktop
 python tools/development_session.py start --desktop --compose
+python tools/development_session.py start --desktop --compose --settings-ui nexaui
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
@@ -37,11 +38,19 @@ profile does not change an existing session. `--compose` requires
 the matching optional [Compose build](compose.md), records that choice with the
 original attempt and enables native Compose/dead-key input without a new daemon.
 It is not a general external IME or trusted input/session implementation.
+`--settings-ui nexaui` explicitly selects the pinned [NexaUI Settings development
+view](nexaui.md) for a new desktop session; omit it to keep SDL. The reviewed
+Release/Debug build paths are fixed in `spec/nexaui-inputs.json`. This option
+does not switch an existing session, the Settings-only mode or the other apps.
+Prepare the matching private SDK/consumer before starting. It remains a
+provisional original-model view, not the accepted final Settings design or
+persistent device configuration.
 An already running headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
-shutdown. The native viewer is the existing QEMU SDL2 frontend; Aetheri's own
-app/desktop UI still uses the reviewed SDL3 profile. No new viewer package is needed.
+shutdown. The native viewer is the existing QEMU SDL2 frontend. The desktop and
+default app views use the reviewed SDL3 profile; explicit NexaUI Settings uses
+its own software presentation. No new viewer package is needed.
 
 The viewer explicitly disables OpenGL and window-close shutdown. QMP remains
 host-local AF_UNIX, networking remains restricted in the example, and no VNC,
@@ -96,11 +105,36 @@ Popen child handles, starting compositor then Settings or the selected desktop.
 The desktop mode has separate on-demand Settings, Terminal and Files slots, a private
 inherited Wayland connection and a bounded version3 fixed-command channel.
 New format1 records add `launch_protocol: 3`, digests for the seven fixed binaries
-and the existing Mono font/license. Historical protocol1/protocol2 records remain readable without
+and the existing Mono font/license. Explicit NexaUI selection replaces the SDL
+Settings entry with the candidate app and shared library: eight runtime images
+are recorded. Additive `settings_ui`, `settings_profile` and `settings_binding`
+retain the exact selection, source revision/version, build path, model/image
+hashes and raw metadata/input-pin hashes. Old records with no such fields keep
+their historical SDL meaning. Historical protocol1/protocol2 records remain readable without
 upgrading/rebinding them. It notifies PID1 only
 after the selected first UI has submitted its first frame, not merely printed
 READY. This is a development startup signal, not the Aetheri app READY protocol
 or proof of admitted code, data, grants or visible host presentation.
+
+The NexaUI choice is checked before seat/history/start effects. The root controller
+passes the canonical binding digest to its original unprivileged supervisor,
+which repeats the check before creating children. Before every new Settings
+spawn it compares the current selection with the original one. A changed or
+unavailable candidate returns the existing launch-error reply, leaves the
+desktop alive and never falls back to another toolkit. An already running child
+is still reused through its original handle. Restoring exact inputs requires a
+fresh explicit request; an unknown request is never replayed automatically.
+Completed records remain historical: stop retries do not inspect or rebind a
+newer SDK. The app uses the same `org.aetheri.Settings` identity and the existing
+font/cache/diagnostic command shape; its FRAME/MODEL diagnostics are not a new
+PID1 or production app-readiness contract.
+
+These are developer consistency checks over mutable same-account inputs, not
+publisher trust, a sealed package store, atomic execution pins or production
+admission. The dedicated build account already controls the source/controller.
+No registry, accessibility bus or other new normal service is started by this
+option. Native assistive transport has separate private-test evidence; real
+session-bus provisioning, human assistive acceptance and final UI remain work.
 
 The supervisor sleeps on child pipes, its optional command channel and signal
 wakeups. Settings-only close stops the compositor. Desktop mode keeps the shell

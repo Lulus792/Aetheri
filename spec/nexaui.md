@@ -166,3 +166,23 @@ for exact test boundaries and original fixture failure. This closes a scoped
 private native-transport/action gate. Human screenreader tasks, focus-event/
 announcement quality, complete accessible roles/text, physical input/scaling,
 normal session bus provisioning and the accepted visual design remain work.
+
+## Explicit development desktop selection
+
+The existing [development owner](development-session.md) now accepts
+`start --desktop --settings-ui nexaui`, optionally with `--compose`. It selects
+only the reviewed per-profile build paths in the input pin and records the exact
+candidate/model/metadata binding. Root checks it before dispatch, the original
+ordinary-user supervisor checks that binding again, and each new Settings spawn
+must still match. Reuse retains the original live process. A failed recheck
+returns the existing launch-error reply without a new process or toolkit fallback;
+closing/reopening uses a fresh app under the same retained selection.
+
+`desktop.owner_nexaui` exercises actual search/dock input, one live instance,
+local model changes, process/pipe retirement and fresh reopen alongside the
+original Terminal/Files. Its drift case changes only a copied test pin, proving
+rejection without modifying the shared SDK or repository. The default SDL owner
+and its dirty-document/job/pipe shutdown tests remain separate regressions.
+The controlled owner fixture is unprivileged/headless; actual PAM/DRM exercise
+uses the explicit root-selected development profile. Neither supplies normal
+authority admission, persistent settings or a complete UI migration.

@@ -80,7 +80,10 @@ The enforcing carrier is idle on tty1 without candidate/test daemon processes,
 known native app/Aetheri unit or seat0 session. Bounded export verifies **58**
 files. The old running/recover-handoff remains unresolved and untouched.
 
-## Next
+## Next at this checkpoint
+
+The subsequent [bound development-owner record](2026-11-05-nexaui-owner.md)
+implements and tests the opt-in development/DRM step described below.
 
 The development supervisor already owns app start/reuse/retirement separately
 from views. Its current Settings selection is fixed to SDL. The NexaUI candidate

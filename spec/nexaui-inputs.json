@@ -21,6 +21,10 @@
     "src/settings/model.h"
   ],
   "consumer": "examples/21_aetheri_model",
+  "development_builds": {
+    "release": "/home/aetheri/deps/nexaui-settings-release-02",
+    "debug": "/home/aetheri/deps/nexaui-settings-debug-01"
+  },
   "dbus_sdk": {
     "name": "dbus-devel-1.16.2-1.fc44.x86_64.rpm",
     "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/d/dbus-devel-1.16.2-1.fc44.x86_64.rpm",

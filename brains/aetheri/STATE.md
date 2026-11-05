@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — independent native AT-SPI Settings actions on Aetheri.
+5 November 2026 — bound NexaUI Settings selection in the actual development desktop.
 
 ## Coordination
 
@@ -14,6 +14,39 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The existing development owner now offers `start --desktop --settings-ui nexaui`
+for the fixed reviewed SDK/consumer paths; SDL remains the default. Root records
+the original model/image/metadata binding before dispatch, the original ordinary
+supervisor rechecks it, and each fresh Settings spawn must still match. A changed
+candidate produces the existing error reply without a new process or fallback.
+Live reuse and original process/pipe retirement remain unchanged; closed retries
+are historical and never select current SDK inputs. This is developer consistency,
+not sealed package or production authority admission.
+
+All nine affected Settings/desktop groups pass Release (45.17s) and ASan/UBSan
+(67.15s). A sole final raw-JSON read cap is rechecked through two owner/supervisor
+groups/profile (3.74s/5.05s), preserving the same bindings and runtime binaries.
+Actual native owner input proves search/dock reuse, local model change,
+closed/fresh same-profile lifetime, private-copy drift refusal and coexistence
+with original Terminal/Files. Actual DRM token d1a3fba307d14e6494f99611f6bdc55b
+proves two selected Settings actors, exact Terminal-saved document bytes,
+localized 200% maximize/restore and original five-role end/controller close0.
+Twenty-four stable DRM PNGs and an unchanged historical stop retry remain.
+See [record](journal/2026-11-05-nexaui-owner.md), [running it](../../spec/development-session.md)
+and `local/nexaui-owner-2026-11-05`.
+
+Audit binds 348 source inputs, frozen 28 SQL/XML and nineteen protected old hashes
+unchanged/no sidecars. The enforcing carrier is idle on tty1 without candidate
+apps, running Aetheri unit or seat0. Old recovery remains unresolved. No normal
+accessibility bus/service, default toolkit replacement or final UI is implied.
+Next: an Aetheri-owned NexaUI Settings presentation following the accepted design,
+retaining model/owner and SDL until behavior/design/assistive gates pass. Normal
+bus/human screenreader/physical/performance, real backends, further apps,
+lifecycle/recovery/removal, OS image/installer/hardware and complete resettable
+experiment desktop remain required. Keep the full project goal active.
+
+## Native AT-SPI consumer — completed checkpoint
 
 The pinned NexaUI Settings view now passes a real private AT-SPI registry and
 independent C17/libatspi peer on the Fedora/glibc Aetheri compositor. Native
@@ -32,9 +65,9 @@ processes or seat0. See [native record](journal/2026-11-05-nexaui-atspi.md),
 Old recovery remains unresolved. The existing NexaUI catalogue records this
 scoped evidence; no new chat handoff is pending.
 
-Next: explicitly bound development-owner/DRM Settings profile and actual
-launch/reuse/close/reopen before replacement, retaining the original owner,
-model and SDL path. Human screenreader/focus-event quality, complete semantics,
+At this checkpoint the bound development-owner/DRM profile was next; the
+current update above records its implemented opt-in path and executed result.
+Retain the original owner, model and SDL path before any default replacement. Human screenreader/focus-event quality, complete semantics,
 normal session bus, accepted design/physical/performance and the remaining
 full OS/apps/backends/lifecycle/image/installer/experiment desktop stay open.
 Keep the full project goal active.

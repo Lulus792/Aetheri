@@ -78,6 +78,38 @@ class DevelopmentContracts(unittest.TestCase):
             self.assertIn('--drm',args)
             self.assertNotIn('--compose',session.compositor_launch(Path('/selected-build'),sock)[0])
 
+    def test_nexaui_binding_is_explicit_and_closed_history_does_not_select_current_inputs(self):
+        selected = dict(revision="a"*40, version="0.1.18", build="/home/aetheri/deps/nexaui-settings-release-02",
+                        artifacts={"consumer-build/aetheri_model_view":"1"*64,"prefix/lib/libnexaui.so.0.1.18":"2"*64},
+                        model={"src/settings/model.c":"3"*64,"src/settings/model.h":"4"*64},
+                        metadata_sha256="5"*64, pin_sha256="6"*64)
+        record = {**self.record, "desktop":True, "settings_ui":"nexaui", "settings_profile":selected,
+                  "settings_binding":session.settings_fingerprint(selected)}
+        self.assertIs(session.validate(record,self.carrier),record)
+        for change in ({"settings_binding":"0"*64},{"desktop":False},{"settings_ui":"sdl"},
+                       {"settings_profile":{**selected,"build":"/home/aetheri/deps/../foreign"}},
+                       {"settings_profile":{**selected,"artifacts":{"../foreign":"7"*64}}}):
+            with self.subTest(change=change),self.assertRaises(RuntimeError):
+                session.validate({**record,**change},self.carrier)
+        before=copy.deepcopy(record);record["phase"]="closed";before["phase"]="closed"
+        with patch.object(session,"settings_selection",side_effect=AssertionError("current candidate read")), \
+             patch.object(session,"run",side_effect=AssertionError("historical effect")):
+            self.assertEqual(session.stop(record),before)
+        self.assertEqual(record,before)
+
+    def test_nexaui_cannot_start_without_original_binding_or_desktop(self):
+        selected={"test":"controlled profile"}
+        with patch.object(session.os,"getuid",return_value=1000,create=True),patch.object(session.os,"geteuid",return_value=1000,create=True), \
+             patch.object(session,"settings_selection",return_value=selected), \
+             patch.object(session.subprocess,"Popen",side_effect=AssertionError("premature process")):
+            with self.assertRaisesRegex(RuntimeError,"original Settings selection"):
+                session.supervise("release","a"*32,desktop=True,settings_ui="nexaui",settings_binding="0"*64)
+            with self.assertRaisesRegex(RuntimeError,"selected desktop"):
+                session.supervise("release","a"*32,settings_ui="nexaui")
+        with patch.object(session,"free_seat",side_effect=AssertionError("unapproved seat effect")):
+            with self.assertRaisesRegex(RuntimeError,"selected desktop"):
+                session.start(None,self.carrier,"release",settings_ui="nexaui")
+
     def test_pending_effect_never_permits_another_start_or_stop(self):
         for phase in ("preparing", "starting", "stopping", "exited"):
             record = {**self.record, "phase": phase}
