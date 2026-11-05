@@ -569,6 +569,7 @@ int main(int argc, char **argv) {
                 wl_surface_commit(a.views[0].surface);
             }
             else if (c == 'd') { destroy_view(&a.views[1]); printf("DESTROY 1\n"); }
+            else if (c == 'w') { destroy_view(&a.views[0]); printf("DESTROY 0\n"); }
             else if (c == 'c') { CHECK(!a.views[1].surface); create_view(&a, 1); }
             else if (a.input && c == 'g') { a.grab_mode = 1; puts("ARM_MOVE"); }
             else if (a.input && c == 'z') { a.grab_mode = 2; puts("ARM_RESIZE"); }

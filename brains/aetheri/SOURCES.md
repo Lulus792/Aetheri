@@ -4,6 +4,20 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Fullscreen dock and scene-aware pointer routing — 5 November 2026
+
+- Original [desktop scene policy](../../src/compositor/desktop.c),
+  [input recheck](../../src/compositor/input.c) and
+  [toplevel commit hooks](../../src/compositor/main.c).
+- Independent [native protocol/pixel fixture](../../tools/test_desktop.py),
+  [shell client](../../tests/test_desktop_client.c) and
+  [ordinary client](../../tests/test_compositor_client.c). Original pixel and
+  stationary-input negatives, exact final checks and actual SDL/DRM evidence:
+  [dated record](journal/2026-11-05-fullscreen-dock.md).
+- [wlroots scene API](https://wlroots.pages.freedesktop.org/wlroots/wlr/types/wlr_scene.h.html),
+  consulted alongside the selected local 0.20.2 headers and
+  `types/scene/xdg_shell.c`. Rolling web documentation is not an exact-version proof.
+
 ## Native Files presentation — 5 November 2026
 
 - Original [SDL view and input owner](../../src/files/main.c) and shared

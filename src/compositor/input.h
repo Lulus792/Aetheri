@@ -21,4 +21,8 @@ void ae_input_activate(struct ae_input *input, struct window *window);
 void ae_input_shell_focus(struct ae_input *input, struct wlr_surface *surface);
 void ae_input_restore(struct ae_input *input);
 bool ae_input_focused(struct ae_input *input, struct window *window);
+/* Re-evaluate the scene hit/local coordinates at the held cursor position,
+   without changing keyboard ownership. Existing button/grab owners
+   keep their original sequence until release. */
+void ae_input_recheck_pointer(struct ae_input *input);
 #endif

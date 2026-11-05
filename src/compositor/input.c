@@ -6,8 +6,10 @@
 #include <limits.h>
 #include <linux/input-event-codes.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <wlr/backend.h>
 #include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -77,16 +79,19 @@ static void focus(struct ae_input *in, struct window *w) {
     if (in->focused && in->focused != w) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
     in->focused = w;
     if (ae_desktop_keyboard_surface(in->server->desktop)) {
+        ae_desktop_refresh_visibility(in->server->desktop);
         if (old && old != w) ae_desktop_window(in->server->desktop, old);
         ae_desktop_window(in->server->desktop, w);
         return;
     }
     if (!w) {
+        ae_desktop_refresh_visibility(in->server->desktop);
         in->clipboard_focus_valid = false; wlr_seat_keyboard_notify_clear_focus(in->seat);
         if (old) ae_desktop_window(in->server->desktop, old);
         return;
     }
     wlr_scene_node_raise_to_top(&w->tree->node);
+    ae_desktop_refresh_visibility(in->server->desktop);
     if (changed) wlr_xdg_toplevel_set_activated(w->toplevel, true);
     struct wlr_keyboard *kb = wlr_seat_get_keyboard(in->seat);
     if (!kb) return;
@@ -145,12 +150,14 @@ void ae_input_map(struct window *w) {
     w->mapped = true;
     struct ae_input *in = w->server->input;
     if (!wl_list_empty(&in->keyboards) || !wl_list_empty(&in->pointers)) focus(in, w);
+    ae_desktop_refresh_visibility(w->server->desktop);
 }
 void ae_input_unmap(struct window *w) {
     struct ae_input *in = w->server->input;
     w->mapped = false;
     if (in->grabbed == w) in->grabbed = NULL;
     if (in->focused == w) fallback(in, w);
+    ae_desktop_refresh_visibility(w->server->desktop);
 }
 static struct window *node_window(struct wlr_scene_node *node) {
     while (node && !node->data) node = node->parent ? &node->parent->node : NULL;
@@ -194,6 +201,7 @@ static void route(struct ae_input *in, uint32_t time) {
             wlr_xdg_toplevel_set_size(w->toplevel, width, height);
         }
         wlr_scene_node_set_position(&w->tree->node, w->x, w->y);
+        ae_desktop_refresh_visibility(in->server->desktop);
         return;
     }
     if (in->seat->pointer_state.button_count) {
@@ -219,6 +227,25 @@ static void route(struct ae_input *in, uint32_t time) {
     if (changed && in->seat->pointer_state.focused_surface == surface->surface)
         in->cursor_serial = wl_display_get_serial(in->server->display);
     wlr_seat_pointer_notify_motion(in->seat, time, x, y);
+}
+void ae_input_recheck_pointer(struct ae_input *in) {
+    if (!in || !in->seat || !in->cursor || wl_list_empty(&in->pointers) ||
+            in->grabbed || in->seat->pointer_state.button_count) return;
+    double x = 0, y = 0;
+    struct wlr_scene_node *node = wlr_scene_node_at(&in->server->scene->tree.node, in->cursor->x, in->cursor->y, &x, &y);
+    struct wlr_scene_surface *scene_surface = node && node->type == WLR_SCENE_NODE_BUFFER ?
+        wlr_scene_surface_try_from_buffer(wlr_scene_buffer_from_node(node)) : NULL;
+    struct wlr_surface *surface = scene_surface ? scene_surface->surface : NULL;
+    if (surface == in->seat->pointer_state.focused_surface &&
+            (!surface || (x == in->seat->pointer_state.sx && y == in->seat->pointer_state.sy))) return;
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now)) {
+        fputs("compositor input: pointer retarget clock failed\n", stderr);
+        in->server->failed = true; wl_display_terminate(in->server->display); return;
+    }
+    uint64_t ms = (uint64_t)now.tv_sec * 1000u + (uint64_t)now.tv_nsec / 1000000u;
+    route(in, (uint32_t)ms);
+    wlr_seat_pointer_notify_frame(in->seat);
 }
 static void relative(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, motion);

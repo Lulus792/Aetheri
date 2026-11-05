@@ -72,12 +72,32 @@ windows together; the native test resizes and restores a real headless output.
 
 Ordinary windows live in a separate scene tree beneath shell surfaces. Maximized
 windows exclude a mapped dock; fullscreen geometry remains the entire output.
-Dock/fullscreen visibility policy is still product integration work. Search
+The compact dock is hidden when the frontmost intersecting ordinary window has
+committed fullscreen state, is selected for that output and its effective window
+geometry covers the output. The scene stack and current coordinates determine
+this, not original placement or the last keyboard owner. Raising/moving a normal
+window over that output reveals its dock; moving it away or raising the original
+fullscreen window hides it again. Other output docks are unaffected. This is the
+current fixed-scale development policy, not a fullscreen workspace/lock contract.
+
+An explicitly expanded search stays visible above fullscreen. Hiding the compact
+scene does not unmap its surface, change the role, free its reserved work area or
+steal keyboard focus. Commit/map/unmap/stack/output and interactive-move changes
+refresh that presentation. No polling loop or new service is introduced. Search
 temporarily takes actual seat keyboard focus while the prior logical app choice
 is retained. Pointer clicks on the dock do not clear app keyboard focus. Search
 collapse restores a still-mapped app or empty focus, with a fresh clipboard focus
 interval. App mapping/unmapping and keyboard replacement cannot bypass the
 exclusive search. Alt+Tab is consumed while it is exclusive.
+
+Scene changes also re-evaluate the surface and local coordinates at the existing
+cursor position, so an invisible old dock cannot receive a new stationary click.
+The keyboard owner does not change through that recheck. An original held button
+or interactive move/resize keeps its existing sequence until release; a new press
+then follows the current scene. Identical target/coordinates and absent pointer
+devices cause no new pointer notification. This is not pointer confinement or
+production secure-input admission. Executed source/binary/pixel boundaries and
+the two retained negatives are in the [fullscreen record](../brains/aetheri/journal/2026-11-05-fullscreen-dock.md).
 
 Super+Space sends a toggle event for the actual output under the cursor. Its
 Space press/release pair is consumed when the private control is available;

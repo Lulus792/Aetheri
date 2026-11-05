@@ -167,6 +167,43 @@ static bool profile(struct layer *l) {
     l->expanded = expanded;
     return true;
 }
+/* The scene owns stack order. Use current geometry, not the last keyboard
+   owner or original home output: a normal window can cross output boundaries.
+   The xdg scene root is the window-geometry origin; wlroots already subtracts
+   the surface-local geometry offset inside its child tree. This is ordinary
+   desktop presentation, not a secure-lock or application-admission boundary. */
+static bool fullscreen_covers(struct ae_desktop *d, struct output *o) {
+    struct wlr_output_layout_output *place = o->output ? wlr_output_layout_get(d->server->layout, o->output) : NULL;
+    if (!place) return false;
+    int64_t left = place->x, top = place->y;
+    int64_t right = left + o->output->width, bottom = top + o->output->height;
+    struct wlr_scene_node *node;
+    wl_list_for_each_reverse(node, &d->server->windows_tree->children, link) {
+        struct window *w = node->data;
+        if (!w || !w->mapped || node != &w->tree->node) continue;
+        int x, y;
+        if (!wlr_scene_node_coords(node, &x, &y)) continue;
+        const struct wlr_box *geometry = &w->toplevel->base->geometry;
+        if (geometry->width <= 0 || geometry->height <= 0) continue;
+        int64_t window_right = (int64_t)x + geometry->width;
+        int64_t window_bottom = (int64_t)y + geometry->height;
+        if (x >= right || y >= bottom || window_right <= left || window_bottom <= top) continue;
+        return w->is_fullscreen && w->toplevel->current.fullscreen && ae_server_window_output(w) == o &&
+            x <= left && y <= top && window_right >= right && window_bottom >= bottom;
+    }
+    return false;
+}
+void ae_desktop_refresh_visibility(struct ae_desktop *d) {
+    if (!d || d->server->shutting_down || d->server->failed) return;
+    bool covered[OUTPUT_LIMIT] = {false};
+    for (unsigned i = 0; i < d->server->output_count; ++i)
+        covered[i] = fullscreen_covers(d, &d->server->outputs[i]);
+    struct layer *l;
+    wl_list_for_each(l, &d->surfaces, link)
+        wlr_scene_node_set_enabled(&l->scene->tree->node,
+            l->surface->surface->mapped && (l->expanded || !covered[l->output]));
+    ae_input_recheck_pointer(d->server->input);
+}
 void ae_desktop_arrange(struct ae_desktop *d) {
     if (!d || d->server->shutting_down || d->server->failed) return;
     bool reserved[OUTPUT_LIMIT] = {false};
@@ -198,6 +235,7 @@ void ae_desktop_arrange(struct ae_desktop *d) {
             if (ae_server_window_output(w) == o && w->toplevel->base->initialized)
                 ae_server_configure(w);
     }
+    ae_desktop_refresh_visibility(d);
     struct wlr_surface *keyboard = ae_desktop_keyboard_surface(d);
     if (keyboard) ae_input_shell_focus(d->server->input, keyboard);
     else ae_input_restore(d->server->input);

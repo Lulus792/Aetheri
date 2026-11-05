@@ -87,9 +87,10 @@ it without activating the list. Information shows observed name/type/size/locati
 and generic icons. It reads no document content and supplies no PDF/image preview.
 Long labels can be ellipsized; this is not a full-name or accessible-text reader.
 Complete glass, light theme, assistive semantics and physical acceptance remain
-open. The DRM view also exposes the existing compositor dock above a fullscreen
-window; hiding that dock is a required compositor correction, not a completed
-fullscreen desktop policy. Native size/restoration alone does not close it.
+open. The [compositor correction](desktop.md#surface-profile-and-focus) now hides
+the compact dock under a foreground fullscreen window, retaining explicit search,
+normal-window activation and restore. The original overlapping-dock image remains
+a historical negative, separate from the new tested behavior.
 
 A directory snapshot holds at most 4,096 entries; navigation has at most 64 child
 levels. Names retain up to 255 raw bytes. Invalid UTF-8, controls, backslashes and

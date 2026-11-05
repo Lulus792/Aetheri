@@ -31,6 +31,7 @@ struct app {
     struct wl_seat *seat;
     struct wl_keyboard *keyboard;
     struct wl_pointer *pointer;
+    struct view *pointer_focus;
     struct wl_output *outputs[3];
     struct aetheri_development_desktop_v1 *control;
     struct zwlr_layer_shell_v1 *layers;
@@ -127,6 +128,31 @@ static void repeat(void *data, struct wl_keyboard *keyboard, int32_t rate, int32
 }
 static const struct wl_keyboard_listener keyboard_listener = {
     .keymap = keymap, .enter = enter, .leave = leave, .key = key, .modifiers = modifiers, .repeat_info = repeat};
+static void pointer_enter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y) {
+    (void)pointer; (void)serial; struct app *a = data;
+    a->pointer_focus = NULL;
+    for (unsigned i = 0; i < 3; ++i) if (a->views[i].surface == surface) a->pointer_focus = &a->views[i];
+    CHECK(a->pointer_focus);
+    printf("SHELL_ENTER %u %.2f %.2f\n", a->pointer_focus->index, wl_fixed_to_double(x), wl_fixed_to_double(y));
+}
+static void pointer_leave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface) {
+    (void)pointer; (void)serial; (void)surface; struct app *a = data; a->pointer_focus = NULL; puts("SHELL_LEAVE");
+}
+static void pointer_motion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t x, wl_fixed_t y) {
+    (void)data; (void)pointer; (void)time; printf("SHELL_MOTION %.2f %.2f\n", wl_fixed_to_double(x), wl_fixed_to_double(y));
+}
+static void pointer_button(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
+    (void)pointer; (void)serial; (void)time; struct app *a = data; CHECK(a->pointer_focus);
+    printf("SHELL_BUTTON %u %u %u\n", a->pointer_focus->index, button, state);
+}
+static void pointer_axis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value) { (void)data; (void)pointer; (void)time; (void)axis; (void)value; }
+static void pointer_frame(void *data, struct wl_pointer *pointer) { (void)data; (void)pointer; }
+static void pointer_source(void *data, struct wl_pointer *pointer, uint32_t source) { (void)data; (void)pointer; (void)source; }
+static void pointer_stop(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis) { (void)data; (void)pointer; (void)time; (void)axis; }
+static void pointer_discrete(void *data, struct wl_pointer *pointer, uint32_t axis, int32_t value) { (void)data; (void)pointer; (void)axis; (void)value; }
+static const struct wl_pointer_listener pointer_listener = {.enter = pointer_enter, .leave = pointer_leave,
+    .motion = pointer_motion, .button = pointer_button, .axis = pointer_axis, .frame = pointer_frame,
+    .axis_source = pointer_source, .axis_stop = pointer_stop, .axis_discrete = pointer_discrete};
 static void capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
     struct app *a = data;
     if ((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !a->keyboard) {
@@ -134,6 +160,11 @@ static void capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
         CHECK(wl_keyboard_add_listener(a->keyboard, &keyboard_listener, a) == 0);
     }
     if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && a->keyboard) { wl_keyboard_release(a->keyboard); a->keyboard = NULL; }
+    if ((caps & WL_SEAT_CAPABILITY_POINTER) && !a->pointer) {
+        a->pointer = wl_seat_get_pointer(seat); CHECK(a->pointer);
+        CHECK(wl_pointer_add_listener(a->pointer, &pointer_listener, a) == 0);
+    }
+    if (!(caps & WL_SEAT_CAPABILITY_POINTER) && a->pointer) { wl_pointer_release(a->pointer); a->pointer = NULL; a->pointer_focus = NULL; }
 }
 static void seat_name(void *data, struct wl_seat *seat, const char *name) { (void)data; (void)seat; (void)name; }
 static const struct wl_seat_listener seat_listener = {.capabilities = capabilities, .name = seat_name};
@@ -207,6 +238,8 @@ int main(int argc, char **argv) {
                 char c; CHECK(read(STDIN_FILENO, &c, 1) == 1);
                 if (c == 'e') view_state(&a.views[0], true);
                 else if (c == 'n') view_state(&a.views[0], false);
+                else if (c == 'E') view_state(&a.views[2], true);
+                else if (c == 'N') view_state(&a.views[2], false);
                 else if (c == 'a') aetheri_development_desktop_v1_activate(a.control, a.first_id);
                 else if (c == 's') aetheri_development_desktop_v1_activate(a.control, UINT32_MAX);
                 else if (c == 'p') paint(&a.views[0]);
@@ -232,6 +265,7 @@ int main(int argc, char **argv) {
     if (a.control) aetheri_development_desktop_v1_destroy(a.control);
     if (a.layers) zwlr_layer_shell_v1_destroy(a.layers);
     if (a.keyboard) wl_keyboard_release(a.keyboard);
+    if (a.pointer) wl_pointer_release(a.pointer);
     if (a.seat) wl_seat_release(a.seat);
     wl_shm_destroy(a.shm); wl_compositor_destroy(a.compositor); wl_registry_destroy(a.registry);
     wl_display_disconnect(a.display); puts("CLOSED"); return 0;

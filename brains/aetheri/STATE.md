@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — native Files list/grid, information and inline naming.
+5 November 2026 — fullscreen dock visibility and current-scene pointer routing.
 
 ## Coordination
 
@@ -14,6 +14,39 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The fullscreen dock overlap is corrected in the development compositor. Current
+scene stack/geometry and committed coverage determine visibility per output;
+normal foreground windows reveal the dock, and original fullscreen activation
+hides it again. Explicit search remains available without changing the compact
+surface's mapping/reservation. Stationary pointer hits/local coordinates are
+rechecked, while original buttons/grabs retain their release and absent pointer
+devices produce no notification. No new polling service or authority is introduced.
+
+Two retained native negatives isolate the old visible dock and the initial
+visibility-only stationary-input loss. All 46 affected groups pass Release
+(126.56s) and ASan+UBSan (181.89s). A sole final pointer-presence guard is then
+revalidated through 6/6 groups/profile (41.92s/58.54s); only compositor/test-server
+binaries change. Final native desktop profiles have 25 cases/48 images each,
+including three outputs, real drag geometry, search, original press/release,
+unmap, selected-output resize and no configure/redraw loop.
+
+Actual final-binary DRM token0641483bd71e4cbba5f5cdfc9e907a5b proves hidden dock,
+responsive real SDL search, normal Settings activation, original fullscreen
+return, close/restore and exact saved document bytes. Eighteen stable PNGs and
+three actor hashes remain; original four-role end/controller close both succeed.
+Audit binds 340 sources, unchanged 28 SQL/XML and nineteen protected old hashes,
+no sidecars; the enforcing carrier is idle on tty1 with no known native actors/
+Aetheri units/seat0 session. Old recovery remains unresolved. See
+[record](journal/2026-11-05-fullscreen-dock.md) and `local/fullscreen-dock-2026-11-05`.
+
+Next: evaluate a concrete per-view NexaUI Settings consumer in the Fedora carrier.
+Do not replace the working view before actual candidate/model/native gates pass.
+Full visual design/glass/autohide, input/accessibility, other apps, normal grants/
+recovery/removal, installable OS/hardware and the resettable experiment desktop
+remain required. Keep the full goal active.
+
+## Native Files presentation — completed checkpoint
 
 Files now uses the shared geometry for native drawing and hit testing: compact
 list/card views, actual held locations, optional information and inline create/
@@ -35,9 +68,9 @@ hashes with no sidecars. The enforcing carrier is idle on tty1 without known
 native actors/Aetheri units/seat0 session. Old recovery remains unresolved.
 See [record](journal/2026-11-05-files-view.md) and `local/files-view-2026-11-05`.
 
-**Next concrete visual correction:** the actual fullscreen screenshot still shows
-the dock above Files. Correct compositor dock/search/fullscreen ordering and
-verify activation/return/multiple outputs; native window size alone is insufficient.
+**At this checkpoint**, the fullscreen screenshot still showed the dock above
+Files. The current update above records its subsequent compositor/input correction
+and activation/return/multiple-output evidence; native size alone was insufficient.
 Full glass, complete input/accessibility, a per-view NexaUI adoption pilot,
 copy/removal, normal grants/recovery, other apps, installable OS/hardware and the
 complete resettable experiment desktop remain required. Keep the full goal active.

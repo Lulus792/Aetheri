@@ -285,7 +285,9 @@ remains; this does not establish a finished login/PAM profile.
 The design is provisional. Screenreader/AT-SPI semantics, complete text/IME,
 200% text and mixed physical DPI, final design/materials/assets, arbitrary app
 catalogue/launch admission, general off-screen/minimum-size handling, fullscreen
-dock policy, trusted lock/resume and physical drivers remain work. The full
+workspace policy, trusted lock/resume and physical drivers remain work. The
+[compact dock/fullscreen correction](desktop.md#surface-profile-and-focus) is
+subsequently tested with independent clients and the actual SDL desktop. The full
 terminal/editor/shell, browser, Files, device/software/VM tools, original image/
 installer and persistent experiment desktop are still required. A working carrier
 desktop does not complete those goals or establish a security sandbox.

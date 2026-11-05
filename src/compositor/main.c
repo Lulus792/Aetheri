@@ -305,6 +305,7 @@ static void window_fullscreen(struct wl_listener *listener, void *data) {
     struct window *w = wl_container_of(listener, w, fullscreen);
     w->is_fullscreen = w->toplevel->requested.fullscreen;
     if (w->toplevel->base->initialized) ae_server_configure(w);
+    ae_desktop_refresh_visibility(w->server->desktop);
 }
 static void window_commit(struct wl_listener *listener, void *data) {
     (void)data;
@@ -314,6 +315,7 @@ static void window_commit(struct wl_listener *listener, void *data) {
             WLR_XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE | WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN);
         ae_server_configure(w);
     }
+    if (w->mapped) ae_desktop_refresh_visibility(w->server->desktop);
 }
 static void window_map(struct wl_listener *listener, void *data) {
     (void)data;

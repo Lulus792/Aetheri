@@ -9,6 +9,9 @@ struct ae_desktop;
 struct ae_desktop *ae_desktop_create(struct server *server, int fd);
 void ae_desktop_destroy(struct ae_desktop *desktop);
 void ae_desktop_arrange(struct ae_desktop *desktop);
+/* Derive presentation from the current window stack; never change layer role,
+   mapping, reserved work area or keyboard ownership merely to hide a dock. */
+void ae_desktop_refresh_visibility(struct ae_desktop *desktop);
 void ae_desktop_window(struct ae_desktop *desktop, struct window *window);
 void ae_desktop_closed(struct ae_desktop *desktop, struct window *window);
 bool ae_desktop_surface(struct ae_desktop *desktop, struct wlr_surface *surface);

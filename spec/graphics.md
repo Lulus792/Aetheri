@@ -42,8 +42,11 @@ maximizes/restores only the actual focused app outside shell focus, pointer grab
 and fullscreen. Both arrow events are consumed. Current-output lookup, including
 explicit fullscreen selection, drives later work-area/output reconfiguration;
 original placement is not used as a substitute. See [consumer behavior and native
-evidence](desktop-ui.md). General off-screen recovery and fullscreen dock policy
-remain open.
+evidence](desktop-ui.md). The [private desktop](desktop.md#surface-profile-and-focus)
+now derives compact-dock visibility from committed fullscreen coverage and the
+current stack, while retaining explicit search and pointer-sequence ownership.
+General off-screen recovery, fullscreen workspace/animation, mixed-DPI and
+physical acceptance remain open.
 
 ## Native input and nested presentation
 
