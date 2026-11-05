@@ -4,7 +4,40 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
-## Stable terminal selection — 5 November 2026
+## Bounded terminal clipboard — 5 November 2026
+
+- [Native adapter](../../src/terminal/clipboard.c),
+  [paste model](../../src/terminal/paste.c),
+  [independent peer integration](../../tools/test_terminal_clipboard.py) and
+  [owner/reentry client](../../tests/test_terminal_clipboard_api.c).
+  Twelve affected groups pass Release 54.84 s / ASan+UBSan 62.06 s at
+  /home/aetheri/build/terminal-clipboard-check-h4qdq139. Final clipboard-only
+  repeats after the file-content readiness fix pass 12.91/15.86 s; final pure
+  field-comparison tests pass both profiles. See current STATE and the
+  [handoff](journal/2026-11-05-terminal-clipboard.md) for exact native roots.
+- Local evidence index local/terminal-clipboard-2026-11-05/native-evidence-index.json
+  verifies 244 copied files and all 144 decompressed image hashes. Native DE/
+  high-contrast and actual DRM 200% screenshots were inspected. Actual DRM token
+  e8c394ed63c54e9c81dc4c6e2bbdea74 has twelve PNGs/six stable pairs, exact baseline
+  restoration and original child/stream shutdown/status0. It binds the same
+  Debug terminal binary as the independent native result. This does not prove
+  physical input/GPU, human assistive or normal login/session acceptance.
+- Build-local progress-renewed-deadline mutation is rejected by the unchanged
+  native total-timeout assertion after actual trickled bytes. Its first attempt
+  failed before compositor readiness with a 111-byte AF_UNIX socket path; a
+  second encountered file creation before content. Original logs are preserved;
+  neither substitutes for the final deadline counterexample. The original
+  timestamp failure separately led to a real monotonic clock in the test driver.
+- [Wayland client API](https://wayland.freedesktop.org/docs/html/apb.html) and
+  [core protocol](https://wayland.freedesktop.org/docs/html/apa.html) read on
+  5 November for queue wrappers, borrowed queue/display observation, FD transfer,
+  native focus lifetime and the sync barrier. Registry server bookkeeping lasts
+  until connection disconnect; local close and FD-stable reopen tests do not
+  prove otherwise. The terminal creates one adapter and later disconnects SDL.
+  The SDL source timing investigation in the historical selection record below
+  remains the reason for avoiding its synchronous clipboard APIs.
+
+## Stable terminal selection — historical checkpoint, 5 November 2026
 
 - [Model/export](../../src/terminal/model.c), [SDL adapter](../../src/terminal/main.c)
   and [selection regression](../../tests/test_terminal_selection.c). Current five

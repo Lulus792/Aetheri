@@ -1,8 +1,71 @@
 # State
 
-5 November 2026 — stable terminal text selection and bounded UTF-8 export.
+5 November 2026 — bounded native terminal clipboard and reviewed paste.
 
 ## Current update
+
+The [terminal](../../spec/terminal.md) now copies immutable selected UTF-8 and
+receives native Wayland clipboard text without synchronous SDL clipboard loops.
+It borrows the actual SDL connection/surface/queue; all protocol/IO remains on
+the owner thread. The existing readiness worker adds only a stable epoll FD and
+an atomically published absolute deadline. There is no new thread, daemon, host
+bridge, dependency family, installed capability, policy or SQL/wire change.
+
+The adapter bounds sources/offers, FD transfers, per-pump IO and text allocations.
+Five-second complete-transfer deadlines do not renew on progress; in-flight
+exports retain the original snapshot after replacement. One receive sync barrier
+bounds uncertain queued FD requests. Old offers are dropped on native focus loss;
+closing a local FD is never remote revocation or process/lease drain.
+
+Paste admits at most 4096 raw bytes after complete strict UTF-8/control validation.
+CRLF/CR normalize to LF. Multiline/tab content requires a scrollable escaped
+review; Cancel is initial, and confirmation requires a fresh non-repeat action.
+The app rechecks original focus/shell/foreground observation/screen/input state.
+Rejection/cancel sends no partial bytes, and accepted input is queued only once.
+The profile retains TERM=dumb and has no bracketed-paste/complete VT or IME claim.
+
+Twelve affected groups pass Release (54.84 s) and Debug ASan/UBSan (62.06 s),
+including desktop/native ownership and compositor input/clipboard. The separate
+clipboard group has eleven cases/profile: actual independent sources/receivers,
+real shell file effects, default-cancel/fresh confirmation, plain MIME, full long
+preview at 200% DE/contrast, malformed/oversize rejection, trickled receive timeout,
+isolated other-client focus loss, eight blocked exports/ninth refusal, source
+replacement and close during transfer. Its independent adapter client checks
+wrong-thread/wake reentry refusal, borrowed lifetimes and sixteen FD-stable
+open/close cycles. Final clipboard repeats after a file-readiness fixture fix
+pass in 12.91/15.86 s; final pure-paste field-comparison repeats pass both profiles.
+
+A build-local mutation renewing receive deadlines on every byte fails the
+unchanged native deadline assertion. An initial negative fixture exceeded the
+AF_UNIX path bound before compositor startup; another exposed that file creation
+precedes its contents. Neither counts as the deadline counterexample. The test
+now waits for expected file bytes. Original attempts are retained. A separate
+earlier failure proved the input driver's event counter was not a real timestamp;
+the fixture now uses CLOCK_MONOTONIC milliseconds without weakening UI freshness.
+
+All 144 native raw-image hashes verify. Actual final Debug DRM/QMP testing also
+copies and reviews text at 100/200%, restores both original pixel baselines after
+cancel, and ends its original compositor/desktop/terminal with status0. Twelve
+console PNGs form six stable pairs. Token e8c394ed63c54e9c81dc4c6e2bbdea74 is
+closed, with original stdout stream d0dea03917bf4135914207433a9300c3 under
+session-827.scope. The linked terminal matches the independent native result.
+The native DE/high-contrast and DRM 200% images were visually inspected. These
+are virtual software/PS2/bochs-drm results, not physical, host-window or human
+assistive acceptance. Third-party SDL/text/Mesa remain Release libraries.
+
+Final audit joins all 270 host/snapshot/guest source hashes, all 28 frozen SQL/XML,
+nineteen protected old hashes without sidecars and 872 local Markdown file targets.
+The carrier remains enforcing on tty1 with no known native app/test process,
+running Aetheri service or seat0 session after original-unit retirement.
+
+Evidence and original failures are under local/terminal-clipboard-2026-11-05;
+see the [handoff](journal/2026-11-05-terminal-clipboard.md). The separate old
+running/recover-handoff intent remains quarantined and its nineteen protected
+hashes unchanged without SQLite sidecars. Normal app/session admission, editor/
+panes/plugins/persistence, accessibility, the image/installer, complete apps and
+full experiment desktop still remain part of the active objective.
+
+## Selection-only checkpoint — historical
 
 The [terminal](../../spec/terminal.md) now has toolkit-independent text selection
 with mouse drag, Ctrl+Shift+arrows/A and Escape-to-clear. Per-row content tokens

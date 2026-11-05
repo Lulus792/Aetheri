@@ -719,7 +719,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   UTF-8 export is not native clipboard transport. The selected SDL Wayland read
   path is synchronous without a complete-transfer byte limit; do not call its
   main-thread-only API from the readiness worker or add unbounded UI paste.
-  Async request/offer/FD readiness, deadlines, cancellation and paste review remain
-  the next integration gate. Add no clipboard daemon/host bridge implicitly.
+  The bounded clipboard adapter now borrows SDL's actual display/surface/queue;
+  keep one owner reader/dispatcher and the existing readiness worker. Preserve
+  fixed source/offer/send/memory budgets, nonreused epoll cookies, total deadlines,
+  immutable in-flight exports and the one-unacknowledged-receive sync barrier.
+  Old offers are dropped on native focus loss. Run terminal.clipboard: real peers,
+  stalled/trickled IO, blocked exports/replacement and close must stay bounded.
+  Toolkit-free paste validates all <=4096 bytes before queueing; multiline/tab
+  review starts on Cancel and requires fresh input after review-frame submission.
+  Recheck original focus/shell/foreground/screen state; no retry after acceptance.
+  This remains TERM=dumb, not bracketed paste/full VT/IME or app admission.
+  Add no clipboard daemon/host bridge implicitly. Closing FDs, EOF and protocol
+  sync never prove remote revocation, process drain or lease settlement.
   Native tests retain exact pixel/byte and stale-row mutation evidence; virtual
   input and software rendering do not establish hardware/a11y acceptance.

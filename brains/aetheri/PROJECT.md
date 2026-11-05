@@ -20,7 +20,8 @@ an understandable installation/runtime footprint.
   Linux runner, now with explicit interactive controlling-terminal/job management.
   The opt-in [graphical terminal](../../spec/terminal.md) now adds real PTY/SDL3
   input/output, bounded cells/history, text sizing and stable mouse/keyboard
-  selection with toolkit-free UTF-8 export.
+  selection with toolkit-free UTF-8 export, bounded native clipboard transfers
+  and whole-snapshot paste validation/review.
   The explicit development desktop now starts/reuses it independently of Settings.
   Rich shell editing, own panes/editor, persistent sessions and normal admitted app/session launch
   remain work.

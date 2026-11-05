@@ -1,5 +1,24 @@
 # Decisions
 
+## Keep native clipboard IO bounded and paste app-owned — 5 November 2026
+
+Use the actual SDL Wayland connection/surface/queue through the existing reviewed
+1.26.0 client family. An owner-thread adapter manages immutable sources and bounded
+nonblocking transfers; the existing readiness worker polls its stable epoll FD
+and synchronized five-second absolute deadline. Do not add another connection,
+reader, daemon or permanent thread. Cancel/focus loss closes only local obligations;
+one receive sync barrier bounds uncertain outgoing FD-bearing requests. Old offers
+cannot be revived after focus loss. Publication, EOF, a sync or GUI state proves
+neither delivery, revocation, app authority nor process/lease drain.
+
+Keep whole-payload validation/CR normalization and escaped preview independent of
+SDL/NexaUI. The current terminal admits at most 4096 bytes; multiline/tab input
+needs a fresh confirmation with Cancel initially selected. Revalidate original
+UI/shell/foreground/screen observations before queueing once. No implicit shell
+parsing, bracketed paste, full VT/IME or secret clipboard-persistence guarantee
+follows. Native independent peers and a deadline-renewal mutation test this scope.
+See [terminal contract](../../spec/terminal.md) and current STATE.
+
 ## Retain selected row content identities before clipboard transport — 5 November 2026
 
 Use process-local nonreused row-content tokens that move with history and change

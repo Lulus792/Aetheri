@@ -2,6 +2,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -52,7 +54,8 @@ struct app {
     unsigned grab_mode;
     uint32_t last_button;
     struct wl_callback *sync;
-    const char *clipboard_payload;
+    const char *clipboard_payload;char *owned_payload;size_t clipboard_size;bool stall_clipboard,plain_clipboard;
+    int stalled[16],readers[16];unsigned stalled_count,reader_count;
     struct wl_data_device_manager *data_manager;
     struct wl_data_device *data_device;
     struct wl_data_offer *offers[64], *selection, *previous_selection;
@@ -64,8 +67,12 @@ static void source_target(void *data, struct wl_data_source *source, const char 
 static void source_send(void *data, struct wl_data_source *source, const char *mime, int32_t fd) {
     (void)source;
     struct clipboard_source *s=data;
-    CHECK(!strcmp(mime,"text/plain;charset=utf-8"));
-    size_t length=strlen(s->app->clipboard_payload);
+    CHECK(!strcmp(mime,s->app->plain_clipboard ? "text/plain" : "text/plain;charset=utf-8"));
+    if (s->app->stall_clipboard) {
+        CHECK(s->app->stalled_count<16);s->app->stalled[s->app->stalled_count++]=fd;
+        printf("CLIPBOARD_STALLED %u\n",s->index);return;
+    }
+    size_t length=s->app->clipboard_size;
     ssize_t n;
     do { n=write(fd,s->app->clipboard_payload,length); } while (n<0 && errno==EINTR);
     CHECK(n==(ssize_t)length); CHECK(close(fd)==0);
@@ -75,7 +82,7 @@ static void source_cancelled(void *data, struct wl_data_source *source) {
     (void)source; struct clipboard_source *s=data; printf("CLIPBOARD_CANCEL %u\n",s->index);
 }
 static const struct wl_data_source_listener source_listener={.target=source_target,.send=source_send,.cancelled=source_cancelled};
-static void offer_mime(void *data, struct wl_data_offer *offer, const char *mime) { (void)data; (void)offer; CHECK(!strcmp(mime,"text/plain;charset=utf-8")); }
+static void offer_mime(void *data, struct wl_data_offer *offer, const char *mime) { (void)data; (void)offer; CHECK(!strcmp(mime,"text/plain;charset=utf-8") || !strcmp(mime,"text/plain")); }
 static const struct wl_data_offer_listener offer_listener={.offer=offer_mime};
 static void device_offer(void *data, struct wl_data_device *device, struct wl_data_offer *offer) {
     (void)device; struct app *a=data;
@@ -90,13 +97,34 @@ static void device_selection(void *data, struct wl_data_device *device, struct w
 }
 static const struct wl_data_device_listener device_listener={.data_offer=device_offer,.selection=device_selection};
 static void clipboard_command(struct app *a, char c) {
-    if (c=='C' || c=='S' || c=='Z' || c=='J') {
+    if (c=='T') {
+        for (unsigned i=0;i<a->stalled_count;++i) if (a->stalled[i]>=0) {
+            ssize_t sent=write(a->stalled[i],"x",1);
+            if (sent<0 && errno==EPIPE) { close(a->stalled[i]);a->stalled[i]=-1;puts("CLIPBOARD_STALL_BROKEN"); }
+            else CHECK(sent==1 || (sent<0 && (errno==EAGAIN || errno==EWOULDBLOCK)));
+        }
+    } else if (c=='W') {
+        CHECK(a->selection && a->reader_count<16);int fds[2];CHECK(pipe2(fds,O_CLOEXEC|O_NONBLOCK)==0);
+        wl_data_offer_receive(a->selection,"text/plain;charset=utf-8",fds[1]);close(fds[1]);a->readers[a->reader_count++]=fds[0];
+    } else if (c=='F') {
+        for (unsigned i=0;i<a->reader_count;++i) if (a->readers[i]>=0) {
+            unsigned char bytes[4096];size_t total=0;bool eof=false;
+            for (;;) {
+                ssize_t got=read(a->readers[i],bytes,sizeof(bytes));
+                if (got<0 && errno==EINTR) continue;
+                if (got<0 && (errno==EAGAIN || errno==EWOULDBLOCK)) break;
+                CHECK(got>=0);if (!got) { eof=true;break; }
+                total+=(size_t)got;CHECK(total<=8*1024*1024);
+            }
+            printf("CLIPBOARD_DRAIN %u %zu %d\n",i,total,eof);close(a->readers[i]);a->readers[i]=-1;
+        }
+    } else if (c=='C' || c=='S' || c=='Z' || c=='J') {
         CHECK(a->source_count<16);
         struct clipboard_source *s=&a->sources[a->source_count];
         *s=(struct clipboard_source){.app=a,.index=(unsigned)a->source_count}; ++a->source_count;
         s->object=wl_data_device_manager_create_data_source(a->data_manager); CHECK(s->object);
         CHECK(wl_data_source_add_listener(s->object,&source_listener,s)==0);
-        wl_data_source_offer(s->object,"text/plain;charset=utf-8");
+        wl_data_source_offer(s->object,a->plain_clipboard ? "text/plain" : "text/plain;charset=utf-8");
         if (c=='J') {
             CHECK(a->keyboard_focus);
             wl_data_source_set_actions(s->object,WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
@@ -410,12 +438,21 @@ static void destroy_view(struct view *v) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b"))));
+    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b") || !strcmp(argv[1],"--clipboard-stall"))) ||
+          (argc==3 && (!strcmp(argv[1],"--clipboard-file") || !strcmp(argv[1],"--clipboard-plain"))));
+    CHECK(signal(SIGPIPE,SIG_IGN)!=SIG_ERR); /* Test peer may observe a cancelled receive. */
     struct app a = {.shell_version = argc == 2 && !strcmp(argv[1], "--legacy") ? 3 : 5,
                     .input = argc == 2 && !strcmp(argv[1], "--input")};
     if (argc==2 && !strncmp(argv[1],"--clipboard-",12)) {
-        a.input=true; a.clipboard_payload=argv[1][12]=='a' ? "Aetheri A Grüße\n" : "Aetheri B Grüße\n";
+        a.input=true;a.stall_clipboard=!strcmp(argv[1],"--clipboard-stall");a.clipboard_payload=argv[1][12]=='a' ? "Aetheri A Grüße\n" : "Aetheri B Grüße\n";
     }
+    if (argc==3) {
+        a.plain_clipboard=!strcmp(argv[1],"--clipboard-plain");
+        int fd=open(argv[2],O_RDONLY|O_CLOEXEC|O_NOFOLLOW);struct stat st;CHECK(fd>=0 && !fstat(fd,&st) && S_ISREG(st.st_mode) && st.st_size>0 && st.st_size<=65536);
+        a.clipboard_size=(size_t)st.st_size;a.owned_payload=malloc(a.clipboard_size+1);CHECK(a.owned_payload);
+        size_t at=0;while (at<a.clipboard_size) { ssize_t n=read(fd,a.owned_payload+at,a.clipboard_size-at);if (n<0 && errno==EINTR) continue;CHECK(n>0);at+=(size_t)n; }
+        CHECK(close(fd)==0);a.owned_payload[a.clipboard_size]=0;a.clipboard_payload=a.owned_payload;a.input=true;
+    } else if (a.clipboard_payload) a.clipboard_size=strlen(a.clipboard_payload);
     if (a.input) { a.xkb = xkb_context_new(XKB_CONTEXT_NO_ENVIRONMENT_NAMES); CHECK(a.xkb); }
     wl_list_init(&a.buffers);
     a.display = wl_display_connect(NULL);
@@ -471,7 +508,7 @@ int main(int argc, char **argv) {
                 CHECK(!a.views[0].surface && !a.views[1].surface);
                 create_view(&a,0); create_view(&a,1); puts("CLIPBOARD_VIEWS_CREATED");
             }
-            else if (a.clipboard_payload && strchr("CSZERODJH",c)) clipboard_command(&a,c);
+            else if (a.clipboard_payload && strchr("CSZERODJHTWF",c)) clipboard_command(&a,c);
             else CHECK(false);
         }
     }
@@ -487,6 +524,9 @@ int main(int argc, char **argv) {
     if (a.sync) wl_callback_destroy(a.sync);
     if (a.pointer) wl_pointer_release(a.pointer);
     if (a.keyboard) wl_keyboard_release(a.keyboard);
+    for (unsigned i=0;i<a.stalled_count;++i) if (a.stalled[i]>=0) close(a.stalled[i]);
+    for (unsigned i=0;i<a.reader_count;++i) if (a.readers[i]>=0) close(a.readers[i]);
+    free(a.owned_payload);
     if (a.seat) wl_seat_destroy(a.seat);
     for (size_t i=0;i<a.source_count;++i) wl_data_source_destroy(a.sources[i].object);
     for (size_t i=0;i<a.offer_count;++i) wl_data_offer_destroy(a.offers[i]);

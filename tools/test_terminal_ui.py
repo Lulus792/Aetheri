@@ -191,10 +191,13 @@ def main():
         control(30,shift=True)
         wait(lambda:view().get("selection",0)>1,"keyboard selects actual retained terminal content")
         snapshot("keyboard selection of actual terminal output",selected=True)
-        previous_frame=view()["frame"];control(46,shift=True);control(47,shift=True)
-        wait(lambda:view().get("frame",0)>previous_frame and view().get("selection",0)>1,"unavailable clipboard chords preserve selection")
+        control(46,shift=True);wait(lambda:"CLIPBOARD copy result=0" in log(),"native clipboard publication")
+        control(47,shift=True)
+        wait(lambda:view().get("review")==1 and view().get("paste",0)>1,"self clipboard transfer reaches review without shell input")
         assert accepted()==before_input,"clipboard chords must not become terminal interrupt/literal-next"
-        cases.append("unavailable clipboard chords do not send Ctrl+C or Ctrl+V to the PTY")
+        snapshot("native multiline clipboard review before shell input")
+        tap(1);wait(lambda:view().get("review")==0,"Escape cancels paste review")
+        cases.append("actual copied text returns through native clipboard and remains unsubmitted until review")
         tap(1)
         wait(lambda:view().get("selection")==0,"Escape clears selection without PTY input")
         assert accepted()==before_input

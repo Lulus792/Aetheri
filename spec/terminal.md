@@ -39,7 +39,10 @@ still separate. Test file operations explicitly choose their owned token folder.
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
 | Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
-| Ctrl+Shift+C / Ctrl+Shift+V | Report copy/paste unavailable; never forward these chords as interrupt or literal-next |
+| Ctrl+Shift+C / Ctrl+Shift+V | Copy stable selected text / receive bounded clipboard text; these chords never become interrupt or literal-next |
+| Escape / Enter in paste review | Cancel staged paste; Cancel is the initial focused action |
+| Ctrl+Enter / Tab then Enter in paste review | Confirm the complete reviewed snapshot with a fresh non-repeat action |
+| Arrows, PageUp/Down, Home/End, wheel in paste review | Navigate the complete escaped preview without submitting text |
 | F6 | Toggle English/German terminal chrome, independently of keyboard layout |
 | F7 | Toggle higher-contrast chrome/default terminal colors; preserve explicit program colors |
 | F8 | Cycle text size 16, 20, 24 and 32; minimum window grows from 480×320 to 960×640 |
@@ -57,6 +60,8 @@ persistence and its eventual UI are still separate product decisions.
 | --- | --- |
 | [model.h](../src/terminal/model.h), [model.c](../src/terminal/model.c) | Toolkit-independent cell/escape/UTF-8 state, cursor and bounded history |
 | [pty.h](../src/terminal/pty.h), [pty.c](../src/terminal/pty.c) | Held PTY peer, original child/pidfd, resize, independent stream/process observations and one-shot hangup |
+| [paste.h](../src/terminal/paste.h), [paste.c](../src/terminal/paste.c) | Toolkit-free whole-snapshot validation, CR normalization and bounded escaped preview |
+| [clipboard.h](../src/terminal/clipboard.h), [clipboard.c](../src/terminal/clipboard.c) | Owner-thread native Wayland selection and bounded nonblocking transfer ownership |
 | [main.c](../src/terminal/main.c) | SDL input/rendering, font/texture ownership and readiness-to-owner-thread handoff |
 
 The model holds at most 240×100 cells, a separate alternate screen and 1,024
@@ -92,8 +97,10 @@ return size0, while a selected blank range can export just a terminating NUL.
 
 Mouse drag and Ctrl+Shift+arrows/A operate the same model. Focus loss ends a drag
 without discarding a still-valid selection. Accepted PTY input clears selection;
-selection actions and Escape-to-clear never become shell bytes. Copy/paste chords currently report unavailable without sending Ctrl+C/Ctrl+V
-to the PTY: UTF-8 export is not OS clipboard ownership or transport.
+selection actions and Escape-to-clear never become shell bytes. Copy takes an
+independent immutable export snapshot; later selection/content edits cannot
+change its in-flight bytes. Native clipboard publication is distinct from a
+delivery receipt. Clipboard persistence after this owner closes is not promised.
 
 PTY creation/fork happens before SDL, Mesa or worker threads. The child becomes
 its own controlling-terminal session through `TIOCGPTPEER`, `setsid` and
@@ -103,9 +110,10 @@ does not imply stream EOF, and EOF does not imply child exit or descendant drain
 No process discovery by stale numeric PID/SID is used for normal ownership.
 
 The UI thread alone changes the model and reads/writes the nonblocking PTY.
-A single readiness worker polls the master, original pidfd and wake pipe, then
+A single readiness worker polls the master, original pidfd, wake pipe and stable
+clipboard epoll descriptor, then
 waits for UI acknowledgement; it performs no terminal IO or model work. Idle has
-no frame/blink timer. Input has a 4,096-byte queue; a new event that cannot fit is
+no frame/blink timer; only active transfers add an absolute deadline. Input has a 4,096-byte queue; a new event that cannot fit is
 refused as a whole. Output processing is capped at 16 KiB per notification.
 Glyph textures are bounded to 512 entries/8 MiB and retire on size changes.
 Event-post failure retries only under failure, then delivers a failure for owned
@@ -121,7 +129,9 @@ is added by the terminal.
 
 The SDL3 3.4.20/SDL_ttf 3.2.2/FreeType 2.15.0/HarfBuzz 15.0.0 and Mesa profile is
 the existing reviewed Settings foundation. Direct Wayland client use is the same
-existing family (carrier 1.26.0), for diagnostic frame callbacks only. A callback
+existing family (carrier 1.26.0), for diagnostic frame callbacks and clipboard
+selection/transfer. The terminal build now requires that exact client version;
+the compositor already uses this reviewed family. A callback
 is a compositor scheduling observation, not scanout, physical acceptance or app
 READY. `--diagnostics` records bounded counters/states rather than terminal text.
 
@@ -163,10 +173,9 @@ local abrupt-worker-exit mutation. Original failing artifacts are retained.
 
 ## Remaining work
 
-The fixed development launch owner/dock and text selection are connected. Next add
-bounded asynchronous clipboard transport/paste review, full text editing/IME,
-panes/editor/plugins and durable sessions. Text selection/export now exist; shared
-clipboard copy/paste does not. Complete terminal protocol coverage and declaration require their own
+The fixed development launch owner/dock, text selection and bounded native
+clipboard/paste review are connected. Next add full text editing/IME,
+panes/editor/plugins and durable sessions. Complete terminal protocol coverage and declaration require their own
 compatibility corpus. Images/PDF, accessibility and normal admitted app/session
 integration remain required. Physical mixed-DPI/GPU/input/suspend, light-theme and
 final visual acceptance are not established by virtual software-rendered images.
@@ -199,7 +208,71 @@ exact sources/binaries are under `local/terminal-selection-2026-11-05` and the
 warning is unchanged. These are software/virtual results, not physical GPU,
 Windows host input, native assistive or complete clipboard acceptance.
 
-## Clipboard integration boundary — 5 November 2026
+## Bounded native clipboard and paste — 5 November 2026
+
+The adapter borrows the actual SDL Wayland connection/surface and its selected
+queue using public client APIs. SDL keeps connection/event dispatch ownership;
+the adapter creates no second reader, native thread or persistent service. One
+seat is supported; absent/ambiguous capabilities are unavailable. An independent
+keyboard listener observes this exact surface's native focus/serial and a
+nonreused local focus epoch. Focus loss drops old offers; only a newly received
+offer may be used after re-entry. This is UI intent validation, not app identity,
+session trust, a file grant or a security boundary against a hostile compositor.
+The app constructs one adapter for its SDL connection lifetime. Its registry
+request has connection-lifetime server bookkeeping under the Wayland contract;
+local adapter close/FD stability is not proof that repeatedly creating registries
+on a still-live borrowed connection releases that server state. SDL disconnects
+after the terminal closes. Do not turn this internal one-shot integration into
+an unbounded adapter recreation loop.
+
+Budgets are 64 offer objects, four retained sources, eight outgoing transfers,
+8 MiB maximum text per source and 16 MiB aggregate adapter text allocation.
+The terminal requests at most **4,096 raw bytes** per paste. There is one receive
+and at most one unacknowledged FD-bearing receive request: cancellation closes
+the local reader, but a sync barrier must acknowledge the original request before
+another native request can be issued. It is not remote-FD revocation.
+
+Only nonblocking pipes/stream sockets are accepted for outgoing native writes.
+Each ready transfer processes at most 16 KiB per pump; a five-second absolute
+monotonic deadline covers the entire transfer and does not restart on progress.
+Per-thread SIGPIPE handling preserves the process-wide disposition and existing
+pending signals. In-flight sends retain their original snapshot after source
+replacement, until completion, failure or deadline. Stale epoll observations carry
+nonreused cookies, so FD reuse cannot select a new transfer. The readiness worker
+polls only a stable descriptor and an atomically copied deadline; all actual
+protocol/IO/model changes remain on the UI owner. Close joins it before releasing
+the adapter and before SDL destroys the borrowed surface/connection.
+
+Paste validates complete strict UTF-8 before changing the input queue. NUL,
+terminal escape/control bytes, DEL/C1 and bidi-formatting controls are rejected.
+CR/CRLF normalize to LF. Ordinary single-line text is literal input; LF/TAB and
+Unicode line separators require review. The solid modal shows line/byte counts
+and every preview row through bounded scrolling; backslashes, line breaks, tabs
+and nonprinting/zero-width scalars have visible escapes. Actual normalized input
+bytes remain unchanged by preview escaping. F6/F7/F8 and Close stay available.
+
+The initial action is Cancel. Confirmation requires an actual non-repeat key
+event or matching button press/release after the first SDL review-frame
+submission. That timestamp is not proof of physical display/scanout.
+Before accepting received/reviewed text, the app rechecks native focus epoch,
+the original live shell, current PTY foreground-group observation, screen mode
+and open input/stream state. Ordinary new input, relevant focus loss or close
+cancels pending/staged paste. Accepted text is queued once; a later uncertain
+write is never retried as a new paste. The foreground group is an observation,
+not authorization or process-recovery identity. This profile has no bracketed-
+paste support yet and retains `TERM=dumb`; normal app admission, complete VT,
+IME, secret clipboard policy and lock/session integration remain work.
+
+The [pure paste regression](../tests/test_terminal_paste.c) covers UTF-8/control
+rejection, atomic state, normalization, exact limits and full preview traversal.
+The [native peer test](../tools/test_terminal_clipboard.py) uses the actual
+terminal/shell and independent libwayland sources/receivers; its
+[adapter contract client](../tests/test_terminal_clipboard_api.c) separately checks
+wrong-thread/reentrant rejection and retained borrowed objects/FD counts. Test
+source code is not evidence that a particular candidate passed: current executed
+results and any remaining gates belong in STATE and the evidence record.
+
+## Initial SDL clipboard boundary — historical investigation
 
 The selected SDL3 3.4.20 archive's Wayland `read_pipe` / `Wayland_data_offer_receive`
 wait synchronously and grow the allocation while more bytes arrive. Its extended
@@ -209,12 +282,11 @@ from the PTY worker or expose an unbounded synchronous paste through the UI.
 The archive also loops writes with per-wait timing, so a bounded sender snapshot
 alone is not a complete responsiveness contract.
 
-Next implement owner-thread Wayland request/offer handling plus bounded nonblocking
-transfer readiness, complete-transfer deadlines and cancellation. Reuse the actual
+This investigation led to owner-thread Wayland request/offer handling plus bounded nonblocking
+transfer readiness, complete-transfer deadlines and cancellation above. It required the actual
 SDL connection/selected surface queue where the reviewed host contract permits it;
 a second client connection cannot inherit keyboard focus by having the same UID.
-`wl_proxy_get_queue` is a public API in the selected Wayland family, but this
-integration is still a proposal, not executed compatibility evidence. Preserve
+`wl_proxy_get_queue` is a public API in the selected Wayland family. Preserve
 window/clipboard/transfer ownership independently; add no persistent clipboard
 helper or host bridge implicitly. A complete validated snapshot must precede any
 PTY bytes, with explicit review for multiline paste and no execution of control

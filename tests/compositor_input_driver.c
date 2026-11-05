@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/interfaces/wlr_pointer.h>
@@ -56,7 +57,12 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     unsigned output_index, width, height;
     double x, y;
     int used = 0;
-    ++d->time;
+    /* Native input timestamps are milliseconds on the monotonic clock. A
+       command counter fabricates old events after real test waits and cannot
+       exercise freshness checks at a presented confirmation boundary. */
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC,&now)) goto invalid;
+    d->time=(uint32_t)((uint64_t)now.tv_sec*UINT64_C(1000)+(uint64_t)now.tv_nsec/UINT64_C(1000000));
     if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
     else if (sscanf(text, "O %u %u %u%n", &output_index, &width, &height, &used) == 3 && used == length &&
