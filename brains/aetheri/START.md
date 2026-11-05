@@ -14,7 +14,8 @@ For repeatable start/status/stop and the native VM window, see the
 The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
 terminal/jobs in the carrier. The opt-in [graphical terminal](../../spec/terminal.md)
 now adds a real PTY, native SDL3 input/output, stable text selection and bounded
-native clipboard/paste review. Rich editing, panes, persistent
+native clipboard/paste review and an owned SDL preedit view. Production IME routing,
+rich editing, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.

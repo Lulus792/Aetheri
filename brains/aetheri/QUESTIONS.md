@@ -57,7 +57,8 @@ editor/multiplexer behavior remain product decisions, not implied by these tests
 S2. Define the editor/plugin capability model and terminal pane/session interaction.
 The [first graphical terminal](../../spec/terminal.md) now has native PTY/grid/
 input/job evidence and actual fixed desktop launch/reuse/close/reopen. Next
-engineering work is full text editing/IME and the app-owned editor/pane/session
+engineering work is production compositor/provider IME routing, full text editing
+and the app-owned editor/pane/session
 model, then normal admitted session/app integration. It does not
 decide persistence by merely closing a window. A first Release llvmpipe sample
 is about 163 MiB RSS at 200% text; profile app/driver/cache/thread contributions

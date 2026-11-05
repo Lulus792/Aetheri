@@ -1,5 +1,6 @@
 /* Test-only inherited socket capability. Never linked into aetheri-compositor. */
 #include "compositor_input_driver.h"
+#include "compositor_text_input.h"
 #include "compositor/server.h"
 #include "compositor/input.h"
 #include <errno.h>
@@ -22,6 +23,7 @@ struct input_driver {
     struct wlr_pointer pointer;
     bool live;
     uint32_t time;
+    struct ae_test_text_input *ime;
 };
 static const struct wlr_keyboard_impl keyboard_impl = {.name = "aetheri-test-keyboard"};
 static const struct wlr_pointer_impl pointer_impl = {.name = "aetheri-test-pointer"};
@@ -63,7 +65,17 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC,&now)) goto invalid;
     d->time=(uint32_t)((uint64_t)now.tv_sec*UINT64_C(1000)+(uint64_t)now.tv_nsec/UINT64_C(1000000));
-    if (!strcmp(text, "D")) remove_devices(d);
+    if (!strcmp(text,"I on")) { if (d->ime || !(d->ime=ae_test_text_input_create(d->server))) goto invalid; }
+    else if (!strcmp(text,"I 7") && d->live) {
+        /* One native flush queues Escape before a commit. The app must not
+           adopt this already-queued old text after cancelling its draft. */
+        struct wlr_keyboard_key_event event={.time_msec=d->time,.keycode=1,.state=WL_KEYBOARD_KEY_STATE_PRESSED,.update_state=true};
+        wlr_keyboard_notify_key(&d->keyboard,&event);
+        if (!ae_test_text_input_command(d->ime,1)) goto invalid;
+        event.state=WL_KEYBOARD_KEY_STATE_RELEASED;wlr_keyboard_notify_key(&d->keyboard,&event);puts("IME boundary=7");
+    }
+    else if (sscanf(text,"I %u%n",&code,&used)==1 && used==length) { if (!ae_test_text_input_command(d->ime,code)) goto invalid; }
+    else if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
     else if (sscanf(text, "O %u %u %u%n", &output_index, &width, &height, &used) == 3 && used == length &&
             output_index < d->server->output_count && width >= 320 && width <= 3840 && height >= 320 && height <= 2160) {
@@ -114,5 +126,5 @@ struct input_driver *input_driver_start(struct server *s, int fd) {
 }
 void input_driver_close(struct input_driver *d) {
     if (!d) return;
-    wl_event_source_remove(d->source); remove_devices(d); close(d->fd); free(d);
+    wl_event_source_remove(d->source);ae_test_text_input_destroy(d->ime);remove_devices(d);close(d->fd);free(d);
 }

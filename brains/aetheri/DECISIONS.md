@@ -1,5 +1,25 @@
 # Decisions
 
+## Retain bounded composition outside PTY content — 5 November 2026
+
+Copy SDL editing text into a toolkit-free, <=1024-byte single-line UTF-8 model.
+Retain scalar/byte offsets separately from terminal cell width. Draw an ephemeral
+selected/underlined horizontal viewport and update the native candidate rectangle
+without altering cell/history tokens. Commit requires current focused window and
+the original live shell/foreground/screen observations; whole-text validation and
+one queue admission precede effects. Never send speculative Enter/editing keys to
+the PTY while a draft is visible. Reject control/multiline committed text under
+this profile; clipboard multiline retains its separate review.
+
+The pinned SDL Wayland ClearComposition path can return success without resetting
+anything. Use actual Stop/Start transitions plus a local queued-text timestamp
+fence; stop input for blur/close/end/paste review. The fence is not future-provider
+or protocol-serial admission. Keep the controlled v3 producer solely in the
+inherited-socket test executable. Do not advertise it as production IME integration
+or install a text-input/input-method service from this fixture. Trusted provider
+routing and full editing/shaping/accessibility remain required. See
+[terminal contract](../../spec/terminal.md) and current STATE.
+
 ## Keep native clipboard IO bounded and paste app-owned — 5 November 2026
 
 Use the actual SDL Wayland connection/surface/queue through the existing reviewed

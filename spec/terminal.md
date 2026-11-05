@@ -39,6 +39,7 @@ still separate. Test file operations explicitly choose their owned token folder.
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
 | Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
+| Escape while composing | Cancel the draft and reset native text input; no Escape byte enters the PTY |
 | Ctrl+Shift+C / Ctrl+Shift+V | Copy stable selected text / receive bounded clipboard text; these chords never become interrupt or literal-next |
 | Escape / Enter in paste review | Cancel staged paste; Cancel is the initial focused action |
 | Ctrl+Enter / Tab then Enter in paste review | Confirm the complete reviewed snapshot with a fresh non-repeat action |
@@ -61,6 +62,7 @@ persistence and its eventual UI are still separate product decisions.
 | [model.h](../src/terminal/model.h), [model.c](../src/terminal/model.c) | Toolkit-independent cell/escape/UTF-8 state, cursor and bounded history |
 | [pty.h](../src/terminal/pty.h), [pty.c](../src/terminal/pty.c) | Held PTY peer, original child/pidfd, resize, independent stream/process observations and one-shot hangup |
 | [paste.h](../src/terminal/paste.h), [paste.c](../src/terminal/paste.c) | Toolkit-free whole-snapshot validation, CR normalization and bounded escaped preview |
+| [composition.h](../src/terminal/composition.h), [composition.c](../src/terminal/composition.c) | Owned bounded preedit text, scalar selection and horizontal viewport without PTY effects |
 | [clipboard.h](../src/terminal/clipboard.h), [clipboard.c](../src/terminal/clipboard.c) | Owner-thread native Wayland selection and bounded nonblocking transfer ownership |
 | [main.c](../src/terminal/main.c) | SDL input/rendering, font/texture ownership and readiness-to-owner-thread handoff |
 
@@ -173,8 +175,9 @@ local abrupt-worker-exit mutation. Original failing artifacts are retained.
 
 ## Remaining work
 
-The fixed development launch owner/dock, text selection and bounded native
-clipboard/paste review are connected. Next add full text editing/IME,
+The fixed development launch owner/dock, text selection, bounded native
+clipboard/paste review and SDL preedit view are connected. Next add the actual
+compositor/provider IME route and full text editing,
 panes/editor/plugins and durable sessions. Complete terminal protocol coverage and declaration require their own
 compatibility corpus. Images/PDF, accessibility and normal admitted app/session
 integration remain required. Physical mixed-DPI/GPU/input/suspend, light-theme and
@@ -271,6 +274,61 @@ terminal/shell and independent libwayland sources/receivers; its
 wrong-thread/reentrant rejection and retained borrowed objects/FD counts. Test
 source code is not evidence that a particular candidate passed: current executed
 results and any remaining gates belong in STATE and the evidence record.
+
+## Application-owned composition view — 5 November 2026
+
+The terminal now distinguishes `SDL_EVENT_TEXT_EDITING` drafts from committed
+`SDL_EVENT_TEXT_INPUT`. The copied C17 composition model holds at most 1024 UTF-8
+bytes, scalar-to-byte offsets, cursor and selection. A complete strict UTF-8,
+single-line/control check precedes replacement; invalid model updates are atomic.
+Empty preedit clears it. SDL positions are Unicode scalars, not UTF-8 bytes,
+graphemes or cells; unspecified `-1` follows SDL's contract. Supported reverse
+ranges are normalized for painting. This is not complete Unicode bidi/grapheme
+editing or font fallback.
+
+The view paints a transient highlighted/underlined draft over the current cursor
+without altering cell/history content tokens. Its horizontal viewport follows
+the supplied cursor and keeps full bounded text in the model. Font/contrast/
+locale changes preserve that draft. The candidate rectangle uses actual logical
+window coordinates and is updated only when changed. Rendering retains the
+terminal's existing fixed-width/glibc-width/font limits; this does not establish
+arbitrary-script shaping, fallback fonts or a complete screenreader interface.
+
+Editing/confirmation keys do not become speculative PTY bytes while a draft is
+visible; Escape cancels and the existing Close/clipboard/F6-F8 controls remain
+available. Commit rechecks the original live shell, foreground-group/screen
+observations, focused window and queued-event timestamp. The whole bounded text
+must be valid before a single queue admission. The current committed-text profile
+rejects multiline/tab/control input; multiline clipboard uses its separate review.
+Local input-queue acceptance is not proof that an arbitrary terminal application's
+canonical/raw input buffer consumed every byte. Rich own-shell editing remains
+separate work.
+
+The pinned SDL Wayland backend has no effective `ClearComposition` callback:
+the public call can return success without a native reset. The adapter instead
+stops and, when appropriate, restarts actual text input. It is inactive while
+unfocused, closing, shell/stream-ended or displaying paste review. Already queued
+old editing/text events are fenced by owner time. This is a local event-queue
+boundary, not authentication of an IME provider, remote revocation or proof that
+all future provider messages belong to a current protocol transaction. Correct
+provider admission, serial handling and input-method key routing remain required.
+
+The [pure model test](../tests/test_terminal_composition.c) covers scalar/byte/
+cell distinctions, reverse/unknown positions, atomic invalid input, bounds and
+horizontal viewing. The [native integration](../tools/test_terminal_composition.py)
+uses actual SDL and shell/PTY with a
+[controlled Wayland-v3 producer](../tests/compositor_text_input.c). Its manager is
+created only by `I on` over the test server's inherited private socket. Production
+`aetheri-compositor` does not link this fixture, expose its commands or install an
+IME service. Native tests must not be described as completed normal Aetheri IME
+integration, installed engine compatibility, human input or accessibility acceptance.
+Executed candidate-specific results belong in STATE and the handoff record.
+
+Primary references: [SDL editing events](https://wiki.libsdl.org/SDL3/SDL_TextEditingEvent),
+[composition reset API](https://wiki.libsdl.org/SDL3/SDL_ClearComposition) and
+[candidate area](https://wiki.libsdl.org/SDL3/SDL_SetTextInputArea). Version-specific
+reset and event behavior was additionally read in the already-pinned SDL archive;
+the generic API documentation does not establish the backend's actual effect.
 
 ## Initial SDL clipboard boundary — historical investigation
 

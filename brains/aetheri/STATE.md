@@ -1,8 +1,55 @@
 # State
 
-5 November 2026 — bounded native terminal clipboard and reviewed paste.
+5 November 2026 — owned terminal preedit and native commit boundary.
 
 ## Current update
+
+The [terminal](../../spec/terminal.md) now copies and draws bounded SDL preedit
+separately from PTY cells/history and committed input. Its C17 model retains
+<=1024 UTF-8 bytes, scalar/byte offsets, cursor/selection and a horizontal viewport.
+Native candidate placement follows actual logical geometry through text-scale
+changes. Editing/confirmation keys stay out of the PTY while composing; Escape,
+focus/context loss, close and invalid input clear it. Committed text validates
+completely before one queue admission; control/multiline commits are rejected.
+
+The pinned SDL Wayland backend has a successful no-op ClearComposition path, so
+the adapter uses actual disable/enable transitions. Text input is inactive while
+unfocused, closing, shell/stream-ended or in paste review. A timestamp fence
+rejects already queued old events; this is not future-provider/serial admission.
+The normal compositor still has no installed text-input/IME route. Its existing
+Compose/Dead-Key fallback does not provide these preedit events. A bounded
+controlled v3 producer exists only in the private test server after explicit
+inherited-socket I on; normal compositor globals, provisioning and policy are unchanged.
+
+All fourteen affected groups pass Release (52.85 s) and ASan/UBSan (66.15 s).
+The native IME group has seven cases/nine images per profile, using actual SDL,
+native v3 messages and the original shell/PTY: exact committed Unicode file bytes,
+no speculative Enter/editing effects, Escape/empty draft, a native Escape+old
+commit batch, long 200% DE/contrast drafts, malformed/control rejection, real
+other-client focus loss and original close. A separate mutation removing the
+editing-key guard fails the unchanged real-input assertion. Initial fixture
+activation failed because it observed only wlroots commit, not its distinct
+enable/disable signals; the corrected listener observes all three. No production
+reset or freshness guard was weakened to pass that fixture.
+
+All 162 raw native image hashes and 274 copied evidence files verify under
+local/terminal-composition-2026-11-05. Native short/selected and long 200% draft
+images were visually inspected. Existing clipboard/desktop-owner regressions
+remain green. The final ordinary Debug DRM/QMP session is a separate regression,
+not a production-IME, hardware or human assistive acceptance claim. Exact context
+and the preservation audit are in the [handoff](journal/2026-11-05-terminal-composition.md).
+
+Final audit joins 276 host/snapshot/guest source hashes, all 28 frozen SQL/XML,
+nineteen protected old hashes without sidecars and 886 local Markdown file targets.
+The normal DRM session is closed; the guest is enforcing on tty1 without a known
+native app/test, running Aetheri service or seat0 session. The old running/
+recover-handoff attempt remains unchanged and quarantined.
+
+Full compositor/provider admission and routing, own rich line/editor/pane/session
+models, accessible text/shaping, normal admitted apps/session, the OS image/
+installer, remaining apps and full experiment desktop remain active work.
+
+## Native clipboard checkpoint — historical
 
 The [terminal](../../spec/terminal.md) now copies immutable selected UTF-8 and
 receives native Wayland clipboard text without synchronous SDL clipboard loops.

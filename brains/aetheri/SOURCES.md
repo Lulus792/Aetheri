@@ -4,7 +4,44 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
-## Bounded terminal clipboard — 5 November 2026
+## Terminal preedit and native commit — 5 November 2026
+
+- [Composition model](../../src/terminal/composition.c),
+  [SDL view](../../src/terminal/main.c),
+  [pure test](../../tests/test_terminal_composition.c) and
+  [native integration](../../tools/test_terminal_composition.py) with the
+  [test-only producer](../../tests/compositor_text_input.c).
+  Final fourteen groups pass Release 52.85 s / ASan+UBSan 66.15 s under
+  /home/aetheri/build/terminal-composition-check-kzd0d93p. The native IME group
+  has seven cases/nine images per profile; earlier full runs predate the final
+  native Escape/commit batch and activation gating. Exact roots and limits are
+  in the [handoff](journal/2026-11-05-terminal-composition.md).
+- local/terminal-composition-2026-11-05/native-evidence-index.json verifies
+  274 copied files and 162 decompressed image hashes. Selected short and long
+  200% DE/high-contrast drafts were visually inspected. A build-local key-guard
+  mutant is rejected by the unchanged real-input assertion; source, compile/link
+  commands, binary hash and log are retained. The initial native fixture missed
+  wlroots enable/disable signals and is retained as failure, not acceptance.
+- Read the pinned SDL3 3.4.20 archive's SDL_video.c, SDL_waylandkeyboard.c and
+  SDL_waylandevents.c for generic ClearComposition, actual native Stop/Start,
+  editing/commit callbacks, candidate geometry and Compose behavior. Generic
+  success can be a backend no-op. The existing wlroots 0.20.2 archive's
+  types/wlr_text_input_v3.c and installed headers identify separate enable,
+  disable and commit signals used by the controlled native producer.
+- Official [editing event](https://wiki.libsdl.org/SDL3/SDL_TextEditingEvent),
+  [clear API](https://wiki.libsdl.org/SDL3/SDL_ClearComposition) and
+  [input area](https://wiki.libsdl.org/SDL3/SDL_SetTextInputArea) were read on
+  5 November: scalar position units, main-thread contract and logical candidate
+  placement. Versioned source behavior and executed native tests remain separate
+  evidence from these generic API descriptions.
+- Actual final Debug DRM token eed8b9b32a0b4279b8741a60c076d87a closes the original
+  native compositor/desktop/terminal with status0; twelve PNGs form six stable
+  pairs and both original 100/200% baselines restore exactly. Original stdout
+  stream 960440efdfe741fc9364f00d9982ffa9 belongs to session-893.scope. This is an
+  ordinary-session/clipboard regression with the same native-tested terminal,
+  not installed IME, physical-device or human assistive acceptance.
+
+## Bounded terminal clipboard — historical checkpoint, 5 November 2026
 
 - [Native adapter](../../src/terminal/clipboard.c),
   [paste model](../../src/terminal/paste.c),

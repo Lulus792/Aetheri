@@ -4,6 +4,7 @@
 #include "pty.h"
 #include "clipboard.h"
 #include "paste.h"
+#include "composition.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <errno.h>
@@ -34,6 +35,8 @@ struct app {
     struct ae_clipboard *clipboard;int clipboard_fd;
     struct ae_clipboard_observation clipboard_observed;
     struct ae_terminal_paste paste;bool paste_receiving,paste_alt;
+    struct ae_terminal_composition composition;
+    SDL_Rect input_area;uint64_t text_after;pid_t composition_group;bool composition_alt;
     uint64_t paste_epoch,paste_shown;pid_t paste_group;
     unsigned paste_scroll,paste_total,paste_visible,paste_button;
     int paste_pressed;SDL_FRect paste_buttons[2];
@@ -47,6 +50,8 @@ struct app {
 };
 static void paste_cancel(struct app *a,const char *message);
 static void clipboard_update(struct app *a);
+static void composition_cancel(struct app *a,bool reset);
+static bool composition_context(struct app *a);
 static volatile sig_atomic_t wake_writer=-1,stop_signal;
 static void signalled(int number) { int saved=errno;stop_signal=number;unsigned char byte=1;if (wake_writer>=0) (void)write(wake_writer,&byte,1);errno=saved; }
 static void notify(struct app *a) { unsigned char byte=1;if (a->wake[1]>=0) (void)write(a->wake[1],&byte,1); }
@@ -80,12 +85,36 @@ static int worker(void *data) {
 static const char *tr(struct app *a,const char *en,const char *de) { return a->german ? de : en; }
 static void close_request(struct app *a) {
     if (a->closing) return;
-    a->closing=true;a->dirty=true;a->selecting=false;paste_cancel(a,NULL);
+    a->closing=true;a->dirty=true;a->selecting=false;paste_cancel(a,NULL);composition_cancel(a,true);
     if (a->pty.ended && a->pty.eof) { a->running=false;return; }
     if (ae_terminal_pty_hangup(&a->pty) && errno!=ESRCH) { a->failed=true;a->message="Shell hangup could not be acknowledged"; }
 }
 static void error(struct app *a,const char *message) { fprintf(stderr,"terminal: %s: %s\n",message,SDL_GetError());a->failed=true;a->message=message;close_request(a); }
 static int width(uint32_t code) { return code<=0x10ffff ? wcwidth((wchar_t)code) : -1; }
+static bool text_input_wanted(struct app *a) {
+    return !a->closing && !a->pty.ended && !a->pty.eof && SDL_GetKeyboardFocus()==a->window && !(a->paste.size && a->paste.review);
+}
+static void composition_cancel(struct app *a,bool reset) {
+    bool active=a->composition.size!=0;ae_terminal_composition_clear(&a->composition);
+    if (active) a->dirty=true;
+    if (reset && a->window) {
+        /* ClearComposition is a successful no-op in the pinned Wayland backend.
+           Disable/re-enable its actual text-input state instead. Already queued
+           editing/text is fenced by owner time, never adopted as a new draft. */
+        a->text_after=SDL_GetTicksNS();
+        if (!SDL_StopTextInput(a->window) || (text_input_wanted(a) && !SDL_StartTextInput(a->window))) error(a,"composition reset");
+    }
+}
+static void text_input_sync(struct app *a) {
+    bool wanted=text_input_wanted(a);
+    if (wanted==SDL_TextInputActive(a->window)) return;
+    if (!wanted) { composition_cancel(a,false);a->text_after=SDL_GetTicksNS(); }
+    if (!(wanted ? SDL_StartTextInput(a->window) : SDL_StopTextInput(a->window))) error(a,"text input activation");
+}
+static bool composition_context(struct app *a) {
+    return !a->closing && !a->pty.eof && !a->pty.ended && SDL_GetKeyboardFocus()==a->window &&
+        a->model->alt==a->composition_alt && tcgetpgrp(a->pty.master)==a->composition_group && ae_terminal_pty_observe(&a->pty)==0;
+}
 static void glyphs_clear(struct app *a) {
     for (unsigned i=0;i<GLYPHS;++i) { SDL_DestroyTexture(a->glyphs[i].texture);a->glyphs[i]=(struct glyph){0}; }
     a->texture_bytes=0;
@@ -168,6 +197,37 @@ static SDL_FRect paste_card(int w,int h) {
     float cw=fminf((float)w-48,800),ch=fminf((float)h-96,460);
     return (SDL_FRect){((float)w-cw)/2,((float)h-ch)/2,cw,ch};
 }
+static void draw_composition(struct app *a) {
+    float x=a->left+(float)a->model->x*a->cell_w,y=a->grid_y+(float)a->model->y*a->cell_h;
+    unsigned cursor=0;
+    if (a->composition.size) {
+        unsigned columns=a->model->cols-a->model->x;
+        if (columns<16) { columns=a->model->cols;x=a->left; }
+        struct ae_terminal_composition_view view;
+        if (!ae_terminal_composition_view(&a->composition,columns,width,&view)) { error(a,"composition viewport");return; }
+        cursor=view.cursor;
+        unsigned occupied=view.cells<columns ? view.cells+1 : columns;
+        SDL_Rect clip={(int)x,(int)y,(int)ceilf((float)columns*a->cell_w),(int)ceilf(a->cell_h)};
+        if (!SDL_SetRenderClipRect(a->renderer,&clip)) { error(a,"composition clip");return; }
+        fill(a,(SDL_FRect){x,y,(float)occupied*a->cell_w,a->cell_h},0x263043);
+        if (view.selection_end>view.selection_begin)
+            fill(a,(SDL_FRect){x+(float)view.selection_begin*a->cell_w,y,(float)(view.selection_end-view.selection_begin)*a->cell_w,a->cell_h},0x304e78);
+        char visible[AE_TERM_COMPOSITION_BYTES+1];size_t size=view.end-view.begin;
+        memcpy(visible,a->composition.text+view.begin,size);visible[size]=0;
+        if (size) label(a,visible,x,y,0xffffff);
+        fill(a,(SDL_FRect){x,y+a->cell_h-2,(float)occupied*a->cell_w,2},0xa2c7ff);
+        if (view.caret) fill(a,(SDL_FRect){x+(float)cursor*a->cell_w,y,2,a->cell_h},0xffffff);
+        if (view.hidden_before) fill(a,(SDL_FRect){x,y,2,a->cell_h},0xa2c7ff);
+        if (view.hidden_after) fill(a,(SDL_FRect){x+(float)columns*a->cell_w-2,y,2,a->cell_h},0xa2c7ff);
+        (void)SDL_SetRenderClipRect(a->renderer,NULL);
+    }
+    SDL_Rect area={(int)floorf(x+(float)cursor*a->cell_w),(int)floorf(y),(int)ceilf(a->cell_w),(int)ceilf(a->cell_h)};
+    if (area.x!=a->input_area.x || area.y!=a->input_area.y || area.w!=a->input_area.w || area.h!=a->input_area.h) {
+        if (!SDL_SetTextInputArea(a->window,&area,0)) { error(a,"text input area");return; }
+        a->input_area=area;
+        if (a->diagnostics) printf("TEXT area=%d,%d,%d,%d\n",area.x,area.y,area.w,area.h);
+    }
+}
 static void draw_paste(struct app *a,int w,int h) {
     if (!a->paste.size || !a->paste.review) return;
     SDL_FRect card=paste_card(w,h);fill(a,card,a->contrast ? 0 : 0x1c2432);
@@ -238,8 +298,10 @@ static void draw(struct app *a) {
     if (a->model->cursor && !a->model->view && !a->pty.ended) {
         SDL_FRect cursor={a->left+(float)a->model->x*a->cell_w,a->grid_y+(float)a->model->y*a->cell_h,a->cell_w,2};cursor.y+=a->cell_h-2;fill(a,cursor,0xa2c7ff);
     }
+    draw_composition(a);
     const char *status=a->message ? a->message : a->closing ? tr(a,"Closing · waiting for shell/jobs","Schließen · Warten auf Shell/Jobs") :
         a->pty.ended ? tr(a,"Shell ended · waiting for terminal writers","Shell beendet · Warten auf Terminalausgabe") :
+        a->composition.size ? tr(a,"Composition · Esc cancels","Texteingabe · Esc bricht ab") :
         a->model->selection.count ? tr(a,"Selection · Esc clears","Auswahl · Esc löscht") :
         tr(a,"Ctrl+C/Z · Shift+PgUp/PgDn · Ctrl+Shift+Q","Strg+C/Z · Shift+Bild↑/↓ · Strg+Shift+Q");
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
@@ -253,7 +315,7 @@ static void draw(struct app *a) {
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
-    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->model->cols,a->model->rows,a->model->x,a->model->y,a->model->history_count,a->model->view,(unsigned long long)a->model->sequence,a->closing,a->pty.ended,a->pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
+    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->model->cols,a->model->rows,a->model->x,a->model->y,a->model->history_count,a->model->view,(unsigned long long)a->model->sequence,a->closing,a->pty.ended,a->pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
 }
 static void flush_input(struct app *a) {
     while (a->input_count && !a->pty.eof) {
@@ -285,6 +347,7 @@ static void paste_cancel(struct app *a,const char *message) {
     a->dirty=true;
 }
 static void input(struct app *a,const void *bytes,size_t size) {
+    if (a->composition.size) composition_cancel(a,true);
     if (size && (a->paste_receiving || a->paste.size)) paste_cancel(a,NULL);
     (void)enqueue(a,bytes,size);
 }
@@ -303,7 +366,7 @@ static void paste_apply(struct app *a) {
 }
 static void clipboard_copy(struct app *a) {
     if (a->closing) return;
-    paste_cancel(a,NULL);size_t needed=ae_terminal_selection_size(a->model);
+    paste_cancel(a,NULL);composition_cancel(a,true);size_t needed=ae_terminal_selection_size(a->model);
     if (needed<2) { a->message=tr(a,"No text selected","Kein Text ausgewählt");return; }
     char *text=malloc(needed);
     if (!text || !ae_terminal_selection_copy(a->model,text,needed)) { free(text);a->message=tr(a,"Copy failed","Kopieren fehlgeschlagen");return; }
@@ -313,7 +376,7 @@ static void clipboard_copy(struct app *a) {
 }
 static void clipboard_paste(struct app *a) {
     if (a->closing || a->pty.ended || a->pty.eof) return;
-    paste_cancel(a,NULL);a->paste_epoch=ae_clipboard_focus_epoch(a->clipboard);a->paste_group=tcgetpgrp(a->pty.master);a->paste_alt=a->model->alt;
+    paste_cancel(a,NULL);composition_cancel(a,true);a->paste_epoch=ae_clipboard_focus_epoch(a->clipboard);a->paste_group=tcgetpgrp(a->pty.master);a->paste_alt=a->model->alt;
     int result=a->clipboard && a->paste_epoch && a->paste_group>0 ? ae_clipboard_receive(a->clipboard,AE_TERM_PASTE_BYTES) : EACCES;
     a->paste_receiving=result==0;a->message=result ? tr(a,"Paste unavailable","Einfügen nicht verfügbar") : tr(a,"Reading clipboard…","Zwischenablage wird gelesen…");
     if (a->diagnostics) printf("CLIPBOARD receive result=%d\n",result);
@@ -371,6 +434,7 @@ static void io_event(struct app *a) {
     bool ended=a->pty.ended;
     if (!a->pty.ended && ae_terminal_pty_observe(&a->pty)<0) error(a,"original shell wait");
     if (a->pty.ended!=ended) a->dirty=true;
+    if (a->composition.size && !composition_context(a)) composition_cancel(a,true);
     atomic_store(&a->readable,!a->pty.eof);atomic_store(&a->watch_child,!a->pty.ended);
     flush_input(a);
     if (a->pty.ended && a->pty.eof) {
@@ -445,6 +509,36 @@ static bool paste_event(struct app *a,const SDL_Event *e) {
     }
     return e->type==SDL_EVENT_TEXT_INPUT || e->type==SDL_EVENT_TEXT_EDITING || e->type==SDL_EVENT_KEY_UP || e->type==SDL_EVENT_MOUSE_MOTION;
 }
+static bool text_event_allowed(struct app *a,uint32_t window,uint64_t timestamp) {
+    return window==SDL_GetWindowID(a->window) && timestamp>=a->text_after && SDL_GetKeyboardFocus()==a->window &&
+        !a->closing && !a->pty.ended && !a->pty.eof;
+}
+static void composition_edit(struct app *a,const SDL_TextEditingEvent *e) {
+    if (!text_event_allowed(a,e->windowID,e->timestamp)) return;
+    if (a->composition.size && !composition_context(a)) { composition_cancel(a,true);return; }
+    if (!a->composition.size) { a->composition_group=tcgetpgrp(a->pty.master);a->composition_alt=a->model->alt; }
+    if (a->composition_group<=0 || !composition_context(a)) return;
+    if (a->paste_receiving) paste_cancel(a,NULL);
+    size_t size=e->text ? strnlen(e->text,AE_TERM_COMPOSITION_BYTES+1) : 0;
+    bool accepted=ae_terminal_composition_set(&a->composition,e->text,size,e->start,e->length);
+    if (!accepted) { composition_cancel(a,true);a->message=tr(a,"Composition was rejected","Texteingabe wurde abgelehnt"); }
+    else { a->model->view=0;a->message=NULL; }
+    a->dirty=true;
+    if (a->diagnostics) printf("TEXT edit accepted=%d bytes=%zu start=%d length=%d\n",accepted,size,e->start,e->length);
+}
+static void composition_commit(struct app *a,const SDL_TextInputEvent *e) {
+    if (!text_event_allowed(a,e->windowID,e->timestamp)) { if (a->diagnostics) puts("TEXT commit stale");return; }
+    if (a->composition.size && !composition_context(a)) { composition_cancel(a,true);return; }
+    size_t size=e->text ? strnlen(e->text,INPUT_BYTES+1) : 0;struct ae_terminal_paste text={0};
+    enum ae_term_paste_result checked=ae_terminal_paste_set(&text,e->text,size);
+    composition_cancel(a,false);bool accepted=false;
+    if (checked==AE_TERM_PASTE_OK && !text.review) {
+        if (a->paste_receiving || a->paste.size) paste_cancel(a,NULL);
+        accepted=enqueue(a,text.text,text.size);
+    }
+    else { composition_cancel(a,true);a->message=tr(a,"Text input was rejected","Texteingabe wurde abgelehnt");a->dirty=true; }
+    if (a->diagnostics) printf("TEXT commit accepted=%d bytes=%zu\n",accepted,size);
+}
 static void event(struct app *a,const SDL_Event *e) {
     if (a->diagnostics && (e->type==SDL_EVENT_WINDOW_FOCUS_GAINED || e->type==SDL_EVENT_WINDOW_FOCUS_LOST)) printf("FOCUS %d\n",e->type==SDL_EVENT_WINDOW_FOCUS_GAINED);
     if (e->type==a->event) { if (e->user.code<0) error(a,"PTY event bridge");io_event(a);SDL_SignalSemaphore(a->ack);return; }
@@ -453,9 +547,11 @@ static void event(struct app *a,const SDL_Event *e) {
     if (e->type==SDL_EVENT_WINDOW_EXPOSED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) a->dirty=true;
     /* Committed text owns its input provenance. The current global modifier
        state can already belong to a later queued key, or to an IME shortcut. */
-    else if (e->type==SDL_EVENT_TEXT_INPUT) input(a,e->text.text,strlen(e->text.text));
+    else if (e->type==SDL_EVENT_TEXT_INPUT) composition_commit(a,&e->text);
+    else if (e->type==SDL_EVENT_TEXT_EDITING) composition_edit(a,&e->edit);
     else if (e->type==SDL_EVENT_MOUSE_WHEEL && e->wheel.y!=0) { ae_terminal_scroll(a->model,e->wheel.y>0 ? 3 : -3);a->dirty=true; }
-    else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) { paste_cancel(a,NULL);a->close_pressed=false;a->selecting=false;a->dirty=true; }
+    else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) { paste_cancel(a,NULL);composition_cancel(a,true);a->close_pressed=false;a->selecting=false;a->dirty=true; }
+    else if (e->type==SDL_EVENT_WINDOW_FOCUS_GAINED) { if (e->window.timestamp>a->text_after) a->text_after=e->window.timestamp; }
     else if (e->type==SDL_EVENT_MOUSE_MOTION && a->selecting) {
         unsigned row,column;
         if (selection_point(a,e->motion.x,e->motion.y,true,&row,&column) && !ae_terminal_select_extend(a->model,row,column)) a->selecting=false;
@@ -465,6 +561,7 @@ static void event(struct app *a,const SDL_Event *e) {
         int w,h;SDL_GetWindowSize(a->window,&w,&h);bool hit=e->button.y<a->bar_height && e->button.x>(float)w-48;
         unsigned row,column;
         if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            if (a->composition.size) composition_cancel(a,true);
             if (a->paste_receiving) paste_cancel(a,NULL);
             a->close_pressed=hit;a->selecting=false;
             if (!hit && !a->closing && selection_point(a,e->button.x,e->button.y,false,&row,&column))
@@ -479,6 +576,12 @@ static void event(struct app *a,const SDL_Event *e) {
     else if (e->type==SDL_EVENT_KEY_DOWN) {
         SDL_Keycode key=e->key.key;SDL_Keymod mod=e->key.mod;
         if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && key==SDLK_Q) close_request(a);
+        else if (a->composition.size && key!=SDLK_F6 && key!=SDLK_F7 && key!=SDLK_F8 &&
+            !((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && (key==SDLK_C || key==SDLK_V))) {
+            if (key==SDLK_ESCAPE) composition_cancel(a,true);
+            /* IME owns editing/confirmation keys while its draft is visible.
+               Never send a speculative Enter/arrow/backspace to the PTY. */
+        }
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && (key==SDLK_C || key==SDLK_V)) {
             if (!e->key.repeat) { if (key==SDLK_C) clipboard_copy(a);else clipboard_paste(a); }
         }
@@ -541,7 +644,7 @@ int main(int argc,char **argv) {
     while (a.running) {
         if (a.dirty && !a.failed) draw(&a);
         if (!a.running) break;
-        SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);clipboard_update(&a);
+        SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);clipboard_update(&a);text_input_sync(&a);
     }
 cleanup:
     if (a.worker) { atomic_store(&a.active,false);notify(&a);SDL_SignalSemaphore(a.ack);SDL_WaitThread(a.worker,NULL); }

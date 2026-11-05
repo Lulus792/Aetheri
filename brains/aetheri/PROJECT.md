@@ -22,6 +22,8 @@ an understandable installation/runtime footprint.
   input/output, bounded cells/history, text sizing and stable mouse/keyboard
   selection with toolkit-free UTF-8 export, bounded native clipboard transfers
   and whole-snapshot paste validation/review.
+  Its bounded preedit/commit view has native SDL/v3 fixture evidence; production
+  compositor/provider IME routing remains separate work.
   The explicit development desktop now starts/reuses it independently of Settings.
   Rich shell editing, own panes/editor, persistent sessions and normal admitted app/session launch
   remain work.

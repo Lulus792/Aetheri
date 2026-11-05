@@ -733,3 +733,16 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   sync never prove remote revocation, process drain or lease settlement.
   Native tests retain exact pixel/byte and stale-row mutation evidence; virtual
   input and software rendering do not establish hardware/a11y acceptance.
+- terminal/composition now retains <=1024 bytes of preedit separately from PTY
+  cells/history. Scalar offsets are not bytes/cells/graphemes. Preserve complete
+  validation, bounded horizontal viewing and current candidate coordinates.
+  Hold editing/confirmation keys while composing; Escape/blur/context/end/close
+  clear the draft. Commit is validated single-line input with no speculative
+  PTY bytes or replay. Stop native text input during blur/end/close/paste review.
+  SDL's pinned Wayland ClearComposition can succeed as a no-op; retain actual
+  Stop/Start transitions and queued-event fencing, never infer provider/serial
+  admission from that local timestamp. Run terminal.composition and terminal.ime
+  plus affected terminal/desktop regressions. The controlled native v3 producer
+  is linked only into the test server and explicitly enabled by inherited-socket
+  I on; it is not installed compositor/provider IME integration. Keep normal
+  production globals/services/policy unchanged until that separate route is reviewed.
