@@ -41,7 +41,9 @@ files inside that terminal, with grapheme-aware Normal/Insert controls, preserve
 line endings/metadata and explicit close choices. Uncertain saves stay fenced;
 create-only export can retain a recovery copy. Its bounded undo/redo restores
 typing groups and the saved content state. Literal document search adds reversible
-previews and forward/backward repeat. Rich selection/search, plugins,
+previews and forward/backward repeat. Character/line selection and a private
+editor register now support copy, cut, change and paste. Block/mouse selection,
+richer search, plugins,
 panes, accessible document integration and ordinary brokered access remain work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys

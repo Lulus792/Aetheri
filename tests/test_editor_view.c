@@ -42,7 +42,12 @@ int main(void) {
         ae_terminal_feed(t,f.bytes,f.size);CHECK(t->screen[7][0].code==(uint32_t)*prefix && contains(t,7,"literal") && contains(t,6,"Esc back"));
         CHECK((t->screen[1][8].style&AE_TERM_REVERSE) && (t->screen[1][10].style&AE_TERM_REVERSE) && !(t->screen[1][11].style&AE_TERM_REVERSE));
     }
-    s.command=NULL;s.dialog=NULL;s.help=true;CHECK(ae_editor_view_render(v,m,&s,80,24,&f));ae_terminal_init(t,80,24,width);ae_terminal_feed(t,f.bytes,f.size);CHECK(contains(t,1,"keyboard help") && !t->unsupported);
+    s.command=NULL;s.dialog=NULL;s.highlight_size=0;s.message=NULL;CHECK(ae_modal_select(m,false));
+    CHECK(ae_editor_view_render(v,m,&s,30,8,&f));ae_terminal_feed(t,f.bytes,f.size);
+    CHECK(contains(t,6,"VISUAL") && contains(t,7,"Esc Back") && (t->screen[1][8].style&AE_TERM_REVERSE) && !(t->screen[1][9].style&AE_TERM_REVERSE));
+    CHECK(ae_modal_select(m,true));CHECK(ae_editor_view_render(v,m,&s,30,8,&f));ae_terminal_feed(t,f.bytes,f.size);CHECK(contains(t,6,"LINES"));
+    CHECK(ae_modal_action(m,AE_MODAL_ESCAPE)==AE_DOCUMENT_OK);
+    s.help=true;CHECK(ae_editor_view_render(v,m,&s,80,24,&f));ae_terminal_init(t,80,24,width);ae_terminal_feed(t,f.bytes,f.size);CHECK(contains(t,1,"keyboard help") && !t->unsupported);
     CHECK(!ae_editor_view_render(v,m,&s,513,24,&f));
     free(t);ae_editor_view_destroy(v);ae_modal_destroy(m);ae_document_destroy(d);return 0;
 }

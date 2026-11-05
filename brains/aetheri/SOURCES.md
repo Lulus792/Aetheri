@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Model-owned selection and register — 5 November 2026
+
+- Original [modal selection/register](../../src/editor/modal.c),
+  [line-start cursor admission](../../src/editor/document.c),
+  [range/ending painting](../../src/editor/view.c),
+  [independent reference and allocation tests](../../tests/test_selection.c) and
+  [actual PTY workflows](../../tools/test_editor_native.py). The original code
+  owns transfer/preflight/line-ending semantics; no external editor library or
+  new runtime dependency. Read [contract](../../spec/editor.md#selection-and-private-register)
+  and [record](journal/2026-11-05-editor-selection.md) for executed scope and limits.
+
 ## Literal document search — 5 November 2026
 
 - [Native input correction](journal/2026-11-05-native-key-input.md): the original

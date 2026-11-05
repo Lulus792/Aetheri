@@ -20,6 +20,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   editor.history/document/modal/file/native plus provider groups. Signal exit
   now drains remaining queued managed signals without repeating effects after
   its first decision; retain the test-only fsync gate, not a production hook.
+- Modal Visual/Lines selection and its bounded private register are app-owned.
+  Read spec/editor.md: inclusive grapheme endpoints, original line endings, final
+  line removal, linewise-change empty line and paste separator rules. Stage copy/
+  assembly/document/index/history growth before mutation; failures preserve the
+  old register, selection, text and redo. replace_line_start admits original line
+  starts and records that result cursor in the same undo entry. Wipe replaced
+  register bytes; never imply platform clipboard or file/save authority. Run
+  editor.selection plus document/modal/history/view/native/provider groups.
 - Literal document search is app-owned: read spec/editor.md. ae_document_find is
   read-only, bounded, case-sensitive and admits whole-grapheme endpoints only.
   Preview/cancel preserves original cursor and prior accepted query; rejected

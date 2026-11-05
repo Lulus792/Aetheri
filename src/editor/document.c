@@ -134,12 +134,13 @@ static void move_gap(struct ae_document *d,size_t position) {
         size_t n=position-d->gap_begin;memmove(d->bytes+d->gap_begin,d->bytes+d->gap_end,n);d->gap_begin+=n;d->gap_end+=n;
     }
 }
-static enum ae_document_result replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size,bool record,bool typing) {
+static enum ae_document_result replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size,bool record,bool typing,bool stay_at_line_start) {
     if (!d || begin>end || end>d->size) return AE_DOCUMENT_INVALID;
     if (size>AE_DOCUMENT_BYTES-(d->size-(end-begin))) return AE_DOCUMENT_LIMIT;
     struct statistics s;enum ae_document_result status=statistics(text,size,&s);if (status!=AE_DOCUMENT_OK) return status;
     size_t first,last;
     if (record ? (!boundary(d,begin,&first) || !boundary(d,end,&last)) : (!ae_document_row(d,begin,&first) || !ae_document_row(d,end,&last))) return AE_DOCUMENT_INVALID;
+    if (stay_at_line_start && begin!=d->starts[first]) return AE_DOCUMENT_INVALID;
     if (begin==end && !size) return AE_DOCUMENT_OK;
     if (d->revision==UINT64_MAX) return AE_DOCUMENT_EXHAUSTED;
     size_t lines=d->lines-(last-first)+s.breaks;if (lines>AE_DOCUMENT_LINES) return AE_DOCUMENT_LIMIT;
@@ -157,6 +158,7 @@ static enum ae_document_result replace(struct ae_document *d,size_t begin,size_t
     if (!ae_text_graphemes(joined,used,offsets,AE_DOCUMENT_LINE_BYTES+1,&count)) return AE_DOCUMENT_INVALID;
     size_t snap=0;while (offsets[snap]<desired) ++snap;
     size_t cursor=begin+size+offsets[snap]-desired,new_size=d->size-(end-begin)+size;
+    if (stay_at_line_start) cursor=begin;
     size_t new_capacity=d->capacity,new_lines=d->line_capacity;char *bytes=NULL;size_t *starts=NULL;
     if (new_size>d->capacity) { new_capacity=capacity(d->capacity,new_size,4096,AE_DOCUMENT_BYTES);bytes=malloc(new_capacity);if (!bytes) return AE_DOCUMENT_NOMEM; }
     if (lines>d->line_capacity) {
@@ -215,8 +217,9 @@ static enum ae_document_result replace(struct ae_document *d,size_t begin,size_t
     }
     return AE_DOCUMENT_OK;
 }
-enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size) { return replace(d,begin,end,text,size,true,false); }
-enum ae_document_result ae_document_type(struct ae_document *d,const char *text,size_t size) { return d ? replace(d,d->cursor,d->cursor,text,size,true,true) : AE_DOCUMENT_INVALID; }
+enum ae_document_result ae_document_replace(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size) { return replace(d,begin,end,text,size,true,false,false); }
+enum ae_document_result ae_document_replace_line_start(struct ae_document *d,size_t begin,size_t end,const char *text,size_t size) { return replace(d,begin,end,text,size,true,false,true); }
+enum ae_document_result ae_document_type(struct ae_document *d,const char *text,size_t size) { return d ? replace(d,d->cursor,d->cursor,text,size,true,true,false) : AE_DOCUMENT_INVALID; }
 enum ae_document_result ae_document_history(struct ae_document *d,int direction,bool *changed) {
     if (!changed) return AE_DOCUMENT_INVALID;
     *changed=false;if (!d || (direction!=-1 && direction!=1)) return AE_DOCUMENT_INVALID;
@@ -224,7 +227,7 @@ enum ae_document_result ae_document_history(struct ae_document *d,int direction,
     struct edit *entry=d->history[direction<0 ? d->at-1 : d->at];bool undo=direction<0;
     if (d->state!=(undo ? entry->after_state : entry->before_state)) return AE_DOCUMENT_INVALID;
     size_t remove=undo ? entry->inserted : entry->removed,insert=undo ? entry->removed : entry->inserted;
-    enum ae_document_result r=replace(d,entry->begin,entry->begin+remove,entry->data+(undo ? 0 : entry->removed),insert,false,false);
+    enum ae_document_result r=replace(d,entry->begin,entry->begin+remove,entry->data+(undo ? 0 : entry->removed),insert,false,false,false);
     if (r!=AE_DOCUMENT_OK) return r;
     d->cursor=undo ? entry->before_cursor : entry->after_cursor;d->state=undo ? entry->before_state : entry->after_state;
     d->at=undo ? d->at-1 : d->at+1;d->merging=false;*changed=true;return AE_DOCUMENT_OK;

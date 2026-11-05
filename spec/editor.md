@@ -3,8 +3,8 @@
 5 November 2026. The opt-in `aetheri-editor` executable joins our original C17
 document, modal controller, local file adapter and terminal-cell view. It runs
 inside the existing terminal as a foreground command. This remains a local
-development profile; normal document grants/admission, durable recovery, rich
-selection/search, plugins and panes remain work. The existing
+development profile; normal document grants/admission, durable recovery, block/
+mouse selection, richer search, plugins and panes remain work. The existing
 [shell line editor](line-editor.md) is a separate working component.
 
 ## Try it
@@ -38,6 +38,10 @@ or a new authority. `--help` describes the CLI without taking a terminal.
 | Arrows / `h j k l`, Home/End / `0 $` | Move; Insert uses arrows/Home/End |
 | Enter, Backspace, Delete in Insert | Newline or whole-grapheme edit |
 | `u`, Ctrl+R in Normal | Undo or redo the original document history |
+| `v`, `V` in Normal/selection | Select characters / whole lines; repeat to cancel, switch kind without losing the anchor |
+| Motions during selection | Move the endpoint by whole graphemes; the anchor stays fixed |
+| `y`, `d`/Delete, `c` during selection | Copy, cut or replace through the private editor register |
+| `p`, `P` in Normal | Paste after/before the cursor or line from that register |
 | Ctrl+Shift+Z/Y | Existing terminal chords for undo/redo; a changed result returns to Normal |
 | `/`, `?` in Normal | Forward/backward literal search with an in-memory preview |
 | Enter / Escape during search | Choose the preview match / restore the original cursor |
@@ -69,6 +73,49 @@ Export is a recovery copy, not an acknowledgement that the original save settled
 Up to eight additional uncertain exports stay held; reaching that bound refuses
 more binding attempts. General cross-process recovery and an artifact inspector
 remain work.
+
+## Selection and private register
+
+Visual selection belongs to the modal model. `v` includes both endpoint
+graphemes; `V` covers all touched lines and their existing endings. Reverse
+selection and mixed UTF-8/endings retain original byte ranges. Escape returns
+to Normal at the current endpoint. A selection kind can switch without losing
+its anchor. Search first leaves selection at that endpoint; save/close choices
+do not turn selection into file authority. Undo/redo changes return to Normal.
+
+`y` copies to one private in-memory editor register without changing text,
+revision, clean state or retained undo/redo entries. `d`/Delete cuts, and `c`
+replaces the range then enters Insert. A linewise change leaves one empty line
+with the final selected line's ending; its cursor and redo receipt stay on that
+line. Each cut/change/paste is one document history entry; subsequent typing
+keeps the existing separate typing-group rules. Failed validation/limit/
+allocation preserves text, selection, the previous register and redo branch.
+
+The register holds at most 8MiB of owned original text, wiped before replacement
+or destruction. Wiping is not a secure-erasure guarantee. It lasts only for this
+editor process: there is no disk history, daemon, platform clipboard read/write
+or automatic command execution. Normal `x`/`dd` retain their earlier delete
+behavior; they do not replace this register. An empty selection keeps the prior
+register and says so. Block/mouse selection, named registers, platform clipboard
+integration and final bindings remain later work.
+
+Character paste inserts the copied bytes before/after the current grapheme.
+Linewise paste inserts before/after the current line, adding the captured LF or
+CRLF separator when required to keep whole lines separate. Existing copied
+endings stay unchanged. Cutting the final unterminated line consumes the preceding
+separator too, so it does not leave a phantom line; Undo restores those bytes.
+Cutting a final empty line can likewise remove its preceding separator while
+keeping the old register. Paste follows inserted text with Normal end-of-line
+clamping. The view highlights the selected cells and paints a selected ending/
+empty-line placeholder without inserting that placeholder into document bytes.
+The mode and selection actions remain visible at the 30x8 minimum.
+
+Register staging plus document growth/history admission precedes mutation. A
+linewise paste can need an additional copied assembly buffer; old/new register,
+document, index and undo allocations may coexist during preflight. The 8MiB
+register limit is not a whole-process RSS ceiling. No permission, grant, file
+baseline or uncertain-save outcome changes through selection or a transfer.
+See [selection evidence](../brains/aetheri/journal/2026-11-05-editor-selection.md).
 
 ## Literal document search
 

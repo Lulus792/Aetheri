@@ -33,7 +33,9 @@ an understandable installation/runtime footprint.
   to an actual terminal executable with explicit save/close/export decisions.
   Bounded document undo/redo now retains typing groups and the saved logical state.
   Literal document search now has a reversible preview and bidirectional repeat.
-  Rich selection/search, plugins and full accessible text remain.
+  Character/line selection and the private editor register now provide copy/cut/
+  change/paste. Block/mouse selection, richer search, plugins and full accessible
+  text remain.
   Richer shell search/advanced completion, own panes, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.

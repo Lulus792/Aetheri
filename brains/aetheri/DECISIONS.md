@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep selection and transfer in the modal owner — 5 November 2026
+
+Add character/whole-line visual selection to the existing model and forward
+keyboard commands from the terminal adapter. Own one bounded private copied
+register; keep it independent of platform clipboard, files and save outcomes.
+Admit register/assembly and document/index/history allocations before mutation.
+Copy leaves content/history intact; cut/change/paste use the document's existing
+single-delta history. A linewise change records its empty-line cursor atomically,
+so redo cannot land on the following line. Preserve original copied endings and
+insert only necessary line separators. Richer grouping, named registers, mouse/
+block selection and platform clipboard are later scope. See
+[contract](../../spec/editor.md#selection-and-private-register).
 ## Keep document search literal and reversible — 5 November 2026
 
 Use a bounded case-sensitive single-line UTF-8 query with whole document-grapheme

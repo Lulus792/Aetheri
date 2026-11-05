@@ -29,6 +29,10 @@ bool ae_document_row(const struct ae_document *document,size_t position,size_t *
 bool ae_document_cursor(struct ae_document *document,size_t position);
 bool ae_document_step(struct ae_document *document,int direction);
 enum ae_document_result ae_document_replace(struct ae_document *document,size_t begin,size_t end,const char *text,size_t size);
+/* Same edit preflight, but begin must be an original line start and the result
+   cursor stays there. Records that cursor in the same undo entry; useful for
+   replacing selected lines with one empty line before entering Insert. */
+enum ae_document_result ae_document_replace_line_start(struct ae_document *document,size_t begin,size_t end,const char *text,size_t size);
 /* Cursor insertion with adjacent same-line typing coalescing. Other replacements,
    explicit break, cursor actions, history traversal and clean acknowledgement
    end a typing group. All retained entries are copied byte deltas, not file

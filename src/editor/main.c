@@ -162,6 +162,15 @@ static void history(struct app *a,int direction) {
     if (r!=AE_DOCUMENT_OK) edit_result(a,r);
     else notice(a,changed ? direction<0 ? "Undone" : "Redone" : direction<0 ? "No earlier edit" : "No later edit");
 }
+static void transfer(struct app *a,enum ae_modal_transfer command) {
+    a->dd=false;struct ae_modal_selection selection;struct ae_modal_register_info reg;
+    if (!ae_modal_selection(a->modal,&selection)) return;
+    enum ae_document_result r=ae_modal_transfer(a->modal,command);
+    if (r!=AE_DOCUMENT_OK) { edit_result(a,r);return; }
+    if (selection.active && selection.begin==selection.end) notice(a,"Empty selection; editor register retained");
+    else if (ae_modal_register_info(a->modal,&reg) && !reg.size) notice(a,"Editor register is empty");
+    else notice(a,command==AE_MODAL_YANK ? "Copied in editor" : command==AE_MODAL_CUT ? "Cut in editor" : command==AE_MODAL_CHANGE ? "Replace selection; Esc returns to Normal" : "Pasted from editor register");
+}
 static void search_preview(struct app *a) {
     if (!a->search_dirty) return;
     a->search_dirty=false;a->search_found=false;size_t position=0;
@@ -171,10 +180,12 @@ static void search_preview(struct app *a) {
     if (!ae_modal_seek(a->modal,a->search_found ? position : a->search_origin)) { a->quit=true;a->result=1; }
 }
 static void search_start(struct app *a,int direction) {
+    if (ae_modal_mode(a->modal)!=AE_MODAL_NORMAL && ae_modal_action(a->modal,AE_MODAL_ESCAPE)!=AE_DOCUMENT_OK) return;
     struct ae_document_info info;if (!ae_document_info(a->document,&info)) return;
     command_start(a,"",SEARCH);a->search_origin=info.cursor;a->search_direction=direction;a->search_dirty=true;
 }
 static void search_repeat(struct app *a,bool opposite) {
+    if (ae_modal_mode(a->modal)!=AE_MODAL_NORMAL && ae_modal_action(a->modal,AE_MODAL_ESCAPE)!=AE_DOCUMENT_OK) return;
     if (!a->last_query_size) { notice(a,"No accepted search");return; }
     struct ae_document_info info;if (!ae_document_info(a->document,&info)) return;
     bool found=false;size_t position=0;int direction=opposite ? -a->last_direction : a->last_direction;
@@ -211,6 +222,10 @@ static void text(struct app *a,const char *bytes,size_t size) {
     if (size!=1) { a->dd=false;return; }
     char c=*bytes;bool dd=a->dd;a->dd=false;
     switch (c) {
+    case 'v':case 'V':if (!ae_modal_select(a->modal,c=='V')) notice(a,"Selection not available");else notice(a,"");break;
+    case 'y':transfer(a,AE_MODAL_YANK);break;
+    case 'c':transfer(a,AE_MODAL_CHANGE);break;
+    case 'p':transfer(a,AE_MODAL_PASTE_AFTER);break;case 'P':transfer(a,AE_MODAL_PASTE_BEFORE);break;
     case '/':search_start(a,1);break;case '?':search_start(a,-1);break;
     case 'n':search_repeat(a,false);break;case 'N':search_repeat(a,true);break;
     case 'u':history(a,-1);break;
@@ -221,7 +236,7 @@ static void text(struct app *a,const char *bytes,size_t size) {
     case 'i':action(a,AE_MODAL_ENTER_INSERT);break;case 'a':action(a,AE_MODAL_APPEND);break;
     case 'I':action(a,AE_MODAL_LINE_INSERT);break;case 'A':action(a,AE_MODAL_LINE_APPEND);break;
     case 'o':action(a,AE_MODAL_OPEN_AFTER);break;case 'O':action(a,AE_MODAL_OPEN_BEFORE);break;
-    case 'x':action(a,AE_MODAL_DELETE);break;case 'd':if (dd) action(a,AE_MODAL_DELETE_LINE);else a->dd=true;break;
+    case 'x':action(a,AE_MODAL_DELETE);break;case 'd':if (ae_modal_mode(a->modal)==AE_MODAL_VISUAL || ae_modal_mode(a->modal)==AE_MODAL_LINES) transfer(a,AE_MODAL_CUT);else if (dd) action(a,AE_MODAL_DELETE_LINE);else a->dd=true;break;
     default:break;
     }
 }

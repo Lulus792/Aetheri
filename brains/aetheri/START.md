@@ -23,7 +23,8 @@ virtual DRM evidence. The [modal editor](../../spec/editor.md) now has an opt-in
 executable with local load/edit/save, keyboard view and explicit save/close/export
 choices, now with bounded document undo/redo and saved-state return.
 Literal document search now provides reversible forward/backward previews.
-Ordinary brokered access, durable recovery, rich selection/search and
+Character/whole-line selection now uses an app-owned copied register.
+Ordinary brokered access, durable recovery, block/mouse selection, richer search and
 full accessible text remain work.
 External IMEs, advanced completion/richer search, panes, persistent
 sessions and normal admitted app/session integration remain work.

@@ -36,6 +36,10 @@ remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
 The same case now retains Aetheri-owned literal document search: reversible
 whole-grapheme preview, original cursor/prior-query restoration, fresh matching
 after edits and no text/command/save effects from accepting a search result.
+It now also preserves Visual character/whole-line selection and a bounded private
+editor register: borrowed range/ending-marker painting, original anchor/endings,
+copy/cut/change/paste commands and failure/redo atomicity remain app-owned. This
+is an incremental existing-case update, not another handoff or SDK adoption claim.
 
 The user prefers a practical foundation such as SDL3 for early Aetheri UI, with
 later NexaUI migration where useful. Missing NexaUI features must not hold up the

@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — native input/result verification; document search confirmed.
+5 November 2026 — model-owned document selection and private register.
 
 ## Coordination
 
@@ -14,6 +14,36 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The modal owner now supports character/whole-line visual selection and one bounded
+private editor register. v/V selects, y copies, d/Delete cuts, c changes, and p/P
+pastes. Grapheme endpoints, original endings, empty/final lines and register/
+document/index/history allocation failure are covered. Copy leaves text/history
+intact; each cut/change/paste is one document delta. A linewise change records its
+empty-line cursor atomically so redo restores the intended position. The view
+paints selected content and ending markers, names the mode and keeps hints at
+30x8. Register text is in-process only; platform clipboard/grants and UNKNOWN save
+outcomes remain separate.
+
+All 37 affected groups pass Release (90.34s) and ASan+UBSan (132.12s), including
+27 editor PTY cases and nineteen actual provider cases per profile. The unchanged
+copied-source test rejects omitted line-start cursor placement. A later explicit
+visual-Delete test also passes both profiles with unchanged editor binaries.
+The original ordinary desktop attempt proves character/line transfer, distinct
+saved/undo/redo state, 100/200-percent highlighting including the ending marker,
+exact cancel pixels, final file bytes, same-shell return and original retirement.
+Audit: 321 host/snapshot/guest sources, 28 frozen SQL/XML, 19 protected hashes,
+no old SQLite sidecars; 904 native files/210 raw images, six special-node records
+and 34 stable console files. The enforcing carrier is idle on tty1. See the
+[record](journal/2026-11-05-editor-selection.md) and `local/editor-selection-2026-11-05`.
+
+Next useful app workflow: build Files navigation and opening documents with the
+working editor, preserving app/permission/process ownership. Block/mouse editor
+selection, platform clipboard, panes/plugins, normal admitted apps/sessions,
+other applications, original OS image/installer and the full resettable experiment
+desktop remain required. Do not narrow the OS goal to the editor milestones.
+
+## Search and native-input verification — completed checkpoint
 
 Literal document search now has a read-only whole-grapheme scan and actual
 Normal `/`/`?` query, inverse-match preview, Enter acceptance, Escape restoration
@@ -50,7 +80,8 @@ unchanged; no repeated whole-suite build is claimed for this Python-tool repair.
 The original input mismatch's deeper timing/component cause is not established;
 no general QEMU/SDL/compositor defect or timer fix is claimed.
 
-Next app work is document selection and broader editor/pane/session behavior.
+At that checkpoint selection was next; it is implemented above. Broader editor/
+pane/session behavior remains.
 Physical/trusted/assistive/session acceptance, other apps, OS image/installer and
 the full resettable experiment desktop remain required. The carrier is enforcing
 and idle on tty1; the old quarantined runtime remains unchanged and unresolved.

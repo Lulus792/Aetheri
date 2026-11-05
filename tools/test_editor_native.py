@@ -89,8 +89,8 @@ class Editor(unittest.TestCase):
         for i in range(64):
             self.t.send('j');self.wait(lambda f:True)
             saw_search=saw_search or b'/ forward;' in self.frame()
-            if b'Selection/panes' in self.frame():break
-        self.assertTrue(saw_search);self.assertIn(b'Selection/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
+            if b'Block selection/panes' in self.frame():break
+        self.assertTrue(saw_search);self.assertIn(b'Block selection/panes',self.frame());self.t.send(b'\x1b');self.wait(lambda f:b'kept' in f and b'NORMAL' in f and b'Help j/k scroll' not in f)
         self.t.send(':q\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),b'kept')
     def test_suspend_bg_refuses_terminal_and_fg_restores_same_buffer(self):
         self.start();self.insert('suspended');self.t.send(b'\x1a');self.shell()
@@ -201,6 +201,29 @@ class Editor(unittest.TestCase):
         self.t.send(b'\x15zero');self.wait(lambda f:b'Match: Enter choose' in f and b'?zero' in f)
         self.t.send('\n');self.wait(lambda f:b'1:1 | modified' in f)
         self.t.send(':wq\n');self.shell();self.assertEqual((self.t.root/'document').read_bytes(),b'zero cat\nmiddle cat\nlast cat')
+    def test_visual_copy_cut_paste_and_undo_keep_saved_state_separate(self):
+        self.start(existing=b'alpha beta');self.t.send('vllll');self.wait(lambda f:b'VISUAL' in f and b'Esc Back' in f)
+        termios.tcsetwinsize(self.t.master,(8,30));self.wait(lambda f:b'VISUAL' in f and b'Esc Back' in f)
+        self.t.send('y');self.wait(lambda f:b'Copied in editor' in f and b'clean' in f)
+        self.assertEqual((self.t.root/'document').read_bytes(),b'alpha beta')
+        termios.tcsetwinsize(self.t.master,(24,80));self.wait(lambda f:b'NORMAL' in f)
+        self.t.send('0P');self.wait(lambda f:b'Pasted from editor' in f and b'modified' in f)
+        self.t.send('u');self.wait(lambda f:b'Undone' in f and b'clean' in f)
+        self.t.send(b'\x12');self.wait(lambda f:b'Redone' in f);self.t.send(':wq\n');self.shell()
+        self.assertEqual((self.t.root/'document').read_bytes(),b'alphaalpha beta')
+    def test_visual_line_cut_change_and_register_paste_preserve_crlf(self):
+        self.start(existing=b'one\r\ntwo\r\nlast');self.t.send('jVd');self.wait(lambda f:b'Cut in editor' in f)
+        self.t.send('k');self.wait(lambda f:b'1:' in f);self.t.send('p');self.wait(lambda f:b'Pasted from editor' in f)
+        self.t.send('k0Vc');self.wait(lambda f:b'INSERT' in f and b'Replace selection' in f)
+        self.t.send('new\x1b');self.wait(lambda f:b'NORMAL' in f);self.t.send(':wq\n');self.shell()
+        self.assertEqual((self.t.root/'document').read_bytes(),b'one\r\nnew\r\nlast')
+    def test_visual_selection_cancel_search_and_history_never_settle_unknown(self):
+        self.t.send('export AETHERI_TEST_EDITOR_FAILURE directory-after\n');self.t.expect(PROMPT)
+        self.start(existing=b'alpha beta',fault=True);self.t.send(b'\x13');self.wait(lambda f:b'SAVE UNKNOWN' in f)
+        self.t.send('vll');self.wait(lambda f:b'VISUAL' in f);self.t.send('/beta\n');self.wait(lambda f:b'NORMAL' in f and b'Match; n next' in f)
+        self.t.send('v');self.wait(lambda f:b'VISUAL' in f);self.t.send('d');self.wait(lambda f:b'Cut in editor' in f)
+        self.t.send('u');self.wait(lambda f:b'Undone' in f and b'SAVE UNKNOWN' in f)
+        self.t.send(':q\n');self.wait(lambda f:b'[e] Copy' in f);self.t.send('d');self.wait(lambda f:b'Type DISCARD' in f);self.t.send('DISCARD\n');self.shell()
 if __name__=='__main__':
     print('Modal editor PTY evidence:',native.ROOT,flush=True)
     print('Binaries:',json.dumps({p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in (EDITOR,FAULT,native.SHELL)}),flush=True)
