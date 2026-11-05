@@ -37,7 +37,36 @@ scaling and unsupported-capability behavior. Prefer event-driven idle behavior
 and measure CPU/wakeups, frame response and actual memory on the target session.
 The user's final visual design remains a separate decision.
 
-### Current source inspection and SDK handoff — 5 November 2026
+### Latest handoff reconciliation — 5 November 2026
+
+The user's complete-list request was reconciled against a new read-only main
+query: `88b4a5633b9b603a34fba103173e2266bc577adc`. The committed cell-grid and
+asynchronous Wayland clipboard headers, copied example, requirement map and
+adoption assessment were read with `git show`. The earlier inspection below is
+historical; no SDK build or Aetheri migration was performed.
+
+The local [complete catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) retains **103 stable
+requirements and 13 app/system surface groups**. Its latest reconciliation now
+recognizes existing visible-cell drawing/hit tests, copied read-only accessible
+text snapshots and a token-based bounded async clipboard reader. These are
+reusable foundations, not completed terminal/editor, PTY, IME or human assistive
+acceptance. The ordinary-window clipboard API does not establish a borrowed-host
+input/clipboard contract. Current SDK source also guards external reads by real
+keyboard focus; its reported missing-new-offer focus-cycle case remains open.
+
+Added concrete acceptance for immutable copy exports, independent native peers,
+slow-transfer deadlines, byte/FD budgets, source replacement, app-owned paste
+validation/review and cancellation without partial command dispatch. Updated the
+delivery packets and copyable chat request to reuse current SDK work. Keep each
+app model, privileged authority, content engine and process/session ownership
+outside the UI toolkit; adopt an independently accepted presentation scope first.
+The offline no-AT-SPI profile is not an accessible normal desktop profile.
+
+This is a documentation/source review. Existing NexaUI/consumer changes and the
+in-progress Aetheri terminal work were preserved. No other-chat message was sent.
+See the [handoff record](../journal/2026-11-05-nexaui-complete-handoff.md).
+
+### Earlier source inspection and SDK handoff — 5 November 2026
 
 A fresh read-only `git ls-remote origin refs/heads/main` selected
 `88aeef97f0cd9b90f335e8520cae65570994ba09`. Relevant committed headers,
