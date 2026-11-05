@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — pinned NexaUI Settings probe on the Aetheri compositor.
+5 November 2026 — independent native AT-SPI Settings actions on Aetheri.
 
 ## Coordination
 
@@ -14,6 +14,32 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The pinned NexaUI Settings view now passes a real private AT-SPI registry and
+independent C17/libatspi peer on the Fedora/glibc Aetheri compositor. Native
+roles/checked states, German/high contrast/200%, semantic resize to 320x320,
+150%/actual display selection, 2560x1440 restore and native close are checked
+against the original app's independent model logs/pixels/process exit. The
+same client correctly rejects a visible disabled-bridge window. No normal SDL
+selection, SDK source, package installation or installed service changed.
+
+Four Settings groups pass Release and ASan/UBSan; the final strict-diagnostic
+native test passes again in 7.71s/9.58s with nine images/profile. Audit binds
+347 sources, unchanged frozen 28 SQL/XML and nineteen old-runtime hashes with
+no sidecars. The enforcing carrier is idle on tty1 without candidate/test
+processes or seat0. See [native record](journal/2026-11-05-nexaui-atspi.md),
+[guide](../../spec/nexaui.md) and `local/nexaui-atspi-2026-11-05`.
+Old recovery remains unresolved. The existing NexaUI catalogue records this
+scoped evidence; no new chat handoff is pending.
+
+Next: explicitly bound development-owner/DRM Settings profile and actual
+launch/reuse/close/reopen before replacement, retaining the original owner,
+model and SDL path. Human screenreader/focus-event quality, complete semantics,
+normal session bus, accepted design/physical/performance and the remaining
+full OS/apps/backends/lifecycle/image/installer/experiment desktop stay open.
+Keep the full project goal active.
+
+## NexaUI Settings first probe — completed checkpoint
 
 The first original-model NexaUI Settings consumer now builds privately and runs
 on the actual Aetheri compositor in the Fedora/glibc carrier. The pinned 0.1.18
@@ -32,9 +58,9 @@ the enforcing carrier is idle on tty1 without candidate/native actors or seat0.
 See [probe](../../spec/nexaui.md), [record](journal/2026-11-05-nexaui-settings.md)
 and `local/nexaui-settings-2026-11-05`. Old recovery remains unresolved.
 
-Next: real independent AT-SPI and explicit development-owner/DRM integration
-before any Settings replacement; retain behavior/model and implement the accepted
-design. The unavailable-bus probe is not accessible-session, physical, final
+At this checkpoint real independent AT-SPI and development-owner/DRM integration
+were next; the update above records the scoped native AT-SPI result. Retain the
+behavior/model and implement the accepted design before replacement. The unavailable-bus probe is not accessible-session, physical, final
 performance/design or normal admission acceptance. Other apps, device services,
 grants/recovery/removal, OS image/installer/hardware and the complete resettable
 experiment desktop remain required. Keep the full goal active.

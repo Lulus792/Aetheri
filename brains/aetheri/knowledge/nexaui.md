@@ -24,14 +24,23 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+5 November native assistive-transport update: the unchanged pinned consumer now
+passes a separate C17/libatspi peer and real private registry on the Aetheri
+compositor. Native radio state/actions, localized large text, semantic resize,
+display selection and Close are checked against independent original-model and
+pixel/process observations in Release and ASan/UBSan. The disabled-bridge negative
+fails correctly. This advances the prior unavailable-bus boundary; it does not
+establish human screenreader/focus-event or normal session/DRM owner acceptance.
+See [executed record](../journal/2026-11-05-nexaui-atspi.md). Defaults remain SDL.
+
 5 November Aetheri-side pilot: the pinned NexaUI `e71ee30` original-model Settings
 consumer now builds and runs on the Fedora/glibc carrier and actual Aetheri
 private compositor, in Release and ASan/UBSan. Its software Wayland path has no
 SDL/X11/Vulkan dependency. Native pointer/keyboard, three output observations,
 German/high contrast/200%, narrow resize/restore and view lifetime checks pass.
-AT-SPI is compiled/late-loaded, but the test bus is deliberately unavailable;
-real native accessibility and DRM owner integration remain gates. The working
-SDL app remains selected. See [probe contract](../../../spec/nexaui.md) and
+That first test bus is deliberately unavailable; the subsequent separate native
+AT-SPI test above supplies scoped action evidence. DRM owner integration remains.
+The working SDL app remains selected. See [probe contract](../../../spec/nexaui.md) and
 [record](../journal/2026-11-05-nexaui-settings.md). This advances the previous
 recommendation to an executed consumer probe, not global SDK/application adoption.
 

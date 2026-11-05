@@ -95,11 +95,74 @@ and twelve images per profile. Five existing Settings/compositor groups also
 pass per profile. Exact sources, original failures, binaries and current-state
 audit are in the [dated record](../brains/aetheri/journal/2026-11-05-nexaui-settings.md).
 
-The private test deliberately has an unavailable accessibility bus. It proves
+The original `settings.nexaui` test deliberately has an unavailable accessibility bus. It proves
 compiled/late-loaded transport and usable ordinary interaction in that condition,
 **not** successful native AT-SPI publication, a screenreader or accessible normal
-session. Before replacing Settings, exercise actual development-owner launch/
-reuse/close/reopen on the DRM desktop and a separate real AT-SPI client. Compare
+session. The separate native AT-SPI test below now supplies actual registry/client
+evidence. Before replacing Settings, exercise actual development-owner launch/
+reuse/close/reopen on the DRM desktop. Compare
 the full existing Settings behavior, finish the accepted layout/design, and
 measure relevant resource/response budgets. Persistent settings and real device
 services remain Aetheri work; the SDK view cannot create those backends.
+
+## Independent native AT-SPI test
+
+`settings.nexaui_atspi` uses a separate C17/libatspi client with no NexaUI or
+Aetheri model linkage. A private real D-Bus daemon and AT-SPI registry provide
+transport; the normal system bus, desktop configuration and installed services
+are unchanged. The application remains the original pinned consumer.
+
+[atspi-inputs.json](atspi-inputs.json) pins seven signed Fedora RPMs for this
+optional test: AT-SPI 2.60.7 runtime/headers, D-Bus 1.16.2 daemon, matching
+GLib 2.88.0 headers and three small X client libraries. The test peer/registry
+need those X libraries even on Wayland; the NexaUI application does not load
+libatspi, GLib or X11 through this test. This does not introduce an X server.
+The existing system GLib/D-Bus runtimes stay selected. LGPL and the packages'
+other original notices remain distinct from Aetheri's MIT code.
+
+The [fixture preparer](../tools/prepare_atspi.py) verifies signatures, exact
+package bytes, matching existing runtimes and the original D-Bus header SDK.
+It extracts only selected headers, six executables/libraries and license notices
+into a fresh private directory, records 344 files and compiles our independent
+[client](../tests/nexaui_settings_atspi.c). It performs no RPM installation,
+scriptlet, download or global library replacement. Generated records and exact
+relative library links remain with the fixture; interrupted attempts are retained.
+
+```sh
+python3 tools/prepare_atspi.py /path/to/pinned-rpm-cache /path/to/new-atspi-fixture \
+  /path/to/nexaui-private-build/dbus-sdk
+cmake -S . -B /path/to/aetheri-build \
+  -DAETHERI_ATSPI_TEST_PREFIX=/path/to/new-atspi-fixture
+ctest --test-dir /path/to/aetheri-build -R '^settings.nexaui_atspi$' --output-on-failure
+```
+
+The existing NexaUI probe path must also be selected. Both cache options default
+to empty: ordinary builds/tests start no registry or bus. The test's AF_UNIX bus
+lives under its own 0700 runtime directory, authenticates the test UID and has
+no service-activation directories. The parent keeps each original child handle,
+waits for orderly positive exits and closes the test-owned registry/bus afterward.
+Failure cleanup concerns only those test children, never production drain/leases.
+
+The identical client first rejects a visible window with `NO_AT_BRIDGE=1` and
+confirms that no settings action occurred. With the bridge enabled, it finds
+the parent's actual held app through the private registry, checks native radio
+roles/enabled/checked states, requests high contrast, German and 200% text and
+observes applied model results. That PID comparison is test correlation only,
+not an authority/admission mechanism.
+
+The second window is on output one after the first retires. The harness follows
+that actual placement, maximizes there, resizes it to 320x320 and lets the
+independent client verify the native semantic size and change text to 150%.
+It also selects the observed HEADLESS-1 entry, restores the actual 2560x1440
+window, rechecks settings and closes through native AT-SPI. The parent's own
+model logs, captured compositor pixels and original process exit independently
+confirm effects. Selecting an observed display does not apply system configuration.
+
+Release and the ASan/UBSan consumer pass; each retains three states/nine images.
+Sanitizers halt on errors and log checks reject sanitizer/GObject diagnostics.
+The independent client and packaged registry themselves are regular native
+builds. See the [executed record](../brains/aetheri/journal/2026-11-05-nexaui-atspi.md)
+for exact test boundaries and original fixture failure. This closes a scoped
+private native-transport/action gate. Human screenreader tasks, focus-event/
+announcement quality, complete accessible roles/text, physical input/scaling,
+normal session bus provisioning and the accepted visual design remain work.
