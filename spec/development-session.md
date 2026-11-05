@@ -53,10 +53,11 @@ both available native-UI inspection paths timed out. Guest pixels/input are
 tested through QMP; do not call that a completed Windows interaction test.
 
 Choose one start command. `--desktop` opens the [dock/search client](desktop-ui.md)
-with Settings and Terminal launched on demand; closing either leaves the desktop
+with Settings, Terminal and Files launched on demand; closing one leaves the desktop
 and other app running. Ctrl+Q while search has focus asks the owner to stop
-Terminal, Settings, desktop and compositor
-in order. In the original Settings-only mode, Settings can close with Ctrl+Q.
+Files (including its document window), Terminal, Settings, desktop and compositor
+in order. Existing-window search remains available while closing; finish any
+open document there before the display retires. In the original Settings-only mode, Settings can close with Ctrl+Q.
 The development supervisor then ends the compositor
 and retains the original service result. Run `stop` to retire the inspected unit
 and return to tty1. `stop --token TOKEN` selects a specific original development
@@ -66,6 +67,12 @@ With `AETHERI_EDITOR=ON` in the selected build, the [own modal editor](editor.md
 can be started by its full build path inside Terminal. It is a foreground shell
 command, not another fixed desktop app slot or an admitted normal application.
 Close it through its save/close workflow before ending a development test session.
+
+Files opens the session token’s `documents` workspace, initially empty. Windows
+can close/reopen without deleting it; session retirement retains it too. This
+is separate from normal home-directory provisioning and document grants. Enable
+`AETHERI_FILES=ON` and `AETHERI_EDITOR=ON` in the selected UI build. The normal
+Terminal slot and the Files-owned Editor window have separate window identities.
 
 ## What runs
 
@@ -86,10 +93,10 @@ and no forced SIGKILL. It changes no login-manager configuration or policy.
 
 The ordinary-user Python supervisor is a development tool. It retains actual
 Popen child handles, starting compositor then Settings or the selected desktop.
-The desktop mode has separate on-demand Settings and Terminal slots, a private
-inherited Wayland connection and a bounded version2 fixed-command channel.
-New format1 records add `launch_protocol: 2`, digests for the five fixed binaries
-and the existing Mono font/license. Historical records remain readable without
+The desktop mode has separate on-demand Settings, Terminal and Files slots, a private
+inherited Wayland connection and a bounded version3 fixed-command channel.
+New format1 records add `launch_protocol: 3`, digests for the seven fixed binaries
+and the existing Mono font/license. Historical protocol1/protocol2 records remain readable without
 upgrading/rebinding them. It notifies PID1 only
 after the selected first UI has submitted its first frame, not merely printed
 READY. This is a development startup signal, not the Aetheri app READY protocol
@@ -120,6 +127,7 @@ as a dependency of the future production desktop.
 | `active.next` | Root, an interrupted/uncertain write; never removed automatically |
 | `/home/aetheri/development-sessions/TOKEN/runtime` | UID1000, private development Wayland socket directory |
 | `cache` beside that runtime | UID1000, development-view shader cache with the existing soft budget |
+| `documents` beside that runtime | UID1000, initially empty workspace for Files; retained across window and session close |
 | system journal | Native and supervisor diagnostics, filtered to avoid per-control layout spam |
 
 These dedicated folders make the development footprint explicit. They are retained

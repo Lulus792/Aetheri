@@ -6,10 +6,11 @@
 int main(void) {
     struct ae_desktop_model m;struct ae_desktop_result out[AE_DESKTOP_RESULTS];ae_desktop_model_init(&m);
     CHECK(!ae_desktop_model_text(&m,"x"));ae_desktop_model_search(&m,2,true);
-    CHECK(ae_desktop_model_results(&m,out)==2 && !out[0].window && out[0].app==AE_DESKTOP_SETTINGS && out[1].app==AE_DESKTOP_TERMINAL);
+    CHECK(ae_desktop_model_results(&m,out)==3 && !out[0].window && out[0].app==AE_DESKTOP_SETTINGS && out[1].app==AE_DESKTOP_TERMINAL && out[2].app==AE_DESKTOP_FILES);
     CHECK(ae_desktop_model_window(&m,17,"Grüße","example.editor",false));
     CHECK(ae_desktop_model_window(&m,18,"Second window","example.other",true));
     ae_desktop_model_select(&m,1);CHECK(!m.selected && m.selected_app==AE_DESKTOP_TERMINAL);
+    ae_desktop_model_select(&m,1);CHECK(!m.selected && m.selected_app==AE_DESKTOP_FILES);
     ae_desktop_model_select(&m,1);CHECK(m.selected==17 && m.selected_app==AE_DESKTOP_APP_NONE);
     CHECK(ae_desktop_model_window(&m,17,"Updated Grüße","example.editor",true) && m.selected==17 && m.count==2);
     CHECK(ae_desktop_model_text(&m,"grü"));CHECK(ae_desktop_model_results(&m,out)==1 && out[0].window==17);
@@ -20,6 +21,11 @@ int main(void) {
     ae_desktop_model_closed(&m,17);CHECK(m.count==1 && ae_desktop_model_results(&m,out)==0);
     ae_desktop_model_search(&m,0,true);CHECK(m.query[0]==0 && m.selected==0);
     CHECK(!ae_desktop_model_request(&m,AE_DESKTOP_APP_NONE) && !ae_desktop_model_request(&m,AE_DESKTOP_APP_END));
+    CHECK(!strcmp(ae_desktop_app_label(AE_DESKTOP_FILES,true),"Dateien") && !strcmp(ae_desktop_app_id(AE_DESKTOP_FILES),"org.aetheri.Files"));
+    CHECK(ae_desktop_app_from_selector('F')==AE_DESKTOP_FILES && ae_desktop_app_selector(AE_DESKTOP_FILES)=='F' && ae_desktop_app_from_selector('?')==AE_DESKTOP_APP_NONE);
+    CHECK(ae_desktop_model_request(&m,AE_DESKTOP_FILES) && ae_desktop_model_pending(&m));
+    CHECK(!ae_desktop_model_request(&m,AE_DESKTOP_FILES) && ae_desktop_model_reply(&m,AE_DESKTOP_FILES,'A') && m.process[AE_DESKTOP_FILES]);
+    CHECK(ae_desktop_model_reply(&m,AE_DESKTOP_FILES,'X') && !m.process[AE_DESKTOP_FILES]);
     CHECK(ae_desktop_model_request(&m,AE_DESKTOP_SETTINGS));CHECK(!ae_desktop_model_request(&m,AE_DESKTOP_SETTINGS));
     CHECK(m.pending[AE_DESKTOP_SETTINGS] && !ae_desktop_model_reply(&m,AE_DESKTOP_SETTINGS,'?') && m.pending[AE_DESKTOP_SETTINGS]);
     CHECK(!ae_desktop_model_reply(&m,AE_DESKTOP_TERMINAL,'A') && m.pending[AE_DESKTOP_SETTINGS]);

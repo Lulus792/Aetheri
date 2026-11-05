@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-enum ae_desktop_app { AE_DESKTOP_APP_NONE, AE_DESKTOP_SETTINGS, AE_DESKTOP_TERMINAL, AE_DESKTOP_APP_END };
-enum { AE_DESKTOP_WINDOWS = 64, AE_DESKTOP_QUERY = 256, AE_DESKTOP_RESULTS = AE_DESKTOP_WINDOWS + 2 };
+enum ae_desktop_app { AE_DESKTOP_APP_NONE, AE_DESKTOP_SETTINGS, AE_DESKTOP_TERMINAL, AE_DESKTOP_FILES, AE_DESKTOP_APP_END };
+enum { AE_DESKTOP_WINDOWS = 64, AE_DESKTOP_QUERY = 256, AE_DESKTOP_RESULTS = AE_DESKTOP_WINDOWS + AE_DESKTOP_APP_END - 1 };
 struct ae_desktop_window {
     uint32_t id;
     char title[257], app_id[257];
@@ -28,6 +28,8 @@ void ae_desktop_model_closed(struct ae_desktop_model *model, uint32_t id);
 size_t ae_desktop_model_results(const struct ae_desktop_model *model, struct ae_desktop_result results[AE_DESKTOP_RESULTS]);
 const char *ae_desktop_app_label(enum ae_desktop_app app, bool german);
 const char *ae_desktop_app_id(enum ae_desktop_app app);
+char ae_desktop_app_selector(enum ae_desktop_app app);
+enum ae_desktop_app ae_desktop_app_from_selector(char selector);
 bool ae_desktop_model_pending(const struct ae_desktop_model *model);
 bool ae_desktop_model_text(struct ae_desktop_model *model, const char *text);
 void ae_desktop_model_backspace(struct ae_desktop_model *model);

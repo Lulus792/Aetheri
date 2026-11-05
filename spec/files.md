@@ -5,8 +5,9 @@
 Navigation and filtering use an original C17 model; SDL3 supplies the Wayland
 window and drawing. The app uses the existing reviewed SDL/text dependency profile.
 
-This is an ordinary-user development app. It is not yet a dock entry, a document
-broker, an installed app sandbox or the finished file manager. The initial folder
+This is an ordinary-user development app, now launched from the fixed development
+dock/search owner. It is not yet a document broker, an installed app sandbox or
+the finished file manager. The initial folder
 is a navigation anchor, not a security boundary. The process retains the development
 user's normal rights; held directories can cross mounts or survive renames.
 
@@ -31,6 +32,9 @@ Choose an existing directory and a private, user-owned 0700 shader-cache directo
   --editor /home/aetheri/build/session-release/aetheri-editor
 ```
 
+In the fixed development desktop, choose Files from dock or global search. It
+browses the session’s initially empty `documents` workspace, which is retained
+after window/session close. The command above selects a separate explicit root.
 These are development paths, not installed desktop entries. Root and mismatched
 real/effective user or group IDs are refused. There is no X11/offscreen fallback.
 `--diagnostics` adds view/request/end records; a request record is not readiness.
@@ -125,7 +129,7 @@ idle observation and Files → Terminal → Editor saves, dirty-close cancellati
 ordered close. It needs the explicit compositor/Settings/Terminal/Editor test build
 and reviewed fonts. These are disposable-carrier tests, not physical acceptance.
 
-Still required: regular desktop launch integration, brokered document access and
+Still required: normal admitted desktop/app integration, brokered document access and
 revocation, richer navigation/details, file operations with previews/recovery,
 image/PDF handlers, multiple documents, accessible semantics and hardware/monitor
 acceptance. File mutation in this first workflow belongs to the editor; Files

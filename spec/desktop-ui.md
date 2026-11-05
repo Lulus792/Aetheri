@@ -1,7 +1,7 @@
 # Native development desktop
 
 5 November 2026. Aetheri now has an original SDL3 desktop client with a dock,
-keyboard search, a current window list and fixed Settings/Terminal launch. It runs on the
+keyboard search, a current window list and fixed Settings/Terminal/Files launch. It runs on the
 private headless compositor and the carrier's actual DRM/logind development
 session. Its layout is a provisional design for later user review.
 
@@ -9,7 +9,8 @@ session. Its layout is a provisional design for later user review.
 
 Build with `AETHERI_DESKTOP=ON`, `AETHERI_COMPOSITOR=ON` and the existing reviewed
 SDL/text profile. `AETHERI_SETTINGS=ON` adds the actual Settings consumer/tests;
-the complete carrier desktop also builds `AETHERI_TERMINAL=ON` and `AETHERI_SHELL=ON`.
+the complete carrier desktop also builds `AETHERI_TERMINAL=ON`, `AETHERI_SHELL=ON`,
+`AETHERI_FILES=ON` and `AETHERI_EDITOR=ON`.
 the native carrier session also requires `AETHERI_DRM_SESSION=ON`. Keep all normal
 graphics options off unless deliberately building this development profile.
 See [Settings inputs/build](settings.md) and the [session guide](development-session.md).
@@ -24,7 +25,7 @@ python tools/development_session.py stop
 
 Use `--profile debug` for the reviewed ASan/UBSan build. A start without
 `--desktop` retains the earlier Settings-only workflow. A desktop session starts
-without app processes; launch Settings and Terminal independently from dock or search.
+without app processes; launch Settings, Terminal and Files independently from dock or search.
 
 | Action | Behavior |
 | --- | --- |
@@ -44,9 +45,10 @@ fully ended. A launch request while Settings still runs retains that child and
 raises its observed window where available. The app ID used for visual grouping
 is descriptive; the launch owner independently selects its fixed executable.
 The [terminal](terminal.md) behaves the same way, with Ctrl+Shift+Q for its own
-close and its own PTY/shell owner. Both apps can run together. Ctrl+Shift+Q does
+close and its own PTY/shell owner. All three apps can run together. Ctrl+Shift+Q does
 not alias the desktop's Ctrl+Q action while search has focus. The narrow dock
-uses three controls; German Settings is shortened to “System” there.
+uses four controls; German Settings is shortened to “System” there. Very narrow
+buttons use smaller text and “Term.” for Terminal.
 
 Normal-window configure bounds now recommend the selected output's usable area,
 including the dock and the provisional 40px placement margins on sufficiently
@@ -71,7 +73,7 @@ than a window's original placement output.
 | `src/desktop/model.h` and `model.c` | Bounded query, stable window/result selection and pending process observations; no SDL/NexaUI types or toolkit persistence |
 | `src/desktop/main.c` | SDL windows/renderers, font/text presentation, native role adapter, controls, input and channel event translation |
 | `src/compositor/desktop.c` | Original-connection admission to private roles/control, placement, focus, work area and current window objects |
-| `tools/development_session.py` | Explicit carrier controller and ordinary-user owner of original compositor/desktop/Settings/Terminal Popen handles |
+| `tools/development_session.py` | Explicit carrier controller and ordinary-user owner of original compositor/desktop/Settings/Terminal/Files Popen handles |
 
 The model holds at most 64 observed windows, 256-byte title/app-ID values and a
 255-byte UTF-8 query. Results borrow model/literal labels until the next model
@@ -119,22 +121,37 @@ The explicit shader cache remains inside the owned development token directory,
 shared by these development views with the existing 32 MiB soft budget. It is
 not an app DataEpoch, StorageRef, hard quota or permanent toolkit-owned service.
 
+## Files workspace and closing
+
+Files browses the session token’s independently prepared 0700 `documents` folder.
+It starts empty and remains on disk after windows/session close; restarting Files
+in the same session reuses it. No personal home is scanned or populated by default.
+This is a development workspace, not the final home layout or a permission grant.
+
+Files retains its original document Terminal until end. Its SIGTERM close path
+waits for the user to finish that document. The shutdown fence keeps later apps
+and the display alive. Search and existing-window activation remain available
+while closing, so the user can return to the editor, save/cancel and close it;
+new app starts remain barred. The direct-editor window identifies as
+`org.aetheri.Editor`, separate from the normal `org.aetheri.Terminal` slot.
+App IDs remain descriptive grouping, not process authorization.
+
 ## Fixed owner channel
 
 The supervisor independently inherits one private Wayland stream connection to
 the desktop and creates a separate AF_UNIX SOCK_SEQPACKET command channel. Apps
 inherit neither endpoint. All extra parent/child endpoint copies are closed.
-The three-byte version2 packets carry no paths, argv, account IDs or incoming FDs.
-`S` and `T` select only the fixed Settings and Terminal programs. Unknown selectors
-and old version1 packets are rejected by the current desktop/owner pair.
+The three-byte version3 packets carry no paths, argv, account IDs or incoming FDs.
+`S`, `T` and `F` select only fixed Settings, Terminal and Files programs. Unknown selectors
+and old version1/version2 packets are rejected by the current desktop/owner pair.
 
 | Direction | Packet | Meaning |
 | --- | --- | --- |
-| Desktop → owner | `L2S` / `L2T` | Request the selected fixed reviewed program |
-| Owner → desktop | `A2S` / `A2T` | Original selected child exists; not app/window READY |
-| Owner → desktop | `E2S` / `E2T` | No new launch effect: definite exec failure, busy old slot or per-app attempt limit |
-| Owner → desktop | `X2S` / `X2T` | Previous selected process is reaped and its output pipe drained |
-| Desktop → owner | `Q20` | Fence all new launches and begin ordered development shutdown |
+| Desktop → owner | `L3S` / `L3T` / `L3F` | Request the selected fixed reviewed program |
+| Owner → desktop | `A3S` / `A3T` / `A3F` | Original selected child exists; not app/window READY |
+| Owner → desktop | `E3S` / `E3T` / `E3F` | No new launch effect: definite exec failure, busy old slot or per-app attempt limit |
+| Owner → desktop | `X3S` / `X3T` / `X3F` | Previous selected process is reaped and its output pipe drained |
+| Desktop → owner | `Q30` | Fence all new launches and begin ordered development shutdown |
 
 Only one launch response per app may be pending. Repeated activation while pending does
 not submit again. Reply loss, malformed/truncated packets, ancillary FDs or a lost
@@ -146,7 +163,8 @@ and fails the session rather than returning a definite no-effect reply.
 Neither a process acknowledgement nor metadata proves code admission or readiness.
 
 On Ctrl+Q the desktop waits for its owner rather than retiring the display beneath
-a running app. The owner stops/reaps Terminal, then Settings, then signals the desktop and waits for
+a running app. The owner stops/reaps Files and its owned document window, then Terminal, then Settings,
+then signals the desktop and waits for
 its original retirement/departure and ends the compositor. The signal self-pipe
 wakes the UI even while it sleeps. Every role's output pipe must end before the
 next is terminated. The same order applies after an exception. Cleanup/sanitizer
@@ -154,9 +172,10 @@ failures remain failures. A hung PTY job or retained stdout writer keeps later
 roles alive; there is no automatic force-kill or fabricated descendant/lease drain.
 The root controller retains PID1's original result before explicit unit retirement.
 The root development record remains format1. New desktop records add
-`launch_protocol: 2`, five executable digests and two Mono font/license digests.
+`launch_protocol: 3`, seven executable digests and two Mono font/license digests.
 Historical desktop records without that field retain protocol1 meaning; records
-without `desktop` retain Settings-only meaning. Closed records never control a
+with protocol2 retain their previous meaning; records without `desktop` retain
+Settings-only meaning. Closed records never control a
 newer session. No frozen SQL/XML management contract changes.
 
 This is trusted same-account development infrastructure, not normal session/app
@@ -166,6 +185,16 @@ SQL/D-Bus contracts remain unchanged. The Python supervisor is not selected as
 the production session manager.
 
 ## Acceptance and remaining work
+
+The current three-app Files integration passes the 42 affected Release and
+ASan+UBSan groups, actual native owner/Compose cases, a wrong-order negative
+control and an actual protocol3 DRM session. See the
+[Files integration record](../brains/aetheri/journal/2026-11-05-desktop-files.md).
+Normal admission, document grants, final design, full accessibility and physical
+display acceptance remain open. The checkpoint below records the earlier two-app
+profile and its original evidence; it does not describe the current wire version.
+
+### Earlier two-app owner checkpoint
 
 The two-app checkpoint passes `desktop.model`, `desktop.native` and
 `desktop.owner` initially in Release (16.94 s) and Debug ASan/UBSan (21.65 s). The first two

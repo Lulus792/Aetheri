@@ -81,10 +81,10 @@ static int worker(void *data) {
                     for (size_t i = 0; i < count; ++i) { int fd; memcpy(&fd, (unsigned char *)CMSG_DATA(h)+i*sizeof(fd), sizeof(fd)); close(fd); }
                 }
             }
-            if (n != 3 || extra || (message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)) || bytes[1] != '2' ||
-                    (bytes[2]!='S' && bytes[2]!='T') ||
+            if (n != 3 || extra || (message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)) || bytes[1] != '3' ||
+                    !ae_desktop_app_from_selector((char)bytes[2]) ||
                     (bytes[0] != 'A' && bytes[0] != 'E' && bytes[0] != 'X')) { wake(a, -1); return 1; }
-            wake(a, bytes[0] | ((bytes[2]=='S' ? AE_DESKTOP_SETTINGS : AE_DESKTOP_TERMINAL)<<8));
+            wake(a, (int)bytes[0] | ((int)ae_desktop_app_from_selector((char)bytes[2])<<8));
         }
     }
 }
@@ -92,6 +92,7 @@ static void error(struct app *a, const char *what) {
     fprintf(stderr, "desktop: %s: %s\n", what, SDL_GetError()); a->failed = true; a->running = false;
 }
 static const char *tr(struct app *a, const char *en, const char *de) { return a->model.german ? de : en; }
+static unsigned app_kind(enum ae_desktop_app app) { return app==AE_DESKTOP_SETTINGS ? 2u : app==AE_DESKTOP_TERMINAL ? 4u : 5u; }
 static void dirty(struct app *a) { for (unsigned i = 0; i < a->observed_count; ++i) a->views[i].dirty = true; }
 static bool inside(SDL_FRect r, float x, float y) { return x >= r.x && x < r.x+r.w && y >= r.y && y < r.y+r.h; }
 static SDL_FRect card_rect(struct view *v) {
@@ -125,7 +126,8 @@ static void button(struct view *v, unsigned kind, uint32_t id, SDL_FRect r, cons
     }
     SDL_Rect clip = {(int)r.x+8,(int)r.y+2,(int)r.w-16,(int)r.h-4};
     if (!SDL_SetRenderClipRect(v->renderer,&clip)) error(a,"button clip");
-    text(v,label,r.x+12,r.y+12,r.w-24,16,(SDL_Color){239,243,251,255});
+    float padding=r.w<80 ? 8.0f : 12.0f;
+    text(v,label,r.x+padding,r.y+(r.w<80 ? 15.0f : 12.0f),r.w-2*padding,r.w<80 ? 12.0f : 16.0f,(SDL_Color){239,243,251,255});
     if (!SDL_SetRenderClipRect(v->renderer,NULL)) error(a,"clip reset");
 }
 static void query(struct view *v, SDL_FRect field) {
@@ -164,21 +166,23 @@ static void draw(struct view *v) {
     float w = (float)v->width, h = (float)v->height;
     SDL_Color secondary = {178,192,214,255};
     if (!v->expanded || h>=600) {
-        float dock_width = fminf(w-32,760), dx = (w-dock_width)/2, dy = h-72;
+        float dock_width = fminf(w-32,900), dx = (w-dock_width)/2, dy = h-72;
         fill(v,(SDL_FRect){dx,dy,dock_width,60},(SDL_Color){25,31,43,255});
-        if (dock_width<640) {
-            float bw=(dock_width-48)/3;
+        if (dock_width<820) {
+            float bw=(dock_width-56)/4;
             button(v,1,0,(SDL_FRect){dx+16,dy+8,bw,44},tr(a,"Search","Suchen"),v->expanded);
             button(v,2,0,(SDL_FRect){dx+24+bw,dy+8,bw,44},tr(a,"Settings","System"),a->model.pending[AE_DESKTOP_SETTINGS]);
-            button(v,4,0,(SDL_FRect){dx+32+2*bw,dy+8,bw,44},"Terminal",a->model.pending[AE_DESKTOP_TERMINAL]);
+            button(v,4,0,(SDL_FRect){dx+32+2*bw,dy+8,bw,44},bw<80 ? "Term." : "Terminal",a->model.pending[AE_DESKTOP_TERMINAL]);
+            button(v,5,0,(SDL_FRect){dx+40+3*bw,dy+8,bw,44},tr(a,"Files","Dateien"),a->model.pending[AE_DESKTOP_FILES]);
         } else {
             text(v,"Aetheri",dx+16,dy+20,80,16,(SDL_Color){239,243,251,255});
             button(v,1,0,(SDL_FRect){dx+112,dy+8,142,44},tr(a,"Search","Suchen"),v->expanded);
             button(v,2,0,(SDL_FRect){dx+262,dy+8,150,44},tr(a,"Settings","Einstellungen"),a->model.pending[AE_DESKTOP_SETTINGS]);
             button(v,4,0,(SDL_FRect){dx+420,dy+8,130,44},"Terminal",a->model.pending[AE_DESKTOP_TERMINAL]);
-            if (dock_width >= 640) {
+            button(v,5,0,(SDL_FRect){dx+558,dy+8,108,44},tr(a,"Files","Dateien"),a->model.pending[AE_DESKTOP_FILES]);
+            if (dock_width >= 820) {
                 char status[64]; snprintf(status,sizeof(status),"%zu %s",a->model.count,tr(a,a->model.count==1 ? "window" : "windows","Fenster"));
-                text(v,status,dx+562,dy+22,dock_width-574,13,secondary);
+                text(v,status,dx+678,dy+22,dock_width-690,13,secondary);
             }
         }
     }
@@ -195,11 +199,11 @@ static void draw(struct view *v) {
         if (!n) text(v,tr(a,"No matching apps or windows.","Keine passenden Apps oder Fenster."),x+28,y+138,cw-56,16,secondary);
         for (size_t i = first; i < n && i < first+visible; ++i) {
             const char *label = !results[i].window && a->model.pending[results[i].app] ? tr(a,"Starting…","Wird gestartet…") : results[i].label;
-            button(v,results[i].window ? 3u : results[i].app==AE_DESKTOP_TERMINAL ? 4u : 2u,results[i].window,
+            button(v,results[i].window ? 3u : app_kind(results[i].app),results[i].window,
                 (SDL_FRect){x+24,y+128+(float)(i-first)*52,cw-48,46},label,i==selected);
         }
         const char *status = a->closing ? tr(a,"Closing the development desktop…","Entwicklungsdesktop wird geschlossen…") :
-            (a->model.launch_error[AE_DESKTOP_SETTINGS] || a->model.launch_error[AE_DESKTOP_TERMINAL]) ? tr(a,"An app could not start. You can try again.","App konnte nicht starten. Erneut versuchen.") :
+            (a->model.launch_error[AE_DESKTOP_SETTINGS] || a->model.launch_error[AE_DESKTOP_TERMINAL] || a->model.launch_error[AE_DESKTOP_FILES]) ? tr(a,"An app could not start. You can try again.","App konnte nicht starten. Erneut versuchen.") :
             ae_desktop_model_pending(&a->model) ? tr(a,"Waiting for the launch response.","Warten auf die Startantwort.") :
             tr(a,"Enter: open   ·   Tab / arrows: select   ·   Esc: close","Enter: öffnen   ·   Tab / Pfeile: wählen   ·   Esc: schließen");
         text(v,status,x+24,y+ch-48,cw-48,13,secondary);
@@ -251,12 +255,12 @@ static void search(struct app *a, unsigned index, bool open) {
     a->views[index].dirty=true;
 }
 static void activate(struct app *a, unsigned kind, uint32_t id, unsigned output) {
-    if (a->closing) return;
+    if (a->closing && kind!=1 && kind!=3) return;
     if (kind == 1) { search(a,output,!(a->model.search && a->model.output==output)); return; }
-    if (kind == 2 || kind==4) {
-        enum ae_desktop_app app=kind==2 ? AE_DESKTOP_SETTINGS : AE_DESKTOP_TERMINAL;
+    if (kind == 2 || kind==4 || kind==5) {
+        enum ae_desktop_app app=kind==2 ? AE_DESKTOP_SETTINGS : kind==4 ? AE_DESKTOP_TERMINAL : AE_DESKTOP_FILES;
         if (!ae_desktop_model_request(&a->model,app)) return;
-        char packet[]={'L','2',app==AE_DESKTOP_SETTINGS ? 'S' : 'T'};
+        char packet[]={'L','3',ae_desktop_app_selector(app)};
         if (send(a->launcher,packet,sizeof(packet),MSG_NOSIGNAL|MSG_DONTWAIT) != (ssize_t)sizeof(packet)) { error(a,"uncertain launch request"); return; }
         if (a->diagnostics) printf("LAUNCH_REQUEST %c\n",packet[2]);
     } else if (kind == 3) {
@@ -267,7 +271,7 @@ static void activate(struct app *a, unsigned kind, uint32_t id, unsigned output)
 static void request_close(struct app *a) {
     if (a->closing) return;
     a->closing=true;
-    if (send(a->launcher,"Q20",3,MSG_NOSIGNAL|MSG_DONTWAIT)!=3) error(a,"uncertain desktop close request");
+    if (send(a->launcher,"Q30",3,MSG_NOSIGNAL|MSG_DONTWAIT)!=3) error(a,"uncertain desktop close request");
     dirty(a);
 }
 static void configured(void *data, struct zwlr_layer_surface_v1 *layer, uint32_t serial, uint32_t width, uint32_t height) {
@@ -300,6 +304,7 @@ static void desktop_output(void *data,struct aetheri_development_desktop_v1 *con
 static void desktop_window(void *data,struct aetheri_development_desktop_v1 *control,uint32_t id,const char *title,const char *app_id,uint32_t active) {
     (void)control; struct app *a = data;
     if (active > 1 || !ae_desktop_model_window(&a->model,id,title,app_id,active != 0)) error(a,"invalid window observation");
+    else if (a->diagnostics) printf("WINDOW id=%u app=%s active=%u\n",id,app_id,active);
     dirty(a); wake(a,0);
 }
 static void desktop_closed(void *data,struct aetheri_development_desktop_v1 *control,uint32_t id) {
@@ -360,7 +365,7 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (e->user.code) {
             enum ae_desktop_app app=(enum ae_desktop_app)(e->user.code>>8);char reply=(char)(e->user.code&255);
             if (!ae_desktop_model_reply(&a->model,app,reply)) { error(a,"uncorrelated launcher reply"); return; }
-            if (a->diagnostics) printf("LAUNCH_REPLY %c %c\n",reply,app==AE_DESKTOP_SETTINGS ? 'S' : 'T');
+            if (a->diagnostics) printf("LAUNCH_REPLY %c %c\n",reply,ae_desktop_app_selector(app));
             if (reply=='A') {
                 search(a,a->model.output,false);
                 /* Descriptive grouping only. The launch owner always selects
@@ -398,7 +403,7 @@ static void event(struct app *a,const SDL_Event *e) {
                 ae_desktop_model_select(&a->model,e->key.key==SDLK_UP || (e->key.mod&SDL_KMOD_SHIFT) ? -1 : 1);
             else if (e->key.key==SDLK_RETURN && !e->key.repeat) {
                 struct ae_desktop_result results[AE_DESKTOP_RESULTS];size_t n=ae_desktop_model_results(&a->model,results);
-                for (size_t i=0;i<n;++i) if (results[i].window==a->model.selected && results[i].app==a->model.selected_app) activate(a,results[i].window ? 3u : results[i].app==AE_DESKTOP_TERMINAL ? 4u : 2u,results[i].window,v->index);
+                for (size_t i=0;i<n;++i) if (results[i].window==a->model.selected && results[i].app==a->model.selected_app) activate(a,results[i].window ? 3u : app_kind(results[i].app),results[i].window,v->index);
             }
             v->dirty=true;
         }

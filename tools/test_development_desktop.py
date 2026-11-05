@@ -17,7 +17,7 @@ import time
 
 def startup_failure(build,source,owner_source,root):
     fault=root/"startup-failure";fault.mkdir(mode=0o700)
-    for name in ("sessions","sessions/fixture","sessions/fixture/runtime","sessions/fixture/cache"):
+    for name in ("sessions","sessions/fixture","sessions/fixture/runtime","sessions/fixture/cache", "sessions/fixture/documents"):
         (fault/name).mkdir(mode=0o700)
     reader,issuer=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET)
     with (fault/"owner.log").open("wb") as stream:
@@ -43,11 +43,12 @@ def main():
     compose=len(sys.argv)>3 and sys.argv[3]=='--compose'
     source_hash=hashlib.sha256(owner_source.read_bytes()).hexdigest()
     binaries={str(build/n):hashlib.sha256((build/n).read_bytes()).hexdigest() for n in
-              ("test_compositor_server","aetheri-desktop","aetheri-settings","aetheri-terminal","aetheri-shell")}
+              ("test_compositor_server","aetheri-desktop","aetheri-settings","aetheri-terminal","aetheri-shell","aetheri-files","aetheri-editor")}
     root = Path(tempfile.mkdtemp(prefix="desktop-owner-", dir=build))
-    for name in ("captures", "sessions", "sessions/fixture", "sessions/fixture/runtime", "sessions/fixture/cache"):
+    for name in ("captures", "sessions", "sessions/fixture", "sessions/fixture/runtime", "sessions/fixture/cache", "sessions/fixture/documents"):
         (root/name).mkdir(mode=0o700)
     (root/"wait_job.py").write_text("import signal,time\nfrom pathlib import Path\nsignal.signal(signal.SIGHUP,signal.SIG_IGN)\nPath('job-ready').write_text('ready')\ntime.sleep(30)\n")
+    document=root/"sessions/fixture/documents/alpha.txt";document.write_bytes(b"alpha\n")
     startup_failure(build,source,owner_source,root)
     controller, issuer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     controller.settimeout(4)
@@ -136,12 +137,38 @@ def main():
         cases.append(label)
     try:
         wait(lambda:"STABLE 2 3840x84\n" in log("desktop") and "FIXTURE_NOTIFY READY=1" in rawlog(),"real supervisor desktop ready")
-        snapshot("actual supervisor dock has Settings and Terminal on three outputs")
+        snapshot("actual supervisor dock has Settings Terminal and Files on three outputs")
+        click_control(5)
+        wait(lambda:"READY files " in log("files") and "LAUNCH_REPLY A F\n" in log("desktop") and "VIEW frame=" in log("files"),"dock launches actual Files")
+        first_files=roles["files"]
+        before=log("desktop").count("LAUNCH_REPLY A F\n");click_control(5)
+        wait(lambda:log("desktop").count("LAUNCH_REPLY A F\n")>before,"reuse original Files")
+        assert len(re.findall(r"^SPAWN files ",rawlog(),re.M))==1 and live(first_files[1])
+        key(29,True);tap(16);key(29,False)
+        wait(lambda:"LAUNCH_REPLY X F\n" in log("desktop"),"Files original process and pipe ended")
+        assert not live(first_files[1])
+        launch_from_search("files")
+        wait(lambda:len(re.findall(r"^SPAWN files ",rawlog(),re.M))==2 and log("files").count("READY files ")==2,"search reopens Files in original session workspace")
+        current_files=roles["files"];assert current_files!=first_files
+        wait(lambda:len(set(re.findall(r"WINDOW id=(\d+) app=org.aetheri.Files active=1",log("desktop"))))>=2 and log("files").rfind("VIEW frame=")>log("files").rfind("READY files "),"reopened Files actual focus and rendered view")
+        tap(28)
+        wait(lambda:"READY wayland opengles2 editor=" in log("files") and "FOCUS 1\n" in log("files"),"Files selected document has native focus")
+        document_terminal=int(re.findall(r"^OPEN pid=(\d+)",log("files"),re.M)[-1])
+        document_editor=int(re.findall(r"READY .* editor=(\d+)",log("files"))[-1])
+        document_terminal_pin=pin(document_terminal,current_files[0]);document_editor_pin=pin(document_editor,document_terminal)
+        wait(lambda:bool(re.search(r"VIEW \d+ .* sequence=[2-9]\d* ",log("files"))),"actual original editor frame")
+        typing("ihello ")
+        wait(lambda:log("files").count("TEXT commit accepted=1 bytes=1")==7,"complete dirty document native input")
+        assert document.read_bytes()==b"alpha\n"
+        snapshot("Files owns a dirty document before normal Terminal launch")
         click_control(4)
         wait(lambda:"LAUNCH_REPLY A T\n" in log("desktop") and "READY " in log("terminal"),"dock launches actual terminal")
         shell,shell_pin=terminal_shell()
         wait(lambda:bool(re.search(r"VIEW .* sequence=[2-9]\d* ",log("terminal"))) and "FOCUS 1\n" in log("terminal"),"original shell prompt and native focus")
         first_terminal=roles["terminal"]
+        terminal_window=int(re.findall(r"WINDOW id=(\d+) app=org.aetheri.Terminal ",log("desktop"))[-1])
+        editor_window=int(re.findall(r"WINDOW id=(\d+) app=org.aetheri.Editor ",log("desktop"))[-1])
+        assert editor_window!=terminal_window and live(document_editor_pin)
         if compose:
             wait(lambda:'COMPOSE active=1' in log('compositor'),'owner enabled real provider')
             def composition_size():
@@ -160,9 +187,10 @@ def main():
         snapshot("actual Settings and terminal coexist under original owner")
         focus_before=log("terminal").count("FOCUS 1\n")
         shortcut();typing("terminal")
-        wait(lambda:"query=terminal " in log("desktop"),"filter original terminal window")
+        wait(lambda:"query=terminal " in log("desktop"),"filter the original Terminal independently of editor windows")
+        activated=log("desktop").count(f"ACTIVATED {terminal_window} 1\n")
         tap(15);tap(28)
-        wait(lambda:"ACTIVATED 1 1\n" in log("desktop"),"activate terminal without another spawn")
+        wait(lambda:log("desktop").count(f"ACTIVATED {terminal_window} 1\n")>activated,"activate normal Terminal without selecting the earlier document window")
         wait(lambda:log("terminal").count("FOCUS 1\n")>focus_before,"actual terminal focus after task activation")
         key(29,True);key(42,True);tap(16);key(42,False);key(29,False)
         wait(lambda:"LAUNCH_REPLY X T\n" in log("desktop"),"terminal process and output pipe retired")
@@ -191,7 +219,22 @@ def main():
         holders.append(holder)
         assert stat.S_ISFIFO(os.fstat(holder).st_mode) and live(roles["terminal"][1])
         shortcut();key(29,True);tap(16);key(29,False)
-        wait(lambda:bool(re.search(r"VIEW .* closing=1 ",log("terminal"))),"owner requests terminal close while original job remains")
+        # Files is first in shutdown. The dirty document must keep every later
+        # role/display alive, while existing-window search remains available.
+        wait(lambda:"STOPPING\n" in rawlog(),"original owner applied its shutdown fence")
+        time.sleep(.15)
+        assert all(live(roles[r][1]) for r in ("files","terminal","settings","desktop","compositor")) and live(document_terminal_pin) and live(document_editor_pin)
+        assert not re.search(r"VIEW .* closing=1 ",log("terminal").rsplit("READY wayland opengles2 shell=",1)[-1]),"normal Terminal must not retire before Files/document end"
+        focused=log("files").count("FOCUS 1\n")
+        typing("editor")  # Shutdown was requested in this already-open search.
+        wait(lambda:"query=editor " in log("desktop"),"existing editor remains searchable after the fence")
+        tap(28)
+        wait(lambda:log("files").count("FOCUS 1\n")>focused,"closing desktop still activates its existing document")
+        key(29,True);tap(31);key(29,False)
+        wait(lambda:document.read_bytes()==b"hello alpha\n","exact selected document save during ordered shutdown")
+        key(29,True);tap(16);key(29,False)
+        wait(lambda:not live(document_terminal_pin) and not live(document_editor_pin) and not live(current_files[1]),"original Files/document pair ends before later roles")
+        wait(lambda:bool(re.search(r"VIEW .* closing=1 ",log("terminal").rsplit("READY wayland opengles2 shell=",1)[-1])),"owner requests terminal close while original job remains")
         assert all(live(roles[r][1]) for r in ("terminal","settings","desktop","compositor")) and live(shell_pin) and live(job)
         time.sleep(.15)
         assert all(live(roles[r][1]) for r in ("terminal","settings","desktop","compositor"))
@@ -205,10 +248,13 @@ def main():
         assert all(not live(fd) for fd in pins.values())
         result=json.loads(re.search(r"^SESSION_END (.+)$",rawlog(),re.M).group(1))
         assert all(status==0 for status in result["children"].values()),result
-        assert result["app_history"]==[{"role":"terminal","pid":first_terminal[0],"status":0}],result
-        text=rawlog();assert text.rfind("terminal: CLOSED ")<text.rfind("settings: CLOSED ")<text.rfind("desktop: CLOSED ")
+        assert result["app_history"]==[{"role":"files","pid":first_files[0],"status":0},{"role":"terminal","pid":first_terminal[0],"status":0}],result
+        text=rawlog();assert text.rfind("files: CLOSED files ")<text.rfind("terminal: CLOSED ")<text.rfind("settings: CLOSED ")<text.rfind("desktop: CLOSED ")
         assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:",text)
         cases.extend(("separate launch slots, reuse, actual task activation and fresh terminal reopen",
+                      "Files dock/search reuse and fresh reopen retain the session document workspace",
+                      "distinct Editor window identity cannot hijack normal Terminal selection",
+                      "ordered shutdown preserves the dirty document and permits existing-window activation/save/close",
                       "original blocking job keeps Settings/desktop/compositor alive until explicit test release",
                       "exited terminal with a retained actual output writer keeps later roles alive until pipe EOF",
                       "shutdown reaps each original process and drains its pipe before retiring the next role"))

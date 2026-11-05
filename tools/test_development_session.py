@@ -52,12 +52,15 @@ class DevelopmentContracts(unittest.TestCase):
         self.assertNotIn("compose", self.record)
         current = {**self.record, "desktop": True, "launch_protocol": 2}
         self.assertIs(session.validate(current, self.carrier), current)
+        new = {**self.record, "desktop": True, "launch_protocol": 3}
+        self.assertIs(session.validate(new, self.carrier), new)
+        self.assertEqual(current["launch_protocol"],2)
         changes = [dict(format=2), dict(carrier="foreign"), dict(profile="other"),
                    dict(token="../foreign"), dict(token="A" * 32), dict(unit="foreign.service"),
                    dict(phase="complete"), dict(boot="broken"), dict(invocation="not-an-invocation"),
                    dict(desktop=1), dict(desktop="true"), dict(launch_protocol=2),
                    dict(launch_protocol=True), dict(launch_protocol="2"),
-                   dict(desktop=True, launch_protocol=0), dict(desktop=True, launch_protocol=3)]
+                   dict(desktop=True, launch_protocol=0), dict(desktop=True, launch_protocol=4)]
         changes.extend((dict(compose=1),dict(compose="true"),dict(compose=None)))
         for change in changes:
             with self.subTest(change=change), self.assertRaises((RuntimeError, ValueError)):
@@ -138,14 +141,14 @@ class SupervisorProcesses(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="desktop-owner-") as directory:
             root=Path(directory);build=root/"build";build.mkdir();token="e"*32
             base=root/token;base.mkdir(mode=0o700)
-            for name in ("runtime","cache"):(base/name).mkdir(mode=0o700)
+            for name in ("runtime","cache","documents"):(base/name).mkdir(mode=0o700)
             marker=root/"app-live";desktop_live=root/"desktop-live";started=root/"started";order=root/"order"
             common="from pathlib import Path\nimport os,signal,socket,sys,time\n"
             append="with Path("+repr(str(order))+").open('a') as f:f.write(ROLE+'\\n')\n"
             programs={
                 "aetheri-settings":common+"ROLE='settings'\nmarker=Path("+repr(str(marker))+")\nmarker.write_text('active')\nwith Path("+repr(str(started))+").open('a') as f:f.write(str(os.getpid())+'\\n')\ndef stop(*args):\n marker.unlink()\n "+append.replace("\n","\n ").rstrip()+"\n sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\nprint('READY synthetic',flush=True)\nwhile True:time.sleep(1)\n",
                 "aetheri-compositor":common+"ROLE='compositor'\ndef stop(*args):\n if Path("+repr(str(desktop_live))+").exists():sys.exit(9)\n "+append.replace("\n","\n ").rstrip()+"\n sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\nprint('READY synthetic',flush=True)\nwhile True:time.sleep(1)\n",
-                "aetheri-desktop":common+"ROLE='desktop'\nmarker=Path("+repr(str(desktop_live))+")\nmarker.write_text('active')\ndef stop(*args):\n if Path("+repr(str(marker))+").exists():sys.exit(7)\n marker.unlink()\n "+append.replace("\n","\n ").rstrip()+"\n sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\ns=socket.socket(fileno=int(sys.argv[sys.argv.index('--launcher-fd')+1]))\nprint('READY synthetic',flush=True)\nprint('LAYOUT 1',flush=True)\ns.sendall(b'L2S')\nassert s.recv(8)==b'A2S'\ndeadline=time.monotonic()+5\nwhile not Path("+repr(str(marker))+").exists():\n assert time.monotonic()<deadline\n time.sleep(.01)\ns.sendall(b'L2S')\nassert s.recv(8)==b'A2S'\ns.sendall(b'Q20')\nwhile True:time.sleep(1)\n"}
+                "aetheri-desktop":common+"ROLE='desktop'\nmarker=Path("+repr(str(desktop_live))+")\nmarker.write_text('active')\ndef stop(*args):\n if Path("+repr(str(marker))+").exists():sys.exit(7)\n marker.unlink()\n "+append.replace("\n","\n ").rstrip()+"\n sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\ns=socket.socket(fileno=int(sys.argv[sys.argv.index('--launcher-fd')+1]))\nprint('READY synthetic',flush=True)\nprint('LAYOUT 1',flush=True)\ns.sendall(b'L3S')\nassert s.recv(8)==b'A3S'\ndeadline=time.monotonic()+5\nwhile not Path("+repr(str(marker))+").exists():\n assert time.monotonic()<deadline\n time.sleep(.01)\ns.sendall(b'L3S')\nassert s.recv(8)==b'A3S'\ns.sendall(b'Q30')\nwhile True:time.sleep(1)\n"}
             programs["aetheri-settings"]=programs["aetheri-settings"].replace("marker.write_text('active')\n","",1).replace(
                 "signal.signal(signal.SIGTERM,stop)\n","signal.signal(signal.SIGTERM,stop)\nmarker.write_text('active')\n",1)
             for name,code in programs.items():

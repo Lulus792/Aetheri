@@ -641,10 +641,10 @@ int main(int argc,char **argv) {
     if (source>=0) close(source);
     if (a.editor) { (void)close(3);(void)close(4); }
     if (opened) { free(a.model);return 1; }
-    if (!SDL_SetAppMetadata("Aetheri Terminal","0.0.1","org.aetheri.Terminal") || !SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) { a.failed=true;goto cleanup; }
+    if (!SDL_SetAppMetadata(a.editor ? "Aetheri Editor" : "Aetheri Terminal","0.0.1",a.editor ? "org.aetheri.Editor" : "org.aetheri.Terminal") || !SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) { a.failed=true;goto cleanup; }
     int fm,fn,fp,hm,hn,hp;TTF_GetFreeTypeVersion(&fm,&fn,&fp);TTF_GetHarfBuzzVersion(&hm,&hn,&hp);
     if (SDL_GetVersion()!=SDL_VERSION || TTF_Version()!=SDL_TTF_VERSION || fm!=2 || fn!=15 || fp!=0 || hm!=15 || hn!=0 || hp!=0) { error(&a,"unreviewed SDL/text version");goto cleanup; }
-    a.font=TTF_OpenFont(font,16);a.window=SDL_CreateWindow("Aetheri Terminal",1000,700,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    a.font=TTF_OpenFont(font,16);a.window=SDL_CreateWindow(a.editor ? "Aetheri Editor" : "Aetheri Terminal",1000,700,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (a.window) a.renderer=SDL_CreateRenderer(a.window,"opengles2");
     if (!a.font || !TTF_FontIsFixedWidth(a.font) || !a.window || !a.renderer || !SDL_SetWindowMinimumSize(a.window,480,320) || !SDL_SetWindowHitTest(a.window,hit_test,&a) || !SDL_StartTextInput(a.window)) { error(&a,"font/window/renderer/input setup");goto cleanup; }
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);

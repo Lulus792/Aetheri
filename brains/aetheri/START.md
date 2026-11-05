@@ -8,7 +8,7 @@ The separate [DRM development session](../../spec/session.md) now has actual
 virtual-display/input evidence; normal session and lock/resume admission remain open.
 The [private desktop connection](../../spec/desktop.md) has native role/focus/
 foreign-client tests. The [SDL3 desktop](../../spec/desktop-ui.md) now provides
-dock/search, window selection and separate fixed Settings/Terminal launches in the explicit carrier mode.
+dock/search, window selection and separate fixed Settings/Terminal/Files launches in the explicit carrier mode.
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
 The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
@@ -25,8 +25,9 @@ choices, now with bounded document undo/redo and saved-state return.
 Literal document search now provides reversible forward/backward previews.
 Character/whole-line selection now uses an app-owned copied register.
 The opt-in [Files development app](../../spec/files.md) now browses held directories
-and opens a selected text file in a separately owned Terminal/editor. Regular
-desktop launch and brokered file access remain separate work.
+and opens a selected text file in a separately owned Terminal/editor. It now has
+its own fixed development dock/search slot; normal admission and brokered file
+access remain separate work.
 Ordinary brokered access, durable recovery, block/mouse selection, richer search and
 full accessible text remain work.
 External IMEs, advanced completion/richer search, panes, persistent

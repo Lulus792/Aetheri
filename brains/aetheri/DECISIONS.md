@@ -1,5 +1,16 @@
 # Decisions
 
+## Give Files an independent desktop slot and retire it first — 5 November 2026
+
+Extend the private development owner channel to version3 with fixed S/T/F choices.
+Retain historical controller records without upgrading them. Prepare one private
+session document workspace; do not populate or delete it on ordinary window/session
+close. Distinguish the direct Editor's native title/ID from the normal Terminal.
+Fence new launches during shutdown, but keep search/existing-window activation
+available so a dirty document can be saved/closed before Files, then later roles,
+retire. This is development infrastructure, not production admission or drain.
+See [record](journal/2026-11-05-desktop-files.md).
+
 ## Keep Files navigation and selected-document ownership explicit — 5 November 2026
 
 Use the existing reviewed SDL3/text profile for an initial Files view over a

@@ -25,8 +25,8 @@ USER_ROOT = Path("/home/aetheri/development-sessions")
 SOURCE = Path("/home/aetheri/source/tools/development_session.py")
 UI = Path("/home/aetheri/deps/ui-gles-release-02/prefix")
 TERMINAL_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf")
-APP_SELECTORS = {b"S": "settings", b"T": "terminal"}
-APP_ROLES = ("terminal", "settings")  # Stop the PTY owner before retiring its display.
+APP_SELECTORS = {b"S": "settings", b"T": "terminal", b"F": "files"}
+APP_ROLES = ("files", "terminal", "settings")  # Files retains its document owner before later views retire.
 PROFILES = ("release", "debug")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
@@ -62,6 +62,11 @@ def application_command(role, build, cache):
     if role == "terminal":
         return [str(build / "aetheri-terminal"), "--shell", str(build / "aetheri-shell"),
                 "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
+    if role == "files":
+        return [str(build / "aetheri-files"), "--root", str(cache.parent / "documents"),
+                "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                "--terminal-font", str(TERMINAL_FONT), "--cache", str(cache),
+                "--terminal", str(build / "aetheri-terminal"), "--editor", str(build / "aetheri-editor"), "--diagnostics"]
     raise ValueError("unknown fixed development application")
 
 
@@ -119,7 +124,7 @@ def validate(record, carrier):
     if type(record.get("compose", False)) is not bool:
         raise RuntimeError("invalid development Compose profile")
     protocol = record.get("launch_protocol", 1)
-    if type(protocol) is not int or protocol not in (1, 2) or (not record.get("desktop", False) and protocol != 1):
+    if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
     return record
 
@@ -199,19 +204,19 @@ def start(record, carrier, profile, desktop=False, compose=False):
             finally: os.close(fd)
     token = uuid.uuid4().hex
     build = build_for(profile)
-    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell") if desktop else ("aetheri-compositor", "aetheri-settings")
+    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell", "aetheri-files", "aetheri-editor") if desktop else ("aetheri-compositor", "aetheri-settings")
     binaries = {str(build / name): digest(build / name) for name in names}
     assets = terminal_assets() if desktop else {}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
                   invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
-                  launch_protocol=2 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
+                  launch_protocol=3 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
     base = USER_ROOT / token; base.mkdir(mode=0o700); os.chown(base, 1000, 1000)
-    for name in ("runtime", "cache"):
+    for name in (("runtime", "cache", "documents") if desktop else ("runtime", "cache")):
         path = base / name; path.mkdir(mode=0o700); os.chown(path, 1000, 1000)
     record["phase"] = "starting"; save(record)
     args = ["systemd-run", "--unit=" + record["unit"], "--service-type=notify",
@@ -345,6 +350,7 @@ def supervise(profile, token, desktop=False, compose=False):
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     base = USER_ROOT / token
     for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
+    if desktop: owned(base / "documents", 1000, 0o700, directory=True)
     build = build_for(profile)
     env = {**os.environ, "XDG_RUNTIME_DIR": str(base / "runtime"), "LIBSEAT_BACKEND": "logind",
            "WAYLAND_DISPLAY": "aetheri-development", "LIBGL_ALWAYS_SOFTWARE": "1",
@@ -353,7 +359,7 @@ def supervise(profile, token, desktop=False, compose=False):
     selector = selectors.DefaultSelector()
     reader, writer = socket.socketpair(); reader.setblocking(False); writer.setblocking(False)
     old_wakeup = signal.set_wakeup_fd(writer.fileno())
-    stopping = False; failed = False; children = {}; buffers = {}; ready = set(); terminated = set(); notified = False
+    stopping = False; failed = False; children = {}; buffers = {}; ready = set(); terminated = set(); notified = False; fence_logged = False
     def signalled(number, frame):
         nonlocal stopping
         if number in (signal.SIGTERM, signal.SIGINT): stopping = True
@@ -386,7 +392,7 @@ def supervise(profile, token, desktop=False, compose=False):
         if child.returncode != 0: raise RuntimeError(role + " failed during desktop use")
         app_history.append(dict(role=role, pid=child.pid, status=child.returncode))
         del children[role]; del buffers[role]; ready.discard(role); terminated.discard(role)
-        if not stopping and launch_owner is not None: reply(b"X2" + next(s for s,r in APP_SELECTORS.items() if r == role))
+        if not stopping and launch_owner is not None: reply(b"X3" + next(s for s,r in APP_SELECTORS.items() if r == role))
         return True
     def retirement_step():
         for role in (*APP_ROLES, "desktop", "compositor"):
@@ -405,6 +411,8 @@ def supervise(profile, token, desktop=False, compose=False):
         while True:
             if not stopping and not notified and time.monotonic() >= deadline: failed = True; stopping = True
             if stopping:
+                if not fence_logged:
+                    print("STOPPING", flush=True); fence_logged = True
                 # These parent copies may still be unused if the compositor
                 # failed before desktop creation. They must not keep the owner
                 # channel alive while waiting for its EOF. Issued child copies
@@ -436,11 +444,11 @@ def supervise(profile, token, desktop=False, compose=False):
                         selector.unregister(launch_owner); launch_owner.close(); launch_owner = None
                         if not stopping: failed = True; stopping = True
                         continue
-                    if value not in (b"L2S", b"L2T", b"Q20") or ancillary or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
+                    if value not in (b"L3S", b"L3T", b"L3F", b"Q30") or ancillary or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
                         raise RuntimeError("invalid development launch packet")
-                    if value == b"Q20": stopping = True; continue
+                    if value == b"Q30": stopping = True; continue
                     if stopping: continue  # No new effects after the shutdown fence.
-                    role = APP_SELECTORS[value[2:]]; suffix = b"2" + value[2:]
+                    role = APP_SELECTORS[value[2:]]; suffix = b"3" + value[2:]
                     recycle_app(role)
                     child = children.get(role)
                     if child and child.poll() is None: reply(b"A" + suffix); continue

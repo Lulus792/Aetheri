@@ -28,12 +28,14 @@ static bool matches(const char *label, const char *query) {
 }
 static bool valid_app(enum ae_desktop_app app) { return app>AE_DESKTOP_APP_NONE && app<AE_DESKTOP_APP_END; }
 const char *ae_desktop_app_label(enum ae_desktop_app app, bool german) {
-    return app==AE_DESKTOP_SETTINGS ? german ? "Einstellungen" : "Settings" : app==AE_DESKTOP_TERMINAL ? "Terminal" : "";
+    return app==AE_DESKTOP_SETTINGS ? german ? "Einstellungen" : "Settings" : app==AE_DESKTOP_TERMINAL ? "Terminal" : app==AE_DESKTOP_FILES ? german ? "Dateien" : "Files" : "";
 }
 const char *ae_desktop_app_id(enum ae_desktop_app app) {
-    return app==AE_DESKTOP_SETTINGS ? "org.aetheri.Settings" : app==AE_DESKTOP_TERMINAL ? "org.aetheri.Terminal" : "";
+    return app==AE_DESKTOP_SETTINGS ? "org.aetheri.Settings" : app==AE_DESKTOP_TERMINAL ? "org.aetheri.Terminal" : app==AE_DESKTOP_FILES ? "org.aetheri.Files" : "";
 }
-bool ae_desktop_model_pending(const struct ae_desktop_model *m) { return m->pending[AE_DESKTOP_SETTINGS] || m->pending[AE_DESKTOP_TERMINAL]; }
+char ae_desktop_app_selector(enum ae_desktop_app app) { return app==AE_DESKTOP_SETTINGS ? 'S' : app==AE_DESKTOP_TERMINAL ? 'T' : app==AE_DESKTOP_FILES ? 'F' : 0; }
+enum ae_desktop_app ae_desktop_app_from_selector(char s) { return s=='S' ? AE_DESKTOP_SETTINGS : s=='T' ? AE_DESKTOP_TERMINAL : s=='F' ? AE_DESKTOP_FILES : AE_DESKTOP_APP_NONE; }
+bool ae_desktop_model_pending(const struct ae_desktop_model *m) { for (enum ae_desktop_app app=AE_DESKTOP_SETTINGS;app<AE_DESKTOP_APP_END;++app) if (m->pending[app]) return true;return false; }
 size_t ae_desktop_model_results(const struct ae_desktop_model *m, struct ae_desktop_result out[AE_DESKTOP_RESULTS]) {
     size_t n = 0;
     for (enum ae_desktop_app app=AE_DESKTOP_SETTINGS;app<AE_DESKTOP_APP_END;++app)

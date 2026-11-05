@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — Files navigation and selected-document editing.
+5 November 2026 — Files dock/search integration and document-preserving shutdown.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now has an independent fixed development slot beside Settings/Terminal,
+available through dock and global search. The tagged model and private version3
+owner channel retain separate pending/process/error state. New format1 controller
+records bind seven fixed binaries; historical protocol1/2 records are readable
+without rewriting. The 0700 session `documents` workspace starts empty and remains
+after window/session close. Direct document windows now identify/title as Editor,
+separate from the normal Terminal slot.
+
+The owner fences new starts and retires Files/document before Terminal, Settings,
+desktop and compositor. Existing search/window activation remains available
+during closing so the user can save/close the document. Original process and pipe
+end still precede each next role. Full production admission/drain remains separate.
+
+All 42 affected groups pass final Release (105.57s) and ASan+UBSan (168.65s).
+The unchanged actual owner test rejects a copied owner that retires Terminal first;
+the selected-inode negative control remains green/red as expected. The actual
+protocol3 DRM session proves Files launch/reuse, document/normal Terminal/Settings
+coexistence, exact save after the shutdown fence, all five direct roles ending
+status0, original unit closure and retained workspace bytes.
+Audit: all 329 host/snapshot/guest sources match; 28 frozen SQL/XML and nineteen
+protected old-runtime hashes remain unchanged, with no old SQLite sidecars.
+Retained native evidence has 1,035 files, 282 images and ten special-node records;
+the final DRM session has twelve stable captures and six app-actor observations.
+The enforcing carrier is idle on tty1 without an Aetheri unit or seat0 session.
+The old running/recover-handoff intent remains quarantined and unresolved.
+See [record](journal/2026-11-05-desktop-files.md) and `local/desktop-files-2026-11-05`.
+
+Next useful workflow: file/directory creation and management with explicit targets,
+conflict handling and previews, followed by richer document handlers. Normal
+admission/grants, complete removal/recovery, other apps, the OS image/installer and
+the full resettable experiment desktop remain required. Keep the full goal active.
+
+## Files navigation/editor — completed checkpoint
 
 The opt-in Files app now provides held directory/parent navigation, complete
 bounded snapshots, visible selection, hidden entries and a whole-intent-rejected
@@ -39,8 +73,8 @@ captures. The enforcing carrier is idle on tty1 with no Aetheri service or seat0
 session. The quarantined old run remains unresolved and untouched.
 Evidence: [record](journal/2026-11-05-files.md) and `local/files-2026-11-05`.
 
-Next useful step: connect Files to the fixed development desktop's launch/focus/
-lifetime owner. Regular app admission and brokered document access remain separate.
+The next step at this checkpoint was fixed desktop launch/focus/lifetime ownership,
+now implemented above. Regular admission and brokered document access remain separate.
 File mutation/removal, image/PDF viewers, richer editor/terminal panes/plugins,
 other applications, original OS image/installer and the full resettable experiment
 desktop are still required. Keep the full OS goal active.

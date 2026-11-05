@@ -4,6 +4,16 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Three-app development owner — 5 November 2026
+
+- Original [desktop model](../../src/desktop/model.c), [SDL adapter](../../src/desktop/main.c),
+  [fixed owner/controller](../../tools/development_session.py) and
+  [distinct direct-editor window](../../src/terminal/main.c).
+- [Actual owner fixtures](../../tools/test_development_desktop.py),
+  [strict wire/UI cases](../../tools/test_desktop_ui.py) and
+  [record/process checks](../../tools/test_development_session.py).
+  New verification and scope: [dated record](journal/2026-11-05-desktop-files.md).
+
 ## Files and selected document handoff — 5 November 2026
 
 - Original [directory model](../../src/files/model.c),

@@ -135,7 +135,7 @@ def main():
         event("O 0 1920 800")
         wait(lambda:"STABLE 0 1920x800\n" in log(),"short output before app creation",(server,desktop))
         tap(28)
-        assert launch_owner.recv(16) == b"L2S"
+        assert launch_owner.recv(16) == b"L3S"
         # Hold the reply: repeated Enter must not repeat an uncertain request.
         tap(28); launch_owner.settimeout(0.2)
         try: launch_owner.recv(16); raise AssertionError("duplicate pending launch")
@@ -143,7 +143,7 @@ def main():
         launch_owner.settimeout(7)
         settings = start(settings_binary, "settings", ("--font", font, "--cache", cache, "--diagnostics"))
         stable = log().count("STABLE 0 1920x84\n")
-        launch_owner.sendall(b"A2S")
+        launch_owner.sendall(b"A3S")
         wait(lambda: "windows=1" in log() and "LAYOUT " in log("settings"), "actual Settings window", (server, desktop, settings))
         wait(lambda:bool(re.search(r"VIEW .* size=1100x636\n",log("settings"))),
              "initial Settings respects dock and placement bounds",(server,desktop,settings))
@@ -160,15 +160,15 @@ def main():
         wait(lambda:len(re.findall(r"VIEW .* size=1100x636\n",log("settings")))>=2,
              "keyboard restore retains normal client size",(server,desktop,settings))
         snapshot("keyboard restored Settings retains initial bounds")
-        shortcut(); tap(15); tap(15); tap(28)
+        shortcut(); tap(15); tap(15); tap(15); tap(28)
         wait(lambda: "ACTIVATED 1 1\n" in log(), "keyboard task activation", (server, desktop, settings))
         key(29,True);tap(16);key(29,False)
         assert settings.wait(timeout=7) == 0, log("settings")
-        launch_owner.sendall(b"X2S")
+        launch_owner.sendall(b"X3S")
         wait(lambda: "LAUNCH_REPLY X S\n" in log(), "tracked process exit", (server, desktop))
         shortcut(); tap(64)
         wait(lambda: "search=1" in log(), "search again", (server, desktop))
-        tap(28); assert launch_owner.recv(16) == b"L2S"; launch_owner.sendall(b"E2S")
+        tap(28); assert launch_owner.recv(16) == b"L3S"; launch_owner.sendall(b"E3S")
         wait(lambda: "LAUNCH_REPLY E S\n" in log(), "definite launch failure", (server, desktop))
         tap(65)
         wait(lambda:bool(re.search(r"VIEW \d+ output=0 search=1 .* pending=0 windows=0 de=1 contrast=1",log())),
@@ -195,7 +195,7 @@ def main():
         launch_owner.settimeout(7)
         cases.append("Ctrl+Shift+Q does not alias the desktop Ctrl+Q action")
         key(29,True);tap(16);key(29,False)
-        assert launch_owner.recv(16)==b"Q20"
+        assert launch_owner.recv(16)==b"Q30"
         assert desktop.poll() is None and server.poll() is None
         tap(28);launch_owner.settimeout(.15)
         try:launch_owner.recv(16);raise AssertionError("new launch after close fence")
@@ -205,7 +205,7 @@ def main():
         assert server.wait(timeout=7) == 0, log("server")
         for name in ("desktop", "server", "settings"):
             assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:", log(name)), log(name)
-        for case in ("eof", "fd"):
+        for case in ("eof", "fd", "old-version"):
             for s in (control,issuer,server_fd,client_fd,launch_owner,launch_client):s.close()
             control,issuer=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);control.settimeout(5)
             server_fd,client_fd=socket.socketpair();launch_owner,launch_client=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET)
@@ -217,10 +217,11 @@ def main():
             client_fd.close();launch_client.close()
             wait(lambda:"STABLE 2 3840x84\n" in log(case+"-desktop"),"denial fixture UI",(s,d))
             if case=="eof":launch_owner.close()
+            elif case=="old-version":launch_owner.sendall(b"A2S")
             else:
                 import array
                 fds=os.pipe()
-                try:launch_owner.sendmsg([b"A2S"],[(socket.SOL_SOCKET,socket.SCM_RIGHTS,array.array("i",[fds[0]]))])
+                try:launch_owner.sendmsg([b"A3S"],[(socket.SOL_SOCKET,socket.SCM_RIGHTS,array.array("i",[fds[0]]))])
                 finally:
                     for fd in fds:os.close(fd)
             assert d.wait(timeout=7)==1 and s.wait(timeout=7)==1
