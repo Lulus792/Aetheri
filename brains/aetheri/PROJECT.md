@@ -18,7 +18,9 @@ an understandable installation/runtime footprint.
 - An original shell and shell language from the first shell milestone. The first
   [experimental command profile](../../spec/shell.md) now has a native parser and
   Linux runner, now with explicit interactive controlling-terminal/job management.
-  Own rich editing, graphical terminal and persistent sessions remain work.
+  The opt-in [graphical terminal](../../spec/terminal.md) now adds real PTY/SDL3
+  input/output, bounded cells/history and text sizing. Own rich editing,
+  panes/editor, persistent sessions and normal desktop launch remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
   This project does not silently start that migration.
 - NexaCloud Desktop, confirmed as the desired NexaOS-associated data application.

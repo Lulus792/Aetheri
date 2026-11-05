@@ -55,6 +55,12 @@ children without forced killing. Final window/logout/reboot persistence and rich
 editor/multiplexer behavior remain product decisions, not implied by these tests.
 
 S2. Define the editor/plugin capability model and terminal pane/session interaction.
+The [first graphical terminal](../../spec/terminal.md) now has native PTY/grid/
+input/job evidence. Next engineering work is fixed desktop launch integration,
+selection/clipboard/IME and the app-owned editor/pane/session model. It does not
+decide persistence by merely closing a window. A first Release llvmpipe sample
+is about 163 MiB RSS at 200% text; profile app/driver/cache/thread contributions
+and startup/peak/long-run behavior before choosing memory/performance changes.
 Need exact Vim/Neovim compatibility only if subsequently requested.
 Should terminal sessions survive closing every window, logout or reboot? These
 are different requirements and affect supervision/persistence design.

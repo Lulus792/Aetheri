@@ -1,8 +1,51 @@
 # State
 
-5 November 2026 — interactive own shell with terminal signals and ephemeral jobs.
+5 November 2026 — graphical terminal with actual native input, PTY and shell jobs.
 
 ## Current update
+
+An opt-in original C17 [graphical terminal](../../spec/terminal.md) now connects
+the own interactive shell to a held PTY and SDL3 Wayland/GLES view. Toolkit-free
+bounded UTF-8/cell/history state supports colors, cursors and an alternate screen.
+Native DE/US and AltGr input has exact output-byte checks; real Ctrl+Z/fg/Ctrl+C,
+scrollback, maximize, DE/EN chrome, contrast and 100–200% text are exercised.
+Fork precedes SDL/Mesa threads. One readiness worker sleeps on IO and hands work
+to the UI owner, with one pending acknowledgement and bounded queues/caches.
+
+Process exit and PTY end are independent obligations: tests retain a writer after
+shell exit and keep a trusted child alive after stream EOF. Close refuses early
+release. A failed SDL event post now retains ownership and delivers a failure for
+normal shell/stream retirement; a build-local abrupt-exit mutation is rejected by
+the unchanged fault assertions. No descendant/cgroup/lease drain is inferred.
+
+Final terminal groups pass 3/3 in Release (10.16 s) and ASan/UBSan (13.70 s),
+including a persistent event-wait failure that must enter synchronous cleanup.
+The six shell/Settings-model/desktop-model regression groups also pass in both
+profiles (2.87/3.59 s, before the terminal-only final adjustments). Each native
+profile captures 21 hashed originals across three virtual outputs, with actual
+compositor frame observations. Original typing-map/focus-handoff harness failures
+and the independent model delayed-wrap regression remain documented. These are
+software/virtual tests; third-party SDL/text/Mesa remain Release libraries.
+Exact result/artifact/binary records are in local/terminal-2026-11-05.
+
+The first two-second llvmpipe idle samples have no new frames and no process CPU
+ticks at the recorded clock resolution. RSS/threads are observations, not accepted
+budgets; profile their sources and peak/long-run behavior. Font evidence is an
+existing carrier Mono package and exact font/OFL-license hashes, not a fresh RPM
+signature verification or completed distribution font package.
+All 260 host/snapshot/guest source hashes agree; all 28 frozen SQL/XML and nineteen
+protected old catalogue/static/profile hashes remain unchanged, without sidecars.
+All 839 local Markdown file targets resolve (URLs/anchors excluded). The VM stays
+booted/enforcing on tty1 with no known Aetheri native program, running Aetheri unit
+or seat0 session. The preserved running/recover-handoff intent remains unresolved.
+
+Next connect the terminal to the fixed development owner/dock. Selection/clipboard,
+IME, rich shell editing, panes/editor/plugins, persistence, accessibility, physical
+drivers and normal app/session admission remain required. The complete OS/apps/
+image/installer and persistent experiment desktop remain the goal. The old
+running/recover-handoff intent is separate and must stay quarantined.
+
+## Interactive shell checkpoint — 5 November 2026
 
 The original shell now accepts `-i` on an independently foreground canonical
 N_TTY controlling terminal. Separate original pipeline groups receive real

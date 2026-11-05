@@ -129,6 +129,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Cache tests mock context but use real name-loss/pidfd events; separate enforcing
   integration rejects unconfined and same-domain/wrong-unit impersonators.
 - Use English for project documentation. Conversation can remain German.
+- The opt-in C17 graphical terminal is in src/terminal; read spec/terminal.md and
+  run terminal.model/pty/native with the reviewed UI profile. Fork its original
+  shell before SDL/Mesa/worker creation. Retain independent child/pidfd and stream
+  observations; neither EOF nor a close request proves descendant/cgroup/lease
+  drain. Failed event posts must not abruptly abandon ownership. TERM=dumb is
+  intentional; do not claim complete VT/Unicode/editor/IME/a11y or persistence.
+  Its test-only event-failure executable is not a normal app dependency. The
+  carrier Mono font has explicit font/OFL hashes and limited installed-RPM
+  evidence, not a new independently verified RPM/distribution package. Normal
+  development owner/dock integration still launches Settings only. Keep app/model
+  state toolkit-independent for later NexaUI migration and preserve old fixtures.
 - Private Catalogue1 1.1 / Development1 1.4 support a bounded authenticated install
   observation and fixed-fixture refresh. Public capabilities remain empty. A user
   binding is not admission, storage ownership or current generation authority.

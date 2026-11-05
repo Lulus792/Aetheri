@@ -1,5 +1,27 @@
 # Decisions
 
+## Retain PTY/process ownership outside the terminal view — 5 November 2026
+
+Build an opt-in original C17 bounded cell/history model and Linux PTY owner with
+the existing reviewed SDL3/text foundation. Fork before graphics/worker creation;
+use the held peer and original child/pidfd, fixed own-shell argv and independent
+stream/process observations. Queue readiness to the UI owner with one pending
+acknowledgement; keep IO/model work out of the worker. A failed event post cannot
+abruptly abandon ownership. Normal idle has no timer or blinking-frame loop.
+
+Use the existing carrier's reviewed fixed-width Liberation Mono asset with its
+OFL terms and explicit source/license hashes. Record limited installed RPM metadata
+evidence honestly; package/distribution adoption still needs work. Keep TERM=dumb
+until the supported protocol corpus justifies a richer declaration. Preserve
+committed text independently of later global modifier state. Text sizing is a
+reversible development control, not final product design.
+
+The terminal is not a sandbox, persistent multiplexer, installed app authority,
+complete Unicode/VT implementation or descendant/lease drain proof. Close requests
+hangup and waits without an automatic force kill. Normal desktop integration,
+copy/paste/IME, panes/editor and user persistence choices remain separate work.
+See [scope, controls and evidence](../../spec/terminal.md).
+
 ## Keep interactive jobs owned by one original terminal shell — 5 November 2026
 
 Add explicit `-i`, independent foreground/SID/own-group-leader checks, a retained

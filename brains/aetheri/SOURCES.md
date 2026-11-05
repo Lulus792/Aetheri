@@ -4,6 +4,40 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Graphical terminal — 5 November 2026
+
+- [Terminal guide](../../spec/terminal.md), [model](../../src/terminal/model.c),
+  [PTY owner](../../src/terminal/pty.c) and [SDL view](../../src/terminal/main.c).
+  Final Release 3/3 (10.16 s), Debug ASan/UBSan 3/3 (13.70 s), including native
+  DE/US/AltGr output, actual shell job control, 200% text and failed event-post
+  retirement and persistent event-wait failure cleanup. Six existing shell/
+  Settings-model/desktop-model checks pass per profile (2.87/3.59 s), before the
+  final terminal-only adjustments.
+- Exact final native roots: session-release/terminal-ui-bwo5byly and
+  session-debug/terminal-ui-lg2q5153 under /home/aetheri/build. Each has 21 images;
+  all 42 decompressed SHA256 values verify. Local indexes/logs/binary hashes are
+  under local/terminal-2026-11-05/native-results.json and reviewed/.
+- First idle samples: no new frames or measured process CPU ticks over two seconds.
+  Final Release observes 166448 KiB RSS/9 threads; instrumented Debug observes
+  515000 KiB/9 threads. These short llvmpipe samples are not steady/peak budgets,
+  startup latency, physical-driver or an SDL/NexaUI comparison. The application
+  creates one readiness worker; graphics/driver threads remain to be profiled.
+- Initial native failures remain in terminal-ui-3jcd6hyg (reversed redirection
+  key), terminal-ui-e6z5urpa and terminal-ui-h_kdabje (client keyboard handoff).
+  The build-local terminal-abandon-negative-nmxai0s1 reproduces the earlier
+  abrupt-worker-exit guard on its recorded source; native fault assertions reject
+  it. Its source/harness boundary precedes the final AltGr/input adjustment.
+- [SDL posting](https://wiki.libsdl.org/SDL3/SDL_PushEvent),
+  [event allocation](https://wiki.libsdl.org/SDL3/SDL_RegisterEvents) and
+  [current modifiers](https://wiki.libsdl.org/SDL3/SDL_GetModState) were read.
+  The pinned local Wayland adapter already filters physical Ctrl/Alt key text;
+  committed text/IME events must not be rejected using later global modifiers.
+- The existing Mono font/package and exact OFL-license hash are recorded in
+  [UI inputs](../../spec/ui-inputs.json). Installed RPM file verification passed;
+  signing metadata is not a fresh independent RPM signature check. No SDK/policy/
+  normal session capability or new system library is installed. Physical/a11y/IME,
+  editor/panes/persistence and actual dock/controller integration remain open.
+
 ## Interactive command shell and private PTY evidence — 5 November 2026
 
 - [Terminal/job owner](../../src/shell/jobs.c), [interactive tests](../../tools/test_shell_interactive.py)

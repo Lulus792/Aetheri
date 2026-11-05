@@ -12,7 +12,9 @@ dock/search, window selection and fixed Settings launch in the explicit carrier 
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
 The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
-terminal/jobs in the carrier; rich input editing and the graphical terminal remain work.
+terminal/jobs in the carrier. The opt-in [graphical terminal](../../spec/terminal.md)
+now adds a real PTY and native SDL3 input/output; rich editing, panes, persistent
+sessions and fixed desktop launch integration remain work.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

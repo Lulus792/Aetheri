@@ -91,9 +91,11 @@ fails, it reports the already-applied directory change and removes stale PWD;
 it never claims a rollback. Builtin environment changes last for this shell only.
 Files are ordinary user-owned files, not managed installation/private-data state.
 
-Full own input editing, persistent sessions, completion/history, functions/typed values, terminal
-emulation, panes/plugins and graphical SDL/NexaUI presentation remain required
-work. No production service/profile, normal launcher or system shell is replaced.
+The separate [development terminal](terminal.md) now supplies a real PTY, bounded
+cell/history model and SDL3 graphical view. Full own input editing, persistent
+sessions, completion/history, functions/typed values, terminal compatibility and
+panes/plugins remain required work. No production service/profile, normal launcher
+or system shell is replaced.
 
 ## Interactive terminal and ephemeral jobs
 
