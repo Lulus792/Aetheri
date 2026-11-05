@@ -14,9 +14,16 @@ For repeatable start/status/stop and the native VM window, see the
 The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
 terminal/jobs in the carrier. The opt-in [graphical terminal](../../spec/terminal.md)
 now adds a real PTY, native SDL3 input/output, stable text selection and bounded
-native clipboard/paste review and an owned SDL preedit view. Production IME routing,
-rich editing, panes, persistent
+native clipboard/paste review and an owned SDL preedit view. An optional
+[built-in Compose provider](../../spec/compose.md) now has real native and virtual
+DRM keyboard-to-shell evidence. External IMEs, rich editing, panes, persistent
 sessions and normal admitted app/session integration remain work.
+
+NexaUI requirements and the initial chat message have already been delivered.
+Maintain the [existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) only when new
+requirements or evidence warrant a change. Do not regenerate a chat message or
+repeat the handoff after compaction unless the user explicitly requests one.
+Resume actual Aetheri work from STATE.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

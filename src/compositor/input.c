@@ -1,6 +1,7 @@
 #include "input.h"
 #include "server.h"
 #include "desktop.h"
+#include "text_input.h"
 #include <drm_fourcc.h>
 #include <limits.h>
 #include <linux/input-event-codes.h>
@@ -25,7 +26,7 @@ struct keyboard {
     struct ae_input *input;
     struct wlr_keyboard *keyboard;
     struct wl_list link;
-    struct wl_listener key, modifiers, destroy;
+    struct wl_listener key, modifiers, keymap, destroy;
     bool suppressed[KEY_MAX + 1];
 };
 struct pointer {
@@ -48,6 +49,7 @@ struct ae_input {
     uint32_t clipboard_floor;
     bool clipboard_focus_valid;
 };
+struct wlr_seat *ae_input_seat(struct ae_input *in) { return in ? in->seat : NULL; }
 struct cursor_image { struct wlr_buffer base; uint32_t pixels[16 * 20]; };
 static void image_destroy(struct wlr_buffer *buffer) { free(buffer); }
 static bool image_access(struct wlr_buffer *buffer, uint32_t flags, void **data, uint32_t *format, size_t *stride) {
@@ -269,7 +271,12 @@ static void modifiers(struct wl_listener *listener, void *data) {
     (void)data;
     struct keyboard *k = wl_container_of(listener, k, modifiers);
     wlr_seat_set_keyboard(k->input->seat, k->keyboard);
+    ae_text_input_modifiers(k->input->server->text_input,k->keyboard);
     wlr_seat_keyboard_notify_modifiers(k->input->seat, &k->keyboard->modifiers);
+}
+static void keymap_changed(struct wl_listener *listener,void *data) {
+    (void)data;struct keyboard *k=wl_container_of(listener,k,keymap);
+    ae_text_input_forget_keyboard(k->input->server->text_input,k->keyboard);
 }
 static void key(struct wl_listener *listener, void *data) {
     struct keyboard *k = wl_container_of(listener, k, key);
@@ -314,6 +321,9 @@ static void key(struct wl_listener *listener, void *data) {
         if (first) focus(in, first);
         return;
     }
+    if (e->state==WL_KEYBOARD_KEY_STATE_PRESSED && ae_text_input_key(in->server->text_input,k->keyboard,e->keycode)) {
+        k->suppressed[e->keycode]=true;return;
+    }
     wlr_seat_keyboard_notify_key(in->seat, e->time_msec, e->keycode, e->state);
 }
 static void capabilities(struct ae_input *in) {
@@ -325,7 +335,8 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
     (void)data;
     struct keyboard *k = wl_container_of(listener, k, destroy);
     struct ae_input *in = k->input;
-    wl_list_remove(&k->key.link); wl_list_remove(&k->modifiers.link);
+    ae_text_input_forget_keyboard(in->server->text_input,k->keyboard);
+    wl_list_remove(&k->key.link); wl_list_remove(&k->modifiers.link);wl_list_remove(&k->keymap.link);
     wl_list_remove(&k->destroy.link); wl_list_remove(&k->link);
     free(k);
     if (!wl_list_empty(&in->keyboards)) {
@@ -367,8 +378,9 @@ bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
             if (!ok) { free(k); return false; }
         }
         k->input = in; k->keyboard = kb;
-        k->key.notify = key; k->modifiers.notify = modifiers; k->destroy.notify = keyboard_destroy;
+        k->key.notify = key; k->modifiers.notify = modifiers; k->keymap.notify=keymap_changed;k->destroy.notify = keyboard_destroy;
         wl_signal_add(&kb->events.key, &k->key); wl_signal_add(&kb->events.modifiers, &k->modifiers);
+        wl_signal_add(&kb->events.keymap,&k->keymap);
         wl_signal_add(&device->events.destroy, &k->destroy); wl_list_insert(&in->keyboards, &k->link);
         wlr_seat_set_keyboard(in->seat, kb);
         struct wlr_surface *shell = ae_desktop_keyboard_surface(in->server->desktop);

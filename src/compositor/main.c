@@ -39,6 +39,7 @@
 #include "server.h"
 #include "input.h"
 #include "desktop.h"
+#include "text_input.h"
 #ifdef AETHERI_INPUT_TEST
 #include "compositor_input_driver.h"
 #endif
@@ -457,21 +458,27 @@ int main(int argc, char **argv) {
     expected_argc = 5;
     struct input_driver *driver = NULL;
 #endif
-    int shell_fd = -1;
-    if (argc == expected_argc + 2 && !strcmp(argv[expected_argc], "--shell-fd")) {
-        const char *value = argv[expected_argc + 1]; char *end = NULL;
-        errno = 0; long parsed = strtol(value, &end, 10);
-        if (!*value || strspn(value, "0123456789") != strlen(value) || errno || !end || *end || parsed < 3 || parsed > INT32_MAX) return 2;
-        shell_fd = (int)parsed;
+    int shell_fd = -1;bool compose=false,options_valid=true;
+    for (int at=expected_argc;at<argc;++at) {
+        if (!strcmp(argv[at],"--shell-fd") && shell_fd<0 && at+1<argc) {
+            const char *value=argv[++at];char *end=NULL;errno=0;long parsed=strtol(value,&end,10);
+            if (!*value || strspn(value,"0123456789")!=strlen(value) || errno || !end || *end || parsed<3 || parsed>INT32_MAX) { options_valid=false;break; }
+            shell_fd=(int)parsed;
+        }
+#ifdef AETHERI_COMPOSE
+        else if (!strcmp(argv[at],"--compose") && !compose) compose=true;
+#endif
+        else { options_valid=false;break; }
     }
-    if ((argc != expected_argc && !(argc == expected_argc + 2 && shell_fd >= 3)) ||
+    if (argc<expected_argc || !options_valid ||
             (!nested && !drm && strcmp(argv[1], "--headless")) || strlen(argv[2]) > 48 ||
             strspn(argv[2], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[2]) ||
             argv[2][0] == '\0' || getuid() == 0 || getuid() != geteuid() || getgid() != getegid()) {
         fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n"
                         "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
                         "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- /dev/dri/cardN\n"
-                        "  optional private desktop connection: --shell-fd FD\n");
+                        "  optional private desktop connection: --shell-fd FD\n"
+                        "  reviewed Compose build only: --compose\n");
         return 2;
     }
     if (nested && (getenv("WAYLAND_SOCKET") || strlen(argv[4]) > 48 || !argv[4][0] ||
@@ -530,6 +537,7 @@ int main(int argc, char **argv) {
     if (!s.windows_tree) goto done;
     s.input = ae_input_create(&s);
     if (!s.input || (nested && !wlr_backend_start(s.backend))) goto done;
+    if (compose && !(s.text_input=ae_text_input_create(&s,ae_input_seat(s.input)))) goto done;
     int x = 0;
     for (unsigned i = 0; !drm && i < OUTPUT_LIMIT; ++i) {
         struct output *o = &s.outputs[i];
@@ -589,6 +597,7 @@ int main(int argc, char **argv) {
 done:
     s.shutting_down = true;
     wl_display_destroy_clients(s.display);
+    ae_text_input_destroy(s.text_input);s.text_input=NULL;
     ae_desktop_destroy(s.desktop);
     s.desktop = NULL;
     if (shell_fd >= 0) close(shell_fd);

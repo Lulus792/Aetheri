@@ -4,6 +4,19 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- NexaUI handoff is delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place:
+  periodic evidence-based checks may add requirements or update existing rows.
+  Do not recreate the catalogue, repeat its overview, generate another NexaUI
+  chat/start message or ask the user to paste it after a context compaction.
+  Only prepare another chat message on a new explicit user request. Continue
+  Aetheri implementation independently; a routine NexaUI check is not a new task
+  handoff or permission to change its SDK/consumer pins.
+- Optional built-in Compose is documented in `spec/compose.md`: build and runtime
+  opt-ins, reviewed embedded data/license, no external input-method/virtual-keyboard
+  global. Retain original field/client/focus admission, including pending enable
+  invalidation across leave/re-enter. Run the compose model/input/provider/lifecycle
+  checks and relevant desktop tests. This is not external/CJK IME, trusted lock or
+  normal app/session admission. Keep source-data licensing separate from our MIT.
 - Follow the user's agreed foundations: Linux x86-64/UEFI, C17 primary, targeted
   Rust and small C++ adapters where justified, existing open development tools,
   glibc and the discussed technical-library boundary. Exact dependency versions

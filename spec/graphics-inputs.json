@@ -208,6 +208,21 @@
       }
     }
   },
+  "compose_data": {
+    "reviewed": "2026-11-05",
+    "text_input_protocol": "/usr/share/wayland-protocols/unstable/text-input/text-input-unstable-v3.xml",
+    "text_input_protocol_sha256": "160815cda13c285a30df1971d8f0a5b3aac07071537df59916d2f748b18e4f59",
+    "package_manifest": "spec/ui-inputs.json",
+    "package": "libX11-common-1.8.13-3.fc44.noarch.rpm",
+    "path": "/usr/share/X11/locale/en_US.UTF-8/Compose",
+    "size": 456061,
+    "sha256": "a3077ce7fdae43776b9a485d8a9689c0bfeb0cd17348a87b7a06818e59554ea1",
+    "license_path": "/usr/share/doc/libX11-common/COPYING",
+    "license_size": 45013,
+    "license_sha256": "eda0c2ed1cae0280c7fe79762eaad8ad31c044afc64e71e92ef2c6f3cd7bc395",
+    "license": "MIT AND X11; retain complete upstream COPYING with generated data/binary distributions",
+    "use": "Build-embedded standard Compose data only; no runtime file search or new X11 linkage"
+  },
   "desktop_layer_protocol": {
     "reviewed": "2026-11-05",
     "path": "protocols/wlr-layer-shell-unstable-v1.xml",

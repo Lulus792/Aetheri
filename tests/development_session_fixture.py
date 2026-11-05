@@ -22,14 +22,14 @@ def main():
     session.notify = lambda message: print("FIXTURE_NOTIFY " + message.splitlines()[0], flush=True)
     session.emit_child_line = lambda role, line: print(role + ": " + line.decode(errors="replace"), flush=True)
 
-    def compositor(build, shell_server):
+    def compositor(build, shell_server, compose=False):
         captures = root / ("missing-captures" if len(sys.argv)>5 and sys.argv[5]=="early-error" else "captures")
         return ([str(build / "test_compositor_server"), "--headless", "aetheri-development",
-                 str(captures), str(issuer), "--shell-fd", str(shell_server.fileno())],
+                 str(captures), str(issuer), "--shell-fd", str(shell_server.fileno()), *(["--compose"] if compose else [])],
                 (issuer, shell_server.fileno()))
 
     session.compositor_launch = compositor
-    return session.supervise("release", "fixture", desktop=True)
+    return session.supervise("release", "fixture", desktop=True, compose=len(sys.argv)>5 and sys.argv[5]=="compose")
 
 
 if __name__ == "__main__":

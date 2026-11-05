@@ -18,12 +18,17 @@ That command remains attached to the VM. Use another terminal for the session:
 ```sh
 python tools/development_session.py start
 python tools/development_session.py start --desktop
+python tools/development_session.py start --desktop --compose
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
 
-Use `start --profile debug` for the existing ASan/UBSan build. An already running
-headless VM must be stopped gracefully before selecting a different frontend;
+Use `start --profile debug` for the existing ASan/UBSan build. Selecting a start
+profile does not change an existing session. `--compose` requires
+the matching optional [Compose build](compose.md), records that choice with the
+original attempt and enables native Compose/dead-key input without a new daemon.
+It is not a general external IME or trusted input/session implementation.
+An already running headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
 shutdown. The native viewer is the existing QEMU SDL2 frontend; Aetheri's own

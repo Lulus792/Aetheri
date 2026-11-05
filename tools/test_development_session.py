@@ -25,6 +25,7 @@ class DevelopmentContracts(unittest.TestCase):
     def test_foreign_versions_carriers_units_and_path_tokens_are_rejected(self):
         self.assertIs(session.validate(self.record, self.carrier), self.record)
         self.assertNotIn("launch_protocol", self.record)  # Historical v1 is not rewritten.
+        self.assertNotIn("compose", self.record)
         current = {**self.record, "desktop": True, "launch_protocol": 2}
         self.assertIs(session.validate(current, self.carrier), current)
         changes = [dict(format=2), dict(carrier="foreign"), dict(profile="other"),
@@ -33,9 +34,22 @@ class DevelopmentContracts(unittest.TestCase):
                    dict(desktop=1), dict(desktop="true"), dict(launch_protocol=2),
                    dict(launch_protocol=True), dict(launch_protocol="2"),
                    dict(desktop=True, launch_protocol=0), dict(desktop=True, launch_protocol=3)]
+        changes.extend((dict(compose=1),dict(compose="true"),dict(compose=None)))
         for change in changes:
             with self.subTest(change=change), self.assertRaises((RuntimeError, ValueError)):
                 session.validate({**self.record, **change}, self.carrier)
+
+    def test_compose_is_an_explicit_original_compositor_profile(self):
+        record={**self.record,'compose':True}
+        self.assertIs(session.validate(record,self.carrier),record)
+        sock,peer=socket.socketpair()
+        with sock,peer:
+            # The test borrows one real descriptor; command construction owns none.
+            args,fds=session.compositor_launch(Path('/selected-build'),sock,True)
+            self.assertEqual(args[-3:],['--shell-fd',str(sock.fileno()),'--compose'])
+            self.assertEqual(fds,(sock.fileno(),))
+            self.assertIn('--drm',args)
+            self.assertNotIn('--compose',session.compositor_launch(Path('/selected-build'),sock)[0])
 
     def test_pending_effect_never_permits_another_start_or_stop(self):
         for phase in ("preparing", "starting", "stopping", "exited"):

@@ -61,7 +61,10 @@ select a target. Implicit grabs retain surface-relative coordinates outside the
 window. Unmapping the origin does not redirect the held release to another app.
 Resize uses bounded geometry and client min/max constraints. Device removal
 withdraws capabilities; a fresh keyboard does not inherit an old held Shift.
-Multiple simultaneous keyboard aggregation, touch/gestures and IME remain work.
+An optional [built-in Compose/dead-key provider](compose.md) now supplies native
+v3 preedit/commit with original field/focus admission. It adds no external input
+method or virtual-keyboard global. Multiple simultaneous keyboard aggregation,
+touch/gestures and external IME routing remain work.
 The private native clipboard boundary is described below; clipboard UI/consent and
 physical Bluetooth/device recovery still need their own acceptance.
 

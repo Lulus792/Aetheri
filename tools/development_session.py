@@ -65,10 +65,11 @@ def application_command(role, build, cache):
     raise ValueError("unknown fixed development application")
 
 
-def compositor_launch(build, shell_server):
+def compositor_launch(build, shell_server, compose=False):
     args = [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"]
     if shell_server is not None:
         args += ["--shell-fd", str(shell_server.fileno())]
+    if compose: args.append("--compose")
     return args, (shell_server.fileno(),) if shell_server is not None else ()
 
 
@@ -115,6 +116,8 @@ def validate(record, carrier):
         raise RuntimeError("invalid original development invocation")
     if not isinstance(record.get("desktop", False), bool):
         raise RuntimeError("invalid development desktop profile")
+    if type(record.get("compose", False)) is not bool:
+        raise RuntimeError("invalid development Compose profile")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
@@ -177,7 +180,7 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile, desktop=False):
+def start(record, carrier, profile, desktop=False, compose=False):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
     free_seat()
@@ -203,7 +206,7 @@ def start(record, carrier, profile, desktop=False):
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
                   invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
-                  launch_protocol=2 if desktop else 1, created_unix=time.time(), exit=None)
+                  launch_protocol=2 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -223,6 +226,7 @@ def start(record, carrier, profile, desktop=False):
             "--setenv=XDG_SEAT=seat0", "--setenv=XDG_VTNR=8", "--setenv=LIBSEAT_BACKEND=logind",
             "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token]
     if desktop: args.append("--desktop")
+    if compose: args.append("--compose")
     # Start the unit without waiting for READY, then activate its inspected VT.
     # No second start is permitted if either dispatch acknowledgement is lost.
     args.insert(1, "--no-block")
@@ -336,7 +340,7 @@ def observation(record):
     return dict(kind=kind, original_unit=props)
 
 
-def supervise(profile, token, desktop=False):
+def supervise(profile, token, desktop=False, compose=False):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     base = USER_ROOT / token
@@ -395,7 +399,7 @@ def supervise(profile, token, desktop=False):
         return True
     deadline = time.monotonic() + 12
     try:
-        compositor_args, compositor_fds = compositor_launch(build, shell_server)
+        compositor_args, compositor_fds = compositor_launch(build, shell_server, compose)
         spawn("compositor", compositor_args, compositor_fds)
         if shell_server: shell_server.close()
         while True:
@@ -513,20 +517,24 @@ def main():
     parser.add_argument("--profile", choices=PROFILES, default="release")
     parser.add_argument("--token")
     parser.add_argument("--desktop", action="store_true", help="explicit native dock/search development session")
+    parser.add_argument("--compose", action="store_true", help="opt-in built-in Compose provider (requires its reviewed build)")
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.compose and args.action != "start" and not args.supervise:
+        raise ValueError("--compose selects a new start profile only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
-        return supervise(args.profile, args.token, args.desktop)
+        return supervise(args.profile, args.token, args.desktop, args.compose)
     if not args.guest:
         import shlex
         import run_vm as vm
         if not vm.running(): raise RuntimeError("dedicated VM identity is not verified")
         command = ["sudo", "-n", "python3", SOURCE.as_posix(), args.action, "--guest", "--carrier-uuid", vm.config()["uuid"], "--profile", args.profile]
         if args.desktop: command.append("--desktop")
+        if args.compose: command.append("--compose")
         if args.token: command += ["--token", args.token]
         elif args.action == "stop":
             probe = [*command]; probe[4] = "status"
@@ -544,7 +552,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile, args.desktop)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

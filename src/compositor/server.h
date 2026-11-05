@@ -40,6 +40,7 @@ struct server {
     struct wlr_xdg_shell *shell;
     struct ae_input *input;
     struct ae_desktop *desktop;
+    struct ae_text_input *text_input;
     struct wlr_scene_tree *windows_tree;
     struct wl_listener new_toplevel;
     struct wl_listener backend_destroy;

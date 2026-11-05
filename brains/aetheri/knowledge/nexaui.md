@@ -1,5 +1,16 @@
 # NexaUI suitability
 
+## Maintenance rule — confirmed 5 November 2026
+
+The complete [requirement catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) and initial
+chat message have been delivered. This is **ongoing catalogue maintenance**, not
+an outstanding handoff. Periodically inspect relevant SDK progress and add new
+requirements, or revise existing rows with concrete evidence; preserve stable
+IDs and record only meaningful changes. Do not create another catalogue or
+regenerate/repeat a NexaUI chat message after compaction. A new message requires
+a new explicit user request. Routine checks need no renewed user handoff and
+must not displace Aetheri implementation. Older inspections below are history.
+
 ## Current decision — 4 November 2026
 
 The user prefers a practical foundation such as SDL3 for early Aetheri UI, with
@@ -37,7 +48,33 @@ scaling and unsupported-capability behavior. Prefer event-driven idle behavior
 and measure CPU/wakeups, frame response and actual memory on the target session.
 The user's final visual design remains a separate decision.
 
-### Latest handoff reconciliation — 5 November 2026
+### Current handoff reconciliation — 5 November 2026
+
+The renewed complete-list request updates the existing
+[NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md), retaining all **103 stable IDs
+and 13 surface groups** rather than creating another backlog. A new read-only
+main query returned `d4c9aab9354feb4c9e045b960f4985468bec3253`; its 34-file change
+inventory from the previous inspected candidate, selected deltas, public contracts,
+selected implementation paths, requirement map and adoption report were reviewed. No SDK build/runtime
+test, checkout, consumer pin, publication or other-chat message was performed.
+
+Recognize newly existing multi-window owner-thread Wayland waiting, total-deadline
+clipboard sends, initial configure bounds, field-selection restoration and the
+Settings in-memory uncertain-operation example. They are implementation/source
+evidence with scoped original reports, not full Aetheri acceptance. The SDK map
+has all 103 IDs but its application-ownership table still omits the thirteenth
+installer/first-run/recovery surface; reconcile that table without another D11.
+
+The catalogue now has a category index, explicit composition-lifetime cases and
+eight delivery packets. First prepare one installed C17 Settings consumer for
+the actual Aetheri development compositor, preserving app models and process
+ownership. Assess numeric native input and nested overlays, then private shell
+input/semantics, dense terminal/editor, the remaining system/app compositions
+and content/VM seams. Keep working SDL views until each replacement passes.
+Final designs, persistence/product decisions and physical/human acceptance stay
+open. The initial start message was delivered; maintain the catalogue from here.
+
+### Earlier cell-grid handoff reconciliation — 5 November 2026
 
 The user's complete-list request was reconciled against a new read-only main
 query: `88b4a5633b9b603a34fba103173e2266bc577adc`. The committed cell-grid and

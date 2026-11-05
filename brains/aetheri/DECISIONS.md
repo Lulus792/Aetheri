@@ -1,5 +1,25 @@
 # Decisions
 
+## Start native composition with a built-in provider — 5 November 2026
+
+Use an opt-in original C17 Compose/dead-key provider in the existing compositor
+for the first German/English native input path. It uses existing libxkbcommon
+and exact build-embedded reviewed standard Compose data, preserving MIT/X11
+notices. It adds no resident process or external key-injection global. The
+alternative external input-method-v2 daemon needs independent provider admission,
+grabs, serial routing, popup and restart handling; retain that as later required
+work. Keeping only SDL's local fallback would not supply native preedit or exercise
+the compositor-to-client boundary. This engineering choice does not choose final
+shortcuts or replace full external/CJK IME support.
+
+Accept only an original input on the current seat/client/surface with a fresh
+committed enable. Repeated enables are field boundaries; cursor-only updates
+are not. Focus changes invalidate accepted AND pending enables. A real native
+counterexample demonstrated old buffered enable admission after leave/re-enter;
+the new guard and expanded native test reject it. Secret fields exclude this
+provider, and ignored competing resources never inherit admission automatically.
+See [contract and executed boundary](../../spec/compose.md).
+
 ## Retain bounded composition outside PTY content — 5 November 2026
 
 Copy SDL editing text into a toolkit-free, <=1024-byte single-line UTF-8 model.

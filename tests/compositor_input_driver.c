@@ -27,6 +27,12 @@ struct input_driver {
 };
 static const struct wlr_keyboard_impl keyboard_impl = {.name = "aetheri-test-keyboard"};
 static const struct wlr_pointer_impl pointer_impl = {.name = "aetheri-test-pointer"};
+static bool set_layout(struct input_driver *d,bool german) {
+    struct xkb_context *context=xkb_context_new(XKB_CONTEXT_NO_ENVIRONMENT_NAMES);
+    struct xkb_rule_names names={.layout=german ? "de" : "us"};
+    struct xkb_keymap *map=context ? xkb_keymap_new_from_names(context,&names,XKB_KEYMAP_COMPILE_NO_FLAGS) : NULL;
+    bool ok=map && wlr_keyboard_set_keymap(&d->keyboard,map);xkb_keymap_unref(map);xkb_context_unref(context);return ok;
+}
 static bool add(struct input_driver *d, bool german) {
     if (d->live) return false;
     wlr_keyboard_init(&d->keyboard, &keyboard_impl, "private fixture keyboard");
@@ -65,7 +71,8 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC,&now)) goto invalid;
     d->time=(uint32_t)((uint64_t)now.tv_sec*UINT64_C(1000)+(uint64_t)now.tv_nsec/UINT64_C(1000000));
-    if (!strcmp(text,"I on")) { if (d->ime || !(d->ime=ae_test_text_input_create(d->server))) goto invalid; }
+    if (d->live && (!strcmp(text,"L de") || !strcmp(text,"L us"))) { if (!set_layout(d,text[2]=='d')) goto invalid; }
+    else if (!strcmp(text,"I on")) { if (d->server->text_input || d->ime || !(d->ime=ae_test_text_input_create(d->server))) goto invalid; }
     else if (!strcmp(text,"I 7") && d->live) {
         /* One native flush queues Escape before a commit. The app must not
            adopt this already-queued old text after cancelling its draft. */

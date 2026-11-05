@@ -1,8 +1,56 @@
 # State
 
-5 November 2026 — owned terminal preedit and native commit boundary.
+5 November 2026 — built-in native Compose/dead-key provider.
+
+## Coordination
+
+**NexaUI handoff: delivered, not an outstanding task.** The user clarified on
+5 November that routine reviews should only extend or correct the existing
+[catalogue](D:/NexaUI/NEXT_AETHERI_UI.md). Do not generate another chat/start
+message, repeat its overview or ask for it to be pasted after compaction without
+a new explicit request. The earlier handoff messages are history. This chat
+continues Aetheri implementation; NexaUI SDK implementation has its own owner.
+
+Preserve the quarantined old runtime. The Compose milestone below does not
+resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The optional [built-in Compose provider](../../spec/compose.md) now connects real
+compositor key events to native v3, SDL preedit/commit, the original terminal PTY
+and shell. It uses the existing libxkbcommon plus exact embedded standard data
+and retained MIT/X11 notices. Build/runtime opt-ins add no daemon or external
+input-method/virtual-keyboard global. `development_session.py start --desktop
+--compose` records the explicit profile and preserves the existing app owner.
+
+Admission retains the original seat/client/surface/field. Repeated enable resets
+composition; cursor-only updates retain it. Secret fields are excluded and a
+competing input cannot steal or automatically inherit admission. A new native
+case found that an uncommitted old enable could cross leave/re-enter. The fix
+discards pending admission at focus change; the original counterexample and the
+expanded positive test are retained. Keyboard/keymap changes and context loss
+also retire drafts. Exact shell effects cover `é`, `ä` and `j` + combining acute.
+
+All 21 affected groups pass final Release (62.39 s) and ASan/UBSan (90.85 s).
+Provider integration has eight cases/six images per profile; the independent
+native lifecycle group has seven cases. A separate lost-enable-boundary mutant
+fails the unchanged assertion; feature-off native input/windows and invalid CLI
+cases pass. Fifty host contract/migration, 24 runtime-vector and seven VM-input
+tests pass. Native evidence has 330 verified files/186 raw images; final virtual
+DRM testing uses the same terminal and ends its original processes with status0.
+See the [handoff](journal/2026-11-05-compose-provider.md) for candidate/fixture limits.
+
+Final preservation audit matches 285 source files, 28 frozen SQL/XML and nineteen
+protected old hashes without sidecars. All 925 local Markdown file targets
+resolve. The enforcing guest is idle on tty1 after original-session retirement.
+
+The next app work is a toolkit-free rich shell/editor line model and its native
+input/job-control integration, followed by panes/editor/session behavior. External
+IME/font/accessible-text work, normal admitted session/apps, remaining apps, the
+OS image/installer and complete experiment desktop remain required. This input
+milestone does not finish those scopes or select final UI/persistence policies.
+
+## Terminal preedit checkpoint — historical
 
 The [terminal](../../spec/terminal.md) now copies and draws bounded SDL preedit
 separately from PTY cells/history and committed input. Its C17 model retains

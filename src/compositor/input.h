@@ -6,6 +6,8 @@ struct window;
 struct wlr_input_device;
 struct ae_input;
 struct wlr_surface;
+struct wlr_seat;
+struct wlr_seat *ae_input_seat(struct ae_input *input); /* Borrowed, compositor owner only. */
 struct ae_input *ae_input_create(struct server *server);
 void ae_input_destroy(struct ae_input *input);
 void ae_input_stop_backend(struct ae_input *input);

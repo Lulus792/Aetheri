@@ -14,6 +14,9 @@
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
+#ifdef AETHERI_TEST_TEXT_INPUT
+#include "compose-text-input-v3-client.h"
+#endif
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "client check failed: %s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); } } while (0)
 struct app;
@@ -43,7 +46,11 @@ struct app {
     struct wl_list buffers;
     struct view views[2];
     uint32_t shell_version;
-    bool input;
+    bool input,text_mode;
+#ifdef AETHERI_TEST_TEXT_INPUT
+    struct zwp_text_input_manager_v3 *text_manager;
+    struct zwp_text_input_v3 *text[2];
+#endif
     struct wl_seat *seat;
     struct wl_pointer *pointer;
     struct wl_keyboard *keyboard;
@@ -382,6 +389,59 @@ static void seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
 }
 static void seat_name(void *data, struct wl_seat *seat, const char *name) { (void)data; (void)seat; CHECK(!strcmp(name, "seat0")); }
 static const struct wl_seat_listener seat_listener = {.capabilities = seat_capabilities, .name = seat_name};
+#ifdef AETHERI_TEST_TEXT_INPUT
+static unsigned text_index(struct app *a,struct zwp_text_input_v3 *input) {
+    for (unsigned i=0;i<2;++i) if (a->text[i]==input) return i;
+    CHECK(false);return 0;
+}
+static void text_enter(void *data,struct zwp_text_input_v3 *input,struct wl_surface *surface) {
+    struct app *a=data;printf("TEXT_ENTER %u %u\n",text_index(a,input),find_view(a,surface)->index);
+}
+static void text_leave(void *data,struct zwp_text_input_v3 *input,struct wl_surface *surface) {
+    (void)surface;printf("TEXT_LEAVE %u\n",text_index(data,input));
+}
+static void text_bytes(struct app *a,struct zwp_text_input_v3 *input,const char *kind,const char *bytes) {
+    size_t n=bytes?strlen(bytes):0;printf("TEXT_%s %u %zu",kind,text_index(a,input),n);
+    for (size_t i=0;i<n;++i) printf(" %02x",(unsigned char)bytes[i]);
+    putchar('\n');
+}
+static void text_preedit(void *data,struct zwp_text_input_v3 *input,const char *text,int32_t begin,int32_t end) {
+    CHECK(begin>=-1 && end>=-1);text_bytes(data,input,"PREEDIT",text);
+}
+static void text_commit(void *data,struct zwp_text_input_v3 *input,const char *text) { text_bytes(data,input,"COMMIT",text); }
+static void text_delete(void *data,struct zwp_text_input_v3 *input,uint32_t before,uint32_t after) {
+    (void)data;(void)input;(void)before;(void)after;CHECK(false);
+}
+static void text_done(void *data,struct zwp_text_input_v3 *input,uint32_t serial) {
+    printf("TEXT_DONE %u %u\n",text_index(data,input),serial);
+}
+static const struct zwp_text_input_v3_listener text_listener={.enter=text_enter,.leave=text_leave,
+    .preedit_string=text_preedit,.commit_string=text_commit,.delete_surrounding_text=text_delete,.done=text_done};
+static void create_text(struct app *a,unsigned index) {
+    a->text[index]=zwp_text_input_manager_v3_get_text_input(a->text_manager,a->seat);CHECK(a->text[index]);
+    CHECK(!zwp_text_input_v3_add_listener(a->text[index],&text_listener,a));
+}
+static void text_command(struct app *a,char c) {
+    struct zwp_text_input_v3 *input=a->text[0];
+    if (c=='U') {
+        zwp_text_input_v3_enable(input);CHECK(wl_display_roundtrip(a->display)>=0);puts("TEXT_SYNC U");return;
+    }
+    if (c=='E' || c=='R') zwp_text_input_v3_enable(input);
+    else if (c=='X') zwp_text_input_v3_disable(input);
+    else if (c=='C') zwp_text_input_v3_set_cursor_rectangle(input,10,10,5,20);
+    else if (strchr("PIHSN",c)) zwp_text_input_v3_set_content_type(input,
+        c=='H'?ZWP_TEXT_INPUT_V3_CONTENT_HINT_HIDDEN_TEXT:c=='S'?ZWP_TEXT_INPUT_V3_CONTENT_HINT_SENSITIVE_DATA:0,
+        c=='P'?ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_PASSWORD:c=='I'?ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_PIN:ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_NORMAL);
+    else if (c=='A' || c=='B') {
+        input=a->text[1];
+        if (c=='A') zwp_text_input_v3_enable(input);else zwp_text_input_v3_disable(input);
+    } else if (c=='T') {
+        zwp_text_input_v3_destroy(input);a->text[0]=NULL;create_text(a,0);input=a->text[0];
+    } else if (c!='V') CHECK(false);
+    zwp_text_input_v3_commit(input);
+    CHECK(wl_display_roundtrip(a->display)>=0);printf("TEXT_SYNC %c\n",c);
+}
+#endif
 static void global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
     struct app *a = data;
     if (!strcmp(interface, "wl_compositor")) {
@@ -404,7 +464,13 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
         CHECK(!a->seat && version >= 5);
         a->seat = wl_registry_bind(registry, name, &wl_seat_interface, 5);
         CHECK(a->seat && wl_seat_add_listener(a->seat, &seat_listener, a) == 0);
-    } else if (a->clipboard_payload && !strcmp(interface,"wl_data_device_manager")) {
+    }
+#ifdef AETHERI_TEST_TEXT_INPUT
+    else if (a->text_mode && !strcmp(interface,"zwp_text_input_manager_v3")) {
+        CHECK(!a->text_manager);a->text_manager=wl_registry_bind(registry,name,&zwp_text_input_manager_v3_interface,1);CHECK(a->text_manager);
+    }
+#endif
+    else if (a->clipboard_payload && !strcmp(interface,"wl_data_device_manager")) {
         CHECK(!a->data_manager && version>=3);
         a->data_manager=wl_registry_bind(registry,name,&wl_data_device_manager_interface,3);
     }
@@ -438,11 +504,15 @@ static void destroy_view(struct view *v) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b") || !strcmp(argv[1],"--clipboard-stall"))) ||
+    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--text-input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b") || !strcmp(argv[1],"--clipboard-stall"))) ||
           (argc==3 && (!strcmp(argv[1],"--clipboard-file") || !strcmp(argv[1],"--clipboard-plain"))));
     CHECK(signal(SIGPIPE,SIG_IGN)!=SIG_ERR); /* Test peer may observe a cancelled receive. */
     struct app a = {.shell_version = argc == 2 && !strcmp(argv[1], "--legacy") ? 3 : 5,
                     .input = argc == 2 && !strcmp(argv[1], "--input")};
+    a.text_mode=argc==2 && !strcmp(argv[1],"--text-input");a.input=a.input || a.text_mode;
+#ifndef AETHERI_TEST_TEXT_INPUT
+    CHECK(!a.text_mode);
+#endif
     if (argc==2 && !strncmp(argv[1],"--clipboard-",12)) {
         a.input=true;a.stall_clipboard=!strcmp(argv[1],"--clipboard-stall");a.clipboard_payload=argv[1][12]=='a' ? "Aetheri A Grüße\n" : "Aetheri B Grüße\n";
     }
@@ -460,6 +530,9 @@ int main(int argc, char **argv) {
     a.registry = wl_display_get_registry(a.display);
     CHECK(a.registry && wl_registry_add_listener(a.registry, &registry_listener, &a) == 0);
     CHECK(wl_display_roundtrip(a.display) >= 0 && a.compositor && a.shm && a.shell && a.output_count == 3);
+#ifdef AETHERI_TEST_TEXT_INPUT
+    if (a.text_mode) { CHECK(a.text_manager && a.seat);create_text(&a,0);create_text(&a,1); }
+#endif
     if (a.clipboard_payload) {
         CHECK(a.data_manager && a.seat);
         a.data_device=wl_data_device_manager_get_data_device(a.data_manager,a.seat); CHECK(a.data_device);
@@ -509,10 +582,19 @@ int main(int argc, char **argv) {
                 create_view(&a,0); create_view(&a,1); puts("CLIPBOARD_VIEWS_CREATED");
             }
             else if (a.clipboard_payload && strchr("CSZERODJHTWF",c)) clipboard_command(&a,c);
+#ifdef AETHERI_TEST_TEXT_INPUT
+            else if (a.text_mode) text_command(&a,c);
+#endif
             else CHECK(false);
         }
     }
     for (unsigned i = 0; i < 2; ++i) destroy_view(&a.views[i]);
+#ifdef AETHERI_TEST_TEXT_INPUT
+    if (a.text_manager) {
+        for (unsigned i=0;i<2;++i) zwp_text_input_v3_destroy(a.text[i]);
+        zwp_text_input_manager_v3_destroy(a.text_manager);
+    }
+#endif
     CHECK(wl_display_roundtrip(a.display) >= 0);
     struct buffer *b, *next;
     wl_list_for_each_safe(b, next, &a.buffers, link) release(b, b->object);

@@ -1,5 +1,12 @@
 # Development graphical terminal
 
+The optional [built-in Compose provider](compose.md) now supplies an actual
+compositor-to-SDL preedit/commit path in addition to the earlier controlled v3
+fixture below. Native keys reach the original shell as exact UTF-8, including
+multi-scalar results. Enable it with a matching build and development-session
+`start --desktop --compose`. External IMEs and trusted session integration remain
+separate work; the earlier fixture results retain their original scope.
+
 The opt-in C17 `aetheri-terminal` connects the original [Aetheri shell](shell.md)
 to an actual private PTY and an SDL3 Wayland/GLES view. It supports ordinary
 command input/output, bounded scrollback, colors and ephemeral shell job control.

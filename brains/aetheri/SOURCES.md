@@ -4,6 +4,32 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Built-in native Compose — 5 November 2026
+
+- [Compose contract](../../spec/compose.md), original
+  [engine](../../src/compositor/compose.c),
+  [native routing](../../src/compositor/text_input.c) and
+  [generator](../../tools/embed_compose.py), with exact data/license/protocol
+  hashes in [graphics inputs](../../spec/graphics-inputs.json). The signed cached
+  Fedora libX11-common 1.8.13-3.fc44 payload matches both installed data/license
+  files; local/compose-provider-2026-11-05/native/compose-provider-check-ibcplzhc/inputs-review.json
+  records the repeated package/digest/payload check. This adds standard data,
+  not X11 linkage or a new UI library family.
+- Read the selected wlroots 0.20.2 `types/wlr_text_input_v3.c` and headers, the
+  exact installed wayland-protocols 1.49 v3 XML and
+  [Wayland 1.26.0 server request dispatch](https://github.com/wayland-mirror/wayland/blob/1.26.0/src/wayland-server.c).
+  The request observer precedes the handler and borrows message data only during
+  the callback. Our observer reads no text arguments. The generic
+  [Compose API](https://xkbcommon.org/doc/current/group__compose.html) was read;
+  it does not select its newer documented release over pinned libxkbcommon 1.13.1.
+- Final 21 groups pass Release 62.39 s / ASan+UBSan 90.85 s. The eight-case native
+  provider test uses real keys/v3/SDL/PTY and exact shell file bytes; the seven-case
+  independent client tests actual field/focus/secret boundaries. The old buffered
+  enable crossed leave/re-enter in a real pre-fix counterexample; original logs
+  and the positive fix are retained. See the
+  [handoff](journal/2026-11-05-compose-provider.md) for negative controls,
+  virtual DRM identity, preserved state and explicit acceptance limits.
+
 ## Terminal preedit and native commit — 5 November 2026
 
 - [Composition model](../../src/terminal/composition.c),

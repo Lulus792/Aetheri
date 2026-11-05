@@ -32,6 +32,11 @@ connects it to a real PTY, bounded Unicode/color grid and SDL3 view, with native
 DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection. The syntax is experimental; rich
 editing, panes/editor, persistent sessions and admitted app/session launch remain work.
 
+An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
+and Compose sequences through native Wayland preedit/commit to the terminal and
+shell. `start --desktop --compose` selects it in a matching development build.
+External IMEs, full text accessibility and trusted session integration remain work.
+
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.
 Native keyboard/pointer focus, move/resize, fullscreen and independent teardown

@@ -40,6 +40,7 @@ def main():
         raise RuntimeError("explicit disposable-carrier integration test requires UID1000")
     source = Path(__file__).resolve().parents[1]
     owner_source=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else source/"tools/development_session.py"
+    compose=len(sys.argv)>3 and sys.argv[3]=='--compose'
     source_hash=hashlib.sha256(owner_source.read_bytes()).hexdigest()
     binaries={str(build/n):hashlib.sha256((build/n).read_bytes()).hexdigest() for n in
               ("test_compositor_server","aetheri-desktop","aetheri-settings","aetheri-terminal","aetheri-shell")}
@@ -51,7 +52,7 @@ def main():
     controller, issuer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     controller.settimeout(4)
     stream=(root/"owner.log").open("wb")
-    owner=subprocess.Popen([sys.executable,str(source/"tests/development_session_fixture.py"),str(build),str(root),str(issuer.fileno()),str(owner_source)],
+    owner=subprocess.Popen([sys.executable,str(source/"tests/development_session_fixture.py"),str(build),str(root),str(issuer.fileno()),str(owner_source),*(['compose'] if compose else [])],
                            cwd=root,pass_fds=(issuer.fileno(),),stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
     issuer.close()
     pins={};roles={};images=[];cases=["failed compositor before desktop creation retires its unused launch/private endpoints"];holders=[];seen_spawns=0
@@ -141,6 +142,13 @@ def main():
         shell,shell_pin=terminal_shell()
         wait(lambda:bool(re.search(r"VIEW .* sequence=[2-9]\d* ",log("terminal"))) and "FOCUS 1\n" in log("terminal"),"original shell prompt and native focus")
         first_terminal=roles["terminal"]
+        if compose:
+            wait(lambda:'COMPOSE active=1' in log('compositor'),'owner enabled real provider')
+            def composition_size():
+                values=re.findall(r'VIEW .* composition=(\d+) ',log('terminal'));return int(values[-1]) if values else -1
+            tap(127);wait(lambda:composition_size()==2,'actual supervised terminal Compose')
+            tap(1);wait(lambda:composition_size()==0,'supervised composition cancellation')
+            cases.append('explicit supervisor Compose profile reaches actual terminal before original shell command')
         typing("printf session > dock-proof\n")
         wait(lambda:(root/"dock-proof").is_file() and (root/"dock-proof").read_text()=="session","actual own shell command from dock")
         before=log("desktop").count("LAUNCH_REPLY A T\n");click_control(4)
