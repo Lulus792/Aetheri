@@ -11,6 +11,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   After compaction, carry forward **handoff delivered; catalogue maintenance only;
   no pending chat message** and resume the actual task in STATE. Historical handoff
   records are not new assignments. See brains/aetheri/knowledge/nexaui.md.
+  Treat routine NexaUI checks as background catalogue maintenance, not a recurring
+  deliverable or next step for the user. With no relevant change, omit a NexaUI
+  update from the reply. With a relevant change, a brief delta and catalogue link
+  suffice; do not repeat the catalogue overview or implementation request.
+- Files is an opt-in ordinary-user development view; read spec/files.md.
+  Keep the C17 directory model separate from SDL, complete bounded snapshots and
+  held parent navigation, raw names separate from display labels, and rejected
+  filter intents unable to activate a retained prefix. A selected file's held
+  O_PATH witness passes literally through a separately owned Terminal/PTY to the
+  editor and is compared before reading. No shell interpolation or symlink
+  following. Preserve the original direct child across pending/unknown results;
+  UI close retains the editor's dirty-content choice and Files waits for Terminal
+  end. These FDs/observations are not document grants, sandbox/volume identity,
+  descendant drain or durable recovery. Run files.model/launch/native plus affected
+  editor/terminal/shell/desktop regressions. Normal desktop launch remains work.
 - Document now owns bounded delta undo/redo: read spec/editor.md. Keep monotonic
   revisions distinct from logical saved-state identity. New successful edits
   discard redo; failed admission/allocation must preserve it. Preallocate before

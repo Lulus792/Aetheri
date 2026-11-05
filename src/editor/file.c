@@ -110,12 +110,13 @@ static enum ae_editor_file_result content(int fd,const char *expected,size_t siz
     char extra;ssize_t n;do { n=pread(fd,&extra,1,(off_t)size); } while (n<0 && errno==EINTR);
     return n<0 ? AE_EDITOR_FILE_IO : n ? AE_EDITOR_FILE_CONFLICT : AE_EDITOR_FILE_OK;
 }
-enum ae_editor_file_result ae_editor_file_open(int directory,const char *leaf,struct ae_editor_file **out,struct ae_document **document) {
+static enum ae_editor_file_result open_file(int directory,const char *leaf,int witness,struct ae_editor_file **out,struct ae_document **document) {
     if (!document || *document) return AE_EDITOR_FILE_INVALID;
     struct ae_editor_file *f=NULL;enum ae_editor_file_result r=setup(directory,leaf,&f);if (r!=AE_EDITOR_FILE_OK) return r;
     if (!out || *out) { ae_editor_file_close(f);return AE_EDITOR_FILE_INVALID; }
     int pin=openat(f->directory,f->leaf,O_PATH|O_CLOEXEC|O_NOFOLLOW);struct stat s;
     if (pin<0 || fstat(pin,&s)) { if (pin>=0) (void)close(pin);ae_editor_file_close(f);return AE_EDITOR_FILE_IO; }
+    if (witness>=0) { struct stat expected;if (fstat(witness,&expected) || !S_ISREG(expected.st_mode) || expected.st_dev!=s.st_dev || expected.st_ino!=s.st_ino) { close(pin);ae_editor_file_close(f);return AE_EDITOR_FILE_CONFLICT; } }
     if (!S_ISREG(s.st_mode) || s.st_uid!=geteuid() || s.st_nlink!=1 || (s.st_mode&07000) || s.st_size<0 || s.st_size>AE_DOCUMENT_BYTES) {
         (void)close(pin);ae_editor_file_close(f);return AE_EDITOR_FILE_UNSUPPORTED;
     }
@@ -132,6 +133,10 @@ enum ae_editor_file_result ae_editor_file_open(int directory,const char *leaf,st
     if (r==AE_EDITOR_FILE_OK) { d=ae_document_create(f->baseline,f->size,&text_result);if (!d) r=text_result==AE_DOCUMENT_NOMEM ? AE_EDITOR_FILE_NOMEM : AE_EDITOR_FILE_UNSUPPORTED; }
     if (r!=AE_EDITOR_FILE_OK) { ae_editor_file_close(f);return r; }
     *document=d;*out=f;return AE_EDITOR_FILE_OK;
+}
+enum ae_editor_file_result ae_editor_file_open(int directory,const char *leaf,struct ae_editor_file **out,struct ae_document **document) { return open_file(directory,leaf,-1,out,document); }
+enum ae_editor_file_result ae_editor_file_open_selected(int directory,const char *leaf,int witness,struct ae_editor_file **out,struct ae_document **document) {
+    return witness<0 ? AE_EDITOR_FILE_INVALID : open_file(directory,leaf,witness,out,document);
 }
 enum ae_editor_file_result ae_editor_file_new(int directory,const char *leaf,struct ae_editor_file **out,struct ae_document **document) {
     if (!out || *out || !document || *document) return AE_EDITOR_FILE_INVALID;

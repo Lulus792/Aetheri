@@ -7,6 +7,10 @@ struct ae_terminal_pty { int master,pin;pid_t pid;bool ended,eof,hangup;int stat
    A held regular ELF source and fixed argv/env are caller obligations. No app
    admission, namespace isolation or descendant drain is implied. */
 int ae_terminal_pty_open(struct ae_terminal_pty *pty,int source,unsigned cols,unsigned rows);
+/* Separate development editor profile: passes literal leaf and copies directory/
+   O_PATH witness to child FDs 3/4, retaining no other inherited input descriptors.
+   Caller retains ownership. No shell parsing, normal file grant or app admission. */
+int ae_terminal_pty_open_editor(struct ae_terminal_pty *pty,int source,int directory,int witness,const char *leaf,unsigned cols,unsigned rows);
 int ae_terminal_pty_resize(struct ae_terminal_pty *pty,unsigned cols,unsigned rows);
 ssize_t ae_terminal_pty_read(struct ae_terminal_pty *pty,void *buffer,size_t length);
 /* Stream EOF and original-child exit are separate observations. EOF is not a

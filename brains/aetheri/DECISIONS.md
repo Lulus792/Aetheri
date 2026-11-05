@@ -1,5 +1,18 @@
 # Decisions
 
+## Keep Files navigation and selected-document ownership explicit — 5 November 2026
+
+Use the existing reviewed SDL3/text profile for an initial Files view over a
+toolkit-free C17 model. Complete bounded snapshots and held directory navigation
+avoid partial-list replacement and path-string reconstruction. Keep raw names
+distinct from escaped labels. Pass a selected file's transient held witness and
+parent literally to a separately owned Terminal/editor; check the witness before
+reading rather than constructing a shell command. After SDL starts threads, use
+glibc's `posix_spawn` file actions; fresh PTY setup remains before Terminal threads.
+Keep one original document child until observed end. UI close retains the editor's
+dirty-content decision. This ordinary-user development route does not replace the
+agreed document broker or regular app admission. See [Files](../../spec/files.md).
+
 ## Keep selection and transfer in the modal owner — 5 November 2026
 
 Add character/whole-line visual selection to the existing model and forward

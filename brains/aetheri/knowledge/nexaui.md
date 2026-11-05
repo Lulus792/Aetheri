@@ -14,6 +14,14 @@ user to paste the old message or treat the historical records below as an open
 assignment. Continue the actual Aetheri task from STATE. SDK implementation and
 consumer-pin changes are separate work, not implied by catalogue maintenance.
 
+Routine checks are background maintenance, not a recurring user deliverable.
+No relevant change means no catalogue edit and no NexaUI status paragraph in the
+reply. When requirements change, update the relevant rows/integration cases;
+if reporting the change helps, give only the concrete delta and catalogue link.
+Do not append the old overview, implementation request or a request to paste it.
+Context summaries should retain the closed handoff status and the actual current
+Aetheri task; the historical request must not become the next task after resuming.
+
 ## Current decision — 4 November 2026
 
 5 November incremental consumer update: the existing catalogue's integration

@@ -4,6 +4,22 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Files and selected document handoff — 5 November 2026
+
+- Original [directory model](../../src/files/model.c),
+  [direct-child launcher](../../src/files/launch.c), [SDL view](../../src/files/main.c),
+  [selected-witness file adapter](../../src/editor/file.c) and
+  [direct-editor PTY](../../src/terminal/pty.c). Contracts and scope in
+  [Files](../../spec/files.md).
+- [Model tests](../../tests/test_files.c), [actual spawn/FD tests](../../tests/test_files_launch.c)
+  and [actual native workflow](../../tools/test_files_ui.py). Dated build/runtime
+  evidence belongs to the [Files record](journal/2026-11-05-files.md).
+- [Linux man-pages: posix_spawn](https://man7.org/linux/man-pages/man3/posix_spawn.3.html)
+  for process creation, file-action and error boundaries; source/API inspection
+  against the existing carrier glibc. Creation success is not application readiness.
+  The selected SDL_ttf header's `TTF_MeasureString` documents measured lengths in
+  bytes; Files converts these to whole-grapheme clipping before rasterization.
+
 ## Model-owned selection and register — 5 November 2026
 
 - Original [modal selection/register](../../src/editor/modal.c),

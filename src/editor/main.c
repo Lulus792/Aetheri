@@ -22,7 +22,7 @@ enum interaction { EDIT, COMMAND, CLOSE, DISCARD, SEARCH };
 struct app {
     struct ae_document *document;struct ae_modal *modal;struct ae_editor_view *view;
     struct ae_editor_file *file,*pending[PENDING_EXPORTS];size_t pending_count;
-    int tty,signals;pid_t group,session;struct termios modes,raw;sigset_t old_mask;bool masked,raw_set,alternate,quit,help,compact,dd,command_bad,quit_after_save;
+    int tty,signals;pid_t group,session;struct termios modes,raw;sigset_t old_mask;bool masked,raw_set,alternate,quit,help,compact,dd,command_bad,quit_after_save,direct;
     enum interaction interaction;char title[COMMAND_BYTES+1],command[COMMAND_BYTES+1],message[256];size_t command_size;
     char utf8[4],sequence[32];size_t utf_size,utf_need,seq_size;bool seq_bad;uint64_t deadline;int result;unsigned help_offset;
     size_t search_origin,last_query_size;int search_direction,last_direction;
@@ -326,6 +326,7 @@ static void emergency(struct app *a) {
     else dprintf(2,"aetheri-editor: emergency copy failed; document/save state unresolved\n");
 }
 static void suspend_app(struct app *a) {
+    if (a->direct) { notice(a,"Document window has no shell job control");return; }
     ae_document_history_break(a->document);
     screen_leave(a);a->seq_size=a->utf_size=a->utf_need=0;
     do { if (raise(SIGSTOP)) { emergency(a);a->result=1;a->quit=true;return; } } while (!owns(a));
@@ -345,14 +346,16 @@ static bool signals(struct app *a) {
     return n<0 && (errno==EAGAIN || errno==EINTR);
 }
 int main(int argc,char **argv) {
-    if (argc==2 && !strcmp(argv[1],"--help")) { puts("Usage: aetheri-editor [--new] [PATH]\nCtrl+S save; Ctrl+Q close; Esc Normal; :help keyboard guide.\nLocal development profile; no document grants or durable crash recovery.");return 0; }
-    if (argc>3 || (argc==3 && strcmp(argv[1],"--new")) || (argc==2 && !strcmp(argv[1],"--new"))) { fputs("Usage: aetheri-editor [--new] [PATH]\n",stderr);return 2; }
+    if (argc==2 && !strcmp(argv[1],"--help")) { puts("Usage: aetheri-editor [--new] [PATH]\nDevelopment handoff: --selected-fds LEAF (directory FD 3, file witness FD 4).\nCtrl+S save; Ctrl+Q close; Esc Normal; :help keyboard guide.\nLocal development profile; no document grants or durable crash recovery.");return 0; }
+    bool selected=argc==3 && !strcmp(argv[1],"--selected-fds");
+    if (!selected && (argc>3 || (argc==3 && strcmp(argv[1],"--new")) || (argc==2 && !strcmp(argv[1],"--new")))) { fputs("Usage: aetheri-editor [--new] [PATH]\n",stderr);return 2; }
     if (!setlocale(LC_CTYPE,"C.UTF-8")) return 1;
-    struct app a={.tty=-1,.signals=-1};enum ae_editor_file_result opened=AE_EDITOR_FILE_OK;
+    struct app a={.tty=-1,.signals=-1,.direct=selected};enum ae_editor_file_result opened=AE_EDITOR_FILE_OK;
     const char *path=argc==3 ? argv[2] : argc==2 ? argv[1] : NULL;
-    if (path) { opened=bind_path(path,argc==3,&a.file,&a.document);if (opened==AE_EDITOR_FILE_OK) (void)snprintf(a.title,sizeof(a.title),"%s",path); }
+    if (selected) { opened=ae_editor_file_open_selected(3,path,4,&a.file,&a.document);int first=close(3),second=close(4);if ((first || second) && opened==AE_EDITOR_FILE_OK) opened=AE_EDITOR_FILE_IO;if (opened==AE_EDITOR_FILE_OK) (void)snprintf(a.title,sizeof(a.title),"%s",path); }
+    else if (path) { opened=bind_path(path,argc==3,&a.file,&a.document);if (opened==AE_EDITOR_FILE_OK) (void)snprintf(a.title,sizeof(a.title),"%s",path); }
     else { enum ae_document_result r;a.document=ae_document_create(NULL,0,&r); }
-    if (opened!=AE_EDITOR_FILE_OK || !a.document) { fprintf(stderr,"aetheri-editor: %s\n",file_error(opened==AE_EDITOR_FILE_OK ? AE_EDITOR_FILE_NOMEM : opened));ae_editor_file_close(a.file);return 1; }
+    if (opened!=AE_EDITOR_FILE_OK || !a.document) { fprintf(stderr,"aetheri-editor: %s\n",file_error(opened==AE_EDITOR_FILE_OK ? AE_EDITOR_FILE_NOMEM : opened));ae_editor_file_close(a.file);ae_document_destroy(a.document);return 1; }
     a.modal=ae_modal_create(a.document);a.view=ae_editor_view_create();
     if (!a.modal || !a.view || !terminal_open(&a)) { fputs("aetheri-editor: requires an owned foreground canonical terminal\n",stderr);a.result=1;goto done; }
     while (!a.quit) {

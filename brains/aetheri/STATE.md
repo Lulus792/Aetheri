@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — model-owned document selection and private register.
+5 November 2026 — Files navigation and selected-document editing.
 
 ## Coordination
 
@@ -14,6 +14,38 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The opt-in Files app now provides held directory/parent navigation, complete
+bounded snapshots, visible selection, hidden entries and a whole-intent-rejected
+filter. Its SDL3 view supports native move/resize, DE/EN, contrast and text scaling.
+Selected regular files pass a literal parent/file witness through a separately
+owned Terminal to the editor, which checks that witness before reading. The
+Terminal close UI preserves dirty-content choices; Files waits for its original
+document child and refreshes after end. Direct-editor Ctrl+Z is refused with a
+notice because that window has no shell to resume it. Ordinary shell/editor jobs
+retain their existing behavior. See [Files](../../spec/files.md).
+
+All 42 affected groups pass final Release (104.06s) and ASan+UBSan (167.95s).
+The unchanged copied-source test rejects omission of the selected-inode check.
+The final ordinary DRM session proves navigation, selected document editing,
+Ctrl+Z refusal, dirty-close cancel, exact saved bytes, original shell return and
+ordered retirement; both original development attempts are closed.
+Final audit: 329 host/snapshot/guest sources, 28 unchanged frozen SQL/XML and
+19 unchanged protected hashes with no old SQLite sidecars. Both native Files
+profiles have fourteen cases, eighteen images and zero CPU ticks in the bounded
+one-second idle observation. Retained native evidence has 998 files/270 images
+and ten special-node records; the final ordinary session has fourteen stable
+captures. The enforcing carrier is idle on tty1 with no Aetheri service or seat0
+session. The quarantined old run remains unresolved and untouched.
+Evidence: [record](journal/2026-11-05-files.md) and `local/files-2026-11-05`.
+
+Next useful step: connect Files to the fixed development desktop's launch/focus/
+lifetime owner. Regular app admission and brokered document access remain separate.
+File mutation/removal, image/PDF viewers, richer editor/terminal panes/plugins,
+other applications, original OS image/installer and the full resettable experiment
+desktop are still required. Keep the full OS goal active.
+
+## Model-owned selection and register — completed checkpoint
 
 The modal owner now supports character/whole-line visual selection and one bounded
 private editor register. v/V selects, y copies, d/Delete cuts, c changes, and p/P
@@ -37,8 +69,8 @@ no old SQLite sidecars; 904 native files/210 raw images, six special-node record
 and 34 stable console files. The enforcing carrier is idle on tty1. See the
 [record](journal/2026-11-05-editor-selection.md) and `local/editor-selection-2026-11-05`.
 
-Next useful app workflow: build Files navigation and opening documents with the
-working editor, preserving app/permission/process ownership. Block/mouse editor
+The next workflow at this checkpoint was Files navigation and opening documents
+with the editor, now implemented above as a development app. Block/mouse editor
 selection, platform clipboard, panes/plugins, normal admitted apps/sessions,
 other applications, original OS image/installer and the full resettable experiment
 desktop remain required. Do not narrow the OS goal to the editor milestones.

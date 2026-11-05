@@ -43,6 +43,11 @@ The opt-in [own modal editor](editor.md) can now run as a foreground command in
 this PTY. It uses the same grid, native text input/Compose and text scaling;
 its save/close decisions remain app-owned. It does not supply document grants,
 full text accessibility or normal app/session admission.
+The separate [Files workflow](files.md) selects `--editor ABSOLUTE --open-leaf LEAF`
+instead of `--shell`, with an inherited directory/file witness on descriptors 3/4.
+That profile executes the original editor directly in a fresh PTY. Its UI close
+requests the foreground editor's save/drop/back choice; external shutdown retains
+the existing hangup path. This is an internal development handoff, not an app SDK.
 
 | Control | Behavior |
 | --- | --- |

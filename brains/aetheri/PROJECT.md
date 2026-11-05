@@ -47,6 +47,9 @@ Apps also include Files, Settings/device management, software/development-tool
 management and image/PDF viewing. Prefer one coherent management UI for monitors,
 audio, Bluetooth, keyboards and mice over separate vendor-style utilities.
 Supported device capabilities still require an explicit hardware matrix.
+The first [Files development workflow](../../spec/files.md) now supports held
+directory navigation/filtering and selected text-file editing through Terminal.
+Regular desktop launch, brokered file access and file-manager mutations remain work.
 
 An early experiment environment must run a complete Aetheri desktop in an
 isolated, resettable VM. OS changes and later AI-controlled work stay inside it;

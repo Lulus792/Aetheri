@@ -15,7 +15,7 @@ past deliveries and are not instructions to repeat them.
 On the user's renewed request, updated the same NexaUI catalogue, preserving the
 103 IDs and thirteen app/system groups. Added a category index, explicit native
 composition lifecycle cases, eight concrete delivery packets and deferred
-product/physical decisions. The immediate deliverable is an installed C17
+product/physical decisions. The SDK's next deliverable at that review was an installed C17
 Settings consumer on the existing Aetheri development compositor; shell-role,
 dense text, other app/system and engine/VM views follow independently.
 
@@ -76,8 +76,10 @@ are documentation checks, not implementation or runtime acceptance.
 Only the NexaUI handoff and Aetheri knowledge/journal records were edited. Existing
 NexaUI work, Aetheri terminal changes and other projects were preserved. No
 checkout, consumer pin, SDK source, dependency, global setting, publication or
-other-chat message changed. The user receives the message to paste themselves.
+other-chat message changed. The message was returned to the user at that time;
+this delivery is complete and no further paste or message is pending.
 
-Next owner: NexaUI implementation chat. Reconcile per-ID status against its exact
-current candidate, close remaining installed Settings/service/host gates, then
-deliver terminal/editor and content/VM seams with actual consumer evidence.
+The implementation owner at that handoff was the NexaUI chat: reconcile per-ID
+status against its exact candidate, close installed Settings/service/host gates,
+then deliver terminal/editor and content/VM seams with actual consumer evidence.
+This records the SDK handoff scope, not a new Aetheri chat task or pending message.

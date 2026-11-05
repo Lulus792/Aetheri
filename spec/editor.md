@@ -6,6 +6,9 @@ inside the existing terminal as a foreground command. This remains a local
 development profile; normal document grants/admission, durable recovery, block/
 mouse selection, richer search, plugins and panes remain work. The existing
 [shell line editor](line-editor.md) is a separate working component.
+The new [Files development workflow](files.md) can also open a selected text file
+in a dedicated Terminal. Its `--selected-fds` entry checks the held file witness
+before reading; this is separate from ordinary document-grant admission.
 
 ## Try it
 

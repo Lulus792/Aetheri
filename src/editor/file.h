@@ -14,6 +14,11 @@ struct ae_editor_file;
    brokered save, volume identity or crash-recovery claim. */
 enum ae_editor_file_result ae_editor_file_open(int directory,const char *leaf,
     struct ae_editor_file **file,struct ae_document **document);
+/* Explicit development handoff only: witness is an independently retained
+   O_PATH/regular file FD. The named opened object must match it before reading.
+   Neither FD is consumed; no normal document grant or durable identity implied. */
+enum ae_editor_file_result ae_editor_file_open_selected(int directory,const char *leaf,int witness,
+    struct ae_editor_file **file,struct ae_document **document);
 /* Creates no file until save. An existing name is a conflict, never adopted. */
 enum ae_editor_file_result ae_editor_file_new(int directory,const char *leaf,
     struct ae_editor_file **file,struct ae_document **document);
