@@ -133,6 +133,12 @@ def main():
         capture("root and clipped long literal name")
         tap(28); wait(lambda: state(depth=1, count=1), "held directory enter")
         tap(14); wait(lambda: state(depth=0, count=22), "held parent return")
+        tap(28); wait(lambda: state(depth=1, count=1), "enter before held-root shortcut")
+        # Alt+Home navigates through the held stack, including with a live filter.
+        filter_to("note", 1)
+        event("K 56 1"); tap(102); event("K 56 0")
+        wait(lambda: state(depth=0, count=22, selected=0, top=0), "Alt+Home returns to held root and clears query")
+        cases.append("native held-root keyboard navigation")
         control(35); wait(lambda: state(count=23), "hidden keyboard toggle")
         # A mismatched release must not activate the hidden control.
         event("M 200 160"); event("B 272 1"); event("M 900 650"); event("B 272 0")

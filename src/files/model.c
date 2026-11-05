@@ -12,16 +12,17 @@ struct snapshot { size_t count;struct ae_files_entry entries[AE_FILES_ENTRIES]; 
 struct ae_files { int directories[AE_FILES_DEPTH+1];char folders[AE_FILES_DEPTH+1][AE_FILES_LABEL+1];unsigned depth;
     struct snapshot *snapshot;size_t visible[AE_FILES_ENTRIES],count,selected;bool hidden;char query[AE_FILES_QUERY+1];uint64_t revision; };
 static enum ae_files_kind kind(mode_t mode) { return S_ISDIR(mode) ? AE_FILES_DIRECTORY : S_ISREG(mode) ? AE_FILES_REGULAR : S_ISLNK(mode) ? AE_FILES_LINK : AE_FILES_OTHER; }
-static void label(const char *name,char out[AE_FILES_LABEL+1]) {
-    static const char hex[]="0123456789abcdef";size_t size=strlen(name),at=0,used=0;
+bool ae_files_format_name(const char *name,size_t size,char out[AE_FILES_LABEL+1]) {
+    if (!out || (!name && size) || size>AE_FILES_NAME || (size && memchr(name,0,size))) return false;
+    static const char hex[]="0123456789abcdef";size_t at=0,used=0;
     while (at<size) {
         size_t before=at;uint32_t c;bool valid=ae_utf8_next(name,size,&at,&c);
-        bool escape=!valid || c<32 || (c>=0x7f && c<=0x9f) || c=='\\' || (c>=0x200b && c<=0x200f) || (c>=0x202a && c<=0x202e) || (c>=0x2060 && c<=0x206f);
+        bool escape=!valid || c<32 || (c>=0x7f && c<=0x9f) || c=='\\' || (c>=0x200b && c<=0x200f) || (c>=0x2028 && c<=0x202e) || (c>=0x2060 && c<=0x206f);
         if (!valid) at=before+1;
         if (escape) for (size_t i=before;i<at;++i) { unsigned char b=(unsigned char)name[i];out[used++]='\\';out[used++]='x';out[used++]=hex[b>>4];out[used++]=hex[b&15u]; }
         else { memcpy(out+used,name+before,at-before);used+=at-before; }
     }
-    out[used]=0;
+    out[used]=0;return true;
 }
 static int compare(const void *left,const void *right) {
     const struct ae_files_entry *a=left,*b=right;bool ad=a->kind==AE_FILES_DIRECTORY,bd=b->kind==AE_FILES_DIRECTORY;
@@ -35,7 +36,7 @@ static enum ae_files_result scan(int directory,struct snapshot **out) {
     while ((entry=readdir(stream))) {
         if (!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) continue;
         size_t n=strlen(entry->d_name);if (!n || n>AE_FILES_NAME || s->count==AE_FILES_ENTRIES) { result=AE_FILES_LIMIT;break; }
-        struct ae_files_entry *e=&s->entries[s->count++];memcpy(e->name,entry->d_name,n+1);label(e->name,e->label);struct stat st;
+        struct ae_files_entry *e=&s->entries[s->count++];memcpy(e->name,entry->d_name,n+1);(void)ae_files_format_name(e->name,n,e->label);struct stat st;
         if (fstatat(directory,e->name,&st,AT_SYMLINK_NOFOLLOW)) {
             if (errno==ENOENT) { result=AE_FILES_CHANGED;break; }
             if (errno!=EACCES && errno!=EPERM) { result=AE_FILES_IO;break; }
@@ -82,9 +83,16 @@ enum ae_files_result ae_files_enter(struct ae_files *f) {
 enum ae_files_result ae_files_up(struct ae_files *f) {
     if (!f) return AE_FILES_INVALID;
     if (!f->depth) return AE_FILES_ROOT;
-    enum ae_files_result r=replace(f,f->directories[f->depth-1]);if (r!=AE_FILES_OK) return r;
-    close(f->directories[f->depth--]);f->query[0]=0;f->selected=0;filter(f);return AE_FILES_OK;
+    return ae_files_ancestor(f,f->depth-1);
 }
+enum ae_files_result ae_files_ancestor(struct ae_files *f,unsigned depth) {
+    if (!f || depth>f->depth) return AE_FILES_INVALID;
+    if (depth!=f->depth) { enum ae_files_result r=replace(f,f->directories[depth]);if (r!=AE_FILES_OK) return r; }
+    while (f->depth>depth) { close(f->directories[f->depth]);f->directories[f->depth--]=-1; }
+    f->query[0]=0;f->selected=0;filter(f);return AE_FILES_OK;
+}
+const char *ae_files_ancestor_label(const struct ae_files *f,unsigned depth) { return f && depth<=f->depth ? f->folders[depth] : ""; }
+const struct ae_files_entry *ae_files_snapshot_entry(const struct ae_files *f,size_t i) { return f && i<f->snapshot->count ? &f->snapshot->entries[i] : NULL; }
 bool ae_files_filter(struct ae_files *f,const char *query,size_t size) {
     if (!f || (!query && size) || size>AE_FILES_QUERY) return false;
     size_t at=0;while (at<size) { uint32_t c;if (!ae_utf8_next(query,size,&at,&c) || c<32 || (c>=0x7f && c<=0x9f)) return false; }

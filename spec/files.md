@@ -51,6 +51,7 @@ substring of the original name. It does not search document contents.
 | Up/Down, Page Up/Down, Home/End | Select and reveal an entry |
 | Enter or double click | Enter a directory or request a text-document window |
 | Alt+Up, Backspace outside the filter, Back | Return through the held directory stack |
+| Alt+Home | Return directly to the held starting directory and clear the query |
 | Ctrl+L | Clear and focus the filter |
 | Ctrl+U while filtering | Clear the query |
 | Backspace while filtering | Remove one whole grapheme |
@@ -79,6 +80,32 @@ changing the name used for filesystem operations. Labels are measured and clippe
 at grapheme boundaries before creating text surfaces. A filter accepts at most
 255 UTF-8 bytes. Overflow/invalid input rejects the query intent: Enter cannot
 open a matching retained prefix until the user clears or cancels it.
+
+`ae_files_ancestor` selects an already-held ancestor by depth. A new complete
+snapshot must succeed before deeper descriptors are closed. Failure retains the
+current stack, snapshot, selection and query; success clears the query/selection.
+Selecting the current depth only clears that query/selection without rescanning.
+Ancestor labels describe the names originally entered; they do not authenticate a
+current path. A replacement at an ancestor's old pathname is not adopted.
+`ae_files_snapshot_entry` borrows the complete snapshot independently of filtering
+and hidden visibility; it does not grant permission to open or modify that entry.
+The display-only formatter also escapes Unicode line and paragraph separators.
+
+## Layout foundation — not yet rendered
+
+`src/files/layout.h` now describes the selected compact toolbar/sidebar/content/
+optional-inspector hierarchy separately from SDL and filesystem actions. It
+supports list or card-grid geometry, an inline-naming row budget and grid-aligned
+selection reveal. Small windows or larger text collapse optional panes. Every
+accepted layout retains at least one complete content cell, including
+640×420 at 200-percent text. Controls and cells stay inside their owning regions.
+
+This is a logical layout contract, not an implemented list/grid switch, inline
+naming UI, text-fit/accessibility proof or acceptance of native glass. The current
+renderer still uses its earlier presentation and can show zero rows at that
+minimum size. The next integration must use the geometry for both drawing and
+hit testing, retain the existing operation ownership, and prove actual native
+text/focus/pointer behavior and appearance against the selected studio.
 
 ## Creating files and folders
 

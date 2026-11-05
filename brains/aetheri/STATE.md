@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — held cross-folder moves and window-local Cut/Paste.
+5 November 2026 — Files layout foundation and held-root navigation.
 
 ## Coordination
 
@@ -14,6 +14,34 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The Files model now supports atomic navigation to held ancestors; Alt+Home is
+wired into the native app and returns to its original root, clearing the query.
+Tests preserve renamed ancestors, reject old-name replacement adoption and prove
+failure atomicity and descriptor balance. Display escaping now includes Unicode
+line/paragraph separators. Complete-snapshot access stays separate from filtering.
+
+The SDL-independent layout foundation for the selected Files design now computes
+compact toolbar/sidebar/content/optional-inspector geometry, list/card cells and
+grid-aligned reveal. All 113,344 tested size/scale/pane/naming combinations retain
+complete content cells and nonoverlapping controls, including 640×420/200 percent.
+It is not yet connected to drawing/hit testing: the old renderer and minimum-size
+zero-row behavior remain. Do not describe this as the implemented studio design.
+
+All 46 affected groups pass Release (116.35s) and ASan+UBSan (184.19s), with compiler
+instrumentation verified. Each native Files profile passes 53 cases/48 retained
+images, including actual Wayland Alt+Home input. Audit binds 340 source inputs;
+28 frozen SQL/XML and nineteen old-runtime hashes stay unchanged, no sidecars.
+The enforcing carrier is idle on tty1 with no known native actors/Aetheri unit/
+seat0 session. Protected old recovery remains unresolved. See
+[record](journal/2026-11-05-files-layout.md) and `local/files-layout-2026-11-05`.
+
+Next: connect layout to native drawing and input, then selected list/grid/sidebar/
+inspector and inline naming with actual native text/focus/pointer/appearance proof.
+Full glass, copy/removal, normal grants/recovery, other apps, installable OS and
+the complete resettable experiment desktop remain required. Keep the full goal active.
+
+## Held cross-folder moves — completed checkpoint
 
 Files now retains a window-local move selection through navigation, creation and
 cancelled previews. Ctrl+X/Ctrl+V, F10, … and right-click menus share the same

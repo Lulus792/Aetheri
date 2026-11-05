@@ -4,6 +4,16 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Files layout foundation and held ancestors — 5 November 2026
+
+- Original [logical layout](../../src/files/layout.c) and
+  [size/scale/pane tests](../../tests/test_files_layout.c), independent of SDL.
+  This geometry is not yet connected to the native renderer.
+- [Held ancestor navigation and display escaping](../../src/files/model.c),
+  [failure/identity/descriptor tests](../../tests/test_files.c), and
+  [actual Wayland Alt+Home input](../../tools/test_files_ui.py).
+  Scope and current rendering boundary: [Files](../../spec/files.md).
+
 ## Three-app development owner — 5 November 2026
 
 - Original [desktop model](../../src/desktop/model.c), [SDL adapter](../../src/desktop/main.c),

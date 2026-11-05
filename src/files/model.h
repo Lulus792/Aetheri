@@ -20,6 +20,14 @@ void ae_files_destroy(struct ae_files *files);
 enum ae_files_result ae_files_refresh(struct ae_files *files);
 enum ae_files_result ae_files_enter(struct ae_files *files);
 enum ae_files_result ae_files_up(struct ae_files *files);
+/* Atomic navigation to an already-held ancestor. Failed scan retains the entire
+   current stack/view; successful navigation closes only deeper held descriptors. */
+enum ae_files_result ae_files_ancestor(struct ae_files *files,unsigned depth);
+const char *ae_files_ancestor_label(const struct ae_files *files,unsigned depth);
+/* Borrowed complete-snapshot entry, unaffected by the current filter. */
+const struct ae_files_entry *ae_files_snapshot_entry(const struct ae_files *files,size_t index);
+/* Display-only escaping, never a filesystem name or path authorization. */
+bool ae_files_format_name(const char *name,size_t size,char out[AE_FILES_LABEL+1]);
 bool ae_files_filter(struct ae_files *files,const char *query,size_t size);
 void ae_files_hidden(struct ae_files *files,bool show);
 bool ae_files_select(struct ae_files *files,size_t visible_index);

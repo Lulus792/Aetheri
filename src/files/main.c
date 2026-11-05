@@ -427,6 +427,7 @@ static void event(struct app *a,const SDL_Event *e) {
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_H) { a->show_hidden=!a->show_hidden;ae_files_hidden(a->files,a->show_hidden);reveal(a);a->dirty=true; }
         else if ((mod&SDL_KMOD_CTRL) && (k==SDLK_L || (k==SDLK_U && a->query_focus))) { a->query_focus=true;a->query_bad=false;(void)ae_files_filter(a->files,"",0);a->dirty=true; }
         else if ((mod&SDL_KMOD_ALT) && k==SDLK_UP) result(a,ae_files_up(a->files));
+        else if ((mod&SDL_KMOD_ALT) && k==SDLK_HOME) result(a,ae_files_ancestor(a->files,0));
         else if (k==SDLK_ESCAPE) { clipboard_clear(a);a->query_focus=false;a->query_bad=false;(void)ae_files_filter(a->files,"",0);a->first=0;a->dirty=true; }
         else if (k==SDLK_UP || k==SDLK_DOWN) move(a,k==SDLK_UP ? -1 : 1);
         else if (k==SDLK_PAGEUP || k==SDLK_PAGEDOWN) move(a,(int)(a->rows ? a->rows : 1)*(k==SDLK_PAGEUP ? -1 : 1));
