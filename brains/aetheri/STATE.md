@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — bound NexaUI Settings selection in the actual development desktop.
+6 November 2026 — first Aetheri-owned NexaUI Settings presentation.
 
 ## Coordination
 
@@ -14,6 +14,39 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+An opt-in `aetheri-settings-nexaui` now renders the unchanged model through our
+own C17 presentation: display observations, appearance/text size and language.
+The sidebar, muted surfaces and grouped controls follow the accepted local
+studio's direction with an opaque fallback. Keyboard focus/reading, local
+DE/EN/200-percent choices, actual maximize/restore and independent native AT-SPI
+actions are exercised. This is neither the complete glass design nor real system
+settings. See [contract](../../spec/nexaui.md#aetheri-owned-settings-presentation)
+and [record](journal/2026-11-06-settings-view.md).
+
+All 55 affected app/desktop/compositor groups pass Release (169.42s) and ASan/UBSan
+(288.74s), including all four new view groups. Audit binds 355 source inputs,
+unchanged 28 frozen SQL/XML and nineteen protected hashes/no sidecars. The 148
+verified exports include 108 native images. The enforcing carrier is idle on tty1
+with no build actors, running Aetheri unit or seat0 session; old recovery stays
+unresolved. No new owned-view DRM/session admission is implied.
+
+The selected SDK remains the reviewed 0.1.18/e71ee30, without a pin/source change.
+The native host adapts its existing event/observation scaffold and retains the
+MIT notice. The two raster-density scene groups retain all 540 matrix cases;
+native input and separate private-registry/independent-client checks retain
+actual model, semantic, pixel and original-process evidence. Normal bus, human
+screenreader/design, full input/window chrome, physical and performance
+acceptance remain open.
+
+Next: bind this owned executable into a distinct fixed development-owner profile
+and run its actual DRM launch/reuse/close/fresh-lifetime exercise. The existing
+`--settings-ui nexaui` still selects its original upstream consumer; SDL stays
+the default. Preserve the original owner/process/pipe obligations. Other apps,
+real backends, lifecycle/recovery/removal, image/installer/hardware and the complete
+persistent resettable experiment desktop remain required. Keep the full goal active.
+
+## Bound development owner — completed checkpoint
 
 The existing development owner now offers `start --desktop --settings-ui nexaui`
 for the fixed reviewed SDK/consumer paths; SDL remains the default. Root records

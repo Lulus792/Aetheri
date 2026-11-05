@@ -20,6 +20,8 @@ See the [runtime contracts](spec/runtime.md#separate-durable-run-closure).
 Normal app launch, document access and the desktop remain in progress. The first
 [native Settings development view](spec/settings.md) reads actual virtual-display
 information and supports keyboard input, per-window themes, text size and DE/EN.
+An opt-in [NexaUI Settings presentation](spec/nexaui.md#aetheri-owned-settings-presentation)
+now provides separate display, appearance and language pages with an opaque fallback.
 An original Aetheri image, installer and admitted daily-use applications remain
 work. The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.

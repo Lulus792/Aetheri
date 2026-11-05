@@ -85,7 +85,7 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     else if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
     else if (sscanf(text, "O %u %u %u%n", &output_index, &width, &height, &used) == 3 && used == length &&
-            output_index < d->server->output_count && width >= 320 && width <= 3840 && height >= 320 && height <= 2160) {
+            output_index < d->server->output_count && width >= 320 && width <= 3840 && height >= 240 && height <= 2160) {
         struct wlr_output_state requested; wlr_output_state_init(&requested);
         wlr_output_state_set_custom_mode(&requested, (int32_t)width, (int32_t)height, 60000);
         struct wlr_output_event_request_state event = {.output = d->server->outputs[output_index].output, .state = &requested};

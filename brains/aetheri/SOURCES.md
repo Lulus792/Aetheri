@@ -4,6 +4,22 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Aetheri-owned NexaUI Settings — 6 November 2026
+
+- Original [presentation](../../src/settings/nexaui_view.c),
+  [view boundary](../../src/settings/nexaui_view.h) and
+  [native host](../../src/settings/nexaui_main.c). The host adapts the selected
+  [upstream scaffold](https://github.com/Lulus792/NexaUI/blob/e71ee304f1e6c23fa562d9e4b11f7e8e12152079/examples/21_aetheri_model/main.c);
+  its MIT notice remains in `src/settings/NEXAUI-NOTICE.txt`.
+- [Scene/model/keyboard/contrast tests](../../tests/test_settings_view.c),
+  [native compositor driver](../../tools/test_settings_view.py) and
+  [independent libatspi peer](../../tests/settings_view_atspi.c).
+  [Executed record and limits](journal/2026-11-06-settings-view.md).
+- Accepted external local design studio:
+  `F:/Aetheri-UI-Konzepte/02-designwerkstatt/index.html`, `system.js`,
+  `system.css` and `style.css`. Mock actions are not backend contracts; this
+  first view implements only the current model with an opaque fallback.
+
 ## Fullscreen dock and scene-aware pointer routing — 5 November 2026
 
 - Original [desktop scene policy](../../src/compositor/desktop.c),

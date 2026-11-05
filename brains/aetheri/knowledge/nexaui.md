@@ -24,6 +24,15 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November owned-view update: an optional Aetheri C17 Settings presentation now
+uses the same reviewed 0.1.18 SDK and original model, with separate pages,
+opaque themes, narrow keyboard reading and native independent AT-SPI checks.
+It has not replaced the original bound upstream development-owner consumer or
+SDL default. Its next gate is a distinct owned-image binding and actual DRM
+owner/lifetime exercise. Full glass, human/normal-session/physical/performance
+acceptance and real system services remain open. See the
+[record](../journal/2026-11-06-settings-view.md).
+
 5 November development-owner update: the pinned external Settings consumer is now
 an explicit `--settings-ui nexaui` development profile with root/original-user/
 fresh-spawn binding checks. Native dock/search and actual QMP/PS2/DRM tests prove

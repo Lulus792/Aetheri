@@ -1,5 +1,64 @@
 # NexaUI Settings integration probe
 
+## Aetheri-owned Settings presentation
+
+6 November 2026. `src/settings/nexaui_view.c` now provides an opt-in Aetheri
+presentation of the unchanged Settings model. Its three sections expose observed
+displays, local appearance/text size and local language. The sidebar, muted
+surfaces, content hierarchy and grouped controls follow the accepted external
+studio at `F:/Aetheri-UI-Konzepte/02-designwerkstatt/index.html`. Only implemented
+sections appear; illustrative device/update controls are not copied as operations.
+This is the opaque material fallback, not the complete glass design or a default
+toolkit replacement. Light and high contrast are engineering variants; final
+visual and human assistive acceptance remain open.
+
+The original app model owns all choices and display IDs. A replaced view retains
+that model; closing the process does not persist its preferences. Failed display
+refresh preserves observations and disables selection. The view owns only layouts,
+font/context resources, scroll/focus presentation and consumed-once refresh/window
+requests. It never writes system settings or establishes permission. Labels are
+cached and overlong runs wrap at grapheme boundaries while semantic names retain
+their original bytes. At narrow widths navigation uses labeled semantic icon
+buttons; content scrolls and follows keyboard focus. Page Up/Down and Home/End
+also expose read-only help without changing a choice. No animation or backdrop
+effect is required for an operation.
+
+`nexaui_main.c` adapts the pinned upstream example's native event/observation
+scaffold, with its MIT notice retained in `src/settings/NEXAUI-NOTICE.txt`.
+It uses the same Wayland app ID, event-driven wait and signal pipe. Close and
+observed maximize/restore are separate from supported requests; unavailable
+minimize stays disabled. Diagnostics distinguish a changed model from `SETTLED`
+frames so a new choice is not mistaken for already painted pixels. These are
+private developer diagnostics, not installed authority receipts.
+
+Build against the existing reviewed private prefix; no SDK upgrade is needed:
+
+```sh
+cmake -S . -B /path/to/aetheri-build \
+  -DAETHERI_NEXAUI_PREFIX=/home/aetheri/deps/nexaui-settings-release-02/prefix
+cmake --build /path/to/aetheri-build --target aetheri-settings-nexaui test_settings_view
+ctest --test-dir /path/to/aetheri-build -R '^settings.view' --output-on-failure
+```
+
+This extends an already configured Settings/compositor development build with its
+reviewed font. CMake requires the exact installed 0.1.18 package. Use the separate
+Debug prefix for sanitizer builds. The new executable is not yet selected by the
+development owner: `--settings-ui nexaui` still binds the earlier upstream consumer.
+Keep that existing profile and SDL intact until a distinct owned-view binding and
+DRM lifetime test have been implemented. Normal session accessibility, full input/
+window chrome, real settings services and physical/performance acceptance remain work.
+
+The checks are `settings.view` and `settings.view_hidpi` (layout/model/keyboard/contrast
+at separate raster densities),
+`settings.view_native` (native input/presentation/window requests) and optional
+`settings.view_atspi` (independent C17/libatspi peer, private registry and visible
+disabled-bridge negative). The latter reuses verified private headers/runtime,
+compiles a separate test peer and changes no installed accessibility service.
+See the [dated project record](../brains/aetheri/journal/2026-11-06-settings-view.md)
+for executed results and limitations.
+
+## Earlier pinned consumer
+
 5 November 2026. An opt-in external consumer now runs the original Settings model
 through NexaUI on Aetheri's private compositor. The normal Settings executable
 and development-session owner still use SDL. This probe is a step toward a
