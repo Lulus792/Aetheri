@@ -1,8 +1,63 @@
 # State
 
-5 November 2026 — graphical terminal with actual native input, PTY and shell jobs.
+5 November 2026 — separate Terminal/Settings launch and ordered development ownership.
 
 ## Current update
+
+The [development desktop](../../spec/desktop-ui.md) now starts and reuses Terminal
+or Settings from dock/search, activates their observed windows, and permits either
+to close/reopen while the other stays alive. App choices have separate tags and
+pending/process/error state; they never alias compositor window IDs. The private
+protocol2 has only finite S/T selectors and carries no paths, argv or FDs. New
+format1 controller records bind five binaries and the existing Mono font/license;
+closed legacy records remain historical and readable.
+
+The actual development owner keeps one slot/128 fresh attempts per app. It waits
+for each original process AND output pipe before retiring Terminal -> Settings ->
+desktop -> compositor, also after failure. A later pipe-setup error retains its
+spawned child rather than replying “no effect.” The native integration holds a
+real hangup-ignoring shell job and then a real stdout writer after Terminal exits;
+later roles stay alive until those obligations end. A build-local pipe-wait
+mutation is rejected. The test's process inspection/force cleanup is private
+fixture infrastructure, not a normal app authorization or holder-drain protocol.
+
+All four registered desktop groups pass Release (16.55 s) and ASan/UBSan
+(20.96 s). The added desktop.supervisor group runs all eleven existing controller/
+file/synthetic-process checks without skips, including Settings-only failures.
+Review found its old desktop client still sending protocol1; the fixture now
+uses protocol2 and tests strict version types plus unchanged historical records.
+The production binaries are hash-identical to the reviewed DRM runs. The
+existing UI test includes 27 images/profile; the actual-owner fixture adds six,
+all across three virtual outputs. Both actual DRM/logind sessions also start
+both apps, run an own-shell file effect, reuse Terminal and close all four direct
+native children with status0 before original-unit retirement. Two rounds per
+profile retain sixteen QMP
+PNGs and stdout stream records are under local/desktop-terminal-2026-11-05.
+Final four-group logs are retained there under final-regressions; earlier
+three-group results (16.94/21.65 s) remain at their original checkpoint.
+The original process-bound, current-boot PAM stdout stream was used: unit-only
+or punctuated-UUID journal filters initially missed a live app and did not cause
+a second session start. The optional preexisting PAM warning remains unchanged.
+All 262 host/snapshot/guest source hashes agree, and all 28 frozen SQL/XML plus
+nineteen protected old catalogue/static/profile hashes are unchanged without
+sidecars. All 850 local Markdown file targets resolve; URLs/anchors are excluded.
+The eight console image pairs match exactly. The guest remains booted/enforcing
+on tty1 without a known native test/app, running Aetheri unit or seat0 session.
+
+Initial owner-fixture failures came from sending the close chord before actual
+terminal focus and a missing underscore key in its input driver. The final test
+waits for native focus and verifies Ctrl+Shift+Q does not alias desktop Ctrl+Q.
+A later actual compositor startup failure exposed unused parent socket copies
+keeping the owner alive before desktop creation. The five-second failure is
+preserved; stopping now closes those copies and fences late first-app creation.
+The final owner fixture covers that early failure as well as the full UI flow.
+There is no new library, installed service, policy or normal lifecycle capability.
+Normal admitted apps/sessions, clipboard/IME, rich shell editing, editor/panes/
+plugins/persistence, physical/accessibility acceptance, image/installer and the
+full experiment desktop remain required. The old running/recover-handoff intent
+remains separate and quarantined.
+
+## Graphical terminal checkpoint — 5 November 2026
 
 An opt-in original C17 [graphical terminal](../../spec/terminal.md) now connects
 the own interactive shell to a held PTY and SDL3 Wayland/GLES view. Toolkit-free

@@ -26,24 +26,34 @@ static bool matches(const char *label, const char *query) {
     }
     return false;
 }
-size_t ae_desktop_model_results(const struct ae_desktop_model *m, struct ae_desktop_result out[AE_DESKTOP_WINDOWS + 1]) {
+static bool valid_app(enum ae_desktop_app app) { return app>AE_DESKTOP_APP_NONE && app<AE_DESKTOP_APP_END; }
+const char *ae_desktop_app_label(enum ae_desktop_app app, bool german) {
+    return app==AE_DESKTOP_SETTINGS ? german ? "Einstellungen" : "Settings" : app==AE_DESKTOP_TERMINAL ? "Terminal" : "";
+}
+const char *ae_desktop_app_id(enum ae_desktop_app app) {
+    return app==AE_DESKTOP_SETTINGS ? "org.aetheri.Settings" : app==AE_DESKTOP_TERMINAL ? "org.aetheri.Terminal" : "";
+}
+bool ae_desktop_model_pending(const struct ae_desktop_model *m) { return m->pending[AE_DESKTOP_SETTINGS] || m->pending[AE_DESKTOP_TERMINAL]; }
+size_t ae_desktop_model_results(const struct ae_desktop_model *m, struct ae_desktop_result out[AE_DESKTOP_RESULTS]) {
     size_t n = 0;
-    if (matches("Settings", m->query) || matches("Einstellungen", m->query))
-        out[n++] = (struct ae_desktop_result){0, m->german ? "Einstellungen" : "Settings"};
+    for (enum ae_desktop_app app=AE_DESKTOP_SETTINGS;app<AE_DESKTOP_APP_END;++app)
+        if (matches(ae_desktop_app_label(app,false),m->query) || matches(ae_desktop_app_label(app,true),m->query))
+            out[n++] = (struct ae_desktop_result){.app=app,.label=ae_desktop_app_label(app,m->german)};
     for (size_t i = 0; i < m->count; ++i) {
         const struct ae_desktop_window *w = &m->windows[i];
         if (matches(w->title, m->query) || matches(w->app_id, m->query))
-            out[n++] = (struct ae_desktop_result){w->id, *w->title ? w->title : m->german ? "Unbenanntes Fenster" : "Untitled window"};
+            out[n++] = (struct ae_desktop_result){.window=w->id,.label=*w->title ? w->title : m->german ? "Unbenanntes Fenster" : "Untitled window"};
     }
     return n;
 }
 static void selection(struct ae_desktop_model *m) {
-    struct ae_desktop_result out[AE_DESKTOP_WINDOWS + 1];
+    struct ae_desktop_result out[AE_DESKTOP_RESULTS];
     size_t n = ae_desktop_model_results(m, out);
-    for (size_t i = 0; i < n; ++i) if (out[i].window == m->selected) return;
+    for (size_t i = 0; i < n; ++i) if (out[i].window == m->selected && out[i].app==m->selected_app) return;
     m->selected = n ? out[0].window : 0;
+    m->selected_app=n ? out[0].app : AE_DESKTOP_APP_NONE;
 }
-void ae_desktop_model_init(struct ae_desktop_model *m) { memset(m, 0, sizeof(*m)); }
+void ae_desktop_model_init(struct ae_desktop_model *m) { memset(m, 0, sizeof(*m));m->selected_app=AE_DESKTOP_SETTINGS; }
 bool ae_desktop_model_window(struct ae_desktop_model *m, uint32_t id, const char *title, const char *app_id, bool active) {
     if (!id || !utf8(title, 256) || !utf8(app_id, 256)) return false;
     size_t i = 0; while (i < m->count && m->windows[i].id != id) ++i;
@@ -73,24 +83,26 @@ void ae_desktop_model_backspace(struct ae_desktop_model *m) {
     m->query[n] = 0; selection(m);
 }
 void ae_desktop_model_select(struct ae_desktop_model *m, int delta) {
-    struct ae_desktop_result out[AE_DESKTOP_WINDOWS + 1]; size_t n = ae_desktop_model_results(m, out), i = 0;
+    struct ae_desktop_result out[AE_DESKTOP_RESULTS]; size_t n = ae_desktop_model_results(m, out), i = 0;
     if (!n) return;
-    while (i < n && out[i].window != m->selected) ++i;
+    while (i < n && (out[i].window != m->selected || out[i].app!=m->selected_app)) ++i;
     if (i == n) i = 0;
     else if (delta > 0) i = (i+1) % n;
     else i = i ? i-1 : n-1;
     m->selected = out[i].window;
+    m->selected_app=out[i].app;
 }
 void ae_desktop_model_search(struct ae_desktop_model *m, unsigned output, bool open) {
     m->search = open; m->output = output;
-    if (open) { m->query[0] = 0; m->selected = 0; }
+    if (open) { m->query[0] = 0; m->selected = 0;m->selected_app=AE_DESKTOP_SETTINGS; }
 }
-bool ae_desktop_model_request(struct ae_desktop_model *m) {
-    if (m->pending) return false;
-    m->pending = true; m->launch_error = false; return true;
+bool ae_desktop_model_request(struct ae_desktop_model *m,enum ae_desktop_app app) {
+    if (!valid_app(app) || m->pending[app]) return false;
+    m->pending[app] = true; m->launch_error[app] = false; return true;
 }
-bool ae_desktop_model_reply(struct ae_desktop_model *m, char reply) {
-    if (reply == 'X') { m->process = false; return true; }
-    if ((reply != 'A' && reply != 'E') || !m->pending) return false;
-    m->pending = false; m->process = reply == 'A'; m->launch_error = reply == 'E'; return true;
+bool ae_desktop_model_reply(struct ae_desktop_model *m,enum ae_desktop_app app,char reply) {
+    if (!valid_app(app)) return false;
+    if (reply == 'X') { m->process[app] = false; return true; }
+    if ((reply != 'A' && reply != 'E') || !m->pending[app]) return false;
+    m->pending[app] = false; m->process[app] = reply == 'A'; m->launch_error[app] = reply == 'E'; return true;
 }

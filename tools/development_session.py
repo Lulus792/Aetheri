@@ -24,6 +24,9 @@ CONTROL = Path("/var/lib/aetheri-development-session")
 USER_ROOT = Path("/home/aetheri/development-sessions")
 SOURCE = Path("/home/aetheri/source/tools/development_session.py")
 UI = Path("/home/aetheri/deps/ui-gles-release-02/prefix")
+TERMINAL_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf")
+APP_SELECTORS = {b"S": "settings", b"T": "terminal"}
+APP_ROLES = ("terminal", "settings")  # Stop the PTY owner before retiring its display.
 PROFILES = ("release", "debug")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
@@ -39,6 +42,39 @@ def run(*args, timeout=25):
 def digest(path):
     with Path(path).open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def terminal_assets():
+    font = json.loads((SOURCE.parents[1] / "spec/ui-inputs.json").read_text())["terminal_font"]
+    license_path = Path("/usr/share/licenses/liberation-mono-fonts/LICENSE")
+    if font["path"] != str(TERMINAL_FONT) or font["license_path"] != str(license_path):
+        raise RuntimeError("unexpected fixed terminal asset paths")
+    values = {str(TERMINAL_FONT): digest(TERMINAL_FONT), str(license_path): digest(license_path)}
+    if values[str(TERMINAL_FONT)] != font["sha256"] or values[str(license_path)] != font["license_sha256"]:
+        raise RuntimeError("reviewed terminal assets changed")
+    return values
+
+
+def application_command(role, build, cache):
+    if role == "settings":
+        return [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                "--cache", str(cache), "--diagnostics"]
+    if role == "terminal":
+        return [str(build / "aetheri-terminal"), "--shell", str(build / "aetheri-shell"),
+                "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
+    raise ValueError("unknown fixed development application")
+
+
+def compositor_launch(build, shell_server):
+    args = [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"]
+    if shell_server is not None:
+        args += ["--shell-fd", str(shell_server.fileno())]
+    return args, (shell_server.fileno(),) if shell_server is not None else ()
+
+
+def emit_child_line(role, line):
+    if not line.startswith((b"VIEW ", b"CONTROL ", b"LAYOUT ", b"DRAWN ", b"INPUT ", b"FOCUS ")):
+        print(role + ": " + line.decode(errors="replace"), flush=True)
 
 
 def owned(path, uid, mode, directory=False):
@@ -79,6 +115,9 @@ def validate(record, carrier):
         raise RuntimeError("invalid original development invocation")
     if not isinstance(record.get("desktop", False), bool):
         raise RuntimeError("invalid development desktop profile")
+    protocol = record.get("launch_protocol", 1)
+    if type(protocol) is not int or protocol not in (1, 2) or (not record.get("desktop", False) and protocol != 1):
+        raise RuntimeError("invalid development launch protocol")
     return record
 
 
@@ -157,12 +196,14 @@ def start(record, carrier, profile, desktop=False):
             finally: os.close(fd)
     token = uuid.uuid4().hex
     build = build_for(profile)
-    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop") if desktop else ("aetheri-compositor", "aetheri-settings")
+    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell") if desktop else ("aetheri-compositor", "aetheri-settings")
     binaries = {str(build / name): digest(build / name) for name in names}
+    assets = terminal_assets() if desktop else {}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
-                  invocation=None, pid=None, binaries=binaries, desktop=desktop, created_unix=time.time(), exit=None)
+                  invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
+                  launch_protocol=2 if desktop else 1, created_unix=time.time(), exit=None)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -315,7 +356,7 @@ def supervise(profile, token, desktop=False):
     for number in (signal.SIGTERM, signal.SIGINT, signal.SIGCHLD): signal.signal(number, signalled)
     selector.register(reader, selectors.EVENT_READ, "signal")
     launch_owner = launch_client = shell_server = shell_client = None
-    launches = 0; app_history = []
+    launches = {role: 0 for role in APP_ROLES}; app_history = []
     if desktop:
         shell_server, shell_client = socket.socketpair()
         launch_owner, launch_client = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
@@ -324,40 +365,55 @@ def supervise(profile, token, desktop=False):
     def spawn(role, args, pass_fds=(), child_env=None):
         if role in children: raise RuntimeError("previous development child is not fully drained")
         child = subprocess.Popen(args, env=child_env or env, pass_fds=pass_fds, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        os.set_blocking(child.stdout.fileno(), False)
         children[role] = child; buffers[role] = b""
-        selector.register(child.stdout, selectors.EVENT_READ, role)
-    compositor_args = [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"]
-    if desktop: compositor_args += ["--shell-fd", str(shell_server.fileno())]
-    spawn("compositor", compositor_args, (shell_server.fileno(),) if desktop else ())
-    if shell_server: shell_server.close()
+        print("SPAWN " + role + " " + str(child.pid), flush=True)
+        try:
+            os.set_blocking(child.stdout.fileno(), False)
+            selector.register(child.stdout, selectors.EVENT_READ, role)
+        except BaseException:
+            child.stdout.close()  # Keep/reap the original Popen even if pipe setup failed.
+            raise
     def reply(value):
         if launch_owner is None or launch_owner.send(value) != len(value):
             raise RuntimeError("uncertain development launch reply")
-    def recycle_settings():
-        child = children.get("settings")
+    def recycle_app(role):
+        child = children.get(role)
         if not child or child.poll() is None or not child.stdout.closed: return False
-        if child.returncode != 0: raise RuntimeError("Settings failed during desktop use")
-        app_history.append(dict(pid=child.pid, status=child.returncode))
-        del children["settings"]; del buffers["settings"]; ready.discard("settings"); terminated.discard("settings")
-        if not stopping and launch_owner is not None: reply(b"X1")
+        if child.returncode != 0: raise RuntimeError(role + " failed during desktop use")
+        app_history.append(dict(role=role, pid=child.pid, status=child.returncode))
+        del children[role]; del buffers[role]; ready.discard(role); terminated.discard(role)
+        if not stopping and launch_owner is not None: reply(b"X2" + next(s for s,r in APP_SELECTORS.items() if r == role))
+        return True
+    def retirement_step():
+        for role in (*APP_ROLES, "desktop", "compositor"):
+            child = children.get(role)
+            if child is None: continue
+            if child.poll() is None:
+                if role not in terminated: child.terminate(); terminated.add(role)
+                return False
+            if not child.stdout.closed: return False
         return True
     deadline = time.monotonic() + 12
     try:
+        compositor_args, compositor_fds = compositor_launch(build, shell_server)
+        spawn("compositor", compositor_args, compositor_fds)
+        if shell_server: shell_server.close()
         while True:
             if not stopping and not notified and time.monotonic() >= deadline: failed = True; stopping = True
             if stopping:
-                for role in ("settings", "desktop", "compositor"):
-                    child = children.get(role)
-                    if not child: continue
-                    if child.poll() is None:
-                        if role not in terminated: child.terminate(); terminated.add(role)
-                        break  # Stop/reap Settings before stopping the compositor.
+                # These parent copies may still be unused if the compositor
+                # failed before desktop creation. They must not keep the owner
+                # channel alive while waiting for its EOF. Issued child copies
+                # remain independently owned by the original desktop process.
+                for unused in (launch_client, shell_client):
+                    if unused is not None: unused.close()
+                launch_client = shell_client = None
+                drained = retirement_step()
                 if all(child.poll() is not None for child in children.values()):
                     # A requested stop may produce 0 or SIGTERM, but never hide
                     # a sanitizer/cleanup failure. Drain each original pipe too.
                     if any(child.returncode not in (0, -signal.SIGTERM) for child in children.values()): failed = True
-                    if all(key.data == "signal" for key in selector.get_map().values()): break
+                    if drained and all(key.data == "signal" for key in selector.get_map().values()): break
             timeout = max(0, deadline - time.monotonic()) if not stopping and not notified else None
             for key, _ in selector.select(timeout):
                 role = key.data
@@ -374,23 +430,25 @@ def supervise(profile, token, desktop=False):
                             for fd in fds: os.close(fd)
                     if not value and not ancillary:
                         selector.unregister(launch_owner); launch_owner.close(); launch_owner = None
+                        if not stopping: failed = True; stopping = True
                         continue
-                    if value not in (b"L1", b"Q1") or ancillary or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
+                    if value not in (b"L2S", b"L2T", b"Q20") or ancillary or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
                         raise RuntimeError("invalid development launch packet")
-                    if value == b"Q1": stopping = True; continue
+                    if value == b"Q20": stopping = True; continue
                     if stopping: continue  # No new effects after the shutdown fence.
-                    recycle_settings()
-                    child = children.get("settings")
-                    if child and child.poll() is None: reply(b"A1"); continue
-                    if child or launches >= 128: reply(b"E1"); continue
-                    launches += 1
+                    role = APP_SELECTORS[value[2:]]; suffix = b"2" + value[2:]
+                    recycle_app(role)
+                    child = children.get(role)
+                    if child and child.poll() is None: reply(b"A" + suffix); continue
+                    if child or launches[role] >= 128: reply(b"E" + suffix); continue
+                    launches[role] += 1
                     try:
-                        spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
-                                           "--cache", str(base / "cache"), "--diagnostics"])
+                        spawn(role, application_command(role, build, base / "cache"))
                     except OSError:
                         # Popen reports an exec failure after reaping its failed child.
-                        reply(b"E1"); continue
-                    reply(b"A1"); continue
+                        if role in children: raise  # Later pipe setup failed after a real spawn.
+                        reply(b"E" + suffix); continue
+                    reply(b"A" + suffix); continue
                 data = os.read(key.fileobj.fileno(), 8192)
                 if not data:
                     if buffers[role]:
@@ -401,40 +459,39 @@ def supervise(profile, token, desktop=False):
                 if len(buffers[role]) > 65536: raise RuntimeError("development child output exceeded bound")
                 while b"\n" in buffers[role]:
                     line, buffers[role] = buffers[role].split(b"\n", 1)
-                    if not line.startswith((b"VIEW ", b"CONTROL ", b"LAYOUT ", b"DRAWN ")):
-                        print(role + ": " + line.decode(errors="replace"), flush=True)
+                    emit_child_line(role, line)
                     if line.startswith(b"READY ") and role not in ready:
                         ready.add(role)
-                        if role == "compositor":
+                        if role == "compositor" and not stopping:
                             if desktop:
                                 spawn("desktop", [str(build / "aetheri-desktop"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                                                   "--cache", str(base / "cache"), "--launcher-fd", str(launch_client.fileno()), "--diagnostics"],
                                       (shell_client.fileno(), launch_client.fileno()), {**env, "WAYLAND_SOCKET": str(shell_client.fileno())})
                                 shell_client.close(); launch_client.close()
                             else:
-                                spawn("settings", [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
-                                                   "--cache", str(base / "cache"), "--diagnostics"])
+                                spawn("settings", application_command("settings", build, base / "cache"))
                     first = "desktop" if desktop else "settings"
                     if role == first and line.startswith(b"LAYOUT ") and {"compositor", first} <= ready and not notified:
                         notify("READY=1\nSTATUS=" + first.capitalize() + " submitted its first development frame")
                         notified = True
-            if desktop and not stopping: recycle_settings()
+            if desktop and not stopping:
+                for role in APP_ROLES: recycle_app(role)
             for role, child in list(children.items()):
                 code = child.poll()
                 if code is not None and role not in terminated:
-                    if desktop and role == "settings" and code == 0 and notified: continue
+                    if desktop and role in APP_ROLES and code == 0 and notified: continue
                     if role != ("desktop" if desktop else "settings") or code != 0 or not notified:
                         if not (desktop and role == "compositor" and code == 0 and notified): failed = True
                     stopping = True
-        print("SESSION_END " + json.dumps({"children": {role: child.returncode for role, child in children.items()}, "settings_history": app_history}), flush=True)
+        print("SESSION_END " + json.dumps({"children": {role: child.returncode for role, child in children.items()}, "app_history": app_history}), flush=True)
         return 1 if failed else 0
     except BaseException as error:
         print("SUPERVISOR_ERROR " + str(error), flush=True)
-        for child in children.values():
-            if child.poll() is None: child.terminate()
+        if launch_owner is not None:
+            selector.unregister(launch_owner); launch_owner.close(); launch_owner = None
         # Retain original child handles on a stuck shutdown, rather than leaving
         # them behind or escalating to an unreviewed force-kill policy.
-        while any(child.poll() is None for child in children.values()):
+        while not retirement_step():
             for key, _ in selector.select():
                 if key.data == "signal":
                     try: reader.recv(4096)

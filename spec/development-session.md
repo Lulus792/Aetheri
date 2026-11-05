@@ -27,7 +27,7 @@ headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
 shutdown. The native viewer is the existing QEMU SDL2 frontend; Aetheri's own
-Settings UI still uses the reviewed SDL3 profile. No new viewer package is needed.
+app/desktop UI still uses the reviewed SDL3 profile. No new viewer package is needed.
 
 The viewer explicitly disables OpenGL and window-close shutdown. QMP remains
 host-local AF_UNIX, networking remains restricted in the example, and no VNC,
@@ -39,8 +39,9 @@ both available native-UI inspection paths timed out. Guest pixels/input are
 tested through QMP; do not call that a completed Windows interaction test.
 
 Choose one start command. `--desktop` opens the [dock/search client](desktop-ui.md)
-with Settings launched on demand; closing Settings leaves this desktop running.
-Ctrl+Q while search has focus asks the owner to stop Settings, desktop and compositor
+with Settings and Terminal launched on demand; closing either leaves the desktop
+and other app running. Ctrl+Q while search has focus asks the owner to stop
+Terminal, Settings, desktop and compositor
 in order. In the original Settings-only mode, Settings can close with Ctrl+Q.
 The development supervisor then ends the compositor
 and retains the original service result. Run `stop` to retire the inspected unit
@@ -66,16 +67,20 @@ and no forced SIGKILL. It changes no login-manager configuration or policy.
 
 The ordinary-user Python supervisor is a development tool. It retains actual
 Popen child handles, starting compositor then Settings or the selected desktop.
-The desktop mode has one on-demand Settings slot, a private inherited Wayland
-connection and a bounded fixed-command channel. It notifies PID1 only
+The desktop mode has separate on-demand Settings and Terminal slots, a private
+inherited Wayland connection and a bounded version2 fixed-command channel.
+New format1 records add `launch_protocol: 2`, digests for the five fixed binaries
+and the existing Mono font/license. Historical records remain readable without
+upgrading/rebinding them. It notifies PID1 only
 after the selected first UI has submitted its first frame, not merely printed
 READY. This is a development startup signal, not the Aetheri app READY protocol
 or proof of admitted code, data, grants or visible host presentation.
 
 The supervisor sleeps on child pipes, its optional command channel and signal
 wakeups. Settings-only close stops the compositor. Desktop mode keeps the shell
-alive; an explicit or owner-requested stop ends Settings, desktop, then compositor. Each
-child is waited/reaped. Pending pipe output is drained, and requested termination
+alive; an explicit or owner-requested stop ends Terminal, Settings, desktop, then
+compositor. Each child is waited/reaped and its pipe drained before terminating
+the next role, including failure cleanup. Requested termination
 cannot hide a nonzero cleanup/sanitizer result. Stuck children retain their handles;
 the tool does not silently escalate to force-kill. The existing sd-pam child is
 PID1/PAM bookkeeping, not another Aetheri service. The root controller itself is
@@ -126,6 +131,28 @@ original main-process result until it is captured. The original held process pin
 must become terminal; service population and logind seat state are inspected
 before the unit is retired and tty1 restored. These fixed-program checks cannot
 settle production holders, leases or the older quarantined execution attempt.
+
+## Two-app checkpoint — 5 November
+
+Both actual Release and ASan/UBSan DRM sessions now launch Settings/Terminal,
+reuse a running Terminal, execute the own shell and close all four direct native
+children successfully before original-unit retirement. The private-compositor
+`desktop.owner` test additionally holds a real shell job and then an actual stdout
+writer after Terminal exits; later roles stay alive until the corresponding
+obligation ends. This is development process/pipe ownership, not app admission,
+all-descendant/lease settlement or production restart recovery.
+
+Native stdout journal entries are associated with the PAM login session scope,
+not necessarily the root transient unit's `_SYSTEMD_UNIT`/invocation filter.
+The original live controller-bound process was checked, its current-boot stdout
+entries read and its exact `_STREAM_ID` retained for these results. Journal
+`_BOOT_ID` uses 32 compact hexadecimal digits, unlike the punctuated UUID in the
+record. Do not treat historical PID filtering or log text as current process
+authorization. Initial unit-only and unnormalized-boot filters missed a live
+terminal; the same original session continued, without a second start.
+The previously recorded optional carrier PAM module warning remains unchanged;
+there is no new login-manager/PAM policy configuration or finished login profile.
+Evidence is in `local/desktop-terminal-2026-11-05` and [desktop](desktop-ui.md).
 
 ## Settings-only evidence checkpoint — 4 November
 

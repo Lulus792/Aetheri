@@ -138,7 +138,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Its test-only event-failure executable is not a normal app dependency. The
   carrier Mono font has explicit font/OFL hashes and limited installed-RPM
   evidence, not a new independently verified RPM/distribution package. Normal
-  development owner/dock integration still launches Settings only. Keep app/model
+  development owner/dock integration now has independent Settings/Terminal slots.
+  Normal admitted app/session launch remains separate. Keep app/model
   state toolkit-independent for later NexaUI migration and preserve old fixtures.
 - Private Catalogue1 1.1 / Development1 1.4 support a bounded authenticated install
   observation and fixed-fixture refresh. Public capabilities remain empty. A user
@@ -653,7 +654,7 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Keep view state, compositor focus policy and fixed-app supervisor launches
   separate. Neither private global exists without --shell-fd. The current native
   protocol consumer stays diagnostic; a separate SDL development consumer and
-  fixed Settings owner channel now exist in spec/desktop-ui.md. No production
+  fixed two-app owner channel now exist in spec/desktop-ui.md. No production
   session/lock/app authority is implemented. Unexpected shell loss
   fails this development session; retire acknowledges only orderly departure,
   never lifecycle/lease settlement. Preserve old intents and normal empty caps.
@@ -663,8 +664,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Initial configure precedes EGL allocation; retain strict logical geometry and
   correct premultiplied clear colors. The selected carrier needs one bounded
   follow-up repaint after resize. Idle is event-driven. Both channel directions
-  reject ancillary FDs/truncation; no unknown request is replayed. User Q1 fences
-  new launches and waits for Settings -> desktop -> compositor stop order. A1 is
+  reject ancillary FDs/truncation; no unknown request is replayed. The private
+  three-byte v2 channel uses L2S/L2T, A2S/A2T, E2S/E2T, X2S/X2T and Q20. App/window selection is
+  tagged; keep per-app pending state and fixed owner-selected executable paths.
+  User Q20 fences new launches and waits for Terminal -> Settings -> desktop ->
+  compositor, including actual process AND output-pipe end before the next role.
+  Preserve this order on exception too; post-spawn pipe errors are not no-effect
+  replies. Close unused parent client copies when stopping before desktop startup;
+  a late compositor READY cannot create the first UI after the stop fence. Closed
+  format1 records without launch_protocol stay historical v1;
+  new desktop records bind protocol2, five binaries and Mono font/license hashes.
+  desktop.owner runs the real loop with test-only host adapters and independent
+  pidfds; its /proc writer retention and force cleanup are never app admission.
+  Journal stdout can use a PAM session scope: bind current boot/original process
+  and captured stream for evidence, never adopt historical PID/log identity. A2 is
   only an original child observation, never app READY/admission or lease release.
   App-ID grouping grants no privilege. SDL/SDK/Mesa instrumentation limits and
   unresolved native a11y/text/physical/session gates remain explicit.

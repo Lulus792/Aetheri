@@ -1,7 +1,7 @@
 # Native development desktop
 
 5 November 2026. Aetheri now has an original SDL3 desktop client with a dock,
-keyboard search, a current window list and fixed Settings launch. It runs on the
+keyboard search, a current window list and fixed Settings/Terminal launch. It runs on the
 private headless compositor and the carrier's actual DRM/logind development
 session. Its layout is a provisional design for later user review.
 
@@ -9,6 +9,7 @@ session. Its layout is a provisional design for later user review.
 
 Build with `AETHERI_DESKTOP=ON`, `AETHERI_COMPOSITOR=ON` and the existing reviewed
 SDL/text profile. `AETHERI_SETTINGS=ON` adds the actual Settings consumer/tests;
+the complete carrier desktop also builds `AETHERI_TERMINAL=ON` and `AETHERI_SHELL=ON`.
 the native carrier session also requires `AETHERI_DRM_SESSION=ON`. Keep all normal
 graphics options off unless deliberately building this development profile.
 See [Settings inputs/build](settings.md) and the [session guide](development-session.md).
@@ -23,7 +24,7 @@ python tools/development_session.py stop
 
 Use `--profile debug` for the reviewed ASan/UBSan build. A start without
 `--desktop` retains the earlier Settings-only workflow. A desktop session starts
-without a Settings process; launch it from the dock or search.
+without app processes; launch Settings and Terminal independently from dock or search.
 
 | Action | Behavior |
 | --- | --- |
@@ -32,7 +33,7 @@ without a Settings process; launch it from the dock or search.
 | Search button | Open search there, including moving it from another output |
 | Type / Backspace | Append valid UTF-8 or remove the last scalar |
 | Tab / Shift+Tab / Up / Down | Select a matching app/window result |
-| Enter / result click | Request fixed Settings launch or activate that current window |
+| Enter / result click | Request the selected fixed app or activate that current window |
 | Escape / click outside the search card | Close search and restore app focus |
 | F6 / F7 while search has focus | Session-local DE/EN or high-contrast view choice |
 | Ctrl+Q while search has focus | Ask the owner to close this development desktop in order |
@@ -42,6 +43,10 @@ creates another original child after the previous process and output pipe have
 fully ended. A launch request while Settings still runs retains that child and
 raises its observed window where available. The app ID used for visual grouping
 is descriptive; the launch owner independently selects its fixed executable.
+The [terminal](terminal.md) behaves the same way, with Ctrl+Shift+Q for its own
+close and its own PTY/shell owner. Both apps can run together. Ctrl+Shift+Q does
+not alias the desktop's Ctrl+Q action while search has focus. The narrow dock
+uses three controls; German Settings is shortened to “System” there.
 
 Normal-window configure bounds now recommend the selected output's usable area,
 including the dock and the provisional 40px placement margins on sufficiently
@@ -66,11 +71,14 @@ than a window's original placement output.
 | `src/desktop/model.h` and `model.c` | Bounded query, stable window/result selection and pending process observations; no SDL/NexaUI types or toolkit persistence |
 | `src/desktop/main.c` | SDL windows/renderers, font/text presentation, native role adapter, controls, input and channel event translation |
 | `src/compositor/desktop.c` | Original-connection admission to private roles/control, placement, focus, work area and current window objects |
-| `tools/development_session.py` | Explicit carrier controller and ordinary-user owner of original compositor/desktop/Settings Popen handles |
+| `tools/development_session.py` | Explicit carrier controller and ordinary-user owner of original compositor/desktop/Settings/Terminal Popen handles |
 
 The model holds at most 64 observed windows, 256-byte title/app-ID values and a
 255-byte UTF-8 query. Results borrow model/literal labels until the next model
-mutation. Windows are updated by current compositor IDs; disappearing results
+mutation. Its 66-result capacity includes two fixed app choices. Selection stores
+separate app and window tags; app enum values never overload compositor window IDs.
+Each app has separate pending/process/error observations. Windows are updated by
+current compositor IDs; disappearing results
 cannot redirect an old activation to a replacement window.
 
 Search matches ASCII case-insensitively and otherwise compares UTF-8 bytes.
@@ -114,32 +122,42 @@ not an app DataEpoch, StorageRef, hard quota or permanent toolkit-owned service.
 ## Fixed owner channel
 
 The supervisor independently inherits one private Wayland stream connection to
-the desktop and creates a separate AF_UNIX SOCK_SEQPACKET command channel. Settings
-inherits neither endpoint. All extra parent/child endpoint copies are closed.
-The two-byte version1 packets carry no paths, argv, account IDs or incoming FDs.
+the desktop and creates a separate AF_UNIX SOCK_SEQPACKET command channel. Apps
+inherit neither endpoint. All extra parent/child endpoint copies are closed.
+The three-byte version2 packets carry no paths, argv, account IDs or incoming FDs.
+`S` and `T` select only the fixed Settings and Terminal programs. Unknown selectors
+and old version1 packets are rejected by the current desktop/owner pair.
 
 | Direction | Packet | Meaning |
 | --- | --- | --- |
-| Desktop → owner | `L1` | Request the fixed reviewed Settings program |
-| Owner → desktop | `A1` | Original Settings child exists; not app/window READY |
-| Owner → desktop | `E1` | No new launch effect: definite exec failure, busy old slot or spawn-attempt limit |
-| Owner → desktop | `X1` | Previous tracked Settings process is reaped and its output pipe drained |
-| Desktop → owner | `Q1` | Fence new launches and begin ordered development shutdown |
+| Desktop → owner | `L2S` / `L2T` | Request the selected fixed reviewed program |
+| Owner → desktop | `A2S` / `A2T` | Original selected child exists; not app/window READY |
+| Owner → desktop | `E2S` / `E2T` | No new launch effect: definite exec failure, busy old slot or per-app attempt limit |
+| Owner → desktop | `X2S` / `X2T` | Previous selected process is reaped and its output pipe drained |
+| Desktop → owner | `Q20` | Fence all new launches and begin ordered development shutdown |
 
-Only one launch response may be pending. Repeated activation while pending does
+Only one launch response per app may be pending. Repeated activation while pending does
 not submit again. Reply loss, malformed/truncated packets, ancillary FDs or a lost
 channel fail the development session without reconnect/replay. The owner keeps one
-Settings slot and at most 128 fresh spawn attempts per session. A live child's
-Popen handle is reused; a terminal slot is not replaced before its pipe is closed.
+slot and at most 128 fresh attempts per app/session. A live child's original
+Popen handle is reused; an exited slot is not replaced before its pipe is closed.
+An error after a real spawn, such as failed pipe registration, retains that child
+and fails the session rather than returning a definite no-effect reply.
 Neither a process acknowledgement nor metadata proves code admission or readiness.
 
 On Ctrl+Q the desktop waits for its owner rather than retiring the display beneath
-a running app. The owner stops/reaps Settings, signals the desktop, then waits for
+a running app. The owner stops/reaps Terminal, then Settings, then signals the desktop and waits for
 its original retirement/departure and ends the compositor. The signal self-pipe
-wakes the UI even while it sleeps. Cleanup/sanitizer failures remain failures.
+wakes the UI even while it sleeps. Every role's output pipe must end before the
+next is terminated. The same order applies after an exception. Cleanup/sanitizer
+failures remain failures. A hung PTY job or retained stdout writer keeps later
+roles alive; there is no automatic force-kill or fabricated descendant/lease drain.
 The root controller retains PID1's original result before explicit unit retirement.
-The optional `desktop` field is additive to the development version1 record;
-historical records without it retain their Settings-only meaning.
+The root development record remains format1. New desktop records add
+`launch_protocol: 2`, five executable digests and two Mono font/license digests.
+Historical desktop records without that field retain protocol1 meaning; records
+without `desktop` retain Settings-only meaning. Closed records never control a
+newer session. No frozen SQL/XML management contract changes.
 
 This is trusted same-account development infrastructure, not normal session/app
 authorization, hostile-client isolation, app lifetime recovery or lease release.
@@ -148,6 +166,43 @@ SQL/D-Bus contracts remain unchanged. The Python supervisor is not selected as
 the production session manager.
 
 ## Acceptance and remaining work
+
+The two-app checkpoint passes `desktop.model`, `desktop.native` and
+`desktop.owner` initially in Release (16.94 s) and Debug ASan/UBSan (21.65 s). The first two
+retain the existing controlled launch-owner cases, now with tagged choices,
+version2, 320px layout and the distinct close chords. The new owner integration
+runs the actual supervisor loop and all real programs with a test-only headless
+compositor/notify/log adapter; it does not mock app launching or retirement.
+It covers both launch routes, reuse, task activation, terminal close/reopen,
+an actual hangup-ignoring shell job and a retained real stdout writer after the
+terminal process exits. A build-local owner omitting pipe waiting is rejected by
+the unchanged behavioral assertion. Test /proc-FD retention and force cleanup
+belong only to the independently pinned fixture, never production admission.
+It also makes the actual compositor fail before desktop creation. The preserved
+old owner hangs on its unused parent endpoints; stopping now closes those copies
+and does not start the first UI after the stop fence. The final fixture exercises
+the failure without a root controller, PAM session or installed service.
+
+The final two native suites provide 33 hashed images per profile across three
+virtual outputs. Actual DRM/logind sessions in Release and Debug also launch both
+apps, run an own-shell file operation, reuse the original Terminal and shut down
+all four direct children with status0. The bootstrap-corrected owner repeats both
+native workflows; sixteen QMP PNGs across four runs are virtual display
+evidence, not Windows host interaction or physical GPU acceptance. Sources/logs/
+binary hashes, original fixture failures and negative control are retained under
+`local/desktop-terminal-2026-11-05`.
+
+The subsequent source review found that the older synthetic supervisor fixture
+still sent protocol1. Actual execution rejected it; its client now sends protocol2
+and its record guards check strict version types while retaining legacy meaning.
+It is registered as `desktop.supervisor` in this explicit carrier profile. Final
+four-group runs pass Release (16.55 s) and Debug ASan/UBSan (20.96 s), including
+all eleven controller/file/synthetic-process subtests without skips. Native app
+binaries remain hash-identical to the reviewed DRM sessions. Final logs and
+native-result references are retained in `final-regressions` under the evidence
+folder above; this is no wider normal session or lifecycle acceptance.
+
+### Earlier consumer and work-area checkpoints
 
 `desktop.model` exercises bounded UTF-8, stable selection, invalid input, window
 capacity and duplicate/uncorrelated launch observations. `desktop.native` uses

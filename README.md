@@ -30,7 +30,7 @@ basic cwd/environment builtins. Explicit `-i` adds foreground terminal ownership
 Ctrl+C/Ctrl+Z and jobs/fg/bg. An opt-in [graphical terminal](spec/terminal.md) now
 connects it to a real PTY, bounded Unicode/color grid and SDL3 view, with native
 DE/US/AltGr input, scrollback and text sizing. The syntax is experimental; rich
-editing, panes/editor, persistent sessions and normal desktop launch remain work.
+editing, panes/editor, persistent sessions and admitted app/session launch remain work.
 
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.
@@ -45,8 +45,10 @@ repeatable start/status/stop command and an optional native QEMU console. This
 continues desktop development while normal session/app admission remains closed.
 
 The original [development desktop](spec/desktop-ui.md) now provides a compact
-dock, DE/EN keyboard search, current-window selection and Settings launch. Settings
-can close and reopen while the desktop stays running. Use the controller's explicit
+dock, DE/EN keyboard search, current-window selection and separate Settings/Terminal
+launch. Either app can close and reopen while the other and desktop stay running.
+The owner waits for original processes and output pipes before ordered shutdown.
+Use the controller's explicit
 `start --desktop` mode. Its [private compositor connection](spec/desktop.md) remains
 separate from ordinary app clients; the design and normal app admission are unfinished.
 

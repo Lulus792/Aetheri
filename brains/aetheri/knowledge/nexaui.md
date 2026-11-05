@@ -37,53 +37,46 @@ scaling and unsupported-capability behavior. Prefer event-driven idle behavior
 and measure CPU/wakeups, frame response and actual memory on the target session.
 The user's final visual design remains a separate decision.
 
-### Current source inspection
+### Current source inspection and SDK handoff — 5 November 2026
 
-On 5 November, GitHub main was read with `git ls-remote` and resolved to
-`120384bcb9d80f9b5a958bab337fbfecbb30ca7a`, superseding the earlier
-`05e28bb16c1e60ac339cd9428ff2d3afbafc21f6` source baseline. Relevant files were
-read directly from that committed object. The local primary checkout is separately
-at `5f7680f7d00a950f759d17d98520405901f9419d`; its local main ref is older still.
-Inspect committed objects at the confirmed remote revision, not an arbitrary
-checkout or an uncommitted worktree candidate. No NexaUI code/build/pin was changed
-or tested by this inspection.
+A fresh read-only `git ls-remote origin refs/heads/main` selected
+`88aeef97f0cd9b90f335e8520cae65570994ba09`. Relevant committed headers,
+examples, the requirement map and adoption assessment were read with `git show`.
+The local primary checkout remains at
+`5f7680f7d00a950f759d17d98520405901f9419d` with existing work; it was not
+checked out, built, reset or adopted.
 
-| Area | Source/document evidence at 120384b | Aetheri consequence |
-| --- | --- | --- |
-| Widgets and core | README/header expose layout, widgets, text editing and renderer-neutral commands | Already a substantial candidate; do not request reimplementation of these features |
-| Native Linux windows | Wayland/X11, window management and text-input protocols exist | Aetheri compositor compatibility still needs its own native test |
-| Dependency profile | `NEXAUI_ENABLE_X11=OFF` selects a Wayland-only profile; package/subdirectory probes exist | Reuse the implementation; close exact consumer/profile gates instead of requesting B01 again |
-| Linux native evidence | Adoption/scaling reports describe private Weston, software Sway and native input/assistive checks for their stated candidates | Useful prior evidence; not a fresh test of 120384b, Aetheri/wlroots, physical mixed-DPI or hardware acceptance |
-| Text and accessibility | Settings and native text/IME/AT-SPI paths have expanded, with remaining limits in their reports | Select exact workflows and test those; do not call the whole toolkit absent or finished |
-| Settings and async work | Example has app-owned pending/completion/error/retry with a deterministic local timer backend | Preserve it; genuine worker wakeup and Aetheri service mediation remain separate work |
-| Consumer packaging | Core installed consumers exist; Settings still uses a private build-tree Vulkan adapter | Close a documented installed renderer/host contract for actual application adoption |
-| Stability and release | README identifies early 0.1.1 development; linked-version/build-feature/builder-revision queries exist | Pin and independently verify accepted artifacts; metadata alone is not provenance or live capability |
+This advances the earlier `120384b` inspection. Public installed Vulkan and
+Wayland software views, installed Settings, application-descriptor polling,
+a correlated short-lived Settings worker, DE/EN example strings and borrowed
+Wayland host presentation/polling now exist. The source map includes all 103
+IDs, including D11. Do not repeat those implementations or request the earlier
+102-to-103 ID repair again. The preliminary statuses still require individual
+acceptance review against the exact candidate and each concrete workflow.
 
-The user subsequently requested the full requirement list for NexaUI to support
-all agreed Aetheri UI. The authorized `NEXT_AETHERI_UI.md` in the local NexaUI
-folder now contains 103 identified requirements and 13 app/system surface groups,
-with priority, source-evidence status and observable acceptance. It covers build/
-package, native Wayland windows, rendering/content surfaces, text/editing/IME,
-layouts/controls, input, accessibility, themes/localization/host seams, performance/
-lifetime and adoption evidence, including installation, first-run and recovery
-presentation. Existing API families are not labelled missing. Source records are
-mapped in the handoff; new product decisions extend it without renumbering IDs.
+The user-requested full handoff is
+[D:/NexaUI/NEXT_AETHERI_UI.md](D:/NexaUI/NEXT_AETHERI_UI.md): **103 stable IDs
+and 13 app/system surface groups**, with priorities, source-status boundaries,
+observable acceptance, concrete integration cases, delivery packets and a
+copyable implementation request. It covers every currently agreed Aetheri UI,
+including installer/recovery and the persistent full-desktop experiment VM.
+New product choices extend that baseline without renumbering existing IDs.
 
-The refreshed handoff preserves all 103 IDs and adds concrete integration cases
-and delivery packets. The SDK's preliminary source map still lists 102 IDs and
-omits installer/recovery D11; its reconciliation is explicitly requested. New
-implementation must not repeat the now-existing Wayland-only profile or Settings
-example. Next close installed renderer/host packaging, worker wakeup and actual
-Aetheri consumer gates, then app interaction, desktop/content adapters and full
-hardware/quality acceptance. Missing native Aetheri evidence is recorded
-separately from missing SDK implementation. The catalog does not transfer the
-OS compositor, app supervision, engines or security broker into NexaUI. It is a
-user-requested project/chat handoff, not an automatic message dispatch. No NexaUI
-code, consumer pin, existing local edits or publication was changed.
+First reuse the public package/renderer/wakeup work and close remaining Settings
+and service-integration gates. Then exercise the actual Aetheri compositor and
+private shell adapter, including input/semantic/AT-SPI composition. The borrowed
+host example submits an ordinary surface on private Weston; it does not prove
+private-role admission, dock/search, three outputs, physical presentation or
+normal session authorization. Dense terminal/editor, Files, content-engine and
+VM interfaces retain their own acceptance cases. Aetheri's separate fixed
+Terminal/Settings development-owner contracts must survive a view migration.
 
-This refresh changes the local handoff and this planning note only. No SDK build,
-runtime acceptance, consumer-pin update, other-chat message or publication was
-performed. Existing terminal source work in Aetheri is preserved independently.
+This update is a source/document review and planning handoff, not fresh SDK
+build/runtime/hardware acceptance. Original reports keep their stated candidate
+and environment. No SDK code, consumer pin, existing edits, other-chat message
+or publication was changed. Engines, process supervision, app models and
+privileged backends retain their separate responsibilities; working SDL3 views
+continue until an individually accepted NexaUI scope is available.
 
 ### Primary references inspected
 
@@ -91,7 +84,7 @@ performed. Existing terminal source work in Aetheri is preserved independently.
   scope, C API and zlib licensing; text/font helpers are separate libraries.
 - [SDL3 Wayland notes](https://wiki.libsdl.org/SDL3/README-wayland): compositor
   capability boundaries, configure/initial-buffer handling and scaling limits.
-- [NexaUI pinned README](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/README.md),
+- [NexaUI earlier pinned README](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/README.md),
   [build profile](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/CMakeLists.txt),
   [adoption assessment](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/docs/quality/aetheri-adoption-assessment.md),
   [requirement map](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/docs/quality/aetheri-requirement-map.md)
@@ -138,3 +131,7 @@ text/editor, rendering, accessibility and app-specific requirements as migration
 gates. Until that separate work is implemented and tested, Physim's SDL3/OpenGL
 needs still apply. Do not use the future migration as evidence those dependencies
 are already gone.
+
+Latest inspected sources: [public host contract](https://github.com/Lulus792/NexaUI/blob/88aeef97f0cd9b90f335e8520cae65570994ba09/include/nexaui/wayland_host.h),
+[adoption assessment](https://github.com/Lulus792/NexaUI/blob/88aeef97f0cd9b90f335e8520cae65570994ba09/docs/quality/aetheri-adoption-assessment.md)
+and [requirement map](https://github.com/Lulus792/NexaUI/blob/88aeef97f0cd9b90f335e8520cae65570994ba09/docs/quality/aetheri-requirement-map.md).

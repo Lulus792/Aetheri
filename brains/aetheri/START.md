@@ -8,13 +8,13 @@ The separate [DRM development session](../../spec/session.md) now has actual
 virtual-display/input evidence; normal session and lock/resume admission remain open.
 The [private desktop connection](../../spec/desktop.md) has native role/focus/
 foreign-client tests. The [SDL3 desktop](../../spec/desktop-ui.md) now provides
-dock/search, window selection and fixed Settings launch in the explicit carrier mode.
+dock/search, window selection and separate fixed Settings/Terminal launches in the explicit carrier mode.
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
 The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
 terminal/jobs in the carrier. The opt-in [graphical terminal](../../spec/terminal.md)
 now adds a real PTY and native SDL3 input/output; rich editing, panes, persistent
-sessions and fixed desktop launch integration remain work.
+sessions and normal admitted app/session integration remain work.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

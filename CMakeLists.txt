@@ -347,6 +347,14 @@ if(AETHERI_COMPOSITOR)
                     $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-desktop> $<TARGET_FILE:aetheri-settings>
                     "${AETHERI_SETTINGS_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
                 set_tests_properties(desktop.native PROPERTIES TIMEOUT 90)
+                if(AETHERI_TERMINAL AND AETHERI_DRM_SESSION)
+                    add_test(NAME desktop.supervisor COMMAND Python3::Interpreter
+                        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_development_session.py")
+                    set_tests_properties(desktop.supervisor PROPERTIES TIMEOUT 30)
+                    add_test(NAME desktop.owner COMMAND Python3::Interpreter
+                        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_development_desktop.py" "${CMAKE_CURRENT_BINARY_DIR}")
+                    set_tests_properties(desktop.owner PROPERTIES TIMEOUT 90)
+                endif()
             endif()
         endif()
     endif()

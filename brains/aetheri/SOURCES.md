@@ -4,6 +4,60 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Terminal in the development desktop — 5 November 2026
+
+- Review then exposed the existing tools/test_development_session.py fixture
+  still sending protocol1. Actual execution failed one of eleven checks with
+  “invalid development launch packet”; the other ten passed. Its synthetic client
+  now uses protocol2 and validates strict version fields without rewriting legacy
+  records. The group is registered as desktop.supervisor beside the three native
+  groups. Final four-group Release passes in 16.55 s and Debug ASan/UBSan in
+  20.96 s; all eleven supervisor subtests execute without skips. Native binaries
+  are hash-identical to the preceding reviewed DRM runs. Logs/results are under
+  local/desktop-terminal-2026-11-05/final-regressions, with guest originals under
+  /home/aetheri/build/desktop-review-regressions-3jvtilw7. The stale fixture was a
+  test migration omission, not evidence for allowing protocol1 on the new wire.
+- [Desktop model](../../src/desktop/model.c), [view](../../src/desktop/main.c),
+  [owner/controller](../../tools/development_session.py) and
+  [actual owner integration](../../tools/test_development_desktop.py). All three
+  desktop groups initially pass Release (16.94 s) and ASan/UBSan (21.65 s); the final fixture
+  processes each fresh spawn record once and retains independent original pidfds.
+- Final guest roots under /home/aetheri/build: Release desktop-ui-yrzdkk4q and
+  desktop-owner-0l9noges; Debug desktop-ui-ntxbt1c4 and desktop-owner-16wg7om8.
+  The two suites provide 27+6 raw image hashes per profile. The actual owner
+  uses only test headless/notify/log adapters, actual app commands and lifecycle
+  loop; its job/pipe blockers are not simulated process state.
+- Release desktop-pipe-negative-final-lvfcl7j0 omits the owner pipe wait in a build-local
+  copy. The same behavioral assertion rejects early retirement of later roles.
+  Original owner-fixture failures desktop-owner-yz5do8ho (focus/chord) and
+  desktop-owner-ydzk9w_u (input-driver underscore) remain preserved. The earlier
+  desktop-pipe-negative-uznhwift remains at its recorded source boundary.
+  desktop-owner-20tplqbu/startup-failure reproduces a five-second owner hang after
+  the actual compositor fails before desktop creation. The final source retires
+  unused parent endpoints and rejects late startup after the stop fence; the
+  final fixture's seventh case covers the actual early failure.
+- Actual Release token d925528e4dae4d47acc9790402b6c547 and Debug token
+  347135ccb92d43ff983abc1aecf30681 each close the original root record with status0
+  and all four direct native children status0. Native display/input is QEMU PS/2,
+  bochs-drm/logind and Mesa software rendering, not physical HP/RTX acceptance.
+  Metadata/logs/images and the explicit console exercise are retained under
+  local/desktop-terminal-2026-11-05. Existing optional PAM warning remains.
+- After the bootstrap correction, the same native workflows pass again as
+  Release token eba3810f87db4ab19a2b328319915b64 and Debug token
+  31e51d4a4fe542c18b4e93a000e469c5. All direct children and original supervisor
+  results are status0; PAM stdout scopes are session-609.scope/session-641.scope.
+  Four runs retain sixteen PNGs, eight identical pairs. Earlier native results
+  remain separate from this final-source confirmation.
+- The original live process's stdout stream is in PAM session-503.scope for
+  Release and session-554.scope for Debug. Its stored current boot/process/stream
+  selection explains why unit/invocation-only filters missed output. These are
+  observations, never credentials, replacement identity or v8 recovery evidence.
+  [Journal fields](https://www.freedesktop.org/software/systemd/man/latest/systemd.journal-fields.html),
+  [proc FD semantics](https://man7.org/linux/man-pages/man5/proc_pid_fd.5.html) and
+  [Popen](https://docs.python.org/3.14/library/subprocess.html) were read. The test-only
+  writer is opened only while independently held original process context lives;
+  do not generalize it into app admission or arbitrary descriptor adoption.
+
 ## Graphical terminal — 5 November 2026
 
 - [Terminal guide](../../spec/terminal.md), [model](../../src/terminal/model.c),

@@ -1,5 +1,30 @@
 # Decisions
 
+## Separate fixed development app slots and retire their pipes — 5 November 2026
+
+Add Terminal beside Settings through an explicit private three-byte protocol2.
+Use finite S/T selectors chosen independently by the owner; send no paths, argv
+or FDs. Tag app choices separately from observed window IDs, with independent
+pending/process/error state. A repeated current launch reuses its original child;
+an exited child cannot be replaced before its output pipe ends. Bound fresh spawn
+attempts to 128 per app and fence both on Q20. Format1 closed records retain their
+historical meaning; new desktop records identify protocol2 and five fixed binary
+plus two Mono asset digests. No production/frozen SQL/XML contract changes.
+
+Use the same Terminal -> Settings -> desktop -> compositor process/pipe order
+for normal and exception shutdown. Record a real child before pipe setup so a
+later OSError cannot be acknowledged as a definite no-effect launch. The new
+stop path also closes never-issued parent client copies, and late compositor
+readiness cannot dispatch the first UI after the fence. An actual early-failing
+compositor test reproduces the old retained-endpoint hang before this fix. The
+integration fixture runs actual apps and the actual supervisor with headless/
+notify/log host adapters. It deliberately holds a job, then the original stdout
+writer after process exit; a pipe-wait mutation is rejected. These are development
+ownership checks, never hostile app admission, all-holder drain or lease release.
+Native DRM evidence independently uses the original controller record and actual
+PAM stdout stream; journal filters are observations, not replacement identity.
+See [desktop contract](../../spec/desktop-ui.md) and [guide](../../spec/development-session.md).
+
 ## Retain PTY/process ownership outside the terminal view — 5 November 2026
 
 Build an opt-in original C17 bounded cell/history model and Linux PTY owner with

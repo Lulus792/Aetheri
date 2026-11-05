@@ -19,8 +19,10 @@ an understandable installation/runtime footprint.
   [experimental command profile](../../spec/shell.md) now has a native parser and
   Linux runner, now with explicit interactive controlling-terminal/job management.
   The opt-in [graphical terminal](../../spec/terminal.md) now adds real PTY/SDL3
-  input/output, bounded cells/history and text sizing. Own rich editing,
-  panes/editor, persistent sessions and normal desktop launch remain work.
+  input/output, bounded cells/history and text sizing.
+  The explicit development desktop now starts/reuses it independently of Settings.
+  Rich shell editing, own panes/editor, persistent sessions and normal admitted app/session launch
+  remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
   This project does not silently start that migration.
 - NexaCloud Desktop, confirmed as the desired NexaOS-associated data application.

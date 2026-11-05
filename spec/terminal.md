@@ -22,11 +22,14 @@ directory. For the existing carrier build, the executable accepts:
 ```
 
 The cache directory must already exist; the command above describes the CLI,
-not an installed desktop entry. `development_session.py` and the dock still
-launch Settings only. Terminal selection/ownership integration is the next task.
+not an installed desktop entry. In the explicit carrier desktop,
+`development_session.py start --desktop` now offers Terminal in dock and search,
+with one separately owned app slot beside Settings; see [desktop](desktop-ui.md).
 Root and mismatched real/effective IDs are refused. The held `--shell` source is
 trusted development input, not publisher/app admission. Commands run with the
 ordinary development user's rights and environment; this is not an app sandbox.
+The development owner's cwd is inherited; personal login/home provisioning is
+still separate. Test file operations explicitly choose their owned token folder.
 
 | Control | Behavior |
 | --- | --- |
@@ -132,7 +135,7 @@ local abrupt-worker-exit mutation. Original failing artifacts are retained.
 
 ## Remaining work
 
-Next connect the terminal to the fixed development launch owner/dock, then add
+The fixed development launch owner/dock is connected. Next add
 selection/copy/paste, full text editing/IME, panes/editor/plugins and durable
 sessions. Complete terminal protocol coverage and declaration require their own
 compatibility corpus. Images/PDF, accessibility and normal admitted app/session
