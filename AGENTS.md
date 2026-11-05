@@ -7,14 +7,19 @@ possible objects/stages and block new creation for that window; close only frees
 memory/FDs. No automatic retry/rollback/cleanup or durable restart reconciliation.
 Read spec/files.md and run files.create/files.native. The alternate test_files_fault
 binary is test-only; never install its lost-mkdir-acknowledgement hook.
-Files rename.h now adds a same-folder single-attempt operation with independent
-selected parent/O_PATH source witness and immutable old/new leaves. Kernel
+Files rename.h supplies same-folder rename and explicit cross-folder move with
+independent selected source/destination parents, O_PATH source and immutable names.
+Directory moves reject observed self/descendant targets through bounded repeated
+ancestry walks and flush their own original metadata FD plus both parents. Kernel
 RENAME_NOREPLACE protects the destination, not source-inode compare-and-swap.
 Recheck source/parent, retain unknown outcomes, never auto-retry/reverse/clean up.
 Preview invalidation requires cancel/refresh; own document end precedes admission.
 Unknown creation/rename blocks both; unknown rename also blocks new document starts.
 The separate test_files_fault now includes a lost-rename-reply hook as well.
-Read spec/files.md; run files.rename/files.native. No durable restart recovery,
+Window-local Cut/Paste holds an independent selection; clearing it never settles
+an unknown move. Menus own their press/release through close. No cross-filesystem
+copy/delete fallback exists. Read spec/files.md; run files.rename/files.move/files.native.
+No durable restart recovery,
 hostile-writer exclusion, normal grant or managed removal follows.
 
 For software development, first read `D:/Skills/skills/AGENTS.md`, select relevant

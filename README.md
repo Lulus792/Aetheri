@@ -47,14 +47,14 @@ richer search, plugins,
 panes, accessible document integration and ordinary brokered access remain work.
 
 The opt-in [Files app](spec/files.md) now provides directory navigation, keyboard
-selection, filtering, create-only empty files/folders and same-folder rename
-previews, and opens a selected text
-file in an owned Terminal/editor. Its creation worker keeps the view responsive;
+selection, filtering, create-only empty files/folders, rename previews and
+cross-folder moves through window-local Cut/Paste. It opens a selected text
+file in an owned Terminal/editor. Its file-operation worker keeps the view responsive;
 unknown outcomes block further creation rather than replaying an operation.
 It checks a held file witness before reading and preserves the editor's dirty-close
 choice. Files is now available in the fixed development dock/search alongside Settings
 and Terminal. This remains an ordinary-user development workflow; normal app
-admission, brokered file access, durable operation recovery and copy/cross-folder move/removal
+admission, brokered file access, durable operation recovery and copy/cross-filesystem move/removal
 are still work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys

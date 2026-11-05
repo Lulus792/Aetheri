@@ -4,7 +4,8 @@
 enum ae_files_rename_result {
     AE_FILES_RENAME_PREPARED,AE_FILES_RENAME_DONE,AE_FILES_RENAME_CONFLICT,
     AE_FILES_RENAME_INVALID,AE_FILES_RENAME_DENIED,AE_FILES_RENAME_NOMEM,
-    AE_FILES_RENAME_IO,AE_FILES_RENAME_UNKNOWN,AE_FILES_RENAME_CHANGED
+    AE_FILES_RENAME_IO,AE_FILES_RENAME_UNKNOWN,AE_FILES_RENAME_CHANGED,
+    AE_FILES_RENAME_OVERLAP,AE_FILES_RENAME_LIMIT
 };
 struct ae_files_rename;
 /* Ordinary-user same-folder rename, not a grant or durable recovery journal.
@@ -15,6 +16,16 @@ struct ae_files_rename;
 struct ae_files_rename *ae_files_rename_prepare(int directory,int witness,
     const char *old_name,size_t old_size,const char *new_name,size_t new_size,
     enum ae_files_rename_result *result);
+/* Same operation with an independently selected destination directory. Both
+   parents stay held/private/writable; a directory cannot move into itself or an
+   observed descendant (bounded 128-ancestor walk, repeated before dispatch).
+   This walk is ordinary current-context evidence, not hostile namespace/volume
+   authentication. No cross-filesystem copy/delete fallback. A post-dispatch
+   EXDEV or other error is still UNKNOWN. Both distinct parents and the moved
+   directory's own metadata must be flushed (an original readable FD is held). */
+struct ae_files_rename *ae_files_move_prepare(int directory,int witness,
+    const char *old_name,size_t old_size,int destination,
+    const char *new_name,size_t new_size,enum ae_files_rename_result *result);
 /* Recheck original source and parent, then at most one RENAME_NOREPLACE attempt
    and parent flush. Every retry returns the original result without effects.
    Destination nonreplacement is atomic; SOURCE matching is NOT compare-and-swap.

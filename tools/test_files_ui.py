@@ -275,6 +275,55 @@ def main():
         control(16)
         wait(lambda: ended(editor_pin) and ended(terminal_pin) and "DOCUMENT_END status=0" in log(), "original document pair ended")
         wait(lambda: state(child=-1), "Files observes owned document end and refreshes")
+        # Window-local move selection survives navigation and cancelled previews.
+        click(150,200);control(45);wait(lambda:state(clipboard=1),"selected original move source")
+        tap(68);wait(lambda:state(menu=1),"keyboard actions menu")
+        tap(1);wait(lambda:state(menu=0,clipboard=1),"menu Escape does not clear move selection")
+        filter_to("workspace",1);tap(28);wait(lambda:state(depth=1,count=0),"move target entered")
+        tap(68);wait(lambda:state(menu=1,menu_focus=1),"empty-folder menu selects Paste")
+        tap(64);tap(65)
+        for _ in range(3):tap(66)
+        wait(lambda:state(menu=1,scale="2.00",german=1,contrast=1),"minimum 200 percent actions menu")
+        capture("actions menu is reachable at minimum German 200 percent")
+        tap(103);wait(lambda:state(menu_focus=1),"menu skips unavailable actions")
+        tap(28);wait(lambda:state(dialog=1,moving=1,menu=0),"move preview from actions menu")
+        capture("move preview binds both folders at minimum German 200 percent")
+        tap(1);wait(lambda:state(dialog=0,clipboard=1),"cancel preserves source selection")
+        assert (folder/"renamed.txt").read_bytes()==b"hello world " and not (folder/"workspace/renamed.txt").exists()
+        tap(66);tap(64);tap(65);wait(lambda:state(scale="1.00",german=0,contrast=0),"move preferences restored")
+        control(47);wait(lambda:state(dialog=1,moving=1),"paste preview with unchanged leaf")
+        tap(28);wait(lambda:"MOVE attempt=1 result=1" in log() and state(dialog=0,clipboard=0),"file moved without name change")
+        assert not (folder/"renamed.txt").exists() and (folder/"workspace/renamed.txt").read_bytes()==b"hello world "
+        control(45);wait(lambda:state(clipboard=1),"new move selection")
+        tap(1);wait(lambda:state(clipboard=0),"Escape clears unsubmitted selection")
+        assert (folder/"workspace/renamed.txt").read_bytes()==b"hello world "
+        # Right-click/menu releases cannot leak through into another action.
+        event("M 150 210");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row context menu")
+        event("M 200 235");event("B 272 1");event("M 650 440");event("B 272 0")
+        time.sleep(.1);assert state(menu=1,clipboard=0)
+        click(650,440);wait(lambda:state(menu=0,clipboard=0),"outside click dismisses without row activation")
+        event("M 150 210");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row menu reopened")
+        click(200,235);wait(lambda:state(menu=0,clipboard=1),"pointer Cut selects original source")
+        event("K 56 1");tap(103);event("K 56 0");wait(lambda:state(depth=0),"return to original parent")
+        control(47);wait(lambda:state(dialog=1,moving=1),"move-back preview")
+        tap(28);wait(lambda:"MOVE attempt=2 result=1" in log() and state(dialog=0,clipboard=0),"file moved back")
+        assert (folder/"renamed.txt").read_bytes()==b"hello world " and not (folder/"workspace/renamed.txt").exists()
+        filter_to("workspace",1);tap(108);control(45);wait(lambda:state(clipboard=1),"directory source selected")
+        tap(28);wait(lambda:state(depth=1,count=0),"entered selected source directory")
+        control(47);wait(lambda:state(dialog=1,moving=1),"overlapping directory preview")
+        tap(28);wait(lambda:state(stale=1,clipboard=1),"self move rejected before dispatch")
+        assert "MOVE attempt=3" not in log()
+        tap(1);event("K 56 1");tap(103);event("K 56 0");wait(lambda:state(depth=0),"leave overlapping target")
+        filter_to("docs",1);tap(28);wait(lambda:state(depth=1),"independent directory target")
+        control(47);wait(lambda:state(dialog=1,moving=1),"directory move preview")
+        tap(28);wait(lambda:"MOVE attempt=3 result=1" in log() and state(dialog=0,clipboard=0),"directory moved")
+        tap(28);wait(lambda:state(depth=2,count=0),"moved directory opens")
+        event("K 56 1");tap(103);event("K 56 0");wait(lambda:state(depth=1),"held directory parent")
+        control(45);wait(lambda:state(clipboard=1),"moved directory selected again")
+        event("K 56 1");tap(103);event("K 56 0");wait(lambda:state(depth=0),"directory return target")
+        control(47);wait(lambda:state(dialog=1,moving=1),"directory return preview")
+        tap(28);wait(lambda:"MOVE attempt=4 result=1" in log() and state(dialog=0,clipboard=0),"directory returned")
+        assert (folder/"workspace").is_dir() and not (folder/"docs/workspace").exists() and (folder/"docs/note.txt").read_bytes()==b"inside\n"
         # Fresh literal hostile filename; no filename interpretation by a shell.
         click(150,200); filter_to("literal", 1); tap(28)
         wait(lambda: log().count("READY wayland opengles2 editor=") == 2, "literal filename second document")
@@ -302,6 +351,9 @@ def main():
                       "rename preview/cancel and native button", "rename never replaces a destination",
                       "source replacement invalidates the retained preview", "directory rename retains navigation",
                       "own document must end before rename admission",
+                      "move selection survives navigation and cancelled preview", "actions/context menu and mismatch cancellation",
+                      "unchanged-leaf file move and move back preserve bytes", "directory self-target denied before dispatch",
+                      "directory move and navigation preserve held parents",
                       "overflow filter cannot open the retained matching prefix",
                       "actual selected-FD save", "Terminal close retains dirty-editor cancel",
                       "direct document Ctrl+Z does not strand a stopped editor",
@@ -373,10 +425,49 @@ def main():
         (root/"release-rename").write_bytes(b"release\n")
         assert rename_close.wait(timeout=8)==0;children.remove(rename_close)
         assert (close_folder/"unknown-name").read_bytes()==b"retained on close" and "RENAME attempt=1 result=7" in log()
+        (root/"release-rename").unlink()
+        move_folder=root/"move-documents";move_folder.mkdir(mode=0o700);(move_folder/"target").mkdir(mode=0o700)
+        (move_folder/"original.txt").write_bytes(b"move retains original")
+        files_log="move-fault";move_args=list(args);move_args[1]=move_folder
+        move_app=start(fault_bin,files_log,*move_args);wait(lambda:state(count=2),"move fault Files")
+        filter_to("original",1);tap(108);control(45);wait(lambda:state(clipboard=1),"move fault source captured")
+        filter_to("target",1);tap(28);wait(lambda:state(depth=1,count=0),"move fault target held")
+        control(47);wait(lambda:state(dialog=1,moving=1),"move fault preview")
+        control(22);typing("unknown-name");tap(28)
+        wait(lambda:"FAULT_RENAMED entry" in log() and state(creating=1),"real move awaiting reply")
+        tap(65);wait(lambda:state(contrast=1,creating=1),"move worker remains responsive")
+        (root/"release-rename").write_bytes(b"release\n")
+        wait(lambda:state(unknown=1,moving=1,creating=0),"lost move reply retained")
+        capture("unknown move retains both folder bindings",active_output=1)
+        tap(28);wait(lambda:state(dialog=0),"unknown move inspection closed")
+        tap(1);wait(lambda:state(clipboard=0,unknown=1),"dropping selection cannot settle unknown move")
+        control(47);wait(lambda:state(dialog=1,moving=1,unknown=1),"unknown move reopens without clipboard")
+        tap(28);wait(lambda:state(dialog=0),"unknown move remains inspection-only")
+        control(19);wait(lambda:state(count=1),"unknown moved entry observed by explicit refresh")
+        tap(28);time.sleep(.1);assert "OPEN pid=" not in log()
+        assert not (move_folder/"original.txt").exists() and (move_folder/"target/unknown-name").read_bytes()==b"move retains original"
+        assert log().count("FAULT_RENAMED entry")==1 and "MOVE attempt=1 result=7" in log()
+        control(16);assert move_app.wait(timeout=8)==0;children.remove(move_app)
+        (root/"release-rename").unlink()
+        pending_move=root/"move-close-documents";pending_move.mkdir(mode=0o700);(pending_move/"target").mkdir(mode=0o700)
+        (pending_move/"original.txt").write_bytes(b"move close retains")
+        files_log="move-close";pending_args=list(args);pending_args[1]=pending_move
+        move_close=start(fault_bin,files_log,*pending_args);wait(lambda:state(count=2),"move close Files")
+        filter_to("original",1);tap(108);control(45);wait(lambda:state(clipboard=1),"move close source")
+        filter_to("target",1);tap(28);wait(lambda:state(depth=1,count=0),"move close target")
+        control(47);wait(lambda:state(dialog=1,moving=1),"move close preview")
+        control(22);typing("unknown-name");tap(28)
+        wait(lambda:"FAULT_RENAMED entry" in log() and state(creating=1),"original move in flight")
+        control(16);time.sleep(.1);assert move_close.poll() is None
+        (root/"release-rename").write_bytes(b"release\n")
+        assert move_close.wait(timeout=8)==0;children.remove(move_close)
+        assert not (pending_move/"original.txt").exists() and (pending_move/"target/unknown-name").read_bytes()==b"move close retains"
+        assert "MOVE attempt=1 result=7" in log()
         cases.extend(["real lost mkdir acknowledgement is unknown, never retried", "unknown inspection cannot edit or create",
                       "creation worker keeps UI responsive", "close waits for original in-flight creation and preserves its effect",
                       "lost rename acknowledgement blocks creation and rename", "unknown rename retains original names and bytes",
-                      "close waits for original rename worker without rollback"])
+                      "close waits for original rename worker without rollback", "unknown move outlives dropped UI selection",
+                      "unknown move blocks document starts and replay", "close waits for original move without undo"])
         absent = start(files_bin, "absent", *args, extra_env={**env,"WAYLAND_DISPLAY":"absent","DISPLAY":":199"})
         assert absent.wait(timeout=8) == 1; children.remove(absent)
         server.terminate(); assert server.wait(timeout=8) == 0; children.remove(server)

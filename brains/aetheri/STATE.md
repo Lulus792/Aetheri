@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — bound same-folder rename previews and no-replace worker outcomes.
+5 November 2026 — held cross-folder moves and window-local Cut/Paste.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now retains a window-local move selection through navigation, creation and
+cancelled previews. Ctrl+X/Ctrl+V, F10, … and right-click menus share the same
+commands. The preview binds source/object and a separately held target; a source
+replacement drops the stale selection. Menus own press/release through close.
+Directory moves reject observed self/descendant targets through bounded repeated
+ancestry checks and flush original directory metadata plus both parents. The
+single worker never copies/deletes on EXDEV. Unknown state outlives UI-selection
+clear, blocks new mutations/document starts and is not durable restart recovery.
+
+All 45 affected groups pass Release (125.12s) and ASan+UBSan (221.55s). Five separate
+copied-source controls reject missing replay/source/flush/overlap safeguards. The
+sole final source change fixes empty-label/status overlap when no row fits; targeted
+Files/both-owner 3/3 revalidation passes each profile (50.89s/59.60s). Final native
+Files profiles have 52 cases/48 images. The final-binary DRM session proves selection,
+menu/cancel, unchanged identity, file/directory moves, exact Editor save and moved
+workspace retention after Files/document reopen and original session retirement.
+
+Final audit: 337 matching source inputs; 28 frozen SQL/XML and nineteen protected
+old-runtime hashes unchanged, no old SQLite sidecars; 1,171 retained native files,
+342 images/twelve special records and twelve stable DRM captures. The enforcing
+carrier is idle on tty1 without known native actors, an Aetheri unit or seat0
+session. The quarantined old running/recover-handoff intent remains unresolved.
+See [record](journal/2026-11-05-files-move.md) and `local/files-move-2026-11-05`.
+
+The accepted studio design baseline was recorded concurrently and read. Follow it
+for subsequent native presentation work; keep these tested operations beneath it.
+The current view remains provisional. Next work includes that visual implementation,
+copy/content publication and recoverable removal, followed by richer handlers.
+Normal admission/grants, durable recovery, full app removal, other apps, OS image/
+installer and the complete resettable experiment desktop remain required.
+Keep the full objective active.
+
+## Same-folder rename — completed checkpoint
 
 Files now previews same-folder renames through F2 or its pointer control. The
 original source witness, parent and both literal names remain bound. Source

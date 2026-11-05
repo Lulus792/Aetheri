@@ -1,8 +1,7 @@
 # Development Files
 
-`aetheri-files` browses a selected directory, creates a new empty file or folder,
-renames a selected file/folder without replacing another entry,
-and opens a text document in our
+`aetheri-files` browses a selected directory and creates, renames or moves entries
+without replacing existing targets. It opens text documents in our
 [editor](editor.md), inside a separately owned [Terminal](terminal.md) window.
 Navigation and filtering use an original C17 model; SDL3 supplies the Wayland
 window and drawing. The app uses the existing reviewed SDL/text dependency profile.
@@ -55,12 +54,15 @@ substring of the original name. It does not search document contents.
 | Ctrl+L | Clear and focus the filter |
 | Ctrl+U while filtering | Clear the query |
 | Backspace while filtering | Remove one whole grapheme |
-| Escape | Clear/cancel the filter |
+| Escape outside a menu/dialog | Clear the filter and unsubmitted move selection |
 | Ctrl+H, Show/Hide hidden | Toggle hidden entries |
 | Ctrl+R | Read a fresh complete directory snapshot |
 | Ctrl+N / New file | Name and create an empty file without replacing an entry |
 | Ctrl+Shift+N / New folder | Name and create a folder without replacing an entry |
 | F2 / Rename | Preview and rename the selected file/folder in its current folder |
+| Ctrl+X with list focus | Retain one selected file/folder for a move in this window |
+| Ctrl+V with list focus | Preview moving that selection into the current folder |
+| F10 / … / right click | Open the keyboard/pointer actions menu |
 | F6 / F7 / F8 | DE/EN labels, contrast, text size 100/125/150/200 percent |
 | Ctrl+Q | Close Files, waiting if its document window is still alive |
 
@@ -168,8 +170,58 @@ an in-flight worker and releases memory/FDs only. Reopening the app is not recov
 Confirmed success refreshes, clears the filter, reveals a dot-name if necessary
 and selects the new name. A refresh failure is separate from confirmed rename.
 The prototype admits at most 256 rename worker attempts per Files lifetime.
-Cross-folder moves, cross-filesystem copy/move, bulk operations and removal are
-not supplied by this same-folder operation.
+Cross-folder moves use the separate profile below. Cross-filesystem copy/move,
+bulk operations and removal are not supplied by this same-folder operation.
+
+## Moving between folders
+
+Select a file/folder and press Ctrl+X, or choose Cut from the actions menu. This
+does not rename, delete or hide it. Navigate to a destination, press Ctrl+V or
+choose Paste, then review the original label, source folder, destination folder
+and new name. The original leaf can remain unchanged. Confirm only in this
+preview. Arrow navigation leaves filter focus; Ctrl+X/Ctrl+V do not steal the
+filter's text-editing shortcuts. F10 exposes the same actions without a mouse.
+
+The selection is window-local. It owns an independently held source parent and
+O_PATH object witness with literal/escaped name copies, not a system clipboard
+path or public file grant. A newer valid selection replaces it; a failed selection
+keeps it. Menu Escape closes the menu, preview Escape keeps the selection for
+another target, and ordinary Escape clears it without touching files. A source
+replacement invalidates the preview and drops that selection. A Files-owned
+document must end before selecting/submitting a move.
+
+The … control and right-click menu use the same Cut/Paste/Rename commands. Disabled
+actions cannot dispatch. Up/Down/Tab skip them; Enter/Space activates the focused
+command. Matched pointer press/release belongs to the menu, including when it
+closes; outside clicks, focus loss and resize cannot activate a background row.
+The menu is bounded to the current window at 200-percent text size. With no room
+for a list row, the empty-folder label is omitted instead of overlapping status.
+
+`ae_files_move_prepare` extends the existing no-replace operation with a separately
+held destination. Both parents are rechecked as owned, private and writable.
+Preparation and the worker each inspect up to 128 destination ancestors before a
+directory move: self/descendant targets are rejected before dispatch; an ancestry
+error/limit is not success. This is bounded current-context observation, not
+hostile namespace or durable volume authentication. The source comparison retains
+the same non-CAS limitation as rename. A separately opened original directory FD
+permits flushing its own changed metadata. Apply flushes that directory (when
+needed), the destination parent, then a distinct source parent, before checking
+the target and old-name absence. Ordinary existing file contents are not copied,
+read, rewritten or force-flushed by this metadata operation.
+
+The worker retains one attempt and its original result. A destination conflict
+does not replace any entry; success refreshes/selects the destination and clears
+the move selection. Close waits for the original worker. UNKNOWN retains both
+parent/object bindings independently of the UI selection: clearing the selection
+cannot settle it, undo it or authorize a new move. All new mutations and document
+starts remain blocked as for unknown rename. There is no durable restart journal.
+At most 256 move worker attempts are admitted per Files lifetime.
+
+Moves currently rely on same-mounted-filesystem rename support. There is no
+automatic cross-filesystem copy/delete fallback. A post-dispatch EXDEV is UNKNOWN
+under this conservative profile; it does not become an instruction to copy or
+delete the source. General copy, byte progress/cancellation and recoverable
+cross-filesystem move need their own content/publication/removal protocol.
 
 ## Selected document handoff
 
@@ -245,9 +297,19 @@ own-document admission fencing and exact save after file rename. The alternate
 test binary additionally holds/loses a real rename acknowledgement and proves
 responsive inspection, no mutation bypass and worker-owned close.
 
+`files.move` checks both held parents, unchanged-leaf moves, source replacement,
+target conflicts, private-mode drift, moved-directory/parent flushes, ancestry
+limits/overlap (including a target moved after preparation), and lost real rename/
+flush replies without replay even after the original object is moved back. Its
+EXDEV adapter is controlled evidence of no copy/delete fallback, not a real
+cross-filesystem transfer test. Native cases exercise selection/navigation,
+cancel/clear distinctions, keyboard/context menus, 200-percent layouts, file and
+directory moves, exact bytes and lost-move/worker-close behavior. Clearing the UI
+selection after UNKNOWN must not drop the independently retained operation.
+
 Still required: normal admitted desktop/app integration, brokered document access and
 revocation, richer navigation/details, file operations with previews/recovery,
 image/PDF handlers, multiple documents, accessible semantics and hardware/monitor
-acceptance. Files does not yet copy, move across folders or delete entries.
-Creation and same-folder rename here are ordinary local development I/O, not a
+acceptance. Files does not yet copy, move across filesystems or delete entries.
+Creation, rename and same-filesystem move here are ordinary local development I/O, not a
 production document-grant write API.

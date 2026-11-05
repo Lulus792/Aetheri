@@ -1,5 +1,17 @@
 # Decisions
 
+## Bind cross-folder moves before dispatch — 5 November 2026
+
+Extend the existing no-replace operation with an independently held destination;
+retain source/object selection separately from the UI and the eventual operation.
+Use window-local Cut/Paste, explicit review and one existing worker, with no daemon
+or system-clipboard path authority. Bounded destination-ancestor inspection occurs
+before preparation and dispatch. Flush moved-directory metadata and both distinct
+parents; do not substitute a destination-only acknowledgement. Selection clear is
+not settlement of an unknown move. There is no implicit EXDEV copy/delete fallback.
+Menu press/release remains owned through closing, and 200-percent empty-folder
+rendering must not overlap status. See [contract](../../spec/files.md#moving-between-folders).
+
 ## Keep rename previews bound to an original source — 5 November 2026
 
 Use a separate C17 same-folder operation with an owned parent/O_PATH source witness
