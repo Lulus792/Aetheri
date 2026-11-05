@@ -36,11 +36,11 @@ command/path Tab completion and reversible history search. The syntax is experim
 advanced completion/richer search, panes/modal editor, persistent sessions and admitted app/session
 launch remain work.
 
-The first [own file-editor core](spec/editor.md) now has a gap buffer, exact
-UTF-8/line-ending preservation and Normal/Insert state with grapheme-aware edits.
-Its local development file adapter now loads/saves bytes and metadata, detects
-observed external changes and fences uncertain writes. These are tested C17
-libraries; the executable view and interactive save/close decisions remain work.
+The opt-in [own modal editor](spec/editor.md) now opens, edits and saves local
+files inside that terminal, with grapheme-aware Normal/Insert controls, preserved
+line endings/metadata and explicit close choices. Uncertain saves stay fenced;
+create-only export can retain a recovery copy. Document undo/search, plugins,
+panes, accessible document integration and ordinary brokered access remain work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
 and Compose sequences through native Wayland preedit/commit to the terminal and

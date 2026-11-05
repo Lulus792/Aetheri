@@ -29,10 +29,10 @@ an understandable installation/runtime footprint.
   The terminal now uses our [own line editor](../../spec/line-editor.md), with
   whole-grapheme edits, bounded in-memory history/undo and literal Tab completion.
   Search now has bounded preview/cancel and separate acceptance/submission. The
-  [modal editor core](../../spec/editor.md) supplies document/Normal/Insert models;
-  a separate local load/save adapter is tested; its actual view and save/close UI
-  remain the next integration. Richer search/advanced completion,
-  own panes/modal editor, persistent sessions and normal admitted app/session launch
+  [modal editor](../../spec/editor.md) now joins document/Normal/Insert/local I/O
+  to an actual terminal executable with explicit save/close/export decisions.
+  Document undo/search, rich selection/plugins and full accessible text remain.
+  Richer shell search/advanced completion, own panes, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
   This project does not silently start that migration.

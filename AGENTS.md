@@ -4,21 +4,32 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- AETHERI_EDITOR now builds the separate aetheri-editor development executable.
+  Read spec/editor.md: main joins existing document/modal/file libraries to the
+  pure bounded view. UNKNOWN is independent of clean state; q/CtrlQ must not
+  silently close it, save-as cannot rearm it, export is a separate create-only
+  copy and discard requires literal DISCARD. Preserve extra uncertain exports.
+  Own TTY OFD/foreground checks, alternate screen/modes, bounded UTF-8/key/command
+  rejection and no reads beyond quit are required. Below 30x8 refuse hidden
+  editing/commands. Stop restores modes; background resume stops again. Emergency
+  signal copies are best effort, not durable recovery. Run editor/native plus
+  shell/terminal/provider groups. Normal grants, undo/search/panes/accessibility
+  and final UI remain work; preserve the quarantined runtime.
 - editor/file.h now supplies a separate local development load/save adapter.
   Read spec/editor.md: repeated original byte/metadata checks are not atomic CAS
   or a production document grant. Preserve metadata and pre-rename target bytes;
   uncertain rename/flush/close fences later saves. Uncertainty is independent of
   document dirty state, including an already clean submitted document. Never
   rollback/retry or delete a potential artifact after an unknown outcome. Run
-  editor.file plus document/modal/grapheme tests; view/key/save-close UI and
-  durable brokered/restart reconciliation remain work. No editor executable yet.
+  editor.file plus document/modal/grapheme tests; the application has its own
+  view/command layer. Durable brokered/restart reconciliation remains work.
 - Shell history search now has its own bounded query/preview: preserve original
   draft/cursor/undo until accept; Enter accepts only, later Enter submits. No-match
   and rejected input cannot reuse an old result. Run editor/search/native groups.
   New src/editor document/modal are pure model libraries, not an editor executable
   or file/save authority. Read spec/editor.md: UTF-8/ending/gap/line/grapheme and
   allocation/revision contracts. mark_clean is only local generation state.
-  Actual view/key integration, document undo and interactive conflict/close remain work.
+  The app owns its separate view/commands; document undo and full reconciliation remain work.
   Keep installed profiles/capabilities and quarantined old intent unchanged.
 - The graphical terminal now selects the own `-i --edit` single-line profile.
   Read `spec/line-editor.md`: toolkit-free editor/history, original terminal/OFD

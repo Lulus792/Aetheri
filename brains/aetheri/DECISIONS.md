@@ -1,5 +1,19 @@
 # Decisions
 
+## Join the modal editor without inventing save authority — 5 November 2026
+
+Use the existing own terminal for an opt-in C17 foreground editor. Keep its pure
+view separate from the document/modal/file owners. Reuse the exact cell/Compose
+and text-scale profile; visibly fall back for unsupported clusters without
+changing bytes. Preserve the shell's screen/modes and its next unread input.
+Use explicit save/close/create-only save-as/export. Export cannot acknowledge an
+old uncertain save; retain extra unknown holders. Require typed DISCARD before
+dropping text, even for an explicit q!, and block ordinary close on uncertainty
+independently of the content generation. Suspend restores the terminal; only a
+foreground resume reacquires it. Signal-exit copies are best effort, never crash
+recovery or automatic rollback. Final design, accessibility and full editor
+features remain separate. See [contract](../../spec/editor.md).
+
 ## Keep file outcomes separate from content cleanliness — 5 November 2026
 
 Add a synchronous local development adapter around the pure document. Hold the

@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Executable modal editor — 5 November 2026
+
+- Original [application](../../src/editor/main.c),
+  [pure view](../../src/editor/view.c), [view projection tests](../../tests/test_editor_view.c)
+  and [actual PTY scenarios](../../tools/test_editor_native.py), plus the existing
+  actual native provider path in [Compose integration](../../tools/test_compose_provider.py).
+  Evidence, initial failures and remaining scope are in the
+  [record](journal/2026-11-05-editor-app.md).
+- Read the Linux primary references for [termios](https://man7.org/linux/man-pages/man3/termios.3.html),
+  [signalfd](https://man7.org/linux/man-pages/man2/signalfd.2.html) and
+  [signals](https://man7.org/linux/man-pages/man7/signal.7.html).
+  Blocked signals can be consumed by a pollable FD; raw/canonical modes and
+  stop/continue are separate lifetimes. Signal-exit copies remain best effort;
+  no user-space handler or test establishes recovery after SIGKILL/power loss.
+
 ## Local editor file adapter — 5 November 2026
 
 - Original [file adapter](../../src/editor/file.c) and

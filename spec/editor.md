@@ -1,10 +1,104 @@
-# Own modal editor core
+# Own modal file editor
 
-5 November 2026. Original C17 document, normal/insert and local file adapters now
-exist. They are tested libraries, **not yet an executable file editor**. Terminal
-presentation, interactive save/conflict/unsaved-close decisions, document undo, search/selection, command mode,
-plugins and panes still need their adapters and tests. The existing
+5 November 2026. The opt-in `aetheri-editor` executable joins our original C17
+document, modal controller, local file adapter and terminal-cell view. It runs
+inside the existing terminal as a foreground command. This remains a local
+development profile; normal document grants/admission, durable recovery, document
+undo/search/selection, plugins and panes remain work. The existing
 [shell line editor](line-editor.md) is a separate working component.
+
+## Try it
+
+In the reviewed configured Linux build, enable `AETHERI_EDITOR=ON` and build
+`aetheri-editor`. For example, inside the dedicated carrier:
+
+```sh
+cmake -S /home/aetheri/source -B /home/aetheri/build/session-release -DAETHERI_EDITOR=ON
+cmake --build /home/aetheri/build/session-release --target aetheri-editor
+```
+
+Open Terminal through the [development desktop](development-session.md). In its
+ordinary shell, select a file in a directory owned by the current user:
+
+```sh
+/home/aetheri/build/session-release/aetheri-editor --new notes.txt
+/home/aetheri/build/session-release/aetheri-editor notes.txt
+```
+
+`--new` requires an absent name and creates no file until save. Opening an absent
+file fails; it does not silently switch to creation. No path starts an untitled
+document. The first save then asks for a new path. File-adapter restrictions below
+still apply. Commands run with the development user's rights, without a sandbox
+or a new authority. `--help` describes the CLI without taking a terminal.
+
+| Control | Action |
+| --- | --- |
+| `i`, `a`, `I`, `A` in Normal | Insert before/after this grapheme or at line start/end |
+| `o`, `O`; `x`; `dd` in Normal | Open a line, delete a grapheme, delete a line |
+| Arrows / `h j k l`, Home/End / `0 $` | Move; Insert uses arrows/Home/End |
+| Enter, Backspace, Delete in Insert | Newline or whole-grapheme edit |
+| Escape; Ctrl+C/G | Normal mode, or cancel the current interaction |
+| Ctrl+S; `:w` | Save the current binding; ask for a new path when untitled |
+| Ctrl+Q; `:q` | Close if settled/clean; otherwise show close choices |
+| `:wq` | Save and close only after success |
+| `:saveas NEW-PATH` | Create-only save under a new binding; never overwrite a named destination |
+| `:export NEW-PATH` | Create-only copy; preserve the original dirty/uncertain state |
+| `:q!` / close dialog's `d` | Ask for the literal word `DISCARD`; never immediately drop text |
+| `:help`, then `j/k`, Escape | Read/scroll the keyboard guide and return to the document |
+| Ctrl+Z, then shell `fg` | Suspend and resume the same buffer; background resume stops again |
+
+Text after `saveas ` or `export ` is a literal path, including spaces. It is not
+shell syntax: quotes and `$` have no expansion role. The command buffer is bounded
+to 4,096 UTF-8 bytes. Invalid/control/overflow input blocks submission until
+Escape or Ctrl+U, rather than accepting a truncated prefix. Escape sequences
+have a bounded decoder and a 120ms deadline; lone Escape is distinguished from
+arrows. This is not a general terminal-protocol or untrusted-input parser.
+
+The close dialog offers save/discard/cancel. An unknown save instead offers
+copy/discard/cancel; it cannot rearm the original write. `DISCARD` confirms leaving
+the editor with potential artifacts retained; uncertain exit has status 2.
+An untitled save-and-close asks for a new path and only closes after that save.
+Export is a recovery copy, not an acknowledgement that the original save settled.
+Up to eight additional uncertain exports stay held; reaching that bound refuses
+more binding attempts. General cross-process recovery and an artifact inspector
+remain work.
+
+## View and terminal lifetime
+
+The view uses the existing terminal's colors, glyph/cell profile, native Compose
+and text scaling. Header, line numbers and status distinguish Normal/Insert,
+modified text, current location and SAVE UNKNOWN. The close dialog moves the
+terminal caret to its choices; cancelling restores document focus. Long lines
+pan by whole graphemes, with clipping markers and a visible caret. Tabs use four
+logical cells. Unsupported/invisible/complex clusters have an explicit ASCII
+fallback; bytes and edit boundaries remain unchanged. Arbitrary filename bytes
+cannot inject terminal commands. This is not shaping, bidi or accessible geometry.
+The header puts the filename before its parent path so long paths cannot displace
+the short basename at ordinary/minimum widths; very long names remain clipped.
+
+The first minimum is 30 columns × 8 rows, maximum 512 × 200. Below the minimum,
+the view says editing is paused and refuses invisible edits/commands until resize.
+The shell's original screen is retained using the terminal's alternate screen.
+Input drains bounded bursts without reading beyond a completed quit, leaving
+subsequent bytes for the original shell. The app has its own nonblocking
+`/dev/tty` open-file description and a foreground/session check; it never changes
+the shell/command descriptors' flags. It restores modes and screen before stopping
+and only resumes raw mode after foreground ownership returns.
+
+Signals are consumed through signalfd, without allocation/file work in async
+handlers. SIGTERM/SIGHUP or an observed terminal failure attempts a private
+create-only `.aetheri-editor-recovery-…` copy in the current directory if text is
+dirty or a save is uncertain, then exits. Failure is reported; this is best effort,
+not autosave, recovery after SIGKILL/power loss, or a durable journal. The current
+directory must meet the same local directory rules. No background process,
+periodic history file or new runtime library is added. See
+[termios](https://man7.org/linux/man-pages/man3/termios.3.html) and
+[signalfd](https://man7.org/linux/man-pages/man2/signalfd.2.html).
+
+Keyboard/virtual scaling evidence does not establish screenreader acceptance.
+AT-SPI document semantics, external IME/bidi/complex shaping, light-theme design,
+localised editor chrome, physical hardware and final UI remain open. These keys
+and layout are the first reversible engineering profile.
 
 ## Text and ownership
 
@@ -13,13 +107,15 @@ plugins and panes still need their adapters and tests. The existing
 | [document.h](../src/editor/document.h), [implementation](../src/editor/document.c) | Copied text, gap storage, line offsets, byte cursor and content revision |
 | [modal.h](../src/editor/modal.h), [implementation](../src/editor/modal.c) | Normal/insert state, logical vertical goal and semantic edit actions; borrows the caller-owned document |
 | [file.h](../src/editor/file.h), [implementation](../src/editor/file.c) | Independently held local directory/file, baseline bytes/metadata and synchronous save outcome; development profile only |
-| Future app/view | Keyboard interpretation, rendering/cell geometry, accessible text, explicit save/conflict/close choices and future brokered file access |
+| [view.h](../src/editor/view.h), [implementation](../src/editor/view.c) | Bounded cell projection, viewport and reusable frame scratch; no I/O or model mutation |
+| [application](../src/editor/main.c) | Literal keys/commands, explicit save/close decisions, own TTY/signal lifetime and additional unsettled export holders |
+| Future integration | Accessible text, durable recovery and normal brokered file access |
 
 The first text profile accepts strict UTF-8, TAB, LF and CRLF. It preserves mixed
 endings and missing final LF without normalization. NUL, other C0/C1 controls,
 DEL, malformed UTF-8 and lone CR are rejected. This is not an arbitrary-byte or
 binary-file profile. Unicode formatting characters remain document data; a
-future view must render unsupported/invisible content explicitly rather than
+view must render unsupported/invisible content explicitly rather than
 silently issuing terminal control sequences.
 
 Initial limits are 8MiB of text, 65,536 logical lines and 65,536 content bytes per
@@ -79,8 +175,8 @@ Text insertion requires Insert mode. Failed growth while opening a line leaves
 the old text, cursor and Normal mode intact. The caller retains the document,
 keeps it alive and does not mutate it independently while a controller is attached.
 
-These are internal semantic actions. Physical keys, repeat/count handling,
-commands such as `:w`, file-save conflicts and unsaved-close UI are still work.
+These remain internal semantic actions. The executable maps the first keys and
+commands above; richer repeat/count handling and editing are still work.
 No modal action executes a shell command, opens a file or requests privileged work.
 
 ## Local development file adapter
@@ -138,9 +234,9 @@ artifacts. The process-local fence is not a durable recovery journal.
 
 Failure leaves the document's clean generation unchanged. Edited content therefore
 stays dirty; a previously clean document can still have an UNKNOWN save outcome.
-The future view must block ordinary close independently on uncertainty, retain
-text and expose explicit reconciliation/recovery choices. Those choices and
-cross-process/restart recovery, save-as/export and brokered saves remain work.
+The executable blocks ordinary close independently on uncertainty and offers
+create-only export or explicit discard. Full reconciliation/inspection and
+cross-process/restart recovery and brokered saves remain work.
 
 ## Cost and checks
 
@@ -167,3 +263,6 @@ The [file tests](../tests/test_editor_file.c) separately exercise actual local
 load/save, maximum-size bytes, attributes, conflicts, FD cleanup and injected
 write/flush/rename/close failures. Their evidence and limits are in the
 [file-adapter record](../brains/aetheri/journal/2026-11-05-editor-file.md).
+Current executable/view/PTY/provider evidence, initial failures and actual
+development-desktop limits are in the
+[application record](../brains/aetheri/journal/2026-11-05-editor-app.md).

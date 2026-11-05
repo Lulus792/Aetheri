@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — local file adapter for the own modal editor.
+5 November 2026 — executable own modal editor in the terminal.
 
 ## Coordination
 
@@ -15,6 +15,46 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The opt-in [own modal editor](../../spec/editor.md) now joins the original
+document/modal/file libraries to a pure terminal-cell view and foreground app.
+It opens or explicitly creates bounded files, edits graphemes/endings, saves and
+handles close/cancel/create-only save-as/export. UNKNOWN stays separate from clean
+content; export never settles the original write. Discard requires literal
+DISCARD, and extra uncertain exports remain held. Untitled save-and-close asks
+for a new path before exiting. Invalid/overflow commands cannot submit a prefix.
+
+The view tracks whole-grapheme panning/caret and explicit unsupported-cluster
+fallbacks. It uses the original terminal's native Compose/text scaling and moves
+focus to close choices, restoring the document on cancel. Below 30x8 it pauses
+edits/commands; the help wraps and scrolls at the minimum. Separate nonblocking
+TTY ownership, alternate screen/mode restoration and stop/bg/fg preserve the
+original shell and unread next input. Signal-exit recovery copies are best effort.
+
+All 34 affected groups pass Release 97.40s / ASan+UBSan 126.33s, with twelve editor
+PTY cases and sixteen actual provider cases per profile. The copied-source
+clean/UNKNOWN-close omission fails the unchanged test. Visual review then moved
+the basename before long parent paths; all three affected view/native/provider
+groups pass again in both profiles. See the [record](journal/2026-11-05-editor-app.md)
+and `local/editor-app-2026-11-05`. Two original ordinary DRM attempts prove exact
+close-cancel pixels, real save bytes, 200-percent contrast and return to the same
+shell. The final header candidate and its original attempt close successfully.
+The audit matches 318 sources, 28 frozen SQL/XML and 19 protected hashes without
+sidecars; 899 native files/204 raw images, six special-node records, 44 console
+files (34 final stable files) and 1,040 local file targets. The enforcing guest
+is idle on tty1. Earlier failed fixture and clipped-help evidence is retained.
+No normal app/document admission, accessible
+document API, full undo/search/plugins/panes or final UI follows from this app.
+
+Next app work after verification is document undo/search/selection and broader
+editor/pane/session behavior, with explicit simultaneous-signal/shutdown fault
+coverage before treating best-effort emergency copies as a broader guarantee.
+Full ordinary sessions/apps, remaining applications,
+the original OS image/installer, updates, hardware and the complete resettable
+experiment desktop remain required. Preserve the quarantined runtime and its
+separate provenance/lifecycle obligations.
+
+## Local file adapter — historical checkpoint
 
 The [editor file adapter](../../spec/editor.md#local-development-file-adapter)
 now loads exact bounded text and saves through an exclusive same-directory stage.

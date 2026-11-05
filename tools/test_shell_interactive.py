@@ -21,7 +21,7 @@ ROOT = Path(tempfile.mkdtemp(prefix="shell-interactive-", dir=BUILD))
 
 
 class Terminal:
-    def __init__(self, name, binary=SHELL, args=("-i",)):
+    def __init__(self, name, binary=SHELL, args=("-i",), size=None):
         self.root = ROOT / name
         self.root.mkdir()
         self.data = bytearray()
@@ -31,7 +31,8 @@ class Terminal:
         self.pid, self.master = pty.fork()
         if not self.pid:
             os.chdir(self.root)
-            if '--edit' in args:termios.tcsetwinsize(0,(24,80))
+            if size is not None:termios.tcsetwinsize(0,size)
+            elif '--edit' in args:termios.tcsetwinsize(0,(24,80))
             os.execv(binary, [binary, *args])
         os.set_blocking(self.master, False)
         self.pin = os.pidfd_open(self.pid)

@@ -39,6 +39,10 @@ trusted development input, not publisher/app admission. Commands run with the
 ordinary development user's rights and environment; this is not an app sandbox.
 The development owner's cwd is inherited; personal login/home provisioning is
 still separate. Test file operations explicitly choose their owned token folder.
+The opt-in [own modal editor](editor.md) can now run as a foreground command in
+this PTY. It uses the same grid, native text input/Compose and text scaling;
+its save/close decisions remain app-owned. It does not supply document grants,
+full text accessibility or normal app/session admission.
 
 | Control | Behavior |
 | --- | --- |

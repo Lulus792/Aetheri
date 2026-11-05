@@ -57,13 +57,13 @@ The [own single-line editor](../../spec/line-editor.md) now supplies grapheme
 editing, bounded in-memory history/undo and literal command/path Tab completion.
 Bounded history search is now implemented with reversible preview and two-stage
 acceptance/submission. Final bindings, advanced completion/richer search,
-the full modal editor app, panes and durable session/history policies remain work; its
+the complete modal editor, panes and durable session/history policies remain work; its
 provisional controls do not settle those product questions.
-The [own file-editor core](../../spec/editor.md) has tested document/Normal/Insert
-models plus a tested local file adapter with observed-conflict and unknown-save
-fences. Interactive conflict/reconciliation and unsaved-close handling, brokered
-access, document undo and actual view/key integration remain engineering work before user UI
-review; no running editor app or native document-grant transport is implied.
+The [own file editor](../../spec/editor.md) now runs as an actual development
+terminal command, with Normal/Insert, local file I/O and explicit save/close/
+create-only export. Full reconciliation/artifact inspection, brokered access,
+document undo/search/selection, plugins and accessible text remain engineering
+work before final user UI review. This is not normal native document-grant transport.
 The prototype refuses exit/EOF with open jobs; hangup waits for original direct
 children without forced killing. Final window/logout/reboot persistence and richer
 editor/multiplexer behavior remain product decisions, not implied by these tests.

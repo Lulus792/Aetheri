@@ -53,6 +53,11 @@ and retains the original service result. Run `stop` to retire the inspected unit
 and return to tty1. `stop --token TOKEN` selects a specific original development
 attempt. Repeating a completed stop returns history and cannot stop a newer one.
 
+With `AETHERI_EDITOR=ON` in the selected build, the [own modal editor](editor.md)
+can be started by its full build path inside Terminal. It is a foreground shell
+command, not another fixed desktop app slot or an admitted normal application.
+Close it through its save/close workflow before ending a development test session.
+
 ## What runs
 
 The host command verifies the registered P0 VM over QMP and calls the root-only

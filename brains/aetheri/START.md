@@ -19,10 +19,11 @@ native clipboard/paste review and an owned SDL preedit view. An optional
 DRM keyboard-to-shell evidence. The [own line editor](../../spec/line-editor.md)
 now provides whole-grapheme editing, bounded in-memory history/undo and literal
 Tab completion and history search in the actual terminal, with native PTY and
-virtual DRM evidence. The [modal editor core](../../spec/editor.md) now has tested
-document and Normal/Insert models plus a tested local file adapter. Actual view/
-key integration, interactive save/close and brokered file access remain work.
-External IMEs, advanced completion/richer search, modal editor app, panes, persistent
+virtual DRM evidence. The [modal editor](../../spec/editor.md) now has an opt-in
+executable with local load/edit/save, keyboard view and explicit save/close/export
+choices. Ordinary brokered access, durable recovery, document undo/search and
+full accessible text remain work.
+External IMEs, advanced completion/richer search, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
 NexaUI requirements and the initial chat message have already been delivered.

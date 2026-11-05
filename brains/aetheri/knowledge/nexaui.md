@@ -23,7 +23,11 @@ The same case now includes bounded undo/redo and literal completion ownership,
 with no automatic execution on suggestion selection or history mutation on undo.
 It also records reversible history search and the new app-owned document/modal
 core: borrowed gap spans/content revisions are not file permissions or durable
-save evidence. Actual editor view/file I/O remains Aetheri integration work.
+save evidence. Aetheri's actual terminal editor now owns local file I/O and
+save/close/create-only export choices. The existing case now also preserves
+uncertainty independently of clean content, additional export holders, explicit
+discard, focus return and minimum-viewport edit refusal. These are consumer
+contracts for a future view migration, not a toolkit-adoption or document-grant claim.
 This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
 remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
 

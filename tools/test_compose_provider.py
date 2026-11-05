@@ -15,7 +15,8 @@ import time
 
 
 def main():
-    server_bin,terminal_bin,shell_bin,peer_bin,font,build=map(lambda x:Path(x).resolve(),sys.argv[1:])
+    server_bin,terminal_bin,shell_bin,peer_bin,font,build=map(lambda x:Path(x).resolve(),sys.argv[1:7])
+    editor_bin=Path(sys.argv[7]).resolve() if len(sys.argv)==8 else None
     assert os.getuid()!=0
     root=Path(tempfile.mkdtemp(prefix="compose-provider-",dir=build))
     runtime,cache,captures=[root/n for n in ("runtime","cache","captures")]
@@ -25,6 +26,7 @@ def main():
     controller,issuer=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);controller.settimeout(4)
     children,streams,pins,cases,images=[],[],[],[],[]
     binaries={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (server_bin,terminal_bin,shell_bin,peer_bin)}
+    if editor_bin:binaries[str(editor_bin)]=hashlib.sha256(editor_bin.read_bytes()).hexdigest()
     def start(binary,name,*args,pass_fds=()):
         f=(root/(name+".log")).open("wb");streams.append(f)
         p=subprocess.Popen([str(binary),*map(str,args)],cwd=root,env=env,stdin=subprocess.PIPE,stdout=f,stderr=subprocess.STDOUT,pass_fds=pass_fds)
@@ -54,10 +56,12 @@ def main():
         rows=re.findall(r"^INPUT (\d+)$",log(),re.M);return int(rows[-1]) if rows else 0
     codes=dict(zip("abcdefghijklmnopqrstuvwxyz",(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
     codes.update({" ":57,"-":12,"'":40,"\n":28,".":52})
+    codes.update({"/":53,**dict(zip("1234567890",range(2,12)))})
     def typing(text):
         target=accepted()+len(text.encode())
         for c in text:
             if c==">":key(42,True);tap(52);key(42,False)
+            elif c==":":key(42,True);tap(39);key(42,False)
             else:tap(codes[c])
         wait(lambda:accepted()==target,"ordinary actual native input")
     def proof(name,text):
@@ -123,6 +127,30 @@ def main():
         assert not (root/"undo-proof").exists()
         input_key(28,1);proof("undo-proof",b"abc")
         cases.append("actual Ctrl+R/query renders history, first Enter only accepts, second Enter executes the original selected command")
+        if editor_bin:
+            typing(str(editor_bin)+" --new editor-proof\n")
+            wait(lambda:view().get("x")==8 and view().get("y")==1,"actual full-screen modal editor")
+            children_ids=Path(f"/proc/{shell}/task/{shell}/children").read_text().split();assert len(children_ids)==1
+            editor_pid=int(children_ids[0]);editor_pin=os.pidfd_open(editor_pid);pins.append(editor_pin)
+            assert Path(f"/proc/{editor_pid}/exe").resolve()==editor_bin and os.stat(f"/proc/{editor_pid}").st_uid==os.getuid()
+            input_key(23,1);typing("hello ");compose();tap(40);tap(36)
+            wait(lambda:view().get("composition")==0 and view().get("x")==15,"actual Compose cluster inside Insert mode")
+            typing("\nsecond line");tap(1)
+            wait(lambda:view().get("y")==2 and view().get("x")==18,"modal Escape retains original document/caret")
+            capture("actual own modal editor at 100 percent")
+            assert not (root/"editor-proof").exists()
+            control(16);wait(lambda:view().get("y")==view().get("rows",0)-1 and view().get("x")==0,"native dirty-close dialog focus")
+            capture("actual unsaved-close choices before file effects")
+            tap(1);wait(lambda:view().get("y")==2,"Escape restores original document focus")
+            for points in (20,24,32):tap(66);wait(lambda:view().get("points")==points,"actual modal editor text scaling")
+            tap(65);wait(lambda:view().get("contrast")==1,"actual high-contrast modal view")
+            capture("actual modal editor at 200 percent high contrast")
+            control(31);wait(lambda:(root/"editor-proof").exists() and (root/"editor-proof").read_bytes()=="hello j́\nsecond line".encode(),"real modal save exact grapheme/newline bytes")
+            typing(":q\n");wait(lambda:select.select([editor_pin],[],[],0)[0] and view().get("x")==9,"same original editor exits back to shell")
+            tap(66);tap(65)
+            cases.extend(["actual original modal executable edits native Compose graphemes and newline in the full-screen terminal",
+                "dirty-close dialog has actual footer focus, no file effect, and Escape returns to document",
+                "200-percent high-contrast editor preserves exact save bytes and restores the original shell"])
         before=accepted();compose();tap(1);wait(lambda:view().get("composition")==0,"native Escape cancels provider")
         assert accepted()==before
         typing("printf plain > plain-proof\n");proof("plain-proof",b"plain")
