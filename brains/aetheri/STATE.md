@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — first Aetheri-owned NexaUI Settings presentation.
+6 November 2026 — bound own Settings in the actual development desktop.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The explicit `start --desktop --settings-ui nexaui-owned` profile now selects
+our own Settings executable. Original Root/user/fresh-spawn checks bind its
+image, own model, five presentation inputs, bounded build configuration and
+reviewed SDK library. The frozen `aetheri-settings-v1` shape is distinct from
+the existing upstream option and historical SDL meaning. Own model changes do
+not require an SDK rebuild; the retained original owner refuses changed source/
+model/pin inputs before a new process. No fallback or production admission follows.
+
+Fourteen affected Settings/desktop groups pass Release (74.12s) and ASan/UBSan
+(139.15s). The sole final app-model independence refinement is rechecked through
+three owner/supervisor groups/profile (6.07s/10.89s); current image/library/profile
+bindings remain identical. Actual DRM token825441a3cab84098b53369cec3bf5f54 proves
+own-image launch/reuse, retained Light choice, close/fresh default model, exact
+Terminal-saved bytes, Files coexistence and localized 200-percent maximize/restore.
+All five original roles end0 and Root closes0; the historical retry is unchanged.
+See [record](journal/2026-11-06-owned-settings-owner.md) and
+[guide](../../spec/development-session.md).
+
+Audit joins 355 source inputs, unchanged 28 frozen SQL/XML and nineteen protected
+hashes/no sidecars. Twenty-six verified exports include twelve native images;
+24 stable DRM PNGs and both actor snapshots remain. The enforcing carrier is
+idle on tty1 without build actors, running Aetheri unit or seat0; the old
+quarantined recovery stays unresolved. No normal accessibility service or default
+toolkit replacement is implied. SDL and the original upstream option remain.
+
+Next: complete own Settings window chrome/input from the accepted studio,
+including ordinary move/resize behavior and compact controls, then continue
+per-view adoption. Full glass/design/human accessibility, normal session services,
+real backends, further apps, lifecycle/recovery/removal, image/installer/hardware
+and the persistent resettable experiment desktop remain required. Keep the full
+project goal active.
+
+## Own Settings presentation — completed checkpoint
 
 An opt-in `aetheri-settings-nexaui` now renders the unchanged model through our
 own C17 presentation: display observations, appearance/text size and language.
@@ -39,8 +73,8 @@ actual model, semantic, pixel and original-process evidence. Normal bus, human
 screenreader/design, full input/window chrome, physical and performance
 acceptance remain open.
 
-Next: bind this owned executable into a distinct fixed development-owner profile
-and run its actual DRM launch/reuse/close/fresh-lifetime exercise. The existing
+At that checkpoint, own-image binding and actual DRM lifetime were next; the
+current update above records their implemented opt-in path and executed result. The existing
 `--settings-ui nexaui` still selects its original upstream consumer; SDL stays
 the default. Preserve the original owner/process/pipe obligations. Other apps,
 real backends, lifecycle/recovery/removal, image/installer/hardware and the complete

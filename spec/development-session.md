@@ -1,6 +1,6 @@
 # Running the development desktop
 
-5 November 2026. This starts the native Aetheri compositor and selected UI in the
+6 November 2026. This starts the native Aetheri compositor and selected UI in the
 dedicated Fedora carrier. It is a development workflow, not the finished desktop,
 an Aetheri system image, normal app admission or the resettable experiment product.
 
@@ -29,6 +29,7 @@ python tools/development_session.py start
 python tools/development_session.py start --desktop
 python tools/development_session.py start --desktop --compose
 python tools/development_session.py start --desktop --compose --settings-ui nexaui
+python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
@@ -45,6 +46,16 @@ does not switch an existing session, the Settings-only mode or the other apps.
 Prepare the matching private SDK/consumer before starting. It remains a
 provisional original-model view, not the accepted final Settings design or
 persistent device configuration.
+`--settings-ui nexaui-owned` selects Aetheri's own three-page Settings presentation
+using the same reviewed SDK. Build `aetheri-settings-nexaui` first with
+`AETHERI_NEXAUI_PREFIX` selecting that profile's private prefix. This also binds
+the fixed executable, five presentation-source inputs and the bounded CMake cache,
+including its SDK prefix/package path and sanitizer choice. Its own model is
+independent of the unused upstream example's copied model. A fresh session can
+bind an edited app model without rebuilding the SDK; an existing owner still
+refuses changed inputs before a new process. Both NexaUI choices use eight runtime
+images and retain the original launch/pipe/shutdown protocol. Neither changes the
+SDL default or an already selected session.
 An already running headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
@@ -115,6 +126,13 @@ upgrading/rebinding them. It notifies PID1 only
 after the selected first UI has submitted its first frame, not merely printed
 READY. This is a development startup signal, not the Aetheri app READY protocol
 or proof of admitted code, data, grants or visible host presentation.
+
+The owned profile additionally carries `presentation.kind: aetheri-settings-v1`,
+the exact own executable/digest, five source digests and raw cache digest. Its
+field/source shape is frozen; a different source set requires a new kind with
+explicit historical validation. Old upstream profiles have no presentation field
+and cannot be reinterpreted as owned views. Historical validation uses recorded
+values only; it does not read the current cache, source or SDK.
 
 The NexaUI choice is checked before seat/history/start effects. The root controller
 passes the canonical binding digest to its original unprivileged supervisor,

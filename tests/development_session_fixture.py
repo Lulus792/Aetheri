@@ -30,7 +30,7 @@ def main():
 
     session.compositor_launch = compositor
     ui=os.environ.get("AETHERI_TEST_SETTINGS_UI","sdl")
-    if ui == "nexaui" and "AETHERI_TEST_SETTINGS_SOURCE" in os.environ:
+    if ui in ("nexaui", "nexaui-owned") and "AETHERI_TEST_SETTINGS_SOURCE" in os.environ:
         session.PROJECT=Path(os.environ["AETHERI_TEST_SETTINGS_SOURCE"])
     profile="debug" if "AETHERI_SANITIZERS:BOOL=ON" in (build/"CMakeCache.txt").read_text() else "release"
     selected=session.settings_selection(profile,ui)

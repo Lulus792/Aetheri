@@ -42,10 +42,13 @@ ctest --test-dir /path/to/aetheri-build -R '^settings.view' --output-on-failure
 
 This extends an already configured Settings/compositor development build with its
 reviewed font. CMake requires the exact installed 0.1.18 package. Use the separate
-Debug prefix for sanitizer builds. The new executable is not yet selected by the
-development owner: `--settings-ui nexaui` still binds the earlier upstream consumer.
-Keep that existing profile and SDL intact until a distinct owned-view binding and
-DRM lifetime test have been implemented. Normal session accessibility, full input/
+Debug prefix for sanitizer builds. The development owner now exposes the distinct
+`start --desktop --settings-ui nexaui-owned` profile, binding the own executable,
+model, presentation sources, CMake configuration and SDK library before effects
+and each fresh launch. `--settings-ui nexaui` retains the earlier upstream consumer;
+SDL remains default. Native owner and actual DRM launch/reuse/close/fresh-lifetime
+evidence is recorded in the [integration record](../brains/aetheri/journal/2026-11-06-owned-settings-owner.md).
+Normal session accessibility, full input/
 window chrome, real settings services and physical/performance acceptance remain work.
 
 The checks are `settings.view` and `settings.view_hidpi` (layout/model/keyboard/contrast

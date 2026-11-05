@@ -38,6 +38,9 @@ the ordinary build gains no mandatory SDK dependency. It adds
 development owner's `--settings-ui nexaui` still selects its previously bound
 upstream consumer. A separate owned-view binding and actual DRM owner/lifetime
 exercise are the next integration step, before changing any selection.
+The later [owned-profile checkpoint](2026-11-06-owned-settings-owner.md) now
+records that distinct binding and actual DRM exercise; the upstream option and
+SDL default remain unchanged.
 
 ## Verification and retained corrections
 

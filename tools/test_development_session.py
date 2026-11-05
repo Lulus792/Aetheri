@@ -110,6 +110,47 @@ class DevelopmentContracts(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,"selected desktop"):
                 session.start(None,self.carrier,"release",settings_ui="nexaui")
 
+    def test_owned_settings_has_a_separate_closed_historical_binding(self):
+        selected = dict(revision="a"*40, version="0.1.18", build="/home/aetheri/deps/nexaui-settings-release-02",
+                        artifacts={"prefix/lib/libnexaui.so.0.1.18":"2"*64},
+                        model={"src/settings/model.c":"3"*64,"src/settings/model.h":"4"*64},
+                        metadata_sha256="5"*64, pin_sha256="6"*64,
+                        presentation=dict(kind="aetheri-settings-v1", binary="/home/aetheri/build/session-release/aetheri-settings-nexaui",
+                                          sha256="7"*64, cache_sha256="8"*64,
+                                          sources={n:"9"*64 for n in session.OWN_SETTINGS_SOURCES}))
+        record={**self.record,"desktop":True,"settings_ui":"nexaui-owned","settings_profile":selected,
+                "settings_binding":session.settings_fingerprint(selected)}
+        self.assertIs(session.validate(record,self.carrier),record)
+        command=session.application_command("settings",Path('/unused'),Path('/cache'),selected)
+        self.assertEqual(command[0],selected['presentation']['binary'])
+        self.assertNotIn('aetheri_model_view',command[0])
+        bad=[]
+        for field,value in (("binary","/home/aetheri/build/session-debug/aetheri-settings-nexaui"),
+                            ("kind","future"),("cache_sha256","unknown"),("sources",{})):
+            changed=copy.deepcopy(selected);changed['presentation'][field]=value;bad.append(changed)
+        missing=copy.deepcopy(selected);del missing['presentation'];bad.append(missing)
+        for changed in bad:
+            with self.subTest(changed=changed),self.assertRaises(RuntimeError):
+                session.validate({**record,'settings_profile':changed,'settings_binding':session.settings_fingerprint(changed)},self.carrier)
+        with self.assertRaises(RuntimeError):session.validate({**record,'settings_ui':'nexaui'},self.carrier)
+        before=copy.deepcopy(record);before['phase']='closed';record['phase']='closed'
+        with patch.object(session,'settings_selection',side_effect=AssertionError('current owned inputs read')), \
+             patch.object(session,'run',side_effect=AssertionError('historical effect')):
+            self.assertEqual(session.stop(record),before)
+        self.assertEqual(record,before)
+
+    def test_owned_settings_requires_bound_desktop_before_effects(self):
+        with patch.object(session.os,"getuid",return_value=1000,create=True),patch.object(session.os,"geteuid",return_value=1000,create=True), \
+             patch.object(session,"settings_selection",return_value={"test":"owned profile"}), \
+             patch.object(session.subprocess,"Popen",side_effect=AssertionError("premature process")):
+            with self.assertRaisesRegex(RuntimeError,"original Settings selection"):
+                session.supervise("release","a"*32,desktop=True,settings_ui="nexaui-owned",settings_binding="0"*64)
+            with self.assertRaisesRegex(RuntimeError,"selected desktop"):
+                session.supervise("release","a"*32,settings_ui="nexaui-owned")
+        with patch.object(session,"free_seat",side_effect=AssertionError("premature seat effect")):
+            with self.assertRaisesRegex(RuntimeError,"selected desktop"):
+                session.start(None,self.carrier,"release",settings_ui="nexaui-owned")
+
     def test_pending_effect_never_permits_another_start_or_stop(self):
         for phase in ("preparing", "starting", "stopping", "exited"):
             record = {**self.record, "phase": phase}

@@ -6,6 +6,10 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Settings — 6 November 2026
 
+- [Bound development selection/supervisor](../../tools/development_session.py),
+  [contract guards](../../tools/test_development_session.py) and
+  [native owner fixture](../../tools/test_nexaui_owner.py).
+  [Own-image integration and actual DRM record](journal/2026-11-06-owned-settings-owner.md).
 - Original [presentation](../../src/settings/nexaui_view.c),
   [view boundary](../../src/settings/nexaui_view.h) and
   [native host](../../src/settings/nexaui_main.c). The host adapts the selected

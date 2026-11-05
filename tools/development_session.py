@@ -29,7 +29,10 @@ TERMINAL_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regu
 APP_SELECTORS = {b"S": "settings", b"T": "terminal", b"F": "files"}
 APP_ROLES = ("files", "terminal", "settings")  # Files retains its document owner before later views retire.
 PROFILES = ("release", "debug")
-SETTINGS_UIS = ("sdl", "nexaui")
+SETTINGS_UIS = ("sdl", "nexaui", "nexaui-owned")
+# Frozen shape of aetheri-settings-v1; new source sets need a new kind/validator.
+OWN_SETTINGS_SOURCES = ("CMakeLists.txt", "src/settings/nexaui_main.c", "src/settings/nexaui_view.c",
+                        "src/settings/nexaui_view.h", "src/settings/NEXAUI-NOTICE.txt")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
 
@@ -61,8 +64,10 @@ def settings_fingerprint(profile):
     return hashlib.sha256(json.dumps(profile, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def validate_settings_profile(profile, build_profile):
-    if not isinstance(profile, dict) or set(profile) != {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256"}:
+def validate_settings_profile(profile, build_profile, owned_view=False):
+    keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256"}
+    if owned_view: keys.add("presentation")
+    if not isinstance(profile, dict) or set(profile) != keys:
         raise RuntimeError("invalid development Settings binding")
     if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
         raise RuntimeError("invalid development Settings build")
@@ -71,7 +76,8 @@ def validate_settings_profile(profile, build_profile):
     if not isinstance(profile["version"], str) or re.fullmatch("[0-9]+\\.[0-9]+\\.[0-9]+", profile["version"]) is None:
         raise RuntimeError("invalid development Settings version")
     artifacts = profile["artifacts"]
-    expected = {"consumer-build/aetheri_model_view", "prefix/lib/libnexaui.so." + profile["version"]}
+    expected = {"prefix/lib/libnexaui.so." + profile["version"]}
+    if not owned_view: expected.add("consumer-build/aetheri_model_view")
     if not isinstance(artifacts, dict) or set(artifacts) != expected:
         raise RuntimeError("invalid development Settings artifacts")
     model = profile["model"]
@@ -80,7 +86,27 @@ def validate_settings_profile(profile, build_profile):
     for value in (*artifacts.values(), *model.values(), profile["metadata_sha256"], profile["pin_sha256"]):
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None:
             raise RuntimeError("invalid development Settings digest")
+    if owned_view:
+        view = profile["presentation"]
+        if not isinstance(view, dict) or set(view) != {"kind", "binary", "sha256", "sources", "cache_sha256"} or view["kind"] != "aetheri-settings-v1":
+            raise RuntimeError("invalid owned Settings presentation")
+        if view["binary"] != (build_for(build_profile) / "aetheri-settings-nexaui").as_posix():
+            raise RuntimeError("invalid owned Settings executable")
+        if not isinstance(view["sources"], dict) or set(view["sources"]) != set(OWN_SETTINGS_SOURCES):
+            raise RuntimeError("invalid owned Settings source binding")
+        for value in (view["sha256"], view["cache_sha256"], *view["sources"].values()):
+            if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None:
+                raise RuntimeError("invalid owned Settings digest")
     return profile
+
+
+def checked_settings_artifact(path, expected=None):
+    path = Path(path); current = path.lstat()
+    if path.resolve() != path or not stat.S_ISREG(current.st_mode) or current.st_uid != 1000 or stat.S_IMODE(current.st_mode) != 0o755 or current.st_nlink != 1 or current.st_size > 16*1024**2:
+        raise RuntimeError("Settings artifact changed")
+    value = digest(path)
+    if expected is not None and value != expected: raise RuntimeError("Settings artifact changed")
+    return value
 
 
 def settings_selection(build_profile, ui):
@@ -90,7 +116,7 @@ def settings_selection(build_profile, ui):
     not a sealed store, publisher trust, atomic exec pin or volume authentication.
     """
     if ui == "sdl": return None
-    if ui != "nexaui" or build_profile not in PROFILES:
+    if ui not in ("nexaui", "nexaui-owned") or build_profile not in PROFILES:
         raise RuntimeError("invalid Settings UI/profile")
     try:
         pin_path = PROJECT / "spec/nexaui-inputs.json"
@@ -106,17 +132,34 @@ def settings_selection(build_profile, ui):
         record = json.loads(metadata_bytes)
         if record["revision"] != pin["revision"] or record["version"] != pin["version"] or record["atspi_compiled"] is not True or record["sanitizers"] is not (build_profile == "debug"):
             raise RuntimeError("Settings candidate does not match selected build")
-        names = ("consumer-build/aetheri_model_view", "prefix/lib/libnexaui.so." + pin["version"])
+        names = ("prefix/lib/libnexaui.so." + pin["version"],)
+        if ui == "nexaui": names += ("consumer-build/aetheri_model_view",)
         selected = dict(revision=pin["revision"], version=pin["version"], build=str(build),
                         artifacts={n: record["artifacts"][n] for n in names}, model=record["model"],
                         metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(), pin_sha256=hashlib.sha256(pin_bytes).hexdigest())
-        validate_settings_profile(selected, build_profile)
+        if ui == "nexaui-owned":
+            # The own app links its own model. The unused upstream consumer's
+            # copied model must not force an SDK rebuild after an app edit.
+            selected["model"] = {n:digest(PROJECT / n) for n in ("src/settings/model.c", "src/settings/model.h")}
+            own_build = build_for(build_profile)
+            binary = own_build / "aetheri-settings-nexaui"
+            cache = own_build / "CMakeCache.txt"; owned(cache, 1000, 0o644)
+            with cache.open("rb") as stream: cache_bytes = stream.read(65537)
+            if len(cache_bytes) > 65536: raise RuntimeError("Settings build cache exceeded bound")
+            required = ("AETHERI_NEXAUI_PREFIX:PATH=" + str(build / "prefix"),
+                        "NexaUI_DIR:PATH=" + str(build / "prefix/lib/cmake/NexaUI"),
+                        "AETHERI_SANITIZERS:BOOL=" + ("ON" if build_profile == "debug" else "OFF"))
+            cache_lines = cache_bytes.decode("utf-8").splitlines()
+            if any(cache_lines.count(line) != 1 for line in required):
+                raise RuntimeError("owned Settings configuration does not match selected SDK/profile")
+            selected["presentation"] = dict(kind="aetheri-settings-v1", binary=str(binary),
+                sha256=checked_settings_artifact(binary), sources={n:digest(PROJECT / n) for n in OWN_SETTINGS_SOURCES},
+                cache_sha256=hashlib.sha256(cache_bytes).hexdigest())
+        validate_settings_profile(selected, build_profile, ui == "nexaui-owned")
         for name, expected in selected["model"].items():
             if digest(PROJECT / name) != expected: raise RuntimeError("Settings model changed")
         for name, expected in selected["artifacts"].items():
-            path = build / name; current = path.lstat()
-            if path.resolve() != path or not stat.S_ISREG(current.st_mode) or current.st_uid != 1000 or stat.S_IMODE(current.st_mode) != 0o755 or current.st_nlink != 1 or current.st_size > 16*1024**2 or digest(path) != expected:
-                raise RuntimeError("Settings artifact changed")
+            checked_settings_artifact(build / name, expected)
         return selected
     except (OSError, KeyError, TypeError, ValueError) as error:
         raise RuntimeError("Settings candidate check failed") from error
@@ -125,7 +168,8 @@ def settings_selection(build_profile, ui):
 def application_command(role, build, cache, settings_profile=None):
     if role == "settings":
         if settings_profile is not None:
-            return [str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view"),
+            executable = settings_profile["presentation"]["binary"] if "presentation" in settings_profile else str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view")
+            return [executable,
                     "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"), "--cache", str(cache), "--diagnostics"]
         return [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--cache", str(cache), "--diagnostics"]
@@ -198,9 +242,9 @@ def validate(record, carrier):
     binding = record.get("settings_binding")
     if ui not in SETTINGS_UIS or (ui == "sdl" and (selected is not None or binding is not None)):
         raise RuntimeError("invalid development Settings selection")
-    if ui == "nexaui":
+    if ui != "sdl":
         if not record.get("desktop", False): raise RuntimeError("NexaUI selection requires desktop")
-        validate_settings_profile(selected, record["profile"])
+        validate_settings_profile(selected, record["profile"], ui == "nexaui-owned")
         if binding != settings_fingerprint(selected): raise RuntimeError("development Settings binding changed")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
@@ -267,7 +311,7 @@ def free_seat():
 def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl"):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
-    if settings_ui not in SETTINGS_UIS or (settings_ui == "nexaui" and not desktop):
+    if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     selected = settings_selection(profile, settings_ui)
     binding = settings_fingerprint(selected) if selected is not None else None
@@ -291,6 +335,8 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
     if selected is not None: names = tuple(n for n in names if n != "aetheri-settings")
     binaries = {str(build / name): digest(build / name) for name in names}
     if selected is not None: binaries.update({str(Path(selected["build"]) / n): h for n, h in selected["artifacts"].items()})
+    if selected is not None and "presentation" in selected:
+        view = selected["presentation"]; binaries[view["binary"]] = view["sha256"]
     assets = terminal_assets() if desktop else {}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
@@ -435,7 +481,7 @@ def observation(record):
 def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
-    if settings_ui not in SETTINGS_UIS or (settings_ui == "nexaui" and not desktop):
+    if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     selected = settings_selection(profile, settings_ui)
     expected_binding = settings_fingerprint(selected) if selected is not None else None
@@ -635,7 +681,7 @@ def main():
     if args.compose and args.action != "start" and not args.supervise:
         raise ValueError("--compose selects a new start profile only")
     if args.settings_ui != "sdl" and (not args.desktop or (args.action != "start" and not args.supervise)):
-        raise ValueError("--settings-ui nexaui requires a new --desktop start")
+        raise ValueError("a NexaUI Settings selection requires a new --desktop start")
     if args.settings_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.settings_binding) is None):
         raise ValueError("Settings binding belongs to the original supervisor only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")

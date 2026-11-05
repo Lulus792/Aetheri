@@ -26,19 +26,24 @@ def digest(path):
 
 def main():
     build = Path(sys.argv[1]).resolve()
+    ui = sys.argv[2] if len(sys.argv) == 3 else "nexaui"
+    assert ui in ("nexaui", "nexaui-owned")
     if os.getuid() != 1000:
         raise RuntimeError("explicit disposable carrier account required")
     source = Path(__file__).resolve().parents[1]
     profile = "debug" if "AETHERI_SANITIZERS:BOOL=ON" in (build / "CMakeCache.txt").read_text() else "release"
-    selected = session.settings_selection(profile, "nexaui")
-    root = Path(tempfile.mkdtemp(prefix="nexaui-owner-", dir=build))
+    selected = session.settings_selection(profile, ui)
+    # Leave space for the fixed runtime/socket suffix within sockaddr_un.
+    root = Path(tempfile.mkdtemp(prefix="nx-own-" if ui == "nexaui-owned" else "nexaui-owner-", dir=build))
     for name in ("captures", "sessions", "sessions/fixture", "sessions/fixture/runtime", "sessions/fixture/cache", "sessions/fixture/documents", "source/spec", "source/src/settings"):
         (root / name).mkdir(mode=0o700, parents=True, exist_ok=True)
-    for name in ("spec/nexaui-inputs.json", "src/settings/model.c", "src/settings/model.h"):
+    copied_sources = ("spec/nexaui-inputs.json", "src/settings/model.c", "src/settings/model.h")
+    if ui == "nexaui-owned": copied_sources += session.OWN_SETTINGS_SOURCES
+    for name in copied_sources:
         (root / "source" / name).write_bytes((source / name).read_bytes())
     pin_path = root / "source/spec/nexaui-inputs.json"
     original_pin = pin_path.read_bytes()
-    env = {**os.environ, "AETHERI_TEST_SETTINGS_UI": "nexaui", "AETHERI_TEST_SETTINGS_SOURCE": str(root / "source")}
+    env = {**os.environ, "AETHERI_TEST_SETTINGS_UI": ui, "AETHERI_TEST_SETTINGS_SOURCE": str(root / "source")}
     controller, issuer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     controller.settimeout(4)
     stream = (root / "owner.log").open("wb")
@@ -123,6 +128,20 @@ def main():
         chunk = rawlog().rsplit("SPAWN settings ", 1)[-1]
         return "\n".join(s for s in chunk.splitlines() if s.startswith("settings: "))
 
+    def model():
+        rows = re.findall(r"MODEL theme=(\d+) german=(\d+) text=(\d+)", current_settings())
+        return tuple(map(int, rows[-1])) if rows else None
+
+    def tab_to(target):
+        def focus():
+            rows = re.findall(r"FOCUS (\d+)", current_settings())
+            return int(rows[-1]) if rows else None
+        for _ in range(16):
+            if focus() == target: return
+            previous = focus(); tap(15)
+            wait(lambda: focus() != previous, "native owned Settings Tab")
+        raise AssertionError((target, focus(), current_settings()[-3000:]))
+
     def snapshot(label):
         sequence = len(cases) + 1
         signal.pidfd_send_signal(roles["compositor"][1], signal.SIGUSR1)
@@ -147,17 +166,22 @@ def main():
         first = roles["settings"]
         maps = Path(f"/proc/{first[0]}/maps").read_text()
         assert str(Path(selected["build"]) / "prefix/lib/libnexaui.so.") in maps and "libSDL3" not in maps
-        assert digest(Path(f"/proc/{first[0]}/exe")) == selected["artifacts"]["consumer-build/aetheri_model_view"]
+        expected_image = selected["presentation"]["sha256"] if ui == "nexaui-owned" else selected["artifacts"]["consumer-build/aetheri_model_view"]
+        assert digest(Path(f"/proc/{first[0]}/exe")) == expected_image
         (root / "first-maps.txt").write_text(maps)
         snapshot("search-selected NexaUI Settings with original desktop")
         before = log("desktop").count("LAUNCH_REPLY A S\n")
         click_control(2)
         wait(lambda: log("desktop").count("LAUNCH_REPLY A S\n") > before, "dock reuses original live Settings")
         assert len(re.findall(r"^SPAWN settings ", rawlog(), re.M)) == 1 and live(first[1])
-        tap(15)
-        tap(15)
+        if ui == "nexaui-owned":
+            tab_to(51); tap(57)
+            wait(lambda: "SETTLED theme=0 german=0 text=100 page=1" in current_settings(), "own Appearance page")
+            tab_to(101)
+        else:
+            tap(15); tap(15)
         tap(57)
-        wait(lambda: "MODEL theme=1 german=0 text=100\n" in log("settings"), "native keyboard changes original model")
+        wait(lambda: model() == (1,0,100), "native keyboard changes original model")
         tap(1)
         wait(lambda: "LAUNCH_REPLY X S\n" in log("desktop"), "Settings process and pipe retired")
         assert not live(first[1])
@@ -171,10 +195,39 @@ def main():
         assert len(re.findall(r"^SPAWN settings ", rawlog(), re.M)) == 1
         assert all(live(roles[r][1]) for r in ("desktop", "compositor"))
         pin_path.write_bytes(original_pin)
+        if ui == "nexaui-owned":
+            view_source = root / "source/src/settings/nexaui_view.c"
+            original_view = view_source.read_bytes()
+            view_source.write_bytes(original_view + b"\n/* private test drift */\n")
+            errors = log("desktop").count("LAUNCH_REPLY E S\n")
+            click_control(2)
+            wait(lambda: log("desktop").count("LAUNCH_REPLY E S\n") > errors, "owned source drift refuses fresh Settings")
+            assert len(re.findall(r"^SPAWN settings ", rawlog(), re.M)) == 1
+            assert all(live(roles[r][1]) for r in ("desktop", "compositor"))
+            view_source.write_bytes(original_view)
+            model_source = root / "source/src/settings/model.c"
+            original_model = model_source.read_bytes()
+            model_source.write_bytes(original_model + b"\n/* independent app model fixture */\n")
+            # A fresh own-app selection can bind its model without rebuilding
+            # the SDK/unused consumer. This already-running owner cannot adopt it.
+            original_project = session.PROJECT
+            try:
+                session.PROJECT = root / "source"
+                fresh_selection = session.settings_selection(profile, ui)
+            finally:
+                session.PROJECT = original_project
+            assert fresh_selection["model"] != selected["model"]
+            assert fresh_selection["artifacts"] == selected["artifacts"]
+            assert fresh_selection["presentation"]["sha256"] == selected["presentation"]["sha256"]
+            errors = log("desktop").count("LAUNCH_REPLY E S\n")
+            click_control(2)
+            wait(lambda: log("desktop").count("LAUNCH_REPLY E S\n") > errors, "retained owner refuses a different app model")
+            assert len(re.findall(r"^SPAWN settings ", rawlog(), re.M)) == 1
+            model_source.write_bytes(original_model)
         # A fresh explicit request can now select only the original same bytes.
         click_control(2)
         wait(lambda: len(re.findall(r"^SPAWN settings ", rawlog(), re.M)) == 2 and
-                     "settings: FRAME " in current_settings() and "MODEL theme=0 german=0 text=100\n" in current_settings()+"\n", "fresh original Settings after exact restoration")
+                     "settings: FRAME " in current_settings() and model() == (0,0,100), "fresh original Settings after exact restoration")
         second = roles["settings"]
         assert second[0] != first[0] and live(second[1])
         click_control(4)
@@ -194,7 +247,9 @@ def main():
         assert pin_path.read_bytes() == original_pin
         for name, expected in selected["artifacts"].items():
             assert digest(Path(selected["build"]) / name) == expected
-        result = {"result":"passed", "profile":profile, "selection":selected, "binding":session.settings_fingerprint(selected),
+        for name in copied_sources:
+            assert (root / "source" / name).read_bytes() == (source / name).read_bytes()
+        result = {"result":"passed", "profile":profile, "settings_ui":ui, "selection":selected, "binding":session.settings_fingerprint(selected),
                   "cases":cases, "images":images, "end":end,
                   "scope":"real owner/native desktop with explicit NexaUI selection; no PAM/DRM, production admission or complete removal"}
         (root / "result.json").write_text(json.dumps(result, indent=2) + "\n")
