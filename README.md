@@ -32,9 +32,14 @@ connects it to a real PTY, bounded Unicode/color grid and SDL3 view, with native
 DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection.
 The terminal now selects our [own line editor](spec/line-editor.md), with
 whole-grapheme editing, bounded undo/redo and in-memory history, plus literal
-command/path Tab completion. The syntax is experimental;
-advanced completion/search, panes/modal editor, persistent sessions and admitted app/session
+command/path Tab completion and reversible history search. The syntax is experimental;
+advanced completion/richer search, panes/modal editor, persistent sessions and admitted app/session
 launch remain work.
+
+The first [own file-editor core](spec/editor.md) now has a gap buffer, exact
+UTF-8/line-ending preservation and Normal/Insert state with grapheme-aware edits.
+These are tested C17 libraries. The executable editor view and file opening/saving
+are the next integration step.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
 and Compose sequences through native Wayland preedit/commit to the terminal and

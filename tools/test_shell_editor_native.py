@@ -74,6 +74,44 @@ class OwnEditor(unittest.TestCase):
                 self.assertEqual((t.root/'after-failure').read_bytes(),b'fresh')
             finally:t.close()
 
+    def test_history_search_accepts_without_execution_and_navigates_both_ways(self):
+        self.command('printf old > search-old');self.command('printf new > search-new')
+        (self.t.root/'search-old').unlink();(self.t.root/'search-new').unlink()
+        self.t.send(b'\x12search');self.t.expect(rb'find> search \| printf new > search-new')
+        for key,text in ((b'\x12',b'old'),(b'\x13',b'new'),(b'\x1b[A',b'old'),(b'\x1b[B',b'new')):
+            self.t.send(key);self.t.expect(rb'find> search \| printf '+text+b' > search-'+text)
+        self.assertFalse((self.t.root/'search-new').exists())
+        self.t.send(b'\n');self.t.expect(rb'\r\x1b\[Kaetheri> printf new > search-new')
+        self.assertFalse((self.t.root/'search-new').exists())
+        self.t.send(b'\n');self.t.expect(PROMPT);self.file('search-new',b'new')
+        self.assertFalse((self.t.root/'search-old').exists())
+
+    def test_history_search_cancel_preserves_draft_cursor_and_escape_sequences(self):
+        self.command('printf older > search-history')
+        self.t.send(b"printf 'ac'\x02\x02\x12history");self.t.expect(rb'find> history \| printf older')
+        self.t.send(b'\x1b[D\x07');self.t.expect(rb"\r\x1b\[Kaetheri> printf 'ac'")
+        self.command(b'b\x05 > cancelled-search');self.file('cancelled-search',b'abc')
+        self.t.send(b'printf live\x12history');self.t.expect(rb'find> history \| printf older')
+        self.t.send(b'\x1b');self.t.expect(rb'\r\x1b\[Kaetheri> printf live')
+        self.command(b' > escaped-search');self.file('escaped-search',b'live')
+        self.command("printf 'j́' > unicode-history")
+        self.t.send(b'\x12'+'j́'.encode());self.t.expect(b'find> '+'j́'.encode()+rb" \| printf '")
+        self.t.send(b'\x7f');self.t.expect(rb"find>  \| printf '")
+        self.t.send(b'\x07');self.t.expect(PROMPT)
+
+    def test_failed_or_oversize_search_never_accepts_an_old_candidate(self):
+        self.command('touch stale-search');(self.t.root/'stale-search').unlink()
+        self.t.send(b'printf untouched\x12absent-token');self.t.expect(rb'find> absent-token \| \(no match\)')
+        for _ in range(2):
+            self.t.send(b'\n');self.t.expect(rb'find> absent-token \| \(no match\)')
+        self.assertFalse((self.t.root/'stale-search').exists())
+        self.t.send(b'\x07');self.t.expect(rb'\r\x1b\[Kaetheri> printf untouched')
+        self.command(b' > restored-query');self.file('restored-query',b'untouched')
+        self.t.send(b'touch oversized-search\x12'+b'q'*1025+b'\n');self.t.expect(rb'input rejected; Ctrl\+U or Ctrl\+C')
+        self.assertFalse((self.t.root/'oversized-search').exists())
+        self.t.send(b'\x15');self.t.expect(PROMPT)
+        self.command(b'\x1f\x1eprintf fresh > search-reset');self.file('search-reset',b'fresh')
+
     def test_grapheme_units_keep_actual_utf8_command_bytes(self):
         self.command("printf 'Aäj́👩‍💻🇩🇪Z'".encode()+b'\x02'+b'\x7f'*4+b'!\x05 > unicode-proof')
         self.file('unicode-proof','Aä!'.encode())

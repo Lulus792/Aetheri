@@ -4,7 +4,7 @@
 This adds our own C17 single-line editing and in-memory command history to the
 existing [shell language and job runner](shell.md). It has no UI-toolkit types,
 history file, background service or added runtime library. Bounded undo/redo and
-literal command/path completion are now available. A full modal editor, search,
+literal command/path completion and history search are now available. A full modal editor,
 advanced completion, panes and persistent sessions remain work.
 
 ## Use and controls
@@ -27,6 +27,10 @@ Plain `-i` retains the earlier canonical kernel editor. Batch modes are unchange
 | Ctrl+L | Redraw the current line |
 | Tab | Complete a literal command/path; list alternatives when the common prefix cannot grow |
 | Ctrl+Shift+Z / Ctrl+Shift+Y in the graphical terminal | Undo / redo the current draft (PTY bytes 0x1f / 0x1e) |
+| Ctrl+R | Begin bounded history search, or select an older match |
+| Ctrl+S / Up / Down during search | Newer match / older / newer; no wrapping |
+| Ctrl+G / Escape during search | Cancel and restore the untouched draft/cursor/undo; lone Escape uses the existing decoding deadline |
+| Enter during search | Accept a matching command into the draft; a further Enter submits it |
 | Enter | Accept the line, restore terminal modes, then parse/execute |
 | Ctrl+C | Cancel the draft; retain history and report status 130 |
 | Ctrl+D | End input if empty, otherwise delete the following grapheme |
@@ -102,6 +106,20 @@ There is no completion daemon, thread, process, persistent cache or shell-script
 evaluation. A fully nonblocking remote-filesystem provider remains later work.
 
 ## Rejected input
+
+History search has its own <=1,024-byte UTF-8 query. It searches only retained
+in-memory commands as literal case-sensitive substrings, without normalization
+or regex evaluation. Query backspace removes a whole grapheme; Ctrl+U clears the
+query. It does not write history, invoke completion, read files or execute text.
+`find> query | match` displays a bounded viewport. Unsupported query-edit controls
+do not become draft text; arrows are decoded as whole sequences. No-match clears
+candidate admission, so Enter cannot reuse a previous result. Escape/Ctrl+G
+preserve the original draft and undo; Ctrl+C cancels the whole input as before.
+Selecting a match starts normal history-navigation/undo lifetime and preserves
+the original live draft for later Down navigation. Query acceptance allocates no
+memory. Oversized/malformed query input blocks the whole draft until explicit
+reset; search/undo/Tab cannot revive a rejected prefix. There is no persistent
+search index, query log, fuzzy/regex mode or new service.
 
 The line limit is 16,383 UTF-8 bytes. Invalid UTF-8, unsupported controls, invalid
 key sequences and overflow block the entire draft: Enter cannot execute the
@@ -212,26 +230,30 @@ and count/byte eviction. The [completion test](../tests/test_shell_completion.c)
 round-trips actual metacharacter filenames through the independent production
 parser and checks PATH/type/hidden filters, cancellation, limits, no candidate
 execution and unchanged FD counts.
-The [native PTY test](../tools/test_shell_editor_native.py) has thirteen cases,
+The [native PTY test](../tools/test_shell_editor_native.py) has sixteen cases,
 including actual child termios/flags/input, stop/fg/resize, rejection and exit
 restoration. The [native Compose test](../tools/test_compose_provider.py) now has
-twelve cases including real whole-grapheme deletion, Home/Delete/End, history,
-graphical undo/redo chords and Tab.
+thirteen cases including real whole-grapheme deletion, Home/Delete/End, history,
+graphical undo/redo chords, Tab and two-stage search selection/submission.
 The separate [allocation fault producer](../tests/shell_editor_allocation.c)
 uses the same shell/adapter with a test-only malloc wrapper. Seven failed raw/CSI
 delete/cut/completion paths must block execution until reset; the production target contains
 no fault hook. A real pre-fix file effect is retained in the newer dated record.
 
-All 29 affected groups pass Release and ASan/UBSan. A separate real virtual-DRM
+All 31 affected groups, including the separate document/modal core, pass Release
+and ASan/UBSan. A separate real virtual-DRM
 session verifies original keyboard-to-file effects and pixel-exact cancellation
 at 100/200 percent. Original failures, negative controls and precise evidence
 identities are in the [dated record](../brains/aetheri/journal/2026-11-05-line-editor.md).
 These results do not establish physical hardware, assistive use, full editor/
-terminal compatibility, normal admitted app/session launch or isolation. Search,
+terminal compatibility, normal admitted app/session launch or isolation. Richer search,
 advanced completion, the requested own modal editor, panes and persistence remain
 required; final bindings/design still need product review. The
 [undo/completion record](../brains/aetheri/journal/2026-11-05-line-assist.md)
 records the newer candidate; the earlier record retains its original results.
+The [search/editor-core record](../brains/aetheri/journal/2026-11-05-search-and-editor-core.md)
+records subsequent search integration. The separate [modal core](editor.md) has
+no executable view or file I/O yet.
 
 Primary references: [UAX #29 revision 49, Unicode 18](https://www.unicode.org/reports/tr29/tr29-49.html),
 the exact [input URLs/hashes](unicode-inputs.json),

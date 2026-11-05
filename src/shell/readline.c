@@ -34,11 +34,12 @@ static size_t cluster(const char *text,size_t size,char out[256],unsigned *width
     if ((unsigned)n>maximum) { out[0]='?';*width=1;return 1; }
     *width=(unsigned)n;return (size_t)n;
 }
-static int draw(struct ae_shell_terminal *t,struct ae_line_editor *e,bool submit,bool blocked) {
+static int draw_span(struct ae_shell_terminal *t,const char *text,size_t cursor,const size_t *offsets,size_t count,
+        const char *prompt,bool submit,bool blocked) {
     struct winsize window;
     if (ioctl(t->fd,TIOCGWINSZ,&window) || window.ws_col<16 || window.ws_col>4096) return -1;
-    size_t size,cursor,count;const char *text=ae_line_text(e,&size,&cursor);const size_t *offsets=ae_line_boundaries(e,&count);
-    unsigned available=(unsigned)window.ws_col-12,start_width=0,total=0,cursor_cells=0;
+    size_t prompt_size=strlen(prompt);if (prompt_size>12) return -1;
+    unsigned available=(unsigned)window.ws_col-(unsigned)prompt_size-3u,start_width=0,total=0,cursor_cells=0;
     size_t start=0,end=count-1;unsigned maximum=submit ? 256u : available;
     for (size_t i=0;i+1<count;++i) {
         char bytes[256];unsigned width;size_t n=cluster(text+offsets[i],offsets[i+1]-offsets[i],bytes,&width,maximum);if (!n) return -1;
@@ -60,8 +61,8 @@ static int draw(struct ae_shell_terminal *t,struct ae_line_editor *e,bool submit
             start_width+=width;++start;
         }
     }
-    char output[AE_LINE_BYTES*8+256];size_t used=0;unsigned painted=0,prefix=9u+(start ? 1u : 0u);
-    memcpy(output,"\r\033[Kaetheri> ",13);used=13;
+    char output[(AE_LINE_BYTES+AE_LINE_SEARCH_BYTES+32)*8+256];size_t used=0;unsigned painted=0,prefix=(unsigned)prompt_size+(start ? 1u : 0u);
+    memcpy(output,"\r\033[K",4);memcpy(output+4,prompt,prompt_size);used=4+prompt_size;
     if (!submit && start) output[used++]='<';
     for (size_t i=start;i<end;++i) {
         char bytes[256];unsigned width;size_t n=cluster(text+offsets[i],offsets[i+1]-offsets[i],bytes,&width,maximum);
@@ -79,6 +80,22 @@ static int draw(struct ae_shell_terminal *t,struct ae_line_editor *e,bool submit
         used+=(size_t)n;
     }
     return ae_shell_jobs_write(t,output,used);
+}
+static int draw_search(struct ae_shell_terminal *t,struct ae_line_editor *e,bool blocked) {
+    struct ae_line_search_view view;if (!ae_line_search_view(e,&view)) return -1;
+    char text[AE_LINE_BYTES+AE_LINE_SEARCH_BYTES+32];size_t used=view.query_size;
+    memcpy(text,view.query,used);memcpy(text+used," | ",3);used+=3;
+    const char *match=view.found ? view.match : "(no match)";size_t size=view.found ? view.match_size : 10;
+    memcpy(text+used,match,size);used+=size;
+    size_t offsets[sizeof(text)+1],count;
+    if (!ae_text_graphemes(text,used,offsets,sizeof(offsets)/sizeof(*offsets),&count)) return -1;
+    return draw_span(t,text,view.query_size,offsets,count,"find> ",false,blocked);
+}
+static int draw(struct ae_shell_terminal *t,struct ae_line_editor *e,bool submit,bool blocked) {
+    if (ae_line_search_active(e) && !submit) return draw_search(t,e,blocked);
+    size_t size,cursor,count;const char *text=ae_line_text(e,&size,&cursor);(void)size;
+    const size_t *offsets=ae_line_boundaries(e,&count);
+    return draw_span(t,text,cursor,offsets,count,"aetheri> ",submit,blocked);
 }
 static bool completion_cancelled(void *context) {
     struct ae_shell_terminal *t=context;struct pollfd event={t->signals,POLLIN,0};
@@ -110,6 +127,13 @@ static int complete(struct ae_shell_terminal *t,struct ae_line_editor *e,bool *r
     return n<0 || (size_t)n>=sizeof(output) ? -1 : ae_shell_jobs_write(t,output,(size_t)n);
 }
 static bool sequence(struct ae_line_editor *e,const char *s) {
+    if (ae_line_search_active(e)) {
+        if (!strcmp(s,"[A") || !strcmp(s,"OA")) return ae_line_search_next(e,-1);
+        if (!strcmp(s,"[B") || !strcmp(s,"OB")) return ae_line_search_next(e,1);
+        return !strcmp(s,"[D") || !strcmp(s,"OD") || !strcmp(s,"[C") || !strcmp(s,"OC") ||
+            !strcmp(s,"[H") || !strcmp(s,"OH") || !strcmp(s,"[F") || !strcmp(s,"OF") ||
+            !strcmp(s,"[1~") || !strcmp(s,"[7~") || !strcmp(s,"[4~") || !strcmp(s,"[8~") || !strcmp(s,"[3~");
+    }
     if (!strcmp(s,"[D") || !strcmp(s,"OD")) return ae_line_edit(e,AE_LINE_LEFT);
     if (!strcmp(s,"[C") || !strcmp(s,"OC")) return ae_line_edit(e,AE_LINE_RIGHT);
     if (!strcmp(s,"[A") || !strcmp(s,"OA")) return ae_line_history(e,-1);
@@ -119,7 +143,8 @@ static bool sequence(struct ae_line_editor *e,const char *s) {
     return !strcmp(s,"[3~") && ae_line_edit(e,AE_LINE_DELETE);
 }
 static bool flush(struct ae_line_editor *e,char *pending,size_t *size) {
-    bool result=ae_line_insert(e,pending,*size);*size=0;return result;
+    bool result=ae_line_search_active(e) ? ae_line_search_insert(e,pending,*size) : ae_line_insert(e,pending,*size);
+    *size=0;return result;
 }
 ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,char *out,size_t capacity) {
     if (!e || !out || capacity<AE_LINE_BYTES+1u || ae_shell_jobs_edit_mode(t,true)) return -1;
@@ -132,6 +157,10 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
         unsigned char b;ssize_t n=ae_shell_jobs_read_timeout(t,(char *)&b,1,timeout);
         if (n==-4) {
             bool incomplete=seq_size>1;seq_size=0;
+            if (!incomplete && ae_line_search_active(e)) {
+                ae_line_search_cancel(e);shown=draw(t,e,false,blocked);
+                if (shown) { result=shown==-2 ? -2 : -1;goto done; }
+            }
             if (incomplete) {
                 blocked=true;shown=draw(t,e,false,blocked);
                 if (shown) { result=shown==-2 ? -2 : -1;goto done; }
@@ -144,6 +173,7 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
         if (!blocked && pending_size && (b<32 || b==127)) blocked=!flush(e,pending,&pending_size);
         if (b==21) {
             if (blocked || seq_size || utf_need) { ae_line_clear(e);blocked=false; }
+            else if (ae_line_search_active(e)) blocked=!ae_line_search_clear_query(e);
             else blocked=!ae_line_edit(e,AE_LINE_KILL_START);
             seq_size=utf_size=utf_need=pending_size=0;
         }
@@ -168,6 +198,16 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
                 if (!blocked) { memcpy(pending+pending_size,utf8,utf_size);pending_size+=utf_size; }
                 utf_size=utf_need=0;
             } }
+        } else if (b==18) {
+            blocked=!(ae_line_search_active(e) ? ae_line_search_next(e,-1) : ae_line_search_begin(e));
+        } else if (ae_line_search_active(e) && b<32) {
+            if (b==7 || b==4) ae_line_search_cancel(e);
+            else if (b=='\n' || b=='\r') (void)ae_line_search_accept(e);
+            else if (b==8) blocked=!ae_line_search_backspace(e);
+            else if (b==19 || b==14 || b==16) blocked=!ae_line_search_next(e,b==16 ? -1 : 1);
+            else if (b!=1 && b!=2 && b!=5 && b!=6 && b!=9 && b!=12 && b!=30 && b!=31) blocked=true;
+        } else if (ae_line_search_active(e) && b==127) {
+            blocked=!ae_line_search_backspace(e);
         } else if (b=='\n' || b=='\r') {
             size_t size,cursor;const char *text=ae_line_text(e,&size,&cursor);(void)cursor;
             shown=draw(t,e,true,false);if (shown) { result=shown==-2 ? -2 : -1;goto done; }

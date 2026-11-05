@@ -28,7 +28,9 @@ an understandable installation/runtime footprint.
   The explicit development desktop now starts/reuses it independently of Settings.
   The terminal now uses our [own line editor](../../spec/line-editor.md), with
   whole-grapheme edits, bounded in-memory history/undo and literal Tab completion.
-  Search/advanced completion,
+  Search now has bounded preview/cancel and separate acceptance/submission. The
+  [modal editor core](../../spec/editor.md) supplies document/Normal/Insert models;
+  its actual view and file I/O remain the next integration. Richer search/advanced completion,
   own panes/modal editor, persistent sessions and normal admitted app/session launch
   remain work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.

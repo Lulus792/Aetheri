@@ -95,7 +95,8 @@ The separate [development terminal](terminal.md) now supplies a real PTY, bounde
 cell/history model and SDL3 graphical view. Its explicit `-i --edit` profile now
 supplies [our own grapheme-aware line editor and bounded history](line-editor.md).
 The editor now also has bounded undo/redo and literal command/path completion.
-Persistent sessions, search/advanced completion, functions/typed values, terminal compatibility and
+Reversible Ctrl+R history search keeps preview separate from acceptance/submission.
+Persistent sessions, richer search/advanced completion, functions/typed values, terminal compatibility and
 panes/plugins remain required work. No production service/profile, normal launcher
 or system shell is replaced.
 

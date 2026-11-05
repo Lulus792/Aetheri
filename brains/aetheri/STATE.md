@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — bounded undo/redo and literal shell completion.
+5 November 2026 — reversible history search and modal editor core.
 
 ## Coordination
 
@@ -15,6 +15,39 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The actual shell now has bounded Ctrl+R history search with independent query/
+preview, original draft/cursor/undo preservation, older/newer traversal and
+separate match acceptance/submission. Ctrl+G/Escape cancels; no-match cannot accept
+an old candidate, and overflow retains whole-input rejection. No index/file,
+allocation, new process or service is added by search.
+
+The [own file-editor core](../../spec/editor.md) now has original copied text/gap/
+line metadata, byte-exact UTF-8/LF/CRLF, grapheme-safe edits and Normal/Insert
+semantic controllers. Bounds/OOM checks precede mutation; actual 8MiB/line/count
+limits, both allocation paths, 4,000 independent reference edits and modal actions
+pass. This is a tested core, not an editor executable: file I/O/conflicts/unknown
+saves, document undo, terminal view/key mapping and unsaved-close remain work.
+
+All 31 affected groups pass Release 67.19s / ASan+UBSan 91.85s, including sixteen
+own-editor PTY and thirteen graphical provider cases per profile. Copied-source
+first-Enter execution and stale-line-offset mutants fail unchanged tests. An
+ordinary DRM session proves actual query/selection, no first-Enter file effect,
+exact cancel pixels/cursor, subsequent file bytes and 200-percent resizing,
+then closes its original token. See the [record](journal/2026-11-05-search-and-editor-core.md).
+
+Final read-only audit: 309 host/snapshot/guest sources, 28 frozen SQL/XML and 19
+protected hashes without sidecars; 688 copied native files/186 raw images, 14
+console files and 1,010 local Markdown targets. Native/console binary identities
+agree. The enforcing carrier is idle on tty1 after original-session retirement.
+
+Next connect the modal core to explicit file I/O and an actual terminal view,
+with conflict/unknown-write and unsaved-data behavior. Normal admitted sessions/
+apps, other apps, image/installer, physical hardware, accessible text and the
+early complete experiment desktop remain required. Preserve the quarantined
+old intent; this app/model work cannot settle its lifecycle/recovery obligations.
+
+## Undo and literal completion — historical checkpoint
 
 The [own editor](../../spec/line-editor.md) now has bounded undo/redo and literal
 command/path Tab completion. Consecutive typing is grouped; successful new edits

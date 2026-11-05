@@ -4,6 +4,28 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## History search and modal core — 5 November 2026
+
+- Original [search/model](../../src/shell/editor.c),
+  [adapter/view](../../src/shell/readline.c),
+  [document](../../src/editor/document.c) and
+  [modal controller](../../src/editor/modal.c), with independent
+  [flat reference/fault cases](../../tests/test_document.c) and
+  [semantic mode cases](../../tests/test_modal.c).
+  The gap concept is established prior art; the official
+  [GNU reference chapter](https://www.gnu.org/software/emacs/manual/pdf/elisp.pdf)
+  was read via its indexed buffer-gap text after the HTML request timed out.
+  Our data/line/revision implementation and tests are original; no new runtime
+  dependency is selected. Complexity statements follow the actual code and do
+  not assert measured speed superiority. Existing Unicode 18 inputs/license remain.
+- Final 31 affected groups pass Release 67.19s / ASan+UBSan 91.85s. Actual PTY search
+  has sixteen group cases; actual provider input has thirteen per profile.
+  Independent copied-source first-Enter/index-offset mutants fail unchanged
+  assertions. Original virtual DRM query/selection/cancel/scale evidence and exact
+  candidate/preservation limits are in the
+  [record](journal/2026-11-05-search-and-editor-core.md). Document/modal results
+  establish models only; no file I/O or modal editor app is implemented by them.
+
 ## Undo and literal completion — 5 November 2026
 
 - Original [editor](../../src/shell/editor.c),

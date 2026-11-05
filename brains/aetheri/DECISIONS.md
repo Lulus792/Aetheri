@@ -1,5 +1,24 @@
 # Decisions
 
+## Keep search preview reversible; begin the modal core — 5 November 2026
+
+Use a separate bounded query over retained in-memory commands; search never edits
+the live draft before acceptance. Restore its exact cursor/undo on cancel and
+separate Enter acceptance from later submission. No stale match after a failed
+query and no traversal wrapping. Keep literal UTF-8 matching, no persistent index
+or new resident service. Final bindings/richer search remain product work.
+
+Begin the file editor with original C17 gap storage plus a flat line index and
+separate semantic Normal/Insert controller. Bound the first text profile and
+admit allocations/cursor/line joins before mutation. Preserve bytes/endings and
+expose borrowed split spans independently of toolkit/cell geometry. A flat index
+still has O(line count) update cost; growth and moving the gap can copy many bytes.
+Balanced trees/large-file optimizations need measured workload evidence. No speed
+superiority or final large-file limit is selected. Keep file/save permission and
+actual external evidence outside this pure model; local clean revision is no
+durable receipt. The actual app/view/I/O remains the next integration.
+See [contract](../../spec/editor.md) and
+[evidence](journal/2026-11-05-search-and-editor-core.md).
 ## Keep undo local and completion advisory — 5 November 2026
 
 Add bounded copied text/cursor snapshots to the original editor. Group adjacent

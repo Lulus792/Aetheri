@@ -10,6 +10,7 @@ struct ae_line_editor {
     struct edit_state *undo[AE_LINE_UNDO],*redo[AE_LINE_UNDO];
     size_t undone,redone,edit_bytes;
     bool browsing,grouped;
+    struct { char query[AE_LINE_SEARCH_BYTES+1];size_t size,at;bool active,found; } search;
 };
 static void wipe(void *memory,size_t size) { volatile unsigned char *p=memory;while (size--) *p++=0; }
 static size_t state_bytes(const struct edit_state *s) { return sizeof(*s)+s->size+1; }
@@ -73,6 +74,7 @@ void ae_line_destroy(struct ae_line_editor *e) {
 void ae_line_clear(struct ae_line_editor *e) {
     if (!e) return;
     clear_edits(e);
+    wipe(&e->search,sizeof(e->search));
     wipe(e->text,sizeof(e->text));wipe(e->saved,sizeof(e->saved));
     e->size=e->cursor=e->saved_size=e->saved_cursor=0;e->count=1;e->boundaries[0]=0;e->browsing=false;e->at=e->used;
 }
@@ -85,17 +87,17 @@ const size_t *ae_line_boundaries(const struct ae_line_editor *e,size_t *count) {
     *count=e->count;return e->boundaries;
 }
 bool ae_line_insert(struct ae_line_editor *e,const char *text,size_t size) {
-    return e && replace(e,e->cursor,e->cursor,text,size,true,true);
+    return e && !e->search.active && replace(e,e->cursor,e->cursor,text,size,true,true);
 }
 bool ae_line_replace(struct ae_line_editor *e,size_t begin,size_t end,const char *text,size_t size) {
-    if (!e) return false;
+    if (!e || e->search.active) return false;
     bool a=false,b=false;
     for (size_t i=0;i<e->count;++i) { a|=e->boundaries[i]==begin;b|=e->boundaries[i]==end; }
     if (!a || !b || !replace(e,begin,end,text,size,true,false)) return false;
     e->grouped=false;return true;
 }
 bool ae_line_undo(struct ae_line_editor *e,int direction) {
-    if (!e || (direction!=-1 && direction!=1)) return false;
+    if (!e || e->search.active || (direction!=-1 && direction!=1)) return false;
     struct edit_state **from=direction<0 ? e->undo : e->redo;
     struct edit_state **to=direction<0 ? e->redo : e->undo;
     size_t *used=direction<0 ? &e->undone : &e->redone,*target=direction<0 ? &e->redone : &e->undone;
@@ -111,7 +113,7 @@ static size_t current(const struct ae_line_editor *e) {
     return lo;
 }
 bool ae_line_edit(struct ae_line_editor *e,enum ae_line_action action) {
-    if (!e) return false;
+    if (!e || (e->search.active && action!=AE_LINE_CLEAR)) return false;
     size_t index=current(e),begin=e->cursor,end=begin;
     switch (action) {
     case AE_LINE_LEFT:e->grouped=false;if (index) e->cursor=e->boundaries[index-1];return true;
@@ -139,7 +141,7 @@ bool ae_line_edit(struct ae_line_editor *e,enum ae_line_action action) {
     return true;
 }
 bool ae_line_history(struct ae_line_editor *e,int direction) {
-    if (!e || (direction!=-1 && direction!=1)) return false;
+    if (!e || e->search.active || (direction!=-1 && direction!=1)) return false;
     if (!e->browsing) {
         if (direction>0 || !e->used) return true;
         memcpy(e->saved,e->text,e->size+1);e->saved_size=e->size;e->saved_cursor=e->cursor;e->at=e->used;e->browsing=true;
@@ -154,8 +156,61 @@ bool ae_line_history(struct ae_line_editor *e,int direction) {
     e->at=at;if (at==e->used) { e->cursor=e->saved_cursor;e->browsing=false; }
     return true;
 }
+bool ae_line_search_active(const struct ae_line_editor *e) { return e && e->search.active; }
+bool ae_line_search_view(const struct ae_line_editor *e,struct ae_line_search_view *view) {
+    if (!view) return false;
+    *view=(struct ae_line_search_view){0};if (!ae_line_search_active(e)) return false;
+    view->query=e->search.query;view->query_size=e->search.size;view->found=e->search.found;
+    if (view->found) { view->match=e->history[e->search.at];view->match_size=e->lengths[e->search.at]; }
+    return true;
+}
+bool ae_line_search_next(struct ae_line_editor *e,int direction) {
+    if (!ae_line_search_active(e) || (direction!=-1 && direction!=1)) return false;
+    if (direction<0) {
+        size_t at=e->search.at;
+        while (at) { --at;if (strstr(e->history[at],e->search.query)) { e->search.at=at;e->search.found=true;return true; } }
+        e->search.at=0;
+    } else {
+        size_t at=e->search.at+(e->search.found ? 1u : 0u);
+        for (;at<e->used;++at) if (strstr(e->history[at],e->search.query)) { e->search.at=at;e->search.found=true;return true; }
+        e->search.at=e->used;
+    }
+    e->search.found=false;return true;
+}
+static bool search_query(struct ae_line_editor *e,const char *text,size_t size) {
+    if (!ae_line_search_active(e) || size>AE_LINE_SEARCH_BYTES || !ae_line_valid_utf8(text,size)) return false;
+    char copy[AE_LINE_SEARCH_BYTES+1];if (size) memcpy(copy,text,size);copy[size]=0;
+    wipe(e->search.query,sizeof(e->search.query));memcpy(e->search.query,copy,size+1);e->search.size=size;
+    e->search.at=e->used;e->search.found=false;return ae_line_search_next(e,-1);
+}
+bool ae_line_search_begin(struct ae_line_editor *e) {
+    if (!e || e->search.active) return false;
+    e->search.active=true;return search_query(e,NULL,0);
+}
+bool ae_line_search_insert(struct ae_line_editor *e,const char *text,size_t size) {
+    if (!ae_line_search_active(e) || size>AE_LINE_SEARCH_BYTES-e->search.size || !ae_line_valid_utf8(text,size)) return false;
+    if (!size) return true;
+    char query[AE_LINE_SEARCH_BYTES+1];memcpy(query,e->search.query,e->search.size);memcpy(query+e->search.size,text,size);
+    return search_query(e,query,e->search.size+size);
+}
+bool ae_line_search_backspace(struct ae_line_editor *e) {
+    if (!ae_line_search_active(e)) return false;
+    if (!e->search.size) return true;
+    size_t points[AE_LINE_SEARCH_BYTES+1],count;
+    if (!ae_text_graphemes(e->search.query,e->search.size,points,AE_LINE_SEARCH_BYTES+1,&count) || count<2) return false;
+    return search_query(e,e->search.query,points[count-2]);
+}
+bool ae_line_search_clear_query(struct ae_line_editor *e) { return search_query(e,NULL,0); }
+void ae_line_search_cancel(struct ae_line_editor *e) { if (e) wipe(&e->search,sizeof(e->search)); }
+bool ae_line_search_accept(struct ae_line_editor *e) {
+    if (!ae_line_search_active(e) || !e->search.found) return false;
+    size_t at=e->search.at;
+    if (!e->browsing) { memcpy(e->saved,e->text,e->size+1);e->saved_size=e->size;e->saved_cursor=e->cursor; }
+    if (!replace(e,0,e->size,e->history[at],e->lengths[at],false,false)) return false;
+    clear_edits(e);e->browsing=true;e->at=at;ae_line_search_cancel(e);return true;
+}
 bool ae_line_remember(struct ae_line_editor *e) {
-    if (!e) return false;
+    if (!e || e->search.active) return false;
     if (!e->size || e->text[0]==' ' || (e->used && e->lengths[e->used-1]==e->size && !memcmp(e->history[e->used-1],e->text,e->size))) return true;
     char *copy=malloc(e->size+1);if (!copy) return false;memcpy(copy,e->text,e->size+1);
     while (e->used==AE_LINE_HISTORY || e->bytes>AE_LINE_HISTORY_BYTES-(e->size+1)) {

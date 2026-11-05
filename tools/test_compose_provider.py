@@ -116,6 +116,13 @@ def main():
         (root/"tab-name").write_bytes(b"completed");typing("cat tab-n");input_key(15,1)
         typing(" > tab-proof\n");proof("tab-proof",b"completed")
         cases.append("actual Tab completes a literal file token and waits for explicit Enter before command effects")
+        (root/"undo-proof").rename(root/"undo-original")
+        before=accepted();control(19);wait(lambda:accepted()==before+1,"actual graphical history search chord")
+        typing("undo-proof");wait(lambda:view().get("x")==len("find> undo-proof"),"actual query caret and search view")
+        input_key(28,1);wait(lambda:view().get("x")==9+len("printf 'abc' > undo-proof"),"selected original command restored to normal draft")
+        assert not (root/"undo-proof").exists()
+        input_key(28,1);proof("undo-proof",b"abc")
+        cases.append("actual Ctrl+R/query renders history, first Enter only accepts, second Enter executes the original selected command")
         before=accepted();compose();tap(1);wait(lambda:view().get("composition")==0,"native Escape cancels provider")
         assert accepted()==before
         typing("printf plain > plain-proof\n");proof("plain-proof",b"plain")

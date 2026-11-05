@@ -10,6 +10,9 @@ IDs and record only meaningful changes. Do not create another catalogue or
 regenerate/repeat a NexaUI chat message after compaction. A new message requires
 a new explicit user request. Routine checks need no renewed user handoff and
 must not displace Aetheri implementation. Older inspections below are history.
+If a check finds no relevant delta, leave the catalogue unchanged. Add concrete
+new needs directly to the existing list; do not repeat its overview to the user
+or treat a historical handoff message as a new task after context compaction.
 
 ## Current decision — 4 November 2026
 
@@ -18,6 +21,9 @@ cases now reference our [own line-editor contract](../../../spec/line-editor.md)
 including app-owned grapheme offsets/history/draft and whole-draft rejection.
 The same case now includes bounded undo/redo and literal completion ownership,
 with no automatic execution on suggestion selection or history mutation on undo.
+It also records reversible history search and the new app-owned document/modal
+core: borrowed gap spans/content revisions are not file permissions or durable
+save evidence. Actual editor view/file I/O remains Aetheri integration work.
 This reuses the existing T/I/B/P IDs; all 103 IDs and thirteen surface groups
 remain. It adds no SDK acceptance claim, consumer-pin change or new chat text.
 

@@ -44,6 +44,8 @@ still separate. Test file operations explicitly choose their owned token folder.
 | --- | --- |
 | Enter, Backspace, Tab | Own shell editor: accept, delete preceding grapheme, literal command/path completion |
 | Ctrl+Shift+Z / Ctrl+Shift+Y | Send 0x1f / 0x1e for own shell undo/redo; Ctrl+Z retains job-stop behavior |
+| Ctrl+R, Ctrl+S in shell search | Begin/older history match; newer match. First Enter selects, another Enter submits |
+| Ctrl+G / Escape in shell search | Restore the original draft/cursor; terminal selection/preedit retains its existing Escape priority |
 | Arrows, Home/End, Delete | Own shell cursor/history and whole-grapheme forward deletion; foreground programs receive the corresponding terminal bytes |
 | Ctrl+C / Ctrl+Z | Actual terminal interrupt/stop; the shell supplies `jobs`, `fg`, `bg` |
 | Shift+PageUp / Shift+PageDown, wheel | Navigate bounded scrollback; typing returns to live output |

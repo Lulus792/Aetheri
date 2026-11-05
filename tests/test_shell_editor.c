@@ -38,8 +38,52 @@ static void undo_checks(void) {
     for (unsigned i=0;i<100;++i) CHECK(ae_line_undo(e,-1));
     expected[0]='E';expect(e,expected,1);ae_line_destroy(e);
 }
+static void remember(struct ae_line_editor *e,const char *text) {
+    ae_line_clear(e);CHECK(ae_line_insert(e,text,strlen(text)));CHECK(ae_line_remember(e));
+}
+static void match(struct ae_line_editor *e,const char *query,const char *text) {
+    struct ae_line_search_view view;CHECK(ae_line_search_view(e,&view));
+    CHECK(view.query_size==strlen(query) && !memcmp(view.query,query,view.query_size));
+    CHECK(view.found==(text!=NULL));
+    if (text) CHECK(view.match_size==strlen(text) && !memcmp(view.match,text,view.match_size));
+    else CHECK(!view.match && !view.match_size);
+}
+static void search_checks(void) {
+    struct ae_line_editor *e=ae_line_create();CHECK(e);
+    CHECK(ae_line_search_begin(e));match(e,"",NULL);CHECK(!ae_line_search_accept(e));ae_line_search_cancel(e);
+    remember(e,"printf old");remember(e,"echo j́");remember(e,"printf new");remember(e," private-token");
+    ae_line_clear(e);CHECK(ae_line_insert(e,"draft",5));CHECK(ae_line_edit(e,AE_LINE_LEFT));
+    CHECK(ae_line_search_begin(e));match(e,"","printf new");expect(e,"draft",4);
+    CHECK(!ae_line_insert(e,"x",1) && !ae_line_edit(e,AE_LINE_DELETE) && !ae_line_undo(e,-1));
+    CHECK(!ae_line_replace(e,0,1,"x",1) && !ae_line_history(e,-1) && !ae_line_remember(e));
+    CHECK(ae_line_search_insert(e,"printf",6));match(e,"printf","printf new");
+    CHECK(ae_line_search_next(e,-1));match(e,"printf","printf old");
+    CHECK(ae_line_search_next(e,-1));match(e,"printf",NULL);CHECK(!ae_line_search_accept(e));expect(e,"draft",4);
+    CHECK(ae_line_search_next(e,1));match(e,"printf","printf old");
+    CHECK(!ae_line_search_insert(e,"\n",1) && !ae_line_search_insert(e,"\xc0\x80",2));match(e,"printf","printf old");
+    ae_line_search_cancel(e);expect(e,"draft",4);CHECK(ae_line_undo(e,-1));expect(e,"",0);CHECK(ae_line_undo(e,1));expect(e,"draft",4);
+    CHECK(ae_line_search_begin(e));CHECK(ae_line_search_insert(e,"j́",3));match(e,"j́","echo j́");
+    CHECK(ae_line_search_backspace(e));match(e,"","printf new");CHECK(ae_line_search_accept(e));expect(e,"printf new",10);
+    CHECK(ae_line_history(e,1));expect(e,"draft",4);
+    CHECK(ae_line_history(e,-1));CHECK(ae_line_edit(e,AE_LINE_HOME));CHECK(ae_line_search_begin(e));CHECK(ae_line_search_insert(e,"old",3));
+    ae_line_search_cancel(e);expect(e,"printf new",0);
+    CHECK(ae_line_search_begin(e));CHECK(ae_line_search_insert(e,"old",3));CHECK(ae_line_search_accept(e));expect(e,"printf old",10);
+    CHECK(ae_line_history(e,1));CHECK(ae_line_history(e,1));CHECK(ae_line_history(e,1));expect(e,"draft",4);
+    CHECK(ae_line_search_begin(e));CHECK(ae_line_search_insert(e,"private-token",13));match(e,"private-token",NULL);
+    CHECK(ae_line_search_clear_query(e));char huge[AE_LINE_SEARCH_BYTES];memset(huge,'q',sizeof(huge));
+    CHECK(ae_line_search_insert(e,huge,sizeof(huge)));CHECK(!ae_line_search_insert(e,"x",1));
+    struct ae_line_search_view view;CHECK(ae_line_search_view(e,&view) && view.query_size==sizeof(huge) && !view.found);
+    CHECK(ae_line_search_backspace(e));CHECK(ae_line_search_view(e,&view) && view.query_size==sizeof(huge)-1);
+    CHECK(ae_line_search_clear_query(e));fail_malloc=true;
+    CHECK(ae_line_search_insert(e,"old",3));CHECK(ae_line_search_accept(e));fail_malloc=false;expect(e,"printf old",10);
+    CHECK(ae_line_search_begin(e));ae_line_clear(e);CHECK(!ae_line_search_active(e));expect(e,"",0);
+    CHECK(!ae_line_search_view(e,&view) && !view.query && !view.match);
+    CHECK(!ae_line_search_begin(NULL) && !ae_line_search_next(e,0) && !ae_line_search_backspace(e));
+    ae_line_destroy(e);
+}
 int main(void) {
     undo_checks();
+    search_checks();
     struct ae_line_editor *e=ae_line_create();CHECK(e);
     CHECK(ae_line_insert(e,"Aäj́👩‍💻🇩🇪Z",strlen("Aäj́👩‍💻🇩🇪Z")));
     CHECK(ae_line_edit(e,AE_LINE_LEFT));expect(e,"Aäj́👩‍💻🇩🇪Z",25);

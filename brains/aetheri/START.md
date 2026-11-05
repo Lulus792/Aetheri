@@ -18,14 +18,18 @@ native clipboard/paste review and an owned SDL preedit view. An optional
 [built-in Compose provider](../../spec/compose.md) now has real native and virtual
 DRM keyboard-to-shell evidence. The [own line editor](../../spec/line-editor.md)
 now provides whole-grapheme editing, bounded in-memory history/undo and literal
-Tab completion in the actual terminal, with native PTY and virtual DRM evidence.
-External IMEs, advanced completion/search, modal editing, panes, persistent
+Tab completion and history search in the actual terminal, with native PTY and
+virtual DRM evidence. The [modal editor core](../../spec/editor.md) now has tested
+document and Normal/Insert models; view/key/file adapters remain work.
+External IMEs, advanced completion/richer search, modal editor app, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
 NexaUI requirements and the initial chat message have already been delivered.
 Maintain the [existing catalogue](D:/NexaUI/NEXT_AETHERI_UI.md) only when new
 requirements or evidence warrant a change. Do not regenerate a chat message or
 repeat the handoff after compaction unless the user explicitly requests one.
+If a review finds no relevant change, leave the list as it is; no repeat summary
+or new chat text is needed. Earlier handoff records are historical references.
 Resume actual Aetheri work from STATE.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.

@@ -55,9 +55,14 @@ recommendation, not final user approval of the language. POSIX compatibility,
 typed values/functions and final interactive job/session behavior remain open.
 The [own single-line editor](../../spec/line-editor.md) now supplies grapheme
 editing, bounded in-memory history/undo and literal command/path Tab completion.
-Final bindings, advanced completion/search,
-modal editing, panes and durable session/history policies remain work; its
+Bounded history search is now implemented with reversible preview and two-stage
+acceptance/submission. Final bindings, advanced completion/richer search,
+the full modal editor app, panes and durable session/history policies remain work; its
 provisional controls do not settle those product questions.
+The [own file-editor core](../../spec/editor.md) has tested document/Normal/Insert
+models. File opening/saving, exact conflict/unknown-save and unsaved-close handling,
+document undo and actual view/key integration are engineering work before user UI
+review; no running editor app or native document-grant transport is implied.
 The prototype refuses exit/EOF with open jobs; hangup waits for original direct
 children without forced killing. Final window/logout/reboot persistence and richer
 editor/multiplexer behavior remain product decisions, not implied by these tests.

@@ -4,6 +4,14 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- Shell history search now has its own bounded query/preview: preserve original
+  draft/cursor/undo until accept; Enter accepts only, later Enter submits. No-match
+  and rejected input cannot reuse an old result. Run editor/search/native groups.
+  New src/editor document/modal are pure model libraries, not an editor executable
+  or file/save authority. Read spec/editor.md: UTF-8/ending/gap/line/grapheme and
+  allocation/revision contracts. mark_clean is only local generation state.
+  Actual view/key/file I/O, document undo, conflicts and unsaved-close remain work.
+  Keep installed profiles/capabilities and quarantined old intent unchanged.
 - The graphical terminal now selects the own `-i --edit` single-line profile.
   Read `spec/line-editor.md`: toolkit-free editor/history, original terminal/OFD
   ownership and whole-draft invalid/overflow rejection. Preserve plain `-i` and
@@ -16,10 +24,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   cwd/env mutation or content reads. Keep budgets/cancellation and real parser
   round trips; filesystem hints never authorize later operations. Run shell.completion
   plus editor/native/terminal/provider groups. No programmable completion/daemon.
-  Grapheme segmentation is not shaping; advanced completion/search, modal editor,
+  Grapheme segmentation is not shaping; advanced completion/richer search, modal editor app,
   panes and persistent sessions remain work. Preserve the quarantined old runtime.
 - NexaUI handoff is delivered. Maintain `D:/NexaUI/NEXT_AETHERI_UI.md` in place:
   periodic evidence-based checks may add requirements or update existing rows.
+  If nothing relevant changed, leave the catalogue unchanged and resume Aetheri;
+  do not turn the check into a repeated user-facing overview or chat handoff.
   Do not recreate the catalogue, repeat its overview, generate another NexaUI
   chat/start message or ask the user to paste it after a context compaction.
   Only prepare another chat message on a new explicit user request. Continue
