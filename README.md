@@ -46,8 +46,9 @@ editor register now support copy, cut, change and paste. Block/mouse selection,
 richer search, plugins,
 panes, accessible document integration and ordinary brokered access remain work.
 
-The opt-in [Files app](spec/files.md) now provides directory navigation, keyboard
-selection, filtering, create-only empty files/folders, rename previews and
+The opt-in [Files app](spec/files.md) now provides list/card views, a held-location
+sidebar, optional information, keyboard selection and filtering. It supports
+inline create-only empty files/folders and renaming, plus
 cross-folder moves through window-local Cut/Paste. It opens a selected text
 file in an owned Terminal/editor. Its file-operation worker keeps the view responsive;
 unknown outcomes block further creation rather than replaying an operation.

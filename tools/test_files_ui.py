@@ -107,7 +107,7 @@ def main():
             w, h = map(int, geometry.split())
             assert magic == b"P6" and peak == b"255" and len(pixels) == w*h*3
             if i == active_output:
-                bg = (0,0,0) if state(contrast=1) else (16,20,28)
+                bg = (0,0,0) if state(contrast=1) else (37,40,51)
                 assert tuple(pixels[(50*w+50)*3:(50*w+50)*3+3]) == bg
                 ink = sum(tuple(pixels[(y*w+x)*3:(y*w+x)*3+3]) != bg
                           for y in range(64,100) for x in range(65,240))
@@ -119,6 +119,19 @@ def main():
 
     def click(x, y):
         event(f"M {x} {y}"); event("B 272 1"); event("B 272 0")
+
+    def control_rect(identifier, row=0):
+        def find():
+            frame=view().get("frame")
+            matches=re.findall(r"^CONTROL frame=(\d+) id=(\w+) row=(\d+) x=([0-9.]+) y=([0-9.]+) w=([0-9.]+) h=([0-9.]+)$", log(), re.M)
+            return next((tuple(map(float,m[3:])) for m in reversed(matches) if int(m[0])==frame and m[1]==identifier and int(m[2])==row),None)
+        wait(lambda: find() is not None, "current drawn control "+identifier)
+        x,y,w,h=find();assert w>0 and h>0 and x>=0 and y>=0
+        assert x+w<=int(view()["width"])+.1 and y+h<=int(view()["height"])+.1
+        return 40+x+w/2,40+y+h/2
+
+    def click_control(identifier, row=0): click(*control_rect(identifier,row))
+    def click_entry(): click_control("entry",int(view()["selected"]))
 
     def ended(pin): return bool(select.select([pin], [], [], 0)[0])
 
@@ -139,6 +152,21 @@ def main():
         event("K 56 1"); tap(102); event("K 56 0")
         wait(lambda: state(depth=0, count=22, selected=0, top=0), "Alt+Home returns to held root and clears query")
         cases.append("native held-root keyboard navigation")
+        click_control("grid");wait(lambda:state(grid=1), "native grid control")
+        columns=int(view()["columns"]);assert columns>=2
+        capture("card grid presents actual root entries including long names")
+        tap(106);wait(lambda:state(selected=1), "grid next column")
+        tap(108);wait(lambda:state(selected=1+columns), "grid next row retains column")
+        click_control("list");wait(lambda:state(grid=0), "native list control")
+        tap(102);wait(lambda:state(selected=0), "restore selection")
+        click_control("place",1);wait(lambda:state(depth=1,count=1), "real sidebar directory")
+        click_control("place",0);wait(lambda:state(depth=0,count=22), "held sidebar root")
+        tap(67);wait(lambda:state(inspector=0), "hide information pane")
+        tap(67);wait(lambda:state(inspector=1,info_overlay=0), "restore embedded information")
+        tap(62);wait(lambda:state(sidebar=0), "keyboard hides sidebar")
+        tap(62);wait(lambda:state(sidebar=1), "keyboard restores sidebar")
+        cases.extend(["real list/grid controls and spatial keyboard navigation", "sidebar uses actual held directories", "optional information and sidebar controls"])
+
         control(35); wait(lambda: state(count=23), "hidden keyboard toggle")
         # A mismatched release must not activate the hidden control.
         event("M 200 160"); event("B 272 1"); event("M 900 650"); event("B 272 0")
@@ -148,7 +176,10 @@ def main():
         tap(1); filter_to("escape", 1); tap(28)
         wait(lambda: "VIEW frame=" in log() and state(depth=0, count=1), "symlink refusal")
         time.sleep(.1); assert "OPEN " not in log()
-        tap(1); filter_to("long", 1); capture("long filename is bounded before rasterization")
+        tap(1); filter_to("long", 1); control(3)
+        wait(lambda: state(grid=1), "grid with long name")
+        assert state(count=1)
+        control(2); wait(lambda:state(grid=0), "return to list without changing filter")
         tap(1)
         filter_to("long-"+"x"*250, 1); typing("a")
         wait(lambda: state(rejected=1), "overflow rejects the whole filter intent")
@@ -174,12 +205,16 @@ def main():
         event("M 1037 717"); event("B 272 1")
         wait(lambda: log("server").count(".resize(") > resizes, "Files native resize request")
         event("M 677 457"); wait(lambda: state(width=640, height=420), "minimum size configured")
-        event("B 272 0"); capture("minimum viewport refuses invisible entry activation")
-        assert state(rows=0)
-        tap(28); time.sleep(.1); assert "OPEN " not in log() and state(depth=0)
-        control(49, shift=True); wait(lambda: state(dialog=1, name_focus=0), "new folder dialog at minimum 200 percent")
+        event("B 272 0"); capture("minimum viewport retains a complete selectable entry")
+        assert int(view()["rows"])>=1 and state(inspector=0,sidebar=0)
+        control(38); tap(67); wait(lambda:state(info_overlay=1), "information overlay at minimum 200 percent")
+        typing("zz"); control(49); time.sleep(.1); assert state(dialog=0,depth=0,count=22)
+        click_control("info_close");wait(lambda:state(info_overlay=0), "information close consumes its pointer action")
+        tap(28);wait(lambda:state(depth=1,count=1), "visible minimum-size entry opens")
+        event("K 56 1");tap(102);event("K 56 0");wait(lambda:state(depth=0,count=22), "minimum held-root return")
+        control(49, shift=True); wait(lambda: state(dialog=1, inline=1, name_focus=0), "inline new folder at minimum 200 percent")
         typing("scratch"); wait(lambda: state(name_bytes=7), "literal folder name accepted")
-        capture("creation dialog remains usable at minimum German 200 percent")
+        capture("inline creation remains usable at minimum German 200 percent")
         # Background navigation/filtering cannot replace the retained target or name.
         control(38); tap(108); wait(lambda: state(dialog=1, depth=0, name_bytes=7), "modal navigation fence")
         tap(15); wait(lambda: state(name_focus=1), "Cancel focus")
@@ -218,7 +253,8 @@ def main():
         tap(60); wait(lambda: state(dialog=1, renaming=1, name_bytes=11), "F2 holds selected original file")
         tap(1); wait(lambda: state(dialog=0), "rename cancellation")
         assert (folder/"created.txt").exists()
-        click(580,65); wait(lambda: state(dialog=1, renaming=1), "native rename button is not title drag")
+        click_control("more");wait(lambda:state(menu=1), "native actions button is not title drag")
+        click_control("menu",2); wait(lambda: state(dialog=1, renaming=1), "native rename menu action")
         control(22); typing("alpha.txt"); tap(28)
         wait(lambda: "RENAME attempt=1 result=2" in log() and state(dialog=1, creating=0), "rename destination conflict")
         assert (folder/"alpha.txt").read_bytes() == b"alpha\n" and (folder/"created.txt").read_bytes() == b""
@@ -248,9 +284,10 @@ def main():
         tap(28); wait(lambda: state(depth=1,count=0), "renamed directory opens")
         tap(14); wait(lambda: state(depth=0), "return from renamed directory")
         # Mismatched releases between the two creation buttons cannot open either dialog.
-        event("M 455 110"); event("B 272 1"); event("M 580 110"); event("B 272 0")
+        x,y=control_rect("new_file");xx,yy=control_rect("new_folder")
+        event(f"M {x} {y}"); event("B 272 1"); event(f"M {xx} {yy}"); event("B 272 0")
         time.sleep(.1); assert state(dialog=0)
-        click(455,110); wait(lambda: state(dialog=1), "actual new-file button")
+        click_control("new_file"); wait(lambda: state(dialog=1), "actual new-file button")
         tap(1); wait(lambda: state(dialog=0), "pointer dialog cancellation")
         filter_to("renamed.txt", 1); tap(28)
         wait(lambda: "READY wayland opengles2 editor=" in log(), "owned Terminal and actual editor")
@@ -262,7 +299,7 @@ def main():
         wait(lambda: int(terminal_view().get("sequence", "0")) > 1 and "FOCUS 1\n" in log()
              and f"DRAWN {terminal_view().get('frame')}\n" in log(), "editor rendered and native keyboard focus admitted")
         focused=log().count("FOCUS 1\n")
-        click(150,200); tap(60)
+        click_entry(); tap(60)
         wait(lambda: state(dialog=0,child=terminal_pid), "own document blocks rename admission")
         assert "RENAME attempt=4" not in log()
         click(2020,200);wait(lambda:log().count("FOCUS 1\n")>focused,"original document focus restored")
@@ -277,12 +314,12 @@ def main():
         control(31)
         wait(lambda: (folder/"renamed.txt").read_bytes() == b"hello world ", "new renamed file edited and saved exactly")
         assert (folder/"alpha.txt").read_bytes() == b"alpha\n"
-        capture("newly created file saved in owned editor terminal")
+        cases.append("newly created file saved in owned editor terminal")
         control(16)
         wait(lambda: ended(editor_pin) and ended(terminal_pin) and "DOCUMENT_END status=0" in log(), "original document pair ended")
         wait(lambda: state(child=-1), "Files observes owned document end and refreshes")
         # Window-local move selection survives navigation and cancelled previews.
-        click(150,200);control(45);wait(lambda:state(clipboard=1),"selected original move source")
+        click_entry();control(45);wait(lambda:state(clipboard=1),"selected original move source")
         tap(68);wait(lambda:state(menu=1),"keyboard actions menu")
         tap(1);wait(lambda:state(menu=0,clipboard=1),"menu Escape does not clear move selection")
         filter_to("workspace",1);tap(28);wait(lambda:state(depth=1,count=0),"move target entered")
@@ -304,12 +341,12 @@ def main():
         tap(1);wait(lambda:state(clipboard=0),"Escape clears unsubmitted selection")
         assert (folder/"workspace/renamed.txt").read_bytes()==b"hello world "
         # Right-click/menu releases cannot leak through into another action.
-        event("M 150 210");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row context menu")
-        event("M 200 235");event("B 272 1");event("M 650 440");event("B 272 0")
+        x,y=control_rect("entry",int(view()["selected"]));event(f"M {x} {y}");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row context menu")
+        x,y=control_rect("menu",0);event(f"M {x} {y}");event("B 272 1");event("M 50 400");event("B 272 0")
         time.sleep(.1);assert state(menu=1,clipboard=0)
-        click(650,440);wait(lambda:state(menu=0,clipboard=0),"outside click dismisses without row activation")
-        event("M 150 210");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row menu reopened")
-        click(200,235);wait(lambda:state(menu=0,clipboard=1),"pointer Cut selects original source")
+        click(50,400);wait(lambda:state(menu=0,clipboard=0),"outside click dismisses without row activation")
+        x,y=control_rect("entry",int(view()["selected"]));event(f"M {x} {y}");event("B 273 1");event("B 273 0");wait(lambda:state(menu=1),"row menu reopened")
+        click_control("menu",0);wait(lambda:state(menu=0,clipboard=1),"pointer Cut selects original source")
         event("K 56 1");tap(103);event("K 56 0");wait(lambda:state(depth=0),"return to original parent")
         control(47);wait(lambda:state(dialog=1,moving=1),"move-back preview")
         tap(28);wait(lambda:"MOVE attempt=2 result=1" in log() and state(dialog=0,clipboard=0),"file moved back")
@@ -330,8 +367,33 @@ def main():
         control(47);wait(lambda:state(dialog=1,moving=1),"directory return preview")
         tap(28);wait(lambda:"MOVE attempt=4 result=1" in log() and state(dialog=0,clipboard=0),"directory returned")
         assert (folder/"workspace").is_dir() and not (folder/"docs/workspace").exists() and (folder/"docs/note.txt").read_bytes()==b"inside\n"
+        # Inline names own their original target and consume the blur click.
+        control(49,shift=True);wait(lambda:state(dialog=1,inline=1), "inline folder placeholder")
+        typing("blur-created");click(50,400)
+        wait(lambda:state(dialog=0,creating=0,depth=0) and (folder/"blur-created").is_dir(), "valid field blur creates once without navigation")
+        previous_renames=len(re.findall(r"^RENAME attempt=",log(),re.M))
+        tap(60);wait(lambda:state(dialog=1,inline=1,renaming=1), "unchanged inline name")
+        tap(28);wait(lambda:state(dialog=0), "unchanged name closes without a worker")
+        assert len(re.findall(r"^RENAME attempt=",log(),re.M))==previous_renames and (folder/"blur-created").is_dir()
+        tap(60);wait(lambda:state(dialog=1,inline=1,renaming=1), "inline source name")
+        control(22);typing("blur-renamed");click(50,400)
+        wait(lambda:state(dialog=0,creating=0,depth=0) and (folder/"blur-renamed").is_dir(), "valid rename blur commits the held source")
+        assert not (folder/"blur-created").exists()
+        control(3);wait(lambda:state(grid=1), "grid for inline naming")
+        filter_to("blur-renamed",1);tap(60);wait(lambda:state(dialog=1,inline=1), "grid name field")
+        control(22);typing("cancel-grid");capture("inline grid rename keeps the original entry until confirmation")
+        tap(15);tap(28);wait(lambda:state(dialog=0), "grid naming Cancel")
+        assert (folder/"blur-renamed").is_dir() and not (folder/"cancel-grid").exists()
+        control(2);wait(lambda:state(grid=0), "list after inline grid")
+        control(49);wait(lambda:state(dialog=1,inline=1), "invalid blur field")
+        typing("forbidden/");wait(lambda:state(name_bad=1), "reject full blur intent")
+        click(50,400);time.sleep(.1);assert state(dialog=1,depth=0,name_bad=1) and not (folder/"forbidden").exists()
+        tap(1);wait(lambda:state(dialog=0), "cancel rejected blur")
+        tap(87);wait(lambda:state(fullscreen=1), "native full screen request observed")
+        tap(87);wait(lambda:state(fullscreen=0,width=640,height=420), "native full screen restores the original window")
+        cases.extend(["valid inline blur dispatches once and consumes the original click", "grid inline cancellation preserves source", "rejected blur never submits the retained prefix", "actual full screen and restore"])
         # Fresh literal hostile filename; no filename interpretation by a shell.
-        click(150,200); filter_to("literal", 1); tap(28)
+        click_entry(); filter_to("literal", 1); tap(28)
         wait(lambda: log().count("READY wayland opengles2 editor=") == 2, "literal filename second document")
         second_start=log().rfind("READY wayland opengles2 editor=")
         wait(lambda: "FOCUS 1\n" in log()[second_start:] and int(terminal_view().get("sequence","0"))>1
@@ -342,7 +404,7 @@ def main():
         wait(lambda: (folder/hostile).read_bytes() == b"xliteral\n", "literal filename save without shell")
         assert not (folder/"SHOULD-NOT-EXIST").exists() and not (root/"SHOULD-NOT-EXIST").exists()
         # Closing Files while its document is alive waits for that original child.
-        click(150,200); control(16); time.sleep(.2)
+        click_entry(); control(16); time.sleep(.2)
         assert app.poll() is None and not ended(tp)
         # Third mapped client is on output 2 at (4480+40,40).
         click(4600,200); control(16)

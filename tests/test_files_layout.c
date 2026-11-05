@@ -20,7 +20,7 @@ static void check(int w,int h,float s,bool grid,bool details,bool sidebar,bool n
     CHECK(grid || l.columns==1);
     CHECK(l.content.w>=120*s && l.content.h>=l.cell_height);
     CHECK(l.content.y+l.content.h<=l.status.y+.01f);
-    const struct ae_files_rect controls[]={l.back,l.list,l.grid,l.new_folder,l.search,l.details};
+    const struct ae_files_rect controls[]={l.back,l.list,l.grid,l.new_folder,l.new_file,l.search,l.details};
     for (size_t i=0;i<sizeof(controls)/sizeof(*controls);++i) {
         CHECK(contained(l.toolbar,controls[i]));CHECK(controls[i].w>=28*s && controls[i].h>=32*s);
         if (i) CHECK(controls[i-1].x+controls[i-1].w<=controls[i].x+.01f);

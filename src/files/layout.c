@@ -10,7 +10,7 @@ bool ae_files_layout_make(int w,int h,float s,bool grid,bool details,bool sideba
     l.chrome=(struct ae_files_rect){0,0,width,chrome};l.sidebar=(struct ae_files_rect){0,chrome,side,height-chrome-footer};
     l.toolbar=(struct ae_files_rect){side,chrome,width-side,toolbar};l.status=(struct ae_files_rect){0,height-footer,width,footer};
     float left=side+l.padding,body_width=width-side-2*l.padding;
-    l.inspector_visible=details && body_width>=560*s;float info=l.inspector_visible ? 210*s : 0;
+    l.inspector_visible=details && body_width>=560*s && height-footer-chrome-toolbar-heading>=260*s;float info=l.inspector_visible ? 210*s : 0;
     l.heading=(struct ae_files_rect){left,chrome+toolbar,body_width,heading};
     float top=chrome+toolbar+heading;
     if (!grid && !l.compact) top+=22*s;
@@ -22,6 +22,7 @@ bool ae_files_layout_make(int w,int h,float s,bool grid,bool details,bool sideba
     l.list=(struct ae_files_rect){x,by,28*s,button};x+=28*s;
     l.grid=(struct ae_files_rect){x,by,28*s,button};x+=28*s+gap;
     l.new_folder=(struct ae_files_rect){x,by,button,button};x+=button+gap;
+    l.new_file=(struct ae_files_rect){x,by,button,button};x+=button+gap;
     l.details=(struct ae_files_rect){width-l.padding-button,by,button,button};
     float search_width=fminf(190*s,l.details.x-gap-x);
     l.search=(struct ae_files_rect){l.details.x-gap-search_width,by,search_width,button};

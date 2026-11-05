@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native Files presentation — 5 November 2026
+
+- Original [SDL view and input owner](../../src/files/main.c) and shared
+  [logical geometry](../../src/files/layout.c), now joined for list/grid/sidebar,
+  information and inline naming. [Native tests](../../tools/test_files_ui.py)
+  use actual drawn controls; [layout properties](../../tests/test_files_layout.c)
+  remain separate from visual proof.
+- [Dated verification and visual limits](journal/2026-11-05-files-view.md):
+  Release/ASan+UBSan, actual virtual DRM, retained bytes and a concrete fullscreen
+  dock-overlap finding. This is no complete design, app admission or hardware gate.
+
 ## Files layout foundation and held ancestors — 5 November 2026
 
 - Original [logical layout](../../src/files/layout.c) and

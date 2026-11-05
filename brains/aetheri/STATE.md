@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — Files layout foundation and held-root navigation.
+5 November 2026 — native Files list/grid, information and inline naming.
 
 ## Coordination
 
@@ -14,6 +14,35 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now uses the shared geometry for native drawing and hit testing: compact
+list/card views, actual held locations, optional information and inline create/
+rename fields. Ctrl+1/2, grid arrows, F4/F9 and toolbar controls are exercised.
+At 640×420/200-percent text, whole entries and naming fields remain usable.
+Valid field blur consumes its original pointer action; unchanged rename closes
+without a worker. Unknown/stale inspection, moves and original document/worker
+ownership retain their tested boundaries. This is the opaque fallback, not full glass.
+
+All 46 affected groups pass Release (130.12s) and ASan+UBSan (186.07s), with
+instrumentation checked. Native Files has 61 cases/48 images per profile; the
+layout checks 113,344 combinations. Actual DRM session
+c624e6ab6c6443948e05679ce7078572 proves create/edit/exact save, inline directory
+rename, list/grid/details, German 200-percent text, information overlay and
+window fullscreen/restore. Its sixteen stable PNGs and three actor hashes are
+retained; the original owner closes successfully and preserves the workspace.
+Audit binds 340 source inputs, unchanged 28 SQL/XML and nineteen protected old
+hashes with no sidecars. The enforcing carrier is idle on tty1 without known
+native actors/Aetheri units/seat0 session. Old recovery remains unresolved.
+See [record](journal/2026-11-05-files-view.md) and `local/files-view-2026-11-05`.
+
+**Next concrete visual correction:** the actual fullscreen screenshot still shows
+the dock above Files. Correct compositor dock/search/fullscreen ordering and
+verify activation/return/multiple outputs; native window size alone is insufficient.
+Full glass, complete input/accessibility, a per-view NexaUI adoption pilot,
+copy/removal, normal grants/recovery, other apps, installable OS/hardware and the
+complete resettable experiment desktop remain required. Keep the full goal active.
+
+## Files layout foundation — completed checkpoint
 
 The Files model now supports atomic navigation to held ancestors; Alt+Home is
 wired into the native app and returns to its original root, clearing the query.

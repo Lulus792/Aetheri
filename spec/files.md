@@ -48,7 +48,9 @@ substring of the original name. It does not search document contents.
 
 | Control | Action |
 | --- | --- |
-| Up/Down, Page Up/Down, Home/End | Select and reveal an entry |
+| Up/Down, Page Up/Down, Home/End | Select and reveal an entry; grid Up/Down follows columns |
+| Left/Right in the grid | Select the previous/next entry |
+| Ctrl+1 / Ctrl+2, list/grid icons | Switch list and card views without changing the selection |
 | Enter or double click | Enter a directory or request a text-document window |
 | Alt+Up, Backspace outside the filter, Back | Return through the held directory stack |
 | Alt+Home | Return directly to the held starting directory and clear the query |
@@ -65,13 +67,29 @@ substring of the original name. It does not search document contents.
 | Ctrl+V with list focus | Preview moving that selection into the current folder |
 | F10 / … / right click | Open the keyboard/pointer actions menu |
 | F6 / F7 / F8 | DE/EN labels, contrast, text size 100/125/150/200 percent |
-| Ctrl+Q | Close Files, waiting if its document window is still alive |
+| F4 | Hide or restore the real-location sidebar |
+| F9 / information icon | Toggle information; use a read-only overlay when no pane fits |
+| F11 / fullscreen icon | Request native fullscreen or restore the previous window |
+| Ctrl+Q / close icon | Close Files, waiting if its document window is still alive |
 
-Preferences are per-window and in memory. Rows scroll with keyboard selection;
-native window edges resize and the title area moves the window. At a viewport too
-small to show any row, entry activation is disabled and the view asks for a larger
-window. This is an initial dark/contrast presentation; light theme, full accessible
-semantics and final visual design remain open.
+Preferences are per-window and in memory. Keyboard selection reveals whole rows
+or cards. The sidebar shows the selected root, held ancestors and actual root
+subdirectories; it does not invent Recent/Trash providers or home bookmarks.
+Root captions use an escaped basename, not a reconstructed authority path.
+Native edges resize and the compact title area moves the window.
+
+The SDL renderer now follows the selected studio's compact toolbar, sidebar,
+list/card content and optional information hierarchy, using an opaque dark
+material fallback and contrast mode. At 640×420 with 200-percent text, optional
+panes collapse and at least one full entry remains usable. F9 still opens an
+information overlay there; Escape, its close icon or an outside click dismisses
+it without activating the list. Information shows observed name/type/size/location
+and generic icons. It reads no document content and supplies no PDF/image preview.
+Long labels can be ellipsized; this is not a full-name or accessible-text reader.
+Complete glass, light theme, assistive semantics and physical acceptance remain
+open. The DRM view also exposes the existing compositor dock above a fullscreen
+window; hiding that dock is a required compositor correction, not a completed
+fullscreen desktop policy. Native size/restoration alone does not close it.
 
 A directory snapshot holds at most 4,096 entries; navigation has at most 64 child
 levels. Names retain up to 255 raw bytes. Invalid UTF-8, controls, backslashes and
@@ -91,32 +109,39 @@ current path. A replacement at an ancestor's old pathname is not adopted.
 and hidden visibility; it does not grant permission to open or modify that entry.
 The display-only formatter also escapes Unicode line and paragraph separators.
 
-## Layout foundation — not yet rendered
+## Layout and input
 
-`src/files/layout.h` now describes the selected compact toolbar/sidebar/content/
-optional-inspector hierarchy separately from SDL and filesystem actions. It
-supports list or card-grid geometry, an inline-naming row budget and grid-aligned
-selection reveal. Small windows or larger text collapse optional panes. Every
-accepted layout retains at least one complete content cell, including
-640×420 at 200-percent text. Controls and cells stay inside their owning regions.
+`src/files/layout.h` owns the SDL-independent geometry for drawing and hit testing.
+It supports list/card cells, an inline-naming budget and grid-aligned selection
+reveal. The inspector also collapses when height is insufficient. No model item
+is created merely to show a naming placeholder: it is a separate presentation
+slot, with the original target descriptor still owned by the naming operation.
 
-This is a logical layout contract, not an implemented list/grid switch, inline
-naming UI, text-fit/accessibility proof or acceptance of native glass. The current
-renderer still uses its earlier presentation and can show zero rows at that
-minimum size. The next integration must use the geometry for both drawing and
-hit testing, retain the existing operation ownership, and prove actual native
-text/focus/pointer behavior and appearance against the selected studio.
+Diagnostics emit bounded `CONTROL` rectangles before the matching `VIEW` frame.
+Native tests use those actual rectangles rather than old screen coordinates.
+They are development observations, never item identity, permission or SDK grants.
+Native text, input, rendering and operation tests complement the pure geometry
+checks; logical cell containment alone does not prove text fit or accessibility.
 
 ## Creating files and folders
 
-The naming dialog holds a descriptor for the folder selected when it opens.
+The inline naming view holds a descriptor for the folder selected when it opens.
 Background navigation/filtering is suspended. Renaming that folder externally
 does not retarget the operation to a replacement at its old path. The folder label
 is an observation, not a claim that its pathname remains current.
 
-Enter submits; Tab/Shift+Tab moves between name, Cancel and Create. Escape or
-Cancel closes an unsubmitted dialog without a filesystem effect. Ctrl+U clears
-the name; Backspace removes one grapheme. Long input shows its editable tail.
+Enter submits; Tab/Shift+Tab moves between the name, Cancel and Confirm. The
+inline X and check controls provide the same pointer actions. Escape or Cancel
+ends an unsubmitted edit without a filesystem effect. Ctrl+U clears the name;
+Backspace removes one grapheme. Long input shows its editable tail.
+
+Clicking elsewhere inside Files confirms a valid inline name and consumes that
+original press/release; it cannot also navigate or activate another item. Invalid,
+empty, composing or rejected names are not submitted as a retained prefix. Window
+focus loss alone retains the draft; an interrupted name composition rejects the
+intent until explicitly cleared. Full preedit/provider acceptance remains open.
+An unchanged rename closes the edit without preparing a filesystem operation.
+Moves and stale/unknown operation inspection keep the separate review surface.
 Names are literal UTF-8 leaves up to 255 bytes, excluding slash, dot/dotdot,
 controls and selected invisible/bidirectional format characters. Invalid or
 overflowing input rejects the whole intent: its retained prefix cannot be used
@@ -154,9 +179,11 @@ original target rather than assuming absence or automatically retrying.
 
 ## Renaming a selected entry
 
-F2 or Rename opens a same-folder preview with the original escaped label and an
+F2 or the Rename menu action opens an inline same-folder edit bound to the
+original selection and its retained escaped label, with an
 editable new literal name. The original name is prefilled when valid for the new
-name rules; Ctrl+U replaces it. An unchanged name cannot be submitted. Cancel has
+name rules; Ctrl+U replaces it. Confirming an unchanged name ends the edit
+without a worker. Cancel has
 no filesystem effect. Name validation, rejected-prefix fencing, keyboard focus,
 text scaling and the single worker are shared with creation.
 
@@ -298,6 +325,11 @@ not descendant/FD-holder drain, lease settlement or durable restart recovery.
 
 `files.model` exercises held navigation, rename/replacement, escaped names, filter/
 hidden state, allocation/list limits and selected-witness editor load/save.
+`files.layout` checks complete-cell geometry, control containment/nonoverlap and
+grid-aligned reveal over the supported scales and pane/naming modes. Native
+cases separately exercise list/grid keys and pointer controls, real sidebar
+navigation, read-only information at minimum size and fullscreen/restoration.
+These properties do not replace rendered-text or human accessibility acceptance.
 `files.launch` executes a separate native process and checks literal argv, exact
 3/4 handoff, closed extra descriptors, environment/signal mask/process group and
 original-child end ownership. `files.native` runs actual Wayland keyboard/pointer,
@@ -318,7 +350,8 @@ the original worker. The ordinary Files executable contains no fault hook.
 `files.rename` checks held source/parent identity, same-folder file/directory
 rename, retained contents, collisions, raw old names, private-parent drift,
 allocation failure, destination races and lost real rename/flush replies.
-Native cases add preview/cancel, the non-drag pointer button, German 200-percent
+Native cases add inline confirm/cancel/unchanged-name completion, the non-drag
+menu action, valid-field blur with consumed pointer input, German 200-percent
 minimum-viewport use, source replacement, navigation after directory rename,
 own-document admission fencing and exact save after file rename. The alternate
 test binary additionally holds/loses a real rename acknowledgement and proves

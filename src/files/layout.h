@@ -5,7 +5,7 @@
 struct ae_files_rect { float x,y,w,h; };
 struct ae_files_layout {
     struct ae_files_rect chrome,toolbar,sidebar,heading,content,inspector,status;
-    struct ae_files_rect back,list,grid,new_folder,search,details,more,close,fullscreen;
+    struct ae_files_rect back,list,grid,new_folder,new_file,search,details,more,close,fullscreen;
     bool sidebar_visible,inspector_visible,compact,compact_cards;
     size_t columns,lines,capacity;float cell_width,cell_height,gap,row_gap,padding;
 };
