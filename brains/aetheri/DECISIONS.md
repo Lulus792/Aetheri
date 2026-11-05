@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep local Files creation create-only and single-attempt — 5 November 2026
+
+Reuse the editor's existing staged create-only save for new empty files and
+`mkdirat` plus object/parent flushes for new directories. A separate C17 operation
+owns the literal name and held parent before a worker can have an effect. Modal
+input cannot retarget it through navigation. Existing entries are conflicts.
+Whole-intent rejection prevents an invalid/overflowed name from submitting a
+retained prefix. The worker keeps UI input responsive; close waits for it.
+Unknown acknowledgement retains possible objects/stages and blocks new creation
+in that window. No automatic rollback, cleanup, replay, durable restart recovery
+or managed StorageRef claim follows. See [Files](../../spec/files.md#creating-files-and-folders).
+
 ## Give Files an independent desktop slot and retire it first — 5 November 2026
 
 Extend the private development owner channel to version3 with fixed S/T/F choices.

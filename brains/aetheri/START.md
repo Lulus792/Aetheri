@@ -24,8 +24,9 @@ executable with local load/edit/save, keyboard view and explicit save/close/expo
 choices, now with bounded document undo/redo and saved-state return.
 Literal document search now provides reversible forward/backward previews.
 Character/whole-line selection now uses an app-owned copied register.
-The opt-in [Files development app](../../spec/files.md) now browses held directories
-and opens a selected text file in a separately owned Terminal/editor. It now has
+The opt-in [Files development app](../../spec/files.md) now browses held directories,
+creates empty files/folders without replacing existing entries, and opens a
+selected text file in a separately owned Terminal/editor. It now has
 its own fixed development dock/search slot; normal admission and brokered file
 access remain separate work.
 Ordinary brokered access, durable recovery, block/mouse selection, richer search and

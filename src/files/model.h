@@ -29,6 +29,9 @@ size_t ae_files_selected(const struct ae_files *files);
 unsigned ae_files_depth(const struct ae_files *files);
 const char *ae_files_query(const struct ae_files *files);
 const char *ae_files_folder(const struct ae_files *files);
+/* Own CLOEXEC duplicate of the current held directory, >=4. Caller closes it.
+   Local navigation observation only, not a writable grant or allocation proof. */
+int ae_files_directory(const struct ae_files *files);
 const struct ae_files_entry *ae_files_entry(const struct ae_files *files,size_t visible_index);
 /* Own CLOEXEC directory + O_PATH regular-file witness, >=4. Caller closes both.
    Their identity is transient and FD-bound, not durable authorization. Leaf is

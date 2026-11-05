@@ -1,6 +1,7 @@
 # Development Files
 
-`aetheri-files` browses a selected directory and opens a text document in our
+`aetheri-files` browses a selected directory, creates a new empty file or folder,
+and opens a text document in our
 [editor](editor.md), inside a separately owned [Terminal](terminal.md) window.
 Navigation and filtering use an original C17 model; SDL3 supplies the Wayland
 window and drawing. The app uses the existing reviewed SDL/text dependency profile.
@@ -56,6 +57,8 @@ substring of the original name. It does not search document contents.
 | Escape | Clear/cancel the filter |
 | Ctrl+H, Show/Hide hidden | Toggle hidden entries |
 | Ctrl+R | Read a fresh complete directory snapshot |
+| Ctrl+N / New file | Name and create an empty file without replacing an entry |
+| Ctrl+Shift+N / New folder | Name and create a folder without replacing an entry |
 | F6 / F7 / F8 | DE/EN labels, contrast, text size 100/125/150/200 percent |
 | Ctrl+Q | Close Files, waiting if its document window is still alive |
 
@@ -72,6 +75,51 @@ changing the name used for filesystem operations. Labels are measured and clippe
 at grapheme boundaries before creating text surfaces. A filter accepts at most
 255 UTF-8 bytes. Overflow/invalid input rejects the query intent: Enter cannot
 open a matching retained prefix until the user clears or cancels it.
+
+## Creating files and folders
+
+The naming dialog holds a descriptor for the folder selected when it opens.
+Background navigation/filtering is suspended. Renaming that folder externally
+does not retarget the operation to a replacement at its old path. The folder label
+is an observation, not a claim that its pathname remains current.
+
+Enter submits; Tab/Shift+Tab moves between name, Cancel and Create. Escape or
+Cancel closes an unsubmitted dialog without a filesystem effect. Ctrl+U clears
+the name; Backspace removes one grapheme. Long input shows its editable tail.
+Names are literal UTF-8 leaves up to 255 bytes, excluding slash, dot/dotdot,
+controls and selected invisible/bidirectional format characters. Invalid or
+overflowing input rejects the whole intent: its retained prefix cannot be used
+until cleared or cancelled. No extension, template or example file is inserted.
+
+Creation requires an ordinary non-setid user and a user-owned writable/searchable
+parent without group/world write or special mode bits. The standalone C17
+`files/create.h` operation owns a duplicate of that parent and immutable name/kind.
+Preparation has no filesystem effect. Apply attempts at most once; every repeated
+call returns the original result without replaying writes or flushes.
+
+An empty file reuses the editor's create-only staged save, including 0600 mode,
+`RENAME_NOREPLACE`, required flushes and verification. A directory uses
+`mkdirat(0700)`, joins held/named observations and flushes the directory and parent.
+An existing entry, including a dangling link, is a conflict and remains unchanged.
+These ordinary-user checks do not exclude a hostile concurrent writer, authenticate
+a volume or enroll a managed StorageRef. The directory observation is not a
+durable allocation witness.
+
+One SDL worker performs the attempt. The view stays responsive and waits for the
+original worker before closing; after an effect is possible, Cancel is not a
+rollback. On confirmed success, Files refreshes, clears its filter and selects the
+new entry. A newly created dotfile is revealed. A failed refresh is reported
+separately from successful creation, without inviting another creation attempt.
+An empty file can then be opened and saved through the existing document route.
+At most 256 prepared worker attempts are allowed per Files lifetime.
+
+An unacknowledged mkdir/flush can leave an entry despite an error. UNKNOWN retains
+the operation and any possible staging name, blocks further creation for this
+window and opens inspection instead of another submission. Browsing and existing
+document work remain possible. Closing releases memory/FDs only, never deletes
+possible entries or stages. This prototype has no durable restart journal:
+reopening Files does not reconcile an earlier unknown outcome. Inspect the
+original target rather than assuming absence or automatically retrying.
 
 ## Selected document handoff
 
@@ -129,8 +177,17 @@ idle observation and Files → Terminal → Editor saves, dirty-close cancellati
 ordered close. It needs the explicit compositor/Settings/Terminal/Editor test build
 and reviewed fonts. These are disposable-carrier tests, not physical acceptance.
 
+`files.create` checks private modes, collisions, retained-parent rename/replacement,
+allocation failure, changed permissions and lost mkdir/file/directory-flush
+acknowledgements. Its syscall wrappers execute the real operation before losing
+the reply. Native UI cases additionally create a folder at 640×420/200 percent,
+cancel/reject/conflict without unwanted entries, create/open/edit/save an empty
+file and use a separate test-only binary to hold then lose a real mkdir reply.
+That binary proves responsive UI, blocked repeat attempts and close waiting for
+the original worker. The ordinary Files executable contains no fault hook.
+
 Still required: normal admitted desktop/app integration, brokered document access and
 revocation, richer navigation/details, file operations with previews/recovery,
 image/PDF handlers, multiple documents, accessible semantics and hardware/monitor
-acceptance. File mutation in this first workflow belongs to the editor; Files
-does not yet copy, rename or delete entries.
+acceptance. Files does not yet copy, rename or delete entries. Creation here is
+ordinary local development I/O, not a production document-grant write API.

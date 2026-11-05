@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Local Files creation now uses files/create.h: an immutable literal name/held
+parent, preparation without effects, one worker attempt and cached retry results.
+Existing entries are conflicts. Unknown mkdir/save/flush acknowledgements retain
+possible objects/stages and block new creation for that window; close only frees
+memory/FDs. No automatic retry/rollback/cleanup or durable restart reconciliation.
+Read spec/files.md and run files.create/files.native. The alternate test_files_fault
+binary is test-only; never install its lost-mkdir-acknowledgement hook.
+
 For software development, first read `D:/Skills/skills/AGENTS.md`, select relevant
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.

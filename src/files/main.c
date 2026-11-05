@@ -2,6 +2,7 @@
 #define _GNU_SOURCE
 #include "model.h"
 #include "launch.h"
+#include "create.h"
 #include "text/grapheme.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -22,6 +23,10 @@ struct app {
     float scale,density,row_height,top,bottom;size_t first,rows;SDL_FRect back,hidden,search;
     bool running,failed,closing,dirty,german,contrast,show_hidden,query_focus,query_bad,diagnostics;unsigned frames,launches,pressed;size_t pressed_row;
     int wake[2];uint32_t event;atomic_bool active;
+    SDL_FRect new_file,new_folder,name_field,cancel,submit;
+    bool dialog,name_bad;unsigned name_focus,creations;int create_dir;
+    enum ae_files_create_kind create_kind;char name[AE_FILES_NAME+1],folder[AE_FILES_LABEL+1],create_message[256];size_t name_size;
+    struct ae_files_create *creation,*unknown;SDL_Thread *creator;atomic_bool create_done;
 };
 static volatile sig_atomic_t signal_writer=-1,stopping;
 static void signalled(int number) { stopping=number;int saved=errno;unsigned char b=1;if (signal_writer>=0) (void)write(signal_writer,&b,1);errno=saved; }
@@ -30,9 +35,10 @@ static int wake_worker(void *data) {
         unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {}SDL_Event e={.type=a->event};(void)SDL_PushEvent(&e); }return 0;
 }
 static bool busy(const struct app *a) { return a->child.pid>0 && !a->child.ended; }
+static bool creating(const struct app *a) { return a->creator!=NULL; }
 static const char *tr(const struct app *a,const char *en,const char *de) { return a->german ? de : en; }
 static void message(struct app *a,const char *s) { snprintf(a->message,sizeof(a->message),"%s",s);a->dirty=true; }
-static void fail(struct app *a,const char *s) { fprintf(stderr,"files: %s: %s\n",s,SDL_GetError());a->failed=true;a->closing=true;if (!busy(a)) a->running=false; }
+static void fail(struct app *a,const char *s) { fprintf(stderr,"files: %s: %s\n",s,SDL_GetError());a->failed=true;a->closing=true;if (!busy(a) && !creating(a)) a->running=false; }
 static void result(struct app *a,enum ae_files_result r) {
     const char *s=r==AE_FILES_OK ? "" : r==AE_FILES_ROOT ? tr(a,"At the selected root","Am gewählten Ausgangsordner") : r==AE_FILES_CHANGED ? tr(a,"Folder or file changed; Ctrl+R refreshes","Ordner oder Datei geändert; Strg+R aktualisiert") : r==AE_FILES_LIMIT ? tr(a,"Folder/depth limit; view retained","Ordner-/Tiefenlimit; Ansicht bleibt erhalten") : r==AE_FILES_NOMEM ? tr(a,"Not enough memory; view retained","Nicht genug Speicher; Ansicht bleibt erhalten") : r==AE_FILES_UNSUPPORTED ? tr(a,"This entry cannot be opened here","Dieser Eintrag lässt sich hier nicht öffnen") : tr(a,"Cannot read this folder","Ordner kann nicht gelesen werden");
     message(a,s);if (r==AE_FILES_OK) { a->first=0;if (!*ae_files_query(a->files)) a->query_bad=false; }
@@ -43,7 +49,69 @@ static void move(struct app *a,int amount) {
     size_t n=amount<0 ? (size_t)(-amount)>old ? 0 : old-(size_t)(-amount) : (size_t)amount>=count-old ? count-1 : old+(size_t)amount;
     (void)ae_files_select(a->files,n);reveal(a);a->dirty=true;
 }
-static void request_close(struct app *a) { a->closing=true;if (busy(a)) message(a,tr(a,"Close the document window first; Files is waiting","Zuerst das Dokumentfenster schließen; Dateien wartet"));else a->running=false; }
+static void dialog_close(struct app *a) {
+    if (creating(a)) return;
+    if (a->create_dir>=0) close(a->create_dir);
+    a->create_dir=-1;a->dialog=false;a->pressed=0;a->dirty=true;
+}
+static void request_close(struct app *a) {
+    a->closing=true;if (creating(a)) message(a,tr(a,"Waiting for the creation result","Warten auf das Ergebnis des Anlegens"));
+    else { dialog_close(a);if (busy(a)) message(a,tr(a,"Close the document window first; Files is waiting","Zuerst das Dokumentfenster schließen; Dateien wartet"));else a->running=false; }
+}
+static void dialog_open(struct app *a,enum ae_files_create_kind kind) {
+    if (a->closing || creating(a)) return;
+    a->pressed=0;a->query_focus=false;a->name_focus=0;a->name_bad=false;*a->create_message=0;
+    if (a->unknown) {
+        a->dialog=true;a->name_focus=1;snprintf(a->name,sizeof(a->name),"%s",ae_files_create_leaf(a->unknown));a->name_size=strlen(a->name);
+        snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Outcome unknown. Inspect; do not retry.","Ergebnis unklar. Prüfen; nicht wiederholen."));
+    } else {
+        if (a->creations>=256) { message(a,tr(a,"Creation limit reached; reopen Files","Limit für das Anlegen erreicht; Dateien neu öffnen"));return; }
+        int fd=ae_files_directory(a->files);if (fd<0) { message(a,tr(a,"Cannot retain the target folder","Zielordner kann nicht festgehalten werden"));return; }
+        if (a->create_dir>=0) close(a->create_dir);
+        a->create_dir=fd;a->create_kind=kind;a->name_size=0;*a->name=0;
+        snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));a->dialog=true;
+    }
+    a->dirty=true;
+}
+static int create_worker(void *data) {
+    struct app *a=data;(void)ae_files_create_apply(a->creation);
+    atomic_store_explicit(&a->create_done,true,memory_order_release);
+    SDL_Event e={.type=a->event};(void)SDL_PushEvent(&e);return 0;
+}
+static void create_submit(struct app *a) {
+    if (a->closing || creating(a) || a->unknown || a->name_bad || !ae_files_create_name(a->name,a->name_size)) return;
+    enum ae_files_create_result r;a->creation=ae_files_create_prepare(a->create_dir,a->create_kind,a->name,a->name_size,&r);
+    if (!a->creation) {
+        snprintf(a->create_message,sizeof(a->create_message),"%s",r==AE_FILES_CREATE_DENIED ? tr(a,"A private writable folder is required","Ein privater beschreibbarer Ordner ist nötig") : r==AE_FILES_CREATE_NOMEM ? tr(a,"Not enough memory; nothing created","Nicht genug Speicher; nichts angelegt") : tr(a,"Cannot prepare creation; nothing created","Anlegen nicht vorbereitet; nichts angelegt"));a->dirty=true;return;
+    }
+    atomic_store(&a->create_done,false);a->creator=SDL_CreateThread(create_worker,"files-create",a);
+    if (!a->creator) { ae_files_create_close(a->creation);a->creation=NULL;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Worker unavailable; nothing created","Worker nicht verfügbar; nichts angelegt")); }
+    else { ++a->creations;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Creating… Please wait","Wird angelegt… Bitte warten")); }
+    a->dirty=true;
+}
+static void create_update(struct app *a) {
+    if (!creating(a) || !atomic_load_explicit(&a->create_done,memory_order_acquire)) return;
+    SDL_WaitThread(a->creator,NULL);a->creator=NULL;
+    enum ae_files_create_result r=ae_files_create_status(a->creation);
+    if (a->diagnostics) printf("CREATE attempt=%u result=%u kind=%u\n",a->creations,(unsigned)r,(unsigned)a->create_kind);
+    if (r==AE_FILES_CREATE_DONE) {
+        dialog_close(a);a->query_bad=false;(void)ae_files_filter(a->files,"",0);
+        if (a->name[0]=='.') { a->show_hidden=true;ae_files_hidden(a->files,true); }
+        enum ae_files_result refreshed=ae_files_refresh(a->files);
+        if (refreshed==AE_FILES_OK) {
+            for (size_t i=0;i<ae_files_count(a->files);++i) if (!strcmp(ae_files_entry(a->files,i)->name,a->name)) { (void)ae_files_select(a->files,i);break; }
+            reveal(a);message(a,tr(a,"Created","Angelegt"));
+        } else message(a,tr(a,"Created; folder refresh failed. Do not recreate.","Angelegt; Ansicht nicht aktualisiert. Nicht neu anlegen."));
+    } else if (r==AE_FILES_CREATE_UNKNOWN) {
+        a->unknown=a->creation;a->creation=NULL;a->name_focus=1;
+        snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Outcome unknown. Inspect; do not retry.","Ergebnis unklar. Prüfen; nicht wiederholen."));
+        message(a,tr(a,"Creation outcome unknown; further creation is blocked","Ergebnis des Anlegens unklar; weiteres Anlegen gesperrt"));
+    } else {
+        snprintf(a->create_message,sizeof(a->create_message),"%s",r==AE_FILES_CREATE_CONFLICT ? tr(a,"Name already exists. Choose another name.","Name bereits vorhanden. Anderen Namen wählen.") : r==AE_FILES_CREATE_DENIED ? tr(a,"Folder is no longer private and writable","Ordner nicht mehr privat und beschreibbar") : r==AE_FILES_CREATE_NOMEM ? tr(a,"Not enough memory; nothing created","Nicht genug Speicher; nichts angelegt") : tr(a,"Not created. Inspect the target folder.","Nicht angelegt. Zielordner prüfen."));
+    }
+    ae_files_create_close(a->creation);a->creation=NULL;a->dirty=true;
+    if (a->closing) request_close(a);
+}
 static void activate(struct app *a) {
     if (a->closing || a->query_bad) return;
     const struct ae_files_entry *e=ae_files_entry(a->files,ae_files_selected(a->files));if (!e) return;
@@ -60,7 +128,7 @@ static void child_update(struct app *a) {
     if (a->child.pid<=0) return;
     int r=ae_files_child_observe(&a->child);if (r<0) { a->failed=true;message(a,"Document observation unresolved; new starts and close remain blocked");return; }
     if (r) { int status=a->child.status;if (a->diagnostics) printf("DOCUMENT_END status=%d\n",status);(void)ae_files_child_close(&a->child);
-        enum ae_files_result refreshed=ae_files_refresh(a->files);if (refreshed!=AE_FILES_OK) result(a,refreshed);else { a->first=0;message(a,status ? tr(a,"Document window ended with an error","Dokumentfenster mit Fehler beendet") : tr(a,"Document window closed","Dokumentfenster geschlossen")); }if (a->closing) a->running=false; }
+        enum ae_files_result refreshed=ae_files_refresh(a->files);if (refreshed!=AE_FILES_OK) result(a,refreshed);else { a->first=0;message(a,status ? tr(a,"Document window ended with an error","Dokumentfenster mit Fehler beendet") : tr(a,"Document window closed","Dokumentfenster geschlossen")); }if (a->closing && !creating(a)) a->running=false; }
 }
 static void fill(struct app *a,SDL_FRect rect,unsigned rgb) { if (!SDL_SetRenderDrawColor(a->renderer,(Uint8)(rgb>>16),(Uint8)(rgb>>8),(Uint8)rgb,255) || !SDL_RenderFillRect(a->renderer,&rect)) fail(a,"rectangle"); }
 static void text(struct app *a,const char *s,float x,float y,float width,float points,unsigned rgb) {
@@ -81,6 +149,39 @@ static void text(struct app *a,const char *s,float x,float y,float width,float p
     if (!texture || !SDL_SetRenderClipRect(a->renderer,&clip) || !SDL_RenderTexture(a->renderer,texture,NULL,&dst)) fail(a,"label");
     (void)SDL_SetRenderClipRect(a->renderer,NULL);SDL_DestroyTexture(texture);
 }
+static void name_text(struct app *a,float x,float y,float width,unsigned fg) {
+    /* Keep the editable tail visible without splitting a UTF-8 grapheme. */
+    size_t offsets[AE_FILES_NAME+1],count=0,start=0;int pixels=0,mark=0;
+    if (!TTF_SetFontSize(a->font,16*a->scale*a->density) || !TTF_GetStringSize(a->font,a->name,a->name_size,&pixels,NULL) ||
+        !TTF_GetStringSize(a->font,"…",3,&mark,NULL) || !ae_text_graphemes(a->name,a->name_size,offsets,AE_FILES_NAME+1,&count)) { fail(a,"name measurement");return; }
+    char tail[AE_FILES_NAME+4];
+    while ((float)(pixels+(start ? mark : 0))>width*a->density && start+1<count) {
+        ++start;if (!TTF_GetStringSize(a->font,a->name+offsets[start],a->name_size-offsets[start],&pixels,NULL)) { fail(a,"name tail");return; }
+    }
+    if (start) { memcpy(tail,"…",3);memcpy(tail+3,a->name+offsets[start],a->name_size-offsets[start]+1); }
+    text(a,start ? tail : a->name,x,y,width,16,fg);
+}
+static void draw_dialog(struct app *a,int w,int h,unsigned fg) {
+    float width=fminf((float)w-32,720),height=154*a->scale+80,x=((float)w-width)/2,y=((float)h-height)/2;
+    fill(a,(SDL_FRect){x-2,y-2,width+4,height+4},a->contrast ? 0xffffff : 0x6e91c2);
+    fill(a,(SDL_FRect){x,y,width,height},a->contrast ? 0 : 0x1b2230);
+    text(a,a->unknown ? tr(a,"Inspect creation","Anlegen prüfen") : a->create_kind==AE_FILES_CREATE_DIRECTORY ? tr(a,"New folder","Neuer Ordner") : tr(a,"New file","Neue Datei"),x+16,y+12,width-32,20,fg);
+    text(a,a->folder,x+16,y+18+26*a->scale,width-32,14,0xa5b7d0);
+    a->name_field=(SDL_FRect){x+16,y+28+46*a->scale,width-32,24*a->scale+16};
+    fill(a,a->name_field,a->name_bad ? 0x613538 : a->name_focus==0 && !a->unknown ? 0x29466b : 0x10141c);
+    if (*a->name) name_text(a,a->name_field.x+8,a->name_field.y+6,a->name_field.w-16,fg);
+    else text(a,tr(a,"Name","Name"),a->name_field.x+8,a->name_field.y+6,a->name_field.w-16,16,0xa5b7d0);
+    float status=a->name_field.y+a->name_field.h+8;
+    text(a,*a->create_message ? a->create_message : tr(a,"Existing entries are never replaced","Vorhandene Einträge werden nie ersetzt"),x+16,status,width-32,12,a->name_bad || a->unknown ? 0xffbdad : fg);
+    text(a,a->name_bad ? tr(a,"Ctrl+U clears the rejected name","Strg+U löscht den abgewiesenen Namen") : a->unknown ? tr(a,"Further creation is blocked in this window","Weiteres Anlegen in diesem Fenster gesperrt") : tr(a,"Enter create · Tab change focus · Escape cancel","Enter anlegen · Tab Fokus · Escape abbrechen"),x+16,status+16*a->scale+4,width-32,12,0xa5b7d0);
+    const char *recovery=ae_files_create_recovery(a->unknown);
+    if (recovery) text(a,recovery,x+16,status+32*a->scale+8,width-32,12,0xffbdad);
+    float button=(width-40)/2,bh=22*a->scale+16,by=y+height-bh-16;
+    a->cancel=(SDL_FRect){x+16,by,button,bh};a->submit=(SDL_FRect){x+24+button,by,button,bh};
+    fill(a,a->cancel,a->name_focus==1 ? 0x29466b : 0x10141c);text(a,a->unknown ? tr(a,"Back","Zurück") : tr(a,"Cancel","Abbrechen"),a->cancel.x+10,by+6,button-20,14,fg);
+    bool enabled=!creating(a) && !a->unknown && !a->name_bad && ae_files_create_name(a->name,a->name_size) && !a->closing;
+    fill(a,a->submit,enabled ? a->name_focus==2 ? 0x416b9e : 0x29466b : 0x10141c);text(a,tr(a,"Create","Anlegen"),a->submit.x+10,by+6,button-20,14,enabled ? fg : 0xa5b7d0);
+}
 static void draw(struct app *a) {
     int w,h,pw,ph;if (!SDL_GetWindowSize(a->window,&w,&h) || !SDL_GetWindowSizeInPixels(a->window,&pw,&ph)) { fail(a,"size");return; }
     a->density=SDL_GetWindowPixelDensity(a->window);if (!isfinite(a->density) || a->density<.5f || a->density>4 || !SDL_SetRenderScale(a->renderer,(float)pw/(float)w,(float)ph/(float)h)) { fail(a,"density");return; }
@@ -88,7 +189,11 @@ static void draw(struct app *a) {
     if (!SDL_SetRenderDrawColor(a->renderer,(Uint8)(bg>>16),(Uint8)(bg>>8),(Uint8)bg,255) || !SDL_RenderClear(a->renderer)) { fail(a,"clear");return; }
     float header=32*a->scale+24,control=26*a->scale+16;a->top=header+2*control+12;a->bottom=(float)h-(48*a->scale+16);a->row_height=34*a->scale+18;
     a->rows=a->bottom>a->top ? (size_t)((a->bottom-a->top)/a->row_height) : 0;reveal(a);
-    text(a,tr(a,"Files","Dateien"),20,12,(float)w-40,24,fg);text(a,ae_files_folder(a->files),20,header,(float)w-40,14,0xa5b7d0);
+    text(a,tr(a,"Files","Dateien"),20,12,(float)w-40,24,fg);
+    a->new_file=(SDL_FRect){(float)w-20-240*a->scale,header,110*a->scale,control-4};a->new_folder=(SDL_FRect){a->new_file.x+a->new_file.w+8,header,120*a->scale,control-4};
+    text(a,ae_files_folder(a->files),20,header,a->new_file.x-36,14,0xa5b7d0);
+    fill(a,a->new_file,panel);fill(a,a->new_folder,panel);
+    text(a,tr(a,"New file","Neue Datei"),a->new_file.x+8,header+5,a->new_file.w-16,14,fg);text(a,tr(a,"New folder","Neuer Ordner"),a->new_folder.x+8,header+5,a->new_folder.w-16,14,fg);
     a->back=(SDL_FRect){20,header+control,100*a->scale,control-4};a->hidden=(SDL_FRect){28+a->back.w,header+control,170*a->scale,control-4};
     fill(a,a->back,panel);fill(a,a->hidden,panel);text(a,tr(a,"Back","Zurück"),28,a->back.y+5,a->back.w-16,14,fg);
     text(a,a->show_hidden ? tr(a,"Hide hidden","Versteckte aus") : tr(a,"Show hidden","Versteckte an"),a->hidden.x+8,a->hidden.y+5,a->hidden.w-16,14,fg);
@@ -103,18 +208,23 @@ static void draw(struct app *a) {
     }
     if (!ae_files_count(a->files)) text(a,tr(a,"No matching entries","Keine passenden Einträge"),28,a->top,(float)w-56,16,fg);
     char footer[160];snprintf(footer,sizeof(footer),"%zu / %zu · %s",ae_files_count(a->files),ae_files_total(a->files),tr(a,"Enter open · Alt+Up back · Ctrl+R refresh","Enter öffnen · Alt+Hoch zurück · Strg+R neu"));
-    text(a,a->closing && *a->message ? a->message : !a->rows ? tr(a,"Enlarge the window to browse","Fenster zum Navigieren vergrößern") : *a->message ? a->message : footer,20,a->bottom+4,(float)w-40,12,fg);text(a,tr(a,"F6 language · F7 contrast · F8 text · Ctrl+Q close","F6 Sprache · F7 Kontrast · F8 Text · Strg+Q schließen"),20,a->bottom+24*a->scale,(float)w-40,12,0xa5b7d0);
+    text(a,a->unknown ? tr(a,"Creation outcome unknown; do not retry","Ergebnis des Anlegens unklar; nicht wiederholen") : a->closing && *a->message ? a->message : !a->rows ? tr(a,"Enlarge the window to browse","Fenster zum Navigieren vergrößern") : *a->message ? a->message : footer,20,a->bottom+4,(float)w-40,12,fg);text(a,tr(a,"F6 language · F7 contrast · F8 text · Ctrl+Q close","F6 Sprache · F7 Kontrast · F8 Text · Strg+Q schließen"),20,a->bottom+24*a->scale,(float)w-40,12,0xa5b7d0);
+    if (a->dialog) draw_dialog(a,w,h,fg);
     if (!SDL_RenderPresent(a->renderer)) fail(a,"present");
     a->dirty=false;++a->frames;
-    if (a->diagnostics) printf("VIEW frame=%u count=%zu total=%zu selected=%zu top=%zu rows=%zu depth=%u scale=%.2f german=%d contrast=%d filter=%d rejected=%d child=%d width=%d height=%d\n",a->frames,ae_files_count(a->files),ae_files_total(a->files),ae_files_selected(a->files),a->first,a->rows,ae_files_depth(a->files),(double)a->scale,a->german,a->contrast,a->query_focus,a->query_bad,a->child.pid,w,h);
+    if (a->diagnostics) printf("VIEW frame=%u count=%zu total=%zu selected=%zu top=%zu rows=%zu depth=%u scale=%.2f german=%d contrast=%d filter=%d rejected=%d child=%d width=%d height=%d dialog=%d name_bytes=%zu name_bad=%d name_focus=%u creating=%d unknown=%d\n",a->frames,ae_files_count(a->files),ae_files_total(a->files),ae_files_selected(a->files),a->first,a->rows,ae_files_depth(a->files),(double)a->scale,a->german,a->contrast,a->query_focus,a->query_bad,a->child.pid,w,h,a->dialog,a->name_size,a->name_bad,a->name_focus,creating(a),a->unknown!=NULL);
 }
 static bool inside(SDL_FRect r,float x,float y) { return r.w>0 && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h; }
 static unsigned target(struct app *a,float x,float y,size_t *row) {
+    *row=0;
+    if (a->dialog) { *row=0;if (inside(a->name_field,x,y)) return 7;if (inside(a->cancel,x,y)) return 8;if (inside(a->submit,x,y)) return 9;return 0; }
+    if (inside(a->new_file,x,y)) return 5;
+    if (inside(a->new_folder,x,y)) return 6;
     *row=0;if (inside(a->back,x,y)) return 1;if (inside(a->hidden,x,y)) return 2;if (inside(a->search,x,y)) return 3;
     if (y>=a->top && y<a->bottom && a->rows && x>=16) { size_t n=(size_t)((y-a->top)/a->row_height);if (n<a->rows && a->first+n<ae_files_count(a->files)) { *row=a->first+n;return 4; } }return 0;
 }
 static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *data) {
-    (void)data;int w,h;if (!SDL_GetWindowSize(window,&w,&h) || (SDL_GetWindowFlags(window)&(SDL_WINDOW_MAXIMIZED|SDL_WINDOW_FULLSCREEN))) return SDL_HITTEST_NORMAL;
+    struct app *a=data;int w,h;if (!SDL_GetWindowSize(window,&w,&h) || (SDL_GetWindowFlags(window)&(SDL_WINDOW_MAXIMIZED|SDL_WINDOW_FULLSCREEN))) return SDL_HITTEST_NORMAL;
     bool l=p->x<8,r=p->x>=w-8,t=p->y<8,b=p->y>=h-8;
     if (t&&l) return SDL_HITTEST_RESIZE_TOPLEFT;
     if (t&&r) return SDL_HITTEST_RESIZE_TOPRIGHT;
@@ -124,7 +234,31 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
     if (r) return SDL_HITTEST_RESIZE_RIGHT;
     if (t) return SDL_HITTEST_RESIZE_TOP;
     if (b) return SDL_HITTEST_RESIZE_BOTTOM;
-    return p->y<44 ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
+    return p->y<44 && !a->dialog ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
+}
+static void name_input(struct app *a,const char *input) {
+    if (a->unknown || creating(a) || a->name_bad || a->name_focus!=0) return;
+    size_t n=strlen(input);char next[AE_FILES_NAME+1];
+    if (n<=AE_FILES_NAME-a->name_size) {
+        memcpy(next,a->name,a->name_size);memcpy(next+a->name_size,input,n+1);size_t size=a->name_size+n;
+        if (ae_files_create_name(next,size) || (size==1 && next[0]=='.') || (size==2 && !memcmp(next,"..",2))) {
+            memcpy(a->name,next,size+1);a->name_size=size;*a->create_message=0;a->dirty=true;return;
+        }
+    }
+    a->name_bad=true;snprintf(a->create_message,sizeof(a->create_message),"%s",tr(a,"Name rejected; retained prefix cannot be used","Name abgewiesen; bisheriger Teil nicht verwendbar"));a->dirty=true;
+}
+static void dialog_key(struct app *a,SDL_Keycode key,SDL_Keymod mod) {
+    if (creating(a)) return;
+    if (key==SDLK_ESCAPE) dialog_close(a);
+    else if (key==SDLK_TAB) {
+        a->name_focus=a->unknown ? 1 : (a->name_focus+((mod&SDL_KMOD_SHIFT) ? 2u : 1u))%3;a->dirty=true;
+    } else if (key==SDLK_RETURN) { if (a->name_focus==1) dialog_close(a);else create_submit(a); }
+    else if (!a->unknown && a->name_focus==0 && (mod&SDL_KMOD_CTRL) && key==SDLK_U) {
+        a->name_bad=false;*a->name=0;a->name_size=0;*a->create_message=0;a->dirty=true;
+    } else if (!a->unknown && a->name_focus==0 && !a->name_bad && key==SDLK_BACKSPACE && a->name_size) {
+        size_t offsets[AE_FILES_NAME+1],count;
+        if (ae_text_graphemes(a->name,a->name_size,offsets,AE_FILES_NAME+1,&count)) { a->name_size=offsets[count-2];a->name[a->name_size]=0;*a->create_message=0;a->dirty=true; }
+    }
 }
 static void event(struct app *a,const SDL_Event *e) {
     if (e->type==SDL_EVENT_QUIT || e->type==SDL_EVENT_WINDOW_CLOSE_REQUESTED) request_close(a);
@@ -132,36 +266,43 @@ static void event(struct app *a,const SDL_Event *e) {
         a->pressed=0;
         SDL_Keycode k=e->key.key;SDL_Keymod mod=e->key.mod;
         if ((mod&SDL_KMOD_CTRL) && k==SDLK_Q) request_close(a);
+        else if (k==SDLK_F6) { a->german=!a->german;a->dirty=true; }
+        else if (k==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }
+        else if (k==SDLK_F8) { a->scale=a->scale==1 ? 1.25f : a->scale==1.25f ? 1.5f : a->scale==1.5f ? 2 : 1;a->dirty=true; }
+        else if (a->dialog) dialog_key(a,k,mod);
+        else if ((mod&SDL_KMOD_CTRL) && k==SDLK_N) dialog_open(a,(mod&SDL_KMOD_SHIFT) ? AE_FILES_CREATE_DIRECTORY : AE_FILES_CREATE_FILE);
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_R) result(a,ae_files_refresh(a->files));
         else if ((mod&SDL_KMOD_CTRL) && k==SDLK_H) { a->show_hidden=!a->show_hidden;ae_files_hidden(a->files,a->show_hidden);reveal(a);a->dirty=true; }
         else if ((mod&SDL_KMOD_CTRL) && (k==SDLK_L || (k==SDLK_U && a->query_focus))) { a->query_focus=true;a->query_bad=false;(void)ae_files_filter(a->files,"",0);a->dirty=true; }
         else if ((mod&SDL_KMOD_ALT) && k==SDLK_UP) result(a,ae_files_up(a->files));
         else if (k==SDLK_ESCAPE) { a->query_focus=false;a->query_bad=false;(void)ae_files_filter(a->files,"",0);a->first=0;a->dirty=true; }
-        else if (k==SDLK_F6) { a->german=!a->german;a->dirty=true; }
-        else if (k==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }
-        else if (k==SDLK_F8) { a->scale=a->scale==1 ? 1.25f : a->scale==1.25f ? 1.5f : a->scale==1.5f ? 2 : 1;a->dirty=true; }
         else if (k==SDLK_UP || k==SDLK_DOWN) move(a,k==SDLK_UP ? -1 : 1);
         else if (k==SDLK_PAGEUP || k==SDLK_PAGEDOWN) move(a,(int)(a->rows ? a->rows : 1)*(k==SDLK_PAGEUP ? -1 : 1));
         else if (k==SDLK_HOME || k==SDLK_END) { if (ae_files_count(a->files)) (void)ae_files_select(a->files,k==SDLK_HOME ? 0 : ae_files_count(a->files)-1);reveal(a);a->dirty=true; }
         else if (k==SDLK_RETURN) { a->query_focus=false;if (a->rows) activate(a); }
         else if (k==SDLK_BACKSPACE) { if (a->query_focus) { const char *q=ae_files_query(a->files);size_t n=strlen(q),points[AE_FILES_QUERY+1],count;if (!a->query_bad && n && ae_text_graphemes(q,n,points,AE_FILES_QUERY+1,&count)) (void)ae_files_filter(a->files,q,points[count-2]);a->dirty=true; }else result(a,ae_files_up(a->files)); }
-    } else if (e->type==SDL_EVENT_TEXT_INPUT && a->query_focus) {
+    } else if (e->type==SDL_EVENT_TEXT_INPUT && a->dialog) { a->pressed=0;name_input(a,e->text.text); }
+    else if (e->type==SDL_EVENT_TEXT_INPUT && a->query_focus) {
         a->pressed=0;if (a->query_bad) return;
         char q[AE_FILES_QUERY+1];size_t old=strlen(ae_files_query(a->files)),n=strlen(e->text.text);
         if (n<=AE_FILES_QUERY-old) { memcpy(q,ae_files_query(a->files),old);memcpy(q+old,e->text.text,n);if (ae_files_filter(a->files,q,old+n)) { a->first=0;a->dirty=true; }else { a->query_bad=true;message(a,"Filter rejected; Ctrl+L clears"); } }else { a->query_bad=true;message(a,"Filter rejected; Ctrl+L clears"); }
-    } else if (e->type==SDL_EVENT_MOUSE_WHEEL) { a->pressed=0;move(a,e->wheel.y>0 ? -3 : e->wheel.y<0 ? 3 : 0); }
+    } else if (e->type==SDL_EVENT_MOUSE_WHEEL) { a->pressed=0;if (!a->dialog) move(a,e->wheel.y>0 ? -3 : e->wheel.y<0 ? 3 : 0); }
     else if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button==SDL_BUTTON_LEFT) a->pressed=target(a,e->button.x,e->button.y,&a->pressed_row);
     else if (e->type==SDL_EVENT_MOUSE_BUTTON_UP && e->button.button==SDL_BUTTON_LEFT) {
         size_t row;unsigned hit=target(a,e->button.x,e->button.y,&row),pressed=a->pressed;a->pressed=0;if (hit!=pressed) return;
-        if (hit==1) result(a,ae_files_up(a->files));
+        if (a->dialog) {
+            if (!creating(a)) { if (hit==7 && !a->unknown) { a->name_focus=0;a->dirty=true; }else if (hit==8) dialog_close(a);else if (hit==9) { a->name_focus=2;create_submit(a);a->dirty=true; } }
+        } else if (hit==1) result(a,ae_files_up(a->files));
         else if (hit==2) { a->show_hidden=!a->show_hidden;ae_files_hidden(a->files,a->show_hidden);reveal(a);a->dirty=true; }
         else if (hit==3) { a->query_focus=true;a->dirty=true; }
         else if (hit==4 && row==a->pressed_row && ae_files_select(a->files,row)) { a->query_focus=false;a->dirty=true;if (e->button.clicks==2) activate(a); }
+        else if (hit==5 || hit==6) dialog_open(a,hit==5 ? AE_FILES_CREATE_FILE : AE_FILES_CREATE_DIRECTORY);
     } else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) a->pressed=0;
     else if (e->type==SDL_EVENT_WINDOW_EXPOSED || e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) { a->pressed=0;a->dirty=true; }
 }
 int main(int argc,char **argv) {
-    struct app a={.child={.pid=-1,.pin=-1},.wake={-1,-1},.scale=1,.running=true,.dirty=true};const char *root=NULL,*font=NULL;
+    struct app a={.child={.pid=-1,.pin=-1},.wake={-1,-1},.create_dir=-1,.scale=1,.running=true,.dirty=true};const char *root=NULL,*font=NULL;
+    atomic_init(&a.create_done,false);
     for (int i=1;i<argc;++i) {
         const char **slot=!strcmp(argv[i],"--root") ? &root : !strcmp(argv[i],"--font") ? &font : !strcmp(argv[i],"--cache") ? &a.cache : !strcmp(argv[i],"--terminal") ? &a.terminal : !strcmp(argv[i],"--editor") ? &a.editor : !strcmp(argv[i],"--terminal-font") ? &a.terminal_font : NULL;
         if (slot && !*slot && i+1<argc) *slot=argv[++i];else if (!strcmp(argv[i],"--diagnostics") && !a.diagnostics) a.diagnostics=true;else return 2;
@@ -178,12 +319,14 @@ int main(int argc,char **argv) {
     if (!a.event || sigaction(SIGINT,&action,NULL) || sigaction(SIGTERM,&action,NULL) || !(a.worker=SDL_CreateThread(wake_worker,"files-signal",&a))) { a.failed=true;goto done; }
     if (a.diagnostics) puts("READY files wayland opengles2");
     while (a.running) {
-        child_update(&a);if (stopping) { stopping=0;request_close(&a); }if (!a.running) break;
+        create_update(&a);child_update(&a);if (stopping) { stopping=0;request_close(&a); }if (!a.running) break;
         if (a.dirty && !a.failed) draw(&a);
         if (!a.running) break;
-        SDL_Event e;bool got=busy(&a) ? SDL_WaitEventTimeout(&e,200) : SDL_WaitEvent(&e);if (got) event(&a,&e);else if (!busy(&a)) fail(&a,"event wait");
+        SDL_Event e;bool timed=busy(&a) || creating(&a);bool got=timed ? SDL_WaitEventTimeout(&e,200) : SDL_WaitEvent(&e);if (got) event(&a,&e);else if (!timed) fail(&a,"event wait");
     }
 done:
+    if (a.creator) { SDL_WaitThread(a.creator,NULL);a.creator=NULL; }
+    ae_files_create_close(a.creation);ae_files_create_close(a.unknown);if (a.create_dir>=0) close(a.create_dir);
     if (a.worker) { atomic_store(&a.active,false);unsigned char b=1;(void)write(a.wake[1],&b,1);SDL_WaitThread(a.worker,NULL); }
     signal_writer=-1;for (unsigned i=0;i<2;++i) if (a.wake[i]>=0) close(a.wake[i]);
     if (a.child.pid>0) { if (!a.child.ended) { fputs("files: refusing to retire a live document child\n",stderr);return 125; }(void)ae_files_child_close(&a.child); }

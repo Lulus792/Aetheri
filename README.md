@@ -47,11 +47,14 @@ richer search, plugins,
 panes, accessible document integration and ordinary brokered access remain work.
 
 The opt-in [Files app](spec/files.md) now provides directory navigation, keyboard
-selection and filtering, and opens a selected text file in an owned Terminal/editor.
+selection, filtering and create-only empty files/folders, and opens a selected text
+file in an owned Terminal/editor. Its creation worker keeps the view responsive;
+unknown outcomes block further creation rather than replaying an operation.
 It checks a held file witness before reading and preserves the editor's dirty-close
 choice. Files is now available in the fixed development dock/search alongside Settings
 and Terminal. This remains an ordinary-user development workflow; normal app
-admission, brokered file access and file-manager mutations are still work.
+admission, brokered file access, durable creation recovery and copy/rename/removal
+are still work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
 and Compose sequences through native Wayland preedit/commit to the terminal and

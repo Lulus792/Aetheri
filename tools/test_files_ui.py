@@ -15,7 +15,7 @@ import time
 
 
 def main():
-    server_bin, files_bin, terminal_bin, editor_bin, font, mono, build = map(
+    server_bin, files_bin, terminal_bin, editor_bin, font, mono, build, fault_bin = map(
         lambda p: Path(p).resolve(), sys.argv[1:])
     assert os.getuid() != 0
     inputs = json.loads((Path(__file__).resolve().parents[1]/"spec/ui-inputs.json").read_text())
@@ -40,7 +40,7 @@ def main():
     controller, issuer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     controller.settimeout(4)
     children, streams, pins, images, cases = [], [], [], [], []
-    process_pins = {}; document_pins = []
+    process_pins = {}; document_pins = []; files_log = "files"
 
     def start(binary, name, *args, pass_fds=(), extra_env=None):
         stream = (root/(name+".log")).open("wb"); streams.append(stream)
@@ -48,7 +48,8 @@ def main():
                              stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, pass_fds=pass_fds)
         children.append(p); pin=os.pidfd_open(p.pid); pins.append(pin); process_pins[p]=pin; return p
 
-    def log(name="files"):
+    def log(name=None):
+        name = name or files_log
         p=root/(name+".log"); return p.read_text(errors="replace") if p.exists() else ""
 
     def wait(predicate, label):
@@ -85,7 +86,7 @@ def main():
         return int(rows[-1]) if rows else 0
 
     codes = dict(zip("abcdefghijklmnopqrstuvwxyz", (30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
-    codes.update({" ":57, "-":12, ".":52})
+    codes.update({" ":57, "-":12, ".":52, "/":53})
 
     def typing(text, editor=False):
         target = accepted()+len(text.encode())
@@ -170,9 +171,50 @@ def main():
         event("B 272 0"); capture("minimum viewport refuses invisible entry activation")
         assert state(rows=0)
         tap(28); time.sleep(.1); assert "OPEN " not in log() and state(depth=0)
+        control(49, shift=True); wait(lambda: state(dialog=1, name_focus=0), "new folder dialog at minimum 200 percent")
+        typing("scratch"); wait(lambda: state(name_bytes=7), "literal folder name accepted")
+        capture("creation dialog remains usable at minimum German 200 percent")
+        # Background navigation/filtering cannot replace the retained target or name.
+        control(38); tap(108); wait(lambda: state(dialog=1, depth=0, name_bytes=7), "modal navigation fence")
+        tap(15); wait(lambda: state(name_focus=1), "Cancel focus")
+        event("K 42 1"); tap(15); event("K 42 0")
+        wait(lambda: state(name_focus=0), "reverse Tab returns to name")
+        tap(15); tap(15); wait(lambda: state(name_focus=2), "Create focus")
+        tap(28)
+        wait(lambda: (folder/"scratch").is_dir() and state(dialog=0, creating=0), "native directory creation completed")
+        assert (folder/"scratch").stat().st_mode & 0o777 == 0o700
         tap(66); tap(64); tap(65)
         wait(lambda: state(scale="1.00", german=0, contrast=0), "preferences restored")
-        filter_to("alpha", 1); tap(28)
+        # Opening/cancelling is effect-free; Cancel must not click through to rows.
+        control(49); wait(lambda: state(dialog=1), "new file dialog")
+        typing("cancel.txt"); tap(15); tap(28)
+        wait(lambda: state(dialog=0), "keyboard cancellation")
+        assert not (folder/"cancel.txt").exists()
+        # A valid retained prefix must not become an unintended filename.
+        control(49); wait(lambda: state(dialog=1), "overflow dialog")
+        typing("x"*255); wait(lambda: state(name_bytes=255), "maximum name")
+        capture("long name shows the editable tail")
+        typing("x"); wait(lambda: state(name_bad=1), "whole name intent rejected")
+        tap(28); time.sleep(.1); assert not (folder/("x"*255)).exists()
+        control(22); wait(lambda: state(name_bad=0, name_bytes=0), "clear rejected name")
+        typing("prefix/"); wait(lambda: state(name_bad=1), "slash rejected")
+        tap(28); time.sleep(.1); assert not (folder/"prefix").exists()
+        tap(1); wait(lambda: state(dialog=0), "cancel invalid name")
+        # Existing contents are not overwritten, and an explicit corrected name is allowed.
+        control(49); wait(lambda: state(dialog=1), "conflict dialog")
+        typing("alpha.txt"); tap(28)
+        wait(lambda: "CREATE attempt=2 result=2 kind=0" in log() and state(dialog=1, creating=0), "existing name conflict")
+        assert (folder/"alpha.txt").read_bytes() == b"alpha\n"
+        capture("existing file conflict preserves contents")
+        control(22); typing("created.txt"); tap(28)
+        wait(lambda: (folder/"created.txt").is_file() and state(dialog=0, creating=0), "native create-only file completed")
+        assert (folder/"created.txt").read_bytes() == b"" and (folder/"created.txt").stat().st_mode & 0o777 == 0o600
+        # Mismatched releases between the two creation buttons cannot open either dialog.
+        event("M 455 110"); event("B 272 1"); event("M 580 110"); event("B 272 0")
+        time.sleep(.1); assert state(dialog=0)
+        click(455,110); wait(lambda: state(dialog=1), "actual new-file button")
+        tap(1); wait(lambda: state(dialog=0), "pointer dialog cancellation")
+        filter_to("created", 1); tap(28)
         wait(lambda: "READY wayland opengles2 editor=" in log(), "owned Terminal and actual editor")
         terminal_pid = int(re.findall(r"^OPEN pid=(\d+)", log(), re.M)[-1])
         editor_pid = int(re.findall(r"READY .* editor=(\d+)", log())[-1])
@@ -190,8 +232,9 @@ def main():
         capture("Terminal close presents the dirty-editor choice")
         tap(1); time.sleep(.16); typing("world ", editor=True)
         control(31)
-        wait(lambda: (folder/"alpha.txt").read_bytes() == b"hello world alpha\n", "exact selected-document save")
-        capture("saved selected file in owned editor terminal")
+        wait(lambda: (folder/"created.txt").read_bytes() == b"hello world ", "new file edited and saved exactly")
+        assert (folder/"alpha.txt").read_bytes() == b"alpha\n"
+        capture("newly created file saved in owned editor terminal")
         control(16)
         wait(lambda: ended(editor_pin) and ended(terminal_pin) and "DOCUMENT_END status=0" in log(), "original document pair ended")
         wait(lambda: state(child=-1), "Files observes owned document end and refreshes")
@@ -215,16 +258,57 @@ def main():
         assert ended(ep) and ended(tp) and log().count("DOCUMENT_END status=0") == 2
         assert "CLOSED files" in log() and "failed=0" in log().split("CLOSED files")[-1]
         cases.extend(["mismatched pointer release cancelled", "links and no-match do not dispatch",
+                      "new folder at German 200 percent minimum viewport", "modal target and keyboard focus retained",
+                      "cancel does not create", "overflow and invalid names cannot create a retained prefix",
+                      "existing-file conflict is create-only", "corrected explicit name creates an empty 0600 file",
+                      "new file opens in own editor and saves exact bytes", "creation pointer release does not click through",
                       "overflow filter cannot open the retained matching prefix",
                       "actual selected-FD save", "Terminal close retains dirty-editor cancel",
                       "direct document Ctrl+Z does not strand a stopped editor",
                       "hostile literal filename never parsed by shell", "Files waits for original document child"])
+        # The alternate test executable loses the acknowledgement AFTER a real mkdir.
+        # Its worker waits on our own release file; ordinary Files contains no hook.
+        files_log = "fault"
+        fault = start(fault_bin, files_log, *args)
+        wait(lambda: state(dialog=0), "fault fixture native Files")
+        control(49, shift=True); wait(lambda: state(dialog=1), "fault creation dialog")
+        typing("unknown-folder"); tap(28)
+        wait(lambda: "FAULT_CREATED directory" in log() and state(creating=1), "real directory effect awaiting acknowledgement")
+        before = view()["frame"]; tap(65); tap(1)
+        wait(lambda: state(contrast=1, creating=1) and view()["frame"] > before, "worker leaves UI responsive; cancel cannot roll back")
+        (root/"release-create").write_bytes(b"release\n")
+        wait(lambda: state(creating=0, unknown=1, dialog=1), "lost acknowledgement remains unknown")
+        assert (folder/"unknown-folder").is_dir()
+        capture("unknown mkdir outcome blocks further creation")
+        tap(28); wait(lambda: state(dialog=0, unknown=1), "Back retains unknown operation")
+        control(49); wait(lambda: state(dialog=1, unknown=1, name_focus=1), "new creation opens inspection only")
+        before_name = view()["name_bytes"]; control(22); typing("another"); tap(15)
+        time.sleep(.1); assert state(unknown=1, name_bytes=before_name, name_focus=1)
+        assert log().count("FAULT_CREATED directory") == 1 and not (folder/"another").exists()
+        control(16); assert fault.wait(timeout=8) == 0; children.remove(fault)
+        assert (folder/"unknown-folder").is_dir()
+        # Closing during a known-in-flight effect waits for that original worker.
+        (root/"release-create").unlink()
+        pending_folder=root/"pending-documents"; pending_folder.mkdir(mode=0o700)
+        files_log="pending-close"; pending_args=list(args); pending_args[1]=pending_folder
+        pending=start(fault_bin,files_log,*pending_args)
+        wait(lambda: state(dialog=0), "pending-close Files")
+        control(49,shift=True); wait(lambda: state(dialog=1), "pending-close dialog")
+        typing("unknown-folder"); tap(28)
+        wait(lambda: "FAULT_CREATED directory" in log() and state(creating=1), "pending-close original effect")
+        control(16); time.sleep(.1); assert pending.poll() is None
+        (root/"release-create").write_bytes(b"release\n")
+        assert pending.wait(timeout=8) == 0; children.remove(pending)
+        assert "CREATE attempt=1 result=7 kind=1" in log() and "CLOSED files" in log()
+        assert (pending_folder/"unknown-folder").is_dir()
+        cases.extend(["real lost mkdir acknowledgement is unknown, never retried", "unknown inspection cannot edit or create",
+                      "creation worker keeps UI responsive", "close waits for original in-flight creation and preserves its effect"])
         absent = start(files_bin, "absent", *args, extra_env={**env,"WAYLAND_DISPLAY":"absent","DISPLAY":":199"})
         assert absent.wait(timeout=8) == 1; children.remove(absent)
         server.terminate(); assert server.wait(timeout=8) == 0; children.remove(server)
         result = {"result":"passed", "scope":"ordinary-user development navigation and direct child ownership, not app/document admission",
                   "cases":cases, "images":images, "idle_seconds":1, "idle_cpu_ticks":idle,
-                  "binaries":{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (server_bin,files_bin,terminal_bin,editor_bin)}}
+                  "binaries":{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (server_bin,files_bin,terminal_bin,editor_bin,fault_bin)}}
         (root/"result.json").write_text(json.dumps(result,indent=2)+"\n")
         print(json.dumps({**result,"artifacts":str(root)}))
     finally:

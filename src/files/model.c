@@ -99,6 +99,7 @@ size_t ae_files_selected(const struct ae_files *f) { return f ? f->selected : 0;
 unsigned ae_files_depth(const struct ae_files *f) { return f ? f->depth : 0; }
 const char *ae_files_query(const struct ae_files *f) { return f ? f->query : ""; }
 const char *ae_files_folder(const struct ae_files *f) { return f ? f->folders[f->depth] : ""; }
+int ae_files_directory(const struct ae_files *f) { if (!f) { errno=EINVAL;return -1; }return fcntl(f->directories[f->depth],F_DUPFD_CLOEXEC,4); }
 enum ae_files_result ae_files_open_selected(const struct ae_files *f,int *directory,int *witness,char leaf[AE_FILES_NAME+1]) {
     if (!directory || !witness || directory==witness || !leaf) return AE_FILES_INVALID;
     *directory=*witness=-1;leaf[0]=0;const struct ae_files_entry *e=f ? ae_files_entry(f,f->selected) : NULL;

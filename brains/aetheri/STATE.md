@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — Files dock/search integration and document-preserving shutdown.
+5 November 2026 — create-only Files workflow and worker-owned creation outcomes.
 
 ## Coordination
 
@@ -14,6 +14,37 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now creates an empty file or folder through pointer controls or Ctrl+N /
+Ctrl+Shift+N. A retained parent and immutable literal name bind each single-attempt
+operation. Modal input cannot navigate the target; invalid/overflowing names cannot
+submit a retained prefix. One SDL worker performs the staged file save or mkdir /
+flush sequence without blocking the view. Existing entries remain unchanged.
+Success refreshes/selects the new entry; unknown acknowledgements retain possible
+objects/stages and block further creation in this window. Close waits for the
+original worker. No durable restart recovery or brokered write grant is implied.
+
+All 43 affected groups pass Release (121.05s) and ASan+UBSan (220.79s). Each native
+Files profile covers 30 cases/30 images, including real lost-mkdir acknowledgement,
+responsive UI, rejected-prefix fencing, 200-percent minimum viewport and exact
+new-file Editor save. An unchanged copied-source test rejects removal of the
+no-replay guard. The actual protocol3 DRM session creates a folder/file, saves,
+rejects replacement, cancels an unsubmitted name and preserves contents across
+Files reopen and session retirement. Its three direct roles end status0.
+
+Final audit: 333 matching source inputs; 28 frozen SQL/XML and nineteen protected
+old-runtime hashes unchanged, no old SQLite sidecars; 1,079 retained native files,
+306 images/nine special records, and eighteen stable DRM captures. The enforcing
+carrier is idle on tty1 without known native actors, an Aetheri unit or seat0
+session. The quarantined old running/recover-handoff intent remains unresolved.
+See [record](journal/2026-11-05-files-create.md) and `local/files-create-2026-11-05`.
+
+Next: richer file/document management with explicit targets and conflict/removal
+previews, then additional document handlers. Normal admission/grants, durable
+recovery, full removal, other apps, OS image/installer and the complete resettable
+experiment desktop remain required. Keep the full objective active.
+
+## Files desktop ownership — completed checkpoint
 
 Files now has an independent fixed development slot beside Settings/Terminal,
 available through dock and global search. The tagged model and private version3
