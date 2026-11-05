@@ -139,7 +139,16 @@ static void output_request_state(struct wl_listener *listener, void *data) {
         }
     }
     if (!wlr_output_commit_state(o->output, state)) fail(o->server, "parent resize failed");
-    else ae_desktop_arrange(o->server->desktop);
+    else if (o->server->desktop) ae_desktop_arrange(o->server->desktop);
+    else {
+        /* Standalone app/session probes have no private desktop owner. They
+           still need current bounds and maximized/fullscreen dimensions. */
+        struct window *w;
+        wl_list_for_each(w, &o->server->windows, link)
+            if (ae_server_window_output(w) == o && w->toplevel->base->initialized)
+                ae_server_configure(w);
+        ae_input_recheck_pointer(o->server->input);
+    }
 }
 static void backend_destroy(struct wl_listener *listener, void *data) {
     (void)data;

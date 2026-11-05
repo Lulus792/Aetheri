@@ -6,6 +6,10 @@ and HarfBuzz for shaping.
 It is an opt-in C17 development executable, not an installed/admitted app or a
 complete Settings application. Final visual design remains with the user.
 
+The separate [NexaUI integration probe](nexaui.md) now exercises this original
+model on the Aetheri compositor. It is opt-in and does not replace this SDL view
+or establish native accessibility/normal session acceptance.
+
 ## Behavior and responsibility
 
 `src/settings/model.*` contains transient observations and selection without

@@ -24,6 +24,17 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+5 November Aetheri-side pilot: the pinned NexaUI `e71ee30` original-model Settings
+consumer now builds and runs on the Fedora/glibc carrier and actual Aetheri
+private compositor, in Release and ASan/UBSan. Its software Wayland path has no
+SDL/X11/Vulkan dependency. Native pointer/keyboard, three output observations,
+German/high contrast/200%, narrow resize/restore and view lifetime checks pass.
+AT-SPI is compiled/late-loaded, but the test bus is deliberately unavailable;
+real native accessibility and DRM owner integration remain gates. The working
+SDL app remains selected. See [probe contract](../../../spec/nexaui.md) and
+[record](../journal/2026-11-05-nexaui-settings.md). This advances the previous
+recommendation to an executed consumer probe, not global SDK/application adoption.
+
 5 November incremental consumer update: the existing catalogue's integration
 cases now reference our [own line-editor contract](../../../spec/line-editor.md),
 including app-owned grapheme offsets/history/draft and whole-draft rejection.

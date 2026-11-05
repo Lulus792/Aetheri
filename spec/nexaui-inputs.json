@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "purpose": "Opt-in original-model Settings integration probe; no default toolkit replacement",
+  "reviewed": "2026-11-05",
+  "repository": "https://github.com/Lulus792/NexaUI.git",
+  "revision": "e71ee304f1e6c23fa562d9e4b11f7e8e12152079",
+  "version": "0.1.18",
+  "archive": {
+    "name": "nexaui-e71ee304f1e6c23fa562d9e4b11f7e8e12152079.tar",
+    "generation": "git -c core.autocrlf=false archive --format=tar e71ee304f1e6c23fa562d9e4b11f7e8e12152079",
+    "size": 37877760,
+    "sha256": "15fc2fbd41223af85612c45e7b490985e92bed481075594b7edb866f2d75027a"
+  },
+  "license": {
+    "path": "LICENSE",
+    "spdx": "MIT",
+    "sha256": "e569a5d0fc9485fcc3aeca8f285a0b25ddcf11849254d0eba2bb8efa2d470c2e"
+  },
+  "model": [
+    "src/settings/model.c",
+    "src/settings/model.h"
+  ],
+  "consumer": "examples/21_aetheri_model",
+  "dbus_sdk": {
+    "name": "dbus-devel-1.16.2-1.fc44.x86_64.rpm",
+    "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/d/dbus-devel-1.16.2-1.fc44.x86_64.rpm",
+    "size": 39730,
+    "sha256": "6d76379b1188411d025a56b452d889e1a3cf982dc9beefdf7723c1017f119c05",
+    "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+    "runtime_nevra": "dbus-libs-1:1.16.2-1.fc44.x86_64",
+    "license": "(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later",
+    "use": "Read headers only; no installation, scriptlets or library replacement. NexaUI late-binds the existing libdbus-1.so.3."
+  },
+  "profile": "Wayland-only shared C17 SDK, software presentation, native AT-SPI compiled; no X11, Vulkan or SDL dependency",
+  "adoption": "A source pin and successful probe do not establish normal app admission, persistent settings, full design, input, accessibility, performance or hardware acceptance."
+}

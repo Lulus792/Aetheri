@@ -2820,3 +2820,9 @@ next implementation work; the complete active-run acceptance test remains failed
 Final source comparison matches all 187 host/snapshot/guest files; 602 local
 Markdown file targets exist (anchors and external URLs excluded). The metadata
 probes leave the retained failed catalogue hash/static inputs unchanged.
+
+## NexaUI original-model Settings probe — 5 November 2026
+
+- [Pinned NexaUI source](https://github.com/Lulus792/NexaUI/tree/e71ee304f1e6c23fa562d9e4b11f7e8e12152079): committed CMake, Wayland/software/AT-SPI contracts and original-model consumer read; immutable LF archive compiled independently in the Aetheri Fedora carrier. Upstream reports retain their own environments and do not establish this consumer's adoption.
+- [Input pin](../../spec/nexaui-inputs.json), [private builder](../../tools/build_nexaui.py), [native test](../../tools/test_nexaui_settings.py) and [probe contract](../../spec/nexaui.md): exact source/license hashes, matching signed Fedora D-Bus headers read as data, original Aetheri model retained, no normal SDL replacement.
+- [Executed record](journal/2026-11-05-nexaui-settings.md), `local/nexaui-settings-2026-11-05`: original archive/size/standalone-resize failures, Release and ASan/UBSan positive original-model/native tests, final pointer extension, 24 images, mapped libraries, exact compile/JUnit/source/protected-state audit. No real accessibility-bus, DRM-owner, physical or production lifecycle acceptance is claimed.

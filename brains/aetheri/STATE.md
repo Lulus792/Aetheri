@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — fullscreen dock visibility and current-scene pointer routing.
+5 November 2026 — pinned NexaUI Settings probe on the Aetheri compositor.
 
 ## Coordination
 
@@ -14,6 +14,32 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The first original-model NexaUI Settings consumer now builds privately and runs
+on the actual Aetheri compositor in the Fedora/glibc carrier. The pinned 0.1.18
+candidate uses Wayland/software presentation, with native AT-SPI compiled from
+signed header-only inputs; no SDK source or normal app selection is changed.
+Actual pointer/keyboard, three output observations, German/high contrast/200%,
+320x320 resize/restore, focus/close and idle checks pass in Release and ASan/UBSan.
+The probe exposed and corrected a standalone-compositor output reconfiguration
+path that previously depended on a private desktop owner.
+
+Five existing Settings/compositor groups pass per profile. The opt-in registered
+`settings.nexaui` passes again with final native pointer checks (3.70s/11.51s),
+four captured states/twelve images each. Audit binds 343 host/snapshot/guest
+sources, unchanged 28 SQL/XML and nineteen old-runtime hashes without sidecars;
+the enforcing carrier is idle on tty1 without candidate/native actors or seat0.
+See [probe](../../spec/nexaui.md), [record](journal/2026-11-05-nexaui-settings.md)
+and `local/nexaui-settings-2026-11-05`. Old recovery remains unresolved.
+
+Next: real independent AT-SPI and explicit development-owner/DRM integration
+before any Settings replacement; retain behavior/model and implement the accepted
+design. The unavailable-bus probe is not accessible-session, physical, final
+performance/design or normal admission acceptance. Other apps, device services,
+grants/recovery/removal, OS image/installer/hardware and the complete resettable
+experiment desktop remain required. Keep the full goal active.
+
+## Fullscreen dock/input — completed checkpoint
 
 The fullscreen dock overlap is corrected in the development compositor. Current
 scene stack/geometry and committed coverage determine visibility per output;
@@ -40,8 +66,8 @@ no sidecars; the enforcing carrier is idle on tty1 with no known native actors/
 Aetheri units/seat0 session. Old recovery remains unresolved. See
 [record](journal/2026-11-05-fullscreen-dock.md) and `local/fullscreen-dock-2026-11-05`.
 
-Next: evaluate a concrete per-view NexaUI Settings consumer in the Fedora carrier.
-Do not replace the working view before actual candidate/model/native gates pass.
+At this checkpoint the next step was the NexaUI Settings consumer evaluation;
+the current update above records its scoped native result and remaining gates.
 Full visual design/glass/autohide, input/accessibility, other apps, normal grants/
 recovery/removal, installable OS/hardware and the resettable experiment desktop
 remain required. Keep the full goal active.
