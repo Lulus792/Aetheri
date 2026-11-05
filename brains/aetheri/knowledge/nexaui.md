@@ -39,21 +39,25 @@ The user's final visual design remains a separate decision.
 
 ### Current source inspection
 
-GitHub main was read with `git ls-remote` and resolved to
-`05e28bb16c1e60ac339cd9428ff2d3afbafc21f6`. The local primary checkout is separately
+On 5 November, GitHub main was read with `git ls-remote` and resolved to
+`120384bcb9d80f9b5a958bab337fbfecbb30ca7a`, superseding the earlier
+`05e28bb16c1e60ac339cd9428ff2d3afbafc21f6` source baseline. Relevant files were
+read directly from that committed object. The local primary checkout is separately
 at `5f7680f7d00a950f759d17d98520405901f9419d`; its local main ref is older still.
 Inspect committed objects at the confirmed remote revision, not an arbitrary
 checkout or an uncommitted worktree candidate. No NexaUI code/build/pin was changed
 or tested by this inspection.
 
-| Area | Source/document evidence at 05e28bb | Aetheri consequence |
+| Area | Source/document evidence at 120384b | Aetheri consequence |
 | --- | --- | --- |
 | Widgets and core | README/header expose layout, widgets, text editing and renderer-neutral commands | Already a substantial candidate; do not request reimplementation of these features |
 | Native Linux windows | Wayland/X11, window management and text-input protocols exist | Aetheri compositor compatibility still needs its own native test |
-| Dependency profile | CMakeLists.txt:29 unconditionally requires X11 for Linux; Wayland/xkbcommon/scanner also required | Request a tested Wayland-only build/package profile before adopting it into a Wayland-only base |
-| Linux native evidence | Private Weston report exercises actual Wayland surfaces on a controlled Xvfb/Weston fixture | Useful prior evidence; not Aetheri/wlroots, physical mixed-DPI or hardware acceptance |
-| Text and accessibility | README retains IME/clipboard and complete assistive-coverage limits; current AT-SPI multiple selection is published | Select exact workflows and test those; do not call the whole toolkit absent or finished |
-| Stability and release | README identifies early 0.1.0 development and changing pre-v1 APIs; other local worktrees contain separate candidate work | Pin an accepted source revision for adoption; do not use an uncommitted global checkout |
+| Dependency profile | `NEXAUI_ENABLE_X11=OFF` selects a Wayland-only profile; package/subdirectory probes exist | Reuse the implementation; close exact consumer/profile gates instead of requesting B01 again |
+| Linux native evidence | Adoption/scaling reports describe private Weston, software Sway and native input/assistive checks for their stated candidates | Useful prior evidence; not a fresh test of 120384b, Aetheri/wlroots, physical mixed-DPI or hardware acceptance |
+| Text and accessibility | Settings and native text/IME/AT-SPI paths have expanded, with remaining limits in their reports | Select exact workflows and test those; do not call the whole toolkit absent or finished |
+| Settings and async work | Example has app-owned pending/completion/error/retry with a deterministic local timer backend | Preserve it; genuine worker wakeup and Aetheri service mediation remain separate work |
+| Consumer packaging | Core installed consumers exist; Settings still uses a private build-tree Vulkan adapter | Close a documented installed renderer/host contract for actual application adoption |
+| Stability and release | README identifies early 0.1.1 development; linked-version/build-feature/builder-revision queries exist | Pin and independently verify accepted artifacts; metadata alone is not provenance or live capability |
 
 The user subsequently requested the full requirement list for NexaUI to support
 all agreed Aetheri UI. The authorized `NEXT_AETHERI_UI.md` in the local NexaUI
@@ -65,13 +69,21 @@ lifetime and adoption evidence, including installation, first-run and recovery
 presentation. Existing API families are not labelled missing. Source records are
 mapped in the handoff; new product decisions extend it without renumbering IDs.
 
-The implementation order still starts with the confirmed Wayland-only consumer
-gap and a real Settings view, then app interaction, desktop/content adapters and
-full hardware/quality acceptance. Missing native Aetheri evidence is recorded
+The refreshed handoff preserves all 103 IDs and adds concrete integration cases
+and delivery packets. The SDK's preliminary source map still lists 102 IDs and
+omits installer/recovery D11; its reconciliation is explicitly requested. New
+implementation must not repeat the now-existing Wayland-only profile or Settings
+example. Next close installed renderer/host packaging, worker wakeup and actual
+Aetheri consumer gates, then app interaction, desktop/content adapters and full
+hardware/quality acceptance. Missing native Aetheri evidence is recorded
 separately from missing SDK implementation. The catalog does not transfer the
 OS compositor, app supervision, engines or security broker into NexaUI. It is a
 user-requested project/chat handoff, not an automatic message dispatch. No NexaUI
 code, consumer pin, existing local edits or publication was changed.
+
+This refresh changes the local handoff and this planning note only. No SDK build,
+runtime acceptance, consumer-pin update, other-chat message or publication was
+performed. Existing terminal source work in Aetheri is preserved independently.
 
 ### Primary references inspected
 
@@ -79,10 +91,11 @@ code, consumer pin, existing local edits or publication was changed.
   scope, C API and zlib licensing; text/font helpers are separate libraries.
 - [SDL3 Wayland notes](https://wiki.libsdl.org/SDL3/README-wayland): compositor
   capability boundaries, configure/initial-buffer handling and scaling limits.
-- [NexaUI pinned README](https://github.com/Lulus792/NexaUI/blob/05e28bb16c1e60ac339cd9428ff2d3afbafc21f6/README.md),
-  [build profile](https://github.com/Lulus792/NexaUI/blob/05e28bb16c1e60ac339cd9428ff2d3afbafc21f6/CMakeLists.txt),
-  [native Wayland report](https://github.com/Lulus792/NexaUI/blob/05e28bb16c1e60ac339cd9428ff2d3afbafc21f6/docs/quality/wayland-private-compositor-report.md)
-  and [window contract](https://github.com/Lulus792/NexaUI/blob/05e28bb16c1e60ac339cd9428ff2d3afbafc21f6/docs/concepts/window-management.md).
+- [NexaUI pinned README](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/README.md),
+  [build profile](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/CMakeLists.txt),
+  [adoption assessment](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/docs/quality/aetheri-adoption-assessment.md),
+  [requirement map](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/docs/quality/aetheri-requirement-map.md)
+  and [Settings example](https://github.com/Lulus792/NexaUI/blob/120384bcb9d80f9b5a958bab337fbfecbb30ca7a/examples/18_settings/README.md).
 
 ## Earlier inspection — 25 October 2026
 
