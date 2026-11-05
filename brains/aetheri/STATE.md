@@ -1,6 +1,6 @@
 # State
 
-5 November 2026 — reversible history search and modal editor core.
+5 November 2026 — local file adapter for the own modal editor.
 
 ## Coordination
 
@@ -15,6 +15,34 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The [editor file adapter](../../spec/editor.md#local-development-file-adapter)
+now loads exact bounded text and saves through an exclusive same-directory stage.
+It preserves ordinary permissions/GID/readable xattrs, checks original bytes and
+held/named metadata, and uses no-replace for new files. Failures before rename
+leave the target untouched; uncertain publication/flush/close fences later saves.
+UNKNOWN is separate from document dirty state. Existing replacement is not CAS
+against other apps; this is a local development profile, not a document grant.
+
+Four affected text/editor groups pass Release 2.92s / ASan+UBSan 6.55s with no skips.
+Actual 8MiB load/edit/save bytes, attributes, conflicts, allocation/FD cleanup,
+short/interrupted/failed writes and injected flush/rename/close failures pass.
+An unchanged test rejects the copied-source omitted post-rename flush result.
+See the [record](journal/2026-11-05-editor-file.md), including the earlier xattr
+fixture limitation. No executable editor or new GUI acceptance is claimed.
+
+Final audit matches 312 host/snapshot/guest sources, 28 frozen SQL/XML and 19
+protected old hashes without sidecars. The 120 regular evidence files/eight
+special-node records are retained; 1,023 local Markdown targets resolve. The
+enforcing carrier is idle on tty1; the old intent's bytes/state remain unchanged.
+
+Next wire the document/modal/file libraries into the actual terminal view and
+key/command adapter, with independent uncertain-save and unsaved-close decisions.
+Document undo, normal brokered access/recovery, complete app/session provisioning,
+the other apps, original image/installer, hardware and full experiment desktop
+remain required. The old quarantined runtime remains untouched.
+
+## History search and modal core — historical checkpoint
 
 The actual shell now has bounded Ctrl+R history search with independent query/
 preview, original draft/cursor/undo preservation, older/newer traversal and

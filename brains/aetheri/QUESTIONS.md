@@ -60,8 +60,9 @@ acceptance/submission. Final bindings, advanced completion/richer search,
 the full modal editor app, panes and durable session/history policies remain work; its
 provisional controls do not settle those product questions.
 The [own file-editor core](../../spec/editor.md) has tested document/Normal/Insert
-models. File opening/saving, exact conflict/unknown-save and unsaved-close handling,
-document undo and actual view/key integration are engineering work before user UI
+models plus a tested local file adapter with observed-conflict and unknown-save
+fences. Interactive conflict/reconciliation and unsaved-close handling, brokered
+access, document undo and actual view/key integration remain engineering work before user UI
 review; no running editor app or native document-grant transport is implied.
 The prototype refuses exit/EOF with open jobs; hangup waits for original direct
 children without forced killing. Final window/logout/reboot persistence and richer

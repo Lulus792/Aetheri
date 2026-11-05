@@ -1,8 +1,8 @@
 # Own modal editor core
 
-5 November 2026. Original C17 document and normal/insert controllers now exist.
-They are tested libraries, **not yet an executable file editor**. Terminal
-presentation, file loading/saving, document undo, search/selection, command mode,
+5 November 2026. Original C17 document, normal/insert and local file adapters now
+exist. They are tested libraries, **not yet an executable file editor**. Terminal
+presentation, interactive save/conflict/unsaved-close decisions, document undo, search/selection, command mode,
 plugins and panes still need their adapters and tests. The existing
 [shell line editor](line-editor.md) is a separate working component.
 
@@ -12,7 +12,8 @@ plugins and panes still need their adapters and tests. The existing
 | --- | --- |
 | [document.h](../src/editor/document.h), [implementation](../src/editor/document.c) | Copied text, gap storage, line offsets, byte cursor and content revision |
 | [modal.h](../src/editor/modal.h), [implementation](../src/editor/modal.c) | Normal/insert state, logical vertical goal and semantic edit actions; borrows the caller-owned document |
-| Future app/view | Keyboard interpretation, rendering/cell geometry, accessible text, file permissions and actual I/O |
+| [file.h](../src/editor/file.h), [implementation](../src/editor/file.c) | Independently held local directory/file, baseline bytes/metadata and synchronous save outcome; development profile only |
+| Future app/view | Keyboard interpretation, rendering/cell geometry, accessible text, explicit save/conflict/close choices and future brokered file access |
 
 The first text profile accepts strict UTF-8, TAB, LF and CRLF. It preserves mixed
 endings and missing final LF without normalization. NUL, other C0/C1 controls,
@@ -56,7 +57,7 @@ an edit even when its bytes happen to match the old text.
 
 `mark_clean(revision)` accepts only the current content generation. It is a
 local state acknowledgement, **not a file write, durable receipt or permission**.
-The future file adapter must supply actual save evidence before acknowledging.
+The separate file adapter must supply actual save evidence before acknowledging.
 An old asynchronous save result cannot mark newer edits clean. No backing file,
 path, app grant, StorageRef or account identity exists in this model.
 
@@ -80,7 +81,66 @@ keeps it alive and does not mutate it independently while a controller is attach
 
 These are internal semantic actions. Physical keys, repeat/count handling,
 commands such as `:w`, file-save conflicts and unsaved-close UI are still work.
-No action executes a shell command, opens a file or requests privileged work.
+No modal action executes a shell command, opens a file or requests privileged work.
+
+## Local development file adapter
+
+The caller selects a directory FD and one filename. The adapter holds its own
+directory descriptor, admits a current-user-owned directory without group/other
+write access, and rechecks that boundary before saving. Root use is refused.
+Existing files must be current-user-owned regular single-link files without
+set-ID/sticky bits and within the text profile. A no-follow O_PATH pin admits the
+type before opening the same object through trusted `/proc/self/fd`. Symlinks,
+FIFOs, devices, directories and oversized objects are not opened as content.
+Bounded content that fails the text profile is rejected without exposing a document.
+No privileged authority, path grant, app sandbox or StorageRef is created.
+
+Loading copies the exact bytes and readable attributes between repeated held/
+named metadata observations. The file object retains a private baseline; the
+caller separately owns the document. Read-only files may load, but saving them
+is refused. A new binding creates only an empty document until explicit save;
+an already existing name is a conflict. Filenames and recovery leaves are data,
+never shell syntax or safe-to-print terminal strings.
+
+Saving serializes the current content generation, rechecks the original inode,
+timestamps, owner/group/mode/link count/size and actual baseline bytes, then writes
+an exclusively created random `.aetheri-save-…` file in the held directory.
+Short writes and EINTR are handled; zero writes and errors cannot publish a prefix.
+Existing ordinary permissions/GID and readable xattrs are restored and checked.
+There are at most 64 attributes, 16KiB of names and 64KiB of values in this first
+profile. Capability attributes, unavailable/oversized metadata and metadata that
+cannot be preserved are refused rather than silently dropped. New files use 0600.
+Hidden attributes omitted by the kernel are outside this readable-metadata profile.
+
+The adapter flushes the staged file and directory, repeats original-file checks,
+then renames. A new file uses RENAME_NOREPLACE. Existing-file replacement is atomic
+visibility, **not an atomic compare-and-swap**: another program can change the
+name/content after the last check. This development path assumes an independently
+selected local Linux filesystem and no hostile same-UID writer. It does not solve
+general cross-app save coordination or remote-filesystem failure semantics.
+
+After rename, the directory is flushed, the held/named object and exact committed
+bytes are checked, and the writer is closed before the content generation can be
+acknowledged clean. A close error is not retried on its now-released FD number.
+Only a fully acknowledged save updates the private baseline and calls mark_clean.
+This is kernel/filesystem acknowledgement, not tested hardware power-loss recovery.
+See [rename](https://man7.org/linux/man-pages/man2/rename.2.html),
+[fsync](https://man7.org/linux/man-pages/man2/fsync.2.html) and
+[xattr enumeration](https://man7.org/linux/man-pages/man2/flistxattr.2.html).
+
+A failure before rename cleans only the adapter's staged file and leaves the
+target unchanged. A possibly applied rename, failed later flush/observation/close
+or uncertain cleanup returns UNKNOWN and fences subsequent saves on that object.
+It never retries, restores an old file or assumes rollback. An available recovery
+leaf is exposed as a *potential* artifact, not proof that the name still refers to
+an owned file. Closing the adapter releases memory/FDs without deleting uncertain
+artifacts. The process-local fence is not a durable recovery journal.
+
+Failure leaves the document's clean generation unchanged. Edited content therefore
+stays dirty; a previously clean document can still have an UNKNOWN save outcome.
+The future view must block ordinary close independently on uncertainty, retain
+text and expose explicit reconciliation/recovery choices. Those choices and
+cross-process/restart recovery, save-as/export and brokered saves remain work.
 
 ## Cost and checks
 
@@ -103,3 +163,7 @@ LF, Unicode/joined-cluster cursors and constructor/text/index allocation failure
 goals, line actions, preserved endings, joined clusters and failed-open atomicity.
 Both run in Release and ASan/UBSan. Executed integration scope and remaining app
 work are in the [dated record](../brains/aetheri/journal/2026-11-05-search-and-editor-core.md).
+The [file tests](../tests/test_editor_file.c) separately exercise actual local
+load/save, maximum-size bytes, attributes, conflicts, FD cleanup and injected
+write/flush/rename/close failures. Their evidence and limits are in the
+[file-adapter record](../brains/aetheri/journal/2026-11-05-editor-file.md).

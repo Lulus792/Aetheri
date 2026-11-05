@@ -38,8 +38,9 @@ launch remain work.
 
 The first [own file-editor core](spec/editor.md) now has a gap buffer, exact
 UTF-8/line-ending preservation and Normal/Insert state with grapheme-aware edits.
-These are tested C17 libraries. The executable editor view and file opening/saving
-are the next integration step.
+Its local development file adapter now loads/saves bytes and metadata, detects
+observed external changes and fences uncertain writes. These are tested C17
+libraries; the executable view and interactive save/close decisions remain work.
 
 An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
 and Compose sequences through native Wayland preedit/commit to the terminal and

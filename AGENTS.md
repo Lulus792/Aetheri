@@ -4,13 +4,21 @@ For software development, first read `D:/Skills/skills/AGENTS.md`, select releva
 specialist skills and read their required entry points and knowledge.
 Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS.
 
+- editor/file.h now supplies a separate local development load/save adapter.
+  Read spec/editor.md: repeated original byte/metadata checks are not atomic CAS
+  or a production document grant. Preserve metadata and pre-rename target bytes;
+  uncertain rename/flush/close fences later saves. Uncertainty is independent of
+  document dirty state, including an already clean submitted document. Never
+  rollback/retry or delete a potential artifact after an unknown outcome. Run
+  editor.file plus document/modal/grapheme tests; view/key/save-close UI and
+  durable brokered/restart reconciliation remain work. No editor executable yet.
 - Shell history search now has its own bounded query/preview: preserve original
   draft/cursor/undo until accept; Enter accepts only, later Enter submits. No-match
   and rejected input cannot reuse an old result. Run editor/search/native groups.
   New src/editor document/modal are pure model libraries, not an editor executable
   or file/save authority. Read spec/editor.md: UTF-8/ending/gap/line/grapheme and
   allocation/revision contracts. mark_clean is only local generation state.
-  Actual view/key/file I/O, document undo, conflicts and unsaved-close remain work.
+  Actual view/key integration, document undo and interactive conflict/close remain work.
   Keep installed profiles/capabilities and quarantined old intent unchanged.
 - The graphical terminal now selects the own `-i --edit` single-line profile.
   Read `spec/line-editor.md`: toolkit-free editor/history, original terminal/OFD

@@ -1,5 +1,21 @@
 # Decisions
 
+## Keep file outcomes separate from content cleanliness — 5 November 2026
+
+Add a synchronous local development adapter around the pure document. Hold the
+selected directory and original inode/baseline; copy text and readable metadata
+to an exclusive same-directory stage, flush it, and recheck before replacement.
+Use no-replace for creation. Existing-file replacement is not atomic CAS against
+other writers; general app/document coordination remains separate. Preserve
+ordinary mode/GID/readable attributes or refuse, never silently strip them.
+After a possibly applied rename or uncertain later flush/observation/close, fence
+further saves and keep the document/recovery evidence. Never infer rollback or
+delete a potential artifact on close. UNKNOWN is separate from dirty, including
+when saving an already clean document. This process-local adapter is neither an
+installed editor nor a durable grant/save/recovery authority. See
+[contract](../../spec/editor.md#local-development-file-adapter) and
+[evidence](journal/2026-11-05-editor-file.md).
+
 ## Keep search preview reversible; begin the modal core — 5 November 2026
 
 Use a separate bounded query over retained in-memory commands; search never edits

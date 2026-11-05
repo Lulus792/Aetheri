@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Local editor file adapter — 5 November 2026
+
+- Original [file adapter](../../src/editor/file.c) and
+  [tests](../../tests/test_editor_file.c); exact scope/results in the
+  [record](journal/2026-11-05-editor-file.md).
+- Read the Linux man-pages primary contracts for
+  [rename](https://man7.org/linux/man-pages/man2/rename.2.html),
+  [fsync](https://man7.org/linux/man-pages/man2/fsync.2.html),
+  [open/O_PATH](https://man7.org/linux/man-pages/man2/open.2.html) and
+  [xattr enumeration](https://man7.org/linux/man-pages/man2/flistxattr.2.html).
+  Rename gives atomic name replacement, not conditional byte-version admission;
+  a file flush alone does not acknowledge its directory entry. Enumeration can
+  omit inaccessible attributes, so this adapter describes only readable metadata.
+  No new runtime library, production document transport or hardware crash test.
+
 ## History search and modal core — 5 November 2026
 
 - Original [search/model](../../src/shell/editor.c),

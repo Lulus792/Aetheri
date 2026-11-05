@@ -20,7 +20,8 @@ DRM keyboard-to-shell evidence. The [own line editor](../../spec/line-editor.md)
 now provides whole-grapheme editing, bounded in-memory history/undo and literal
 Tab completion and history search in the actual terminal, with native PTY and
 virtual DRM evidence. The [modal editor core](../../spec/editor.md) now has tested
-document and Normal/Insert models; view/key/file adapters remain work.
+document and Normal/Insert models plus a tested local file adapter. Actual view/
+key integration, interactive save/close and brokered file access remain work.
 External IMEs, advanced completion/richer search, modal editor app, panes, persistent
 sessions and normal admitted app/session integration remain work.
 
