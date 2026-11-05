@@ -4,6 +4,34 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Interactive command shell and private PTY evidence — 5 November 2026
+
+- [Terminal/job owner](../../src/shell/jobs.c), [interactive tests](../../tools/test_shell_interactive.py)
+  and [denied-start checks](../../tests/test_shell_failure.c). Full shell suite:
+  Release 4/4 (3.24 s), ASan/UBSan 4/4 (3.91 s). Final 13-case native PTY fixtures
+  pass separately (2.64/3.17 s); no implementation change between those runs.
+  Sixteen existing batch execution cases and 20,000 hostile parser inputs remain
+  green. GCC analyzer on all four implementation files reports no diagnostics.
+- Exact final PTY roots are session-release/shell-interactive-6t9xybj5 and
+  session-debug/shell-interactive-dn873sjc under /home/aetheri/build. All 28 session
+  result/transcript hashes are inspected and indexed with binary hashes and raw
+  CTest output under local/shell-interactive-2026-11-05/native-results.json.
+- Initial extended tests exposed coalesced continue/new-TTIN notification loss,
+  plus fixture assumptions about pipeline READY ordering and final PTY drain.
+  Original shell-interactive-1vmu52q6 remains. FIFO interruption first fails at
+  shell-interactive-ai2juavq; saturated canonical input creates an unintended
+  prefix file at shell-interactive-nq570yhn before its fix. These are separate
+  actual regressions, not evidence for production recovery or arbitrary inputs.
+- An unchanged foreign-owner test rejects the deliberate build-local reclaim
+  guard mutation: /home/aetheri/build/shell-foreground-negative-c06yj8uu/result.json,
+  test SHA d81b817517364881a6ddb1e13330519ec1a10b0abf2b891f6a7875db32010279.
+  Candidate source/policy is unchanged by the mutation. An initial mutant-only
+  unused-argument compile error is separate from the executed negative result.
+- Linux man-pages signalfd, tcsetpgrp and termios canonical-capacity sections were
+  read, linked in the [guide](../../spec/shell.md). GNU job-control pages timed out.
+  Evidence is private native PTYs, process groups, signals and original pidfds;
+  no physical/GUI/assistive or installed session acceptance follows.
+
 ## Original experimental command shell — 5 November 2026
 
 - [Profile and examples](../../spec/shell.md), [parser](../../src/shell/parse.c),

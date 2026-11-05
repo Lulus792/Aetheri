@@ -669,6 +669,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   rebasing. Keep scalar expansion nonrecursive and reject whole invalid pipelines
   before effects. Retain the all-forks start barrier, direct original-child waits,
   stdio-only child FD export and explicit execve (no execvp shell fallback).
-  Parent builtins require a singleton without redirection. This is not interactive
-  job control, a graphical terminal, app admission, descendant drain or a sandbox.
+  Parent builtins require a singleton without redirection. This is not a graphical
+  terminal, app admission, descendant drain or a sandbox; -i is scoped below.
   Final language/product choices and normal provisioning remain open.
+- Shell -i now supplies private canonical N_TTY/group/SID checks and ephemeral
+  jobs through jobs.h. Retain original direct children and monotonic IDs, terminal
+  handoff before barrier release, default child actions and mask unblocking before
+  any blocking redirection. Continue requests are not running observations; a new
+  STOP may coalesce with CONT. Refuse foreign foreground takeover. Exit/EOF refuses
+  open jobs; HUP/TERM signals still-waitable original direct children and waits
+  without force-kill. Do not infer descendant/app/lease drain. Final persistence/
+  raw editing/terminal GUI remains open. Reject saturated raw canonical records
+  before CR/delimiter trimming; no lossless kernel-editor claim. PTY test cleanup
+  enrolls original pidfds while the private leader is unreaped; never rediscover
+  a session from a stale numeric SID. Read spec/shell.md's interactive evidence.

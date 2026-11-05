@@ -1,8 +1,43 @@
 # State
 
-5 November 2026 — first experimental own shell/parser and Linux command runner.
+5 November 2026 — interactive own shell with terminal signals and ephemeral jobs.
 
 ## Current update
+
+The original shell now accepts `-i` on an independently foreground canonical
+N_TTY controlling terminal. Separate original pipeline groups receive real
+Ctrl+C/Ctrl+Z; jobs/fg/bg retain direct children, saved job terminal modes and
+nonreused IDs. Terminal handoff precedes the existing start-barrier release.
+Foreign ownership fails without takeover; exit/EOF refuses unresolved jobs.
+Hangup/termination signals original waitable direct children and waits without
+force-kill; an ignoring child keeps its shell owner waiting. This is ephemeral
+development job control, not durable app/descendant/cgroup or lease settlement.
+
+All four shell groups pass in Release (3.24 s) and Debug ASan/UBSan (3.91 s),
+including 16 batch execution and 13 real private PTY cases plus parser/failure
+checks. Final fixture synchronization/cleanup checks pass separately (2.64/3.17 s).
+The 28 final PTY sessions have inspected transcripts and exact exit results.
+The unchanged foreign-owner test rejects a weakened reclaim guard. Earlier tests
+reproduced blocked FIFO-open Ctrl+C and canonical input prefix execution; both
+are fixed. Actual EOF/stop/continue, TTIN, mode restoration, slot limits, stale IDs,
+idle events and handoff denial are covered. Evidence is retained under
+local/shell-interactive-2026-11-05 and its referenced guest directories. See the
+[shell guide](../../spec/shell.md) for exact boundaries and input limitations.
+All 251 host/snapshot/guest source hashes agree; all 28 frozen SQL/XML and nineteen
+protected old catalogue/static/profile hashes remain unchanged, without sidecars.
+The Release shell still needs only libc. All 819 local Markdown file targets
+resolve (external URLs/anchors excluded). The VM stays booted/enforcing on tty1
+with no active Aetheri program/unit or seat0 session; the old running/recover-handoff
+intent remains unresolved and unchanged.
+
+Own raw input editing/history/completion, terminal emulator/model/GUI, persistent
+sessions and final language/product choices remain open. The Linux kernel's
+canonical editor still owns input editing and can discard bytes before userspace;
+saturated records are refused, not recovered. No normal shell installation,
+launcher/capability/policy or new library is added. Full OS/apps/image/installer,
+experiment desktop, physical and accessibility acceptance remain required.
+
+## Noninteractive shell checkpoint — 5 November 2026
 
 An opt-in original C17 [shell profile0](../../spec/shell.md) now parses quoted
 arguments, scalar environment/status expansion, foreground pipes and file

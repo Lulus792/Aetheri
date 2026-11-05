@@ -47,9 +47,12 @@ S1. Design the original shell syntax with concrete examples before implementatio
 commands, paths/quoting, pipes, values/variables, errors, scripts and background jobs.
 Decide whether compatibility with existing shell scripts is needed at all.
 An experimental profile0 now supplies concrete [grammar/examples](../../spec/shell.md)
-and a tested noninteractive runner. Its spelling is a reversible engineering
+and a tested command runner with explicit `-i`/ephemeral job control. Its spelling is a reversible engineering
 recommendation, not final user approval of the language. POSIX compatibility,
-typed values/functions and interactive job/session behavior remain open.
+typed values/functions and final interactive job/session behavior remain open.
+The prototype refuses exit/EOF with open jobs; hangup waits for original direct
+children without forced killing. Final window/logout/reboot persistence and richer
+editor/multiplexer behavior remain product decisions, not implied by these tests.
 
 S2. Define the editor/plugin capability model and terminal pane/session interaction.
 Need exact Vim/Neovim compatibility only if subsequently requested.

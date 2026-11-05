@@ -11,8 +11,8 @@ foreign-client tests. The [SDL3 desktop](../../spec/desktop-ui.md) now provides
 dock/search, window selection and fixed Settings launch in the explicit carrier mode.
 For repeatable start/status/stop and the native VM window, see the
 [development session guide](../../spec/development-session.md).
-The [own shell profile](../../spec/shell.md) now runs noninteractive commands and
-scripts in the carrier; interactive terminal/job control is still separate work.
+The [own shell profile](../../spec/shell.md) now runs scripts and explicit interactive
+terminal/jobs in the carrier; rich input editing and the graphical terminal remain work.
 
 1. [Project](PROJECT.md): product scope and agreed foundations.
 2. [State](STATE.md): actual work and publication status.

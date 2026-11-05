@@ -1,5 +1,21 @@
 # Decisions
 
+## Keep interactive jobs owned by one original terminal shell — 5 November 2026
+
+Add explicit `-i`, independent foreground/SID/own-group-leader checks, a retained
+canonical N_TTY FD, signalfd/poll and bounded in-memory direct-child jobs. Use both
+parent/child setpgid before the all-forks barrier, observed terminal handoff before
+release and default child signals with an unblocked mask before blocking opens.
+Separate continue requests from actual continued/re-stopped wait observations.
+Refuse stale job IDs, unknown group takeover and exit/EOF with unresolved jobs.
+
+For this reversible prototype, hangup/termination signals only original waitable
+direct children and continues stopped ones, then waits without forced killing.
+Do not turn this into a product decision about multiplexer/window/logout/reboot
+persistence. Raw input/editor, graphical terminal and production lifetime policy
+remain separate work. Reject saturated canonical input before trimming it; kernel
+editing is not the final lossless own input editor. [Scope/tests](../../spec/shell.md).
+
 ## Start the own command language with a reversible profile — 5 November 2026
 
 Implement an experimental C17 profile0 with bounded owned argument storage,

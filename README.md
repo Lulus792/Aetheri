@@ -26,8 +26,9 @@ and test limits.
 
 The first [original command shell](spec/shell.md) now runs noninteractive commands
 and scripts, with its own parser, quoting/variables, pipes, file redirections and
-basic cwd/environment builtins. The syntax is experimental; interactive job
-control and the graphical terminal/editor remain work.
+basic cwd/environment builtins. Explicit `-i` adds foreground terminal ownership,
+Ctrl+C/Ctrl+Z and jobs/fg/bg. The syntax is experimental; rich input editing,
+persistent sessions and the graphical terminal/editor remain work.
 
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.

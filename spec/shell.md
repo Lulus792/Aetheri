@@ -3,7 +3,7 @@
 5 November 2026. This is the first implementation profile for the requested own
 shell and language. Its spelling is a provisional engineering recommendation;
 final language/product review remains open. It is not a POSIX/Bash compatibility
-promise, interactive terminal, sandbox, installed login shell or app-launch API.
+promise, graphical terminal, sandbox, installed login shell or app-launch API.
 
 ## Language profile 0
 
@@ -43,7 +43,8 @@ exit 0
   `>`/`2>` truncate an existing target; append preserves existing bytes. File
   names use the same word rules. Redirections override that stage's pipe end.
 - Builtins: `cd [PATH]`, `export NAME VALUE`, `unset NAME`, `exit [0..255]`, `pwd`
-  and `help`. State-changing builtins must be alone without redirection; invalid
+  and `help`, plus interactive `jobs`, `fg [ID]` and `bg [ID]`. Parent-state/job
+  builtins must be alone without redirection; invalid
   use rejects the whole pipeline before effects. `pwd`/`help` can be piped.
 - `;`, `&`, `&&`, `||`, command substitution, here-documents, function/value
   syntax and multiline quoting are unsupported and fail before execution.
@@ -58,10 +59,10 @@ not final large-script/interactive requirements.
 
 ## Execution boundary
 
-The opt-in Linux C17 executable accepts `-c SOURCE`, `--file FILE` or `--stdin`.
+The opt-in Linux C17 executable accepts `-i`, `-c SOURCE`, `--file FILE` or `--stdin`.
 It refuses root or mismatched real/effective IDs and requires open standard
 descriptors. This is not a complete capability/privilege admission check.
-Interactive terminal input is not accepted by `--stdin` yet; `-c` may execute a
+`--stdin` remains noninteractive; `-c` may execute a
 foreground command using its inherited stdin. The parser owns no OS resources;
 its successful result owns decoded strings in the caller's program object.
 `--stdin` does not read ahead: a foreground program can consume subsequent bytes
@@ -75,7 +76,9 @@ closes extra descriptors and uses explicit `execve`/PATH lookup. There is no
 implicit shell interpreter or fallback command. PATH search is inherited; absent
 PATH uses `/usr/bin:/bin`, and an empty PATH element permits the current directory.
 
-The parent reaps every direct child. A pipeline returns its last stage's status;
+The batch parent waits every direct child. Interactive stopped jobs retain their
+original waitable children across stop/continue until actual end. A pipeline
+returns its last stage's status;
 the executable resets inherited SIGCHLD ignore/NOCLDWAIT before creating them.
 Signal termination becomes 128+signal. Status126 means execution denied/invalid
 image, 127 means not found, and 125 means runner infrastructure failure. An open
@@ -88,10 +91,60 @@ fails, it reports the already-applied directory change and removes stale PWD;
 it never claims a rollback. Builtin environment changes last for this shell only.
 Files are ordinary user-owned files, not managed installation/private-data state.
 
-The interactive prompt/editor, foreground terminal ownership, Ctrl+C/stop/job
-control, persistent sessions, completion/history, functions/typed values, terminal
+Full own input editing, persistent sessions, completion/history, functions/typed values, terminal
 emulation, panes/plugins and graphical SDL/NexaUI presentation remain required
 work. No production service/profile, normal launcher or system shell is replaced.
+
+## Interactive terminal and ephemeral jobs
+
+Run `aetheri-shell -i` inside an independently selected foreground process group
+with its own group leader and canonical/ISIG Linux N_TTY controlling terminal.
+The executable retains that terminal FD and session/group observations; it does
+not create a login session, seize another foreground group or choose a fallback
+terminal. Private PTY tests establish this environment without the VM's physical
+console, normal session manager or a policy change.
+
+| Action | Behavior |
+| --- | --- |
+| Type a line / Enter | Parse and execute it; syntax errors return to the prompt |
+| Ctrl+C | Cancel pending input or signal the actual foreground job; shell remains |
+| Ctrl+Z | Stop the foreground job; retain its original members and return to the prompt |
+| `jobs` | Show observed running/stopped jobs; continuation requests are distinct from observations |
+| `fg [ID]` | Give the terminal to that original job, restore saved modes and continue it |
+| `bg [ID]` | Request continuation of a stopped job without terminal ownership; terminal reads can stop it again |
+| `exit [STATUS]` / empty Ctrl+D | Exit only with no unresolved jobs; otherwise explain the retained obligation |
+
+Without ID, fg selects the most recent retained job and bg the most recent stopped
+one. There are 16 live job slots and at most 16 direct children each. IDs increase
+without reuse during this shell; a stale ID never selects a new job. Labels contain
+only a bounded first-command name with non-ASCII/control bytes replaced for this
+provisional display; actual arguments retain their original bytes. Job records are
+in memory, not app RunIds, component metadata or durable session restoration.
+
+Both parent and child establish the job group while the child is behind the start
+barrier. The parent hands over its observed terminal before release. A denied
+handoff closes the barrier and waits each original child without command/file
+effects. Child signal actions are reset before that phase; its mask is cleared
+immediately after release, before potentially blocking file opens. Foreground
+waits and background notifications use blocked signals plus signalfd/poll, never
+a periodic refresh loop. A fresh stop after continuation remains visible even if
+the kernel coalesces the intermediate continued event.
+
+Normal completion/stopping requires the expected job/shell foreground before
+reclaiming the terminal. Foreign ownership fails with no automatic takeover.
+Stopped job termios is retained; shell termios is restored on return. Canonical
+editing currently belongs to N_TTY. Raw records of 4095 bytes or more are rejected
+before trimming delimiters/CR, preventing the observed saturated-read prefix
+execution. This does not recover bytes the kernel already discarded and that
+were subsequently edited below the limit; a full own input editor remains work.
+
+On terminal loss, SIGHUP or SIGTERM, this prototype signals only its still-waitable
+original direct children, continues stopped ones and waits for their observed end.
+It does not force-kill or adopt a replacement PID/group. A child ignoring hangup
+keeps that shell owner waiting until the child actually ends. This is a provisional
+conservative policy, not a final product choice about window/logout persistence.
+External programs can create descendants; direct-child end is never complete
+descendant, cgroup, delegation or Aetheri lease drain.
 
 ## Build, use and evidence
 
@@ -112,8 +165,9 @@ ctest --test-dir /home/aetheri/build/session-release -R '^shell[.]' --output-on-
 | [parse.h](../src/shell/parse.h) / [parse.c](../src/shell/parse.c) | Bounded parsing, owned argument storage, no OS effects |
 | [execute.h](../src/shell/execute.h) / [execute.c](../src/shell/execute.c) | Ordinary-user process/environment/cwd effects and original direct-child waits |
 | [main.c](../src/shell/main.c) | Explicit source selection, bounded line reading, diagnostics and command-loop result |
+| [jobs.h](../src/shell/jobs.h) / [jobs.c](../src/shell/jobs.c) | Private terminal/process-group ownership, signal events, ephemeral job observations and stop/continue |
 
-The final native Release and Debug ASan/UBSan runs pass all three CTest groups
+The original noninteractive checkpoint passed all three CTest groups
 (0.42 s / 0.94 s). These include 16 actual Linux execution/file/descriptor/signal
 cases, parser ownership/grammar/limit checks and 20,000 deterministic hostile byte
 inputs. Controlled fork/pipe failures prove no command/output-file effects before
@@ -130,6 +184,26 @@ test-helper module-name collision are retained under `local/shell-2026-11-05` an
 the referenced guest build directories. The collision was in the signal fixture;
 renaming its helper leaves the shell's signal behavior unchanged.
 
+The interactive extension passes all four groups in Release (3.24 s) and Debug
+ASan/UBSan (3.91 s), with 16 batch execution and 13 private PTY cases, existing
+parser checks and fault injection. Final PTY harness synchronization/cleanup
+checks pass separately in 2.64 s / 3.17 s; no implementation changed between those
+runs. Test input uses actual kernel line discipline/signals. Original pidfds and
+observed foreground groups replace assumed readiness delays; cleanup enrolls the
+fresh private session while its original leader is still unreaped and never
+rediscovers a replacement session by an old numeric SID.
+
+The tests prove multi-process Ctrl+C, Ctrl+Z/fg/bg, TTIN stops, idle completion,
+mode restoration, exit/EOF refusal, finite slots/nonreused IDs, cooperative hangup
+and retained hangup-ignoring children, foreign ownership and denied-handoff effects.
+FIFO-open interruption and saturated input regressions failed before their fixes.
+The unchanged foreign-owner test rejects a deliberately weakened reclaim guard.
+Original evidence is under the referenced `shell-interactive-*` and
+`shell-foreground-negative-*` guest build directories and
+`local/shell-interactive-2026-11-05`. This is native PTY evidence, not graphics,
+physical keyboard/screenreader, production login/session or persistent multiplexer
+acceptance. Shell-level raw editing and the original graphical terminal remain next.
+
 ## Sources
 
 Linux man-pages, read 5 November 2026: [execve](https://man7.org/linux/man-pages/man2/execve.2.html),
@@ -138,3 +212,7 @@ Linux man-pages, read 5 November 2026: [execve](https://man7.org/linux/man-pages
 [close_range](https://man7.org/linux/man-pages/man2/close_range.2.html).
 The explicit exec path avoids execvp's documented interpreter fallback. These
 references explain primitives; actual Aetheri tests remain separate evidence.
+Interactive references read separately: [signalfd](https://man7.org/linux/man-pages/man2/signalfd.2.html),
+[terminal foreground groups](https://man7.org/linux/man-pages/man3/tcsetpgrp.3.html)
+and [canonical termios behavior](https://man7.org/linux/man-pages/man3/termios.3.html).
+GNU libc job-control pages timed out; they are not claimed as inspected evidence.
