@@ -15,7 +15,9 @@ an understandable installation/runtime footprint.
 - An original terminal and modal-editor-inspired experience, own plugin/design
   system, image/PDF viewing and integrated tmux-style panes/session management.
   Exact Neovim compatibility is not required by the stated inspiration.
-- An original shell and shell language from the first shell milestone.
+- An original shell and shell language from the first shell milestone. The first
+  [experimental command profile](../../spec/shell.md) now has a native parser and
+  noninteractive Linux runner; interactive/job/terminal integration remains work.
 - Physim, intended to migrate from its current UI to NexaUI when the toolkit is ready.
   This project does not silently start that migration.
 - NexaCloud Desktop, confirmed as the desired NexaOS-associated data application.

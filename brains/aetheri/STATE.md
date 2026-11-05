@@ -1,8 +1,42 @@
 # State
 
-5 November 2026 — initial work-area fitting and keyboard window management.
+5 November 2026 — first experimental own shell/parser and Linux command runner.
 
 ## Current update
+
+An opt-in original C17 [shell profile0](../../spec/shell.md) now parses quoted
+arguments, scalar environment/status expansion, foreground pipes and file
+redirections. Its CLI executes actual Linux programs through explicit execve/PATH
+lookup without an implicit /bin/sh fallback. Parent builtins manage cwd/environment/
+exit; a bounded start barrier prevents command/file effects after incomplete
+pipeline creation. Direct children are retained/waited and extra child FDs close.
+The language spelling remains an experimental recommendation for later user review.
+
+Release and Debug ASan/UBSan pass all three shell groups (0.42 s / 0.94 s), including
+16 actual process/file/signal cases, parser grammar/ownership/budgets and 20,000
+deterministic hostile inputs. The unchanged fault test rejects a build-local
+barrier-EOF mutation at an unexpected output file. The GCC analyzer finds no
+diagnostic. A native export/printf/tr/cat/false/exit demonstration produces the
+expected saved text and last-status result in both profiles. Evidence is retained
+under local/shell-2026-11-05 and its referenced guest directories.
+All 248 host/snapshot/guest source hashes agree. The 28 frozen SQL/XML contracts,
+nineteen protected old catalogue/static/profile hashes and dependency input pins
+remain unchanged; no SQLite sidecars are created. Root shell execution is refused.
+The VM remains booted/enforcing on tty1 without active Aetheri native programs,
+units or seat0 sessions. All 811 local Markdown file targets resolve; anchors and
+external URL checks are outside that file-target check.
+
+The Release executable needs only libc; no new library, installed service, app
+admission, authority capability or graphical launcher is added. Interactive
+prompt/editing, terminal ownership/signals/jobs, persistent sessions, terminal
+emulation/panes/plugins and GUI integration remain required next work. This is
+not a completed terminal, POSIX compatibility layer, sandbox or lifetime authority.
+The full OS/apps/image/installer/experiment/hardware scope remains open.
+Next: original interactive foreground terminal ownership/signals/job behavior,
+then the graphical terminal transport/model/view; retain this parser and keep
+business/session state independent of SDL/NexaUI.
+
+## Work-area checkpoint — 5 November 2026
 
 The development compositor now sends advisory v4+ normal-window bounds excluding
 the dock and provisional placement margins. Actual Settings opens fully above

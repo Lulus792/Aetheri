@@ -4,6 +4,29 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Original experimental command shell — 5 November 2026
+
+- [Profile and examples](../../spec/shell.md), [parser](../../src/shell/parse.c),
+  [runner](../../src/shell/execute.c), [native execution tests](../../tools/test_shell.py)
+  and [controlled failure test](../../tests/test_shell_failure.c). This is a new
+  noninteractive C17 implementation; no old OS/shell compatibility claim follows.
+- Linux man-pages execve/exec variants, pipe2 and close_range were read; primary
+  links are in the profile. Explicit exec avoids the documented execvp interpreter
+  fallback. The actual released ELF needs only libc. Existing dependency pins,
+  library families, installed profiles and frozen authority contracts are unchanged.
+- Release 3/3 (0.42 s), Debug ASan/UBSan 3/3 (0.94 s): 16 native execution cases,
+  parser grammar/ownership/budgets with 20,000 deterministic hostile cases and
+  controlled fork/pipe failure. Identical failure source SHA
+  f74e9a426f283e059f89deb6dc35deab696bdd06041ead9d051014956d54052a rejects a
+  build-local barrier-EOF mutation at its actual unexpected-file assertion.
+  Artifacts: /home/aetheri/build/shell-barrier-negative-1e3j08zu, with its exact
+  retained failed fixture. The candidate source is unchanged by that mutation.
+- Native export/printf/tr/cat/false/exit demo and exact binary/test-log records are
+  at /home/aetheri/build/shell-demo-4rj3v_qd and local/shell-2026-11-05. Both profiles
+  return the expected file/output/status. GCC -fanalyzer reports no diagnostics.
+  An initial Python fixture named signal.py shadowed the standard signal module;
+  original harness/CTest evidence remains, and only that helper name was changed.
+
 ## Normal work area and keyboard modes — 5 November 2026
 
 - [Compositor](../../src/compositor/main.c), [input](../../src/compositor/input.c),

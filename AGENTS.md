@@ -664,3 +664,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Reconfigure against the current selected output, never only the home index.
   Read spec/desktop-ui.md's later work-area evidence; physical/general off-screen
   recovery and fullscreen dock policy remain open.
+- AETHERI_SHELL is opt-in; read spec/shell.md before extending its experimental
+  profile0. Parsed programs own arena strings and cannot be copied without pointer
+  rebasing. Keep scalar expansion nonrecursive and reject whole invalid pipelines
+  before effects. Retain the all-forks start barrier, direct original-child waits,
+  stdio-only child FD export and explicit execve (no execvp shell fallback).
+  Parent builtins require a singleton without redirection. This is not interactive
+  job control, a graphical terminal, app admission, descendant drain or a sandbox.
+  Final language/product choices and normal provisioning remain open.

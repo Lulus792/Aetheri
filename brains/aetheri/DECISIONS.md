@@ -1,5 +1,22 @@
 # Decisions
 
+## Start the own command language with a reversible profile — 5 November 2026
+
+Implement an experimental C17 profile0 with bounded owned argument storage,
+literal/scalar environment expansion, foreground pipes and explicit redirection.
+Unset variables are errors; expanded text is never reparsed, split or globbed.
+Use explicit execve/PATH lookup, retaining kernel shebang execution while refusing
+implicit shell fallback. Keep state-changing builtins outside pipelines/redirection
+and parse each whole pipeline before effects. A child start barrier separates
+complete fork creation from command/file effects; wait each original direct child.
+
+The user already requested an original shell/language and authorized justified
+engineering recommendations while unavailable. These concrete examples permit
+useful implementation without making the final syntax, POSIX compatibility or
+interactive/job/session design a settled product choice. No terminal UI/library,
+production authority integration or installed shell changes are implied. See
+[scope, examples and evidence](../../spec/shell.md).
+
 ## Let the compositor own desired window modes — 5 November 2026
 
 Keep compositor-desired maximize/fullscreen modes separate from wlroots' client

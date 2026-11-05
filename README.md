@@ -24,6 +24,11 @@ An original Aetheri image, installer and admitted daily-use applications remain
 work. The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 
+The first [original command shell](spec/shell.md) now runs noninteractive commands
+and scripts, with its own parser, quoting/variables, pipes, file redirections and
+basic cwd/environment builtins. The syntax is experimental; interactive job
+control and the graphical terminal/editor remain work.
+
 A separate [private Wayland compositor](spec/graphics.md) now renders native
 windows on three virtual outputs or inside a named parent Wayland display.
 Native keyboard/pointer focus, move/resize, fullscreen and independent teardown
