@@ -13,6 +13,15 @@
 #include <termios.h>
 #include <unistd.h>
 extern char **environ;
+int ae_terminal_pty_configure_slave(int slave) {
+    struct termios modes;
+    if (tcgetattr(slave,&modes)) return -1;
+    modes.c_iflag=ICRNL|IXON|IUTF8;modes.c_oflag=OPOST|ONLCR;
+    modes.c_lflag=ISIG|ICANON|ECHO|ECHOE|ECHOK|IEXTEN|ECHOCTL|ECHOKE;
+    modes.c_cflag&=(tcflag_t)~(CSIZE|PARENB);modes.c_cflag|=CS8|CREAD;
+    modes.c_cc[VINTR]=3;modes.c_cc[VQUIT]=28;modes.c_cc[VERASE]=127;modes.c_cc[VKILL]=21;modes.c_cc[VEOF]=4;modes.c_cc[VSUSP]=26;
+    return tcsetattr(slave,TCSANOW,&modes);
+}
 int ae_terminal_pty_resize(struct ae_terminal_pty *p,unsigned cols,unsigned rows) {
     if (cols<2 || cols>240 || rows<2 || rows>100) { errno=EINVAL;return -1; }
     struct winsize size={.ws_col=(unsigned short)cols,.ws_row=(unsigned short)rows};
@@ -32,13 +41,7 @@ static int open_program(struct ae_terminal_pty *p,int source,int directory,int w
     int slave=-1;
     if (grantpt(master) || unlockpt(master) || ae_terminal_pty_resize(p,cols,rows) ||
             (slave=ioctl(master,TIOCGPTPEER,O_RDWR|O_NOCTTY|O_CLOEXEC))<0) goto failed;
-    struct termios modes;
-    if (tcgetattr(slave,&modes)) goto failed;
-    modes.c_iflag=ICRNL|IXON|IUTF8;modes.c_oflag=OPOST|ONLCR;
-    modes.c_lflag=ISIG|ICANON|ECHO|ECHOE|ECHOK|IEXTEN|ECHOCTL|ECHOKE;
-    modes.c_cflag&=(tcflag_t)~(CSIZE|PARENB);modes.c_cflag|=CS8|CREAD;
-    modes.c_cc[VINTR]=3;modes.c_cc[VQUIT]=28;modes.c_cc[VERASE]=127;modes.c_cc[VKILL]=21;modes.c_cc[VEOF]=4;modes.c_cc[VSUSP]=26;
-    if (tcsetattr(slave,TCSANOW,&modes)) goto failed;
+    if (ae_terminal_pty_configure_slave(slave)) goto failed;
     executable=fcntl(source,F_DUPFD_CLOEXEC,5);if (executable<0) goto failed;
     if (editor) { dircopy=fcntl(directory,F_DUPFD_CLOEXEC,5);filecopy=fcntl(witness,F_DUPFD_CLOEXEC,5);if (dircopy<0 || filecopy<0) goto failed; }
     pid_t pid=fork();if (pid<0) goto failed;
@@ -85,6 +88,15 @@ ssize_t ae_terminal_pty_read(struct ae_terminal_pty *p,void *buffer,size_t lengt
     return n;
 }
 int ae_terminal_pty_observe(struct ae_terminal_pty *p) {
+    if(p->pidfd_wait) {
+        if(p->pin<0) {errno=EINVAL;return -1;}
+        if(p->ended) return 1;
+        siginfo_t info={0};
+        if(waitid(P_PIDFD,(id_t)p->pin,&info,WEXITED|WNOHANG)) return errno==EINTR?0:-1;
+        if(!info.si_pid) return 0;
+        if((p->pid>0 && info.si_pid!=p->pid) || (info.si_code!=CLD_EXITED && info.si_code!=CLD_KILLED && info.si_code!=CLD_DUMPED)) {errno=EIO;return -1;}
+        p->pid=info.si_pid;p->ended=true;p->status=info.si_code==CLD_EXITED?info.si_status:128+info.si_status;return 1;
+    }
     if (p->pid<=0) { errno=EINVAL;return -1; }
     if (p->ended) return 1;
     int status=0;pid_t result=waitpid(p->pid,&status,WNOHANG);
@@ -97,7 +109,7 @@ int ae_terminal_pty_hangup(struct ae_terminal_pty *p) {
     p->hangup=true;return (int)syscall(SYS_pidfd_send_signal,p->pin,SIGHUP,NULL,0);
 }
 int ae_terminal_pty_close(struct ae_terminal_pty *p) {
-    if (p->pid>0 && (!p->ended || !p->eof)) { errno=EBUSY;return -1; }
+    if ((p->pid>0 || p->pin>=0) && (!p->ended || !p->eof)) { errno=EBUSY;return -1; }
     if (p->master>=0) close(p->master);
     if (p->pin>=0) close(p->pin);
     p->master=p->pin=-1;return 0;

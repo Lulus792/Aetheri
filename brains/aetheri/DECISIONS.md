@@ -1,5 +1,20 @@
 # Decisions
 
+## Keep original session ownership inside one Terminal — 6 November 2026
+
+Implement the first integrated tabs/splits with a bounded topology and stable
+per-session model/PTY/child state. Prepare held sources/environment before
+threads; use existing glibc pidfd_spawn plus an own unprivileged same-process
+TTY bootstrap for later requested shells. Retain post-dispatch obligations even
+when observation fails. Reuse the existing worker and shared bounded read turn;
+do not create a daemon or copy live session state. Bind source/helper inputs in
+additive development-owner v2 while preserving historical v1 and single-document
+editor launches. Cancel old preedit/pending paste on focus transfer, reject queued
+old commits and require original child plus stream settlement before slot reuse.
+This chooses an initial integrated mechanism, not durable session persistence,
+tmux compatibility, descendant drain, a new sandbox or production app admission.
+See the [executed scope](journal/2026-11-06-terminal-multiplex.md).
+
 ## Emit startup information from the original shell — 6 November 2026
 
 Select a separate fixed `-i --edit --welcome` profile in normal NexaUI Terminal

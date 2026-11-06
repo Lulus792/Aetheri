@@ -4,6 +4,32 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Original-session Terminal multiplexing — 6 November 2026
+
+- [Workspace topology](../../src/terminal/workspace.h),
+  [prepared spawner](../../src/terminal/spawn.h),
+  [unprivileged bootstrap](../../src/terminal/pty_starter.c),
+  [named views](../../src/terminal/nexaui_view.h) and
+  [owner profiles](../../tools/development_session.py).
+  Native evidence and preserved negatives are in the
+  [executed record](journal/2026-11-06-terminal-multiplex.md).
+- [posix_spawn contract](https://man7.org/linux/man-pages/man3/posix_spawn.3.html)
+  and glibc's [Linux spawn implementation](https://github.com/bminor/glibc/blob/release/2.39/master/sysdeps/unix/sysv/linux/spawni.c)
+  were inspected for bounded file/signal/session setup and pidfd ownership. The
+  actual carrier uses glibc 2.43; its installed headers and real post-thread
+  spawn/error/FD tests supply the executed scope, not compatibility with every
+  older library/kernel. No new runtime family is selected.
+- [SDL hit-test contract](https://wiki.libsdl.org/SDL3/SDL_SetWindowHitTest),
+  read 6 November: event processing requests native move/resize; an injection
+  acknowledgement is not the client's later request or compositor acceptance.
+  The retained original native Wayland trace proves the tested serial-bound
+  request/configure/acknowledgement before motion/release.
+- [Linux termios IUTF8](https://man7.org/linux/man-pages/man3/termios.3.html),
+  read 6 November: cooked-mode UTF-8 character erase requires the flag.
+  Original/new PTY setup now shares the same baseline. The actual external-cat
+  file result and isolated single-flag negative are in the multiplex record;
+  this is not a claim of grapheme editing by Linux's canonical line discipline.
+
 ## Native Terminal accessibility — 6 November 2026
 
 - Original-shell capture/atomic formatter in

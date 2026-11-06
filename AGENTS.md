@@ -871,3 +871,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   is linked only into the test server and explicitly enabled by inherited-socket
   I on; it is not installed compositor/provider IME integration. Keep normal
   production globals/services/policy unchanged until that separate route is reviewed.
+
+- The own NexaUI Terminal now has original-session tabs/splits. Read
+  spec/terminal.md#original-session-tabs-and-split-panes and the multiplex journal.
+  workspace is a bounded value tree, never a PTY/model owner. Keep live sessions
+  in stable slots, one worker and a rotating shared 16 KiB turn. Prepare spawner
+  sources/environment before threads; pidfd_spawn's unprivileged bootstrap is
+  distinct from the privileged execution starter. A post-spawn error with a pin
+  retains original child/stream duties; never retry or infer descendant drain.
+  Named pane IDs must remain disjoint across equal-token models, hide/resize and
+  slot reuse. Focus transfer cancels old paste/preedit and fences queued commits.
+  Owner v2 adds exact bootstrap/source binding without rewriting v1/closed history;
+  Files' document editor receives no multiplexer helper. Run terminal.workspace,
+  terminal.spawn, terminal.panes_view, terminal.multiplex and affected owner/input
+  regressions. Persistence, normal admission and complete assistive use remain work.

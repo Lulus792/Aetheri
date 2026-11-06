@@ -62,6 +62,12 @@ static void bounded_io(struct ae_terminal *m) {
     bool changed=false;CHECK(ae_terminal_session_read(&s,&changed)==0 && changed);
     unsigned char unread[sizeof(output)];
     CHECK(recv(fds[0],unread,sizeof(unread),MSG_PEEK)==(ssize_t)(sizeof(output)-AE_TERM_READ_BUDGET));
+    size_t received=99;changed=true;
+    CHECK(!ae_terminal_session_read_some(&s,0,&changed,&received) && !changed && received==0);
+    CHECK(ae_terminal_session_read_some(&s,AE_TERM_READ_BUDGET+1,&changed,&received)<0 && errno==EINVAL && !changed && received==0);
+    CHECK(recv(fds[0],unread,sizeof(unread),MSG_PEEK)==(ssize_t)(sizeof(output)-AE_TERM_READ_BUDGET));
+    CHECK(!ae_terminal_session_read_some(&s,7,&changed,&received) && changed && received==7);
+    CHECK(recv(fds[0],unread,sizeof(unread),MSG_PEEK)==(ssize_t)(sizeof(output)-AE_TERM_READ_BUDGET-7));
     CHECK(!memcmp(unread,output,sizeof(output)-AE_TERM_READ_BUDGET));
     CHECK(!s.pty.ended && !s.pty.eof);
     CHECK(ae_terminal_session_read(&s,&changed)==0 && changed);

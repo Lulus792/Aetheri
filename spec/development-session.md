@@ -83,7 +83,7 @@ There is no fallback to the unused SDL terminal or in-place switch of a live
 window. Existing original processes are reused until their process and pipe end;
 a later explicit request creates a fresh selected process.
 
-Its separate `aetheri-terminal-v1` selection binds twelve model/I/O source inputs,
+Historical `aetheri-terminal-v1` selections bind twelve model/I/O source inputs,
 four presentation/build inputs, the executable, CMake cache, SDK metadata/library,
 the raw UI-input pin and the regular/bold font plus license hashes. Settings,
 Files and Terminal choices can be combined; the SDK library is recorded once.
@@ -93,6 +93,17 @@ same binding before creating children. Every fresh Terminal or Files role start
 rechecks its dependent Terminal selection; drift returns an error without a new
 process. Reusing an already running original window does not replace it because
 mutable source changed. Missing Terminal fields keep historical SDL meaning.
+
+Fresh `nexaui-owned` selections now use additive `aetheri-terminal-v2`. The
+original twelve source inputs remain, with four spawn/workspace inputs and the
+separately named starter executable/source digest. The normal Terminal receives
+that exact `--pty-starter` path for original-session tabs/splits; Files receives
+only the selected Terminal executable, retaining its single-editor save/close
+contract. Both dependent fresh app roles recheck the expanded selection. The
+starter is part of the recorded binary inventory, not a new supervised daemon.
+V1 validation/closed-history behavior remains intact; no old receipt or closed
+DRM record is rewritten to match newly compiled bytes. See
+[tabs and panes](terminal.md#original-session-tabs-and-split-panes).
 
 These are development consistency checks on mutable build-user inputs. They do
 not provide publisher trust, atomic image pins or loader admission. A live Files

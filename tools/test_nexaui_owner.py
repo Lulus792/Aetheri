@@ -18,6 +18,7 @@ import tempfile
 import time
 
 import development_session as session
+from test_development_desktop import control_position,role_output
 
 
 def digest(path):
@@ -59,7 +60,7 @@ def main():
         return (root / "owner.log").read_text(errors="replace")
 
     def log(role):
-        return "\n".join(s[len(role)+2:] for s in rawlog().splitlines() if s.startswith(role + ": ")) + "\n"
+        return role_output(rawlog(),role)
 
     def live(fd):
         return not select.select([fd], [], [], 0)[0]
@@ -117,10 +118,13 @@ def main():
         tap(28)
 
     def click_control(kind):
-        rows = re.findall(r"VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+)", log("desktop"))
-        frame, expanded, _, height = map(int, rows[-1])
-        x, y = map(float, re.findall(r"CONTROL " + str(frame) + r" 0 " + str(kind) + r" 0 ([\d.]+) ([\d.]+)", log("desktop"))[0])
-        event(f"M {x} {y if expanded else 1080-height+y}")
+        point=[]
+        def observed():
+            p=control_position(log('desktop'),kind)
+            if p is None:return False
+            point[:]=p;return True
+        wait(observed,'complete presented desktop control')
+        x,y=point;event(f"M {x} {y}")
         event("B 272 1")
         event("B 272 0")
 

@@ -15,6 +15,25 @@ import tempfile
 import time
 
 
+def role_output(text,role):
+    prefix=role+': '
+    return ''.join(line[len(prefix):] for line in text.splitlines(keepends=True)
+                   if line.startswith(prefix) and line.endswith('\n'))
+
+
+def control_position(text,kind):
+    """Use one complete, presented output-0 observation; never an older frame."""
+    rows=list(re.finditer(r'^VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+) ',text,re.M))
+    if not rows:return None
+    row=rows[-1];frame,expanded,_,height=map(int,row.groups())
+    layout=re.search(r'^LAYOUT '+str(frame)+r'\n',text[row.end():],re.M)
+    if not layout or not re.search(r'^DRAWN '+str(frame)+r' output=0 [^\n]*\n',text,re.M):return None
+    body=text[row.end():row.end()+layout.start()]
+    controls=re.findall(r'^CONTROL '+str(frame)+r' 0 '+str(kind)+r' 0 ([\d.]+) ([\d.]+)$',body,re.M)
+    assert len(controls)==1,('complete presented frame must contain exactly one requested control',frame,kind)
+    x,y=map(float,controls[0]);return x,y if expanded else 1080-height+y
+
+
 def startup_failure(build,source,owner_source,root):
     fault=root/"startup-failure";fault.mkdir(mode=0o700)
     for name in ("sessions","sessions/fixture","sessions/fixture/runtime","sessions/fixture/cache", "sessions/fixture/documents"):
@@ -60,7 +79,7 @@ def main():
     owner_pin=os.pidfd_open(owner.pid);pins[(owner.pid,os.fstat(owner_pin).st_ino)]=owner_pin
 
     def rawlog(): return (root/"owner.log").read_text(errors="replace")
-    def log(role): return "\n".join(line[len(role)+2:] for line in rawlog().splitlines() if line.startswith(role+": "))+"\n"
+    def log(role): return role_output(rawlog(),role)
     def live(fd): return not select.select([fd],[],[],0)[0]
     def pin(pid,parent):
         fd=os.pidfd_open(pid)
@@ -105,10 +124,13 @@ def main():
         event("M 100 100");key(125,True);tap(57);key(125,False)
         wait(lambda:log("desktop").count("FOCUS 0\n")>count and log("desktop").count("STABLE 0 1920x1080\n")>stable,"actual global search")
     def click_control(kind):
-        rows=re.findall(r"VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+)",log("desktop"))
-        frame,expanded,_,height=map(int,rows[-1])
-        x,y=map(float,re.findall(r"CONTROL "+str(frame)+r" 0 "+str(kind)+r" 0 ([\d.]+) ([\d.]+)",log("desktop"))[0])
-        event(f"M {x} {y if expanded else 1080-height+y}");event("B 272 1");event("B 272 0")
+        point=[]
+        def observed():
+            p=control_position(log('desktop'),kind)
+            if p is None:return False
+            point[:]=p;return True
+        wait(observed,'complete presented desktop control')
+        x,y=point;event(f"M {x} {y}");event("B 272 1");event("B 272 0")
     def launch_from_search(query):
         shortcut();typing(query)
         wait(lambda:bool(re.search(r"VIEW .* query="+query+r" pending=",log("desktop"))),"native search query")

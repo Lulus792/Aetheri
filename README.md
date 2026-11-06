@@ -35,8 +35,15 @@ DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection.
 The terminal now selects our [own line editor](spec/line-editor.md), with
 whole-grapheme editing, bounded undo/redo and in-memory history, plus literal
 command/path Tab completion and reversible history search. The syntax is experimental;
-advanced completion/richer search, panes/modal editor, persistent sessions and admitted app/session
+advanced completion/richer search, persistent sessions and admitted app/session
 launch remain work.
+
+The own NexaUI Terminal presenter now supports up to eight independent original
+shell sessions in one window, with tabs, split panes and actual PTY resizing.
+Select it in the development desktop with `--terminal-ui nexaui-owned`.
+The [tabs and panes guide](spec/terminal.md#original-session-tabs-and-split-panes)
+explains controls, ownership and current limits. Persistent/restorable sessions
+and complete multipane assistive use remain work.
 
 The opt-in [own modal editor](spec/editor.md) now opens, edits and saves local
 files inside that terminal, with grapheme-aware Normal/Insert controls, preserved
@@ -46,7 +53,7 @@ typing groups and the saved content state. Literal document search adds reversib
 previews and forward/backward repeat. Character/line selection and a private
 editor register now support copy, cut, change and paste. Block/mouse selection,
 richer search, plugins,
-panes, accessible document integration and ordinary brokered access remain work.
+split document views, accessible document integration and ordinary brokered access remain work.
 
 The opt-in [Files app](spec/files.md) now provides list/card views, a held-location
 sidebar, optional information, keyboard selection and filtering. It supports

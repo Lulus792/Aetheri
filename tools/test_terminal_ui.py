@@ -337,7 +337,16 @@ def main():
             start_terminal("chrome-close")
             wait(lambda:"NEXAUI_FRAME " in log("chrome-close") and "FOCUS 1\n" in log("chrome-close"),"fresh native close window")
             home=int(re.findall(r"^MAP (\d+)$",log("server"),re.M)[-1]);assert home in (0,1,2)
-            event(f"M {(0,1920,4480)[home]+59} 56");event("B 272 1");event("B 272 0")
+            def close_pointer_state(pressed):
+                text=log("chrome-close")
+                states=re.findall(r'^CHROME_POINTER hovered=(\d+) pressed=(\d+)$',text,re.M)
+                frames=re.findall(r'^VIEW (\d+) ',text,re.M)
+                return bool(states and states[-1]==('1',str(pressed)) and frames and f'DRAWN {frames[-1]}\n' in text)
+            event(f"M {(0,1920,4480)[home]+59} 56")
+            wait(lambda:close_pointer_state(0),"new window actually observes Close hover")
+            event("B 272 1")
+            wait(lambda:close_pointer_state(1),"original Close press is actually presented")
+            event("B 272 0")
             assert current.wait(timeout=8)==0,log("chrome-close")
             assert "shell_status=129 failed=0" in log("chrome-close") and select.select([shell_pin],[],[],0)[0]
             cases.append("left close button waits for its original shell and PTY")

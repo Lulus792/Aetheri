@@ -15,8 +15,9 @@ struct ae_terminal_session {
 #define AE_TERMINAL_SESSION_INIT { .pty={ .master=-1,.pin=-1,.pid=-1 } }
 
 /* One owner thread. Initialize once with AE_TERMINAL_SESSION_INIT, then supply
-   an initialized, independently owned model and open the original PTY before
-   starting workers. Never copy live state or replace its model/PTY. The host
+   an initialized, independently owned model. The legacy PTY opener must run
+   before workers; the separately prepared spawner supports later sessions.
+   Never copy live state or replace its model/PTY. The host
    retains allocation, trusted source admission, pidfd wait and final close.
    A presentation adapter borrows this state; destroying a view settles nothing.
    These methods do not validate clipboard/IME provenance or authorize app runs. */
@@ -35,6 +36,10 @@ int ae_terminal_session_flush(struct ae_terminal_session *);
    output. changed remains true after partial progress followed by an error.
    Does not reap the child, infer drain, or release either held descriptor. */
 int ae_terminal_session_read(struct ae_terminal_session *,bool *changed);
+/* Same ownership/parser path, with a caller's remaining shared turn budget
+   (0..AE_TERM_READ_BUDGET). Reports actual bytes even after a later error.
+   Zero does no IO; invalid arguments do not consume kernel output. */
+int ae_terminal_session_read_some(struct ae_terminal_session *,size_t budget,bool *changed,size_t *received);
 int ae_terminal_session_resize(struct ae_terminal_session *,unsigned cols,unsigned rows);
 /* Fence intake before the one-shot pidfd hangup. Never closes/reaps/discards the
    queue. The editor's user save/drop/back request remains a separate host action. */

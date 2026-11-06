@@ -2,6 +2,8 @@
 #define _GNU_SOURCE
 #include "model.h"
 #include "session.h"
+#include "workspace.h"
+#include "spawn.h"
 #include "clipboard.h"
 #include "paste.h"
 #include "composition.h"
@@ -30,8 +32,18 @@
 enum { GLYPHS=512, TEXTURE_BUDGET=8*1024*1024, INPUT_BYTES=AE_TERM_INPUT_BYTES };
 struct glyph { uint32_t code,marks[3];uint8_t count,style;SDL_Texture *texture;float w,h;size_t bytes;uint64_t age; };
 struct app {
-    struct ae_terminal_session session;
+    struct ae_terminal_session *session;
+    struct ae_terminal_session sessions[AE_TERM_PANES];
+    bool used[AE_TERM_PANES],window_closing;unsigned next_read;uint64_t session_cookie[AE_TERM_PANES],next_session;
+    SDL_Mutex *io_lock;
+    struct {int master,pin;short events;bool child;uint64_t cookie;} watches[AE_TERM_PANES];
 #ifdef AETHERI_TERMINAL_NEXAUI
+    struct ae_terminal_spawner spawner;
+    struct ae_terminal_workspace workspace;
+    struct ae_terminal_workspace_layout workspace_layout;
+    SDL_FRect pane_grids[AE_TERM_PANES];
+    bool workspace_fallback,menu_open,open_error[AE_TERM_PANES];
+    unsigned menu_index,split_drag;uint64_t workspace_pressed,workspace_hover,split_key;float split_initial;
     struct ae_terminal_view *view;SDL_Texture *view_texture;
     unsigned char *view_font,*view_bold;unsigned view_width,view_height;
     nx_linux_accessibility_host *accessibility;
@@ -43,7 +55,7 @@ struct app {
     SDL_Window *window;SDL_Renderer *renderer;TTF_Font *font;
     struct glyph glyphs[GLYPHS];size_t texture_bytes;uint64_t age;
     SDL_Thread *worker;SDL_Semaphore *ack;
-    atomic_bool active,readable,watch_child,writeable;
+    atomic_bool active;
     atomic_uint_fast64_t clipboard_deadline;
     struct ae_clipboard *clipboard;int clipboard_fd;
     struct ae_clipboard_observation clipboard_observed;
@@ -65,25 +77,64 @@ static void clipboard_update(struct app *a);
 static void composition_cancel(struct app *a,bool reset);
 static bool composition_context(struct app *a);
 static void user_close(struct app *a);
+static bool contains(SDL_FRect r,float x,float y);
 #ifdef AETHERI_TERMINAL_NEXAUI
 static void chrome_action(struct app *a,unsigned action);
+static void workspace_layout(struct app *a,int w,int h);
+static uint64_t workspace_draw(struct app *a,int w,int h);
+static void workspace_action(struct app *a,uint64_t action);
+static bool workspace_event(struct app *a,const SDL_Event *event);
+static void retire_sessions(struct app *a);
 #endif
 static volatile sig_atomic_t wake_writer=-1,stop_signal;
 static void signalled(int number) { int saved=errno;stop_signal=number;unsigned char byte=1;if (wake_writer>=0) (void)write(wake_writer,&byte,1);errno=saved; }
 static void notify(struct app *a) { unsigned char byte=1;if (a->wake[1]>=0) (void)write(a->wake[1],&byte,1); }
+static bool prepare_io(struct app *a) {
+    if(!a->io_lock) return true; /* No worker exists during early setup. */
+    bool changed=false,okay=true;SDL_LockMutex(a->io_lock);
+    for(unsigned i=0;i<AE_TERM_PANES;++i) {
+        const struct ae_terminal_session *s=&a->sessions[i];
+        uint64_t cookie=a->used[i] && s->pty.master>=0 && s->pty.pin>=0?a->session_cookie[i]:0;
+        if(cookie!=a->watches[i].cookie) {
+            int master=-1,pin=-1;
+            if(cookie) {master=fcntl(s->pty.master,F_DUPFD_CLOEXEC,0);if(master>=0) pin=fcntl(s->pty.pin,F_DUPFD_CLOEXEC,0);}
+            if(cookie && (master<0 || pin<0)) {if(master>=0) close(master);if(pin>=0) close(pin);okay=false;break;}
+            if(a->watches[i].master>=0) close(a->watches[i].master);
+            if(a->watches[i].pin>=0) close(a->watches[i].pin);
+            a->watches[i].master=master;a->watches[i].pin=pin;a->watches[i].cookie=cookie;changed=true;
+        }
+        short events=cookie?(short)((s->pty.eof?0:POLLIN)|(s->input_count && !s->pty.eof?POLLOUT:0)):0;
+        bool child=cookie && !s->pty.ended;
+        if(events!=a->watches[i].events || child!=a->watches[i].child) changed=true;
+        a->watches[i].events=events;a->watches[i].child=child;
+    }
+    SDL_UnlockMutex(a->io_lock);if(changed) notify(a);return okay;
+}
 static int worker(void *data) {
     struct app *a=data;
+    enum { WAKE=2*AE_TERM_PANES,CLIPBOARD,ACCESS,TOTAL };
     while (atomic_load(&a->active)) {
-        short io=(short)((atomic_load(&a->readable) ? POLLIN : 0)|(atomic_load(&a->writeable) ? POLLOUT : 0));
-        struct pollfd fds[5]={{io ? a->session.pty.master : -1,io,0},{atomic_load(&a->watch_child) ? a->session.pty.pin : -1,POLLIN,0},{a->wake[0],POLLIN,0},{a->clipboard_fd,POLLIN,0},{-1,0,0}};
+        struct pollfd fds[TOTAL];for(unsigned i=0;i<TOTAL;++i) fds[i]=(struct pollfd){-1,0,0};
+        fds[WAKE]=(struct pollfd){a->wake[0],POLLIN,0};fds[CLIPBOARD]=(struct pollfd){a->clipboard_fd,POLLIN,0};
+        bool watch_failed=false;SDL_LockMutex(a->io_lock);
+        for(unsigned i=0;i<AE_TERM_PANES;++i) {
+            if(a->watches[i].events) {
+                fds[2*i].fd=fcntl(a->watches[i].master,F_DUPFD_CLOEXEC,0);fds[2*i].events=a->watches[i].events;
+                if(fds[2*i].fd<0) watch_failed=true;
+            }
+            if(a->watches[i].child) {
+                fds[2*i+1].fd=fcntl(a->watches[i].pin,F_DUPFD_CLOEXEC,0);fds[2*i+1].events=POLLIN;
+                if(fds[2*i+1].fd<0) watch_failed=true;
+            }
+        }
+        SDL_UnlockMutex(a->io_lock);
         int timeout=-1;uint64_t deadline=atomic_load(&a->clipboard_deadline);
 #ifdef AETHERI_TERMINAL_NEXAUI
         /* Only readiness crosses threads. Duplicate under the lock so a bridge
            reconnect cannot close/reuse the object while poll still borrows it. */
         SDL_LockMutex(a->accessibility_lock);
-        bool watch_failed=false;
-        if (a->accessibility_fd>=0) {fds[4].fd=fcntl(a->accessibility_fd,F_DUPFD_CLOEXEC,0);watch_failed=fds[4].fd<0;}
-        fds[4].events=a->accessibility_events;
+        if (a->accessibility_fd>=0) {fds[ACCESS].fd=fcntl(a->accessibility_fd,F_DUPFD_CLOEXEC,0);if(fds[ACCESS].fd<0) watch_failed=true;}
+        fds[ACCESS].events=a->accessibility_events;
         if (a->accessibility_deadline && (!deadline || a->accessibility_deadline<deadline)) deadline=a->accessibility_deadline;
         SDL_UnlockMutex(a->accessibility_lock);
 #endif
@@ -93,12 +144,11 @@ static int worker(void *data) {
             else { uint64_t now=(uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;timeout=deadline<=now ? 0 : deadline-now>(uint64_t)INT_MAX ? INT_MAX : (int)(deadline-now); }
         }
         int n;
-#ifdef AETHERI_TERMINAL_NEXAUI
         if (watch_failed) n=-1;else
-#endif
-        do { n=poll(fds,5,timeout); } while (n<0 && errno==EINTR);
-        if (fds[4].fd>=0) close(fds[4].fd);
-        if (fds[2].revents) { unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {} }
+        do { n=poll(fds,TOTAL,timeout); } while (n<0 && errno==EINTR);
+        for(unsigned i=0;i<WAKE;++i) if(fds[i].fd>=0) close(fds[i].fd);
+        if (fds[ACCESS].fd>=0) close(fds[ACCESS].fd);
+        if (fds[WAKE].revents) { unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {} }
         if (!atomic_load(&a->active)) break;
         SDL_Event event={.type=a->event};event.user.code=n<0 ? -1 : 0;
         bool posted=false;
@@ -115,10 +165,15 @@ static int worker(void *data) {
 }
 static const char *tr(struct app *a,const char *en,const char *de) { return a->german ? de : en; }
 static void close_request(struct app *a) {
-    if (a->session.closing) return;
-    int result=ae_terminal_session_request_close(&a->session),saved=errno;a->dirty=true;a->selecting=false;paste_cancel(a,NULL);composition_cancel(a,true);
-    if (a->session.pty.ended && a->session.pty.eof) { a->running=false;return; }
-    if (result && saved!=ESRCH) { a->failed=true;a->message="Shell hangup could not be acknowledged"; }
+    if (a->window_closing) return;
+    a->window_closing=true;a->dirty=true;a->selecting=false;paste_cancel(a,NULL);composition_cancel(a,true);
+    bool ended=true;
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->used[i]) {
+        struct ae_terminal_session *s=&a->sessions[i];
+        if(ae_terminal_session_request_close(s) && errno!=ESRCH) {a->failed=true;a->message="Shell hangup could not be acknowledged";}
+        if(!s->pty.ended || !s->pty.eof) ended=false;
+    }
+    if(ended) a->running=false;
 }
 static void error(struct app *a,const char *message) { fprintf(stderr,"terminal: %s: %s\n",message,SDL_GetError());a->failed=true;a->message=message;close_request(a); }
 #ifdef AETHERI_TERMINAL_NEXAUI
@@ -180,7 +235,11 @@ static void accessibility_prepare(struct app *a) {
 #endif
 static int width(uint32_t code) { return code<=0x10ffff ? wcwidth((wchar_t)code) : -1; }
 static bool text_input_wanted(struct app *a) {
-    return !a->session.closing && !a->session.pty.ended && !a->session.pty.eof && SDL_GetKeyboardFocus()==a->window && !(a->paste.size && a->paste.review);
+    return !a->window_closing && !a->session->closing && !a->session->pty.ended && !a->session->pty.eof && SDL_GetKeyboardFocus()==a->window && !(a->paste.size && a->paste.review)
+#ifdef AETHERI_TERMINAL_NEXAUI
+        && !a->menu_open
+#endif
+        ;
 }
 static void composition_cancel(struct app *a,bool reset) {
     bool active=a->composition.size!=0;ae_terminal_composition_clear(&a->composition);
@@ -200,8 +259,8 @@ static void text_input_sync(struct app *a) {
     if (!(wanted ? SDL_StartTextInput(a->window) : SDL_StopTextInput(a->window))) error(a,"text input activation");
 }
 static bool composition_context(struct app *a) {
-    return !a->session.closing && !a->session.pty.eof && !a->session.pty.ended && SDL_GetKeyboardFocus()==a->window &&
-        a->session.model->alt==a->composition_alt && tcgetpgrp(a->session.pty.master)==a->composition_group && ae_terminal_pty_observe(&a->session.pty)==0;
+    return !a->session->closing && !a->session->pty.eof && !a->session->pty.ended && SDL_GetKeyboardFocus()==a->window &&
+        a->session->model->alt==a->composition_alt && tcgetpgrp(a->session->pty.master)==a->composition_group && ae_terminal_pty_observe(&a->session->pty)==0;
 }
 static void glyphs_clear(struct app *a) {
     for (unsigned i=0;i<GLYPHS;++i) { SDL_DestroyTexture(a->glyphs[i].texture);a->glyphs[i]=(struct glyph){0}; }
@@ -292,6 +351,7 @@ static void layout(struct app *a) {
     struct ae_terminal_chrome chrome;
     if (!ae_terminal_chrome_layout((float)w,(float)h,(float)a->font_points/16,&chrome)) {error(a,"chrome geometry");return;}
     a->bar_height=chrome.bar.height;
+    if(a->spawner.helper>=0) {workspace_layout(a,w,h);return;}
 #endif
     a->grid_y=a->bar_height+12;
     int cols=(int)floorf(((float)w-32)/a->cell_w),rows=(int)floorf(((float)h-a->grid_y-a->footer_height-16)/a->cell_h);
@@ -299,9 +359,9 @@ static void layout(struct app *a) {
     if (cols>AE_TERM_COLS) cols=AE_TERM_COLS;
     if (rows<2) rows=2;
     if (rows>AE_TERM_ROWS) rows=AE_TERM_ROWS;
-    if (a->session.model->cols!=(unsigned)cols || a->session.model->rows!=(unsigned)rows) {
+    if (a->session->model->cols!=(unsigned)cols || a->session->model->rows!=(unsigned)rows) {
         a->selecting=false;
-        if (ae_terminal_session_resize(&a->session,(unsigned)cols,(unsigned)rows)) error(a,"PTY/grid resize");
+        if (ae_terminal_session_resize(a->session,(unsigned)cols,(unsigned)rows)) error(a,"PTY/grid resize");
     }
     a->left=((float)w-(float)cols*a->cell_w)/2;
 }
@@ -310,11 +370,11 @@ static SDL_FRect paste_card(int w,int h) {
     return (SDL_FRect){((float)w-cw)/2,((float)h-ch)/2,cw,ch};
 }
 static void draw_composition(struct app *a) {
-    float x=a->left+(float)a->session.model->x*a->cell_w,y=a->grid_y+(float)a->session.model->y*a->cell_h;
+    float x=a->left+(float)a->session->model->x*a->cell_w,y=a->grid_y+(float)a->session->model->y*a->cell_h;
     unsigned cursor=0;
     if (a->composition.size) {
-        unsigned columns=a->session.model->cols-a->session.model->x;
-        if (columns<16) { columns=a->session.model->cols;x=a->left; }
+        unsigned columns=a->session->model->cols-a->session->model->x;
+        if (columns<16) { columns=a->session->model->cols;x=a->left; }
         struct ae_terminal_composition_view view;
         if (!ae_terminal_composition_view(&a->composition,columns,width,&view)) { error(a,"composition viewport");return; }
         cursor=view.cursor;
@@ -387,26 +447,27 @@ static void draw(struct app *a) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     SDL_WindowFlags flags=SDL_GetWindowFlags(a->window);
     struct ae_terminal_chrome_state chrome={.german=a->german,.contrast=a->contrast,.editor=a->editor,
-        .maximized=(flags&SDL_WINDOW_MAXIMIZED)!=0,.zoom_disabled=a->session.closing || a->composition.size ||
+        .maximized=(flags&SDL_WINDOW_MAXIMIZED)!=0,.zoom_disabled=a->menu_open || a->session->closing || a->composition.size ||
         (a->paste.size && a->paste.review) || (flags&SDL_WINDOW_FULLSCREEN),.hovered=a->chrome_hover,.pressed=a->chrome_pressed};
-    unsigned chrome_request=0;
+    unsigned chrome_request=0;uint64_t workspace_request=0;
     if (!ae_terminal_view_chrome(a->view,&chrome,&chrome_request)) {error(a,"NexaUI chrome");return;}
-    if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended,
-        !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review))) { error(a,"NexaUI grid");return; }
+    if(a->spawner.helper>=0) workspace_request=workspace_draw(a,w,h);
+    else if (!ae_terminal_view_grid(a->view,a->session->model,(nx_rect){a->left,a->grid_y,(float)a->session->model->cols*a->cell_w,(float)a->session->model->rows*a->cell_h},a->contrast,!a->session->pty.ended,
+        !a->session->closing && !a->composition.size && !(a->paste.size && a->paste.review))) { error(a,"NexaUI grid");return; }
 #else
     fill(a,(SDL_FRect){0,0,(float)w,a->bar_height},a->contrast ? 0 : 0x191f2b);
     label(a,a->editor ? tr(a,"Terminal · Aetheri editor","Terminal · Aetheri-Editor") : tr(a,"Terminal · Aetheri shell","Terminal · Aetheri-Shell"),16,10,0xeff3fb);
     label(a,"×",(float)w-32,10,0xeff3fb);
-    for (unsigned y=0;y<a->session.model->rows;++y) {
-        const struct ae_term_cell *r=ae_terminal_row(a->session.model,y);
-        unsigned first=0,last=0;bool selected=ae_terminal_selected_range(a->session.model,y,&first,&last);
-        for (unsigned x=0;x<a->session.model->cols;++x) {
+    for (unsigned y=0;y<a->session->model->rows;++y) {
+        const struct ae_term_cell *r=ae_terminal_row(a->session->model,y);
+        unsigned first=0,last=0;bool selected=ae_terminal_selected_range(a->session->model,y,&first,&last);
+        for (unsigned x=0;x<a->session->model->cols;++x) {
             uint32_t bg=(r[x].style&AE_TERM_REVERSE) ? r[x].fg : r[x].bg;
             if (a->contrast && bg==0x10141c) bg=0;
             if (selected && x>=first && x<last) bg=0x304e78;
             fill(a,(SDL_FRect){a->left+(float)x*a->cell_w,a->grid_y+(float)y*a->cell_h,a->cell_w,a->cell_h},bg);
         }
-        for (unsigned x=0;x<a->session.model->cols;++x) {
+        for (unsigned x=0;x<a->session->model->cols;++x) {
             const struct ae_term_cell *c=&r[x];uint32_t fg=c->fg,bg=c->bg;
             if (c->style&AE_TERM_REVERSE) { uint32_t temp=fg;fg=bg;bg=temp; }
             if (a->contrast && bg==0x10141c) { bg=0;fg=fg==0xdce4ef ? 0xffffff : fg; }
@@ -422,17 +483,22 @@ static void draw(struct app *a) {
         }
     }
 #endif
-    if (a->session.model->cursor && !a->session.model->view && !a->session.pty.ended) {
-        SDL_FRect cursor={a->left+(float)a->session.model->x*a->cell_w,a->grid_y+(float)a->session.model->y*a->cell_h,a->cell_w,2};cursor.y+=a->cell_h-2;fill(a,cursor,0xa2c7ff);
+    if (a->session->model->cursor && !a->session->model->view && !a->session->pty.ended
+#ifdef AETHERI_TERMINAL_NEXAUI
+        && !a->menu_open
+#endif
+    ) {
+        SDL_FRect cursor={a->left+(float)a->session->model->x*a->cell_w,a->grid_y+(float)a->session->model->y*a->cell_h,a->cell_w,2};cursor.y+=a->cell_h-2;fill(a,cursor,0xa2c7ff);
     }
     draw_composition(a);
-    const char *status=a->message ? a->message : a->session.closing ? (a->editor ? tr(a,"Closing · waiting for editor","Schließen · Warten auf Editor") : tr(a,"Closing · waiting for shell/jobs","Schließen · Warten auf Shell/Jobs")) :
-        a->session.pty.ended ? (a->editor ? tr(a,"Editor ended · waiting for terminal writers","Editor beendet · Warten auf Terminalausgabe") : tr(a,"Shell ended · waiting for terminal writers","Shell beendet · Warten auf Terminalausgabe")) :
+    const char *status=a->message ? a->message : a->session->closing ? (a->editor ? tr(a,"Closing · waiting for editor","Schließen · Warten auf Editor") : tr(a,"Closing · waiting for shell/jobs","Schließen · Warten auf Shell/Jobs")) :
+        a->session->pty.ended ? (a->editor ? tr(a,"Editor ended · waiting for terminal writers","Editor beendet · Warten auf Terminalausgabe") : tr(a,"Shell ended · waiting for terminal writers","Shell beendet · Warten auf Terminalausgabe")) :
         a->composition.size ? tr(a,"Composition · Esc cancels","Texteingabe · Esc bricht ab") :
-        a->session.model->selection.count ? tr(a,"Selection · Esc clears","Auswahl · Esc löscht") :
+        a->session->model->selection.count ? tr(a,"Selection · Esc clears","Auswahl · Esc löscht") :
         a->editor ? tr(a,"Ctrl+S save · Ctrl+Q document close · Ctrl+Shift+Q window close","Strg+S speichern · Strg+Q Dokument · Strg+Shift+Q Fenster") : tr(a,"Ctrl+C/Z · Shift+PgUp/PgDn · Ctrl+Shift+Q","Strg+C/Z · Shift+Bild↑/↓ · Strg+Shift+Q");
 #ifdef AETHERI_TERMINAL_NEXAUI
-    if (!a->message && !a->session.pty.ended && ae_terminal_view_reading(a->view) && !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review))
+    if(!a->message && a->workspace_fallback) status=tr(a,"Focused pane · enlarge window to show all","Aktiver Bereich · größeres Fenster zeigt alle");
+    if (!a->message && !a->session->pty.ended && ae_terminal_view_reading(a->view) && !a->session->closing && !a->composition.size && !(a->paste.size && a->paste.review))
         status=tr(a,"Reading output · Ctrl+Shift+R clears focus","Lesefokus · Strg+Umschalt+R löst ihn");
 #endif
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
@@ -457,30 +523,44 @@ static void draw(struct app *a) {
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
 #ifdef AETHERI_TERMINAL_NEXAUI
     accessibility_publish(a);
-    if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));printf("CHROME maximized=%d header=%.1f\n",chrome.maximized,a->bar_height);}
+    if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));printf("CHROME maximized=%d header=%.1f\n",chrome.maximized,a->bar_height);printf("CHROME_POINTER hovered=%u pressed=%u\n",a->chrome_hover,a->chrome_pressed);}
 #endif
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
-    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->session.model->cols,a->session.model->rows,a->session.model->x,a->session.model->y,a->session.model->history_count,a->session.model->view,(unsigned long long)a->session.model->sequence,a->session.closing,a->session.pty.ended,a->session.pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->session.model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
+    if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->session->model->cols,a->session->model->rows,a->session->model->x,a->session->model->y,a->session->model->history_count,a->session->model->view,(unsigned long long)a->session->model->sequence,a->session->closing,a->session->pty.ended,a->session->pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->session->model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
 #ifdef AETHERI_TERMINAL_NEXAUI
+    if(a->diagnostics && a->spawner.helper>=0) {
+        unsigned count=0;for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->used[i]) ++count;
+        printf("WORKSPACE frame=%u tabs=%u sessions=%u active=%u visible=%u fallback=%d menu=%d\n",a->frame,a->workspace.count,count,ae_terminal_workspace_focused(&a->workspace),a->workspace_layout.visible,a->workspace_fallback,a->menu_open);
+        for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->used[i]) {
+            const struct ae_terminal_session *s=&a->sessions[i];SDL_FRect r=a->pane_grids[i];
+            printf("PANE slot=%u cookie=%llu pid=%d selected=%d visible=%d cols=%u rows=%u x=%u y=%u history=%u closing=%d ended=%d eof=%d left=%.3f top=%.3f width=%.3f height=%.3f\n",i,(unsigned long long)a->session_cookie[i],s->pty.pid,s==a->session,(a->workspace_layout.visible&(1u<<i))!=0,s->model->cols,s->model->rows,s->model->x,s->model->y,s->model->history_count,s->closing,s->pty.ended,s->pty.eof,(double)r.x,(double)r.y,(double)r.w,(double)r.h);
+        }
+        for(unsigned i=0;i<AE_TERM_NODES;++i) {
+            struct ae_terminal_area r=a->workspace_layout.dividers[i];
+            if(r.w>0 && r.h>0) printf("DIVIDER node=%u id=%llu x=%.3f y=%.3f width=%.3f height=%.3f\n",i,(unsigned long long)a->workspace.nodes[i].id,(double)r.x,(double)r.y,(double)r.w,(double)r.h);
+        }
+        printf("WORKSPACE_END frame=%u\n",a->frame);
+    }
     if (chrome_request) chrome_action(a,chrome_request);
+    if (workspace_request) workspace_action(a,workspace_request);
 #endif
 }
 static void flush_input(struct app *a) {
-    if (ae_terminal_session_flush(&a->session)) error(a,"PTY input");
-    atomic_store(&a->writeable,a->session.input_count!=0 && !a->session.pty.eof);
+    if (ae_terminal_session_flush(a->session)) error(a,"PTY input");
+    if(!prepare_io(a)) error(a,"PTY readiness handles");
 }
 static bool enqueue(struct app *a,const void *bytes,size_t size) {
-    bool selected=a->session.model->selection.count!=0,scrolled=a->session.model->view!=0;
-    if (!ae_terminal_session_enqueue(&a->session,bytes,size)) {
+    bool selected=a->session->model->selection.count!=0,scrolled=a->session->model->view!=0;
+    if (!ae_terminal_session_enqueue(a->session,bytes,size)) {
         if (errno==ENOBUFS) { a->message="Input queue full; new input was not sent";a->dirty=true; }
         return false;
     }
     if (selected) { a->selecting=false;a->dirty=true; }
     if (scrolled) a->dirty=true;
     a->message=NULL;flush_input(a);
-    if (a->diagnostics) printf("INPUT %llu\n",(unsigned long long)a->session.input_bytes);
-    if (a->session.input_count) notify(a);
+    if (a->diagnostics) printf("INPUT %llu\n",(unsigned long long)a->session->input_bytes);
+    if (a->session->input_count) notify(a);
     return true;
 }
 static void paste_cancel(struct app *a,const char *message) {
@@ -496,14 +576,14 @@ static void input(struct app *a,const void *bytes,size_t size) {
     (void)enqueue(a,bytes,size);
 }
 static void user_close(struct app *a) {
-    if (a->editor && !a->session.closing && !a->session.pty.ended && !a->session.pty.eof && tcgetpgrp(a->session.pty.master)==a->session.pty.pid) input(a,"\021",1);
+    if (a->editor && !a->session->closing && !a->session->pty.ended && !a->session->pty.eof && tcgetpgrp(a->session->pty.master)==a->session->pty.pid) input(a,"\021",1);
     else close_request(a);
 }
 static bool paste_context(struct app *a) {
-    if (!a->clipboard || a->session.closing || a->session.pty.eof || a->session.pty.ended || !a->paste_epoch ||
-        ae_clipboard_focus_epoch(a->clipboard)!=a->paste_epoch || a->session.model->alt!=a->paste_alt) return false;
-    if (ae_terminal_pty_observe(&a->session.pty)!=0) return false;
-    return a->paste_group>0 && tcgetpgrp(a->session.pty.master)==a->paste_group;
+    if (!a->clipboard || a->session->closing || a->session->pty.eof || a->session->pty.ended || !a->paste_epoch ||
+        ae_clipboard_focus_epoch(a->clipboard)!=a->paste_epoch || a->session->model->alt!=a->paste_alt) return false;
+    if (ae_terminal_pty_observe(&a->session->pty)!=0) return false;
+    return a->paste_group>0 && tcgetpgrp(a->session->pty.master)==a->paste_group;
 }
 static void paste_apply(struct app *a) {
     if (!paste_context(a)) { paste_cancel(a,tr(a,"Paste cancelled","Einfügen abgebrochen"));return; }
@@ -513,18 +593,18 @@ static void paste_apply(struct app *a) {
     }
 }
 static void clipboard_copy(struct app *a) {
-    if (a->session.closing) return;
-    paste_cancel(a,NULL);composition_cancel(a,true);size_t needed=ae_terminal_selection_size(a->session.model);
+    if (a->session->closing) return;
+    paste_cancel(a,NULL);composition_cancel(a,true);size_t needed=ae_terminal_selection_size(a->session->model);
     if (needed<2) { a->message=tr(a,"No text selected","Kein Text ausgewählt");return; }
     char *text=malloc(needed);
-    if (!text || !ae_terminal_selection_copy(a->session.model,text,needed)) { free(text);a->message=tr(a,"Copy failed","Kopieren fehlgeschlagen");return; }
+    if (!text || !ae_terminal_selection_copy(a->session->model,text,needed)) { free(text);a->message=tr(a,"Copy failed","Kopieren fehlgeschlagen");return; }
     int result=a->clipboard ? ae_clipboard_publish(a->clipboard,&text,needed-1) : EOPNOTSUPP;free(text);
     a->message=result ? tr(a,"Copy unavailable","Kopieren nicht verfügbar") : tr(a,"Selection copied","Auswahl kopiert");
     if (a->diagnostics) printf("CLIPBOARD copy result=%d bytes=%zu\n",result,needed-1);
 }
 static void clipboard_paste(struct app *a) {
-    if (a->session.closing || a->session.pty.ended || a->session.pty.eof) return;
-    paste_cancel(a,NULL);composition_cancel(a,true);a->paste_epoch=ae_clipboard_focus_epoch(a->clipboard);a->paste_group=tcgetpgrp(a->session.pty.master);a->paste_alt=a->session.model->alt;
+    if (a->session->closing || a->session->pty.ended || a->session->pty.eof) return;
+    paste_cancel(a,NULL);composition_cancel(a,true);a->paste_epoch=ae_clipboard_focus_epoch(a->clipboard);a->paste_group=tcgetpgrp(a->session->pty.master);a->paste_alt=a->session->model->alt;
     int result=a->clipboard && a->paste_epoch && a->paste_group>0 ? ae_clipboard_receive(a->clipboard,AE_TERM_PASTE_BYTES) : EACCES;
     a->paste_receiving=result==0;a->message=result ? tr(a,"Paste unavailable","Einfügen nicht verfügbar") : tr(a,"Reading clipboard…","Zwischenablage wird gelesen…");
     if (a->diagnostics) printf("CLIPBOARD receive result=%d\n",result);
@@ -570,23 +650,347 @@ static void clipboard_update(struct app *a) {
 }
 static void io_event(struct app *a) {
     if (stop_signal) close_request(a);
-    bool changed=false;
-    if (ae_terminal_session_read(&a->session,&changed)) error(a,"PTY output");
-    if (changed) { if (!a->session.model->selection.count) a->selecting=false;a->dirty=true; }
-    bool ended=a->session.pty.ended;
-    if (!a->session.pty.ended && ae_terminal_pty_observe(&a->session.pty)<0) error(a,"original shell wait");
-    if (a->session.pty.ended!=ended) a->dirty=true;
+    size_t budget=AE_TERM_READ_BUDGET;bool all_ended=true,all_success=true;
+    for(unsigned at=0;at<AE_TERM_PANES;++at) {
+        unsigned i=(a->next_read+at)%AE_TERM_PANES;if(!a->used[i]) continue;
+        struct ae_terminal_session *s=&a->sessions[i];bool changed=false;size_t received=0;
+        if(ae_terminal_session_read_some(s,budget,&changed,&received)) error(a,"PTY output");
+        budget-=received;
+        if(changed) {
+            if(s==a->session && !s->model->selection.count) a->selecting=false;
+            if(s==a->session
+#ifdef AETHERI_TERMINAL_NEXAUI
+               || (a->workspace_layout.visible&(1u<<i))
+#endif
+            ) a->dirty=true;
+        }
+        bool ended=s->pty.ended;
+        if(!ended && ae_terminal_pty_observe(&s->pty)<0) error(a,"original shell wait");
+        if(s->pty.ended!=ended && s==a->session) a->dirty=true;
+        if(ae_terminal_session_flush(s)) error(a,"PTY input");
+        if(!s->pty.ended || !s->pty.eof) all_ended=false;
+        if(s->pty.status!=0) all_success=false;
+    }
+    a->next_read=(a->next_read+1)%AE_TERM_PANES;
     if (a->composition.size && !composition_context(a)) composition_cancel(a,true);
-    atomic_store(&a->readable,!a->session.pty.eof);atomic_store(&a->watch_child,!a->session.pty.ended);
-    flush_input(a);
-    if (a->session.pty.ended && a->session.pty.eof) {
-        if (a->session.closing || a->session.pty.status==0) a->running=false;
-        else { snprintf(a->ended_message,sizeof(a->ended_message),"%s %d · %s",a->editor ? tr(a,"Editor ended:","Editor beendet:") : tr(a,"Shell ended:","Shell beendet:"),a->session.pty.status,tr(a,"Close to leave","Schließen zum Beenden"));a->message=a->ended_message;a->dirty=true; }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if(a->spawner.helper>=0 && !a->window_closing) retire_sessions(a);
+#endif
+    if(!prepare_io(a)) error(a,"PTY readiness handles");
+    if(all_ended && (a->window_closing || all_success)) a->running=false;
+    else if(a->session->pty.ended && a->session->pty.eof && a->session->pty.status!=0 && a->message!=a->ended_message) {
+        snprintf(a->ended_message,sizeof(a->ended_message),"%s %d · %s",a->editor ? tr(a,"Editor ended:","Editor beendet:") : tr(a,"Shell ended:","Shell beendet:"),a->session->pty.status,tr(a,"Close to leave","Schließen zum Beenden"));a->message=a->ended_message;a->dirty=true;
     }
 }
 #ifdef AETHERI_TERMINAL_NEXAUI
+enum { WORK_MENU=6,WORK_TABS=7,WORK_POPUP=8,WORK_NEW=10,WORK_COLUMNS,WORK_ROWS,WORK_NEXT,WORK_CLOSE };
+#define WORK_TAB (UINT64_C(1)<<62)
+#define WORK_PANE (UINT64_C(1)<<61)
+static unsigned workspace_node(const struct ae_terminal_workspace *w,unsigned slot) {
+    for(unsigned i=0;i<AE_TERM_NODES;++i) if(w->nodes[i].kind==AE_PART_LEAF && w->nodes[i].slot==slot) return i;
+    return AE_TERM_NODES;
+}
+static float workspace_tabs_height(struct app *a) {return fmaxf(28,12+16*(float)a->font_points/16);}
+static float workspace_pane_header(struct app *a,const struct ae_terminal_workspace *w) {
+    unsigned slots[AE_TERM_PANES];return ae_terminal_workspace_order(w,slots)>1?fmaxf(22,16*(float)a->font_points/16):0;
+}
+static struct ae_terminal_area workspace_body(struct app *a,const struct ae_terminal_workspace *w,int window_width,int window_height) {
+    float top=a->bar_height+(w->count>1?workspace_tabs_height(a)+6:0)+12;
+    return (struct ae_terminal_area){16,top,(float)window_width-32,(float)window_height-top-a->footer_height-16};
+}
+static bool workspace_compute(struct app *a,const struct ae_terminal_workspace *w,int window_width,int window_height,struct ae_terminal_workspace_layout *out) {
+    return ae_terminal_workspace_layout(w,workspace_body(a,w,window_width,window_height),16*a->cell_w+16,2*a->cell_h+workspace_pane_header(a,w)+16,4,out);
+}
+static SDL_FRect workspace_grid(struct app *a,struct ae_terminal_area pane,float header,unsigned *cols,unsigned *rows) {
+    int c=(int)floorf((pane.w-16)/a->cell_w),r=(int)floorf((pane.h-header-16)/a->cell_h);
+    if(c<2) c=2;
+    if(c>AE_TERM_COLS) c=AE_TERM_COLS;
+    if(r<2) r=2;
+    if(r>AE_TERM_ROWS) r=AE_TERM_ROWS;
+    *cols=(unsigned)c;*rows=(unsigned)r;
+    return (SDL_FRect){pane.x+(pane.w-(float)c*a->cell_w)/2,pane.y+header+8,(float)c*a->cell_w,(float)r*a->cell_h};
+}
+static void workspace_layout(struct app *a,int w,int h) {
+    a->workspace_fallback=!workspace_compute(a,&a->workspace,w,h,&a->workspace_layout);
+    if(a->workspace_fallback) {
+        unsigned focused=ae_terminal_workspace_focused(&a->workspace);a->workspace_layout=(struct ae_terminal_workspace_layout){0};
+        if(focused<AE_TERM_PANES) {a->workspace_layout.visible=1u<<focused;a->workspace_layout.panes[focused]=workspace_body(a,&a->workspace,w,h);}
+    }
+    float header=workspace_pane_header(a,&a->workspace);
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->workspace_layout.visible&(1u<<i)) {
+        struct ae_terminal_session *s=&a->sessions[i];unsigned cols,rows;
+        a->pane_grids[i]=workspace_grid(a,a->workspace_layout.panes[i],header,&cols,&rows);
+        if(s->model->cols!=cols || s->model->rows!=rows) {
+            a->selecting=false;
+            bool okay=s->pty.ended && s->pty.eof?ae_terminal_resize(s->model,cols,rows):ae_terminal_session_resize(s,cols,rows)==0;
+            if(!okay) {error(a,"pane PTY/grid resize");return;}
+        }
+        if(s==a->session) {a->left=a->pane_grids[i].x;a->grid_y=a->pane_grids[i].y;}
+    }
+}
+static bool workspace_switchable(struct app *a) {
+    return !a->failed && !a->window_closing && !stop_signal && !(a->paste.size && a->paste.review);
+}
+static bool workspace_available(struct app *a) {return workspace_switchable(a) && !a->composition.size;}
+static bool workspace_focus(struct app *a,unsigned slot) {
+    if(slot>=AE_TERM_PANES || !a->used[slot] || !a->sessions[slot].model || !ae_terminal_workspace_focus(&a->workspace,slot)) return false;
+    if(a->session!=&a->sessions[slot]) {
+        paste_cancel(a,NULL);composition_cancel(a,false);a->selecting=false;
+        if(!SDL_StopTextInput(a->window)) {error(a,"pane input reset");return false;}
+        a->session=&a->sessions[slot];a->message=NULL;a->text_after=SDL_GetTicksNS();a->input_area=(SDL_Rect){-1,-1,0,0};
+        if(nx_focus_set(ae_terminal_view_context(a->view),0)!=NX_OK) {error(a,"pane reading focus reset");return false;}
+        text_input_sync(a);
+    }
+    a->menu_open=false;a->workspace_pressed=0;a->split_drag=0;a->dirty=true;
+    return true;
+}
+static void workspace_create(struct app *a,bool tab,bool columns) {
+    if(!workspace_available(a)) return;
+    unsigned slot=0;while(slot<AE_TERM_PANES && a->used[slot]) ++slot;
+    if(slot==AE_TERM_PANES || a->next_session==UINT64_MAX || a->workspace.serial>(UINT64_C(1)<<60)-3) {a->message=tr(a,"Session limit reached","Sitzungsgrenze erreicht");a->dirty=true;return;}
+    struct ae_terminal_workspace next=a->workspace;struct ae_terminal_workspace_layout projected;int w,h;
+    if(!(tab?ae_terminal_workspace_tab(&next,slot):ae_terminal_workspace_split(&next,slot,columns)) ||
+       !SDL_GetWindowSize(a->window,&w,&h) || !workspace_compute(a,&next,w,h,&projected)) {
+        a->message=tr(a,"Window is too small for another split","Fenster ist für eine weitere Teilung zu klein");a->dirty=true;return;
+    }
+    unsigned cols,rows;(void)workspace_grid(a,projected.panes[slot],workspace_pane_header(a,&next),&cols,&rows);
+    struct ae_terminal_session *s=&a->sessions[slot];*s=(struct ae_terminal_session)AE_TERMINAL_SESSION_INIT;
+    s->model=malloc(sizeof(*s->model));if(!s->model) {a->message=tr(a,"Session could not start","Sitzung konnte nicht starten");a->dirty=true;return;}
+    ae_terminal_init(s->model,cols,rows,width);int opened=ae_terminal_spawner_open(&a->spawner,&s->pty,cols,rows);
+    if(opened && s->pty.pin<0) {free(s->model);s->model=NULL;a->message=tr(a,"Session could not start","Sitzung konnte nicht starten");a->dirty=true;return;}
+    a->used[slot]=true;a->session_cookie[slot]=++a->next_session;a->workspace=next;a->workspace_layout=projected;a->open_error[slot]=opened!=0;
+    (void)workspace_focus(a,slot);
+    if(opened) {s->closing=true;(void)ae_terminal_pty_hangup(&s->pty);a->message=tr(a,"Session could not start","Sitzung konnte nicht starten");}
+    if(!prepare_io(a)) error(a,"new pane readiness handles");
+    if(stop_signal) close_request(a);
+    if(a->diagnostics) printf("SESSION slot=%u cookie=%llu pid=%d tabs=%u started=%d\n",slot,(unsigned long long)a->session_cookie[slot],s->pty.pid,a->workspace.count,!opened);
+}
+static void retire_sessions(struct app *a) {
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->used[i]) {
+        struct ae_terminal_session *s=&a->sessions[i];
+        if(!s->pty.ended || !s->pty.eof || (!s->closing && s->pty.status!=0)) continue;
+        bool focused=s==a->session,failed=a->open_error[i];
+        if(focused) {paste_cancel(a,NULL);composition_cancel(a,false);a->selecting=false;}
+        if(ae_terminal_pty_close(&s->pty) || !ae_terminal_workspace_remove(&a->workspace,i)) {error(a,"original pane retirement");return;}
+        if(a->diagnostics) printf("SESSION_END slot=%u cookie=%llu status=%d unsent=%zu\n",i,(unsigned long long)a->session_cookie[i],s->pty.status,s->input_count);
+        a->used[i]=false;free(s->model);s->model=NULL;a->dirty=true;
+        if(!a->workspace.count) {a->running=false;return;}
+        if(focused) (void)workspace_focus(a,ae_terminal_workspace_focused(&a->workspace));
+        if(failed) a->message=tr(a,"Session could not start","Sitzung konnte nicht starten");
+    }
+}
+static void workspace_action(struct app *a,uint64_t action) {
+    if(!action || !workspace_switchable(a) || (!workspace_available(a) && !(action&(WORK_TAB|WORK_PANE)))) return;
+    if(action==WORK_MENU) {
+        paste_cancel(a,NULL);a->selecting=false;a->chrome_pressed=0;a->menu_open=!a->menu_open;a->menu_index=0;a->workspace_pressed=0;a->text_after=SDL_GetTicksNS();a->dirty=true;text_input_sync(a);return;
+    }
+    a->menu_open=false;a->workspace_pressed=0;a->dirty=true;
+    if(action==WORK_NEW) workspace_create(a,true,false);
+    else if(action==WORK_COLUMNS || action==WORK_ROWS) workspace_create(a,false,action==WORK_COLUMNS);
+    else if(action==WORK_NEXT) {
+        unsigned slots[AE_TERM_PANES],count=ae_terminal_workspace_order(&a->workspace,slots),focused=ae_terminal_workspace_focused(&a->workspace);
+        for(unsigned i=0;i<count;++i) if(slots[i]==focused) {(void)workspace_focus(a,slots[(i+1)%count]);break;}
+    } else if(action==WORK_CLOSE) {
+        if(ae_terminal_session_request_close(a->session) && errno!=ESRCH) error(a,"pane hangup");
+        text_input_sync(a);
+    } else if(action&WORK_TAB) {
+        for(unsigned i=0;i<a->workspace.count;++i) if((WORK_TAB|a->workspace.tabs[i].id)==action) {
+            if(ae_terminal_workspace_select(&a->workspace,i)) (void)workspace_focus(a,ae_terminal_workspace_focused(&a->workspace));
+            break;
+        }
+    } else if(action&WORK_PANE) {
+        for(unsigned i=0;i<AE_TERM_NODES;++i) if(a->workspace.nodes[i].kind==AE_PART_LEAF && (WORK_PANE|a->workspace.nodes[i].id)==action) {
+            (void)workspace_focus(a,a->workspace.nodes[i].slot);break;
+        }
+    }
+}
+static SDL_FRect workspace_menu_rect(struct app *a,int w) {
+    float menu_width=fminf((float)w-32,340*(float)a->font_points/16);
+    return (SDL_FRect){(float)w-menu_width-16,a->bar_height+6,menu_width,5*fmaxf(30,14*(float)a->font_points/16+12)+8};
+}
+static uint64_t workspace_hit(struct app *a,float x,float y) {
+    int w,h;if(!SDL_GetWindowSize(a->window,&w,&h)) return 0;
+    if(contains((SDL_FRect){(float)w-40,(a->bar_height-26)/2,32,26},x,y)) return WORK_MENU;
+    if(a->menu_open) {
+        SDL_FRect menu=workspace_menu_rect(a,w);float row=(menu.h-8)/5;
+        for(unsigned i=0;i<5;++i) if(contains((SDL_FRect){menu.x+4,menu.y+4+(float)i*row,menu.w-8,row},x,y)) return WORK_NEW+i;
+        return 0;
+    }
+    if(a->workspace.count>1) {
+        float tab_width=((float)w-32)/(float)a->workspace.count;
+        for(unsigned i=0;i<a->workspace.count;++i) if(contains((SDL_FRect){16+(float)i*tab_width,a->bar_height+3,tab_width-4,workspace_tabs_height(a)},x,y)) return WORK_TAB|a->workspace.tabs[i].id;
+    }
+    float header=workspace_pane_header(a,&a->workspace);
+    if(header) for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->workspace_layout.visible&(1u<<i)) {
+        struct ae_terminal_area p=a->workspace_layout.panes[i];unsigned node=workspace_node(&a->workspace,i);
+        if(node<AE_TERM_NODES && contains((SDL_FRect){p.x,p.y,p.w,header},x,y)) return WORK_PANE|a->workspace.nodes[node].id;
+    }
+    return 0;
+}
+static bool workspace_control(struct app *a,uint64_t id,uint64_t parent,SDL_FRect r,const char *label_text,const char *name,bool selected,bool disabled,bool tab,uint64_t *action) {
+    struct ae_terminal_view_control c={.id=id,.parent=parent,.bounds={r.x,r.y,r.w,r.h},.label=label_text,.name=name,
+        .selected=selected,.disabled=disabled,.pressed=a->workspace_pressed==id,.hovered=a->workspace_hover==id,.tab=tab,.contrast=a->contrast};
+    bool requested=false;if(!ae_terminal_view_control(a->view,&c,&requested)) return false;
+    if(requested && !*action) *action=id;
+    return true;
+}
+static uint64_t workspace_draw(struct app *a,int w,int h) {
+    (void)h;uint64_t action=0;bool enabled=workspace_available(a),blocked=a->menu_open;
+    if(!workspace_control(a,WORK_MENU,1,(SDL_FRect){(float)w-40,(a->bar_height-26)/2,32,26},"...",tr(a,"Terminal menu","Terminalmenü"),blocked,!enabled,false,&action)) goto failed;
+    if(a->workspace.count>1) {
+        float tw=((float)w-32)/(float)a->workspace.count;
+        if(!ae_terminal_view_group(a->view,WORK_TABS,(nx_rect){16,a->bar_height+3,(float)w-32,workspace_tabs_height(a)},tr(a,"Terminal tabs","Terminal-Tabs"),true)) goto failed;
+        for(unsigned i=0;i<a->workspace.count;++i) {
+            char name[64],short_name[16];snprintf(name,sizeof(name),"Tab %u",i+1);snprintf(short_name,sizeof(short_name),"%u",i+1);
+            const char *painted=tw<64*(float)a->font_points/16?short_name:name;
+            if(!workspace_control(a,WORK_TAB|a->workspace.tabs[i].id,WORK_TABS,(SDL_FRect){16+(float)i*tw,a->bar_height+3,tw-4,workspace_tabs_height(a)},painted,name,i==a->workspace.active,!workspace_switchable(a) || blocked,true,&action)) goto failed;
+        }
+    }
+    float header=workspace_pane_header(a,&a->workspace);
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->workspace_layout.visible&(1u<<i)) {
+        struct ae_terminal_area p=a->workspace_layout.panes[i];unsigned node=workspace_node(&a->workspace,i);if(node==AE_TERM_NODES) goto failed;
+        char name[96];snprintf(name,sizeof(name),"%s %llu",tr(a,"Shell","Shell"),(unsigned long long)a->session_cookie[i]);
+        bool focused=&a->sessions[i]==a->session;
+        if(header && !workspace_control(a,WORK_PANE|a->workspace.nodes[node].id,1,(SDL_FRect){p.x,p.y,p.w,header},name,name,focused,!workspace_switchable(a) || blocked,false,&action)) goto failed;
+        SDL_FRect r=a->pane_grids[i];struct ae_terminal_pane_view pane={.id=a->session_cookie[i],.name=name,.model=a->sessions[i].model,
+            .bounds={r.x,r.y,r.w,r.h},.contrast=a->contrast,.caret=focused && !a->sessions[i].pty.ended,
+            .focusable=focused && enabled && !a->sessions[i].closing && !blocked,.enabled=!blocked};
+        if(!ae_terminal_view_pane(a->view,&pane)) goto failed;
+    }
+    for(unsigned i=0;i<AE_TERM_NODES;++i) {
+        struct ae_terminal_area r=a->workspace_layout.dividers[i];if(r.w>0 && r.h>0) fill(a,(SDL_FRect){r.x,r.y,r.w,r.h},a->contrast?0xffffff:0x30394a);
+    }
+    if(a->menu_open) {
+        SDL_FRect menu=workspace_menu_rect(a,w);float rh=(menu.h-8)/5;fill(a,menu,a->contrast?0:0x202735);
+        if(!ae_terminal_view_group(a->view,WORK_POPUP,(nx_rect){menu.x,menu.y,menu.w,menu.h},tr(a,"Terminal commands","Terminalbefehle"),false)) goto failed;
+        const char *labels[]={tr(a,"New tab  Ctrl+Shift+T","Neuer Tab  Strg+Umschalt+T"),tr(a,"Split right  Ctrl+Shift+D","Rechts teilen  Strg+Umschalt+D"),
+            tr(a,"Split below  Ctrl+Shift+E","Unten teilen  Strg+Umschalt+E"),tr(a,"Next pane  Alt+arrows","Nächster Bereich  Alt+Pfeile"),tr(a,"Close pane  Ctrl+Shift+W","Bereich schließen  Strg+Umschalt+W")};
+        const char *compact[]={tr(a,"New tab","Neuer Tab"),tr(a,"Split right","Rechts teilen"),tr(a,"Split below","Unten teilen"),
+            tr(a,"Next pane","Nächster Bereich"),tr(a,"Close pane","Bereich schließen")};
+        /* Optional shortcut hints yield before action names at large text in a
+           narrow viewport; native names retain the complete localized hints. */
+        bool narrow=(float)w-32<340*(float)a->font_points/16;
+        for(unsigned i=0;i<5;++i) if(!workspace_control(a,WORK_NEW+i,WORK_POPUP,(SDL_FRect){menu.x+4,menu.y+4+(float)i*rh,menu.w-8,rh},narrow?compact[i]:labels[i],labels[i],a->menu_index==i,!enabled,false,&action)) goto failed;
+    }
+    return action;
+failed:error(a,"workspace presentation");return 0;
+}
+static bool workspace_event(struct app *a,const SDL_Event *e) {
+    if(e->type==SDL_EVENT_WINDOW_FOCUS_LOST || e->type==SDL_EVENT_WINDOW_MOUSE_LEAVE || e->type==SDL_EVENT_WINDOW_RESIZED ||
+       e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || e->type==SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) {
+        a->workspace_pressed=a->workspace_hover=0;a->split_drag=0;
+        if(e->type==SDL_EVENT_WINDOW_FOCUS_LOST) a->menu_open=false;
+        a->dirty=true;
+    }
+    if(e->type==SDL_EVENT_KEY_DOWN && e->key.key==SDLK_ESCAPE && (a->split_drag || a->workspace_pressed)) {
+        if(a->split_drag) {
+            unsigned i=a->split_drag-1;
+            if(i<AE_TERM_NODES && a->workspace.nodes[i].id==a->split_key) (void)ae_terminal_workspace_ratio(&a->workspace,i,a->split_initial);
+        }
+        a->split_drag=0;a->workspace_pressed=0;a->dirty=true;return true;
+    }
+    if(a->menu_open) {
+        if(e->type==SDL_EVENT_KEY_DOWN) {
+            SDL_Keycode key=e->key.key;SDL_Keymod mod=e->key.mod;
+            if(key==SDLK_F6 || key==SDLK_F7 || key==SDLK_F8) return false;
+            if((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && key==SDLK_Q) {a->menu_open=false;user_close(a);}
+            else if(key==SDLK_ESCAPE) workspace_action(a,WORK_MENU);
+            else if(key==SDLK_DOWN || key==SDLK_UP || key==SDLK_TAB) {bool previous=key==SDLK_UP || (key==SDLK_TAB && (mod&SDL_KMOD_SHIFT));a->menu_index=(a->menu_index+(previous?4u:1u))%5;a->dirty=true;}
+            else if((key==SDLK_RETURN || key==SDLK_KP_ENTER) && !e->key.repeat) workspace_action(a,WORK_NEW+a->menu_index);
+            return true;
+        }
+        if(e->type==SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button==SDL_BUTTON_LEFT) {
+            a->workspace_pressed=workspace_hit(a,e->button.x,e->button.y);a->dirty=true;
+            if(!a->workspace_pressed) workspace_action(a,WORK_MENU);
+            return true;
+        }
+        if(e->type==SDL_EVENT_MOUSE_BUTTON_UP && e->button.button==SDL_BUTTON_LEFT) {
+            uint64_t original=a->workspace_pressed;a->workspace_pressed=0;a->dirty=true;
+            if(original && original==workspace_hit(a,e->button.x,e->button.y)) workspace_action(a,original);
+            return true;
+        }
+        if(e->type==SDL_EVENT_MOUSE_MOTION) {uint64_t hit=workspace_hit(a,e->motion.x,e->motion.y);if(hit!=a->workspace_hover) {a->workspace_hover=hit;a->dirty=true;}return true;}
+        if(e->type==SDL_EVENT_TEXT_INPUT || e->type==SDL_EVENT_TEXT_EDITING || e->type==SDL_EVENT_MOUSE_WHEEL) return true;
+    }
+    if(e->type==SDL_EVENT_MOUSE_MOTION) {
+        if(a->split_drag) {
+            unsigned i=a->split_drag-1;
+            if(i>=AE_TERM_NODES || a->workspace.nodes[i].id!=a->split_key) {a->split_drag=0;return true;}
+            struct ae_terminal_area r=a->workspace_layout.bounds[i];
+            bool columns=a->workspace.nodes[i].kind==AE_PART_COLUMNS;float extent=(columns?r.w:r.h)-4;
+            if(extent>0) {
+                float ratio=((columns?e->motion.x:e->motion.y)-(columns?r.x:r.y))/extent;
+                if(ae_terminal_workspace_ratio(&a->workspace,i,fmaxf(.1f,fminf(.9f,ratio)))) a->dirty=true;
+            }
+            return true;
+        }
+        uint64_t hit=workspace_hit(a,e->motion.x,e->motion.y);if(hit!=a->workspace_hover) {a->workspace_hover=hit;a->dirty=true;}
+    }
+    if(e->type==SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button==SDL_BUTTON_LEFT && workspace_switchable(a)) {
+        uint64_t hit=workspace_hit(a,e->button.x,e->button.y);
+        if(hit && (workspace_available(a) || (hit&(WORK_TAB|WORK_PANE)))) {a->workspace_pressed=hit;a->dirty=true;return true;}
+        for(unsigned i=0;workspace_available(a) && i<AE_TERM_NODES;++i) {
+            struct ae_terminal_area r=a->workspace_layout.dividers[i];
+            if(r.w>0 && r.h>0 && contains((SDL_FRect){r.x,r.y,r.w,r.h},e->button.x,e->button.y)) {
+                a->split_drag=i+1;a->split_key=a->workspace.nodes[i].id;a->split_initial=a->workspace.nodes[i].ratio;a->selecting=false;return true;
+            }
+        }
+        for(unsigned i=0;i<AE_TERM_PANES;++i) if(a->workspace_layout.visible&(1u<<i)) {
+            struct ae_terminal_area r=a->workspace_layout.panes[i];
+            if(contains((SDL_FRect){r.x,r.y,r.w,r.h},e->button.x,e->button.y) && &a->sessions[i]!=a->session) {
+                (void)workspace_focus(a,i);a->left=a->pane_grids[i].x;a->grid_y=a->pane_grids[i].y;break;
+            }
+        }
+    }
+    if(e->type==SDL_EVENT_MOUSE_BUTTON_UP && e->button.button==SDL_BUTTON_LEFT) {
+        if(a->split_drag) {a->split_drag=0;return true;}
+        if(a->workspace_pressed) {uint64_t original=a->workspace_pressed;a->workspace_pressed=0;a->dirty=true;if(original==workspace_hit(a,e->button.x,e->button.y)) workspace_action(a,original);return true;}
+    }
+    if(e->type!=SDL_EVENT_KEY_DOWN || !workspace_switchable(a)) return false;
+    SDL_Keycode key=e->key.key;SDL_Keymod mod=e->key.mod;
+    if((mod&SDL_KMOD_CTRL) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_TAB) {
+        if(!e->key.repeat && a->workspace.count) {
+            unsigned next=(a->workspace.active+((mod&SDL_KMOD_SHIFT)?a->workspace.count-1:1))%a->workspace.count;
+            if(ae_terminal_workspace_select(&a->workspace,next)) (void)workspace_focus(a,ae_terminal_workspace_focused(&a->workspace));
+        }return true;
+    }
+    if(!workspace_available(a)) return false;
+    if((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && (key==SDLK_T || key==SDLK_D || key==SDLK_E || key==SDLK_W)) {
+        if(!e->key.repeat) workspace_action(a,key==SDLK_T?WORK_NEW:key==SDLK_D?WORK_COLUMNS:key==SDLK_E?WORK_ROWS:WORK_CLOSE);
+        return true;
+    }
+    if(key==SDLK_APPLICATION || (key==SDLK_F10 && (mod&SDL_KMOD_SHIFT))) {if(!e->key.repeat) workspace_action(a,WORK_MENU);return true;}
+    if((mod&SDL_KMOD_ALT) && !(mod&(SDL_KMOD_CTRL|SDL_KMOD_GUI)) && (key==SDLK_LEFT || key==SDLK_RIGHT || key==SDLK_UP || key==SDLK_DOWN)) {
+        if(e->key.repeat) return true;
+        unsigned focused=ae_terminal_workspace_focused(&a->workspace);
+        if(mod&SDL_KMOD_SHIFT) {
+            unsigned child=workspace_node(&a->workspace,focused);bool horizontal=key==SDLK_LEFT || key==SDLK_RIGHT;
+            for(unsigned depth=0;child<AE_TERM_NODES && depth<AE_TERM_NODES;++depth) {
+                unsigned parent=AE_TERM_NODES;
+                for(unsigned i=0;i<AE_TERM_NODES;++i) if((a->workspace.nodes[i].kind==AE_PART_COLUMNS || a->workspace.nodes[i].kind==AE_PART_ROWS) &&
+                    (a->workspace.nodes[i].first==child || a->workspace.nodes[i].second==child)) {parent=i;break;}
+                if(parent==AE_TERM_NODES) break;
+                if((a->workspace.nodes[parent].kind==AE_PART_COLUMNS)==horizontal) {
+                    float step=key==SDLK_LEFT || key==SDLK_UP?-.05f:.05f;
+                    if(ae_terminal_workspace_ratio(&a->workspace,parent,fmaxf(.1f,fminf(.9f,a->workspace.nodes[parent].ratio+step)))) a->dirty=true;
+                    break;
+                }child=parent;
+            }
+        } else if(a->workspace_fallback) workspace_action(a,WORK_NEXT);
+        else {
+            struct ae_terminal_area from=a->workspace_layout.panes[focused];unsigned best=AE_TERM_PANES;float score=INFINITY;
+            for(unsigned i=0;i<AE_TERM_PANES;++i) if(i!=focused && (a->workspace_layout.visible&(1u<<i))) {
+                struct ae_terminal_area to=a->workspace_layout.panes[i];float dx=to.x+to.w/2-from.x-from.w/2,dy=to.y+to.h/2-from.y-from.h/2;
+                bool correct=key==SDLK_LEFT?dx<0:key==SDLK_RIGHT?dx>0:key==SDLK_UP?dy<0:dy>0;
+                float distance=dx*dx+dy*dy;if(correct && distance<score) {score=distance;best=i;}
+            }
+            if(best<AE_TERM_PANES) (void)workspace_focus(a,best);
+        }return true;
+    }
+    return false;
+}
 static bool chrome_zoom_allowed(struct app *a) {
-    return !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review) &&
+    return !a->menu_open && !a->session->closing && !a->composition.size && !(a->paste.size && a->paste.review) &&
         !(SDL_GetWindowFlags(a->window)&SDL_WINDOW_FULLSCREEN);
 }
 static void chrome_action(struct app *a,unsigned action) {
@@ -637,6 +1041,7 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
 #ifdef AETHERI_TERMINAL_NEXAUI
     struct ae_terminal_chrome c;
     if (!ae_terminal_chrome_layout((float)w,(float)h,(float)a->font_points/16,&c) || ae_terminal_chrome_target(&c,(float)p->x,(float)p->y)) return SDL_HITTEST_NORMAL;
+    if(a->spawner.helper>=0 && (float)p->x>(float)w-40 && (float)p->y<a->bar_height) return SDL_HITTEST_NORMAL;
 #endif
     bool l=p->x<8,r=p->x>=w-8,t=p->y<8,b=p->y>=h-8;
     if (t&&l) return SDL_HITTEST_RESIZE_TOPLEFT;
@@ -656,9 +1061,9 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
 static bool selection_point(struct app *a,float x,float y,bool clamp,unsigned *row,unsigned *column) {
     if (!isfinite(x) || !isfinite(y) || a->cell_w<=0 || a->cell_h<=0) return false;
     float col=(x-a->left)/a->cell_w,line=(y-a->grid_y)/a->cell_h;
-    if (!clamp && (col<0 || col>=(float)a->session.model->cols || line<0 || line>=(float)a->session.model->rows)) return false;
-    col=fmaxf(0,fminf((float)a->session.model->cols,floorf(col+.5f)));
-    line=fmaxf(0,fminf((float)a->session.model->rows-1,floorf(line)));
+    if (!clamp && (col<0 || col>=(float)a->session->model->cols || line<0 || line>=(float)a->session->model->rows)) return false;
+    col=fmaxf(0,fminf((float)a->session->model->cols,floorf(col+.5f)));
+    line=fmaxf(0,fminf((float)a->session->model->rows-1,floorf(line)));
     *row=(unsigned)line;*column=(unsigned)col;return true;
 }
 static bool contains(SDL_FRect r,float x,float y) { return x>=r.x && x<r.x+r.w && y>=r.y && y<r.y+r.h; }
@@ -709,18 +1114,18 @@ static bool paste_event(struct app *a,const SDL_Event *e) {
 }
 static bool text_event_allowed(struct app *a,uint32_t window,uint64_t timestamp) {
     return window==SDL_GetWindowID(a->window) && timestamp>=a->text_after && SDL_GetKeyboardFocus()==a->window &&
-        !a->session.closing && !a->session.pty.ended && !a->session.pty.eof;
+        !a->session->closing && !a->session->pty.ended && !a->session->pty.eof;
 }
 static void composition_edit(struct app *a,const SDL_TextEditingEvent *e) {
     if (!text_event_allowed(a,e->windowID,e->timestamp)) return;
     if (a->composition.size && !composition_context(a)) { composition_cancel(a,true);return; }
-    if (!a->composition.size) { a->composition_group=tcgetpgrp(a->session.pty.master);a->composition_alt=a->session.model->alt; }
+    if (!a->composition.size) { a->composition_group=tcgetpgrp(a->session->pty.master);a->composition_alt=a->session->model->alt; }
     if (a->composition_group<=0 || !composition_context(a)) return;
     if (a->paste_receiving) paste_cancel(a,NULL);
     size_t size=e->text ? strnlen(e->text,AE_TERM_COMPOSITION_BYTES+1) : 0;
     bool accepted=ae_terminal_composition_set(&a->composition,e->text,size,e->start,e->length);
     if (!accepted) { composition_cancel(a,true);a->message=tr(a,"Composition was rejected","Texteingabe wurde abgelehnt"); }
-    else { a->session.model->view=0;a->message=NULL; }
+    else { a->session->model->view=0;a->message=NULL; }
     a->dirty=true;
     if (a->diagnostics) printf("TEXT edit accepted=%d bytes=%zu start=%d length=%d\n",accepted,size,e->start,e->length);
 }
@@ -743,6 +1148,7 @@ static void event(struct app *a,const SDL_Event *e) {
     if (e->type==SDL_EVENT_QUIT || e->type==SDL_EVENT_WINDOW_CLOSE_REQUESTED) { user_close(a);return; }
 #ifdef AETHERI_TERMINAL_NEXAUI
     if (chrome_event(a,e)) return;
+    if (a->spawner.helper>=0 && workspace_event(a,e)) return;
 #endif
     if (paste_event(a,e)) return;
     if (e->type==SDL_EVENT_WINDOW_EXPOSED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) a->dirty=true;
@@ -750,12 +1156,12 @@ static void event(struct app *a,const SDL_Event *e) {
        state can already belong to a later queued key, or to an IME shortcut. */
     else if (e->type==SDL_EVENT_TEXT_INPUT) composition_commit(a,&e->text);
     else if (e->type==SDL_EVENT_TEXT_EDITING) composition_edit(a,&e->edit);
-    else if (e->type==SDL_EVENT_MOUSE_WHEEL && e->wheel.y!=0) { ae_terminal_scroll(a->session.model,e->wheel.y>0 ? 3 : -3);a->dirty=true; }
+    else if (e->type==SDL_EVENT_MOUSE_WHEEL && e->wheel.y!=0) { ae_terminal_scroll(a->session->model,e->wheel.y>0 ? 3 : -3);a->dirty=true; }
     else if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) { paste_cancel(a,NULL);composition_cancel(a,true);a->close_pressed=false;a->selecting=false;a->dirty=true; }
     else if (e->type==SDL_EVENT_WINDOW_FOCUS_GAINED) { if (e->window.timestamp>a->text_after) a->text_after=e->window.timestamp; }
     else if (e->type==SDL_EVENT_MOUSE_MOTION && a->selecting) {
         unsigned row,column;
-        if (selection_point(a,e->motion.x,e->motion.y,true,&row,&column) && !ae_terminal_select_extend(a->session.model,row,column)) a->selecting=false;
+        if (selection_point(a,e->motion.x,e->motion.y,true,&row,&column) && !ae_terminal_select_extend(a->session->model,row,column)) a->selecting=false;
         a->dirty=true;
     }
     else if ((e->type==SDL_EVENT_MOUSE_BUTTON_DOWN || e->type==SDL_EVENT_MOUSE_BUTTON_UP) && e->button.button==SDL_BUTTON_LEFT) {
@@ -768,11 +1174,11 @@ static void event(struct app *a,const SDL_Event *e) {
             if (a->composition.size) composition_cancel(a,true);
             if (a->paste_receiving) paste_cancel(a,NULL);
             a->close_pressed=hit;a->selecting=false;
-            if (!hit && !a->session.closing && selection_point(a,e->button.x,e->button.y,false,&row,&column))
-                a->selecting=ae_terminal_select_begin(a->session.model,row,column);
+            if (!hit && !a->session->closing && selection_point(a,e->button.x,e->button.y,false,&row,&column))
+                a->selecting=ae_terminal_select_begin(a->session->model,row,column);
         } else {
             if (hit && a->close_pressed) user_close(a);
-            if (a->selecting && selection_point(a,e->button.x,e->button.y,true,&row,&column)) (void)ae_terminal_select_extend(a->session.model,row,column);
+            if (a->selecting && selection_point(a,e->button.x,e->button.y,true,&row,&column)) (void)ae_terminal_select_extend(a->session->model,row,column);
             a->close_pressed=false;a->selecting=false;
         }
         a->dirty=true;
@@ -791,10 +1197,14 @@ static void event(struct app *a,const SDL_Event *e) {
             if (!e->key.repeat) chrome_action(a,AE_TERM_CHROME_ZOOM);
         }
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_R) {
-            if (a->session.closing) { /* Closing admits no new reading target. */ }
+            if (a->session->closing) { /* Closing admits no new reading target. */ }
             else if (ae_terminal_view_reading(a->view)) {
                 if (nx_focus_set(ae_terminal_view_context(a->view),0)!=NX_OK) error(a,"clear reading focus");
-            } else if (!ae_terminal_view_focus_row(a->view,a->session.model->view?0:a->session.model->y)) error(a,"reading focus");
+            } else {
+                unsigned row=a->session->model->view?0:a->session->model->y;
+                bool focused=a->spawner.helper>=0?ae_terminal_view_focus_pane_row(a->view,a->session_cookie[ae_terminal_workspace_focused(&a->workspace)],row):ae_terminal_view_focus_row(a->view,row);
+                if(!focused) error(a,"reading focus");
+            }
             a->dirty=true;
         }
 #endif
@@ -803,16 +1213,16 @@ static void event(struct app *a,const SDL_Event *e) {
         }
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_A) {
             if (a->paste_receiving) paste_cancel(a,NULL);
-            (void)ae_terminal_select_all(a->session.model);a->selecting=false;a->dirty=true;
+            (void)ae_terminal_select_all(a->session->model);a->selecting=false;a->dirty=true;
         }
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) &&
                  (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_LEFT || key==SDLK_RIGHT)) {
             if (a->paste_receiving) paste_cancel(a,NULL);
-            (void)ae_terminal_select_step(a->session.model,key==SDLK_LEFT ? -1 : key==SDLK_RIGHT ? 1 : 0,key==SDLK_UP ? -1 : key==SDLK_DOWN ? 1 : 0);
+            (void)ae_terminal_select_step(a->session->model,key==SDLK_LEFT ? -1 : key==SDLK_RIGHT ? 1 : 0,key==SDLK_UP ? -1 : key==SDLK_DOWN ? 1 : 0);
             a->selecting=false;a->dirty=true;
         }
-        else if (key==SDLK_ESCAPE && a->session.model->selection.count) { if (!a->failed) a->message=NULL;ae_terminal_select_clear(a->session.model);a->selecting=false;a->dirty=true; }
-        else if ((mod&SDL_KMOD_SHIFT) && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN)) { ae_terminal_scroll(a->session.model,key==SDLK_PAGEUP ? (int)a->session.model->rows/2 : -(int)a->session.model->rows/2);a->dirty=true; }
+        else if (key==SDLK_ESCAPE && a->session->model->selection.count) { if (!a->failed) a->message=NULL;ae_terminal_select_clear(a->session->model);a->selecting=false;a->dirty=true; }
+        else if ((mod&SDL_KMOD_SHIFT) && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN)) { ae_terminal_scroll(a->session->model,key==SDLK_PAGEUP ? (int)a->session->model->rows/2 : -(int)a->session->model->rows/2);a->dirty=true; }
         else if (key==SDLK_F6) { a->german=!a->german;a->dirty=true; }
         else if (key==SDLK_F7) { a->contrast=!a->contrast;a->dirty=true; }
         else if (key==SDLK_F8) { a->font_points=a->font_points==16 ? 20 : a->font_points==20 ? 24 : a->font_points==24 ? 32 : 16;a->dirty=true; }
@@ -826,7 +1236,7 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (key==SDLK_ESCAPE) input(a,"\033",1);
         else if (key==SDLK_HOME || key==SDLK_END) { char seq[]={27,'[',key==SDLK_HOME ? 'H' : 'F'};input(a,seq,sizeof(seq)); }
         else if (key==SDLK_DELETE) input(a,"\033[3~",4);
-        else if (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_RIGHT || key==SDLK_LEFT) { char seq[]={27,a->session.model->application_cursor ? 'O' : '[',key==SDLK_UP ? 'A' : key==SDLK_DOWN ? 'B' : key==SDLK_RIGHT ? 'C' : 'D'};input(a,seq,sizeof(seq)); }
+        else if (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_RIGHT || key==SDLK_LEFT) { char seq[]={27,a->session->model->application_cursor ? 'O' : '[',key==SDLK_UP ? 'A' : key==SDLK_DOWN ? 'B' : key==SDLK_RIGHT ? 'C' : 'D'};input(a,seq,sizeof(seq)); }
     }
 }
 #ifdef AETHERI_TERMINAL_NEXAUI
@@ -841,18 +1251,26 @@ static unsigned char *load_view_font(const char *path,size_t *size) {
 }
 #endif
 int main(int argc,char **argv) {
-    struct app a={.session=AE_TERMINAL_SESSION_INIT,.wake={-1,-1},.clipboard_fd=-1,.paste_pressed=-1,.running=true,.dirty=true,.font_points=16,.bar_height=40};
+    struct app a={.wake={-1,-1},.clipboard_fd=-1,.paste_pressed=-1,.running=true,.dirty=true,.font_points=16,.bar_height=40};
 #ifdef AETHERI_TERMINAL_NEXAUI
     a.accessibility_fd=-1;
+    a.spawner=(struct ae_terminal_spawner)AE_TERMINAL_SPAWNER_INIT;
+    ae_terminal_workspace_init(&a.workspace);if(!ae_terminal_workspace_tab(&a.workspace,0)) return 1;
 #endif
+    for(unsigned i=0;i<AE_TERM_PANES;++i) {
+        a.sessions[i]=(struct ae_terminal_session)AE_TERMINAL_SESSION_INIT;
+        a.watches[i].master=a.watches[i].pin=-1;
+    }
+    a.session=&a.sessions[0];a.used[0]=true;a.session_cookie[0]=a.next_session=1;
     const char *font=NULL,*cache=NULL,*shell=NULL,*editor=NULL,*leaf=NULL;
 #ifdef AETHERI_TERMINAL_NEXAUI
-    const char *bold_font="/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf";bool bold_selected=false;
+    const char *bold_font="/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf",*starter=NULL;bool bold_selected=false;
 #endif
     for (int i=1;i<argc;++i) {
         if (!strcmp(argv[i],"--font") && !font && i+1<argc) font=argv[++i];
 #ifdef AETHERI_TERMINAL_NEXAUI
         else if (!strcmp(argv[i],"--bold-font") && !bold_selected && i+1<argc) {bold_font=argv[++i];bold_selected=true;}
+        else if (!strcmp(argv[i],"--pty-starter") && !starter && i+1<argc) starter=argv[++i];
 #endif
         else if (!strcmp(argv[i],"--cache") && !cache && i+1<argc) cache=argv[++i];
         else if (!strcmp(argv[i],"--shell") && !shell && i+1<argc) shell=argv[++i];
@@ -862,25 +1280,41 @@ int main(int argc,char **argv) {
         else return 2;
     }
     a.editor=editor!=NULL;const char *program=a.editor ? editor : shell;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if(starter && (a.editor || starter[0]!='/')) return 2;
+#endif
     struct stat st;if (!font || !cache || !program || program[0]!='/' || (a.editor ? shell!=NULL || leaf==NULL : leaf!=NULL) || cache[0]!='/' || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || lstat(cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
     if (a.editor && (fstat(3,&st) || !S_ISDIR(st.st_mode) || fstat(4,&st) || !S_ISREG(st.st_mode))) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);
     struct sigaction child={.sa_handler=SIG_DFL};sigemptyset(&child.sa_mask);
     if (sigaction(SIGCHLD,&child,NULL) || !setlocale(LC_CTYPE,"C.UTF-8") || setenv("TERM","dumb",1) || unsetenv("COLORTERM") || setenv("MESA_SHADER_CACHE_DIR",cache,1) || setenv("MESA_SHADER_CACHE_MAX_SIZE","32M",1)) return 1;
-    a.session.model=malloc(sizeof(*a.session.model));if (!a.session.model) return 1;ae_terminal_init(a.session.model,80,24,width);
+    a.session->model=malloc(sizeof(*a.session->model));if (!a.session->model) return 1;ae_terminal_init(a.session->model,80,24,width);
     int source=open(program,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if(source>=0 && starter) {
+        extern char **environ;int helper=open(starter,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
+        int prepared=helper<0?-1:ae_terminal_spawner_prepare(&a.spawner,helper,source,environ,true);
+        if(helper>=0) close(helper);
+        if(prepared) {close(source);free(a.session->model);return 1;}
+    }
+#endif
     int opened=-1;
     if(source>=0) {
-        if(a.editor) opened=ae_terminal_pty_open_editor(&a.session.pty,source,3,4,leaf,80,24);
+        if(a.editor) opened=ae_terminal_pty_open_editor(&a.session->pty,source,3,4,leaf,80,24);
 #ifdef AETHERI_TERMINAL_NEXAUI
-        else opened=ae_terminal_pty_open_welcome(&a.session.pty,source,80,24);
+        else opened=ae_terminal_pty_open_welcome(&a.session->pty,source,80,24);
 #else
-        else opened=ae_terminal_pty_open(&a.session.pty,source,80,24);
+        else opened=ae_terminal_pty_open(&a.session->pty,source,80,24);
 #endif
     }
     if (source>=0) close(source);
     if (a.editor) { (void)close(3);(void)close(4); }
-    if (opened) { free(a.session.model);return 1; }
+    if (opened) {
+#ifdef AETHERI_TERMINAL_NEXAUI
+        ae_terminal_spawner_close(&a.spawner);
+#endif
+        free(a.session->model);return 1;
+    }
     if (!SDL_SetAppMetadata(a.editor ? "Aetheri Editor" : "Aetheri Terminal","0.0.1",a.editor ? "org.aetheri.Editor" : "org.aetheri.Terminal") || !SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) { a.failed=true;goto cleanup; }
     int fm,fn,fp,hm,hn,hp;TTF_GetFreeTypeVersion(&fm,&fn,&fp);TTF_GetHarfBuzzVersion(&hm,&hn,&hp);
     if (SDL_GetVersion()!=SDL_VERSION || TTF_Version()!=SDL_TTF_VERSION || fm!=2 || fn!=15 || fp!=0 || hm!=15 || hn!=0 || hp!=0) { error(&a,"unreviewed SDL/text version");goto cleanup; }
@@ -898,13 +1332,14 @@ int main(int argc,char **argv) {
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);
     struct wl_surface *surface=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,NULL);
     if (!ae_clipboard_open(&a.clipboard,display,surface,clipboard_wake,&a)) a.clipboard_fd=ae_clipboard_watch_fd(a.clipboard);
-    a.event=SDL_RegisterEvents(1);a.ack=SDL_CreateSemaphore(0);
-    if (!a.event || !a.ack || pipe2(a.wake,O_NONBLOCK|O_CLOEXEC)) { error(&a,"event bridge setup");goto cleanup; }
+    a.event=SDL_RegisterEvents(1);a.ack=SDL_CreateSemaphore(0);a.io_lock=SDL_CreateMutex();
+    if (!a.event || !a.ack || !a.io_lock || pipe2(a.wake,O_NONBLOCK|O_CLOEXEC)) { error(&a,"event bridge setup");goto cleanup; }
     struct sigaction action={.sa_handler=signalled};sigemptyset(&action.sa_mask);wake_writer=a.wake[1];
     if (sigaction(SIGTERM,&action,NULL) || sigaction(SIGINT,&action,NULL)) { error(&a,"signal setup");goto cleanup; }
-    atomic_init(&a.clipboard_deadline,0);atomic_init(&a.active,true);atomic_init(&a.readable,true);atomic_init(&a.watch_child,true);atomic_init(&a.writeable,false);
+    atomic_init(&a.clipboard_deadline,0);atomic_init(&a.active,true);
+    if(!prepare_io(&a)) {error(&a,"initial PTY readiness handles");goto cleanup;}
     a.worker=SDL_CreateThread(worker,"terminal-ready",&a);if (!a.worker) { error(&a,"PTY event worker");goto cleanup; }
-    if (a.diagnostics) printf("READY wayland opengles2 %s=%d\n",a.editor ? "editor" : "shell",a.session.pty.pid);
+    if (a.diagnostics) printf("READY wayland opengles2 %s=%d\n",a.editor ? "editor" : "shell",a.session->pty.pid);
     while (a.running) {
         if (a.dirty && !a.failed) draw(&a);
 #ifdef AETHERI_TERMINAL_NEXAUI
@@ -912,32 +1347,42 @@ int main(int argc,char **argv) {
         if (a.dirty && !a.failed) continue;
 #endif
         if (!a.running) break;
-        SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);clipboard_update(&a);text_input_sync(&a);
+        SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);
+        if(a.running) {clipboard_update(&a);text_input_sync(&a);}
     }
 cleanup:
     if (a.worker) { atomic_store(&a.active,false);notify(&a);SDL_SignalSemaphore(a.ack);SDL_WaitThread(a.worker,NULL); }
+    for(unsigned i=0;i<AE_TERM_PANES;++i) {
+        if(a.watches[i].master>=0) close(a.watches[i].master);
+        if(a.watches[i].pin>=0) close(a.watches[i].pin);
+    }
+    SDL_DestroyMutex(a.io_lock);
 #ifdef AETHERI_TERMINAL_NEXAUI
+    ae_terminal_spawner_close(&a.spawner);
     if (nx_linux_accessibility_host_destroy(&a.accessibility)!=NX_OK) a.failed=true;
     if (a.accessibility_fd>=0) close(a.accessibility_fd);
     SDL_DestroyMutex(a.accessibility_lock);
 #endif
     if (ae_clipboard_close(&a.clipboard)) a.failed=true;
     ae_terminal_paste_clear(&a.paste);wake_writer=-1;
-    if (!a.session.pty.ended || !a.session.pty.eof) {
-        (void)ae_terminal_pty_hangup(&a.session.pty);
-        while (!a.session.pty.ended || !a.session.pty.eof) {
-            struct pollfd fds[2]={{a.session.pty.eof ? -1 : a.session.pty.master,POLLIN,0},{a.session.pty.ended ? -1 : a.session.pty.pin,POLLIN,0}};
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a.used[i]) (void)ae_terminal_pty_hangup(&a.sessions[i].pty);
+    for(unsigned i=0;i<AE_TERM_PANES;++i) if(a.used[i]) {
+        struct ae_terminal_pty *p=&a.sessions[i].pty;
+        while (!p->ended || !p->eof) {
+            struct pollfd fds[2]={{p->eof ? -1 : p->master,POLLIN,0},{p->ended ? -1 : p->pin,POLLIN,0}};
             int n;do { n=poll(fds,2,-1); } while (n<0 && errno==EINTR);if (n<0) { a.failed=true;break; }
-            unsigned char bytes[4096];if (fds[0].revents) { ssize_t got;do { got=ae_terminal_pty_read(&a.session.pty,bytes,sizeof(bytes)); } while (got>0); }
-            if (fds[1].revents && ae_terminal_pty_observe(&a.session.pty)<0) { a.failed=true;break; }
+            unsigned char bytes[4096];if (fds[0].revents) { ssize_t got;do { got=ae_terminal_pty_read(p,bytes,sizeof(bytes)); } while (got>0); }
+            if (fds[1].revents && ae_terminal_pty_observe(p)<0) { a.failed=true;break; }
         }
+        if(ae_terminal_pty_close(p)) a.failed=true;
     }
-    if (ae_terminal_pty_close(&a.session.pty)) a.failed=true;
     if (a.frame_callback) wl_callback_destroy(a.frame_callback);
 #ifdef AETHERI_TERMINAL_NEXAUI
     SDL_DestroyTexture(a.view_texture);ae_terminal_view_destroy(a.view);free(a.view_font);free(a.view_bold);
 #endif
     glyphs_clear(&a);SDL_DestroySemaphore(a.ack);for (unsigned i=0;i<2;++i) if (a.wake[i]>=0) close(a.wake[i]);
     SDL_DestroyRenderer(a.renderer);SDL_DestroyWindow(a.window);TTF_CloseFont(a.font);TTF_Quit();SDL_Quit();
-    printf("CLOSED frames=%u shell_status=%d failed=%d\n",a.frame,a.session.pty.status,a.failed);free(a.session.model);return a.failed ? 1 : 0;
+    printf("CLOSED frames=%u shell_status=%d failed=%d\n",a.frame,a.session->pty.status,a.failed);
+    for(unsigned i=0;i<AE_TERM_PANES;++i) free(a.sessions[i].model);
+    return a.failed ? 1 : 0;
 }

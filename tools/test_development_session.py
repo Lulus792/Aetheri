@@ -11,9 +11,26 @@ import unittest
 from unittest.mock import patch
 
 import development_session as session
+from test_development_desktop import control_position,role_output
 
 
 class DevelopmentContracts(unittest.TestCase):
+    def test_control_observation_waits_for_complete_presented_latest_frame(self):
+        old='VIEW 16 output=0 search=0 size=1920x84 query= pending=0\nCONTROL 16 0 5 0 1122.0 42.0\nLAYOUT 16\nDRAWN 16 output=0 search=0\n'
+        new='VIEW 19 output=0 search=0 size=1920x84 query= pending=0\nCONTROL 19 0 5 0 1122.0 42.0\nLAYOUT 19\nDRAWN 19 output=0 search=0\n'
+        self.assertEqual(control_position(old,5),(1122.0,1038.0))
+        start=new.index('\n')+1
+        for end in range(start,len(new)):
+            with self.subTest(prefix=end):self.assertIsNone(control_position(old+new[:end],5))
+        self.assertEqual(control_position(old+new,5),(1122.0,1038.0))
+        self.assertEqual(control_position(new.replace('search=0 size=1920x84','search=1 size=1920x1080'),5),(1122.0,42.0))
+        with self.assertRaises(AssertionError):control_position(new,4)
+        with self.assertRaises(AssertionError):control_position(new.replace('LAYOUT 19','CONTROL 19 0 5 0 1.0 2.0\nLAYOUT 19'),5)
+        raw=''.join('desktop: '+line for line in new.splitlines(keepends=True))
+        for end in range(len(raw)):
+            with self.subTest(raw_prefix=end):self.assertIsNone(control_position(role_output(raw[:end],'desktop'),5))
+        self.assertEqual(control_position(role_output('settings: noise\n'+raw,'desktop'),5),(1122.0,1038.0))
+
     def test_native_key_tap_requires_valid_chord_and_verified_carrier(self):
         import run_vm as host
         with patch.object(host,"running") as live,patch.object(host,"qmp") as dispatch:
@@ -267,6 +284,52 @@ class DevelopmentContracts(unittest.TestCase):
             images=session.development_binaries(build,True,terminal_profile=selected)
         self.assertEqual(len(images),8);self.assertNotIn(str(build/'aetheri-terminal'),images)
         self.assertEqual(images[args[0]],selected['presentation']['sha256']);self.assertIn(build/'aetheri-shell',seen)
+
+    def multiplex_terminal_profile(self):
+        selected=self.terminal_profile()
+        selected['model']={n:'3'*64 for n in session.TERMINAL_MULTIPLEX_SOURCES}
+        selected['presentation'].update(kind='aetheri-terminal-v2',starter=dict(
+            binary='/home/aetheri/build/session-release/aetheri-terminal-pty-starter',sha256='d'*64,
+            sources={n:'e'*64 for n in session.TERMINAL_STARTER_SOURCES}))
+        return selected
+
+    def test_multiplex_terminal_requires_exact_additive_starter_and_model(self):
+        selected=self.multiplex_terminal_profile()
+        self.assertIs(session.validate_terminal_profile(selected,'release'),selected)
+        for field,value in (('binary','/tmp/foreign'),('sha256',False),('sources',{}),('sources',{'src/terminal/pty_starter.c':'bad'})):
+            changed=copy.deepcopy(selected);changed['presentation']['starter'][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):
+                session.validate_terminal_profile(changed,'release')
+        changed=copy.deepcopy(selected);del changed['presentation']['starter']
+        with self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        changed=copy.deepcopy(selected);changed['model']=self.terminal_profile()['model']
+        with self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        changed=copy.deepcopy(selected);changed['presentation']['kind']='aetheri-terminal-v1'
+        with self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        changed=self.terminal_profile();changed['model']=selected['model']
+        with self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        record={**self.record,'desktop':True,'terminal_ui':'nexaui-owned','phase':'closed',
+            'terminal_profile':selected,'terminal_binding':session.profile_fingerprint(selected)}
+        before=copy.deepcopy(record)
+        with patch.object(session,'terminal_selection',side_effect=AssertionError('historical selection')):
+            self.assertEqual(session.stop(record),before)
+            self.assertEqual(session.observation(record),{'kind':'historical_closed'})
+
+    def test_multiplex_starter_is_bound_but_never_forwarded_to_document_editor(self):
+        build=session.build_for('release');cache=Path('/test/cache');selected=self.multiplex_terminal_profile()
+        args=session.application_command('terminal',build,cache,terminal_profile=selected)
+        starter=selected['presentation']['starter']
+        self.assertEqual(args[args.index('--pty-starter')+1],starter['binary'])
+        legacy=session.application_command('terminal',build,cache,terminal_profile=self.terminal_profile())
+        self.assertNotIn('--pty-starter',legacy)
+        for files in (None,self.files_profile()):
+            command=session.application_command('files',build,cache,files_profile=files,terminal_profile=selected)
+            self.assertNotIn('--pty-starter',command)
+            self.assertNotIn(starter['binary'],command)
+        with patch.object(session,'digest',return_value='f'*64):
+            images=session.development_binaries(build,True,terminal_profile=selected)
+        self.assertEqual(len(images),9)
+        self.assertEqual(images[starter['binary']],starter['sha256'])
 
     def test_closed_retry_is_historical_and_does_not_observe_a_later_unit(self):
         record = {**self.record, "phase": "closed"}; before = copy.deepcopy(record)

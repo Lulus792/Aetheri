@@ -18,6 +18,7 @@ import tempfile
 import time
 
 import development_session as session
+from test_development_desktop import control_position,role_output
 
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -38,7 +39,10 @@ def main():
     for name in ('captures','sessions','sessions/fixture','sessions/fixture/runtime','sessions/fixture/cache','sessions/fixture/documents'):
         (root/name).mkdir(mode=0o700,parents=True,exist_ok=True)
     copies={'spec/nexaui-inputs.json',*session.FILES_MODEL_SOURCES,*session.OWN_FILES_SOURCES}
-    if terminal_profile:copies.update(('spec/ui-inputs.json',*session.TERMINAL_MODEL_SOURCES,*session.OWN_TERMINAL_SOURCES))
+    if terminal_profile:
+        view=terminal_profile['presentation']
+        copies.update(('spec/ui-inputs.json',*terminal_profile['model'],*view['sources']))
+        if 'starter' in view:copies.update(view['starter']['sources'])
     if settings_ui=='nexaui-owned':copies.update((*session.OWN_SETTINGS_SOURCES,'src/settings/model.c','src/settings/model.h'))
     for name in copies:
         p=root/'source'/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_bytes((source/name).read_bytes())
@@ -52,10 +56,10 @@ def main():
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
     stream=(root/'owner.log').open('xb')
     owner=subprocess.Popen([sys.executable,str(source/'tests/development_session_fixture.py'),str(build),str(root),str(right.fileno()),*([str(source/'tools/development_session.py'),'compose'] if compose else [])],
-        pass_fds=(right.fileno(),),env=env,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
+        cwd=root,pass_fds=(right.fileno(),),env=env,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
     right.close();pins=[os.pidfd_open(owner.pid)];roles={};seen=0;images=[];cases=[];actors=[]
     def log():return (root/'owner.log').read_text(errors='replace')
-    def rolelog(role):return '\n'.join(line[len(role)+2:] for line in log().splitlines() if line.startswith(role+': '))+'\n'
+    def rolelog(role):return role_output(log(),role)
     def alive(pin):return not select.select([pin],[],[],0)[0]
     def pin_process(pid,parent,binary=None):
         fd=os.pidfd_open(pid);pins.append(fd);proc=Path('/proc')/str(pid)
@@ -81,9 +85,10 @@ def main():
         for c in modifiers:event(f'K {c} 1')
         event(f'K {code} 1');event(f'K {code} 0')
         for c in reversed(modifiers):event(f'K {c} 0')
-    codes=dict(zip('abcdefghijklmnopqrstuvwxyz',(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)));codes['.']=52
+    codes=dict(zip('abcdefghijklmnopqrstuvwxyz',(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
+    codes.update({'.':52,' ':57,'-':12,'\n':28})
     def typing(value):
-        for c in value:key(codes[c])
+        for c in value:key(52,shift=True) if c=='>' else key(codes[c])
     def search(query):
         app={'files':'org.aetheri.Files','settings':'org.aetheri.Settings','terminal':'org.aetheri.Terminal','editor':'org.aetheri.Editor'}[query]
         active=rolelog('desktop').count('app='+app+' active=1')
@@ -93,14 +98,26 @@ def main():
         typing(query);wait(lambda:'query='+query+' ' in rolelog('desktop'),'native query');key(28)
         wait(lambda:rolelog('desktop').count('app='+app+' active=1')>active and rolelog('desktop').count('STABLE 0 1920x84\n')>collapsed,'actual search activation and collapsed desktop')
     def dock(kind):
-        rows=re.findall(r'VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+)',rolelog('desktop'));frame,expanded,_,height=map(int,rows[-1])
-        x,y=map(float,re.findall(r'CONTROL '+str(frame)+' 0 '+str(kind)+r' 0 ([\d.]+) ([\d.]+)',rolelog('desktop'))[0])
-        event(f'M {x} {y if expanded else 1080-height+y}');event('B 272 1');event('B 272 0')
+        point=[]
+        def observed():
+            p=control_position(rolelog('desktop'),kind)
+            if p is None:return False
+            point[:]=p;return True
+        wait(observed,'complete presented dock control')
+        x,y=point;event(f'M {x} {y}');event('B 272 1');event('B 272 0')
     def file_state(**wanted):
         rows=[r for r in re.findall(r'^VIEW (.+)$',rolelog('files'),re.M) if re.search(r'\bcount=',r)]
         values=dict(re.findall(r'(\w+)=([^ ]+)',rows[-1])) if rows else {}
         return all(values.get(k)==str(v) for k,v in wanted.items())
     def count(role):return len(re.findall(r'^SPAWN '+role+' ',log(),re.M))
+    def workspace():
+        rows=re.findall(r'^WORKSPACE (.+)\n((?:(?:PANE|DIVIDER) .*\n)*)WORKSPACE_END frame=(\d+)\n',rolelog('terminal'),re.M)
+        if not rows:return {}
+        header,body,end=rows[-1]
+        fields=lambda row:{k:int(v) for k,v in re.findall(r'(\w+)=(\d+)(?= |$)',row)}
+        state=fields(header);assert state['frame']==int(end)
+        state['panes']=[fields(line) for line in body.splitlines() if line.startswith('PANE ')]
+        return state
     def capture(label):
         n=len(cases)+1;signal.pidfd_send_signal(roles['compositor'][1],signal.SIGUSR1)
         wait(lambda:all(f'CAPTURE {n} {i}\n' in rolelog('compositor') for i in range(3)),label)
@@ -128,6 +145,7 @@ def main():
         terminal_pin=pin_process(doc_terminal,first[0],terminal);editor_pin=pin_process(doc_editor,doc_terminal,build/'aetheri-editor')
         if terminal_profile:
             assert alive(terminal_pin)
+            assert b'--pty-starter' not in Path(f'/proc/{doc_terminal}/cmdline').read_bytes().split(b'\0')
             editor_maps=Path(f'/proc/{doc_terminal}/maps').read_text()
             assert digest(Path(f'/proc/{doc_terminal}/exe'))==terminal_profile['presentation']['sha256']
             assert str(Path(terminal_profile['build'])/'prefix/lib/libnexaui.so.') in editor_maps and 'libSDL' in editor_maps
@@ -163,7 +181,8 @@ def main():
             assert count('files')==1 and 'FILES_PROFILE_REJECTED ' in log()
             p.write_bytes(original)
         if terminal_profile:
-            for name in ('spec/nexaui-inputs.json','spec/ui-inputs.json','src/terminal/model.c','src/terminal/nexaui_view.c','src/terminal/main.c'):
+            for name in ('spec/nexaui-inputs.json','spec/ui-inputs.json','src/terminal/model.c','src/terminal/nexaui_view.c','src/terminal/main.c',
+                         'src/terminal/spawn.c','src/terminal/workspace.c','src/terminal/pty_starter.c'):
                 p=root/'source'/name;original=p.read_bytes()
                 if p.suffix=='.json':
                     data=json.loads(original);data['terminal_fixture_drift']=True;p.write_text(json.dumps(data)+'\n')
@@ -190,6 +209,27 @@ def main():
                 key(127);key(40);key(18)
                 wait(lambda:re.search(r'TEXT commit accepted=1 bytes=2',rolelog('terminal')),'supervised Compose reaches selected presenter')
                 key(22,ctrl=True)
+            if terminal_profile['presentation']['kind']=='aetheri-terminal-v2':
+                command=Path(f'/proc/{terminal_first[0]}/cmdline').read_bytes().split(b'\0')
+                assert command[command.index(b'--pty-starter')+1].decode()==terminal_profile['presentation']['starter']['binary']
+                wait(lambda:workspace().get('sessions')==1,'supervised original workspace')
+                key(32,ctrl=True,shift=True)
+                wait(lambda:workspace().get('sessions')==2 and workspace()['visible']==3 and
+                     any(p['selected'] and p['x']==9 for p in workspace()['panes']),'supervised independent split shell')
+                split=next(p for p in workspace()['panes'] if p['selected'])
+                split_pin=pin_process(split['pid'],terminal_first[0],build/'aetheri-shell')
+                typing('printf owned > owned-proof\n')
+                proof=root/'owned-proof'
+                wait(lambda:proof.exists() and proof.read_bytes()==b'owned','split executes in original owner working directory')
+                key(20,ctrl=True,shift=True)
+                wait(lambda:workspace().get('sessions')==3 and workspace()['tabs']==2 and
+                     any(p['selected'] and p['x']==9 for p in workspace()['panes']),'supervised independent tab shell')
+                tab=next(p for p in workspace()['panes'] if p['selected'])
+                tab_pin=pin_process(tab['pid'],terminal_first[0],build/'aetheri-shell')
+                key(17,ctrl=True,shift=True)
+                wait(lambda:workspace().get('sessions')==2 and workspace()['tabs']==1,'supervised tab closes independently')
+                assert not alive(tab_pin) and alive(split_pin) and alive(shell_pin)
+                capture('owner-selected original terminal creates independent split and tab')
             p=root/'source/src/terminal/nexaui_view.c';original=p.read_bytes();p.write_bytes(original+b'\n/* live original remains owned */\n')
             replies=rolelog('desktop').count('LAUNCH_REPLY A T\n');dock(4)
             wait(lambda:rolelog('desktop').count('LAUNCH_REPLY A T\n')>replies,'reuse original Terminal under source drift')
@@ -197,6 +237,7 @@ def main():
             search('terminal');key(16,ctrl=True,shift=True)
             wait(lambda:'LAUNCH_REPLY X T\n' in rolelog('desktop'),'original Terminal and pipe retired')
             assert not alive(terminal_first[1]) and not alive(shell_pin)
+            if terminal_profile['presentation']['kind']=='aetheri-terminal-v2':assert not alive(split_pin)
             ready_before=rolelog('terminal').count('READY ');frames_before=rolelog('terminal').count('NEXAUI_FRAME ')
             dock(4);wait(lambda:count('terminal')==2 and alive(roles['terminal'][1]) and rolelog('terminal').count('READY ')>ready_before and rolelog('terminal').count('NEXAUI_FRAME ')>frames_before,'fresh selected Terminal')
             assert roles['terminal'][0]!=terminal_first[0]

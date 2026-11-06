@@ -24,6 +24,15 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November original-session multiplex update: the own Terminal composes multiple
+independent original shell models through named projections on the unchanged
+0.1.18 SDK. Tabs, split geometry, PTY creation, focus cancellation and process/
+stream settlement belong to Aetheri. The toolkit needs no terminal daemon,
+second window or new requirement ID. Native keyboard/pointer/IME-boundary and
+selected-owner evidence is in the [multiplex record](../journal/2026-11-06-terminal-multiplex.md).
+Full multipane native assistive use and the older sporadic query/Close issue
+remain open. No SDK/pin/default upgrade or new chat handoff is implied.
+
 6 November startup-output update: the own Terminal now displays the accepted
 mark/system-information layout as actual original-shell PTY output on the same
 SDK. Kernel capture, bounded formatting and startup lifetime belong to Aetheri;

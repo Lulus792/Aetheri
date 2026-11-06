@@ -12,7 +12,7 @@ to an actual private PTY and an SDL3 Wayland/GLES view. It supports ordinary
 command input/output, bounded scrollback, colors and ephemeral shell job control.
 Its held shell now receives `-i --edit`, selecting our toolkit-free
 [line editor](line-editor.md) and bounded in-memory history.
-It is an early usable terminal, not the finished editor/multiplexer or a promise
+It is an early usable terminal, not the finished editor/session manager or a promise
 of xterm/Neovim compatibility. The accepted studio design still needs native
 implementation and visual acceptance.
 
@@ -559,6 +559,70 @@ created only by `I on` over the test server's inherited private socket. Producti
 IME service. Native tests must not be described as completed normal Aetheri IME
 integration, installed engine compatibility, human input or accessibility acceptance.
 Executed candidate-specific results belong in STATE and the handoff record.
+
+## Original-session tabs and split panes
+
+The opt-in NexaUI Terminal now supports up to eight original shell sessions in
+one existing window. A single session has no tab strip. The menu offers new tabs,
+right/below splits, next pane and pane close. Ctrl+Shift+T/D/E/W perform those
+actions; Ctrl+Tab and Ctrl+Shift+Tab select tabs. Alt+arrows select a nearby pane;
+Alt+Shift+arrows adjust its enclosing split. Drag a divider to resize it; Escape
+restores the ratio at the start of that drag. A press must end on its original
+control. The existing Ctrl+Shift+Q closes the whole window.
+
+Each session owns its original PTY, held child pin, bounded terminal model,
+selection, scrollback and admitted input queue. Hidden sessions continue draining;
+they are neither paused nor copied into the selected session. Only visible
+grids change their real PTY size. When a split tree cannot fit, its selected pane
+occupies the available area; the others remain reachable. Enlarging the window
+restores the tree. Existing minimum-window policy scales with text size: 480x320
+at 16 points and 960x640 at 32 points. Narrow tab labels use their ordinal while
+retaining complete accessible names. Optional menu shortcut hints yield before
+action names if the available width is insufficient.
+
+Changing pane/tab focus cancels the old pending clipboard receive and native
+composition, resets actual text input and fences already-queued text. A modal
+paste review must be resolved first. Composition prevents creating or closing a
+session; explicit tab/pane focus can cancel it. No old draft or unsent suffix is
+rebound to the newly selected shell. The one readiness worker watches duplicated
+handles under a mutex; one shared 16 KiB read budget rotates between sessions.
+
+The first shell uses the existing pre-thread opener. Later sessions use the
+separately prepared [spawner](../src/terminal/spawn.h), glibc `pidfd_spawn` and
+our unprivileged `aetheri-terminal-pty-starter`. Fixed file actions establish a
+new session and export only the slave PTY plus held bootstrap/code FDs. The
+bootstrap acquires its controlling terminal and replaces itself with the held
+original shell through `execveat`; it is not a resident daemon or the privileged
+execution starter. Sources and a private bounded environment are prepared before
+threads. Held metadata is checked around spawning; this is observed development
+drift detection, not immutable code, publisher trust or production admission.
+Both openers apply the same canonical terminal baseline to their fresh private
+slave before starting a child, including Linux IUTF8 erase behavior. This keeps
+external cooked-mode programs consistent with the original session; it is not
+full grapheme editing for arbitrary programs or a live-session reset.
+
+A post-dispatch observation error still retains the original child and PTY.
+There is no automatic retry. A slot is reusable only after original-child exit,
+PTY end and descriptor close; its new process, session cookie and semantic IDs
+are fresh. Closing this development terminal does not prove descendant drain or
+settle any Root lease. The direct Files editor stays a separate single-session
+profile with its existing save/close rules.
+
+Use `development_session.py start --desktop --terminal-ui nexaui-owned` with the
+matching build, or explicitly add `--pty-starter /absolute/path/to/aetheri-terminal-pty-starter`
+to the NexaUI Terminal command. The helper option is refused for `--editor`.
+Historical v1 owner records remain historical; fresh selected launches bind the
+additive v2 profile described in [development sessions](development-session.md).
+
+`terminal.workspace`, `terminal.spawn`, `terminal.session` and
+`terminal.panes_view` check topology, retained process/stream obligations, shared
+read budgets and independent content identities. `terminal.multiplex` uses an
+actual private compositor, native input, original shells and real PTY sizes.
+It also checks focus cancellation and a queued old native commit. Its inherited
+test-only v3 producer is not an installed IME. See the
+[executed record](../brains/aetheri/journal/2026-11-06-terminal-multiplex.md).
+Persistent/restorable sessions, detachable clients, full VT compatibility,
+complete multipane assistive use, final glass and physical acceptance remain open.
 
 Primary references: [SDL editing events](https://wiki.libsdl.org/SDL3/SDL_TextEditingEvent),
 [composition reset API](https://wiki.libsdl.org/SDL3/SDL_ClearComposition) and

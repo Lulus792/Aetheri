@@ -2,7 +2,11 @@
 #define AETHERI_TERMINAL_PTY_H
 #include <stdbool.h>
 #include <sys/types.h>
-struct ae_terminal_pty { int master,pin;pid_t pid;bool ended,eof,hangup;int status; };
+struct ae_terminal_pty { int master,pin;pid_t pid;bool ended,eof,hangup,pidfd_wait;int status; };
+/* Internal shared baseline for a newly allocated private slave, before any
+   child can use it. Changes terminal modes; caller retains the original FD.
+   Not for reconfiguring an existing session or an externally supplied tty. */
+int ae_terminal_pty_configure_slave(int slave);
 /* Fresh single-threaded trusted setup only, before SDL/Mesa/worker creation.
    A held regular ELF source and fixed argv/env are caller obligations. No app
    admission, namespace isolation or descendant drain is implied. */

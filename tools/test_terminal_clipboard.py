@@ -246,9 +246,20 @@ def main():
 
         # Test-owned finite programs supply content; shell/PTY and all native IO
         # remain the production binaries, not mocked clipboard functions.
-        (root/"large.py").write_text("import os\nos.write(1,b'x'*150000+b'\\n')\n")
+        # A partial-history threshold is not producer completion. Force a
+        # finite pause after the first burst so the old early-copy race remains
+        # observable. Cursor-home is the terminal-visible final marker; only
+        # the original shell's returned prompt can then reach x=9,y=0.
+        (root/"large.py").write_text(
+            "import os,time\n"
+            "def emit(data):\n"
+            " while data:\n"
+            "  n=os.write(1,data);assert n>0;data=data[n:]\n"
+            "emit(b'x'*49152)\ntime.sleep(.2)\n"
+            "emit(b'x'*100848+b'\\n\\x1b[H')\n")
         typing("python3 large.py\n")
-        wait(lambda:fields("VIEW ").get("history",0)>100,"large real PTY history")
+        wait(lambda:fields("VIEW ").get("history")==1024 and fields("VIEW ").get("x")==9 and
+             fields("VIEW ").get("y")==0,"complete large real PTY output and returned shell prompt")
         control(30); control(46)
         wait(lambda:fields("CLIPBOARD copy ").get("bytes",0)>65536,"large immutable exported snapshot")
         copied=fields("CLIPBOARD copy ")["bytes"]

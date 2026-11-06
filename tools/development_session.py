@@ -47,6 +47,10 @@ OWN_FILES_SOURCES = ("CMakeLists.txt", "src/files/nexaui_main.c", "src/files/nex
 TERMINAL_MODEL_SOURCES = tuple("src/terminal/" + name + suffix for name in
     ("model", "session", "pty", "clipboard", "paste", "composition") for suffix in (".c", ".h"))
 OWN_TERMINAL_SOURCES = ("CMakeLists.txt", "src/terminal/main.c", "src/terminal/nexaui_view.c", "src/terminal/nexaui_view.h")
+# Additive v2: preserve v1's historical source set and closed receipts.
+TERMINAL_MULTIPLEX_SOURCES = TERMINAL_MODEL_SOURCES + tuple("src/terminal/" + name + suffix
+    for name in ("spawn", "workspace") for suffix in (".c", ".h"))
+TERMINAL_STARTER_SOURCES = ("src/terminal/pty_starter.c",)
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
 
@@ -245,16 +249,31 @@ def validate_terminal_profile(profile, build_profile):
     artifacts, model, view = profile["artifacts"], profile["model"], profile["presentation"]
     if not isinstance(artifacts, dict) or set(artifacts) != {"prefix/lib/libnexaui.so." + profile["version"]}:
         raise RuntimeError("invalid Terminal SDK artifacts")
-    if not isinstance(model, dict) or set(model) != set(TERMINAL_MODEL_SOURCES): raise RuntimeError("invalid Terminal model binding")
-    if not isinstance(view, dict) or set(view) != {"kind", "binary", "sha256", "sources", "cache_sha256"} or view["kind"] != "aetheri-terminal-v1":
+    if not isinstance(view, dict) or view.get("kind") not in ("aetheri-terminal-v1", "aetheri-terminal-v2"):
         raise RuntimeError("invalid Terminal presentation")
+    multiplex = view["kind"] == "aetheri-terminal-v2"
+    view_keys = {"kind", "binary", "sha256", "sources", "cache_sha256"}
+    if multiplex: view_keys.add("starter")
+    if set(view) != view_keys: raise RuntimeError("invalid Terminal presentation")
+    model_sources = TERMINAL_MULTIPLEX_SOURCES if multiplex else TERMINAL_MODEL_SOURCES
+    if not isinstance(model, dict) or set(model) != set(model_sources): raise RuntimeError("invalid Terminal model binding")
     if view["binary"] != (build_for(build_profile) / "aetheri-terminal-nexaui").as_posix(): raise RuntimeError("invalid Terminal executable")
     if not isinstance(view["sources"], dict) or set(view["sources"]) != set(OWN_TERMINAL_SOURCES): raise RuntimeError("invalid Terminal presentation sources")
+    starter_digests = ()
+    if multiplex:
+        starter = view["starter"]
+        if not isinstance(starter, dict) or set(starter) != {"binary", "sha256", "sources"}:
+            raise RuntimeError("invalid Terminal starter binding")
+        if starter["binary"] != (build_for(build_profile) / "aetheri-terminal-pty-starter").as_posix():
+            raise RuntimeError("invalid Terminal starter executable")
+        if not isinstance(starter["sources"], dict) or set(starter["sources"]) != set(TERMINAL_STARTER_SOURCES):
+            raise RuntimeError("invalid Terminal starter sources")
+        starter_digests = (starter["sha256"], *starter["sources"].values())
     assets = profile["assets"]
     if not isinstance(assets, dict) or set(assets) != {str(TERMINAL_FONT), str(TERMINAL_BOLD_FONT), "/usr/share/licenses/liberation-mono-fonts/LICENSE"}:
         raise RuntimeError("invalid Terminal assets")
     for value in (*artifacts.values(), *model.values(), *assets.values(), profile["metadata_sha256"], profile["pin_sha256"],
-                  profile["ui_pin_sha256"], view["sha256"], view["cache_sha256"], *view["sources"].values()):
+                  profile["ui_pin_sha256"], view["sha256"], view["cache_sha256"], *view["sources"].values(), *starter_digests):
         if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None: raise RuntimeError("invalid Terminal digest")
     return profile
 
@@ -277,11 +296,14 @@ def terminal_selection(build_profile, ui):
         library = "prefix/lib/libnexaui.so." + pin["version"]; binary = build_for(build_profile) / "aetheri-terminal-nexaui"
         selected = dict(revision=pin["revision"], version=pin["version"], build=str(sdk),
             artifacts={library:checked_nexaui_artifact(sdk / library, record["artifacts"][library])},
-            model={n:digest(PROJECT / n) for n in TERMINAL_MODEL_SOURCES}, assets=assets,
+            model={n:digest(PROJECT / n) for n in TERMINAL_MULTIPLEX_SOURCES}, assets=assets,
             metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(), pin_sha256=hashlib.sha256(pin_bytes).hexdigest(),
             ui_pin_sha256=hashlib.sha256(ui_bytes).hexdigest(),
-            presentation=dict(kind="aetheri-terminal-v1", binary=str(binary), sha256=checked_nexaui_artifact(binary),
-                sources={n:digest(PROJECT / n) for n in OWN_TERMINAL_SOURCES}, cache_sha256=nexaui_view_cache(build_profile, sdk)))
+            presentation=dict(kind="aetheri-terminal-v2", binary=str(binary), sha256=checked_nexaui_artifact(binary),
+                sources={n:digest(PROJECT / n) for n in OWN_TERMINAL_SOURCES}, cache_sha256=nexaui_view_cache(build_profile, sdk),
+                starter=dict(binary=str(build_for(build_profile) / "aetheri-terminal-pty-starter"),
+                    sha256=checked_nexaui_artifact(build_for(build_profile) / "aetheri-terminal-pty-starter"),
+                    sources={n:digest(PROJECT / n) for n in TERMINAL_STARTER_SOURCES})))
         return validate_terminal_profile(selected, build_profile)
     except (OSError, KeyError, TypeError, ValueError) as error:
         raise RuntimeError("Terminal candidate check failed") from error
@@ -299,6 +321,8 @@ def application_command(role, build, cache, settings_profile=None, files_profile
         executable = terminal_profile["presentation"]["binary"] if terminal_profile is not None else str(build / "aetheri-terminal")
         command = [executable, "--shell", str(build / "aetheri-shell"), "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
         if terminal_profile is not None: command += ["--bold-font", str(TERMINAL_BOLD_FONT)]
+        if terminal_profile is not None and terminal_profile["presentation"]["kind"] == "aetheri-terminal-v2":
+            command += ["--pty-starter", terminal_profile["presentation"]["starter"]["binary"]]
         return command
     if role == "files":
         executable = files_profile["presentation"]["binary"] if files_profile is not None else str(build / "aetheri-files")
@@ -323,6 +347,8 @@ def development_binaries(build, desktop, settings_profile=None, files_profile=No
             binaries[path] = value
         if "presentation" in selected:
             view = selected["presentation"]; binaries[view["binary"]] = view["sha256"]
+            if "starter" in view:
+                starter = view["starter"]; binaries[starter["binary"]] = starter["sha256"]
     return binaries
 
 

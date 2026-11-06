@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — original-shell startup information in the NexaUI Terminal.
+6 November 2026 — original-session Terminal tabs and split panes.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The own NexaUI Terminal now hosts up to eight independent original shells in
+one existing window: tabs, split trees, keyboard/pointer focus, real PTY resize
+and readable small-window fallback. Stable sessions retain their own models,
+pins, history and input; one worker and a rotating shared16KiB read turn replace
+no original owner. Named projections do not alias equal content tokens across
+models. Focus transfer cancels old paste/preedit and rejects queued old commits.
+Owner v2 additively binds the same-process PTY bootstrap/sources while preserving
+historical v1 and Files' separate single-editor save/close rules. Both PTY openers
+now share the original canonical baseline, including UTF-8 erase for actual
+external cooked-mode programs. A real single-flag negative catches that defect.
+
+Final `terminal-multiplex-final-canonical-6girjfpb` passes all79 app/UI groups
+in Release318.29s and ASan/UBSan547.56s, without skips. The audit joins387 source
+inputs and601 retained exports, including252 native images and16 selected
+executable hashes. Ordinary and large-text/high-contrast/owner images were
+inspected. Both eight-session idle samples have zero frames/ticks over2s.
+Protected19/frozen28, unchanged SDK0.1.18, no sidecars, historical closed DRM and
+no remaining build/native/private-registry actors are checked. The Enforcing
+carrier is idle on tty1 with no Aetheri unit/seat0 session; the old quarantined
+runtime remains unchanged. See the [multiplex record](journal/2026-11-06-terminal-multiplex.md)
+for original failures, canonical correction, fixture synchronization and actual
+scope. The old untraced fresh-Close and native query/Close observations remain
+open; later positives are not root-cause fixes. Git history records publication;
+local/terminal-multiplex-2026-11-06 retains the exact audit/evidence inventory.
+
+Next: native per-pane clipboard cancellation and complete tab semantics/assistive
+tasks on original sessions, then the accepted desktop/app work. Persistent/
+restorable sessions, final glass, normal admitted launch and physical acceptance
+remain work. The full OS/apps/image/installer/update/hardware/experiment-desktop
+goal remains active and incomplete. NexaUI handoff stays delivered; maintenance
+only, no new chat message. Preserve the four independent project/design edits.
+
+## Prior original-shell startup checkpoint
 
 The original shell now emits the accepted ASCII startup mark and actual kernel
 information in the NexaUI Terminal's normal profile. The report is ordinary PTY

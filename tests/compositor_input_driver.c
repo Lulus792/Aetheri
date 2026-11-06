@@ -81,6 +81,16 @@ static int receive_input(int fd, uint32_t mask, void *data) {
         if (!ae_test_text_input_command(d->ime,1)) goto invalid;
         event.state=WL_KEYBOARD_KEY_STATE_RELEASED;wlr_keyboard_notify_key(&d->keyboard,&event);puts("IME boundary=7");
     }
+    else if (!strcmp(text,"I 8") && d->live) {
+        /* One native flush: application tab focus precedes an already-queued
+           old-field commit. No synthetic SDL events or installed IME service. */
+        struct wlr_keyboard_key_event event={.time_msec=d->time,.keycode=29,.state=WL_KEYBOARD_KEY_STATE_PRESSED,.update_state=true};
+        wlr_keyboard_notify_key(&d->keyboard,&event);
+        event.keycode=15;wlr_keyboard_notify_key(&d->keyboard,&event);
+        if (!ae_test_text_input_command(d->ime,1)) goto invalid;
+        event.state=WL_KEYBOARD_KEY_STATE_RELEASED;wlr_keyboard_notify_key(&d->keyboard,&event);
+        event.keycode=29;wlr_keyboard_notify_key(&d->keyboard,&event);puts("IME boundary=8");
+    }
     else if (sscanf(text,"I %u%n",&code,&used)==1 && used==length) { if (!ae_test_text_input_command(d->ime,code)) goto invalid; }
     else if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }

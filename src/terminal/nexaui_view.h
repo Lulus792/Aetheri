@@ -4,6 +4,16 @@
 #include "model.h"
 #include <nexaui/cell_grid.h>
 struct ae_terminal_view;
+struct ae_terminal_pane_view {
+    uint64_t id;const char *name;const struct ae_terminal *model;nx_rect bounds;
+    bool contrast,caret,focusable,enabled;
+};
+struct ae_terminal_view_control {
+    uint64_t id,parent;nx_rect bounds;const char *label,*name;
+    bool selected,disabled,pressed,hovered,tab,contrast;
+};
+bool ae_terminal_view_control(struct ae_terminal_view *,const struct ae_terminal_view_control *,bool *activated);
+bool ae_terminal_view_group(struct ae_terminal_view *,uint64_t id,nx_rect,const char *name,bool tabs);
 enum ae_terminal_chrome_action { AE_TERM_CHROME_NONE,AE_TERM_CHROME_CLOSE,AE_TERM_CHROME_MINIMIZE,AE_TERM_CHROME_ZOOM };
 struct ae_terminal_chrome { nx_rect bar,title,buttons[3]; };
 struct ae_terminal_chrome_state { bool german,contrast,editor,maximized,zoom_disabled;unsigned hovered,pressed; };
@@ -28,6 +38,11 @@ bool ae_terminal_view_grid(struct ae_terminal_view *,const struct ae_terminal *,
 /* Between completed frames, on the original owner thread. Reading focus never
    edits the model, sends PTY input or claims native window activation. */
 bool ae_terminal_view_focus_row(struct ae_terminal_view *,unsigned row);
+/* Named multi-pane mode has disjoint, monotone semantic row identities. An ID
+   binds one original model while projected; hidden/retired views get fresh
+   identities on return. Do not mix with legacy grid calls in one view. */
+bool ae_terminal_view_pane(struct ae_terminal_view *,const struct ae_terminal_pane_view *);
+bool ae_terminal_view_focus_pane_row(struct ae_terminal_view *,uint64_t pane,unsigned row);
 bool ae_terminal_view_reading(const struct ae_terminal_view *);
 /* Complete-frame RGBA8, borrowed until the next finish/destroy. At most 64 MiB;
    the SDL host uploads it once and remains the sole native window dispatcher. */

@@ -28,16 +28,20 @@ int ae_terminal_session_flush(struct ae_terminal_session *s) {
     return 0;
 }
 int ae_terminal_session_read(struct ae_terminal_session *s,bool *changed) {
+    size_t received;return ae_terminal_session_read_some(s,AE_TERM_READ_BUDGET,changed,&received);
+}
+int ae_terminal_session_read_some(struct ae_terminal_session *s,size_t budget,bool *changed,size_t *received) {
     if (changed) *changed=false;
-    if (!s || !s->model || !changed) { errno=EINVAL;return -1; }
-    unsigned char bytes[4096];size_t budget=AE_TERM_READ_BUDGET;
+    if(received) *received=0;
+    if (!s || !s->model || !changed || !received || budget>AE_TERM_READ_BUDGET) { errno=EINVAL;return -1; }
+    unsigned char bytes[4096];
     while (!s->pty.eof && budget) {
-        ssize_t n=ae_terminal_pty_read(&s->pty,bytes,sizeof(bytes));
+        ssize_t n=ae_terminal_pty_read(&s->pty,bytes,budget<sizeof(bytes)?budget:sizeof(bytes));
         if (n<0 && errno==EINTR) continue;
         if (n<0 && (errno==EAGAIN || errno==EWOULDBLOCK)) return 0;
         if (n<0) return -1;
         if (!n) break;
-        ae_terminal_feed(s->model,bytes,(size_t)n);budget-=(size_t)n;*changed=true;
+        ae_terminal_feed(s->model,bytes,(size_t)n);budget-=(size_t)n;*received+=(size_t)n;*changed=true;
     }
     return 0;
 }
