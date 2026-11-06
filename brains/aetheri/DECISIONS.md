@@ -1,5 +1,17 @@
 # Decisions
 
+## Emit startup information from the original shell — 6 November 2026
+
+Select a separate fixed `-i --edit --welcome` profile in normal NexaUI Terminal
+launches. The original shell emits the accepted ASCII mark and actual kernel
+snapshot through its existing signal-aware writer. Reuse ordinary terminal
+history, selection and native text instead of painting a second information
+model. Keep direct-editor/earlier profiles quiet. Mark unavailable values,
+check memory units, defang kernel strings and identify development/profile0
+without fabricated release/display/GPU data. Avoid NSS/network and extra helpers.
+This is display data, never machine/account/volume or launch authority. See the
+[startup record](journal/2026-11-06-terminal-startup.md).
+
 ## Keep compact Terminal chrome on the original host — 6 November 2026
 
 Use the existing NexaUI shapes/semantic controls and smaller scaled title on

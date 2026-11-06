@@ -97,10 +97,15 @@ def main():
         wait(lambda:'READY ' in log('server'),'compositor')
         app=start(terminal,'app',*args)
         wait(lambda:'ACCESSIBILITY available=1\n' in log() and 'FOCUS 1\n' in log() and 'NEXAUI_FRAME ' in log(),'native frame/focus/transport')
+        def position():
+            rows=re.findall(r'^VIEW .* x=(\d+) y=(\d+) history=(\d+)',log(),re.M)
+            return tuple(map(int,rows[-1])) if rows else (-1,-1,-1)
+        wait(lambda:position()[0]==9,'original prompt after complete welcome')
+        peer(app.pid,'startup','','startup-information')
+        baseline=position()
         typing("printf 'row-\\303\\251\\344\\270\\255\\n'\n")
         def output_ready():
-            rows=re.findall(r'^VIEW .* x=(\d+) y=(\d+) ',log(),re.M)
-            return rows and tuple(map(int,rows[-1]))==(9,2)
+            x,y,history=position();return x==9 and (history>baseline[2] or y>baseline[1])
         wait(output_ready,'complete native output and returned original prompt')
         peer(app.pid,'focused','row-é中','read')
         before=accepted();peer(app.pid,'focus','row-é中','native-read-focus')

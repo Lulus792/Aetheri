@@ -24,6 +24,19 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November startup-output update: the own Terminal now displays the accepted
+mark/system-information layout as actual original-shell PTY output on the same
+SDK. Kernel capture, bounded formatting and startup lifetime belong to Aetheri;
+no toolkit-side information model or new host connection is needed. Native text
+checks inspect the displayed fields independently. See the
+[startup record](../journal/2026-11-06-terminal-startup.md). The SDK/pin/defaults
+and delivered handoff remain unchanged; this creates no new SDK requirement.
+The initial full instrumented run nevertheless fails a later native Text query;
+further original-producer GetState/Close failures remain unresolved. Private
+timing/bus-observer passes are diagnostic evidence, not SDK/host fixes. Retain
+these under the existing A07/Q04 acceptance work, without upgrading the pin or
+repeating the delivered handoff.
+
 6 November compact Terminal chrome update: the own presenter reuses existing
 SDK shapes, label layouts and semantic buttons on its original SDL host. No SDK
 window or extra thread is introduced. Original-press cancellation and observed

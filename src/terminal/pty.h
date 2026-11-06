@@ -7,6 +7,9 @@ struct ae_terminal_pty { int master,pin;pid_t pid;bool ended,eof,hangup;int stat
    A held regular ELF source and fixed argv/env are caller obligations. No app
    admission, namespace isolation or descendant drain is implied. */
 int ae_terminal_pty_open(struct ae_terminal_pty *pty,int source,unsigned cols,unsigned rows);
+/* Separate fixed shell profile, adding --welcome to the original -i --edit.
+   Decoration is actual shell output; no input injection or substitute shell. */
+int ae_terminal_pty_open_welcome(struct ae_terminal_pty *pty,int source,unsigned cols,unsigned rows);
 /* Separate development editor profile: passes literal leaf and copies directory/
    O_PATH witness to child FDs 3/4, retaining no other inherited input descriptors.
    Caller retains ownership. No shell parsing, normal file grant or app admission. */

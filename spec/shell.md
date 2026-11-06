@@ -59,7 +59,8 @@ not final large-script/interactive requirements.
 
 ## Execution boundary
 
-The opt-in Linux C17 executable accepts `-i [--edit]`, `-c SOURCE`, `--file FILE` or `--stdin`.
+The opt-in Linux C17 executable accepts `-i [--edit [--welcome]]`, `-c SOURCE`,
+`--file FILE` or `--stdin`.
 It refuses root or mismatched real/effective IDs and requires open standard
 descriptors. This is not a complete capability/privilege admission check.
 `--stdin` remains noninteractive; `-c` may execute a
@@ -153,6 +154,37 @@ keeps that shell owner waiting until the child actually ends. This is a provisio
 conservative policy, not a final product choice about window/logout persistence.
 External programs can create descendants; direct-child end is never complete
 descendant, cgroup, delegation or Aetheri lease drain.
+
+## Startup snapshot
+
+`-i --edit --welcome` prints the accepted ASCII mark and a one-time system report
+before the first prompt. The original shell owns this output; terminal repaint
+or toolkit replacement does not regenerate it. The earlier `-i`/`-i --edit`
+profiles remain quiet, and scripts/noninteractive invocations do not gain a
+greeting. The NexaUI Terminal selects the new fixed profile for normal shells;
+its direct-editor path remains separate.
+
+[welcome.c](../src/shell/welcome.c) captures uname, numeric UID, online kernel
+CPU count, usable kernel RAM total and uptime through libc. These are separate
+startup observations, not live monitoring, physical-resource or account/volume
+attestation. There is no NSS/environment name lookup, helper, network operation,
+configuration file or display/GPU/release-version guess. Unavailable values stay
+explicit. Memory-unit multiplication is checked, names become bounded printable
+ASCII and only authored SGR escapes color the mark. The report says Aetheri
+development and experimental shell profile0, not an invented OS release.
+
+The private 4096-byte formatter wraps within columns minus one, places fields
+beside the mark at 72 columns and stacks them below that. Below 26 columns it
+uses a compact mark. Invalid/undersized requests commit no output. The original
+signal-aware nonblocking writer emits the completed snapshot in confirmed
+editor modes; interrupted decoration is not replayed. This is not a persistent
+settings/service operation or a new app admission path.
+
+`shell.welcome` checks real observations, failed/overflowed inputs, terminal-control
+filtering, width/capacity bounds and atomic rejection. PTY/native tests check
+actual output and continued original-shell input; independent AT-SPI checks
+compare displayed fields with kernel values. See the
+[startup record](../brains/aetheri/journal/2026-11-06-terminal-startup.md).
 
 ## Build, use and evidence
 

@@ -6,6 +6,18 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Native Terminal accessibility — 6 November 2026
 
+- Original-shell capture/atomic formatter in
+  [welcome.c](../../src/shell/welcome.c), [shell entry](../../src/shell/main.c)
+  and the separate fixed [PTY profile](../../src/terminal/pty.c). Bounds, injected
+  failures/control strings and real capture are checked in
+  [test_shell_welcome.c](../../tests/test_shell_welcome.c); actual displayed
+  fields are independently checked by [the native peer](../../tests/terminal_view_atspi.c).
+  [Startup evidence](journal/2026-11-06-terminal-startup.md).
+- Linux man-pages contracts for [sysinfo memory units/uptime](https://man7.org/linux/man-pages/man2/sysinfo.2.html),
+  [uname fields](https://man7.org/linux/man-pages/man2/uname.2.html) and
+  [sysconf runtime queries](https://man7.org/linux/man-pages/man3/sysconf.3.html),
+  read 6 November 2026. Values are kernel observations, not physical/cgroup or
+  durable identity proof. Native results remain attributed to the actual carrier.
 - Compact chrome geometry, mixed-size label cache and semantic controls in
   [nexaui_view.c](../../src/terminal/nexaui_view.c); original-press/observed Zoom
   adapter in [main.c](../../src/terminal/main.c). Native controls, actual original

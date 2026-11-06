@@ -18,7 +18,7 @@ int ae_terminal_pty_resize(struct ae_terminal_pty *p,unsigned cols,unsigned rows
     struct winsize size={.ws_col=(unsigned short)cols,.ws_row=(unsigned short)rows};
     return ioctl(p->master,TIOCSWINSZ,&size);
 }
-static int open_program(struct ae_terminal_pty *p,int source,int directory,int witness,const char *leaf,unsigned cols,unsigned rows) {
+static int open_program(struct ae_terminal_pty *p,int source,int directory,int witness,const char *leaf,unsigned cols,unsigned rows,bool welcome) {
     *p=(struct ae_terminal_pty){.master=-1,.pin=-1,.pid=-1};struct stat st;
     if (source<3 || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || fstat(source,&st) || !S_ISREG(st.st_mode)) { errno=EINVAL;return -1; }
     struct sigaction inherited;if (sigaction(SIGCHLD,NULL,&inherited) || inherited.sa_handler==SIG_IGN || (inherited.sa_flags&SA_NOCLDWAIT)) { errno=EINVAL;return -1; }
@@ -55,7 +55,8 @@ static int open_program(struct ae_terminal_pty *p,int source,int directory,int w
         if ((unsigned)executable>first && close_range(first,(unsigned)executable-1,0)) _Exit(125);
         if (close_range((unsigned)executable+1,UINT_MAX,0)) _Exit(125);
         char *shell_args[]={"aetheri-shell","-i","--edit",NULL};char *editor_args[]={"aetheri-editor","--selected-fds",(char *)leaf,NULL};
-        execveat(executable,"",editor ? editor_args : shell_args,environ,AT_EMPTY_PATH);_Exit(126);
+        char *welcome_args[]={"aetheri-shell","-i","--edit","--welcome",NULL};
+        execveat(executable,"",editor ? editor_args : welcome ? welcome_args : shell_args,environ,AT_EMPTY_PATH);_Exit(126);
     }
     p->pid=pid;close(slave);slave=-1;close(executable);if (dircopy>=0) close(dircopy);if (filecopy>=0) close(filecopy);
     p->pin=(int)syscall(SYS_pidfd_open,pid,0);
@@ -71,10 +72,11 @@ failed: {
         int saved=errno;if (slave>=0) close(slave);if (executable>=0) close(executable);if (dircopy>=0) close(dircopy);if (filecopy>=0) close(filecopy);close(master);p->master=-1;errno=saved;return -1;
     }
 }
-int ae_terminal_pty_open(struct ae_terminal_pty *p,int source,unsigned cols,unsigned rows) { return open_program(p,source,-1,-1,NULL,cols,rows); }
+int ae_terminal_pty_open(struct ae_terminal_pty *p,int source,unsigned cols,unsigned rows) { return open_program(p,source,-1,-1,NULL,cols,rows,false); }
+int ae_terminal_pty_open_welcome(struct ae_terminal_pty *p,int source,unsigned cols,unsigned rows) { return open_program(p,source,-1,-1,NULL,cols,rows,true); }
 int ae_terminal_pty_open_editor(struct ae_terminal_pty *p,int source,int directory,int witness,const char *leaf,unsigned cols,unsigned rows) {
     if (!leaf) { errno=EINVAL;return -1; }
-    return open_program(p,source,directory,witness,leaf,cols,rows);
+    return open_program(p,source,directory,witness,leaf,cols,rows,false);
 }
 ssize_t ae_terminal_pty_read(struct ae_terminal_pty *p,void *buffer,size_t length) {
     if (!length) { errno=EINVAL;return -1; }

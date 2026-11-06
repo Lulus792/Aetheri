@@ -82,6 +82,14 @@ persistence and its eventual UI are still separate product decisions.
 
 ## Model and ownership
 
+The normal NexaUI Terminal now selects the original shell's fixed
+`-i --edit --welcome` profile. Its accepted ASCII mark and actual system report
+are ordinary PTY output, retained in the original scrollback/copy/reading path.
+The report is a startup snapshot, not live telemetry. Repaint/zoom/text-size/
+language changes do not repeat it. The earlier SDL and direct-editor profiles
+remain quiet. See the [shell snapshot contract](shell.md#startup-snapshot) and
+[executed record](../brains/aetheri/journal/2026-11-06-terminal-startup.md).
+
 | Module | Responsibility |
 | --- | --- |
 | [model.h](../src/terminal/model.h), [model.c](../src/terminal/model.c) | Toolkit-independent cell/escape/UTF-8 state, cursor and bounded history |

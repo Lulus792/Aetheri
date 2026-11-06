@@ -4,10 +4,13 @@
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <limits.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/sysinfo.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 static double now(void) {struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)) exit(2);return (double)t.tv_sec+(double)t.tv_nsec/1e9;}
 static void pump(void) {while(g_main_context_iteration(NULL,FALSE)) {}struct timespec t={0,1000000};while(nanosleep(&t,&t) && errno==EINTR) {}}
@@ -67,6 +70,31 @@ static int state(AtspiAccessible *a,AtspiStateType wanted) {
 static int await_state(AtspiAccessible *a,AtspiStateType wanted,int value) {
     double end=now()+4;do {if(state(a,wanted)==value) return 1;pump();}while(now()<end);return 0;
 }
+static void missing_text(AtspiAccessible *a,int index) {
+    AtspiObject *o=ATSPI_OBJECT(a);GError *error=NULL;
+    char *name=atspi_accessible_get_name(a,&error);
+    fprintf(stderr,"MISSING_TEXT index=%d bus=%s path=%s name=%s error=%s\n",index,
+        o->app && o->app->bus_name?o->app->bus_name:"?",o->path?o->path:"?",name?name:"?",error?error->message:"none");
+    g_free(name);if(error) g_error_free(error);
+    wire_state(a);
+    if(!o->app || !o->app->bus || !o->app->bus_name || !o->path) return;
+    DBusError e;dbus_error_init(&e);
+    DBusMessage *q=dbus_message_new_method_call(o->app->bus_name,o->path,"org.a11y.atspi.Accessible","GetInterfaces");
+    if(!q) return;
+    DBusMessage *r=dbus_connection_send_with_reply_and_block(o->app->bus,q,1000,&e);dbus_message_unref(q);
+    if(!r) fprintf(stderr,"WIRE_INTERFACES %s %s\n",e.name?e.name:"?",e.message?e.message:"");
+    else {
+        fprintf(stderr,"WIRE_INTERFACES signature=%s",dbus_message_get_signature(r));
+        if(dbus_message_has_signature(r,"as")) {
+            DBusMessageIter it,array;dbus_message_iter_init(r,&it);dbus_message_iter_recurse(&it,&array);
+            for(unsigned n=0;n<32 && dbus_message_iter_get_arg_type(&array)==DBUS_TYPE_STRING;++n) {
+                const char *s=NULL;dbus_message_iter_get_basic(&array,&s);fprintf(stderr," %s",s?s:"?");dbus_message_iter_next(&array);
+            }
+        }
+        fputc('\n',stderr);dbus_message_unref(r);
+    }
+    dbus_error_free(&e);
+}
 #define CHECK(x) do {if(!(x)) {fprintf(stderr,"Terminal AT-SPI %d: %s\n",__LINE__,#x);goto done;}}while(0)
 int main(int argc,char **argv) {
     if(argc!=4 && argc!=5) return 2;
@@ -78,7 +106,32 @@ int main(int argc,char **argv) {
     app=target(desktop,pid,now()+3);if(!app) {fputs("target app was not registered\n",stderr);goto done;}
     frame=atspi_accessible_get_child_at_index(app,0,&e);CHECK(frame && !e);
     CHECK(atspi_accessible_get_role(frame,&e)==ATSPI_ROLE_FRAME && !e);
-    if(!strcmp(argv[2],"close")) {
+    if(!strcmp(argv[2],"startup")) {
+        struct utsname kernel;struct sysinfo memory;CHECK(!uname(&kernel) && !sysinfo(&memory));
+        uint64_t total=(uint64_t)memory.totalram*memory.mem_unit,gib=UINT64_C(1024)*1024*1024;
+        char cpu[96],ram[96],identity[128];long online=sysconf(_SC_NPROCESSORS_ONLN);CHECK(online>0);
+        snprintf(cpu,sizeof(cpu),"CPUs    %ld online",online);
+        snprintf(ram,sizeof(ram),"Memory  %" PRIu64 ".%" PRIu64 " GiB total",total/gib,(total%gib)*10/gib);
+        snprintf(identity,sizeof(identity),"uid %" PRIu64 " @ %s",(uint64_t)getuid(),kernel.nodename);
+        group=find(app,"Terminal output",0);CHECK(group);unsigned seen=0;
+        int count=atspi_accessible_get_child_count(group,&e);CHECK(!e && count>=2 && count<=100);
+        for(int i=0;i<count;++i) {
+            row=atspi_accessible_get_child_at_index(group,i,&e);CHECK(row && !e);
+            text=atspi_accessible_get_text_iface(row);CHECK(text);
+            char *value=atspi_text_get_text(text,0,-1,&e);CHECK(value && !e);
+            if(strstr(value,"Aetheri development")) seen|=1u;
+            if(strstr(value,"Kernel  ") && strstr(value,kernel.release)) seen|=2u;
+            if(strstr(value,"Arch    ") && strstr(value,kernel.machine)) seen|=4u;
+            if(strstr(value,cpu)) seen|=8u;
+            if(strstr(value,ram)) seen|=16u;
+            if(strstr(value,"Uptime  ")) seen|=32u;
+            if(strstr(value,"A E T H E R I")) seen|=64u;
+            if(!strncmp(value,"aetheri> ",9)) {int caret=atspi_text_get_caret_offset(text,&e);CHECK(!e && caret==9);seen|=128u;}
+            if(strstr(value,identity)) seen|=256u;
+            g_free(value);g_object_unref(text);text=NULL;g_object_unref(row);row=NULL;
+        }
+        CHECK(seen==511u);
+    } else if(!strcmp(argv[2],"close")) {
         group=find(app,"Terminal output",0);CHECK(group);row=atspi_accessible_get_child_at_index(group,0,&e);CHECK(row && !e);
         button=find(app,argv[3],0);CHECK(button && state(button,ATSPI_STATE_ENABLED));
         AtspiAction *action=atspi_accessible_get_action_iface(button);CHECK(action);
@@ -124,7 +177,7 @@ int main(int argc,char **argv) {
         int n=atspi_accessible_get_child_count(group,&e);CHECK(!e && n>=2 && n<=100);
         for(int i=0;i<n;++i) {
             AtspiAccessible *a=atspi_accessible_get_child_at_index(group,i,&e);CHECK(a && !e);
-            AtspiText *t=atspi_accessible_get_text_iface(a);CHECK(t);
+            AtspiText *t=atspi_accessible_get_text_iface(a);if(!t) missing_text(a,i);CHECK(t);
             char *value=atspi_text_get_text(t,0,-1,&e);CHECK(value && !e);
             int match=!strncmp(value,argv[3],strlen(argv[3]));
             if(match) {row=a;text=t;g_free(value);break;}

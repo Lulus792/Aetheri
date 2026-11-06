@@ -43,6 +43,7 @@ int main(int argc,char **argv) {
     CHECK(p.master>=0 && p.pin>=0 && p.pid>0);CHECK(ae_terminal_pty_close(&p)<0 && errno==EBUSY);
     char byte;CHECK(ae_terminal_pty_read(&p,&byte,0)<0 && errno==EINVAL && !p.eof);
     char text[8192]="";receive(&p,text,sizeof(text),"aetheri> ");
+    CHECK(!strstr(text,"Aetheri development"));
     CHECK(ae_terminal_pty_resize(&p,100,32)==0);
     const char command[]="printf 'PTY_NATIVE\\n'\r";CHECK(write(p.master,command,sizeof(command)-1)==(ssize_t)(sizeof(command)-1));
     text[0]=0;receive(&p,text,sizeof(text),"PTY_NATIVE\r\n");
@@ -63,6 +64,15 @@ int main(int argc,char **argv) {
     CHECK(write(writer,"RETAINED_WRITER\n",16)==16);
     text[0]=0;receive(&p,text,sizeof(text),"RETAINED_WRITER\r\n");
     close(writer);settle(&p);CHECK(ae_terminal_pty_close(&p)==0);
+
+    source=open(argv[1],O_RDONLY|O_CLOEXEC);CHECK(source>=3);
+    CHECK(ae_terminal_pty_open_welcome(&p,source,80,24)==0);close(source);
+    text[0]=0;receive(&p,text,sizeof(text),"aetheri> ");
+    CHECK(strstr(text,"Aetheri development") && strstr(text,"Kernel  Linux") && strstr(text,"GiB total") && strstr(text,"Shell   Aetheri profile0"));
+    const char welcome_command[]="printf 'WELCOME_ONE\\n'\r";
+    CHECK(write(p.master,welcome_command,sizeof(welcome_command)-1)==(ssize_t)(sizeof(welcome_command)-1));
+    text[0]=0;receive(&p,text,sizeof(text),"WELCOME_ONE\r\n");
+    CHECK(write(p.master,"exit 0\r",7)==7);settle(&p);CHECK(p.status==0 && ae_terminal_pty_close(&p)==0);
 
     source=open(argv[0],O_RDONLY|O_CLOEXEC);CHECK(source>=3);
     CHECK(ae_terminal_pty_open(&p,source,80,24)==0);close(source);

@@ -869,7 +869,15 @@ int main(int argc,char **argv) {
     if (sigaction(SIGCHLD,&child,NULL) || !setlocale(LC_CTYPE,"C.UTF-8") || setenv("TERM","dumb",1) || unsetenv("COLORTERM") || setenv("MESA_SHADER_CACHE_DIR",cache,1) || setenv("MESA_SHADER_CACHE_MAX_SIZE","32M",1)) return 1;
     a.session.model=malloc(sizeof(*a.session.model));if (!a.session.model) return 1;ae_terminal_init(a.session.model,80,24,width);
     int source=open(program,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
-    int opened=source<0 ? -1 : a.editor ? ae_terminal_pty_open_editor(&a.session.pty,source,3,4,leaf,80,24) : ae_terminal_pty_open(&a.session.pty,source,80,24);
+    int opened=-1;
+    if(source>=0) {
+        if(a.editor) opened=ae_terminal_pty_open_editor(&a.session.pty,source,3,4,leaf,80,24);
+#ifdef AETHERI_TERMINAL_NEXAUI
+        else opened=ae_terminal_pty_open_welcome(&a.session.pty,source,80,24);
+#else
+        else opened=ae_terminal_pty_open(&a.session.pty,source,80,24);
+#endif
+    }
     if (source>=0) close(source);
     if (a.editor) { (void)close(3);(void)close(4); }
     if (opened) { free(a.session.model);return 1; }

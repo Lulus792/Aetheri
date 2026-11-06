@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — compact native controls in the NexaUI Terminal.
+6 November 2026 — original-shell startup information in the NexaUI Terminal.
 
 ## Coordination
 
@@ -14,6 +14,35 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The original shell now emits the accepted ASCII startup mark and actual kernel
+information in the NexaUI Terminal's normal profile. The report is ordinary PTY
+output, with explicit unknowns, checked arithmetic and defanged kernel strings;
+no helper process/network or fake release data. Six focused groups pass Release/
+ASan/UBSan and three compiled counterexamples reject their intended faults.
+The first whole-source run passes 75/75 Release groups, but its instrumented
+run ends 74/75 on a native Text-interface query. Further original-producer
+GetState/Close failures remain unresolved; diagnostic positives are not fixes.
+The final suite with added failure diagnostics passes all 75 groups in Release
+(316.68s) and ASan/UBSan (559.35s), without skips, at
+`/home/aetheri/build/terminal-startup-final-diagnostic-hm7pr6dg`. This does not
+resolve the intermittent original-producer native query/Close failures. See the
+[startup record](journal/2026-11-06-terminal-startup.md). SDK/defaults/authority
+boundaries and old quarantined runtime are unchanged; tabs/panes remain next.
+The audit joins 378 source inputs and 246 exports, including 96 native images,
+unchanged nineteen protected hashes/28 frozen SQL/XML contracts and no sidecars.
+Both independent native samples record zero idle CPU ticks/frames over two
+seconds. The enforcing carrier is idle on tty1 with no test actors; the historical
+closed DRM record and old quarantined runtime remain unchanged. Ninja's stored
+link dependencies are valid; transient consumed link.d files need no recreation.
+The external UI design note gained account/recovery/Files visual approvals; preserve its
+reviewed new bytes separately from the original foreign-file hash manifest.
+An isolated post-thread PTY creation probe now runs two real original shells,
+checks distinct controlling sessions/current images and continues one after
+the other exits. It supports the next tabs/panes work, not a shipped launcher,
+tab UI or production admission. See the startup record for exact scope.
+
+## Prior compact Terminal controls checkpoint
 
 Compact NexaUI Terminal chrome now provides left Close/Zoom controls, observed
 maximize/restore, Ctrl+Shift+M and original-press cancellation. Minimize is

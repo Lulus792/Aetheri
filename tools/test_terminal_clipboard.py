@@ -154,15 +154,16 @@ def main():
         api.stdin.close()
         cases.append("real adapter rejects wrong-thread/reentrant API calls and retains borrowed objects through repeated exact FD cleanup")
         terminal = start(terminal_bin, "terminal", "--shell", shell_bin, "--font", font, "--cache", cache, "--diagnostics")
-        wait(lambda: "READY " in log() and fields("VIEW ").get("sequence", 0) > 1, "terminal and real shell")
+        wait(lambda: "READY " in log() and fields("VIEW ").get("sequence", 0) > 1 and fields("VIEW ").get("x")==9, "terminal and real shell prompt")
         shell_pid = int(re.search(r"READY .* shell=(\d+)", log()).group(1))
         shell_pin = os.pidfd_open(shell_pid); pins.append(shell_pin)
         # Only direct, pinned original programs. Test commands are finite and waited
         # by the original shell; no numeric SID rediscovery or arbitrary jobs.
         focus_terminal()
         left, top, cw, ch = map(float, re.findall(r" grid_left=([\d.]+) grid_top=([\d.]+) cell_width=([\d.]+) cell_height=([\d.]+)$", log(), re.M)[-1])
-        event(f"M {40+left+.1} {40+top+ch/2}"); event("B 272 1")
-        event(f"M {40+left+8*cw} {40+top+ch/2}"); event("B 272 0")
+        prompt_row=fields("VIEW ")["y"]
+        event(f"M {40+left+.1} {40+top+(prompt_row+.5)*ch}"); event("B 272 1")
+        event(f"M {40+left+8*cw} {40+top+(prompt_row+.5)*ch}"); event("B 272 0")
         control(46)
         wait(lambda: "CLIPBOARD copy result=0" in log(), "native copy")
         p = peer("reader", b"unused")

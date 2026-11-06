@@ -181,7 +181,7 @@ def main():
         issuer.close()
         wait(lambda: "READY " in log("server"), "compositor")
         start_terminal("terminal")
-        wait(lambda: view().get("sequence",0)>1, "PTY prompt processed")
+        wait(lambda: view().get("sequence",0)>1 and view().get("x")==9, "actual original shell prompt processed")
         snapshot("native terminal and original shell")
         nexaui="PRESENTATION nexaui " in log()
         if nexaui:
@@ -233,9 +233,10 @@ def main():
         grid=tuple(map(float,re.findall(r" grid_left=([\d.]+) grid_top=([\d.]+) cell_width=([\d.]+) cell_height=([\d.]+)$",log(),re.M)[-1]))
         left,top,cw,ch=grid
         # The private compositor's first normal-window placement is 40,40.
-        event(f"M {40+left+.1} {40+top+ch/2}");event("B 272 1")
+        prompt_row=view()["y"]
+        event(f"M {40+left+.1} {40+top+(prompt_row+.5)*ch}");event("B 272 1")
         wait(lambda:view().get("selecting")==1,"native selection drag starts in grid")
-        event(f"M {40+left+8*cw} {40+top+ch/2}");event("B 272 0")
+        event(f"M {40+left+8*cw} {40+top+(prompt_row+.5)*ch}");event("B 272 0")
         wait(lambda:view().get("selection")==9 and view().get("selecting")==0,"eight native selected prompt cells")
         snapshot("pointer cell selection and exact UTF-8 byte extent",selected=True)
         control(105,shift=True)
