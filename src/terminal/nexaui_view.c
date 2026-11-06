@@ -14,6 +14,7 @@ struct ae_terminal_view {
     nx_cell_view *cells;struct shape shapes[SHAPES];struct label labels[LABELS];
     unsigned char *pixels;size_t capacity;float width,height,scale,points,cw,ch,baseline;
     uint64_t age;bool frame,clip;
+    uint64_t row_ids[AE_TERM_ROWS],id_offset,highest_id;unsigned row_count,model_rows,model_cols;
 };
 static nx_color rgb(uint32_t c) { return (nx_color){(float)((c>>16)&255u)/255,(float)((c>>8)&255u)/255,(float)(c&255u)/255,1}; }
 static nx_utf8_span span(const char *s) {return (nx_utf8_span){s,strlen(s)};}
@@ -46,6 +47,15 @@ void ae_terminal_view_destroy(struct ae_terminal_view *v) {
     nx_font_close(v->bold);nx_font_close(v->regular);free(v->pixels);free(v->cells);free(v);
 }
 nx_context *ae_terminal_view_context(struct ae_terminal_view *v) {return v?v->ui:NULL;}
+bool ae_terminal_view_focus_row(struct ae_terminal_view *v,unsigned row) {
+    return v && !v->frame && row<v->row_count && nx_focus_set(v->ui,v->row_ids[row])==NX_OK;
+}
+bool ae_terminal_view_reading(const struct ae_terminal_view *v) {
+    if (!v) return false;
+    uint64_t id=nx_focus_id(v->ui);
+    for (unsigned i=0;id && i<v->row_count;++i) if (v->row_ids[i]==id) return true;
+    return false;
+}
 bool ae_terminal_view_begin(struct ae_terminal_view *v,float w,float h,float scale,float points,float cw,float ch,float baseline) {
     if (!v || v->frame || !isfinite(w) || !isfinite(h) || w<1 || h<1 ||
         !isfinite(scale) || scale<.5f || scale>4 || !isfinite(points) || points<8 || points>64 ||
@@ -105,7 +115,7 @@ static bool glyphs(struct ae_terminal_view *v,const struct ae_term_cell *c,nx_ce
     }
     found->age=++v->age;out->glyph_count=found->glyphs;memcpy(out->glyphs,found->placed,sizeof(out->glyphs));return true;
 }
-static bool row_text(struct ae_terminal_view *v,const struct ae_terminal *m,unsigned y,nx_rect bounds,bool live_caret) {
+static bool row_text(struct ae_terminal_view *v,const struct ae_terminal *m,unsigned y,nx_rect bounds,bool live_caret,bool focusable) {
     /* One complete visible row per snapshot avoids the SDK's 65536-byte total
        per text object without truncating a large Unicode grid. History remains
        in the original model, not in a second accessibility document. */
@@ -119,21 +129,38 @@ static bool row_text(struct ae_terminal_view *v,const struct ae_terminal *m,unsi
     offsets[m->cols]=used;
     unsigned offset=m->alt?0:m->view;
     uint64_t token=y<offset?m->history_rows[(m->history_head+m->history_count-offset+y)%AE_TERM_HISTORY].token:m->screen_rows[y-offset].token;
-    if (!token) return false;
-    nx_semantic_desc sem={.id=1000u+y,.parent_id=2,.role=NX_ROLE_TEXT,
+    if (!token || token>UINT64_MAX-v->id_offset) return false;
+    /* Position is not identity: movement retains the original row, while any
+       edit/replacement retires its native node and any pending focus target. */
+    uint64_t id=token+v->id_offset;
+    if (id>v->highest_id) v->highest_id=id;
+    nx_semantic_desc sem={.id=id,.parent_id=2,.role=NX_ROLE_TEXT,
         .bounds={bounds.x,bounds.y+(float)y*v->ch,bounds.width,v->ch},.name=span("Terminal output row"),
-        .value={text,used},.state=NX_SEM_READONLY};
+        .value={text,used},.state=NX_SEM_READONLY|(focusable?0u:NX_SEM_DISABLED),.actions=focusable?NX_ACTION_FOCUS:0u};
+    nx_interaction_state interaction;
+    if (nx_interact_region(v->ui,id,sem.bounds,focusable?NX_REGION_FOCUSABLE:NX_REGION_DISABLED,&interaction)!=NX_OK) return false;
+    v->row_ids[y]=id;v->row_count=y+1;
     /* A per-row projection does not invent a caret at a clipped selection edge.
        Only the live input row with no selection has its actual cursor here. */
     if (live_caret && !m->view && !m->selection.count && m->cursor && y==m->y && m->x<m->cols)
         return nx_semantics_add_readonly_text_snapshot(v->ui,&sem,token,offsets[m->x],offsets[m->x],NULL)==NX_OK;
     return nx_semantics_add_readonly_text_snapshot_without_caret(v->ui,&sem,token,NULL)==NX_OK;
 }
-bool ae_terminal_view_grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect bounds,bool contrast,bool live_caret) {
+bool ae_terminal_view_grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect bounds,bool contrast,bool live_caret,bool read_focus) {
     if (!v || !v->frame || !m || m->cols<2 || m->cols>AE_TERM_COLS || m->rows<2 || m->rows>AE_TERM_ROWS ||
         m->history_count>AE_TERM_HISTORY || m->history_head>=AE_TERM_HISTORY || (!m->alt && m->view>m->history_count)) return false;
+    /* Resize changes the projected row, even when the original cell model keeps
+       its content token. Never reuse an earlier projection's semantic IDs when
+       dimensions change back. Ordinary movement keeps the current epoch. */
+    if (v->model_rows && (v->model_rows!=m->rows || v->model_cols!=m->cols)) {
+        if (v->highest_id==UINT64_MAX) return false;
+        v->id_offset=v->highest_id+1;
+    }
+    if (!v->id_offset) v->id_offset=UINT64_C(1000);
+    v->model_rows=m->rows;v->model_cols=m->cols;
     nx_semantic_desc group={.id=2,.parent_id=1,.role=NX_ROLE_GROUP,.bounds=bounds,.name=span("Terminal output")};
     if (nx_semantics_add(v->ui,&group,NULL)!=NX_OK) return false;
+    v->row_count=0;
     for (unsigned y=0;y<m->rows;++y) {
         const struct ae_term_cell *row=ae_terminal_row(m,y);if (!row) return false;
         unsigned first=0,last=0;bool selected=ae_terminal_selected_range(m,y,&first,&last);
@@ -147,12 +174,15 @@ bool ae_terminal_view_grid(struct ae_terminal_view *v,const struct ae_terminal *
             target->foreground=rgb(fg);target->background=rgb(bg);if (c->style&AE_TERM_UNDERLINE) target->flags|=NX_CELL_UNDERLINE;
             if (c->width && c->code!=' ' && !glyphs(v,c,target)) return false;
         }
-        if (!row_text(v,m,y,bounds,live_caret)) return false;
+        if (!row_text(v,m,y,bounds,live_caret,read_focus)) return false;
     }
     nx_cell_grid_desc grid={.bounds=bounds,.cell_width=v->cw,.cell_height=v->ch,.baseline=v->baseline,.pixels_per_em=v->points,
         .cells=v->cells,.rows=m->rows,.columns=m->cols,.row_stride=m->cols,.cell_capacity=(size_t)m->rows*m->cols,
         .glyph_cache_bytes=1024u*1024u,.mask_budget_bytes=NX_CELL_GRID_MAX_MASK_BYTES};
-    return nx_draw_cell_grid(v->ui,&grid)==NX_OK;
+    if (nx_draw_cell_grid(v->ui,&grid)!=NX_OK) return false;
+    if (read_focus) for (unsigned y=0;y<v->row_count;++y) if (nx_focus_id(v->ui)==v->row_ids[y])
+        return nx_stroke_rect(v->ui,(nx_rect){bounds.x,bounds.y+(float)y*v->ch,bounds.width,v->ch},1,rgb(0x7ca8e8))==NX_OK;
+    return true;
 }
 bool ae_terminal_view_finish(struct ae_terminal_view *v,unsigned w,unsigned h,const unsigned char **pixels,size_t *stride) {
     if (!v || !v->frame || !pixels || !stride || !w || !h || w>8192 || h>8192 ||

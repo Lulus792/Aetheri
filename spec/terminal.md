@@ -13,7 +13,8 @@ command input/output, bounded scrollback, colors and ephemeral shell job control
 Its held shell now receives `-i --edit`, selecting our toolkit-free
 [line editor](line-editor.md) and bounded in-memory history.
 It is an early usable terminal, not the finished editor/multiplexer or a promise
-of xterm/Neovim compatibility. Final visual design remains open.
+of xterm/Neovim compatibility. The accepted studio design still needs native
+implementation and visual acceptance.
 
 ## Use and controls
 
@@ -60,6 +61,7 @@ the existing hangup path. This is an internal development handoff, not an app SD
 | Shift+PageUp / Shift+PageDown, wheel | Navigate bounded scrollback; typing returns to live output |
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
 | Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
+| Ctrl+Shift+R in the NexaUI view | Toggle output reading focus without sending PTY input |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
 | Escape while composing | Cancel the draft and reset native text input; no Escape byte enters the PTY |
 | Ctrl+Shift+C / Ctrl+Shift+V | Copy stable selected text / receive bounded clipboard text; these chords never become interrupt or literal-next |
@@ -257,9 +259,10 @@ minimized state. Screen position is unavailable, so coordinates are window
 relative. Focus/visibility changes refresh the completed snapshot metadata even
 when no pixel redraw is required; an action request never fabricates focus.
 This does not identify physical occlusion or prove human-visible presentation.
-The current adapter does not acquire native/read focus on a bridge request;
-that request is not an observed focus change. Focus acquisition and a complete
-screenreader reading path remain later integration work.
+The current adapter does not acquire an inactive native window on a bridge
+request. The reading focus below is logical focus inside an already active
+window; it is never evidence of native activation. A complete screenreader
+reading path remains later integration work.
 
 The existing readiness worker additionally polls the bus readiness descriptor
 and the earlier of clipboard/accessibility deadlines. The UI thread retains a
@@ -282,6 +285,40 @@ paste-review/preedit or normal-session acceptance. The other terminal workflow
 wrappers retain their narrow input/render scope; they do not test the native
 transport merely by linking it. See the
 [accessibility record](../brains/aetheri/journal/2026-11-06-terminal-access.md).
+
+### Output reading focus
+
+In `aetheri-terminal-nexaui`, Ctrl+Shift+R clears reading focus or selects the
+visible input row; in scrollback it selects the first visible row. Ordinary
+typing still belongs to the original shell/editor. Reading focus adds a blue
+row outline and a short footer. It neither sends shortcut bytes to the PTY nor
+changes the terminal cursor/selection. Native Component focus can select another
+visible read-only row while the window is already active. The pinned SDK refuses
+that request from an inactive Wayland window; it cannot manufacture activation.
+
+Each row's semantic ID is derived from its original content-incarnation token,
+with checked offset arithmetic. A model-size change starts an ID range above
+every previously emitted ID; returning to an earlier size cannot revive a node.
+Moving unchanged content within one size preserves its node and focus.
+Edits/erase, replacement, reset/resize or leaving the visible projection
+retire the old target; focus is not transferred to different content at the same
+screen position. A queued stale target cannot focus the replacement. One original
+model lifetime belongs to a view. Tokens remain local content observations,
+not account/run/file authority. Identity exhaustion fails without wrapping.
+
+Preedit, paste review and closing disable new reading targets. Native text/caret/
+selection writes remain refused. Logical focus can be retained through ordinary
+window blur, while native FOCUSED is reported only with actual window focus.
+The live input row still exposes its actual model caret; other snapshots do not
+invent a caret merely because their row is focused. Selection/range navigation,
+full screenreader behavior and native activation remain separate work.
+
+The view test verifies unchanged model bytes, row movement/replacement, stale
+queued focus, disabled targets and a visible outline. An independently compiled
+positional-ID negative detects the movement regression. The native client checks
+row focus, the actual prompt caret, shortcut/input separation and stale Component
+refusal after original content changes. See the
+[focus record](../brains/aetheri/journal/2026-11-06-terminal-focus.md).
 
 ## Inputs and evidence
 

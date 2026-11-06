@@ -24,6 +24,17 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November original-content reading-focus update: the own Terminal now uses
+native read-only row focus and Ctrl+Shift+R on the unchanged SDK. Content-token
+semantic IDs preserve unchanged movement and retire edited/replaced targets;
+model-size changes advance the ID range rather than reviving old projections.
+No shortcut bytes enter the PTY and the original model remains unchanged.
+View/native tests and a positional-ID counterexample supply scoped evidence;
+all 74 app/UI groups pass Release and ASan/UBSan. See the
+[focus record](../journal/2026-11-06-terminal-focus.md), including retained
+uncaptured native-state failures. Full human reading, native activation and
+final design/hardware gates stay open. No SDK/pin/default or handoff change.
+
 6 November native Terminal transport update: the existing Linux accessibility-
 host API now publishes our actual read-only row snapshots from the SDL window.
 The UI thread retains bridge calls, while the original worker polls duplicated

@@ -6,6 +6,15 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Native Terminal accessibility — 6 November 2026
 
+- Original-content semantic IDs, read-only focus and visible outline in
+  [nexaui_view.c](../../src/terminal/nexaui_view.c), with model-immutability,
+  movement, resize/back, stale queued target and exhaustion checks in
+  [test_terminal_view.c](../../tests/test_terminal_view.c). The independent
+  native client/driver also checks keyboard/input separation and stale Component
+  refusal. The [focus record](journal/2026-11-06-terminal-focus.md) distinguishes
+  this evidence from full screenreader/native activation acceptance and retains
+  the initial failures. Test-only direct D-Bus state diagnostics never replace
+  a failed libatspi assertion or establish the older untraced failure's cause.
 - Original SDL host/worker and public SDK seam in
   [terminal/main.c](../../src/terminal/main.c); native text contract in
   [terminal.md](../../spec/terminal.md#native-read-only-text-transport).

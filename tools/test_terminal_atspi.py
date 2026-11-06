@@ -31,7 +31,7 @@ def main():
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
     command+=['-I'+str(fixture/p) for p in ('usr/include/at-spi-2.0','usr/include/glib-2.0','usr/lib64/glib-2.0/include')]
     command+=['-I'+str(sdk/p) for p in ('include/dbus-1.0','lib64/dbus-1.0/include')]
-    command+=[str(fixture/'usr/lib64/libatspi.so.0.0.1'),'-l:libgobject-2.0.so.0','-l:libglib-2.0.so.0','-Wl,-rpath,'+str(fixture/'usr/lib64'),'-Wl,-rpath-link,'+str(fixture/'usr/lib64')]
+    command+=[str(fixture/'usr/lib64/libatspi.so.0.0.1'),'-l:libgobject-2.0.so.0','-l:libglib-2.0.so.0','-l:libdbus-1.so.3','-Wl,-rpath,'+str(fixture/'usr/lib64'),'-Wl,-rpath-link,'+str(fixture/'usr/lib64')]
     p=subprocess.run(command,capture_output=True,text=True);(root/'client-build.log').write_text(p.stdout+p.stderr);assert p.returncode==0,p.stderr
     address='unix:path='+str(root/'runtime/bus')
     configuration=root/'bus.conf'
@@ -58,14 +58,20 @@ def main():
         p=subprocess.run(['busctl','--address='+address,'--timeout=1','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','NameHasOwner','s','org.a11y.atspi.Registry'],env=env,capture_output=True,text=True,timeout=2)
         return p.returncode==0 and p.stdout.strip()=='b true'
     def event(s):left.sendall(s.encode());assert left.recv(32)==b'OK',s
-    def key(code,ctrl=False):
+    def key(code,ctrl=False,shift=False):
         if ctrl:event('K 29 1')
+        if shift:event('K 42 1')
         event(f'K {code} 1');event(f'K {code} 0')
+        if shift:event('K 42 0')
         if ctrl:event('K 29 0')
     codes=dict(zip('abcdefghijklmnopqrstuvwxyz',(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
     codes.update(dict(zip('1234567890',range(2,12))));codes.update({' ':57,"'":40,'\\':43,'-':12,'\n':28})
     def typing(s):
-        for c in s:key(codes[c])
+        for c in s:key(52,shift=True) if c=='>' else key(codes[c])
+    def reading():
+        rows=re.findall(r'^READ_FOCUS id=(\d+)$',log(),re.M);return int(rows[-1]) if rows else -1
+    def accepted():
+        rows=re.findall(r'^INPUT (\d+)$',log(),re.M);return int(rows[-1]) if rows else 0
     def peer(pid,mode,value,name,expected=0):
         p=start(client,name,pid,mode,value);assert p.wait(timeout=10)==expected,(name,root,log(name));children.remove(p)
         peers.append({'name':name,'exit':p.returncode})
@@ -97,6 +103,8 @@ def main():
             return rows and tuple(map(int,rows[-1]))==(9,2)
         wait(output_ready,'complete native output and returned original prompt')
         peer(app.pid,'focused','row-é中','read')
+        before=accepted();peer(app.pid,'focus','row-é中','native-read-focus')
+        wait(lambda:reading()>0,'actual native reading focus');assert accepted()==before
         maps=Path(f'/proc/{app.pid}/maps').read_text();assert 'libnexaui.so.0.1.18' in maps and 'libSDL3.so' in maps
         (root/'app-maps.txt').write_text(maps)
         shell_pid=int(re.search(r'^READY .*shell=(\d+)',log(),re.M)[1]);shell_pin=os.pidfd_open(shell_pid);pins.append(shell_pin)
@@ -104,10 +112,26 @@ def main():
         actors.append({'pid':app.pid,'exe':str(terminal),'sha256':digest(Path(f'/proc/{app.pid}/exe')),'shell':shell_pid})
         capture('independent Unicode text queries on actual native terminal')
         event('D');wait(lambda:'FOCUS 0\n' in log(),'native focus loss')
-        peer(app.pid,'focused','row-é中','wrong-focus',1)
-        assert 'native frame wanted=1 defunct=0' in log('wrong-focus'),log('wrong-focus')
         peer(app.pid,'unfocused','row-é中','unfocused')
+        peer(app.pid,'focused-now','row-é中','wrong-focus',1)
+        assert 'native frame wanted=1 defunct=0' in log('wrong-focus'),log('wrong-focus')
+        peer(app.pid,'reject-focus','row-é中','unfocused-read-request')
         event('A');wait(lambda:log().count('FOCUS 1\n')==2,'native focus return');peer(app.pid,'focused','row-é中','refocused')
+        peer(app.pid,'active-wire-stream','row-é中','bounded-state-stream')
+        # Plain native input keeps its original shell owner. Reading focus can
+        # be cleared/entered without placing the shortcut into the PTY queue.
+        before=accepted();key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'keyboard clears read focus')
+        peer(app.pid,'no-row-focus','row-é中','cleared-read-focus')
+        key(19,ctrl=True,shift=True);wait(lambda:reading()>0,'keyboard focuses actual prompt row')
+        assert accepted()==before
+        peer(app.pid,'focused-row','aetheri>  ','keyboard-read-focus')
+        held,channel=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);held.settimeout(8)
+        stale=start(client,'retired-read-row',app.pid,'retire-row','aetheri>  ',channel.fileno(),pass_fds=(channel.fileno(),));channel.close()
+        assert held.recv(16)==b'HELD'
+        typing('printf ready > focus-proof\n')
+        assert stale.wait(timeout=8)==0,log('retired-read-row');children.remove(stale);held.close()
+        peers.append({'name':'retired-read-row','exit':0})
+        wait(lambda:(root/'focus-proof').exists() and (root/'focus-proof').read_bytes()==b'ready' and reading()==0,'original shell writes proof after stale focus retires')
         # The same original app must survive loss/recreation of its private bus.
         retire(reg,-signal.SIGTERM);retire(bus,0)
         wait(lambda:not (root/'runtime/bus').exists(),'old bus retired')
@@ -137,5 +161,6 @@ def main():
         for p in pins:os.close(p)
         for s in streams:s.close()
         left.close();right.close()
+        print('Terminal AT-SPI evidence:',root)
 
 if __name__=='__main__':main()

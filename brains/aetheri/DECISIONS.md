@@ -1,5 +1,20 @@
 # Decisions
 
+## Keep Terminal reading focus with original content — 6 November 2026
+
+Derive visible row semantic IDs from the original content-incarnation token,
+with checked reserved-ID arithmetic. Unchanged movement retains focus; edits,
+replacement and leaving the projection retire the target instead of focusing
+different content at the same position. Model-size changes advance the range
+above prior IDs even when content tokens survive; resizing back cannot revive
+an earlier node. Use the existing read-only SDK focus
+action inside an already active window and Ctrl+Shift+R without sending PTY
+input or creating another cursor/editor. Preedit, paste review and closing
+disable targets. This is local presentation identity, not process or document
+authority. Native window activation and complete screenreader reading remain
+separate. Borrow bridge readiness only after routing has finished. See the
+[focus record](journal/2026-11-06-terminal-focus.md).
+
 ## Attach native text to the original Terminal host — 6 November 2026
 
 Use the pinned SDK's public Linux accessibility-host seam, retaining the original

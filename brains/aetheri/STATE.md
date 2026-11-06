@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — own NexaUI Terminal presenter on the original native host.
+6 November 2026 — original-content reading focus in the NexaUI Terminal.
 
 ## Coordination
 
@@ -14,6 +14,36 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Original-content reading focus now works in the NexaUI Terminal: native row
+focus and Ctrl+Shift+R, preserved identity when content moves and retired focus
+when content changes. Model-size changes advance the checked ID range; returning
+to an earlier size cannot revive a target. The visible outline leaves the original
+model and PTY
+input unchanged; preedit/review/closing disable reading targets. Native focus
+requires an already active window. View/native probes and separately compiled
+positional-ID and resize negatives supply scoped evidence. All 74 app/UI groups
+pass Release (324.26s) and ASan/UBSan (530.46s), without skips, at
+`/home/aetheri/build/terminal-focus-resize-final-fgjjjb29`.
+
+Audit joins 375 host/snapshot/guest inputs and 292 evidence exports, including
+90 native images, unchanged 28 frozen contracts/nineteen protected hashes and
+no sidecars. Both native samples record zero CPU ticks/new frames across two
+idle seconds. The enforcing carrier is idle on tty1 without build/private-
+registry actors, running Aetheri service or seat0 session; exact closed DRM
+history and foreign edits are unchanged. No new DRM run or SDK/default change.
+Preserve original native getter/fixture failures in the
+[focus record](journal/2026-11-06-terminal-focus.md). Direct wire diagnostics
+and a bounded 128-query stream improve observation, but do not establish the
+cause of older untraced replies. The old quarantined runtime remains untouched.
+
+Next: advance the accepted Terminal chrome/startup/tab/pane design on the same
+original session. Complete screenreader/native activation/text geometry/events,
+IME/review semantics, font coverage and physical/final material acceptance remain
+open. The full OS/apps/image/installer/update/hardware/experiment-desktop goal
+remains active and incomplete.
+
+## Prior native Terminal transport checkpoint
 
 Native Terminal accessibility now uses the pinned SDK's public Linux host seam.
 The original SDL window/input/PTY/worker remains; only duplicated readiness

@@ -1,11 +1,14 @@
 #define _POSIX_C_SOURCE 200809L
 /* Independent libatspi consumer, deliberately without NexaUI/model linkage. */
 #include <atspi/atspi.h>
+#include <dbus/dbus.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 static double now(void) {struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)) exit(2);return (double)t.tv_sec+(double)t.tv_nsec/1e9;}
 static void pump(void) {while(g_main_context_iteration(NULL,FALSE)) {}struct timespec t={0,1000000};while(nanosleep(&t,&t) && errno==EINTR) {}}
 static AtspiAccessible *target(AtspiAccessible *desktop,unsigned long pid,double end) {
@@ -37,14 +40,39 @@ static AtspiAccessible *find(AtspiAccessible *a,const char *name,unsigned depth)
     }
     return NULL;
 }
+static void wire_state(AtspiAccessible *a) {
+    AtspiObject *o=ATSPI_OBJECT(a);
+    if(!o->app || !o->app->bus || !o->app->bus_name || !o->path) {fputs("WIRE_STATE retired client reference\n",stderr);return;}
+    DBusError e;dbus_error_init(&e);
+    DBusMessage *q=dbus_message_new_method_call(o->app->bus_name,o->path,"org.a11y.atspi.Accessible","GetState");
+    if(!q) {fputs("WIRE_STATE allocation failure\n",stderr);return;}
+    DBusMessage *r=dbus_connection_send_with_reply_and_block(o->app->bus,q,1000,&e);dbus_message_unref(q);
+    if(!r) fprintf(stderr,"WIRE_STATE %s %s %s %s\n",o->app->bus_name,o->path,e.name?e.name:"no error",e.message?e.message:"");
+    else {
+        DBusMessageIter it,array;dbus_uint32_t bits[2]={0};unsigned count=0;
+        if(dbus_message_has_signature(r,"au")) {
+            dbus_message_iter_init(r,&it);dbus_message_iter_recurse(&it,&array);
+            while(count<2 && dbus_message_iter_get_arg_type(&array)==DBUS_TYPE_UINT32) {dbus_message_iter_get_basic(&array,&bits[count++]);dbus_message_iter_next(&array);}
+        }
+        fprintf(stderr,"WIRE_STATE %s %s count=%u bits=%08x:%08x\n",o->app->bus_name,o->path,count,bits[1],bits[0]);dbus_message_unref(r);
+    }
+    dbus_error_free(&e);
+}
 static int state(AtspiAccessible *a,AtspiStateType wanted) {
     atspi_accessible_clear_cache(a);AtspiStateSet *s=atspi_accessible_get_state_set(a);
-    int result=s && atspi_state_set_contains(s,wanted);if(s) g_object_unref(s);return result;
+    int result=s && atspi_state_set_contains(s,wanted);if(s) g_object_unref(s);
+    if(wanted==ATSPI_STATE_ACTIVE && !result) wire_state(a);
+    return result;
+}
+static int await_state(AtspiAccessible *a,AtspiStateType wanted,int value) {
+    double end=now()+4;do {if(state(a,wanted)==value) return 1;pump();}while(now()<end);return 0;
 }
 #define CHECK(x) do {if(!(x)) {fprintf(stderr,"Terminal AT-SPI %d: %s\n",__LINE__,#x);goto done;}}while(0)
 int main(int argc,char **argv) {
-    if(argc!=4) return 2;
+    if(argc!=4 && argc!=5) return 2;
     char *end;unsigned long pid=strtoul(argv[1],&end,10);if(!pid || *end || pid>2147483647ul) return 2;
+    int control=-1;
+    if(argc==5) {long fd=strtol(argv[4],&end,10);if(*end || fd<0 || fd>INT_MAX || strcmp(argv[2],"retire-row")) return 2;control=(int)fd;}
     int result=1,initialized=0;AtspiAccessible *desktop=NULL,*app=NULL,*frame=NULL,*group=NULL,*row=NULL,*button=NULL;AtspiText *text=NULL;GError *e=NULL;
     CHECK(atspi_init()==0);initialized=1;atspi_set_timeout(1000,1000);desktop=atspi_get_desktop(0);CHECK(desktop);
     app=target(desktop,pid,now()+3);if(!app) {fputs("target app was not registered\n",stderr);goto done;}
@@ -58,9 +86,10 @@ int main(int argc,char **argv) {
         double limit=now()+4;while(!state(row,ATSPI_STATE_DEFUNCT) && now()<limit) pump();
         CHECK(state(row,ATSPI_STATE_DEFUNCT));
     } else {
-        CHECK(!strcmp(argv[2],"focused") || !strcmp(argv[2],"unfocused"));
-        int active=!strcmp(argv[2],"focused");double limit=now()+3;
-        while(state(frame,ATSPI_STATE_ACTIVE)!=active && now()<limit) {
+        CHECK(!strcmp(argv[2],"focused") || !strcmp(argv[2],"active-wire-stream") || !strcmp(argv[2],"focused-now") || !strcmp(argv[2],"unfocused") || !strcmp(argv[2],"focus") ||
+            !strcmp(argv[2],"focused-row") || !strcmp(argv[2],"no-row-focus") || !strcmp(argv[2],"reject-focus") || !strcmp(argv[2],"retire-row"));
+        int active=strcmp(argv[2],"unfocused") && strcmp(argv[2],"reject-focus");double limit=now()+3;
+        while(strcmp(argv[2],"focused-now") && state(frame,ATSPI_STATE_ACTIVE)!=active && now()<limit) {
             /* Reconnect may retire an object after registry discovery. Only an
                explicitly defunct frame permits fresh discovery; a live wrong
                focus state must still fail within the original deadline. */
@@ -77,6 +106,10 @@ int main(int argc,char **argv) {
             fprintf(stderr,"native frame wanted=%d defunct=%d visible=%d showing=%d\n",active,
                 state(frame,ATSPI_STATE_DEFUNCT),state(frame,ATSPI_STATE_VISIBLE),state(frame,ATSPI_STATE_SHOWING));
         CHECK(state(frame,ATSPI_STATE_ACTIVE)==active);
+        if(!strcmp(argv[2],"active-wire-stream")) {
+            double until=now()+4;
+            for(unsigned i=0;i<128;++i) {CHECK(now()<until);CHECK(state(frame,ATSPI_STATE_ACTIVE));}
+        }
         group=find(app,"Terminal output",0);CHECK(group);
         int n=atspi_accessible_get_child_count(group,&e);CHECK(!e && n>=2 && n<=100);
         for(int i=0;i<n;++i) {
@@ -97,6 +130,23 @@ int main(int argc,char **argv) {
         AtspiRect *rect=atspi_component_get_extents(component,ATSPI_COORD_TYPE_WINDOW,&e);g_object_unref(component);
         CHECK(rect && !e && rect->x>=0 && rect->y>=0 && rect->width>0 && rect->height>0);g_boxed_free(ATSPI_TYPE_RECT,rect);
         value=atspi_text_get_text(text,0,-1,&e);CHECK(value && !e && !strncmp(value,argv[3],strlen(argv[3])));g_free(value);
+        if(!strcmp(argv[2],"focus") || !strcmp(argv[2],"reject-focus")) {
+            AtspiComponent *c=atspi_accessible_get_component_iface(row);CHECK(c && state(row,ATSPI_STATE_FOCUSABLE));
+            int accepted=atspi_component_grab_focus(c,&e);g_object_unref(c);
+            if(!strcmp(argv[2],"focus")) {CHECK(accepted && !e && await_state(row,ATSPI_STATE_FOCUSED,1));}
+            else {CHECK(!accepted && !state(row,ATSPI_STATE_FOCUSED));if(e) {g_error_free(e);e=NULL;}}
+        } else if(!strcmp(argv[2],"focused-row")) {
+            CHECK(await_state(row,ATSPI_STATE_FOCUSED,1));
+            int caret=atspi_text_get_caret_offset(text,&e);CHECK(!e && caret==9);
+        } else if(!strcmp(argv[2],"no-row-focus")) CHECK(await_state(row,ATSPI_STATE_FOCUSED,0));
+        else if(!strcmp(argv[2],"retire-row")) {
+            CHECK(control>=0 && state(row,ATSPI_STATE_FOCUSED));
+            AtspiComponent *c=atspi_accessible_get_component_iface(row);CHECK(c);
+            ssize_t sent;do {sent=write(control,"HELD",4);}while(sent<0 && errno==EINTR);CHECK(sent==4);
+            CHECK(await_state(row,ATSPI_STATE_DEFUNCT,1));
+            int accepted=atspi_component_grab_focus(c,&e);g_object_unref(c);CHECK(!accepted);
+            if(e) {g_error_free(e);e=NULL;}
+        }
     }
     puts("TERMINAL_ATSPI passed");result=0;
 done:
@@ -109,5 +159,6 @@ done:
     if(app) g_object_unref(app);
     if(desktop) g_object_unref(desktop);
     if(initialized) atspi_exit();
+    if(control>=0) close(control);
     return result;
 }

@@ -14,7 +14,13 @@ bool ae_terminal_view_begin(struct ae_terminal_view *,float width,float height,f
 bool ae_terminal_view_fill(struct ae_terminal_view *,nx_rect,uint32_t);
 bool ae_terminal_view_clip(struct ae_terminal_view *,const nx_rect *);
 bool ae_terminal_view_label(struct ae_terminal_view *,const char *,float x,float y,uint32_t);
-bool ae_terminal_view_grid(struct ae_terminal_view *,const struct ae_terminal *,nx_rect,bool contrast,bool live_caret);
+/* One original model lifetime per view. Reinitializing/replacing a model requires
+   a fresh view; its row tokens are process-local content witnesses, not authority. */
+bool ae_terminal_view_grid(struct ae_terminal_view *,const struct ae_terminal *,nx_rect,bool contrast,bool live_caret,bool read_focus);
+/* Between completed frames, on the original owner thread. Reading focus never
+   edits the model, sends PTY input or claims native window activation. */
+bool ae_terminal_view_focus_row(struct ae_terminal_view *,unsigned row);
+bool ae_terminal_view_reading(const struct ae_terminal_view *);
 /* Complete-frame RGBA8, borrowed until the next finish/destroy. At most 64 MiB;
    the SDL host uploads it once and remains the sole native window dispatcher. */
 bool ae_terminal_view_finish(struct ae_terminal_view *,unsigned width,unsigned height,

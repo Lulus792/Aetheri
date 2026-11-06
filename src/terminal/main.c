@@ -137,19 +137,20 @@ static void accessibility_prepare(struct app *a) {
         a->accessibility_visibility!=(SDL_GetWindowFlags(a->window)&(SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED)) ||
         a->accessibility_focused!=(SDL_GetKeyboardFocus()==a->window)) accessibility_publish(a);
     if (a->failed) return;
-    int fd=-1,writable=0;uint32_t timeout=UINT32_MAX;
-    nx_result result=nx_linux_accessibility_host_prepare(a->accessibility,&fd,&writable,&timeout);
-    if (!accessibility_result(result)) {error(a,"accessibility dispatch");return;}
-    /* An unavailable optional bridge is retried without creating a polling
-       thread. A connected idle bridge retains its own actual wait/deadlines. */
-    if (result==NX_ERROR_UNSUPPORTED) timeout=1000;
     size_t routed=0;int focus=0;
-    result=nx_linux_accessibility_host_route(a->accessibility,ae_terminal_view_context(a->view),&routed,&focus);
+    nx_result result=nx_linux_accessibility_host_route(a->accessibility,ae_terminal_view_context(a->view),&routed,&focus);
     if (!accessibility_result(result)) {error(a,"accessibility routing");return;}
-    /* This read-only output and press-only Close expose no native-focus action.
-       A future focus request must not be mistaken for observed native focus. */
-    (void)focus;
+    /* The pinned bridge admits row focus only in an already active window.
+       Routing logical reading focus is not a cross-window activation grant. */
+    if (focus && a->diagnostics) printf("ACCESSIBILITY read_focus native=%d\n",SDL_GetKeyboardFocus()==a->window);
     if (routed) a->dirty=true;
+    /* Borrow readiness only after every operation that can change it. A routed
+       reply can change write interest; no SDK call may invalidate this snapshot
+       before its duplicate is captured below. Newly pumped requests wake us. */
+    int fd=-1,writable=0;uint32_t timeout=UINT32_MAX;
+    result=nx_linux_accessibility_host_prepare(a->accessibility,&fd,&writable,&timeout);
+    if (!accessibility_result(result)) {error(a,"accessibility dispatch");return;}
+    if (result==NX_ERROR_UNSUPPORTED) timeout=1000;
     struct timespec time;
     if (clock_gettime(CLOCK_MONOTONIC,&time)) {error(a,"accessibility clock");return;}
     uint64_t now=(uint64_t)time.tv_sec*1000u+(uint64_t)time.tv_nsec/1000000u;
@@ -383,7 +384,8 @@ static void draw(struct app *a) {
     close.semantic.name.length=strlen(close.semantic.name.data);nx_interaction_state interaction;
     if (nx_widget_register(ae_terminal_view_context(a->view),&close,&interaction)!=NX_OK) {error(a,"accessible close control");return;}
     bool accessible_close=interaction.clicked!=0;
-    if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended)) { error(a,"NexaUI grid");return; }
+    if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended,
+        !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review))) { error(a,"NexaUI grid");return; }
 #else
     for (unsigned y=0;y<a->session.model->rows;++y) {
         const struct ae_term_cell *r=ae_terminal_row(a->session.model,y);
@@ -419,6 +421,10 @@ static void draw(struct app *a) {
         a->composition.size ? tr(a,"Composition · Esc cancels","Texteingabe · Esc bricht ab") :
         a->session.model->selection.count ? tr(a,"Selection · Esc clears","Auswahl · Esc löscht") :
         a->editor ? tr(a,"Ctrl+S save · Ctrl+Q document close · Ctrl+Shift+Q window close","Strg+S speichern · Strg+Q Dokument · Strg+Shift+Q Fenster") : tr(a,"Ctrl+C/Z · Shift+PgUp/PgDn · Ctrl+Shift+Q","Strg+C/Z · Shift+Bild↑/↓ · Strg+Shift+Q");
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (!a->message && !a->session.pty.ended && ae_terminal_view_reading(a->view) && !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review))
+        status=tr(a,"Reading output · Ctrl+Shift+R clears focus","Lesefokus · Strg+Umschalt+R löst ihn");
+#endif
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
     draw_paste(a,w,h);
     if (a->diagnostics) {
@@ -441,7 +447,7 @@ static void draw(struct app *a) {
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
 #ifdef AETHERI_TERMINAL_NEXAUI
     accessibility_publish(a);
-    if (a->diagnostics) printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);
+    if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));}
 #endif
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
@@ -708,6 +714,15 @@ static void event(struct app *a,const SDL_Event *e) {
             /* IME owns editing/confirmation keys while its draft is visible.
                Never send a speculative Enter/arrow/backspace to the PTY. */
         }
+#ifdef AETHERI_TERMINAL_NEXAUI
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_R) {
+            if (a->session.closing) { /* Closing admits no new reading target. */ }
+            else if (ae_terminal_view_reading(a->view)) {
+                if (nx_focus_set(ae_terminal_view_context(a->view),0)!=NX_OK) error(a,"clear reading focus");
+            } else if (!ae_terminal_view_focus_row(a->view,a->session.model->view?0:a->session.model->y)) error(a,"reading focus");
+            a->dirty=true;
+        }
+#endif
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && (key==SDLK_C || key==SDLK_V)) {
             if (!e->key.repeat) { if (key==SDLK_C) clipboard_copy(a);else clipboard_paste(a); }
         }
