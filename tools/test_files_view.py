@@ -77,6 +77,15 @@ def main():
         found=re.findall(r"^VIEW (.+)$",log(),re.M)
         return dict(re.findall(r"(\w+)=([^ ]+)",found[-1])) if found else {}
     def state(**wanted):return all(view().get(k)==str(v) for k,v in wanted.items())
+    def focused(control):
+        latest=log().rsplit('VIEW ',1)[-1];match=re.search(r'^CONTROL '+str(control)+r' .* (\d+)$',latest,re.M)
+        return match is not None and int(match[1])&512
+    def field_fence(control):
+        # Socket acknowledgement is from the compositor, not the app. The native
+        # focus round trip must follow all earlier input and preserve selection.
+        assert control==15
+        key(15);wait(lambda:focused(13),'field Tab reached Cancel')
+        key(15,shift=True);wait(lambda:focused(control),'field focus returned after prior input')
     def click(control):
         rows=re.findall(r"^CONTROL "+str(control)+r" (\d+) ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) (\d+)$",log(),re.M);assert rows
         _,x,y,w,h,_=rows[-1];event(f"M {40+float(x)+float(w)/2} {40+float(y)+float(h)/2}");event("B 272 1");event("B 272 0")
@@ -118,10 +127,13 @@ def main():
             assert sorted(p.name for p in folder.iterdir())==['existing','seed.txt']
         click(2);wait(lambda:state(grid=1),"pointer grid")
         key(49,ctrl=True,shift=True);wait(lambda:state(dialog=1),"inline folder")
-        typing("work");capture("inline grid folder");key(28)
+        typing("wrok");key(102);key(106);key(106,shift=True);key(106,shift=True)
+        field_fence(15);capture("native middle-name selection");typing("or");capture("inline grid folder");key(28)
         wait(lambda:(folder/"work").is_dir() and state(dialog=0,count=3),"real folder worker")
         key(28);wait(lambda:state(depth=1,count=0),"enter held folder")
-        key(49,ctrl=True);wait(lambda:state(dialog=1),"inline file");typing("note.txt");key(28)
+        key(49,ctrl=True);wait(lambda:state(dialog=1),"inline file")
+        typing("long"*20);field_fence(15);capture("native long-name end caret");key(102);field_fence(15);capture("native long-name beginning caret")
+        key(30,ctrl=True);typing("note.txt");key(28)
         wait(lambda:(folder/"work/note.txt").is_file() and state(dialog=0,count=1),"real file worker");capture("created file")
         key(28);wait(lambda:re.search(r"^OPEN pid=(\d+) pin=1$",log(),re.M) and re.search(r"^READY .*editor=(\d+)",log(),re.M),"original document")
         terminal_pid=int(re.findall(r"^OPEN pid=(\d+) pin=1$",log(),re.M)[-1]);editor_pid=int(re.findall(r"^READY .*editor=(\d+)",log(),re.M)[-1])
@@ -140,6 +152,11 @@ def main():
         key(16,ctrl=True);wait(lambda:"DOCUMENT_END status=0" in log(),"original document end")
         key(102,alt=True);wait(lambda:state(depth=0),"held root")
         key(38,ctrl=True);typing("seed");wait(lambda:state(count=1),"filter")
+        rows=re.findall(r"^CONTROL 5 (\d+) ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) (\d+)$",log(),re.M);assert rows
+        _,x,y,w,h,_=rows[-1];x,y,w,h=map(float,(x,y,w,h))
+        event(f"M {40+x+8} {40+y+h/2}");event("B 272 1");event("B 272 0")
+        event("K 42 1");event(f"M {40+x+w-3} {40+y+h/2}");event("B 272 1");event("B 272 0");event("K 42 0")
+        capture("native mouse query selection");typing("seed");wait(lambda:state(count=1),"mouse selection replacement")
         key(60);wait(lambda:state(dialog=1),"rename");key(22,ctrl=True);typing("renamed.txt");key(28)
         wait(lambda:(folder/"renamed.txt").is_file() and not (folder/"seed.txt").exists() and state(dialog=0),"rename worker")
         key(45,ctrl=True);key(38,ctrl=True);typing("work");wait(lambda:state(count=1),"move target filter");key(28)

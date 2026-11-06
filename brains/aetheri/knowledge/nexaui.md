@@ -24,6 +24,13 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Files editing update: the own name/filter fields now retain bounded
+app-owned grapheme selections with keyboard and mouse editing. NexaUI supplies
+text layout, hit testing, selection geometry and clipped caret viewing. Native
+EditableText, external IME and an additional toolkit text/undo model are not
+introduced. Complete replacement admission and explicit rejection clearing stay
+with Aetheri. See the [editing record](../journal/2026-11-06-files-editing.md).
+
 6 November Files accessibility/fault update: the own view now passes an
 independent C17/libatspi client with a real private registry, including actual
 selection/actions, invalid state, stale rejection and localized dialog/focus.

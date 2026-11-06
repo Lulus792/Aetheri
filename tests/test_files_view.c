@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "files/nexaui_view.h"
+#include "text/grapheme.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,43 @@ static void press(struct ae_files_view *v,uint64_t id) {
 static void text(struct ae_files_view *v,const char *s) {
     for(size_t i=0;s[i];++i) {nx_event e={.type=NX_EVENT_TEXT,.scalar=(unsigned char)s[i]};CHECK(ae_files_view_event(v,&e));}
     frame(v,1000,680);
+}
+static void unicode(struct ae_files_view *v,const char *s) {
+    size_t at=0,n=strlen(s);uint32_t scalar;
+    while(at<n) {CHECK(ae_utf8_next(s,n,&at,&scalar));nx_event e={.type=NX_EVENT_TEXT,.scalar=scalar};CHECK(ae_files_view_event(v,&e));}
+    frame(v,1000,680);
+}
+static void pointer(struct ae_files_view *v,nx_event_type type,float x,float y,uint32_t mods) {
+    nx_event e={.type=type,.x=x,.y=y,.button=1,.modifiers=mods};CHECK(ae_files_view_event(v,&e));frame(v,1000,680);
+}
+static void editing_cases(struct ae_files_view *v,struct ae_files_session *s) {
+    CHECK(ae_files_select(s->files,0));frame(v,1000,680);uint64_t old=ae_files_view_entry_id(v,0);
+    CHECK(nx_semantics_request_action(ae_files_view_context(v),old,NX_ACTION_PRESS)==NX_OK);
+    key(v,NX_KEY_L,NX_MOD_CONTROL);text(v,"abc");CHECK(!s->dialog && ae_files_depth(s->files)==0);
+    key(v,NX_KEY_L,NX_MOD_CONTROL);frame(v,1000,680);text(v,"abcd");
+    key(v,NX_KEY_HOME,0);key(v,NX_KEY_RIGHT,0);key(v,NX_KEY_RIGHT,NX_MOD_SHIFT);key(v,NX_KEY_RIGHT,NX_MOD_SHIFT);text(v,"X");
+    CHECK(!strcmp(ae_files_query(s->files),"aXd"));
+    key(v,NX_KEY_BACKSPACE,0);key(v,NX_KEY_DELETE,0);frame(v,1000,680);CHECK(!strcmp(ae_files_query(s->files),"a"));
+    key(v,NX_KEY_A,NX_MOD_CONTROL);text(v,"replacement");CHECK(!strcmp(ae_files_query(s->files),"replacement"));
+    key(v,NX_KEY_U,NX_MOD_CONTROL);unicode(v,"a\xcc\x81" "b");key(v,NX_KEY_LEFT,0);key(v,NX_KEY_BACKSPACE,0);frame(v,1000,680);
+    CHECK(!strcmp(ae_files_query(s->files),"b"));
+    key(v,NX_KEY_U,NX_MOD_CONTROL);unicode(v,"\xf0\x9f\x91\xa9\xe2\x80\x8d\xf0\x9f\x92\xbb" "x");
+    key(v,NX_KEY_HOME,0);key(v,NX_KEY_DELETE,0);frame(v,1000,680);CHECK(!strcmp(ae_files_query(s->files),"x"));
+    key(v,NX_KEY_U,NX_MOD_CONTROL);text(v,"pointer");nx_rect r=get(v,ae_files_view_control_id(v,AE_FV_SEARCH)).bounds;
+    pointer(v,NX_EVENT_POINTER_DOWN,r.x+8,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+8,r.y+r.height/2,0);
+    text(v,"a");CHECK(!strcmp(ae_files_query(s->files),"apointer"));
+    pointer(v,NX_EVENT_POINTER_DOWN,r.x+r.width-3,r.y+r.height/2,0);
+    pointer(v,NX_EVENT_POINTER_MOVE,r.x+8,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+8,r.y+r.height/2,0);
+    text(v,"dragged");CHECK(!strcmp(ae_files_query(s->files),"dragged"));
+    key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);key(v,NX_KEY_N,NX_MOD_CONTROL);frame(v,1000,680);text(v,"abcd");
+    key(v,NX_KEY_HOME,0);key(v,NX_KEY_RIGHT,0);key(v,NX_KEY_END,NX_MOD_SHIFT);text(v,"Q");CHECK(!strcmp(s->name,"aQ"));
+    key(v,NX_KEY_A,NX_MOD_CONTROL);text(v,"bad");nx_event slash={.type=NX_EVENT_TEXT,.scalar='/'};
+    CHECK(ae_files_view_event(v,&slash));frame(v,1000,680);CHECK(s->name_bad && !strcmp(s->name,"bad"));
+    key(v,NX_KEY_A,NX_MOD_CONTROL);key(v,NX_KEY_BACKSPACE,0);text(v,"ignored");CHECK(s->name_bad && !strcmp(s->name,"bad"));
+    key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);CHECK(!s->name_bad && !s->name_size && !*s->message);
+    char full[AE_FILES_NAME+1];memset(full,'w',AE_FILES_NAME);full[AE_FILES_NAME]=0;text(v,full);CHECK(s->name_size==AE_FILES_NAME);
+    key(v,NX_KEY_A,NX_MOD_CONTROL);text(v,"small");CHECK(!s->name_bad && !strcmp(s->name,"small"));
+    key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);
 }
 static void naming_bounds(struct ae_files_view *v,float w,float h) {
     const enum ae_files_control controls[]={AE_FV_NAME,AE_FV_CANCEL,AE_FV_CONFIRM};nx_rect boxes[3];
@@ -89,6 +127,7 @@ int main(int argc,char **argv) {
     key(v,NX_KEY_L,NX_MOD_CONTROL);frame(v,1000,680);CHECK(ae_files_view_event(v,&start));end.ime_before=NX_IME_COMMIT_END;
     CHECK(ae_files_view_event(v,&end));frame(v,1000,680);CHECK(!s.query_bad && !strcmp(ae_files_query(s.files),"ab"));
     key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);
+    editing_cases(v,&s);
     const int sizes[][2]={{640,420},{1000,680},{1920,1080},{3840,2160}};unsigned frames=0;
     for(unsigned contrast=0;contrast<2;++contrast) for(unsigned german=0;german<2;++german)
     for(unsigned zoom=0;zoom<4;++zoom) for(unsigned grid=0;grid<2;++grid) for(size_t size=0;size<4;++size) {

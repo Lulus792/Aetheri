@@ -6,6 +6,11 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
+- App-owned field selections and SDK text geometry in the
+  [view](../../src/files/nexaui_view.c), with
+  [editing regressions](../../tests/test_files_view.c) and native naming/query
+  cases in the [driver](../../tools/test_files_view.py).
+  [Executed editing record](journal/2026-11-06-files-editing.md).
 - [Independent C17 AT-SPI client](../../tests/files_view_atspi.c),
   [native private-registry driver](../../tools/test_files_view.py) and
   [actual lost-acknowledgement view tests](../../tools/test_files_view_fault.py).

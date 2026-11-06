@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — native Files accessibility and uncertain-operation inspection.
+6 November 2026 — cursor and selection editing in own Files fields.
 
 ## Coordination
 
@@ -14,6 +14,38 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Own NexaUI Files now has visible-caret name/filter editing: arrows, Home/End,
+Shift selection, Ctrl+A/U, whole-grapheme Backspace/Delete and mouse click/
+Shift-click/drag. Typing atomically replaces the selected bytes after complete
+length/validation checks. Rejection retains the original draft until explicit
+clear. NexaUI supplies text geometry and painting; app drafts remain authoritative.
+The caret stays visible through a clipped horizontal viewport, without idle
+repainting or a second text/undo model. Filter changes retire visible action
+scopes even when the selected ordinal is unchanged. SDK/defaults are unchanged.
+
+All seven affected view/owner groups pass final Release (32.51s) and ASan/UBSan
+(65.57s), without skips. Native captures wait for an actual focus round trip
+after long input. Visual review also exposed a retained rejection notice after
+the field was cleared; successful recovery now clears that exact old notice.
+The original view fails the new middle-editing assertion. Native input corrects
+the exact created folder name, replaces a long file draft and a mouse-selected
+query, and retains original save/rename/move/unknown-operation/owner behavior.
+See the [editing record](journal/2026-11-06-files-editing.md) and
+[contract](../../spec/files.md#opt-in-nexaui-view).
+
+Audit checks 366 source inputs, 183 exports/114 native images, unchanged 28 frozen
+contracts/nineteen protected hashes and closed development records. The enforcing
+carrier is idle on tty1 with no build/private-registry actors, Aetheri service or
+seat0 session. No new DRM session or SDK adoption is implied. Full native
+accessible text/IME, final material/human/physical acceptance and normal
+session/admission/grant/recovery/removal remain open, alongside the remaining
+OS/apps/image/installer/updates/suspend/multimonitor/experiment-desktop objective.
+Next: finish remaining Files chrome interactions and accessible text integration,
+then continue the Terminal/editor and desktop view migrations. The old runtime
+stays quarantined; keep the full goal active.
+
+## Prior Files accessibility checkpoint
 
 Own NexaUI Files now supplies a localized accessible Information name and native
 invalid-field state/explanation. Unknown file-operation outcomes have read-only

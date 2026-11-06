@@ -113,10 +113,25 @@ The blocked list does not publish a required selected member that naming has
 scrolled out of view. Dialog controls remain keyboard reachable at minimum size
 and 200-percent text; information keeps its content above its Close action.
 
-Name/filter input is currently append-only, with whole-grapheme Backspace and
-Ctrl+U clearing. Complete untagged native commit batches are admitted atomically;
-filtered, incomplete, overflowed and tagged target/revision edits are refused.
-This is not full editable-text, caret/selection or external-IME support. Invalid
+Name/filter fields now support a visible caret, Left/Right and Home/End, Shift
+selection, Ctrl+A, whole-grapheme Backspace/Delete, click, Shift-click and mouse
+drag selection. Typing replaces the selected bytes. Ctrl+U clears the whole
+field, including its rejection state. A rejected edit retains the original bytes
+and blocks further text/deletion until that explicit clear; replacing a selection
+still checks the size and validity of the complete resulting value.
+
+Selections use the app's Unicode grapheme boundaries. NexaUI supplies full text
+layout, hit testing, selection rectangles and clipped rendering. The viewport
+scrolls to keep the caret visible rather than eliding an editable prefix/tail.
+Scale/layout changes retain the selection; focus loss cancels drag and hides the
+caret. There is no idle blink/repaint loop, second text model or undo stack.
+Changed filter contents retire visible-action scopes, even when the selected
+ordinal stays zero. Reopened naming dialogs reset their selection identity.
+
+Complete untagged native commit batches are admitted atomically; filtered,
+incomplete, overflowed and tagged target/revision edits are refused. Native
+EditableText/Text/caret transport, external IMEs, field undo/redo, clipboard
+shortcuts and word-navigation commands remain separate work. Invalid
 name/filter fields publish the native invalid state and a localized explanation.
 The Information icon has an English/German accessible name while retaining its
 visual `i`. The independent native checks below cover a bounded set of semantics;
@@ -132,6 +147,13 @@ effect, settle uncertainty or permit another mutation.
 `files.view` and `files.view_hidpi` exercise the real font at two raster densities,
 128 regular layouts each, stale snapshot/selection/dialog/draft/sidebar actions,
 complete-commit rejection and minimum-size modal keyboard/layout cases.
+Their editing cases also check middle insertion, selection replacement/deletion,
+combining/ZWJ boundaries, mouse selection, maximum-length replacement and retained
+rejection. The native workflow edits a middle selection before creating the exact
+folder, replaces a long name before file creation and replaces a mouse-selected
+query before rename. Long-name captures wait for a native Tab-to-Cancel and
+Shift-Tab return, so compositor socket acknowledgements are not mistaken for
+application input completion.
 `files.view_native` uses actual Wayland pointer/keyboard input on the private
 Aetheri compositor, real create/rename/move workers and exact saved bytes through
 the original Terminal/editor. It records native resize, German 200-percent inline

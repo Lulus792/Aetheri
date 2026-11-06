@@ -1,5 +1,16 @@
 # Decisions
 
+## Keep field selections with their original draft — 6 November 2026
+
+Own Files name/filter editing uses bounded byte offsets at the existing app
+grapheme boundaries. Reuse NexaUI text layout/hit-testing/selection painting;
+keep the app's name/filter as the authoritative value. Admit a complete
+replacement before changing it, retain rejection until explicit clear, and
+re-snap after a cluster-merging insertion. Filter changes retire action scopes
+even when the visible selection ordinal is unchanged. No competing undo/text
+model, native EditableText or IME adoption is implied. See the
+[executed editing record](journal/2026-11-06-files-editing.md).
+
 ## Make uncertain file operations inspect-only — 6 November 2026
 
 An uncertain filesystem outcome retains its original attempt. The NexaUI Files
