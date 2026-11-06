@@ -201,7 +201,7 @@ Files' direct-editor windows. Omitting it retains the original terminal.
 
 The shared host still owns the SDL Wayland window, native events/text input,
 borrowed-display clipboard connection, original PTY/session, editor handoff and
-readiness worker. NexaUI creates no second window, connection, parser or input
+readiness worker. NexaUI creates no second window, Wayland connection, parser or input
 queue. It paints the complete view: rectangles, labels, composition/paste-review
 overlays and the original model's visible cell grid. The host uploads one complete
 RGBA8 canvas to its existing renderer. There is no idle frame timer or automatic
@@ -222,9 +222,10 @@ preserves a 240x100 Unicode grid even when its combined text exceeds the SDK's
 65,536-byte per-object limit. Rows retain original content-incarnation identity;
 offscreen history is not copied into another text model. Only a live, visible,
 unselected input cursor is represented as a row caret. Other rows expose no
-invented caret or clipped selection. These semantics are not yet connected to
-the SDL host's native AT-SPI transport, and controls are not a native accessible
-terminal profile. Human assistive acceptance remains open.
+invented caret or clipped selection. The native transport below now publishes
+these read-only snapshots. They do not make the PTY an editable text field or
+establish a complete accessible terminal profile. Human assistive acceptance
+remains open.
 
 `terminal.view` checks actual pixels, fonts, styles, density, row snapshots,
 dense Unicode bounds and unchanged model state. `terminal.view_native`,
@@ -237,8 +238,50 @@ It preserves each old driver's result/logs. See the
 
 This first presenter retains the existing opaque geometry. The accepted compact
 chrome/glass design, startup mark with truthful system information, tabs/panes,
-native assistive integration, optimized presentation and physical acceptance
+complete assistive integration, optimized presentation and physical acceptance
 remain work; the design studio is not copied as fake shell output or operations.
+
+### Native read-only text transport
+
+The same pinned SDK provides `linux_accessibility_host.h` for an application
+that owns its window/event loop. The NexaUI Terminal now uses it to publish
+completed row snapshots and a localized press-only Close control. That command
+calls the original `user_close`: the editor still owns save/drop/back and the
+host still waits its original child and PTY. Native text/caret/selection mutation
+is refused; terminal editing remains input to the original running program.
+The ordinary SDL terminal does not gain a NexaUI dependency.
+
+Only the UI thread creates, publishes, pumps, routes and retires the bridge.
+Its geometry uses logical window size, observed SDL keyboard focus and shown/
+minimized state. Screen position is unavailable, so coordinates are window
+relative. Focus/visibility changes refresh the completed snapshot metadata even
+when no pixel redraw is required; an action request never fabricates focus.
+This does not identify physical occlusion or prove human-visible presentation.
+The current adapter does not acquire native/read focus on a bridge request;
+that request is not an observed focus change. Focus acquisition and a complete
+screenreader reading path remain later integration work.
+
+The existing readiness worker additionally polls the bus readiness descriptor
+and the earlier of clipboard/accessibility deadlines. The UI thread retains a
+CLOEXEC duplicate under a mutex; the worker copies it under that same lock and
+closes its own duplicate before acknowledging readiness. Reconnect cannot reuse
+the polled file object. No SDK call or snapshot crosses to that worker, and no
+new permanent thread/window or constant idle repaint is added. An unavailable
+optional bridge is retried using a bounded wait; ordinary terminal operation
+continues. A connected idle bridge uses its actual native wait/deadlines.
+The worker joins before bridge/context retirement.
+
+`terminal.view_atspi` compiles an independent C17/libatspi client against the
+existing verified private fixture. On the actual test compositor it checks real
+Unicode shell output, character counts/read-only state, refused mutations,
+bounded window-relative row geometry, focus loss/return, same-process bus
+replacement and localized Close/defunct old objects. The same client rejects
+a native window with its bridge disabled. This is scoped automated transport
+evidence, not an Orca/human screenreader, complete selection/caret/event/geometry,
+paste-review/preedit or normal-session acceptance. The other terminal workflow
+wrappers retain their narrow input/render scope; they do not test the native
+transport merely by linking it. See the
+[accessibility record](../brains/aetheri/journal/2026-11-06-terminal-access.md).
 
 ## Inputs and evidence
 

@@ -4,6 +4,24 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native Terminal accessibility — 6 November 2026
+
+- Original SDL host/worker and public SDK seam in
+  [terminal/main.c](../../src/terminal/main.c); native text contract in
+  [terminal.md](../../spec/terminal.md#native-read-only-text-transport).
+- [Independent C17 peer](../../tests/terminal_view_atspi.c) and
+  [private registry/real compositor workflow](../../tools/test_terminal_atspi.py),
+  including live wrong-focus and disabled-bridge negatives. Matching native
+  paste-review frame wait in [clipboard checks](../../tools/test_terminal_clipboard.py).
+  Initial failures, actual source/test scope and remaining assistive gates are
+  recorded in the [journal](journal/2026-11-06-terminal-access.md).
+- Inspected pinned NexaUI `e71ee30` public `linux_accessibility_host.h`, host
+  implementation and native reconnect/epoch/state code via local Git objects;
+  no SDK edit or pin upgrade. GNOME's current
+  [state getter and cache implementation](https://raw.githubusercontent.com/GNOME/at-spi2-core/main/atspi/atspi-accessible.c)
+  is reference evidence for distinguishing failed queries/defunct state from
+  window activity, not proof of the untraced earlier failure's exact cause.
+
 ## Explicit NexaUI Terminal development owner — 6 November 2026
 
 - Separate Terminal profile/CLI, original-root-to-user binding, shared normal/

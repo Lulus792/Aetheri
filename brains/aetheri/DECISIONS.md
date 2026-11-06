@@ -1,5 +1,17 @@
 # Decisions
 
+## Attach native text to the original Terminal host — 6 November 2026
+
+Use the pinned SDK's public Linux accessibility-host seam, retaining the original
+SDL window, UI thread, readiness worker, PTY and app models. Publish complete
+read-only visible rows and a localized Close that follows existing editor/child
+rules. Keep bridge calls on the UI thread and only duplicated CLOEXEC readiness
+handles under a mutex in the original worker. Native focus/visibility metadata
+is refreshed independently of repaint; no screen position is guessed. A new
+independent libatspi/private-registry test supplies scoped transport evidence.
+This does not promise full screenreader or production session acceptance. See
+the [record](journal/2026-11-06-terminal-access.md).
+
 ## Bind one explicit Terminal choice across both entry paths — 6 November 2026
 
 Add a separate frozen `aetheri-terminal-v1` development profile and additive

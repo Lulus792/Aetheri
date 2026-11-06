@@ -501,6 +501,12 @@ if(AETHERI_SETTINGS)
                         $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-terminal-nexaui> $<TARGET_FILE:aetheri-shell> $<TARGET_FILE:test_compositor_client>
                         "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
                     set_tests_properties(terminal.view_native terminal.view_clipboard terminal.view_ime PROPERTIES TIMEOUT 90)
+                    if(AETHERI_ATSPI_TEST_PREFIX)
+                        add_test(NAME terminal.view_atspi COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_terminal_atspi.py"
+                            $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-terminal-nexaui> $<TARGET_FILE:aetheri-shell>
+                            "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}" "${AETHERI_ATSPI_TEST_PREFIX}")
+                        set_tests_properties(terminal.view_atspi PROPERTIES TIMEOUT 90 LABELS "nexaui;accessibility")
+                    endif()
                 endif()
             endif()
         endif()

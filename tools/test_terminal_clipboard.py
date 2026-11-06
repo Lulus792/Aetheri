@@ -126,6 +126,12 @@ def main():
     def paste_review():
         control(47)
         wait(lambda: fields("VIEW ").get("review") == 1, "actual complete paste review")
+        frame=int(re.findall(r"^VIEW (\d+) .*\breview=1\b",log(),re.M)[-1])
+        # A log of the submitted view is not the compositor's frame callback.
+        # Only a later native event can confirm this actually drawn review.
+        wait(lambda: fields("VIEW ").get("review")==1 and
+             any(int(n)>=frame for n in re.findall(r"^DRAWN (\d+)$",log(),re.M)),
+             "matching native paste-review frame")
 
     def capture(label):
         wait(lambda: re.search(r"^DRAWN \d+$", log(), re.M), "native frame")

@@ -15,6 +15,41 @@ resolve its provenance or lifecycle obligations.
 
 ## Current update
 
+Native Terminal accessibility now uses the pinned SDK's public Linux host seam.
+The original SDL window/input/PTY/worker remains; only duplicated readiness
+handles enter that worker. Read-only visible rows, refused mutations, actual
+focus loss/return, same-process private bus replacement and localized Close have
+independent libatspi/private-registry evidence. Live wrong-focus and disabled-
+bridge negatives are rejected. Native objects retire before view/window teardown.
+The full app/UI suite passes all 74 groups in Release (321.31s) and ASan/UBSan
+(507.07s), without skips, at
+`/home/aetheri/build/terminal-access-adoption-y3qo6o3l`.
+
+The earlier 73/74 clipboard failure, native reader/registry fixture failures,
+untraced reconnect/ACTIVE failure and actual cleanup leak remain in the
+[accessibility record](journal/2026-11-06-terminal-access.md). The driver now waits
+for the matching native paste-review frame, closes its compositor control only
+after retiring children, and permits reader rediscovery only for a defunct
+frame within the original deadline. This is not a repair claim for the exact
+untraced earlier wire reply. A final retired-object diagnostic no longer reads
+optional object metadata; its independent native client is rechecked separately.
+
+The final audit joins 375 host/snapshot/guest inputs and 270 evidence exports,
+including 90 native images, with unchanged 28 frozen contracts/nineteen protected
+hashes and no sidecars. Both new native samples show zero CPU ticks and new
+frames across two idle seconds. The final native-client cases pass Release
+(10.97s) and ASan/UBSan (12.01s) against unchanged application bytes. The enforcing
+guest is idle on tty1 without build/private-registry actors, running Aetheri unit
+or seat0 session; closed development history is unchanged. The existing NexaUI
+catalogue received scoped transport evidence only. SDK 0.1.18/default SDL choices
+and public capabilities remain unchanged.
+Human/Orca reading, complete selection/caret/event/geometry, paste-review/preedit
+semantics, final design/font coverage and normal/physical session acceptance
+remain work. The full OS/apps/image/installer/update/hardware/experiment-desktop
+goal stays active; preserve the old quarantined runtime.
+
+## Prior Terminal development-owner checkpoint
+
 The development owner now accepts `--terminal-ui nexaui-owned` for both the
 normal shell window and Files' direct-editor window. Its separate frozen
 Terminal profile binds original Root/User selection, source/executable/SDK/cache

@@ -98,7 +98,9 @@ These are development consistency checks on mutable build-user inputs. They do
 not provide publisher trust, atomic image pins or loader admission. A live Files
 process still starts its later document children through its existing internal
 mutable program paths; per-document protected image admission remains separate.
-The new terminal keeps its SDL native input/process host. Native accessibility,
+The new terminal keeps its SDL native input/process host and now has scoped
+[native read-only text transport](terminal.md#native-read-only-text-transport).
+Complete accessibility,
 the accepted final chrome/material design and normal app/session admission remain
 work. See the [owner record](../brains/aetheri/journal/2026-11-06-terminal-owner.md).
 

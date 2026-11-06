@@ -7,6 +7,7 @@
 #include "composition.h"
 #ifdef AETHERI_TERMINAL_NEXAUI
 #include "nexaui_view.h"
+#include <nexaui/linux_accessibility_host.h>
 #endif
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -33,6 +34,10 @@ struct app {
 #ifdef AETHERI_TERMINAL_NEXAUI
     struct ae_terminal_view *view;SDL_Texture *view_texture;
     unsigned char *view_font,*view_bold;unsigned view_width,view_height;
+    nx_linux_accessibility_host *accessibility;
+    SDL_Mutex *accessibility_lock;int accessibility_fd;short accessibility_events;
+    uint64_t accessibility_deadline;bool accessibility_available,accessibility_focused;
+    SDL_WindowFlags accessibility_visibility;
 #endif
     SDL_Window *window;SDL_Renderer *renderer;TTF_Font *font;
     struct glyph glyphs[GLYPHS];size_t texture_bytes;uint64_t age;
@@ -58,6 +63,7 @@ static void paste_cancel(struct app *a,const char *message);
 static void clipboard_update(struct app *a);
 static void composition_cancel(struct app *a,bool reset);
 static bool composition_context(struct app *a);
+static void user_close(struct app *a);
 static volatile sig_atomic_t wake_writer=-1,stop_signal;
 static void signalled(int number) { int saved=errno;stop_signal=number;unsigned char byte=1;if (wake_writer>=0) (void)write(wake_writer,&byte,1);errno=saved; }
 static void notify(struct app *a) { unsigned char byte=1;if (a->wake[1]>=0) (void)write(a->wake[1],&byte,1); }
@@ -65,14 +71,29 @@ static int worker(void *data) {
     struct app *a=data;
     while (atomic_load(&a->active)) {
         short io=(short)((atomic_load(&a->readable) ? POLLIN : 0)|(atomic_load(&a->writeable) ? POLLOUT : 0));
-        struct pollfd fds[4]={{io ? a->session.pty.master : -1,io,0},{atomic_load(&a->watch_child) ? a->session.pty.pin : -1,POLLIN,0},{a->wake[0],POLLIN,0},{a->clipboard_fd,POLLIN,0}};
+        struct pollfd fds[5]={{io ? a->session.pty.master : -1,io,0},{atomic_load(&a->watch_child) ? a->session.pty.pin : -1,POLLIN,0},{a->wake[0],POLLIN,0},{a->clipboard_fd,POLLIN,0},{-1,0,0}};
         int timeout=-1;uint64_t deadline=atomic_load(&a->clipboard_deadline);
+#ifdef AETHERI_TERMINAL_NEXAUI
+        /* Only readiness crosses threads. Duplicate under the lock so a bridge
+           reconnect cannot close/reuse the object while poll still borrows it. */
+        SDL_LockMutex(a->accessibility_lock);
+        bool watch_failed=false;
+        if (a->accessibility_fd>=0) {fds[4].fd=fcntl(a->accessibility_fd,F_DUPFD_CLOEXEC,0);watch_failed=fds[4].fd<0;}
+        fds[4].events=a->accessibility_events;
+        if (a->accessibility_deadline && (!deadline || a->accessibility_deadline<deadline)) deadline=a->accessibility_deadline;
+        SDL_UnlockMutex(a->accessibility_lock);
+#endif
         if (deadline) {
             struct timespec t;
             if (clock_gettime(CLOCK_MONOTONIC,&t)) timeout=0;
             else { uint64_t now=(uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;timeout=deadline<=now ? 0 : deadline-now>(uint64_t)INT_MAX ? INT_MAX : (int)(deadline-now); }
         }
-        int n;do { n=poll(fds,4,timeout); } while (n<0 && errno==EINTR);
+        int n;
+#ifdef AETHERI_TERMINAL_NEXAUI
+        if (watch_failed) n=-1;else
+#endif
+        do { n=poll(fds,5,timeout); } while (n<0 && errno==EINTR);
+        if (fds[4].fd>=0) close(fds[4].fd);
         if (fds[2].revents) { unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {} }
         if (!atomic_load(&a->active)) break;
         SDL_Event event={.type=a->event};event.user.code=n<0 ? -1 : 0;
@@ -96,6 +117,62 @@ static void close_request(struct app *a) {
     if (result && saved!=ESRCH) { a->failed=true;a->message="Shell hangup could not be acknowledged"; }
 }
 static void error(struct app *a,const char *message) { fprintf(stderr,"terminal: %s: %s\n",message,SDL_GetError());a->failed=true;a->message=message;close_request(a); }
+#ifdef AETHERI_TERMINAL_NEXAUI
+static bool accessibility_result(nx_result result) {return result==NX_OK || result==NX_ERROR_UNSUPPORTED;}
+static void accessibility_publish(struct app *a) {
+    int w,h;if (!SDL_GetWindowSize(a->window,&w,&h)) {error(a,"accessibility geometry");return;}
+    SDL_WindowFlags flags=SDL_GetWindowFlags(a->window);
+    nx_linux_accessibility_geometry g={.width=w,.height=h,
+        .visible=!(flags&(SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED)),.focused=SDL_GetKeyboardFocus()==a->window};
+    nx_result result=nx_linux_accessibility_host_publish(a->accessibility,ae_terminal_view_context(a->view),&g);
+    if (!accessibility_result(result)) {error(a,"accessibility publication");return;}
+    bool available=result==NX_OK;
+    a->accessibility_visibility=flags&(SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED);
+    a->accessibility_focused=g.focused!=0;
+    if (a->diagnostics && available!=a->accessibility_available) printf("ACCESSIBILITY available=%d\n",available);
+    a->accessibility_available=available;
+}
+static void accessibility_prepare(struct app *a) {
+    if (!a->accessibility_available ||
+        a->accessibility_visibility!=(SDL_GetWindowFlags(a->window)&(SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED)) ||
+        a->accessibility_focused!=(SDL_GetKeyboardFocus()==a->window)) accessibility_publish(a);
+    if (a->failed) return;
+    int fd=-1,writable=0;uint32_t timeout=UINT32_MAX;
+    nx_result result=nx_linux_accessibility_host_prepare(a->accessibility,&fd,&writable,&timeout);
+    if (!accessibility_result(result)) {error(a,"accessibility dispatch");return;}
+    /* An unavailable optional bridge is retried without creating a polling
+       thread. A connected idle bridge retains its own actual wait/deadlines. */
+    if (result==NX_ERROR_UNSUPPORTED) timeout=1000;
+    size_t routed=0;int focus=0;
+    result=nx_linux_accessibility_host_route(a->accessibility,ae_terminal_view_context(a->view),&routed,&focus);
+    if (!accessibility_result(result)) {error(a,"accessibility routing");return;}
+    /* This read-only output and press-only Close expose no native-focus action.
+       A future focus request must not be mistaken for observed native focus. */
+    (void)focus;
+    if (routed) a->dirty=true;
+    struct timespec time;
+    if (clock_gettime(CLOCK_MONOTONIC,&time)) {error(a,"accessibility clock");return;}
+    uint64_t now=(uint64_t)time.tv_sec*1000u+(uint64_t)time.tv_nsec/1000000u;
+    uint64_t deadline=timeout==UINT32_MAX?0:now+timeout;
+    short events=(short)(POLLIN|(writable?POLLOUT:0));bool wake=false;
+    SDL_LockMutex(a->accessibility_lock);
+    bool same=fd<0 && a->accessibility_fd<0;
+    if (fd>=0 && a->accessibility_fd>=0) {
+        struct stat original,held;
+        same=!fstat(fd,&original) && !fstat(a->accessibility_fd,&held) && original.st_dev==held.st_dev && original.st_ino==held.st_ino;
+    }
+    int next=same?a->accessibility_fd:fd<0?-1:fcntl(fd,F_DUPFD_CLOEXEC,0);
+    bool failed=fd>=0 && next<0;
+    if (!failed) {
+        wake=!same || a->accessibility_events!=events ||
+            (deadline && (!a->accessibility_deadline || deadline<a->accessibility_deadline));
+        if (!same && a->accessibility_fd>=0) close(a->accessibility_fd);
+        a->accessibility_fd=next;a->accessibility_events=events;a->accessibility_deadline=deadline;
+    }
+    SDL_UnlockMutex(a->accessibility_lock);
+    if (failed) error(a,"accessibility readiness handle");else if (wake) notify(a);
+}
+#endif
 static int width(uint32_t code) { return code<=0x10ffff ? wcwidth((wchar_t)code) : -1; }
 static bool text_input_wanted(struct app *a) {
     return !a->session.closing && !a->session.pty.ended && !a->session.pty.eof && SDL_GetKeyboardFocus()==a->window && !(a->paste.size && a->paste.review);
@@ -300,6 +377,12 @@ static void draw(struct app *a) {
     label(a,a->editor ? tr(a,"Terminal · Aetheri editor","Terminal · Aetheri-Editor") : tr(a,"Terminal · Aetheri shell","Terminal · Aetheri-Shell"),16,10,0xeff3fb);
     label(a,"×",(float)w-32,10,0xeff3fb);
 #ifdef AETHERI_TERMINAL_NEXAUI
+    nx_widget_desc close={.semantic={.id=3,.parent_id=1,.role=NX_ROLE_BUTTON,
+        .bounds={(float)w-48,0,48,a->bar_height},.name={tr(a,"Close window","Fenster schließen"),0},
+        .actions=NX_ACTION_PRESS},.flags=NX_WIDGET_INTERACTIVE};
+    close.semantic.name.length=strlen(close.semantic.name.data);nx_interaction_state interaction;
+    if (nx_widget_register(ae_terminal_view_context(a->view),&close,&interaction)!=NX_OK) {error(a,"accessible close control");return;}
+    bool accessible_close=interaction.clicked!=0;
     if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended)) { error(a,"NexaUI grid");return; }
 #else
     for (unsigned y=0;y<a->session.model->rows;++y) {
@@ -357,11 +440,15 @@ static void draw(struct app *a) {
 #endif
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
 #ifdef AETHERI_TERMINAL_NEXAUI
+    accessibility_publish(a);
     if (a->diagnostics) printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);
 #endif
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
     if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->session.model->cols,a->session.model->rows,a->session.model->x,a->session.model->y,a->session.model->history_count,a->session.model->view,(unsigned long long)a->session.model->sequence,a->session.closing,a->session.pty.ended,a->session.pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->session.model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (accessible_close) user_close(a);
+#endif
 }
 static void flush_input(struct app *a) {
     if (ae_terminal_session_flush(&a->session)) error(a,"PTY input");
@@ -665,6 +752,9 @@ static unsigned char *load_view_font(const char *path,size_t *size) {
 #endif
 int main(int argc,char **argv) {
     struct app a={.session=AE_TERMINAL_SESSION_INIT,.wake={-1,-1},.clipboard_fd=-1,.paste_pressed=-1,.running=true,.dirty=true,.font_points=16,.bar_height=40};
+#ifdef AETHERI_TERMINAL_NEXAUI
+    a.accessibility_fd=-1;
+#endif
     const char *font=NULL,*cache=NULL,*shell=NULL,*editor=NULL,*leaf=NULL;
 #ifdef AETHERI_TERMINAL_NEXAUI
     const char *bold_font="/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf";bool bold_selected=false;
@@ -703,6 +793,8 @@ int main(int argc,char **argv) {
     size_t regular_size=0,bold_size=0;
     a.view_font=load_view_font(font,&regular_size);a.view_bold=load_view_font(bold_font,&bold_size);
     if (!a.view_font || !a.view_bold || !ae_terminal_view_create(a.view_font,regular_size,a.view_bold,bold_size,&a.view)) {error(&a,"NexaUI fonts/view");goto cleanup;}
+    a.accessibility_lock=SDL_CreateMutex();
+    if (!a.accessibility_lock || nx_linux_accessibility_host_create(&a.accessibility)!=NX_OK) {error(&a,"accessibility host setup");goto cleanup;}
     if (a.diagnostics) puts("PRESENTATION nexaui 0.1.18 sdl-host rgba8");
 #endif
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);
@@ -717,11 +809,20 @@ int main(int argc,char **argv) {
     if (a.diagnostics) printf("READY wayland opengles2 %s=%d\n",a.editor ? "editor" : "shell",a.session.pty.pid);
     while (a.running) {
         if (a.dirty && !a.failed) draw(&a);
+#ifdef AETHERI_TERMINAL_NEXAUI
+        if (!a.failed) accessibility_prepare(&a);
+        if (a.dirty && !a.failed) continue;
+#endif
         if (!a.running) break;
         SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);clipboard_update(&a);text_input_sync(&a);
     }
 cleanup:
     if (a.worker) { atomic_store(&a.active,false);notify(&a);SDL_SignalSemaphore(a.ack);SDL_WaitThread(a.worker,NULL); }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (nx_linux_accessibility_host_destroy(&a.accessibility)!=NX_OK) a.failed=true;
+    if (a.accessibility_fd>=0) close(a.accessibility_fd);
+    SDL_DestroyMutex(a.accessibility_lock);
+#endif
     if (ae_clipboard_close(&a.clipboard)) a.failed=true;
     ae_terminal_paste_clear(&a.paste);wake_writer=-1;
     if (!a.session.pty.ended || !a.session.pty.eof) {

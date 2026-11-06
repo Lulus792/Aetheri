@@ -24,6 +24,16 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November native Terminal transport update: the existing Linux accessibility-
+host API now publishes our actual read-only row snapshots from the SDL window.
+The UI thread retains bridge calls, while the original worker polls duplicated
+readiness objects. Independent native text/focus/reconnect/Close and wrong-focus/
+disabled negatives pass; the complete 74-group app/UI suite passes Release and
+ASan/UBSan. See the [record](../journal/2026-11-06-terminal-access.md), including
+preserved initial failures and scoped acceptance. No SDK upgrade, default change
+or new handoff is implied. Human reading and complete assistive/design/hardware
+acceptance remain open.
+
 6 November Terminal owner update: `--terminal-ui nexaui-owned` now selects the
 tested presenter for both normal Terminal and Files' direct-editor windows.
 The separate original-owner profile retains exact source/SDK/font bindings,
