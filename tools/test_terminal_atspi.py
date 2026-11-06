@@ -20,14 +20,16 @@ def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
     assert len(sys.argv) in (7,8)
     server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
-    starter=Path(sys.argv[7]).resolve() if len(sys.argv)==8 else None
+    query_concurrent=len(sys.argv)==8 and sys.argv[7]=='--query-concurrent'
+    query_stress=query_concurrent or (len(sys.argv)==8 and sys.argv[7]=='--query-stress')
+    starter=Path(sys.argv[7]).resolve() if len(sys.argv)==8 and not query_stress else None
     assert os.getuid()==1000
     assets=json.loads((fixture/'inputs.json').read_text())
     for n,h in assets['files'].items():assert digest(fixture/n.lstrip('/'))==h,n
     pin=json.loads((ROOT/'spec/ui-inputs.json').read_text())['terminal_font']
     for f in (pin,pin['bold']):
         assert digest(Path(f['path']))==f['sha256'] and digest(Path(f['license_path']))==f['license_sha256']
-    root=Path(tempfile.mkdtemp(prefix='terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
+    root=Path(tempfile.mkdtemp(prefix='terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
     for n in ('runtime','cache','captures'):(root/n).mkdir(mode=0o700)
     client=root/'client';sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
@@ -42,6 +44,12 @@ def main():
         'DBUS_SESSION_BUS_ADDRESS':address,'AT_SPI_BUS_ADDRESS':address,'GSETTINGS_BACKEND':'memory',
         'LD_LIBRARY_PATH':str(fixture/'usr/lib64'),'LIBGL_ALWAYS_SOFTWARE':'1','GALLIUM_DRIVER':'llvmpipe','LP_NUM_THREADS':'2',
         'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'}
+    candidate=None
+    if os.environ.get('AETHERI_TEST_SDL_CANDIDATE'):
+        assert query_stress
+        candidate=Path(os.environ['AETHERI_TEST_SDL_CANDIDATE']).resolve()
+        assert candidate.read_bytes()[:4]==b'\x7fELF' and digest(candidate)==os.environ['AETHERI_TEST_SDL_SHA256']
+        env['LD_LIBRARY_PATH']=str(candidate.parent)+':'+env['LD_LIBRARY_PATH']
     for n in ('DISPLAY','WAYLAND_SOCKET','NO_AT_BRIDGE','DBUS_STARTER_ADDRESS','DBUS_STARTER_BUS_TYPE'):env.pop(n,None)
     children=[];streams=[];pins=[];images=[];peers=[];actors=[]
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
@@ -98,6 +106,10 @@ def main():
         bus,reg=registry('first')
         server=start(server_bin,'server','--headless',env['WAYLAND_DISPLAY'],root/'captures',right.fileno(),pass_fds=(right.fileno(),));right.close()
         wait(lambda:'READY ' in log('server'),'compositor')
+        monitor=None
+        if query_concurrent:
+            monitor=start(Path('/usr/bin/busctl'),'bus-wire','--address='+address,'--json=short','monitor')
+            wait(lambda:ready() and '"member":"NameHasOwner"' in log('bus-wire'),'private bus monitor observes actual query')
         app=start(terminal,'app',*args)
         wait(lambda:'ACCESSIBILITY available=1\n' in log() and 'FOCUS 1\n' in log() and 'NEXAUI_FRAME ' in log(),'native frame/focus/transport')
         if starter:
@@ -180,11 +192,38 @@ def main():
         before=accepted();peer(app.pid,'focus','row-é中','native-read-focus')
         wait(lambda:reading()>0,'actual native reading focus');assert accepted()==before
         maps=Path(f'/proc/{app.pid}/maps').read_text();assert 'libnexaui.so.0.1.18' in maps and 'libSDL3.so' in maps
+        if candidate:assert str(candidate) in maps and digest(candidate)==os.environ['AETHERI_TEST_SDL_SHA256']
         (root/'app-maps.txt').write_text(maps)
         shell_pid=int(re.search(r'^READY .*shell=(\d+)',log(),re.M)[1]);shell_pin=os.pidfd_open(shell_pid);pins.append(shell_pin)
         assert Path(f'/proc/{shell_pid}/exe').resolve()==shell
         actors.append({'pid':app.pid,'exe':str(terminal),'sha256':digest(Path(f'/proc/{app.pid}/exe')),'shell':shell_pid})
+        if candidate:actors[-1]['sdl_candidate']={'path':str(candidate),'sha256':digest(candidate)}
         capture('independent Unicode text queries on actual native terminal')
+        if query_stress:
+            # A bounded transition workload, not retries of a failed query. Any
+            # failed native operation stops the original task and is retained.
+            for cycle in range(16):
+                loss=log().count('FOCUS 0\n');gain=log().count('FOCUS 1\n')
+                event('D');wait(lambda:log().count('FOCUS 0\n')==loss+1,'query-workload original focus loss')
+                peer(app.pid,'unfocused','row-é中',f'cycle-{cycle}-unfocused')
+                event('A');wait(lambda:log().count('FOCUS 1\n')==gain+1,'query-workload original focus return')
+                if query_concurrent:
+                    batch=[(f'cycle-{cycle}-stream-{i}',start(client,f'cycle-{cycle}-stream-{i}',app.pid,'active-wire-stream','row-é中')) for i in range(4)]
+                    for name,p in batch:
+                        status=p.wait(timeout=10);children.remove(p);peers.append({'name':name,'exit':status})
+                        assert status==0,(name,root,log(name))
+                else:peer(app.pid,'active-wire-stream','row-é中',f'cycle-{cycle}-stream')
+            capture('same original process after sixteen native focus/query transitions')
+            key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
+            assert select.select([shell_pin],[],[],0)[0]
+            if monitor:
+                monitor.terminate();status=monitor.wait(timeout=8);children.remove(monitor);assert status in (0,-signal.SIGTERM)
+            retire(server,0);retire(reg,-signal.SIGTERM);retire(bus,0)
+            assert all(select.select([p],[],[],0)[0] for p in pins)
+            for path in root.glob('*.log'):assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',path.read_text(errors='replace')),path
+            result={'result':'passed','images':images,'peers':peers,'actors':actors,'cycles':16,'concurrent_clients':4 if query_concurrent else 1,'client_sha256':digest(client),
+                    'scope':'bounded native focus/128-state-query/read-only-text transitions, not historical-failure root cause or human acceptance'}
+            (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}));return
         event('D');wait(lambda:'FOCUS 0\n' in log(),'native focus loss')
         peer(app.pid,'unfocused','row-é中','unfocused')
         peer(app.pid,'focused-now','row-é中','wrong-focus',1)

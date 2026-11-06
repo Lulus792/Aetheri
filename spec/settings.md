@@ -110,7 +110,38 @@ dump identifies that instruction and null base. The narrow
 the absent object while retaining existing cleanup when it exists. The builder
 checks archive/patch/preimage/result hashes. No clipboard protocol is advertised
 merely to avoid the client bug, and clipboard/offer acceptance remains separate.
-This is the only adopted SDL source patch.
+The later queue/arm and Linux wake-descriptor work is recorded below; these
+are separate corrections, not a reason to advertise missing protocols.
+
+## Native wakeup correction
+
+The private builder also applies an exact reviewed SDL 3.4.20 queue/arm
+correction and Linux Wayland wake descriptor patch. A queued worker event is
+checked again after native wakeup is armed. The Linux backend uses one
+nonblocking, close-on-exec eventfd instead of allocating a Wayland sync callback
+for each wakeup. The main thread retains event dispatch; app workers must still
+end before SDL device teardown. This adds no timer, background process or public
+API/ABI. Other platform backends are unchanged and are not accepted by this test.
+
+The builder verifies archive/patch/source preimages and results. GNU patch
+2.8-4.fc44 is a pinned, signature-checked private build tool extracted from an
+RPM without installation or scriptlets. Its GPL-3.0-or-later license is retained
+in the build workspace; it is not linked into or required by the application.
+See [UI inputs](ui-inputs.json) and the
+[executed investigation](../brains/aetheri/journal/2026-11-06-sdl-wakeup.md).
+
+On the unprivileged disposable Linux carrier, the controlled regression is:
+
+```sh
+python3 tools/test_sdl_wakeup.py CACHE REVIEWED_UI_WORK FRESH_TEST_WORK TEST_COMPOSITOR
+```
+
+The tool checks the reviewed complete UI workspace, builds two private SDKs with
+the same Linux backend and one-shot gate, and requires the original queue logic
+to miss the queued event while the corrected logic delivers it. It separately
+checks repeated descriptor retirement and injected eventfd creation failure.
+The gated SDKs are test fixtures, never application profiles. Actual app-suite
+and physical acceptance are separate; use the journal's latest executed result.
 
 HarfBuzz builds core shaping/FreeType integration, without utilities/tests/docs,
 subset/raster/vector/GPU or optional integrations. FreeType disables optional

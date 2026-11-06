@@ -272,6 +272,17 @@
       "evidence": "https://packages.fedoraproject.org/",
       "license": "Apache-2.0",
       "use": "guest EGL/software-renderer runtime"
+    },
+    {
+      "name": "patch-2.8-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/patch/2.8/4.fc44/data/signed/6d9f90a6/x86_64/patch-2.8-4.fc44.x86_64.rpm",
+      "size": 118015,
+      "algorithm": "sha256",
+      "digest": "1b723c3a261ef0bd59b035dcc9cea28d4d407e63b0c687f0230c065f308392bb",
+      "version": "patch-2.8-4.fc44.x86_64",
+      "evidence": "https://packages.fedoraproject.org/pkgs/patch/patch/fedora-44.html",
+      "use": "private build tool; RPM payload read without package installation or scriptlets; not an Aetheri runtime dependency",
+      "license": "GPL-3.0-or-later"
     }
   ],
   "terminal_font": {
@@ -316,5 +327,53 @@
     "original_sha256": "5973a4382e8aa1f29444f2b7f6f83f3d3581d1661c7404093431e117f022ab55",
     "patched_sha256": "f973c1c2555d1e7ad0855a8479ebbaee52ccee1cb9744f314a7b12b66d6fcec6",
     "reason": "A compositor may omit wl_data_device_manager. Keyboard leave must not dereference the absent data device. Retain normal offer cleanup when present."
+  },
+  "event_wakeup_patch": {
+    "path": "patches/sdl3-3.4.20-event-wakeup.patch",
+    "sha256": "63d2149ed88ce43b0068f91eb52e7a535b2c619d78218347c406c3ea8b0e8c74",
+    "source": "src/events/SDL_events.c",
+    "original_sha256": "ef6301f9416c6960c5f37fc9d8ed38a5624fbd246fa4da0ac02a8351bcb172d7",
+    "patched_sha256": "ebc1dc6d10ee7e99d572f821651265324ef414d600b43b929a478329b4d52906",
+    "reason": "Recheck the queue after arming native wakeup. A worker can enqueue between the first empty check and wakeup arming; the old native wait then strands an already queued event. Controlled native old/candidate proof and actual independent Terminal query workloads support this correction. SDL version and Zlib license remain unchanged."
+  },
+  "build_tools": {
+    "patch": {
+      "input": "patch-2.8-4.fc44.x86_64.rpm",
+      "nevra": "patch-0:2.8-4.fc44.x86_64",
+      "signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+      "binary": "/usr/bin/patch",
+      "binary_sha256": "40ed91c73a437bafad29a69d2bcbfc0fd284ca05ba7ea68a3d5b1ed003c51ee4",
+      "binary_size": 165552,
+      "licenses": [
+        "/usr/share/licenses/patch/COPYING"
+      ],
+      "runtime": {
+        "glibc": "glibc-0:2.43-9.fc44.x86_64",
+        "libattr": "libattr-0:2.5.2-8.fc44.x86_64"
+      },
+      "runtime_artifacts": {
+        "/usr/lib64/libattr.so.1.1.2502": "fe2c4f5b45a62b55a84d7c16042997b9d6402af1a4d0a4b1b61dd550d27219c0",
+        "/usr/lib64/libc.so.6": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8"
+      }
+    }
+  },
+  "wayland_wakeup_patch": {
+    "path": "patches/sdl3-3.4.20-wayland-wakeup-fd.patch",
+    "sha256": "15b82fc921cca53d2c71e2257857729c50866c00c9fc52766f5079a8f781d9e0",
+    "sources": {
+      "src/video/wayland/SDL_waylandevents.c": {
+        "original_sha256": "f973c1c2555d1e7ad0855a8479ebbaee52ccee1cb9744f314a7b12b66d6fcec6",
+        "patched_sha256": "39dccd0ab532495baf59079f9b21e1f46120fa280eec202f8589658353a18f57"
+      },
+      "src/video/wayland/SDL_waylandvideo.c": {
+        "original_sha256": "2020e11f1d2b24bc4132363233e222b9d9f308fffae244838a43efdfc2bebea5",
+        "patched_sha256": "acbec0bd8504368d2cc2ec63070957bf423c8b6e4932f848d675c1e941dd7b1f"
+      },
+      "src/video/wayland/SDL_waylandvideo.h": {
+        "original_sha256": "a538db500621b7283d34ed5eab19819bc54a31f515cc74e3b9d619ea8704603e",
+        "patched_sha256": "c91b056734d3341669094433cfb1b0a2842250132bb3653327fdf57c2645d518"
+      }
+    },
+    "reason": "Linux-only private wake eventfd replaces per-wake Wayland callbacks. Creation is failure-checked, close-on-exec and nonblocking; device deletion closes the owned descriptor. Read/write waits include the wake FD and cancel a prepared display read before returning. Other platforms retain their existing backend. Candidate: acceptance pending."
   }
 }

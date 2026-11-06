@@ -4,6 +4,27 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## SDL native wakeup investigation — 6–7 November 2026
+
+- Pinned SDL 3.4.20 archive, `src/events/SDL_events.c` and Wayland wait/device
+  sources: actual source preimages and reviewed patch results are recorded in
+  [UI inputs](../../spec/ui-inputs.json). The diagnostic trace/private bus and
+  controlled before/after evidence are scoped in the
+  [investigation record](journal/2026-11-06-sdl-wakeup.md). They establish one
+  queue/arm race, not the cause of every historical native query failure.
+- [SDL_PushEvent](https://wiki.libsdl.org/SDL3/SDL_PushEvent), read 7 November:
+  event insertion is thread-safe and copies the event; a successful insertion
+  does not independently prove a native waiter has woken.
+- [Linux eventfd](https://man7.org/linux/man-pages/man2/eventfd.2.html), read
+  7 November: nonblocking counter readiness, close-on-exec, poll support and
+  final-close resource lifetime support the Linux-only private wake candidate.
+  Exact native lifetime/failure acceptance remains in the executed record.
+- [Fedora patch 2.8-4](https://packages.fedoraproject.org/pkgs/patch/patch/fedora-44.html)
+  and the pinned signed RPM: exact signer, binary, runtime and license evidence
+  are recorded in UI inputs/build output. The tool is privately extracted as
+  data, not installed or distributed as an Aetheri runtime. No current CVE-free
+  claim follows from that review.
+
 ## Native Terminal tab selection — 6 November 2026
 
 - Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079`, public

@@ -29,17 +29,35 @@ static AtspiAccessible *target(AtspiAccessible *desktop,unsigned long pid,double
         pump();
     }while(now()<end);return NULL;
 }
+static char find_trace[64][256];static size_t find_trace_count;static int find_trace_overflow;
+static void find_error(AtspiAccessible *a,const char *operation,const char *wanted,unsigned depth,int index,int count,const GError *error) {
+    AtspiObject *o=a?ATSPI_OBJECT(a):NULL;
+    fprintf(stderr,"FIND_FAILURE op=%s bus=%s path=%s wanted=%s depth=%u index=%d count=%d domain=%s code=%d error=%s\n",
+        operation,o && o->app && o->app->bus_name?o->app->bus_name:"?",o && o->path?o->path:"?",wanted,depth,index,count,
+        error?g_quark_to_string(error->domain):"none",error?error->code:0,error?error->message:"none");
+}
 static AtspiAccessible *find(AtspiAccessible *a,const char *name,unsigned depth) {
+    if(!depth) {find_trace_count=0;find_trace_overflow=0;}
     if(!a || depth>4) return NULL;
     atspi_accessible_clear_cache(a);GError *e=NULL;char *s=atspi_accessible_get_name(a,&e);
-    int same=!e && s && !strcmp(s,name);g_free(s);if(e) {g_error_free(e);return NULL;}
+    AtspiObject *object=ATSPI_OBJECT(a);
+    if(find_trace_count<64) snprintf(find_trace[find_trace_count++],sizeof(find_trace[0]),"depth=%u bus=%s path=%s name=%s error=%s",depth,
+        object->app && object->app->bus_name?object->app->bus_name:"?",object->path?object->path:"?",s?s:"?",e?e->message:"none");
+    else find_trace_overflow=1;
+    int same=!e && s && !strcmp(s,name);g_free(s);if(e) {find_error(a,"GetName",name,depth,-1,-1,e);g_error_free(e);return NULL;}
     if(same) return g_object_ref(a);
-    int n=atspi_accessible_get_child_count(a,&e);if(e) {g_error_free(e);return NULL;}
-    if(n<0 || n>128) return NULL;
+    int n=atspi_accessible_get_child_count(a,&e);if(e) {find_error(a,"GetChildCount",name,depth,-1,n,e);g_error_free(e);return NULL;}
+    if(n<0 || n>128) {find_error(a,"ChildCountBounds",name,depth,-1,n,NULL);return NULL;}
     for(int i=0;i<n;++i) {
         AtspiAccessible *c=atspi_accessible_get_child_at_index(a,i,&e);
-        if(e) {g_error_free(e);return NULL;}
+        if(e) {find_error(a,"GetChildAtIndex",name,depth,i,n,e);g_error_free(e);return NULL;}
+        if(!c) find_error(a,"NullChild",name,depth,i,n,NULL);
         AtspiAccessible *f=find(c,name,depth+1);if(c) g_object_unref(c);if(f) return f;
+    }
+    if(!depth) {
+        find_error(a,"NameNotFound",name,depth,-1,n,NULL);
+        for(size_t i=0;i<find_trace_count;++i) fprintf(stderr,"FIND_TRACE %s\n",find_trace[i]);
+        fprintf(stderr,"FIND_TRACE_END count=%zu clipped=%d\n",find_trace_count,find_trace_overflow);
     }
     return NULL;
 }

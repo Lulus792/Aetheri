@@ -1,0 +1,211 @@
+--- a/src/video/wayland/SDL_waylandevents.c
++++ b/src/video/wayland/SDL_waylandevents.c
+@@ -67,6 +67,11 @@
+ #include <errno.h>
+ #include <sys/mman.h>
+ #include <unistd.h>
++#ifdef SDL_PLATFORM_LINUX
++#include <sys/eventfd.h>
++#include <poll.h>
++#include <time.h>
++#endif
+ #include <xkbcommon/xkbcommon-compose.h>
+ #include <xkbcommon/xkbcommon.h>
+ 
+@@ -481,6 +486,7 @@
+     return repeat_info->is_initialized && repeat_info->is_key_down && key == repeat_info->key;
+ }
+ 
++#ifndef SDL_PLATFORM_LINUX
+ static void sync_done_handler(void *data, struct wl_callback *callback, uint32_t callback_data)
+ {
+     // Nothing to do, just destroy the callback
+@@ -490,15 +496,87 @@
+ static struct wl_callback_listener sync_listener = {
+     sync_done_handler
+ };
++#endif
+ 
+ void Wayland_SendWakeupEvent(SDL_VideoDevice *_this, SDL_Window *window)
+ {
+     SDL_VideoData *d = _this->internal;
+ 
++#ifdef SDL_PLATFORM_LINUX
++    // Wake the client directly, without allocating a protocol callback that can
++    // outlive the last UI event or depend on a compositor reply during shutdown.
++    (void)window;
++    int result;
++    do {
++        result = eventfd_write(d->wakeup_fd, 1);
++    } while (result < 0 && errno == EINTR);
++    SDL_assert(result == 0 || errno == EAGAIN); // An existing counter already wakes.
++#else
+     // Queue a sync event to unblock the main event queue if it's being waited on.
+     struct wl_callback *cb = wl_display_sync(d->display);
+     wl_callback_add_listener(cb, &sync_listener, NULL);
+     WAYLAND_wl_display_flush(d->display);
++#endif
++}
++
++static int Wayland_WaitReadiness(SDL_VideoData *d, int flags, Sint64 timeoutNS, bool *woke)
++{
++    *woke = false;
++#ifdef SDL_PLATFORM_LINUX
++    if (d->wakeup_fd < 0) {
++        errno = EBADF;
++        return -1;
++    }
++    struct pollfd fds[2] = {
++        { WAYLAND_wl_display_get_fd(d->display), 0, 0 },
++        { d->wakeup_fd, POLLIN, 0 }
++    };
++    if (flags & SDL_IOR_READ) {
++        fds[0].events |= POLLIN | POLLPRI;
++    }
++    if (flags & SDL_IOR_WRITE) {
++        fds[0].events |= POLLOUT;
++    }
++    int result;
++#ifdef HAVE_PPOLL
++    struct timespec ts, *timeout = NULL;
++    if (timeoutNS >= 0) {
++        ts.tv_sec = SDL_NS_TO_SECONDS(timeoutNS);
++        ts.tv_nsec = timeoutNS - SDL_SECONDS_TO_NS(ts.tv_sec);
++        timeout = &ts;
++    }
++    result = ppoll(fds, 2, timeout, NULL);
++#else
++    int timeoutMS = -1;
++    if (timeoutNS >= 0) {
++        timeoutMS = timeoutNS >= SDL_MS_TO_NS(SDL_MAX_SINT32) ? SDL_MAX_SINT32 :
++                    (int)SDL_NS_TO_MS(timeoutNS + (SDL_NS_PER_MS - 1));
++    }
++    result = poll(fds, 2, timeoutMS);
++#endif
++    // Preserve the caller's existing no-retry/EINTR and monotonic-budget path.
++    if (result <= 0) {
++        return result;
++    }
++    if (fds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
++        errno = EBADF;
++        return -1;
++    }
++    if (fds[1].revents & POLLIN) {
++        eventfd_t count;
++        do {
++            result = eventfd_read(d->wakeup_fd, &count);
++        } while (result < 0 && errno == EINTR);
++        if (result < 0 && errno != EAGAIN) {
++            return -1;
++        }
++        *woke = true;
++        return 1;
++    }
++    return fds[0].revents ? 1 : 0;
++#else
++    return SDL_IOReady(WAYLAND_wl_display_get_fd(d->display), flags, timeoutNS);
++#endif
+ }
+ 
+ int Wayland_WaitEventTimeout(SDL_VideoDevice *_this, Sint64 timeoutNS)
+@@ -506,8 +584,8 @@
+     SDL_VideoData *d = _this->internal;
+     SDL_WaylandSeat *seat;
+     Uint64 start = SDL_GetTicksNS();
+-    const int display_fd = WAYLAND_wl_display_get_fd(d->display);
+     int ret;
++    bool woke = false;
+     bool poll_alarm_set = false;
+ 
+ #ifdef SDL_USE_IME
+@@ -545,7 +623,11 @@
+ 
+         if (ret == -1 && errno == EAGAIN) {
+             // Unable to write to the socket; poll until the socket can be written to, it times out, or is interrupted.
+-            ret = SDL_IOReady(display_fd, SDL_IOR_WRITE | SDL_IOR_NO_RETRY, timeoutNS);
++            ret = Wayland_WaitReadiness(d, SDL_IOR_WRITE | SDL_IOR_NO_RETRY, timeoutNS, &woke);
++            if (woke) {
++                WAYLAND_wl_display_cancel_read(d->display);
++                return 1;
++            }
+ 
+             if (ret <= 0) {
+                 // The poll operation timed out or experienced an error, so see if there are any events to read without waiting.
+@@ -567,7 +649,11 @@
+         }
+ 
+         // Use SDL_IOR_NO_RETRY to catch EINTR.
+-        ret = SDL_IOReady(display_fd, SDL_IOR_READ | SDL_IOR_NO_RETRY, timeoutNS);
++        ret = Wayland_WaitReadiness(d, SDL_IOR_READ | SDL_IOR_NO_RETRY, timeoutNS, &woke);
++        if (woke) {
++            WAYLAND_wl_display_cancel_read(d->display);
++            return 1;
++        }
+         if (ret <= 0) {
+             // Timeout or error, cancel the read.
+             WAYLAND_wl_display_cancel_read(d->display);
+--- a/src/video/wayland/SDL_waylandvideo.c
++++ b/src/video/wayland/SDL_waylandvideo.c
+@@ -42,6 +42,11 @@
+ #include <fcntl.h>
+ #include <sys/types.h>
+ #include <unistd.h>
++#ifdef SDL_PLATFORM_LINUX
++#include <sys/eventfd.h>
++#include <poll.h>
++#include <time.h>
++#endif
+ #include <errno.h>
+ #include <xkbcommon/xkbcommon.h>
+ 
+@@ -476,6 +481,12 @@
+ static void Wayland_DeleteDevice(SDL_VideoDevice *device)
+ {
+     SDL_VideoData *data = device->internal;
++#ifdef SDL_PLATFORM_LINUX
++    if (data->wakeup_fd >= 0) {
++        close(data->wakeup_fd);
++        data->wakeup_fd = -1;
++    }
++#endif
+     if (data->display && !data->display_externally_owned) {
+         WAYLAND_wl_display_disconnect(data->display);
+         SDL_ClearProperty(SDL_GetGlobalProperties(), SDL_PROP_GLOBAL_VIDEO_WAYLAND_WL_DISPLAY_POINTER);
+@@ -598,6 +609,9 @@
+         return NULL;
+     }
+ 
++#ifdef SDL_PLATFORM_LINUX
++    data->wakeup_fd = -1;
++#endif
+     data->initializing = true;
+     data->display = display;
+     data->display_externally_owned = display_is_external;
+@@ -622,6 +636,15 @@
+     }
+ 
+     device->internal = data;
++#ifdef SDL_PLATFORM_LINUX
++    data->wakeup_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
++    if (data->wakeup_fd < 0) {
++        const int saved_errno = errno;
++        Wayland_DeleteDevice(device);
++        SDL_SetError("Wayland wakeup eventfd failed: %s", strerror(saved_errno));
++        return NULL;
++    }
++#endif
+ 
+     // Set the function pointers
+     device->VideoInit = Wayland_VideoInit;
+--- a/src/video/wayland/SDL_waylandvideo.h
++++ b/src/video/wayland/SDL_waylandvideo.h
+@@ -48,6 +48,9 @@
+ 
+ struct SDL_VideoData
+ {
++#ifdef SDL_PLATFORM_LINUX
++    int wakeup_fd; // Owned nonblocking, close-on-exec eventfd; no server callback.
++#endif
+     struct wl_display *display;
+     struct wl_registry *registry;
+     struct wl_compositor *compositor;

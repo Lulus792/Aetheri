@@ -1,0 +1,16 @@
+--- a/src/events/SDL_events.c
++++ b/src/events/SDL_events.c
+@@ -1632,6 +1632,13 @@
+             }
+         }
+         SDL_SetAtomicPointer(&_this->wakeup_window, wakeup_window);
++        // A producer may have queued an event before the wakeup window was armed.
++        // Recheck after arming so that event cannot be stranded in a native wait.
++        status = SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST);
++        if (status != 0) {
++            SDL_SetAtomicPointer(&_this->wakeup_window, NULL);
++            return status;
++        }
+         status = _this->WaitEventTimeout(_this, loop_timeoutNS);
+         SDL_SetAtomicPointer(&_this->wakeup_window, NULL);
+         if (status == 0 && poll_intervalNS != SDL_MAX_SINT64 && loop_timeoutNS == poll_intervalNS) {

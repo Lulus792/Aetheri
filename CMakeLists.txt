@@ -540,6 +540,12 @@ if(AETHERI_SETTINGS)
                         "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
                     set_tests_properties(terminal.view_native terminal.view_clipboard terminal.view_ime PROPERTIES TIMEOUT 90)
                     if(AETHERI_ATSPI_TEST_PREFIX)
+                        add_executable(test_terminal_access_trace EXCLUDE_FROM_ALL src/terminal/main.c tests/terminal_access_trace.c)
+                        target_compile_definitions(test_terminal_access_trace PRIVATE AETHERI_TERMINAL_NEXAUI=1
+                            poll=ae_test_access_poll SDL_PushEvent=ae_test_access_push SDL_WaitEvent=ae_test_access_wait
+                            nx_linux_accessibility_host_prepare=ae_test_access_prepare)
+                        target_compile_options(test_terminal_access_trace PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+                        target_link_libraries(test_terminal_access_trace PRIVATE aetheri_terminal_view aetheri_terminal_spawn aetheri_terminal_workspace aetheri_terminal_clipboard SDL3::SDL3 SDL3_ttf::SDL3_ttf PkgConfig::TERMINAL_WAYLAND m)
                         add_test(NAME terminal.view_atspi COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_terminal_atspi.py"
                             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-terminal-nexaui> $<TARGET_FILE:aetheri-shell>
                             "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}" "${AETHERI_ATSPI_TEST_PREFIX}")

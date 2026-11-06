@@ -1,5 +1,20 @@
 # Decisions
 
+## Correct the original SDL wake boundary — 7 November 2026
+
+Keep SDL 3.4.20 and the original app worker/UI ownership while correcting the
+demonstrated queue/arm race in the private dependency profile. A second queue
+check after arming preserves queued work without a timer, duplicate request or
+extra process. The first complete candidate exposed a real pending Wayland
+callback leak. Investigate a Linux-only owned eventfd backend rather than
+suppressing that leak or relaxing native deadlines. Accept it only after the
+controlled counterexample, descriptor/error cleanup and affected native apps
+pass. Use a pinned, signed, privately extracted GNU patch build tool with its
+license; do not install it or make it an app dependency. Preserve old profiles
+and exact closed-session history. This changes neither NexaUI selection nor
+production launch/recovery authority. See the
+[investigation record](journal/2026-11-06-sdl-wakeup.md) for actual boundaries.
+
 ## Keep original session ownership inside one Terminal — 6 November 2026
 
 Implement the first integrated tabs/splits with a bounded topology and stable

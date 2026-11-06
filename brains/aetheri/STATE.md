@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — native Terminal tab selection and pending clipboard ownership.
+7 November 2026 — native SDL wakeup and Wayland callback lifetime correction.
 
 ## Coordination
 
@@ -14,6 +14,50 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The original Terminal query workload exposed a concrete SDL 3.4.20 queue/arm
+race: a worker successfully queued an event before native wakeup was armed,
+leaving the UI asleep until another event. A private one-shot native probe proves
+the original failure and the corrected second queue check. This does not prove
+that every historical Text/GetState/Close failure had the same cause.
+
+The first full 03 UI profile then exposed a real 96-byte pending Wayland wake
+callback leak in the ASan/UBSan Files/editor close path (79/80 groups). It is
+preserved, not accepted or suppressed. The separate Linux-only backend candidate
+uses one owned nonblocking, close-on-exec eventfd; device teardown closes it.
+The complete 04 profile built with exact source/artifact checks. The permanent
+controlled runner passes both queue variants, 16 lifetime cycles/512 events and
+independently witnessed eventfd-creation failure with unchanged FD snapshots.
+An initial fixture expectation of the private error text was corrected after
+observing SDL's public `wayland not available`; no SDK source changed for that.
+
+The ordinary uninstrumented 04 profile passes all80 app/UI groups in Release
+(326.82s) and ASan/UBSan (544.24s), without skips, at
+`terminal-wakeup-eventfd-final-3qienfs2`. The original Terminal's separate sixteen-
+focus/four-client query workload passes both profiles (8.43/10.74s). All twelve
+ordinary executable hashes remain unchanged after a late diagnostic-only guard
+and runner docstring clarification; explicit trace targets compile separately.
+The development controller and carrier builds select 04; original 02/03 profiles
+remain intact. GNU patch is a signed/pinned private build tool, not installed or
+linked into Aetheri. NexaUI
+0.1.18/e71ee30 and all production lifecycle/admission boundaries remain unchanged.
+See the [investigation record](journal/2026-11-06-sdl-wakeup.md).
+
+Audit: 394 source inputs, 727 exports/216 verified native images, unchanged nineteen
+protected hashes/28 frozen contracts/SDK/CLOSED DRM history and no sidecars. The
+eight-shell samples have zero idle frames and one CPU tick over2s. Enforcing tty1,
+no remaining build/native/private-registry actor, Aetheri service or seat0 session.
+The old quarantined runtime remains unchanged. Local evidence is under
+`local/terminal-native-query-2026-11-06`. Git history records publication.
+
+Next: complete original-session multipane assistive tasks, then continue the
+accepted desktop/app work. General attribution of older untraced native failures,
+human/physical/final design acceptance and production lifecycle remain open.
+
+The full OS/apps/image/installer/update/hardware/experiment-desktop goal remains
+active and incomplete. No repeated NexaUI list or chat handoff is needed.
+
+## Prior native Terminal tab checkpoint
 
 The NexaUI Terminal now publishes an actual required single-selection tab group
 through the pinned 0.1.18 SDK. Independent standard AT-SPI selection switches the

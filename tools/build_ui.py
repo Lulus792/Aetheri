@@ -4,12 +4,103 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tarfile
 
 from prepare_vm import ROOT, verify
+
+
+def prepare_patch_tool(cache, destination, config):
+    """Read one signed/pinned build-tool payload; do not install an RPM."""
+    selected = config["build_tools"]["patch"]
+    package = next(r for r in config["inputs"] if r["name"] == selected["input"])
+    rpm = cache / package["name"]
+    verify(rpm, package)
+    signature = subprocess.check_output(["rpmkeys", "--checksig", "--verbose", str(rpm)], text=True)
+    fingerprints = re.findall(r"key fingerprint: ([0-9a-fA-F]{40}): OK", signature)
+    if [value.upper() for value in fingerprints] != [selected["signer"].upper()] or "Payload SHA256 digest: OK" not in signature:
+        raise ValueError("private patch tool signer/digest not verified")
+    nevra = subprocess.check_output(["rpm", "-qp", "--qf", "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}", str(rpm)], text=True)
+    if nevra != selected["nevra"]:
+        raise ValueError("private patch tool version changed")
+    for name, expected in selected["runtime"].items():
+        actual = subprocess.check_output(["rpm", "-q", "--qf", "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}", name], text=True)
+        if actual != expected:
+            raise ValueError("patch tool runtime changed: " + name)
+    for name, expected in selected["runtime_artifacts"].items():
+        if hashlib.sha256(Path(name).read_bytes()).hexdigest() != expected:
+            raise ValueError("patch tool runtime artifact changed: " + name)
+    archive = subprocess.check_output(["rpm2cpio", str(rpm)])
+    payload = subprocess.check_output(["cpio", "-i", "--quiet", "--to-stdout", "." + selected["binary"]], input=archive)
+    if len(payload) != selected["binary_size"] or hashlib.sha256(payload).hexdigest() != selected["binary_sha256"]:
+        raise ValueError("private patch tool payload changed")
+    destination.mkdir(mode=0o700)
+    binary = destination / "patch"
+    binary.write_bytes(payload)
+    binary.chmod(0o700)
+    licenses = {}
+    for name in selected["licenses"]:
+        data = subprocess.check_output(["cpio", "-i", "--quiet", "--to-stdout", "." + name], input=archive)
+        if not data or len(data) > 128 * 1024:
+            raise ValueError("unexpected patch tool license")
+        (destination / Path(name).name).write_bytes(data)
+        licenses[name] = hashlib.sha256(data).hexdigest()
+    return {"binary": str(binary), "binary_sha256": selected["binary_sha256"],
+            "package": package, "signature": signature, "licenses": licenses}
+
+
+def apply_wayland_wakeup_patch(sdl_source, record, tool, log, repository=ROOT):
+    patch = repository / record["path"]
+    if hashlib.sha256(patch.read_bytes()).hexdigest() != record["sha256"]:
+        raise ValueError("reviewed Wayland wakeup patch changed")
+    binary = Path(tool["binary"])
+    if hashlib.sha256(binary.read_bytes()).hexdigest() != tool["binary_sha256"]:
+        raise ValueError("private patch tool changed")
+    for name, hashes in record["sources"].items():
+        if hashlib.sha256((sdl_source / name).read_bytes()).hexdigest() != hashes["original_sha256"]:
+            raise ValueError("Wayland wakeup preimage changed: " + name)
+    observations = []
+    for dry_run in (True, False):
+        command = [str(binary), "--batch", "--forward", "--fuzz=0", "--no-backup-if-mismatch", "-p1", "-i", str(patch)]
+        if dry_run:
+            command.append("--dry-run")
+        done = subprocess.run(command, cwd=sdl_source, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+        observations.append({"command": command, "code": done.returncode, "stdout": done.stdout, "stderr": done.stderr})
+        log.write_text(json.dumps(observations, indent=2) + "\n")
+        if done.returncode:
+            raise ValueError("Wayland wakeup patch refused; retain private source and " + str(log))
+    for name, hashes in record["sources"].items():
+        if hashlib.sha256((sdl_source / name).read_bytes()).hexdigest() != hashes["patched_sha256"]:
+            raise ValueError("Wayland wakeup result changed: " + name)
+
+
+def apply_event_wakeup_patch(sdl_source, record, repository=ROOT):
+    """Apply only the reviewed SDL preimage/result in a fresh private source tree."""
+    if hashlib.sha256((repository / record["path"]).read_bytes()).hexdigest() != record["sha256"]:
+        raise ValueError("reviewed SDL wakeup patch changed")
+    events = sdl_source / record["source"]
+    original = events.read_bytes()
+    if hashlib.sha256(original).hexdigest() != record["original_sha256"]:
+        raise ValueError("SDL wakeup patch preimage changed")
+    before = b'        SDL_SetAtomicPointer(&_this->wakeup_window, wakeup_window);\n        status = _this->WaitEventTimeout(_this, loop_timeoutNS);'
+    after = b'''        SDL_SetAtomicPointer(&_this->wakeup_window, wakeup_window);
+        // A producer may have queued an event before the wakeup window was armed.
+        // Recheck after arming so that event cannot be stranded in a native wait.
+        status = SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST);
+        if (status != 0) {
+            SDL_SetAtomicPointer(&_this->wakeup_window, NULL);
+            return status;
+        }
+        status = _this->WaitEventTimeout(_this, loop_timeoutNS);'''
+    if original.count(before) != 1:
+        raise ValueError("SDL wakeup patch anchor changed")
+    patched = original.replace(before, after, 1)
+    if hashlib.sha256(patched).hexdigest() != record["patched_sha256"]:
+        raise ValueError("reviewed SDL wakeup patch result changed")
+    events.write_bytes(patched)
 
 
 def main():
@@ -64,6 +155,12 @@ def main():
     if hashlib.sha256(original).hexdigest() != patch["patched_sha256"]:
         raise ValueError("reviewed SDL patch result changed")
     events.write_bytes(original)
+    wakeup_patch = config["event_wakeup_patch"]
+    apply_event_wakeup_patch(source / "SDL3-3.4.20", wakeup_patch)
+    patch_tool = prepare_patch_tool(args.cache, work / "patch-tool", config)
+    wayland_wakeup_patch = config["wayland_wakeup_patch"]
+    apply_wayland_wakeup_patch(source / "SDL3-3.4.20", wayland_wakeup_patch, patch_tool,
+                              work / "wayland-wakeup-patch.json")
     # Read only reviewed EGL/GLES2/KHR headers from a pinned RPM; never install
     # the broad GLX/X11 development package or execute package scriptlets.
     sdk = work / "graphics-sdk"
@@ -148,7 +245,9 @@ def main():
     fonts.mkdir(parents=True)
     shutil.copyfile(font["path"], fonts / "LiberationSans-Regular.ttf")
     shutil.copyfile(font["license_path"], fonts / "LICENSE")
-    report = {"inputs": records, "patch": patch, "graphics_sdk": sdk_record, "font": font, "commands": commands,
+    report = {"inputs": records, "patch": patch, "event_wakeup_patch": wakeup_patch,
+              "wayland_wakeup_patch": wayland_wakeup_patch, "patch_tool": patch_tool,
+              "graphics_sdk": sdk_record, "font": font, "commands": commands,
               "artifacts": {str(p.relative_to(prefix)): hashlib.sha256(p.read_bytes()).hexdigest()
                             for p in sorted(prefix.rglob("*")) if p.is_file() and not p.is_symlink()}}
     (work / "result.json").write_text(json.dumps(report, indent=2) + "\n")

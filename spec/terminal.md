@@ -654,6 +654,26 @@ Primary references: [SDL editing events](https://wiki.libsdl.org/SDL3/SDL_TextEd
 reset and event behavior was additionally read in the already-pinned SDL archive;
 the generic API documentation does not establish the backend's actual effect.
 
+## Native worker wakeup regression
+
+The private SDL 3.4.20 profile now rechecks queued events after arming native
+wakeup. Its Linux Wayland backend uses one owned eventfd instead of pending
+per-wakeup sync callbacks. This corrects a demonstrated lost-wakeup gap and the
+subsequent close-time callback leak without polling timers or another process.
+Workers still end before SDL teardown; it adds no concurrent shutdown contract.
+See [the shared SDL profile](settings.md#native-wakeup-correction) and
+[executed evidence](../brains/aetheri/journal/2026-11-06-sdl-wakeup.md).
+
+The explicit `--query-stress` and `--query-concurrent` modes of
+`tools/test_terminal_atspi.py` exercise sixteen focus transitions with independent
+native state/Text clients. Concurrent mode uses four clients per transition and
+retains private bus diagnostics. A failed query stops that original task; the
+workload does not replay requests until they pass or weaken existing deadlines.
+Ordinary app acceptance uses the uninstrumented original executable. The separate
+`test_terminal_access_trace` target is opt-in, excluded from default builds and
+never installed. Neither diagnostic evidence nor these bounded passing tasks
+establish human screenreader or physical/performance acceptance.
+
 ## Initial SDL clipboard boundary — historical investigation
 
 The selected SDL3 3.4.20 archive's Wayland `read_pipe` / `Wayland_data_offer_receive`
