@@ -100,13 +100,52 @@ int main(int argc,char **argv) {
     if(argc!=4 && argc!=5) return 2;
     char *end;unsigned long pid=strtoul(argv[1],&end,10);if(!pid || *end || pid>2147483647ul) return 2;
     int control=-1;
-    if(argc==5) {long fd=strtol(argv[4],&end,10);if(*end || fd<0 || fd>INT_MAX || strcmp(argv[2],"retire-row")) return 2;control=(int)fd;}
-    int result=1,initialized=0;AtspiAccessible *desktop=NULL,*app=NULL,*frame=NULL,*group=NULL,*row=NULL,*button=NULL;AtspiText *text=NULL;GError *e=NULL;
+    if(argc==5) {long fd=strtol(argv[4],&end,10);if(*end || fd<0 || fd>INT_MAX || (strcmp(argv[2],"retire-row") && strcmp(argv[2],"retire-tab"))) return 2;control=(int)fd;}
+    int result=1,initialized=0;AtspiAccessible *desktop=NULL,*app=NULL,*frame=NULL,*group=NULL,*row=NULL,*button=NULL;AtspiText *text=NULL;AtspiSelection *selection=NULL;GError *e=NULL;
     CHECK(atspi_init()==0);initialized=1;atspi_set_timeout(1000,1000);desktop=atspi_get_desktop(0);CHECK(desktop);
     app=target(desktop,pid,now()+3);if(!app) {fputs("target app was not registered\n",stderr);goto done;}
     frame=atspi_accessible_get_child_at_index(app,0,&e);CHECK(frame && !e);
     CHECK(atspi_accessible_get_role(frame,&e)==ATSPI_ROLE_FRAME && !e);
-    if(!strcmp(argv[2],"startup")) {
+    if(!strcmp(argv[2],"tabs") || !strcmp(argv[2],"tabs-disabled") || !strcmp(argv[2],"retire-tab")) {
+        int count=-1,selected=-1,next=-2;char extra;
+        CHECK(sscanf(argv[3],"%d:%d:%d%c",&count,&selected,&next,&extra)==3 && count>=2 && count<=8 && selected>=0 && selected<count && next>=-1 && next<count);
+        group=find(app,"Terminal tabs",0);CHECK(group && atspi_accessible_get_role(group,&e)==ATSPI_ROLE_PAGE_TAB_LIST && !e);
+        CHECK(atspi_accessible_get_child_count(group,&e)==count && !e);
+        selection=atspi_accessible_get_selection_iface(group);CHECK(selection);
+        CHECK(atspi_selection_get_n_selected_children(selection,&e)==1 && !e);
+        for(int i=0;i<count;++i) {
+            CHECK(atspi_selection_is_child_selected(selection,i,&e)==(i==selected) && !e);
+            row=atspi_accessible_get_child_at_index(group,i,&e);CHECK(row && !e);
+            CHECK(atspi_accessible_get_role(row,&e)==ATSPI_ROLE_PAGE_TAB && !e);
+            char expected[32];snprintf(expected,sizeof(expected),"Tab %d",i+1);
+            char *name=atspi_accessible_get_name(row,&e);int same=name && !strcmp(name,expected);g_free(name);CHECK(same && !e);
+            CHECK(state(row,ATSPI_STATE_SELECTED)==(i==selected));g_object_unref(row);row=NULL;
+        }
+        row=atspi_selection_get_selected_child(selection,0,&e);CHECK(row && !e);
+        CHECK(atspi_accessible_get_index_in_parent(row,&e)==selected && !e);
+        if(!strcmp(argv[2],"retire-tab")) {
+            CHECK(control>=0);AtspiAction *action=atspi_accessible_get_action_iface(row);CHECK(action);
+            ssize_t sent;do {sent=write(control,"HELD",4);}while(sent<0 && errno==EINTR);CHECK(sent==4);
+            CHECK(await_state(row,ATSPI_STATE_DEFUNCT,1));
+            do {sent=write(control,"RETIRED",7);}while(sent<0 && errno==EINTR);CHECK(sent==7);
+            char acknowledgement[6];ssize_t got;
+            do {got=read(control,acknowledgement,sizeof(acknowledgement));}while(got<0 && errno==EINTR);
+            CHECK(got==6 && !memcmp(acknowledgement,"REUSED",6));
+            int accepted=atspi_action_do_action(action,0,&e);g_object_unref(action);CHECK(!accepted);
+            if(e) {g_error_free(e);e=NULL;}
+        } else if(!strcmp(argv[2],"tabs-disabled")) {
+            CHECK(!state(group,ATSPI_STATE_ENABLED));
+            int accepted=atspi_selection_select_child(selection,(selected+1)%count,&e);CHECK(!accepted);
+            if(e) {g_error_free(e);e=NULL;}
+            CHECK(atspi_selection_is_child_selected(selection,selected,&e) && !e);
+        } else if(next>=0) {
+            CHECK(state(group,ATSPI_STATE_ENABLED) && await_state(frame,ATSPI_STATE_ACTIVE,1));
+            CHECK(atspi_selection_select_child(selection,next,&e) && !e);
+            double limit=now()+4;int observed=0;
+            do {observed=atspi_selection_is_child_selected(selection,next,&e);CHECK(!e);if(!observed) pump();}while(!observed && now()<limit);
+            CHECK(observed && atspi_selection_get_n_selected_children(selection,&e)==1 && !e);
+        }
+    } else if(!strcmp(argv[2],"startup")) {
         struct utsname kernel;struct sysinfo memory;CHECK(!uname(&kernel) && !sysinfo(&memory));
         uint64_t total=(uint64_t)memory.totalram*memory.mem_unit,gib=UINT64_C(1024)*1024*1024;
         char cpu[96],ram[96],identity[128];long online=sysconf(_SC_NPROCESSORS_ONLN);CHECK(online>0);
@@ -215,6 +254,7 @@ int main(int argc,char **argv) {
 done:
     if(e) g_error_free(e);
     if(text) g_object_unref(text);
+    if(selection) g_object_unref(selection);
     if(button) g_object_unref(button);
     if(row) g_object_unref(row);
     if(group) g_object_unref(group);

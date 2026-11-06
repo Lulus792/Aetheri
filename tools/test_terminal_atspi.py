@@ -18,14 +18,16 @@ ROOT=Path(__file__).resolve().parents[1]
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def main():
-    server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:])
+    assert len(sys.argv) in (7,8)
+    server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
+    starter=Path(sys.argv[7]).resolve() if len(sys.argv)==8 else None
     assert os.getuid()==1000
     assets=json.loads((fixture/'inputs.json').read_text())
     for n,h in assets['files'].items():assert digest(fixture/n.lstrip('/'))==h,n
     pin=json.loads((ROOT/'spec/ui-inputs.json').read_text())['terminal_font']
     for f in (pin,pin['bold']):
         assert digest(Path(f['path']))==f['sha256'] and digest(Path(f['license_path']))==f['license_sha256']
-    root=Path(tempfile.mkdtemp(prefix='terminal-atspi-',dir=build))
+    root=Path(tempfile.mkdtemp(prefix='terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
     for n in ('runtime','cache','captures'):(root/n).mkdir(mode=0o700)
     client=root/'client';sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
@@ -91,12 +93,79 @@ def main():
             packed=p.with_suffix('.ppm.gz');packed.write_bytes(gzip.compress(raw,mtime=0));p.unlink()
             images.append({'file':packed.name,'sha256':hashlib.sha256(raw).hexdigest(),'case':label,'output':i})
     args=('--shell',shell,'--font',font,'--cache',root/'cache','--diagnostics')
+    if starter:args+=('--pty-starter',starter)
     try:
         bus,reg=registry('first')
         server=start(server_bin,'server','--headless',env['WAYLAND_DISPLAY'],root/'captures',right.fileno(),pass_fds=(right.fileno(),));right.close()
         wait(lambda:'READY ' in log('server'),'compositor')
         app=start(terminal,'app',*args)
         wait(lambda:'ACCESSIBILITY available=1\n' in log() and 'FOCUS 1\n' in log() and 'NEXAUI_FRAME ' in log(),'native frame/focus/transport')
+        if starter:
+            sessions={}
+            def workspace():
+                blocks=re.findall(r'^WORKSPACE (.+)\n((?:(?:PANE|DIVIDER) .*\n)*)WORKSPACE_END frame=(\d+)\n',log(),re.M)
+                if not blocks:return {}
+                header,body,end=blocks[-1]
+                parse=lambda row:{k:int(v) for k,v in re.findall(r'(\w+)=(\d+)(?= |$)',row)}
+                value=parse(header);assert value['frame']==int(end)
+                value['panes']={row['slot']:row for row in (parse(line) for line in body.splitlines() if line.startswith('PANE '))}
+                return value
+            def shells_ready(count):
+                value=workspace()
+                return bool(value) and value['sessions']==count and value['panes'][value['active']]['x']==9
+            def retain():
+                for pane in workspace()['panes'].values():
+                    cookie=pane['cookie']
+                    if cookie in sessions:continue
+                    fd=os.pidfd_open(pane['pid']);pins.append(fd)
+                    actual=os.stat(f'/proc/{pane["pid"]}/exe');expected=os.stat(shell)
+                    parent=Path(f'/proc/{pane["pid"]}/stat').read_text().rsplit(')',1)[1].split()[1]
+                    assert int(parent)==app.pid and (actual.st_dev,actual.st_ino)==(expected.st_dev,expected.st_ino)
+                    sessions[cookie]={'pid':pane['pid'],'pin':fd,'inode':os.fstat(fd).st_ino}
+            wait(lambda:shells_ready(1),'first original shell');retain()
+            for count in (2,3):
+                key(20,ctrl=True,shift=True);wait(lambda:shells_ready(count),'new original tab');retain()
+            peer(app.pid,'tabs','3:2:0','select-first-tab')
+            wait(lambda:workspace()['active']==0,'native selection activates original first session')
+            typing('printf first > native-first\n')
+            wait(lambda:(root/'native-first').exists() and (root/'native-first').read_bytes()==b'first' and shells_ready(3),'first original shell command')
+            peer(app.pid,'tabs','3:0:2','select-last-tab')
+            wait(lambda:workspace()['active']==2,'native selection activates original third session')
+            typing('printf third > native-third\n')
+            wait(lambda:(root/'native-third').exists() and (root/'native-third').read_bytes()==b'third' and shells_ready(3),'third original shell command')
+            key(68,shift=True);wait(lambda:workspace()['menu']==1,'modal command menu')
+            peer(app.pid,'tabs-disabled','3:2:-1','blocked-group-selection')
+            assert workspace()['active']==2
+            key(1);wait(lambda:workspace()['menu']==0,'menu cancellation')
+            held,channel=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);held.settimeout(8)
+            stale=start(client,'retired-tab',app.pid,'retire-tab','3:2:-1',channel.fileno(),pass_fds=(channel.fileno(),));channel.close()
+            assert held.recv(16)==b'HELD'
+            original=workspace()['panes'][2]['cookie']
+            key(17,ctrl=True,shift=True);wait(lambda:shells_ready(2) and workspace()['tabs']==2,'original selected tab exits')
+            assert held.recv(16)==b'RETIRED'
+            assert select.select([sessions[original]['pin']],[],[],0)[0]
+            key(20,ctrl=True,shift=True);wait(lambda:shells_ready(3),'fresh tab after original retirement');retain()
+            replacement=workspace()['panes'][2]['cookie']
+            assert replacement!=original and sessions[replacement]['inode']!=sessions[original]['inode']
+            held.sendall(b'REUSED')
+            assert stale.wait(timeout=8)==0,log('retired-tab');children.remove(stale);held.close()
+            peers.append({'name':'retired-tab','exit':0})
+            assert workspace()['active']==2 and workspace()['panes'][2]['cookie']==replacement
+            peer(app.pid,'tabs','3:2:1','select-retained-neighbor')
+            wait(lambda:workspace()['active']==1,'retained neighbor session')
+            key(15,ctrl=True);wait(lambda:workspace()['active']==2,'keyboard next tab')
+            peer(app.pid,'tabs','3:2:-1','keyboard-selection-observation')
+            wait(lambda:f'DRAWN {workspace()["frame"]}\n' in log(),'matching native tab frame')
+            capture('native selection, modal refusal and fresh session after retired tab')
+            key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
+            assert all(select.select([p['pin']],[],[],0)[0] for p in sessions.values())
+            retire(server,0);retire(reg,-signal.SIGTERM);retire(bus,0)
+            assert all(select.select([p],[],[],0)[0] for p in pins)
+            for path in root.glob('*.log'):assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',path.read_text(errors='replace')),path
+            result={'result':'passed','images':images,'peers':peers,'client_sha256':digest(client),
+                    'sessions':{str(k):{n:v for n,v in value.items() if n!='pin'} for k,value in sessions.items()},
+                    'scope':'independent native required tab selection on original shells, modal refusal and retired objects; not human screenreader acceptance'}
+            (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}));return
         def position():
             rows=re.findall(r'^VIEW .* x=(\d+) y=(\d+) history=(\d+)',log(),re.M)
             return tuple(map(int,rows[-1])) if rows else (-1,-1,-1)

@@ -4,6 +4,16 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native Terminal tab selection — 6 November 2026
+
+- Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079`, public
+  `nx_selection_group` and `nx_widget_register` contracts/source: required tab
+  membership, copied widget IDs, disabled regions and matching FOCUS flags.
+  No newer SDK is required. Original source was read locally, not inferred from
+  the newer main branch. The [view adapter](../../src/terminal/nexaui_view.c),
+  [independent client](../../tests/terminal_view_atspi.c) and
+  [executed record](journal/2026-11-06-terminal-native-tabs.md) delimit acceptance.
+
 ## Original-session Terminal multiplexing — 6 November 2026
 
 - [Workspace topology](../../src/terminal/workspace.h),

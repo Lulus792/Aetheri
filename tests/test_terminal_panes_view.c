@@ -62,16 +62,28 @@ int main(int argc,char **argv) {
     CHECK(!ae_terminal_view_pane(v,&rebind));CHECK(!ae_terminal_view_grid(v,models[0],rebind.bounds,false,false,false));
     const unsigned char *pixels=NULL;size_t stride;CHECK(ae_terminal_view_finish(v,900,240,&pixels,&stride));
     ae_terminal_view_destroy(v);v=NULL;CHECK(ae_terminal_view_create(regular,rn,bold,bn,&v));
-    for(unsigned pass=0;pass<2;++pass) {
+    uint64_t selected=100;
+    for(unsigned pass=0;pass<3;++pass) {
         CHECK(ae_terminal_view_begin(v,400,160,1,16,10,22,17));
-        CHECK(ae_terminal_view_group(v,7,(nx_rect){0,32,400,28},"Terminal tabs",true));
+        uint64_t requested_tab=selected;
+        CHECK(ae_terminal_view_tabs(v,7,(nx_rect){0,32,400,28},"Terminal tabs",pass==2,&requested_tab));
+        if(pass!=2) selected=requested_tab;
+        else CHECK(requested_tab==100); /* The host discards the old request. */
+        CHECK(selected==(pass?101u:100u));
         for(unsigned i=0;i<2;++i) {
             struct ae_terminal_view_control control={.id=100u+i,.parent=7,.bounds={(float)i*200,32,196,28},
-                .name=i?"Second tab":"First tab",.label=i?"Second":"First",.tab=true,.selected=i==0};bool requested=false;
-            CHECK(ae_terminal_view_control(v,&control,&requested));CHECK(requested==(pass==1 && i==1));
+                .name=i?"Second tab":"First tab",.label=i?"Second":"First",.tab=true,.selected=100u+i==selected,.disabled=pass==2};bool requested=false;
+            CHECK(ae_terminal_view_control(v,&control,&requested));CHECK(!requested);
         }
         CHECK(ae_terminal_view_finish(v,400,160,&pixels,&stride));
+        uint32_t group;nx_semantic_view semantic;
+        CHECK(nx_semantics_find(ae_terminal_view_context(v),7,&group)==NX_OK);
+        CHECK(nx_semantics_get(ae_terminal_view_context(v),group,&semantic)==NX_OK);
+        CHECK((semantic.state&(NX_SEM_SELECTION_SINGLE|NX_SEM_SELECTION_REQUIRED))==(NX_SEM_SELECTION_SINGLE|NX_SEM_SELECTION_REQUIRED));
         if(!pass) CHECK(nx_semantics_request_action(ae_terminal_view_context(v),101,NX_ACTION_SELECT)==NX_OK);
+        if(pass==1) CHECK(nx_semantics_request_action(ae_terminal_view_context(v),100,NX_ACTION_SELECT)==NX_OK);
+        if(pass==2) CHECK(nx_semantics_request_action(ae_terminal_view_context(v),100,NX_ACTION_SELECT)!=NX_OK);
+        CHECK(nx_semantics_request_action(ae_terminal_view_context(v),selected,NX_ACTION_DESELECT)!=NX_OK);
     }
     ae_terminal_view_destroy(v);for(unsigned i=0;i<8;++i) free(models[i]);free(regular);free(bold);
     puts("pane view: disjoint identical-token models, content/resize/hidden retirement, preserved neighbor identities, refused model rebinding and deferred native tab selection passed");return 0;

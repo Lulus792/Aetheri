@@ -116,13 +116,22 @@ bool ae_terminal_view_group(struct ae_terminal_view *v,uint64_t id,nx_rect bound
     nx_semantic_desc group={.id=id,.parent_id=1,.role=tabs?NX_ROLE_TAB_LIST:NX_ROLE_GROUP,.bounds=bounds,.name=span(name)};
     return nx_semantics_add(v->ui,&group,NULL)==NX_OK;
 }
+bool ae_terminal_view_tabs(struct ae_terminal_view *v,uint64_t id,nx_rect bounds,const char *name,bool disabled,uint64_t *selected) {
+    if(!v || !v->frame || !name || !selected || !*selected) return false;
+    nx_semantic_desc group={.id=id,.parent_id=1,.role=NX_ROLE_TAB_LIST,.bounds=bounds,.name=span(name),
+        .state=disabled?NX_SEM_DISABLED:0u};
+    return nx_selection_group(v->ui,&group,1,selected)==NX_OK;
+}
 bool ae_terminal_view_control(struct ae_terminal_view *v,const struct ae_terminal_view_control *s,bool *activated) {
     if(!activated) return false;
     *activated=false;if(!v || !v->frame || !s || !s->id || !s->name || !s->label) return false;
     nx_widget_desc w={.semantic={.id=s->id,.parent_id=s->parent,.role=s->tab?NX_ROLE_TAB:NX_ROLE_BUTTON,.bounds=s->bounds,.name=span(s->name),
         .state=(s->disabled?NX_SEM_DISABLED:0u)|(s->selected?NX_SEM_SELECTED:0u),
-        .actions=s->disabled?0u:(s->tab?NX_ACTION_SELECT|NX_ACTION_FOCUS:NX_ACTION_PRESS)},
-        .flags=NX_WIDGET_INTERACTIVE|(!s->disabled && s->tab?NX_WIDGET_FOCUSABLE:0u)};
+        /* SELECT also declares membership. Preserve it while disabled; the
+           group's/current widget state rejects requests without losing the
+           one required selected member during menus and orderly close. */
+        .actions=s->tab?NX_ACTION_SELECT|NX_ACTION_FOCUS:s->disabled?0u:NX_ACTION_PRESS},
+        .flags=NX_WIDGET_INTERACTIVE|(s->tab?NX_WIDGET_FOCUSABLE:0u)};
     nx_interaction_state state;if(nx_widget_register(v->ui,&w,&state)!=NX_OK) return false;
     uint32_t background=s->contrast?0:s->selected?0x2d3545:s->pressed?0x363f52:s->hovered?0x242c3b:0x191e28;
     if(nx_fill_round_rect(v->ui,s->bounds,4,rgb(background))!=NX_OK) return false;

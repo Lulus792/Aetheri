@@ -624,6 +624,30 @@ test-only v3 producer is not an installed IME. See the
 Persistent/restorable sessions, detachable clients, full VT compatibility,
 complete multipane assistive use, final glass and physical acceptance remain open.
 
+### Native tab selection and pending clipboard ownership
+
+The tab strip now publishes one required single-selection group through the
+existing NexaUI 0.1.18 API. Standard Linux AT-SPI Selection reads and selects the
+actual original tabs. The host resolves a requested widget ID against its current
+workspace before drawing the selected shell, using the same focus transfer as
+pointer/keyboard navigation. Closing or modal state discards a previously queued
+request. Disabled tabs retain selection membership; their disabled state rejects
+actions. A retired tab reference cannot select a fresh session in a reused slot.
+
+A pending clipboard receive belongs to its original focused shell. Switching
+pane or tab cancels that receive and closes its reader even when native window
+focus stays unchanged. A fresh receive can then target the new pane after the
+native cancellation barrier settles. Single-line paste remains literal input;
+only an explicit shell submission executes it. Multiline review is unchanged.
+
+`terminal.tabs_atspi` uses an independent libatspi client, a private registry,
+real original-shell commands, modal refusal and retained retired references.
+`terminal.multiplex` now includes an independent Wayland producer holding a
+real transfer writer across pane/tab changes, checks the broken original pipe
+and verifies a later paste in the selected pane. Neither test substitutes for
+human screenreader, complete multipane accessibility or physical acceptance.
+See the [native tab record](../brains/aetheri/journal/2026-11-06-terminal-native-tabs.md).
+
 Primary references: [SDL editing events](https://wiki.libsdl.org/SDL3/SDL_TextEditingEvent),
 [composition reset API](https://wiki.libsdl.org/SDL3/SDL_ClearComposition) and
 [candidate area](https://wiki.libsdl.org/SDL3/SDL_SetTextInputArea). Version-specific

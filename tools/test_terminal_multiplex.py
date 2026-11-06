@@ -14,7 +14,7 @@ import tempfile
 import time
 
 def main():
-    server_bin,terminal,shell,starter,font,build=map(lambda p:Path(p).resolve(),sys.argv[1:])
+    server_bin,terminal,shell,starter,font,build,peer_bin=map(lambda p:Path(p).resolve(),sys.argv[1:])
     assert os.getuid()==1000
     root=Path(tempfile.mkdtemp(prefix='terminal-multiplex-',dir=build))
     for name in ('runtime','cache','captures'):(root/name).mkdir(mode=0o700)
@@ -25,12 +25,12 @@ def main():
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
     children=[];streams=[];pins=[];shells={};images=[];cases=[]
     def log(name='app'):return (root/(name+'.log')).read_text(errors='replace')
-    def start(binary,name,*args,pass_fds=()):
+    def start(binary,name,*args,pass_fds=(),pipe=False):
         f=(root/(name+'.log')).open('xb');streams.append(f)
         err=subprocess.STDOUT
         if name=='app':
             err=(root/'app-wire.log').open('xb');streams.append(err)
-        p=subprocess.Popen([str(binary),*map(str,args)],cwd=root,env=env,stdin=subprocess.DEVNULL,stdout=f,stderr=err,pass_fds=pass_fds)
+        p=subprocess.Popen([str(binary),*map(str,args)],cwd=root,env=env,stdin=subprocess.PIPE if pipe else subprocess.DEVNULL,stdout=f,stderr=err,pass_fds=pass_fds)
         children.append(p);pins.append(os.pidfd_open(p.pid));return p
     def fields(text):return {k:float(v) if '.' in v else int(v) for k,v in re.findall(r'(\w+)=(-?[\d.]+)',text)}
     def state():
@@ -60,6 +60,42 @@ def main():
     codes.update({' ':57,'-':12,'\n':28})
     def typing(text):
         for c in text:key(52,shift=True) if c=='>' else key(codes[c])
+    def clipboard():
+        rows=re.findall(r'^CLIPBOARD state (.+)$',log(),re.M)
+        return fields(rows[-1]) if rows else {}
+    def peer_command(p,name,command):
+        before=log(name).count(f'CLIPBOARD_SYNC {command}\n')
+        p.stdin.write(command.encode());p.stdin.flush()
+        wait(lambda:log(name).count(f'CLIPBOARD_SYNC {command}\n')>before,'independent peer '+command)
+    def publish(name,payload=None):
+        if payload is None:p=start(peer_bin,name,'--clipboard-stall',pipe=True)
+        else:
+            path=root/(name+'.payload');path.write_bytes(payload)
+            p=start(peer_bin,name,'--clipboard-file',path,pipe=True)
+        wait(lambda:'FRAME 1 ' in log(name),'independent clipboard windows')
+        p.stdin.write(b'df');p.stdin.flush()
+        wait(lambda:re.search(r'^FRAME 0 \d+ \d+ 1$',log(name),re.M),'clipboard peer on third output')
+        event('M 4580 100');event('B 272 1');event('B 272 0')
+        wait(lambda:log(name).rfind('KEYBOARD_ENTER 0\n')>log(name).rfind('KEYBOARD_LEAVE\n') and clipboard().get('focused')==0,'peer actual focus')
+        peer_command(p,name,'C')
+        pane=state()['panes'][state()['active']]
+        event(f'M {40+pane["left"]+5} {40+pane["top"]+10}');event('B 272 1');event('B 272 0')
+        wait(lambda:clipboard().get('focused')==1 and clipboard().get('available')==1,'original pane focus and clipboard offer')
+        return p
+    def close_peer(p):
+        p.stdin.write(b'q');p.stdin.flush();assert p.wait(timeout=8)==0
+        p.stdin.close();children.remove(p)
+    def cancel_pending(name,switch,active):
+        p=publish(name);before={i:(p['x'],p['y']) for i,p in state()['panes'].items()}
+        focus=len(re.findall(r'^FOCUS [01]\n',log(),re.M));key(47,ctrl=True,shift=True)
+        wait(lambda:'CLIPBOARD_STALLED ' in log(name),'independent producer holds original transfer')
+        switch()
+        wait(lambda:state()['active']==active and clipboard().get('receiving')==0,'internal focus cancels original pending paste')
+        peer_command(p,name,'T');wait(lambda:'CLIPBOARD_STALL_BROKEN\n' in log(name),'original receive pipe is closed')
+        assert clipboard().get('focused')==1 and len(re.findall(r'^FOCUS [01]\n',log(),re.M))==focus
+        assert {i:(p['x'],p['y']) for i,p in state()['panes'].items()}==before
+        close_peer(p)
+        cases.append(name+': same-window switch closes old receive FD without retargeting either shell')
     def ready(count=None):
         s=state()
         return bool(s) and (count is None or s['sessions']==count) and s['panes'][s['active']]['x']==9 and not s['panes'][s['active']]['closing']
@@ -96,6 +132,15 @@ def main():
         proof('printf one > one-proof\n','one-proof',b'one')
         key(32,ctrl=True,shift=True);wait(lambda:ready(2) and state()['visible']==3,'real right split');capture_shells()
         proof('printf two > two-proof\n','two-proof',b'two');snapshot('two independent live shell panes')
+        cancel_pending('pending-pane',lambda:key(105,alt=True),0)
+        p=publish('finite-pane',b'printf pasted > paste-proof')
+        wait(lambda:clipboard().get('barrier')==0,'old native receive barrier settled')
+        key(47,ctrl=True,shift=True)
+        wait(lambda:state()['panes'][0]['x']==9+len('printf pasted > paste-proof'),'new paste enters only selected original pane')
+        assert state()['panes'][1]['x']==9 and not (root/'paste-proof').exists()
+        key(28);wait(lambda:(root/'paste-proof').exists() and (root/'paste-proof').read_bytes()==b'pasted' and ready(),'only explicit Enter executes pasted command')
+        close_peer(p);cases.append('fresh clipboard receive targets selected pane and never executes automatically')
+        key(106,alt=True);wait(lambda:state()['active']==1,'return to original right pane')
         event('I 0');wait(lambda:re.search(r'^VIEW .*composition=7 ',log(),re.M),'real right-pane preedit')
         p=state()['panes'][0];event(f'M {40+p["left"]+5} {40+p["top"]+10}');event('B 272 1');event('B 272 0')
         wait(lambda:state()['active']==0 and re.findall(r'^VIEW (.+)$',log(),re.M)[-1].find('composition=0 ')>=0,'pointer focus retires old-pane draft')
@@ -105,6 +150,8 @@ def main():
         typing('printf draft')
         key(20,ctrl=True,shift=True);wait(lambda:ready(3) and state()['tabs']==2,'new tab from original window');capture_shells()
         third=state()['panes'][state()['active']]['cookie'];proof('printf tab > tab-proof\n','tab-proof',b'tab')
+        cancel_pending('pending-tab',lambda:key(15,ctrl=True),0)
+        key(15,ctrl=True);wait(lambda:state()['panes'][state()['active']]['cookie']==third,'return to third original session')
         event('I 0');wait(lambda:re.findall(r'^VIEW (.+)$',log(),re.M)[-1].find('composition=7 ')>=0,'new-tab preedit')
         stale=log().count('TEXT commit stale');before={i:(p['x'],p['y']) for i,p in state()['panes'].items()}
         event('I 8');wait(lambda:state()['active']==0 and state()['tabs']==2 and log().count('TEXT commit stale')>stale,'prior tab focus rejects old queued commit')

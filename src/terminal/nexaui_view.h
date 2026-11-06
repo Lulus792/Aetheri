@@ -14,6 +14,10 @@ struct ae_terminal_view_control {
 };
 bool ae_terminal_view_control(struct ae_terminal_view *,const struct ae_terminal_view_control *,bool *activated);
 bool ae_terminal_view_group(struct ae_terminal_view *,uint64_t id,nx_rect,const char *name,bool tabs);
+/* Register a required single-selection group and consume native requests into
+   a temporary widget ID. The host validates/applies it before drawing members;
+   no session or model pointer is retained by the view. */
+bool ae_terminal_view_tabs(struct ae_terminal_view *,uint64_t id,nx_rect,const char *name,bool disabled,uint64_t *selected);
 enum ae_terminal_chrome_action { AE_TERM_CHROME_NONE,AE_TERM_CHROME_CLOSE,AE_TERM_CHROME_MINIMIZE,AE_TERM_CHROME_ZOOM };
 struct ae_terminal_chrome { nx_rect bar,title,buttons[3]; };
 struct ae_terminal_chrome_state { bool german,contrast,editor,maximized,zoom_disabled;unsigned hovered,pressed; };

@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — original-session Terminal tabs and split panes.
+6 November 2026 — native Terminal tab selection and pending clipboard ownership.
 
 ## Coordination
 
@@ -14,6 +14,38 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The NexaUI Terminal now publishes an actual required single-selection tab group
+through the pinned 0.1.18 SDK. Independent standard AT-SPI selection switches the
+original shell before its view is projected. Menus/closing reject pending requests;
+disabled tabs retain required membership. An old native tab reference is refused
+after a fresh process is running in its retired slot. Native clipboard producers
+also prove pane/tab transfer cancellation inside the same focused window, then
+literal paste into the selected pane without automatic execution.
+
+Three focused groups and the other 25 affected Terminal/desktop-owner groups pass
+each Release and ASan/UBSan without skips. The strengthened retained-tab task
+passes both profiles after a test-only client/driver extension. An additional
+existing read-only native check nevertheless fails at group acquisition in
+`terminal-atspi-oxk6md_z`; its helper-free path does not enter the new tab code.
+The cause remains open, and prior positives are not a fix. See the
+[native tab record](journal/2026-11-06-terminal-native-tabs.md) for exact runs,
+initial membership/flag corrections, the old-producer negative and retained failure.
+
+Audit: 387 source inputs, 355 exports/156 native images, sixteen selected ELF
+hashes/C17 commands, unchanged nineteen protected hashes/28 frozen contracts,
+SDK 0.1.18 and exact CLOSED DRM history. Both eight-shell idle samples record
+zero frames/ticks over two seconds. Enforcing tty1, no remaining build/native/
+private-registry actors, Aetheri unit or seat0 session. The old quarantined runtime
+remains unchanged. Local evidence: `local/terminal-native-tabs-2026-11-06`.
+
+Next: instrument/reproduce the open native discovery/query failure without
+unmodified retries, then complete multipane assistive tasks on original sessions.
+Human/physical/final design acceptance and the full OS/apps/image/installer/update/
+hardware/experiment-desktop goal remain incomplete. No new SDK/default/public
+capability or handoff is implied.
+
+## Prior original-session multiplex checkpoint
 
 The own NexaUI Terminal now hosts up to eight independent original shells in
 one existing window: tabs, split trees, keyboard/pointer focus, real PTY resize

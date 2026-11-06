@@ -82,6 +82,7 @@ static bool contains(SDL_FRect r,float x,float y);
 static void chrome_action(struct app *a,unsigned action);
 static void workspace_layout(struct app *a,int w,int h);
 static uint64_t workspace_draw(struct app *a,int w,int h);
+static bool workspace_native_tab(struct app *a,int w,int h);
 static void workspace_action(struct app *a,uint64_t action);
 static bool workspace_event(struct app *a,const SDL_Event *event);
 static void retire_sessions(struct app *a);
@@ -443,6 +444,7 @@ static void draw(struct app *a) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     if (!ae_terminal_view_begin(a->view,(float)w,(float)h,(float)pw/(float)w,(float)a->font_points,
         a->cell_w,a->cell_h,(float)TTF_GetFontAscent(a->font)/a->density)) { error(a,"NexaUI frame");return; }
+    if(a->spawner.helper>=0 && !workspace_native_tab(a,w,h)) {error(a,"native tab selection");return;}
 #endif
 #ifdef AETHERI_TERMINAL_NEXAUI
     SDL_WindowFlags flags=SDL_GetWindowFlags(a->window);
@@ -834,12 +836,26 @@ static bool workspace_control(struct app *a,uint64_t id,uint64_t parent,SDL_FRec
     if(requested && !*action) *action=id;
     return true;
 }
+static bool workspace_native_tab(struct app *a,int w,int h) {
+    if(a->workspace.count<2) return true;
+    uint64_t original=WORK_TAB|a->workspace.tabs[a->workspace.active].id,requested=original;
+    bool disabled=!workspace_switchable(a) || a->menu_open;
+    if(!ae_terminal_view_tabs(a->view,WORK_TABS,(nx_rect){16,a->bar_height+3,(float)w-32,workspace_tabs_height(a)},
+        tr(a,"Terminal tabs","Terminal-Tabs"),disabled,&requested)) return false;
+    /* Consume even a request admitted before a modal/close boundary. Only the
+       current original workspace may resolve the widget ID to a session. */
+    if(!disabled && requested!=original) {
+        for(unsigned i=0;i<a->workspace.count;++i) if((WORK_TAB|a->workspace.tabs[i].id)==requested) {
+            workspace_action(a,requested);workspace_layout(a,w,h);break;
+        }
+    }
+    return !a->failed;
+}
 static uint64_t workspace_draw(struct app *a,int w,int h) {
     (void)h;uint64_t action=0;bool enabled=workspace_available(a),blocked=a->menu_open;
     if(!workspace_control(a,WORK_MENU,1,(SDL_FRect){(float)w-40,(a->bar_height-26)/2,32,26},"...",tr(a,"Terminal menu","Terminalmenü"),blocked,!enabled,false,&action)) goto failed;
     if(a->workspace.count>1) {
         float tw=((float)w-32)/(float)a->workspace.count;
-        if(!ae_terminal_view_group(a->view,WORK_TABS,(nx_rect){16,a->bar_height+3,(float)w-32,workspace_tabs_height(a)},tr(a,"Terminal tabs","Terminal-Tabs"),true)) goto failed;
         for(unsigned i=0;i<a->workspace.count;++i) {
             char name[64],short_name[16];snprintf(name,sizeof(name),"Tab %u",i+1);snprintf(short_name,sizeof(short_name),"%u",i+1);
             const char *painted=tw<64*(float)a->font_points/16?short_name:name;
