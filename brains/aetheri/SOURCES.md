@@ -6,6 +6,11 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
+- Independent Files selection in the [development owner](../../tools/development_session.py),
+  [contract guards](../../tools/test_development_session.py),
+  [native owner workflow](../../tools/test_files_owner.py) and
+  [private host adapters](../../tests/development_session_fixture.py).
+  [Executed native/actual-DRM record](journal/2026-11-06-files-owner.md).
 - Original [view](../../src/files/nexaui_view.c), [boundary](../../src/files/nexaui_view.h)
   and [native host](../../src/files/nexaui_main.c) over the existing Files controller.
   The host retains the reviewed Settings/upstream scaffold attribution.

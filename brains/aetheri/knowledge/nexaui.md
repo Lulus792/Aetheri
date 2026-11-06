@@ -24,14 +24,17 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
-6 November Files view update: a separate `aetheri-files-nexaui` now uses the
+6 November Files view/owner update: a separate `aetheri-files-nexaui` now uses the
 reviewed 0.1.18 SDK and the shared Files controller. Its own list/grid, held
 locations, inline naming, move review, menus and information work through native
 Wayland/software input and the original file/editor operations. Deferred actions
 retain snapshot/dialog/location identity. Minimum-size modal keyboard and
 200-percent text cases supplement the ordinary layout matrix. See the
-[Files contract](../../../spec/files.md#opt-in-nexaui-view). This does not change
-the development owner's SDL Files selection. Independent Files AT-SPI, complete
+[Files contract](../../../spec/files.md#opt-in-nexaui-view). A distinct explicit
+`--files-ui nexaui-owned` profile now has original-owner, private-seat and actual
+virtual DRM evidence, including unsaved-editor close waiting and fresh Files.
+Settings selection is independent; SDL stays the default. See the
+[owner record](../journal/2026-11-06-files-owner.md). Independent Files AT-SPI, complete
 text/IME, fullscreen entry, full glass and normal session/hardware acceptance
 remain separate gates. No SDK pin, catalogue or handoff change follows.
 

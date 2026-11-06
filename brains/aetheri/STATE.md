@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — own opt-in NexaUI Files presentation.
+6 November 2026 — bound NexaUI Files in the development desktop.
 
 ## Coordination
 
@@ -14,6 +14,42 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The new explicit `start --desktop --files-ui nexaui-owned` profile now selects
+our own Files through the fixed development owner. Settings selection remains
+independent; SDL stays the default. Separate `aetheri-files-v1` metadata binds
+the executable, nineteen model/dependency and five presentation/build/notice
+inputs, cache and reviewed SDK. Original root/user binding and fresh-spawn checks
+refuse drift without fallback. Existing live windows and document-close
+obligations keep their original handles. Old records retain their historical SDL
+meaning. See the [owner record](journal/2026-11-06-files-owner.md) and
+[guide](../../spec/development-session.md).
+
+Release coverage is 62 groups: the unchanged other sixty original groups plus
+the two final owner groups (9.62s) after a test-only Settings-ready expectation
+was corrected. The full final ASan/UBSan run passes all 62 (347.20s), without
+skips. Four native owner cases across the two builds/Settings choices retain
+36 images and prove unsaved-editor close waiting, exact save, independent
+pin/view/controller drift refusal, fresh Files and ordered app retirement.
+
+Fresh actual virtual DRM token `2cf05a61afe548108f8a5248f1168cc3` proves root-bound
+Files/SDK identity, native create/editor save, German 200-percent grid/information,
+close/reopen with retained workspace and coexistence with own Settings/Terminal.
+All five roles and Root end zero; the closed binding/history retry is unchanged.
+Sixteen stable PNGs remain. Audit verifies 364 source inputs, unchanged 28 frozen
+SQL/XML and nineteen protected hashes/no sidecars. Its 57 exports include the
+36 native images. The enforcing guest is idle on tty1 with no build actors,
+running Aetheri service or seat0 session. Foreign edits and the old quarantined
+runtime remain unchanged.
+
+Next: independent Files AT-SPI and fault-state view tests, retaining current
+SDK/defaults and the original lifecycle contracts. Full text/IME, public
+fullscreen entry, remaining chrome/material/human/hardware acceptance and all
+normal session/admission/grant/recovery/removal, apps/services/image/installer/
+updates/suspend/multimonitor/experiment-desktop requirements remain work. Keep
+the full goal active; never settle the old runtime from UI evidence.
+
+## Prior own Files view checkpoint
 
 `aetheri-files-nexaui` now supplies our own C17 list/grid, held locations, filter,
 inline naming/rename, move review, menus and information on the shared Files

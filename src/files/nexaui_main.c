@@ -96,9 +96,9 @@ static bool draw(struct host *h) {
     h->s.dirty=h->s.dirty || changed;
     ++h->s.frames;
     if(h->s.diagnostics && !changed) {
-        printf("VIEW count=%zu selected=%zu depth=%u grid=%d dialog=%d creating=%d unknown=%d name_bad=%d query_bad=%d german=%d info_overlay=%d scale=%.2f revision=%llu width=%.0f height=%.0f\n",
+        printf("VIEW count=%zu selected=%zu depth=%u grid=%d dialog=%d creating=%d unknown=%d name_bad=%d query_bad=%d german=%d info_overlay=%d scale=%.2f revision=%llu width=%.0f height=%.0f closing=%d\n",
             ae_files_count(h->s.files),ae_files_selected(h->s.files),ae_files_depth(h->s.files),h->s.grid,h->s.dialog,h->s.work_active,
-            ae_files_session_unresolved(&h->s),h->s.name_bad,h->s.query_bad,h->s.german,h->s.info_overlay,(double)h->s.scale,(unsigned long long)ae_files_revision(h->s.files),info.width,info.height);
+            ae_files_session_unresolved(&h->s),h->s.name_bad,h->s.query_bad,h->s.german,h->s.info_overlay,(double)h->s.scale,(unsigned long long)ae_files_revision(h->s.files),info.width,info.height,h->s.closing);
         for(unsigned i=0;i<AE_FV_CONTROLS;++i) {
             uint64_t id=ae_files_view_control_id(h->view,(enum ae_files_control)i);uint32_t index;nx_semantic_view sem;
             if(id && nx_semantics_find(ui,id,&index)==NX_OK && nx_semantics_get(ui,index,&sem)==NX_OK)

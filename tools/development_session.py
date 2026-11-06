@@ -30,9 +30,17 @@ APP_SELECTORS = {b"S": "settings", b"T": "terminal", b"F": "files"}
 APP_ROLES = ("files", "terminal", "settings")  # Files retains its document owner before later views retire.
 PROFILES = ("release", "debug")
 SETTINGS_UIS = ("sdl", "nexaui", "nexaui-owned")
+FILES_UIS = ("sdl", "nexaui-owned")
 # Frozen shape of aetheri-settings-v1; new source sets need a new kind/validator.
 OWN_SETTINGS_SOURCES = ("CMakeLists.txt", "src/settings/nexaui_main.c", "src/settings/nexaui_view.c",
                         "src/settings/nexaui_view.h", "src/settings/NEXAUI-NOTICE.txt")
+# Frozen aetheri-files-v1 sets; include the compiled shared model dependencies.
+FILES_MODEL_SOURCES = tuple("src/files/" + name + suffix for name in
+    ("model", "session", "create", "rename", "launch", "layout") for suffix in (".c", ".h")) + (
+    "src/editor/file.c", "src/editor/file.h", "src/editor/document.c", "src/editor/document.h",
+    "src/text/grapheme.c", "src/text/grapheme.h", "src/text/grapheme_data.h")
+OWN_FILES_SOURCES = ("CMakeLists.txt", "src/files/nexaui_main.c", "src/files/nexaui_view.c",
+                    "src/files/nexaui_view.h", "src/settings/NEXAUI-NOTICE.txt")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
 
@@ -60,9 +68,10 @@ def terminal_assets():
     return values
 
 
-def settings_fingerprint(profile):
+def profile_fingerprint(profile):
     return hashlib.sha256(json.dumps(profile, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
+settings_fingerprint = profile_fingerprint  # Preserve the existing canonical binding.
 
 def validate_settings_profile(profile, build_profile, owned_view=False):
     keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256"}
@@ -100,13 +109,43 @@ def validate_settings_profile(profile, build_profile, owned_view=False):
     return profile
 
 
-def checked_settings_artifact(path, expected=None):
+def checked_nexaui_artifact(path, expected=None):
     path = Path(path); current = path.lstat()
     if path.resolve() != path or not stat.S_ISREG(current.st_mode) or current.st_uid != 1000 or stat.S_IMODE(current.st_mode) != 0o755 or current.st_nlink != 1 or current.st_size > 16*1024**2:
-        raise RuntimeError("Settings artifact changed")
+        raise RuntimeError("NexaUI artifact changed")
     value = digest(path)
-    if expected is not None and value != expected: raise RuntimeError("Settings artifact changed")
+    if expected is not None and value != expected: raise RuntimeError("NexaUI artifact changed")
     return value
+
+
+def nexaui_candidate(build_profile):
+    pin_path = PROJECT / "spec/nexaui-inputs.json"
+    with pin_path.open("rb") as stream: pin_bytes = stream.read(65537)
+    if len(pin_bytes) > 65536: raise RuntimeError("NexaUI pin exceeded bound")
+    pin = json.loads(pin_bytes)
+    build = Path(pin["development_builds"][build_profile])
+    if build.resolve() != build: raise RuntimeError("aliased NexaUI build")
+    owned(build, 1000, 0o700, directory=True)
+    metadata = build / "build.json"; owned(metadata, 1000, 0o644)
+    with metadata.open("rb") as stream: metadata_bytes = stream.read(65537)
+    if len(metadata_bytes) > 65536: raise RuntimeError("NexaUI metadata exceeded bound")
+    record = json.loads(metadata_bytes)
+    if record["revision"] != pin["revision"] or record["version"] != pin["version"] or record["atspi_compiled"] is not True or record["sanitizers"] is not (build_profile == "debug"):
+        raise RuntimeError("NexaUI candidate does not match selected build")
+    return pin, pin_bytes, build, record, metadata_bytes
+
+
+def nexaui_view_cache(build_profile, sdk):
+    cache = build_for(build_profile) / "CMakeCache.txt"; owned(cache, 1000, 0o644)
+    with cache.open("rb") as stream: data = stream.read(65537)
+    if len(data) > 65536: raise RuntimeError("NexaUI view build cache exceeded bound")
+    required = ("AETHERI_NEXAUI_PREFIX:PATH=" + str(sdk / "prefix"),
+                "NexaUI_DIR:PATH=" + str(sdk / "prefix/lib/cmake/NexaUI"),
+                "AETHERI_SANITIZERS:BOOL=" + ("ON" if build_profile == "debug" else "OFF"))
+    lines = data.decode("utf-8").splitlines()
+    if any(lines.count(line) != 1 for line in required):
+        raise RuntimeError("owned view configuration does not match selected SDK/profile")
+    return hashlib.sha256(data).hexdigest()
 
 
 def settings_selection(build_profile, ui):
@@ -119,19 +158,7 @@ def settings_selection(build_profile, ui):
     if ui not in ("nexaui", "nexaui-owned") or build_profile not in PROFILES:
         raise RuntimeError("invalid Settings UI/profile")
     try:
-        pin_path = PROJECT / "spec/nexaui-inputs.json"
-        with pin_path.open("rb") as stream: pin_bytes = stream.read(65537)
-        if len(pin_bytes) > 65536: raise RuntimeError("Settings pin exceeded bound")
-        pin = json.loads(pin_bytes)
-        build = Path(pin["development_builds"][build_profile])
-        if build.resolve() != build: raise RuntimeError("aliased Settings build")
-        owned(build, 1000, 0o700, directory=True)
-        metadata = build / "build.json"; owned(metadata, 1000, 0o644)
-        with metadata.open("rb") as stream: metadata_bytes = stream.read(65537)
-        if len(metadata_bytes) > 65536: raise RuntimeError("Settings metadata exceeded bound")
-        record = json.loads(metadata_bytes)
-        if record["revision"] != pin["revision"] or record["version"] != pin["version"] or record["atspi_compiled"] is not True or record["sanitizers"] is not (build_profile == "debug"):
-            raise RuntimeError("Settings candidate does not match selected build")
+        pin, pin_bytes, build, record, metadata_bytes = nexaui_candidate(build_profile)
         names = ("prefix/lib/libnexaui.so." + pin["version"],)
         if ui == "nexaui": names += ("consumer-build/aetheri_model_view",)
         selected = dict(revision=pin["revision"], version=pin["version"], build=str(build),
@@ -143,29 +170,63 @@ def settings_selection(build_profile, ui):
             selected["model"] = {n:digest(PROJECT / n) for n in ("src/settings/model.c", "src/settings/model.h")}
             own_build = build_for(build_profile)
             binary = own_build / "aetheri-settings-nexaui"
-            cache = own_build / "CMakeCache.txt"; owned(cache, 1000, 0o644)
-            with cache.open("rb") as stream: cache_bytes = stream.read(65537)
-            if len(cache_bytes) > 65536: raise RuntimeError("Settings build cache exceeded bound")
-            required = ("AETHERI_NEXAUI_PREFIX:PATH=" + str(build / "prefix"),
-                        "NexaUI_DIR:PATH=" + str(build / "prefix/lib/cmake/NexaUI"),
-                        "AETHERI_SANITIZERS:BOOL=" + ("ON" if build_profile == "debug" else "OFF"))
-            cache_lines = cache_bytes.decode("utf-8").splitlines()
-            if any(cache_lines.count(line) != 1 for line in required):
-                raise RuntimeError("owned Settings configuration does not match selected SDK/profile")
             selected["presentation"] = dict(kind="aetheri-settings-v1", binary=str(binary),
-                sha256=checked_settings_artifact(binary), sources={n:digest(PROJECT / n) for n in OWN_SETTINGS_SOURCES},
-                cache_sha256=hashlib.sha256(cache_bytes).hexdigest())
+                sha256=checked_nexaui_artifact(binary), sources={n:digest(PROJECT / n) for n in OWN_SETTINGS_SOURCES},
+                cache_sha256=nexaui_view_cache(build_profile, build))
         validate_settings_profile(selected, build_profile, ui == "nexaui-owned")
         for name, expected in selected["model"].items():
             if digest(PROJECT / name) != expected: raise RuntimeError("Settings model changed")
         for name, expected in selected["artifacts"].items():
-            checked_settings_artifact(build / name, expected)
+            checked_nexaui_artifact(build / name, expected)
         return selected
     except (OSError, KeyError, TypeError, ValueError) as error:
         raise RuntimeError("Settings candidate check failed") from error
 
 
-def application_command(role, build, cache, settings_profile=None):
+def validate_files_profile(profile, build_profile):
+    keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256", "presentation"}
+    if not isinstance(profile, dict) or set(profile) != keys: raise RuntimeError("invalid Files profile")
+    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+        raise RuntimeError("invalid Files SDK build")
+    if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
+        raise RuntimeError("invalid Files SDK revision")
+    if not isinstance(profile["version"], str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", profile["version"]) is None:
+        raise RuntimeError("invalid Files SDK version")
+    artifacts, model, view = profile["artifacts"], profile["model"], profile["presentation"]
+    if not isinstance(artifacts, dict) or set(artifacts) != {"prefix/lib/libnexaui.so." + profile["version"]}:
+        raise RuntimeError("invalid Files SDK artifacts")
+    if not isinstance(model, dict) or set(model) != set(FILES_MODEL_SOURCES): raise RuntimeError("invalid Files model binding")
+    if not isinstance(view, dict) or set(view) != {"kind", "binary", "sha256", "sources", "cache_sha256"} or view["kind"] != "aetheri-files-v1":
+        raise RuntimeError("invalid Files presentation")
+    if view["binary"] != (build_for(build_profile) / "aetheri-files-nexaui").as_posix():
+        raise RuntimeError("invalid Files executable")
+    if not isinstance(view["sources"], dict) or set(view["sources"]) != set(OWN_FILES_SOURCES):
+        raise RuntimeError("invalid Files presentation sources")
+    for value in (*artifacts.values(), *model.values(), profile["metadata_sha256"], profile["pin_sha256"], view["sha256"], view["cache_sha256"], *view["sources"].values()):
+        if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None: raise RuntimeError("invalid Files digest")
+    return profile
+
+
+def files_selection(build_profile, ui):
+    # Developer consistency only: no sealed code, atomic exec pin or publisher trust.
+    if ui == "sdl": return None
+    if ui != "nexaui-owned" or build_profile not in PROFILES: raise RuntimeError("invalid Files UI/profile")
+    try:
+        pin, pin_bytes, sdk, record, metadata_bytes = nexaui_candidate(build_profile)
+        library = "prefix/lib/libnexaui.so." + pin["version"]
+        binary = build_for(build_profile) / "aetheri-files-nexaui"
+        selected = dict(revision=pin["revision"], version=pin["version"], build=str(sdk),
+            artifacts={library:checked_nexaui_artifact(sdk / library, record["artifacts"][library])},
+            model={n:digest(PROJECT / n) for n in FILES_MODEL_SOURCES},
+            metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(), pin_sha256=hashlib.sha256(pin_bytes).hexdigest(),
+            presentation=dict(kind="aetheri-files-v1", binary=str(binary), sha256=checked_nexaui_artifact(binary),
+                sources={n:digest(PROJECT / n) for n in OWN_FILES_SOURCES}, cache_sha256=nexaui_view_cache(build_profile, sdk)))
+        return validate_files_profile(selected, build_profile)
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("Files candidate check failed") from error
+
+
+def application_command(role, build, cache, settings_profile=None, files_profile=None):
     if role == "settings":
         if settings_profile is not None:
             executable = settings_profile["presentation"]["binary"] if "presentation" in settings_profile else str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view")
@@ -177,11 +238,28 @@ def application_command(role, build, cache, settings_profile=None):
         return [str(build / "aetheri-terminal"), "--shell", str(build / "aetheri-shell"),
                 "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
     if role == "files":
-        return [str(build / "aetheri-files"), "--root", str(cache.parent / "documents"),
+        executable = files_profile["presentation"]["binary"] if files_profile is not None else str(build / "aetheri-files")
+        return [executable, "--root", str(cache.parent / "documents"),
                 "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--terminal-font", str(TERMINAL_FONT), "--cache", str(cache),
                 "--terminal", str(build / "aetheri-terminal"), "--editor", str(build / "aetheri-editor"), "--diagnostics"]
     raise ValueError("unknown fixed development application")
+
+
+def development_binaries(build, desktop, settings_profile=None, files_profile=None):
+    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell", "aetheri-files", "aetheri-editor") if desktop else ("aetheri-compositor", "aetheri-settings")
+    if settings_profile is not None: names = tuple(n for n in names if n != "aetheri-settings")
+    if files_profile is not None: names = tuple(n for n in names if n != "aetheri-files")
+    binaries = {str(build / name):digest(build / name) for name in names}
+    for selected in (settings_profile, files_profile):
+        if selected is None: continue
+        for name, value in selected["artifacts"].items():
+            path = str(Path(selected["build"]) / name)
+            if path in binaries and binaries[path] != value: raise RuntimeError("conflicting selected SDK image")
+            binaries[path] = value
+        if "presentation" in selected:
+            view = selected["presentation"]; binaries[view["binary"]] = view["sha256"]
+    return binaries
 
 
 def compositor_launch(build, shell_server, compose=False):
@@ -246,6 +324,14 @@ def validate(record, carrier):
         if not record.get("desktop", False): raise RuntimeError("NexaUI selection requires desktop")
         validate_settings_profile(selected, record["profile"], ui == "nexaui-owned")
         if binding != settings_fingerprint(selected): raise RuntimeError("development Settings binding changed")
+    files_ui = record.get("files_ui", "sdl")
+    files_profile, files_binding = record.get("files_profile"), record.get("files_binding")
+    if files_ui not in FILES_UIS or (files_ui == "sdl" and (files_profile is not None or files_binding is not None)):
+        raise RuntimeError("invalid development Files selection")
+    if files_ui != "sdl":
+        if not record.get("desktop", False): raise RuntimeError("Files selection requires desktop")
+        validate_files_profile(files_profile, record["profile"])
+        if files_binding != profile_fingerprint(files_profile): raise RuntimeError("development Files binding changed")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
@@ -308,13 +394,17 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl"):
+def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl"):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     selected = settings_selection(profile, settings_ui)
     binding = settings_fingerprint(selected) if selected is not None else None
+    if files_ui not in FILES_UIS or (files_ui != "sdl" and not desktop):
+        raise RuntimeError("Files UI requires its selected desktop profile")
+    files_profile = files_selection(profile, files_ui)
+    files_binding = profile_fingerprint(files_profile) if files_profile is not None else None
     free_seat()
     if record:
         history = CONTROL / "history" / (record["token"] + ".json")
@@ -331,12 +421,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
             finally: os.close(fd)
     token = uuid.uuid4().hex
     build = build_for(profile)
-    names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell", "aetheri-files", "aetheri-editor") if desktop else ("aetheri-compositor", "aetheri-settings")
-    if selected is not None: names = tuple(n for n in names if n != "aetheri-settings")
-    binaries = {str(build / name): digest(build / name) for name in names}
-    if selected is not None: binaries.update({str(Path(selected["build"]) / n): h for n, h in selected["artifacts"].items()})
-    if selected is not None and "presentation" in selected:
-        view = selected["presentation"]; binaries[view["binary"]] = view["sha256"]
+    binaries = development_binaries(build, desktop, selected, files_profile)
     assets = terminal_assets() if desktop else {}
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
@@ -344,6 +429,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
                   invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
                   launch_protocol=3 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
     record.update(settings_ui=settings_ui, settings_profile=selected, settings_binding=binding)
+    record.update(files_ui=files_ui, files_profile=files_profile, files_binding=files_binding)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -365,6 +451,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
     if desktop: args.append("--desktop")
     if compose: args.append("--compose")
     if selected is not None: args += ["--settings-ui", settings_ui, "--settings-binding", binding]
+    if files_profile is not None: args += ["--files-ui", files_ui, "--files-binding", files_binding]
     # Start the unit without waiting for READY, then activate its inspected VT.
     # No second start is permitted if either dispatch acknowledgement is lost.
     args.insert(1, "--no-block")
@@ -478,7 +565,8 @@ def observation(record):
     return dict(kind=kind, original_unit=props)
 
 
-def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None):
+def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None,
+              files_ui="sdl", files_binding=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
@@ -487,6 +575,11 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
     expected_binding = settings_fingerprint(selected) if selected is not None else None
     if settings_binding != expected_binding:
         raise RuntimeError("original Settings selection changed before supervision")
+    if files_ui not in FILES_UIS or (files_ui != "sdl" and not desktop):
+        raise RuntimeError("Files UI requires its selected desktop profile")
+    files_profile = files_selection(profile, files_ui)
+    expected_files = profile_fingerprint(files_profile) if files_profile is not None else None
+    if files_binding != expected_files: raise RuntimeError("original Files selection changed before supervision")
     base = USER_ROOT / token
     for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
     if desktop: owned(base / "documents", 1000, 0o700, directory=True)
@@ -600,8 +693,15 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                         except RuntimeError as error:
                             print("SETTINGS_PROFILE_REJECTED " + str(error), flush=True)
                             reply(b"E" + suffix); continue
+                    if role == "files" and files_profile is not None:
+                        try:
+                            if files_selection(profile, files_ui) != files_profile:
+                                raise RuntimeError("original Files selection changed before spawn")
+                        except RuntimeError as error:
+                            print("FILES_PROFILE_REJECTED " + str(error), flush=True)
+                            reply(b"E" + suffix); continue
                     try:
-                        spawn(role, application_command(role, build, base / "cache", selected))
+                        spawn(role, application_command(role, build, base / "cache", selected, files_profile))
                     except OSError:
                         # Popen reports an exec failure after reaping its failed child.
                         if role in children: raise  # Later pipe setup failed after a real spawn.
@@ -674,6 +774,8 @@ def main():
     parser.add_argument("--compose", action="store_true", help="opt-in built-in Compose provider (requires its reviewed build)")
     parser.add_argument("--settings-ui", choices=SETTINGS_UIS, default="sdl", help="explicit development desktop Settings view")
     parser.add_argument("--settings-binding", help=argparse.SUPPRESS)
+    parser.add_argument("--files-ui", choices=FILES_UIS, default="sdl", help="explicit development desktop Files view")
+    parser.add_argument("--files-binding", help=argparse.SUPPRESS)
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
@@ -684,10 +786,15 @@ def main():
         raise ValueError("a NexaUI Settings selection requires a new --desktop start")
     if args.settings_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.settings_binding) is None):
         raise ValueError("Settings binding belongs to the original supervisor only")
+    if args.files_ui != "sdl" and (not args.desktop or (args.action != "start" and not args.supervise)):
+        raise ValueError("a NexaUI Files selection requires a new --desktop start")
+    if args.files_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.files_binding) is None):
+        raise ValueError("Files binding belongs to the original supervisor only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
-        return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding)
+        return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding,
+                         args.files_ui, args.files_binding)
     if not args.guest:
         import shlex
         import run_vm as vm
@@ -696,6 +803,7 @@ def main():
         if args.desktop: command.append("--desktop")
         if args.compose: command.append("--compose")
         if args.settings_ui != "sdl": command += ["--settings-ui", args.settings_ui]
+        if args.files_ui != "sdl": command += ["--files-ui", args.files_ui]
         if args.token: command += ["--token", args.token]
         elif args.action == "stop":
             probe = [*command]; probe[4] = "status"
@@ -713,7 +821,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui, args.files_ui)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

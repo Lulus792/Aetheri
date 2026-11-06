@@ -1,5 +1,16 @@
 # Decisions
 
+## Bind Files independently in the development owner — 6 November 2026
+
+Add an explicit Files UI choice and a distinct `aetheri-files-v1` selection,
+without changing SDL defaults or the historical Settings profile shapes. Bind
+the app's compiled model dependencies and presentation separately from the SDK;
+do not require unused SDL Files or upstream Settings binaries. Original root/user
+and fresh-spawn checks retain the same selection. Reuse original live children;
+keep Files/document obligations ahead of later app retirement. These are mutable
+developer consistency checks, not production admission. See the
+[owner record](journal/2026-11-06-files-owner.md).
+
 ## Keep Files view actions bound to their original UI scope — 6 November 2026
 
 The optional NexaUI presentation reuses the Files controller rather than owning

@@ -1,0 +1,166 @@
+"""Native fixed owner with separately bound Files; only private test adapters.
+
+No root controller, PAM/DRM service or production app admission in this fixture.
+Drift changes only copied source inputs, never the shared SDK or source checkout.
+"""
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import select
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+
+import development_session as session
+
+
+def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def main():
+    build=Path(sys.argv[1]).resolve();settings_ui=sys.argv[2];assert settings_ui in ('sdl','nexaui-owned')
+    assert os.getuid()==1000
+    source=Path(__file__).resolve().parents[1]
+    profile='debug' if 'AETHERI_SANITIZERS:BOOL=ON' in (build/'CMakeCache.txt').read_text() else 'release'
+    selected=session.files_selection(profile,'nexaui-owned')
+    root=Path(tempfile.mkdtemp(prefix='fx-own-',dir=build))
+    for name in ('captures','sessions','sessions/fixture','sessions/fixture/runtime','sessions/fixture/cache','sessions/fixture/documents'):
+        (root/name).mkdir(mode=0o700,parents=True,exist_ok=True)
+    copies={'spec/nexaui-inputs.json',*session.FILES_MODEL_SOURCES,*session.OWN_FILES_SOURCES}
+    if settings_ui=='nexaui-owned':copies.update((*session.OWN_SETTINGS_SOURCES,'src/settings/model.c','src/settings/model.h'))
+    for name in copies:
+        p=root/'source'/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_bytes((source/name).read_bytes())
+    documents=root/'sessions/fixture/documents';(documents/'seed.txt').write_bytes(b'seed')
+    env={**os.environ,'AETHERI_TEST_FILES_UI':'nexaui-owned','AETHERI_TEST_FILES_SOURCE':str(root/'source'),
+        'AETHERI_TEST_SETTINGS_UI':settings_ui,'AETHERI_TEST_SETTINGS_SOURCE':str(root/'source'),
+        'DBUS_SESSION_BUS_ADDRESS':'unix:path='+str(root/'absent-bus'),
+        'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'}
+    env.pop('AT_SPI_BUS_ADDRESS',None)
+    left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
+    stream=(root/'owner.log').open('xb')
+    owner=subprocess.Popen([sys.executable,str(source/'tests/development_session_fixture.py'),str(build),str(root),str(right.fileno())],
+        pass_fds=(right.fileno(),),env=env,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
+    right.close();pins=[os.pidfd_open(owner.pid)];roles={};seen=0;images=[];cases=[];actors=[]
+    def log():return (root/'owner.log').read_text(errors='replace')
+    def rolelog(role):return '\n'.join(line[len(role)+2:] for line in log().splitlines() if line.startswith(role+': '))+'\n'
+    def alive(pin):return not select.select([pin],[],[],0)[0]
+    def pin_process(pid,parent,binary=None):
+        fd=os.pidfd_open(pid);pins.append(fd);proc=Path('/proc')/str(pid)
+        assert int((proc/'stat').read_text().rsplit(')',1)[1].split()[1])==parent
+        executable=(proc/'exe').resolve()
+        if binary is not None:assert executable==binary
+        actors.append({'pid':pid,'parent':parent,'exe':str(executable),'sha256':digest(proc/'exe')})
+        return fd
+    def enroll():
+        nonlocal seen
+        spawns=re.findall(r'^SPAWN (\w+) (\d+)$',log(),re.M)
+        for role,pid in spawns[seen:]:
+            pid=int(pid);roles[role]=(pid,pin_process(pid,owner.pid))
+        seen=len(spawns)
+    def wait(predicate,label):
+        deadline=time.monotonic()+12
+        while not predicate():
+            enroll();assert owner.poll() is None and time.monotonic()<deadline,(label,root,log()[-6000:]);time.sleep(.01)
+        enroll()
+    def event(value):left.sendall(value.encode());assert left.recv(32)==b'OK'
+    def key(code,ctrl=False,shift=False):
+        modifiers=([29] if ctrl else [])+([42] if shift else [])
+        for c in modifiers:event(f'K {c} 1')
+        event(f'K {code} 1');event(f'K {code} 0')
+        for c in reversed(modifiers):event(f'K {c} 0')
+    codes=dict(zip('abcdefghijklmnopqrstuvwxyz',(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)));codes['.']=52
+    def typing(value):
+        for c in value:key(codes[c])
+    def search(query):
+        before=rolelog('desktop').count('STABLE 0 1920x1080\n');event('M 100 100');event('K 125 1');key(57);event('K 125 0')
+        wait(lambda:rolelog('desktop').count('STABLE 0 1920x1080\n')>before,'search view')
+        typing(query);wait(lambda:'query='+query+' ' in rolelog('desktop'),'native query');key(28)
+    def dock(kind):
+        rows=re.findall(r'VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+)',rolelog('desktop'));frame,expanded,_,height=map(int,rows[-1])
+        x,y=map(float,re.findall(r'CONTROL '+str(frame)+' 0 '+str(kind)+r' 0 ([\d.]+) ([\d.]+)',rolelog('desktop'))[0])
+        event(f'M {x} {y if expanded else 1080-height+y}');event('B 272 1');event('B 272 0')
+    def file_state(**wanted):
+        rows=re.findall(r'^VIEW (.+)$',rolelog('files'),re.M)
+        values=dict(re.findall(r'(\w+)=([^ ]+)',rows[-1])) if rows else {}
+        return all(values.get(k)==str(v) for k,v in wanted.items())
+    def count(role):return len(re.findall(r'^SPAWN '+role+' ',log(),re.M))
+    def capture(label):
+        n=len(cases)+1;signal.pidfd_send_signal(roles['compositor'][1],signal.SIGUSR1)
+        wait(lambda:all(f'CAPTURE {n} {i}\n' in rolelog('compositor') for i in range(3)),label)
+        for i in range(3):
+            p=root/'captures'/f'capture-{n}-output-{i}.ppm';raw=p.read_bytes();magic,size,peak,pixels=raw.split(b'\n',3);w,h=map(int,size.split())
+            assert magic==b'P6' and peak==b'255' and len(pixels)==w*h*3 and len(set(pixels))>16
+            packed=p.with_suffix('.ppm.gz');packed.write_bytes(gzip.compress(raw,mtime=0));assert gzip.decompress(packed.read_bytes())==raw;p.unlink()
+            images.append({'case':label,'output':i,'file':packed.name,'sha256':hashlib.sha256(raw).hexdigest()})
+        cases.append(label)
+    try:
+        wait(lambda:'FIXTURE_NOTIFY READY=1' in log() and 'STABLE 2 3840x84\n' in rolelog('desktop'),'owner ready')
+        search('files');wait(lambda:file_state(count=1) and 'LAUNCH_REPLY A F\n' in rolelog('desktop'),'bound Files search launch')
+        first=roles['files'];maps=Path(f'/proc/{first[0]}/maps').read_text()
+        assert digest(Path(f'/proc/{first[0]}/exe'))==selected['presentation']['sha256']
+        assert str(Path(selected['build'])/'prefix/lib/libnexaui.so.') in maps and 'libSDL' not in maps
+        (root/'maps.txt').write_text(maps);capture('bound Files from global search')
+        replies=rolelog('desktop').count('LAUNCH_REPLY A F\n');dock(5)
+        wait(lambda:rolelog('desktop').count('LAUNCH_REPLY A F\n')>replies,'dock reuse');assert count('files')==1 and alive(first[1])
+        key(49,ctrl=True);wait(lambda:file_state(dialog=1),'inline file');typing('note.txt');key(28)
+        wait(lambda:(documents/'note.txt').is_file() and file_state(dialog=0,count=2),'real creation');key(28)
+        wait(lambda:re.search(r'^OPEN pid=(\d+) pin=1$',rolelog('files'),re.M) and re.search(r'^READY .*editor=(\d+)',rolelog('files'),re.M),'original document')
+        doc_terminal=int(re.findall(r'^OPEN pid=(\d+) pin=1$',rolelog('files'),re.M)[-1]);doc_editor=int(re.findall(r'^READY .*editor=(\d+)',rolelog('files'),re.M)[-1])
+        terminal_pin=pin_process(doc_terminal,first[0],build/'aetheri-terminal');editor_pin=pin_process(doc_editor,doc_terminal,build/'aetheri-editor')
+        def document_log():return rolelog('files').rsplit('READY wayland opengles2 editor=',1)[-1]
+        wait(lambda:'FOCUS 1\n' in document_log() and re.search(r'^DRAWN \d+$',document_log(),re.M),'editor actually focused/drawn')
+        def accepted():
+            values=re.findall(r'^INPUT (\d+)$',document_log(),re.M);return int(values[-1]) if values else 0
+        target=accepted()+6;typing('ihello');wait(lambda:accepted()==target,'dirty editor input')
+        assert (documents/'note.txt').read_bytes()==b''
+        focus=rolelog('desktop').count('app=org.aetheri.Files active=1')
+        search('files');wait(lambda:rolelog('desktop').count('app=org.aetheri.Files active=1')>focus,'return to Files');key(16,ctrl=True)
+        wait(lambda:file_state(closing=1),'Files waits for original document');assert alive(first[1]) and alive(terminal_pin) and alive(editor_pin)
+        capture('Files close retains the unsaved original editor')
+        focus=rolelog('desktop').count('app=org.aetheri.Editor active=1')
+        search('editor');wait(lambda:rolelog('desktop').count('app=org.aetheri.Editor active=1')>focus,'return to editor')
+        key(31,ctrl=True);wait(lambda:(documents/'note.txt').read_bytes()==b'hello','original document save');key(16,ctrl=True)
+        wait(lambda:'LAUNCH_REPLY X F\n' in rolelog('desktop'),'original Files and pipe retired')
+        assert not alive(first[1]) and not alive(terminal_pin) and not alive(editor_pin)
+        for name in ('spec/nexaui-inputs.json','src/files/nexaui_view.c','src/files/session.c'):
+            p=root/'source'/name;original=p.read_bytes()
+            if p.suffix=='.json':
+                data=json.loads(original);data['adoption']+=' private drift';p.write_text(json.dumps(data)+'\n')
+            else:p.write_bytes(original+b'\n/* private fixture drift */\n')
+            errors=rolelog('desktop').count('LAUNCH_REPLY E F\n');dock(5)
+            wait(lambda:rolelog('desktop').count('LAUNCH_REPLY E F\n')>errors,'changed Files binding refuses spawn')
+            assert count('files')==1 and 'FILES_PROFILE_REJECTED ' in log()
+            p.write_bytes(original)
+        dock(2);wait(lambda:('FRAME ' if settings_ui=='nexaui-owned' else 'READY ') in rolelog('settings'),'independent Settings')
+        dock(4);wait(lambda:'READY ' in rolelog('terminal'),'independent Terminal')
+        dock(5);wait(lambda:count('files')==2 and file_state(count=2,closing=0),'fresh bound Files')
+        second=roles['files'];assert second[0]!=first[0] and all(alive(roles[r][1]) for r in ('files','settings','terminal','desktop','compositor'))
+        assert (documents/'note.txt').read_bytes()==b'hello';capture('fresh Files coexists with Settings and Terminal')
+        before=rolelog('desktop').count('STABLE 0 1920x1080\n');event('K 125 1');key(57);event('K 125 0')
+        wait(lambda:rolelog('desktop').count('STABLE 0 1920x1080\n')>before,'quit search');key(16,ctrl=True)
+        assert owner.wait(timeout=12)==0,log();enroll();assert all(not alive(fd) for fd in pins)
+        end=json.loads(re.search(r'^SESSION_END (.+)$',log(),re.M)[1]);assert all(v==0 for v in end['children'].values())
+        assert end['app_history']==[{'role':'files','pid':first[0],'status':0}]
+        assert log().rfind('files: CLOSED files ')<log().rfind('terminal: CLOSED ')<log().rfind('settings: ' + ('SHUTDOWN signal' if settings_ui=='nexaui-owned' else 'CLOSED '))<log().rfind('desktop: CLOSED ')
+        assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',log())
+        for name in copies:assert (root/'source'/name).read_bytes()==(source/name).read_bytes()
+        result={'result':'passed','profile':profile,'settings_ui':settings_ui,'selection':selected,'binding':session.profile_fingerprint(selected),
+            'cases':cases,'images':images,'actors':actors,'end':end,'scope':'native private owner/seat; no DRM, production admission or complete removal'}
+        (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}))
+    finally:
+        if owner.poll() is None:owner.terminate()
+        for fd in reversed(pins):
+            try:signal.pidfd_send_signal(fd,signal.SIGKILL)
+            except ProcessLookupError:pass
+            os.close(fd)
+        if owner.poll() is None:owner.wait(timeout=5)
+        left.close();right.close();stream.close();print('Files owner evidence:',root)
+
+
+if __name__=='__main__':main()

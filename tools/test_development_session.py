@@ -161,6 +161,56 @@ class DevelopmentContracts(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "manual reconciliation"):
                     session.stop(record)
 
+    def files_profile(self):
+        return dict(revision="a"*40,version="0.1.18",build="/home/aetheri/deps/nexaui-settings-release-02",
+            artifacts={"prefix/lib/libnexaui.so.0.1.18":"2"*64}, model={n:"3"*64 for n in session.FILES_MODEL_SOURCES},
+            metadata_sha256="4"*64,pin_sha256="5"*64,presentation=dict(kind="aetheri-files-v1",
+                binary="/home/aetheri/build/session-release/aetheri-files-nexaui",sha256="6"*64,
+                sources={n:"7"*64 for n in session.OWN_FILES_SOURCES},cache_sha256="8"*64))
+
+    def test_files_binding_has_its_own_shape_and_preserves_history(self):
+        selected=self.files_profile();record={**self.record,"desktop":True,"files_ui":"nexaui-owned",
+            "files_profile":selected,"files_binding":session.profile_fingerprint(selected)}
+        self.assertIs(session.validate(record,self.carrier),record)
+        self.assertNotIn('files_ui',self.record)
+        for change in ({'files_ui':'nexaui'},{'files_ui':'sdl'},{'desktop':False},{'files_binding':'0'*64},
+                       {'files_profile':{**selected,'model':{}}}):
+            with self.subTest(change=change),self.assertRaises(RuntimeError):session.validate({**record,**change},self.carrier)
+        for field,value in (('kind','aetheri-settings-v1'),('binary','/tmp/foreign'),('sha256','bad'),('sources',{}),('cache_sha256',False)):
+            changed=copy.deepcopy(selected);changed['presentation'][field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):session.validate_files_profile(changed,'release')
+        record['phase']='closed';before=copy.deepcopy(record)
+        with patch.object(session,'files_selection',side_effect=AssertionError('current Files queried')), \
+             patch.object(session,'run',side_effect=AssertionError('historical effect')):
+            self.assertEqual(session.stop(record),before)
+
+    def test_files_requires_original_binding_before_supervisor_or_seat_effects(self):
+        with patch.object(session.os,'getuid',return_value=1000,create=True),patch.object(session.os,'geteuid',return_value=1000,create=True), \
+             patch.object(session,'files_selection',return_value=self.files_profile()), \
+             patch.object(session.subprocess,'Popen',side_effect=AssertionError('premature spawn')):
+            with self.assertRaisesRegex(RuntimeError,'original Files selection'):
+                session.supervise('release','a'*32,desktop=True,files_ui='nexaui-owned',files_binding='0'*64)
+            with self.assertRaisesRegex(RuntimeError,'selected desktop'):
+                session.supervise('release','a'*32,files_ui='nexaui-owned')
+        with patch.object(session,'free_seat',side_effect=AssertionError('premature seat effect')):
+            with self.assertRaisesRegex(RuntimeError,'selected desktop'):
+                session.start(None,self.carrier,'release',files_ui='nexaui-owned')
+
+    def test_selected_files_command_and_images_do_not_require_unused_sdl_files(self):
+        selected=self.files_profile();build=session.build_for('release');cache=Path('/test/cache')
+        args=session.application_command('files',build,cache,files_profile=selected)
+        self.assertEqual(args[0],selected['presentation']['binary'])
+        self.assertEqual(args[args.index('--root')+1],str(cache.parent/'documents'))
+        self.assertEqual(args[args.index('--editor')+1],str(build/'aetheri-editor'))
+        seen=[]
+        def hashed(p):
+            self.assertNotEqual(p.name,'aetheri-files');seen.append(p);return '9'*64
+        with patch.object(session,'digest',side_effect=hashed):
+            images=session.development_binaries(build,True,files_profile=selected)
+        self.assertEqual(len(images),8);self.assertNotIn(str(build/'aetheri-files'),images)
+        self.assertEqual(images[args[0]],selected['presentation']['sha256'])
+        self.assertIn(build/'aetheri-editor',seen)
+
     def test_closed_retry_is_historical_and_does_not_observe_a_later_unit(self):
         record = {**self.record, "phase": "closed"}; before = copy.deepcopy(record)
         with patch.object(session, "properties", side_effect=AssertionError("later unit")), \

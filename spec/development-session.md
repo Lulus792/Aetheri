@@ -30,6 +30,8 @@ python tools/development_session.py start --desktop
 python tools/development_session.py start --desktop --compose
 python tools/development_session.py start --desktop --compose --settings-ui nexaui
 python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned
+python tools/development_session.py start --desktop --compose --files-ui nexaui-owned
+python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned --files-ui nexaui-owned
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
@@ -56,11 +58,25 @@ bind an edited app model without rebuilding the SDK; an existing owner still
 refuses changed inputs before a new process. Both NexaUI choices use eight runtime
 images and retain the original launch/pipe/shutdown protocol. Neither changes the
 SDL default or an already selected session.
+
+`--files-ui nexaui-owned` independently selects our own [NexaUI Files](files.md#opt-in-nexaui-view).
+Build `aetheri-files-nexaui` with the same profile's reviewed SDK prefix first.
+Files can coexist with SDL Settings or with the separately bound own NexaUI
+Settings view. Its `aetheri-files-v1` binding covers the executable, nineteen
+model/controller/dependency source inputs, five presentation/build/notice inputs,
+the bounded CMake cache and exact SDK metadata/library. It requires neither the
+unused SDL Files executable nor the upstream Settings example. No new process is
+started when those inputs drift; restoring them permits a fresh explicit request.
+This is developer consistency, not sealed-code or atomic execution admission.
+The optional UI choice applies only to a new desktop start. Existing-window reuse,
+the original document-close fence and ordered app retirement keep the same protocol.
+Both own views share one SDK library entry in the eight-image runtime inventory.
+
 An already running headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
 shutdown. The native viewer is the existing QEMU SDL2 frontend. The desktop and
-default app views use the reviewed SDL3 profile; explicit NexaUI Settings uses
+default app views use the reviewed SDL3 profile; explicit NexaUI Settings/Files use
 its own software presentation. No new viewer package is needed.
 
 The viewer explicitly disables OpenGL and window-close shutdown. QMP remains
@@ -116,8 +132,8 @@ Popen child handles, starting compositor then Settings or the selected desktop.
 The desktop mode has separate on-demand Settings, Terminal and Files slots, a private
 inherited Wayland connection and a bounded version3 fixed-command channel.
 New format1 records add `launch_protocol: 3`, digests for the seven fixed binaries
-and the existing Mono font/license. Explicit NexaUI selection replaces the SDL
-Settings entry with the candidate app and shared library: eight runtime images
+and the existing Mono font/license. Explicit NexaUI selection replaces the selected
+SDL app entries with their candidate apps and one shared library: eight runtime images
 are recorded. Additive `settings_ui`, `settings_profile` and `settings_binding`
 retain the exact selection, source revision/version, build path, model/image
 hashes and raw metadata/input-pin hashes. Old records with no such fields keep
@@ -134,6 +150,14 @@ explicit historical validation. Old upstream profiles have no presentation field
 and cannot be reinterpreted as owned views. Historical validation uses recorded
 values only; it does not read the current cache, source or SDK.
 
+Files has separate additive `files_ui`, `files_profile` and `files_binding` fields.
+Missing fields retain the old SDL meaning. Its presentation kind is
+`aetheri-files-v1`, with nineteen model/controller/dependency inputs and five
+presentation/build/notice inputs. The exact source sets and shape are frozen for
+that kind. Settings and Files selections are validated independently and cannot
+be reinterpreted as one another. Files uses the same canonical digest algorithm;
+the existing Settings binding algorithm and recorded shapes are unchanged.
+
 The NexaUI choice is checked before seat/history/start effects. The root controller
 passes the canonical binding digest to its original unprivileged supervisor,
 which repeats the check before creating children. Before every new Settings
@@ -147,6 +171,12 @@ newer SDK. The app uses the same `org.aetheri.Settings` identity and the existin
 font/cache/diagnostic command shape; its FRAME/MODEL diagnostics are not a new
 PID1 or production app-readiness contract.
 
+The corresponding Files check runs before a fresh Files spawn and uses the same
+original root-to-user binding and existing F request/reply channel. It does not
+rehash or replace an already retained live child when focusing its window. A
+Files-owned document remains a separate obligation: close waits for that original
+Terminal/editor pair, and global search can return to the editor to save it.
+
 These are developer consistency checks over mutable same-account inputs, not
 publisher trust, a sealed package store, atomic execution pins or production
 admission. The dedicated build account already controls the source/controller.
@@ -156,7 +186,7 @@ session-bus provisioning, human assistive acceptance and final UI remain work.
 
 The supervisor sleeps on child pipes, its optional command channel and signal
 wakeups. Settings-only close stops the compositor. Desktop mode keeps the shell
-alive; an explicit or owner-requested stop ends Terminal, Settings, desktop, then
+alive; an explicit or owner-requested stop ends Files and its document, Terminal, Settings, desktop, then
 compositor. Each child is waited/reaped and its pipe drained before terminating
 the next role, including failure cleanup. Requested termination
 cannot hide a nonzero cleanup/sanitizer result. Stuck children retain their handles;

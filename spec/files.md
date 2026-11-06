@@ -85,7 +85,9 @@ SDL app. Build with the existing reviewed `AETHERI_NEXAUI_PREFIX` profile in
 [NexaUI integration](nexaui.md), plus Files and Settings. It currently selects
 exactly SDK 0.1.18. Run the command above with `aetheri-files-nexaui` in place of
 `aetheri-files`; its arguments and separately owned Terminal/editor are unchanged.
-The development dock/search owner still selects SDL Files.
+The development dock/search owner defaults to SDL Files. A new explicit
+`start --desktop --files-ui nexaui-owned` selects this executable; see the
+[development guide](development-session.md). Settings selection is independent.
 
 The host uses native Wayland windows, the SDK software renderer and one C17
 operation thread when needed. It sleeps on native input, operation notification
@@ -127,6 +129,14 @@ the original Terminal/editor. It records native resize, German 200-percent inlin
 naming/cancellation and information, selected SDK/font hashes and an idle sample.
 Its virtual outputs and test semantics do not establish physical monitors,
 normal app/session admission, production recovery or full accessibility.
+
+`desktop.owner_files_nexaui` and `desktop.owner_both_nexaui` exercise the real
+fixed owner with SDL or own NexaUI Settings. Global search and dock reuse the
+original Files; close waits for its unsaved original editor, which can still
+save before both children and Files retire. Private-copy pin/view/controller
+drift rejects a new launch without fallback. Fresh Files retains the saved
+workspace and coexists with Settings and Terminal through ordered shutdown.
+These inherited-input private-seat tests do not dispatch a DRM/PAM service.
 
 ## Navigation and controls
 
