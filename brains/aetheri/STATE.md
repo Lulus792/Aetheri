@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — compact own Settings chrome and native window gestures.
+6 November 2026 — shared Files application controller before NexaUI adoption.
 
 ## Coordination
 
@@ -14,6 +14,36 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Files now uses a shared C17 per-window controller in `src/files/session.*` for
+navigation feedback, naming/rename/move operations, worker completion, unknown
+outcomes and original document-child close obligations. The SDL view owns only
+its rendering/input/host resources around that state. The same controller can
+serve the next NexaUI presentation without copying the operation logic. There is
+no NexaUI Files executable or toolkit/default change yet. See the
+[controller record](journal/2026-11-06-files-session.md) and
+[contract](../../spec/files.md#application-controller-and-presentation).
+
+All 57 affected app/desktop/compositor groups pass Release (191.35s) and
+ASan/UBSan (318.76s), without skips. The new headless controller case runs without
+UI libraries. The real native Files suite retains 61 cases/48 images per profile;
+108 verified exports include 96 native images. Actual DRM token
+4003d80b2a464ae3af7ce2dcbcec7a3d proves inline naming/rename, exact document save,
+grid/list, localized 200-percent/information/fullscreen and fresh Files lifetime.
+Files/desktop/compositor and Root end0; sixteen stable PNGs remain. Audit joins
+358 source inputs, unchanged 28 frozen SQL/XML and nineteen protected hashes/no
+sidecars. The enforcing carrier is idle on tty1 without build actors, an Aetheri
+service or seat0 session; prior closed developer history is unchanged.
+
+Next: build the own NexaUI Files view on this controller and the accepted design,
+retaining the existing naming/menu/document/unknown-state behavior. Respect the
+recorded public fullscreen-entry gap rather than silently changing F11 semantics.
+Broader app functionality, full glass and human/physical acceptance, normal
+session/admission/recovery/removal, image/installer/hardware and the persistent
+resettable experiment desktop remain required. Keep the full goal active and
+preserve the old quarantined runtime.
+
+## Prior Settings chrome checkpoint
 
 Own Settings now uses compact semantic window controls, a shared painting/hit-test
 geometry, original-press native title dragging and all eight border resize

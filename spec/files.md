@@ -40,6 +40,42 @@ These are development paths, not installed desktop entries. Root and mismatched
 real/effective user or group IDs are refused. There is no X11/offscreen fallback.
 `--diagnostics` adds view/request/end records; a request record is not readiness.
 
+## Application controller and presentation
+
+`src/files/session.h` now defines the per-window application state and commands
+independently of SDL or NexaUI. This is a Files controller, not a desktop login
+session, persistent app session or authority interface. The existing SDL view
+uses it for navigation feedback, held naming/rename/move inputs, operation
+completion, unknown outcomes and the original document-child close fence.
+The lower model, creation, rename/move and child-launch contracts are unchanged.
+Painting, toolkit events, font/window resources and native input stay in the view.
+
+The controller belongs to one UI owner thread and must not be copied while live.
+Its one operation worker receives the already prepared original operation.
+The adapter supplies two narrow callbacks: a false start guarantees no worker
+or effect; a successful start retains that exact worker, and join waits for its
+end. Only the worker applies the operation and release-publishes completion.
+The owner acquire-observes it, joins, then reads the result and releases operation
+inputs. Keep its operation pointers, kind and referenced storage immutable until
+join. Closing while work is active waits rather than cancelling or duplicating it.
+The SDL adapter retains its existing thread and event delivery; no additional
+background worker or daemon is introduced.
+
+An unknown result retains the original operation in the controller and blocks
+new mutation. Disposing a view or its in-memory state does not undo an observed
+filesystem effect. A still-live document remains an independent close obligation.
+Future toolkit adapters must retain the existing input rejection, menu/modal and
+selection rules; the controller's internal mutable state is not an untrusted SDK
+or permission API. No NexaUI Files executable or accessibility bridge follows
+from this extraction; those are the next integration work.
+
+`files.session` exercises deferred completion and original join, worker-start
+failure without effects, close during pending work, real rename/move with retained
+bytes, a real mkdir with lost acknowledgement, rejected name prefixes and the
+document-close fence. It runs without a display or UI library. The existing
+`files.native` suite separately exercises the real SDL worker, native input,
+document/editor and injected uncertain-operation paths.
+
 ## Navigation and controls
 
 Directories appear before other entries, then names sort by their original byte
