@@ -1,5 +1,15 @@
 # Decisions
 
+## Keep window gestures with their original press — 6 November 2026
+
+Own Files follows the tested Settings title/edge gesture rules. A pending
+caption rechecks current modal admission before becoming a native move. Escape
+retains ownership through repeats/release; focus/device/mode changes retire the
+pending action. A title-origin release never activates Close or a dialog, and a
+body-origin press never becomes a title drag. Double-click maximize/restore is
+separate from fullscreen and does not restore a maximized window through an
+unsupported drag fallback. See the [chrome record](journal/2026-11-06-files-chrome.md).
+
 ## Keep field selections with their original draft — 6 November 2026
 
 Own Files name/filter editing uses bounded byte offsets at the existing app

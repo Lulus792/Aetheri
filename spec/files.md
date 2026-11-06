@@ -102,6 +102,22 @@ resize; Zoom means work-area maximize/restore. SDK 0.1.18 has no public fullscre
 entry request: F11 explicitly reports unavailable in this opt-in view. The SDL
 view retains fullscreen. Full glass and final visual/hardware acceptance remain.
 
+An original primary title press becomes a native move only after four logical
+pixels of movement. Double-clicking within 450 milliseconds/six pixels requests
+work-area maximize or restore, including a maximized title. Border input covers
+all eight resize directions. Controls and blocked dialogs take precedence over
+caption/edge hit testing. A new modal state retires a pending caption gesture;
+the retained release cannot become a dialog or Close activation. A body-origin
+press cannot later become a title drag.
+
+Escape cancels an app-owned pending title press and consumes its repeats/release.
+Once the compositor owns a move/resize, it handles cancellation and restores the
+captured ordinary geometry under the existing constraint checks. Further motion
+under that same held press cannot restart the gesture. Focus/capture loss, resize
+and mode changes retire pending title/double-click state; keyboard commands and
+other-button presses also interrupt the double-click sequence. These are window
+interactions, not file-operation cancellation, rollback or lifecycle settlement.
+
 Native semantic actions use fresh monotonically allocated scopes. Every raw
 snapshot replacement, including an identical refresh, retires its row IDs.
 Selection-sensitive commands, reopened dialogs and changed naming drafts retire
@@ -154,6 +170,12 @@ folder, replaces a long name before file creation and replaces a mouse-selected
 query before rename. Long-name captures wait for a native Tab-to-Cancel and
 Shift-Tab return, so compositor socket acknowledgements are not mistaken for
 application input completion.
+The same native workflow checks actual title double-click geometry, all eight
+resize round trips, pending and compositor-owned Escape/repeat cancellation,
+modal admission drift, title/body/Close release ownership and native pointer
+replacement. Pixel probes separately observe moved/restored position and resized
+bounds. Unit hit cases cover ordinary/maximized/fullscreen/unsupported/modal
+states; virtual input does not establish physical or normal-session acceptance.
 `files.view_native` uses actual Wayland pointer/keyboard input on the private
 Aetheri compositor, real create/rename/move workers and exact saved bytes through
 the original Terminal/editor. It records native resize, German 200-percent inline

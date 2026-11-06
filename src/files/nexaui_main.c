@@ -15,12 +15,17 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <threads.h>
+#include <time.h>
 #include <unistd.h>
 
+struct chrome_pointer {
+    bool title_down,suppress_release,escape_down;nx_point down,current,last_click;
+    double last_release;nx_cursor_shape cursor;uint32_t mode;
+};
 struct host {
     struct ae_files_session s;struct ae_files_view *view;nx_window *window;nx_software_view *renderer;
-    thrd_t worker;bool worker_live,failed,busy,unavailable,close_seen,pending_title,suppress_release,escape_release_pending;
-    int wake[2];nx_point down;nx_cursor_shape cursor;float width,height,density;
+    thrd_t worker;bool worker_live,failed,busy,unavailable,close_seen,escape_release_pending;
+    int wake[2];struct chrome_pointer pointer;float width,height,density;
 };
 static volatile sig_atomic_t stop_requested,signal_writer=-1;
 static void signal_stop(int n) { (void)n;int saved=errno;stop_requested=1;if(signal_writer>=0) {char b=1;(void)write((int)signal_writer,&b,1);}errno=saved; }
@@ -48,24 +53,81 @@ static unsigned char *load_font(const char *path,size_t *length) {
     if(fclose(f)) {free(bytes);bytes=NULL;}return bytes;
 }
 static bool accepted(nx_result r) { return r==NX_OK || r==NX_ERROR_STATE || r==NX_ERROR_UNSUPPORTED; }
+static nx_result zoom_window(nx_window *window,const nx_window_status *status) {
+    bool restore=(status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN))!=0;
+    if(!(status->capabilities&(restore?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE))) return NX_ERROR_UNSUPPORTED;
+    return restore?nx_window_restore(window):nx_window_maximize(window);
+}
+static float distance2(nx_point a,nx_point b) {float x=a.x-b.x,y=a.y-b.y;return x*x+y*y;}
+/* Same original-press rules as own Settings. Files additionally rechecks modal
+   admission before a pending caption press can become a native gesture. */
 static bool chrome(struct host *h,const nx_event *e,const nx_window_status *status,bool *handled) {
-    *handled=false;
-    if(e->type==NX_EVENT_POINTER_CANCEL || e->type==NX_EVENT_RESIZE || (e->type==NX_EVENT_FOCUS && !e->focused)) { h->pending_title=false;h->suppress_release=false; }
-    if(e->type==NX_EVENT_KEY_DOWN && e->key==NX_KEY_ESCAPE && h->pending_title) { h->pending_title=false;h->suppress_release=true;*handled=true;return true; }
-    if(e->type==NX_EVENT_POINTER_UP && e->button==1 && (h->pending_title || h->suppress_release)) { h->pending_title=false;h->suppress_release=false;*handled=true;return true; }
-    if(e->type!=NX_EVENT_POINTER_MOVE && e->type!=NX_EVENT_POINTER_DOWN) return true;
-    nx_point p={e->x,e->y};bool title;nx_window_resize_edge edge;nx_cursor_shape cursor;
-    if(!ae_files_view_native_hit(h->view,p,status,&title,&edge,&cursor)) return false;
-    if(e->type==NX_EVENT_POINTER_MOVE && h->pending_title) {
-        *handled=true;float dx=p.x-h->down.x,dy=p.y-h->down.y;
-        if(dx*dx+dy*dy>16) { h->pending_title=false;h->suppress_release=true;return accepted(nx_window_begin_move(h->window)); }
+    *handled=false;struct chrome_pointer *p=&h->pointer;bool diagnostics=h->s.diagnostics;
+    if(e->type==NX_EVENT_KEY_DOWN || (e->type==NX_EVENT_POINTER_DOWN && e->button!=1)) p->last_release=0;
+    if((e->type==NX_EVENT_KEY_DOWN || e->type==NX_EVENT_KEY_UP) && e->key==NX_KEY_ESCAPE) {
+        if(e->type==NX_EVENT_KEY_UP && p->escape_down) {p->escape_down=false;*handled=true;return true;}
+        if(e->type==NX_EVENT_KEY_DOWN && (p->title_down || p->escape_down)) {
+            p->title_down=false;p->suppress_release=true;p->last_release=0;
+            if(!p->escape_down && diagnostics) {puts("CHROME_TITLE cancel");fflush(stdout);}
+            p->escape_down=true;*handled=true;return true;
+        }
+    }
+    uint32_t mode=status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN);
+    if(mode!=p->mode) {if(p->title_down) p->suppress_release=true;p->title_down=false;p->last_release=0;p->mode=mode;}
+    if(e->type==NX_EVENT_POINTER_CANCEL || (e->type==NX_EVENT_FOCUS && !e->focused)) {
+        p->title_down=false;p->suppress_release=false;p->escape_down=false;p->last_release=0;
+        if(p->cursor!=NX_CURSOR_DEFAULT) {if(!accepted(nx_window_set_cursor(h->window,NX_CURSOR_DEFAULT))) return false;p->cursor=NX_CURSOR_DEFAULT;}
         return true;
     }
-    if(e->type==NX_EVENT_POINTER_MOVE && cursor!=h->cursor) { if(!accepted(nx_window_set_cursor(h->window,cursor))) return false;h->cursor=cursor; }
-    if(e->type==NX_EVENT_POINTER_DOWN && e->button==1 && (title || edge)) {
+    if(e->type==NX_EVENT_RESIZE) {if(p->title_down) p->suppress_release=true;p->title_down=false;p->last_release=0;return true;}
+    if(p->title_down) {
+        bool title;nx_window_resize_edge edge;nx_cursor_shape cursor;
+        if(!ae_files_view_native_hit(h->view,p->down,status,&title,&edge,&cursor)) return false;
+        if(!title) {p->title_down=false;p->suppress_release=true;p->last_release=0;}
+    }
+    if(e->type==NX_EVENT_POINTER_MOVE || e->type==NX_EVENT_POINTER_DOWN) {
+        if(!isfinite(e->x) || !isfinite(e->y)) return false;
+        p->current=(nx_point){e->x,e->y};
+    }
+    if(e->type==NX_EVENT_POINTER_MOVE && p->title_down) {
         *handled=true;
-        if(edge) {h->suppress_release=true;return accepted(nx_window_begin_resize(h->window,edge));}
-        h->pending_title=true;h->down=p;
+        if(distance2(p->current,p->down)>16) {
+            p->title_down=false;p->suppress_release=true;p->last_release=0;
+            nx_result result=NX_ERROR_UNSUPPORTED;
+            if(!mode && (status->capabilities&NX_WINDOW_CAP_MOVE)) result=nx_window_begin_move(h->window);
+            if(diagnostics) {printf("CHROME_MOVE result=%d\n",(int)result);fflush(stdout);}
+            return accepted(result);
+        }
+        return true;
+    }
+    if(e->type==NX_EVENT_POINTER_MOVE && p->suppress_release) {*handled=true;return true;}
+    if(e->type==NX_EVENT_POINTER_DOWN && e->button==1) {
+        if(p->suppress_release || p->title_down) {*handled=true;return true;}
+        bool title;nx_window_resize_edge edge;nx_cursor_shape cursor;
+        if(!ae_files_view_native_hit(h->view,p->current,status,&title,&edge,&cursor)) return false;
+        if(title) {p->down=p->current;p->title_down=true;*handled=true;if(diagnostics) {puts("CHROME_TITLE down");fflush(stdout);}return true;}
+        p->last_release=0;
+        if(edge) {
+            *handled=true;p->suppress_release=true;nx_result result=nx_window_begin_resize(h->window,edge);
+            if(diagnostics) {printf("CHROME_RESIZE edge=%d result=%d\n",(int)edge,(int)result);fflush(stdout);}return accepted(result);
+        }
+    }
+    if(e->type==NX_EVENT_POINTER_UP && e->button==1) {
+        if(p->suppress_release) {p->suppress_release=false;*handled=true;return true;}
+        if(p->title_down) {
+            p->title_down=false;*handled=true;struct timespec time;if(clock_gettime(CLOCK_MONOTONIC,&time)) return false;
+            double now=(double)time.tv_sec+(double)time.tv_nsec/1e9;
+            if(distance2(p->current,p->down)<=16 && p->last_release>0 && now-p->last_release<=.45 && distance2(p->current,p->last_click)<=36) {
+                p->last_release=0;nx_result result=zoom_window(h->window,status);
+                if(diagnostics) {printf("CHROME_ZOOM result=%d\n",(int)result);fflush(stdout);}return accepted(result);
+            }
+            p->last_release=now;p->last_click=p->current;if(diagnostics) {puts("CHROME_TITLE release");fflush(stdout);}return true;
+        }
+    }
+    if(e->type==NX_EVENT_POINTER_MOVE) {
+        bool title;nx_window_resize_edge edge;nx_cursor_shape cursor;
+        if(!ae_files_view_native_hit(h->view,p->current,status,&title,&edge,&cursor)) return false;
+        if(cursor!=p->cursor) {if(!accepted(nx_window_set_cursor(h->window,cursor))) return false;p->cursor=cursor;}
     }
     return true;
 }
@@ -81,7 +143,7 @@ static bool draw(struct host *h) {
     nx_context *ui=ae_files_view_context(h->view);
     if(nx_context_set_text_raster_scale(ui,info.scale)!=NX_OK || !ae_files_view_frame(h->view,info.width,info.height,&status,&changed)) return false;
     if(ae_files_view_take_zoom(h->view)) {
-        nx_result r=(status.state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN))?nx_window_restore(h->window):nx_window_maximize(h->window);
+        nx_result r=zoom_window(h->window,&status);
         if(!accepted(r)) return false;
     }
     const nx_command *commands;size_t count;nx_color background;nx_software_view_outcome outcome;

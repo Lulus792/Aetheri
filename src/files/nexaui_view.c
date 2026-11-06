@@ -695,6 +695,7 @@ bool ae_files_view_native_hit(const struct ae_files_view *v,nx_point p,const nx_
         *edge=left && top?NX_WINDOW_RESIZE_TOP_LEFT:right && top?NX_WINDOW_RESIZE_TOP_RIGHT:left && bottom?NX_WINDOW_RESIZE_BOTTOM_LEFT:right && bottom?NX_WINDOW_RESIZE_BOTTOM_RIGHT:
             left?NX_WINDOW_RESIZE_LEFT:right?NX_WINDOW_RESIZE_RIGHT:top?NX_WINDOW_RESIZE_TOP:NX_WINDOW_RESIZE_BOTTOM;
         *cursor=(left||right)&&(top||bottom)?((left&&top)||(right&&bottom)?NX_CURSOR_RESIZE_DIAGONAL_NW_SE:NX_CURSOR_RESIZE_DIAGONAL_NE_SW):(left||right)?NX_CURSOR_RESIZE_HORIZONTAL:NX_CURSOR_RESIZE_VERTICAL;
-    } else if(normal && (status->capabilities&NX_WINDOW_CAP_MOVE) && p.y<30*v->s->scale) *title=true;
+    } else if(!(status->state&NX_WINDOW_STATE_FULLSCREEN) && p.y<30*v->s->scale &&
+        (status->capabilities&(normal?(NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_MAXIMIZE):NX_WINDOW_CAP_RESTORE))) *title=true;
     return true;
 }

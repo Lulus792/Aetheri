@@ -24,6 +24,14 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Files chrome update: own Files now follows the tested Settings
+original-press move/resize and Escape ownership rules, with title double-click
+maximize/restore and fresh modal-admission checks. Native geometry/pixel/device
+tests exercise the actual Aetheri compositor. See the
+[chrome record](../journal/2026-11-06-files-chrome.md). The pinned SDK still has
+no fullscreen-entry API; this does not change the SDK/defaults or complete
+human/hardware/session acceptance.
+
 6 November Files editing update: the own name/filter fields now retain bounded
 app-owned grapheme selections with keyboard and mouse editing. NexaUI supplies
 text layout, hit testing, selection geometry and clipped caret viewing. Native

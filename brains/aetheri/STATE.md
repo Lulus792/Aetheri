@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — cursor and selection editing in own Files fields.
+6 November 2026 — original-press window gestures in own Files.
 
 ## Coordination
 
@@ -14,6 +14,37 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Own NexaUI Files now supports native title double-click maximize/restore,
+including the maximized title, and the tested Settings-style original-press
+move/resize rules. Pending gestures recheck modal admission; opening a dialog
+cannot turn an old caption press into a move or dialog/Close activation. Escape
+owns repeats/release, and device/focus/mode changes retire pending click state.
+The compositor retains its original cancellation/geometry rules. No SDK/default,
+compositor, file-operation or lifecycle contract changes.
+
+All seven affected view/owner groups pass Release 42.32s and ASan/UBSan 81.91s,
+without skips. A test-only pixel refinement captures actual movement before
+Escape and checks restored position/bounds. Both final native groups pass again
+(31.33s/57.05s); product and C test bytes are unchanged. Tests cover all eight
+resize directions, actual double-click dimensions, pending/active Escape,
+modal drift, title/body/Close ownership and native pointer replacement, followed
+by the existing file/editor/AT-SPI workflow. See the
+[chrome record](journal/2026-11-06-files-chrome.md) and
+[Files contract](../../spec/files.md#opt-in-nexaui-view).
+
+Audit joins 366 source inputs, 244 exports/168 native images, unchanged 28 frozen
+contracts/nineteen protected hashes and closed development history. The enforcing
+carrier is idle on tty1 without build/private-registry actors, an Aetheri service
+or seat0 session. Foreign edits are unchanged; no new DRM session was started.
+
+Next: integrate full accessible field text, then continue Terminal/editor and
+desktop presentation migration. Final material/human/hardware acceptance and
+normal session/admission/grant/recovery/removal remain open, alongside the full
+OS/apps/services/image/installer/updates/suspend/multimonitor/experiment-desktop
+goal. Preserve the old quarantined runtime; keep the full goal active.
+
+## Prior Files editing checkpoint
 
 Own NexaUI Files now has visible-caret name/filter editing: arrows, Home/End,
 Shift selection, Ctrl+A/U, whole-grapheme Backspace/Delete and mouse click/

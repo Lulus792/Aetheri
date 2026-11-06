@@ -72,6 +72,28 @@ static void editing_cases(struct ae_files_view *v,struct ae_files_session *s) {
     key(v,NX_KEY_A,NX_MOD_CONTROL);text(v,"small");CHECK(!s->name_bad && !strcmp(s->name,"small"));
     key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);
 }
+static void chrome_hits(struct ae_files_view *v,struct ae_files_session *s) {
+    nx_window_status status={.capabilities=NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_RESIZE|NX_WINDOW_CAP_MAXIMIZE|NX_WINDOW_CAP_RESTORE};
+    bool title;nx_window_resize_edge edge;nx_cursor_shape cursor;
+    CHECK(ae_files_view_native_hit(v,(nx_point){180,16},&status,&title,&edge,&cursor) && title && !edge);
+    const nx_point points[]={{2,2},{500,2},{998,2},{998,340},{998,678},{500,678},{2,678},{2,340}};
+    const nx_window_resize_edge edges[]={NX_WINDOW_RESIZE_TOP_LEFT,NX_WINDOW_RESIZE_TOP,NX_WINDOW_RESIZE_TOP_RIGHT,NX_WINDOW_RESIZE_RIGHT,
+        NX_WINDOW_RESIZE_BOTTOM_RIGHT,NX_WINDOW_RESIZE_BOTTOM,NX_WINDOW_RESIZE_BOTTOM_LEFT,NX_WINDOW_RESIZE_LEFT};
+    for(size_t i=0;i<8;++i) CHECK(ae_files_view_native_hit(v,points[i],&status,&title,&edge,&cursor) && !title && edge==edges[i] && cursor!=NX_CURSOR_DEFAULT);
+    CHECK(ae_files_view_native_hit(v,(nx_point){28,16},&status,&title,&edge,&cursor) && !title && !edge);
+    status.state=NX_WINDOW_STATE_MAXIMIZED;
+    CHECK(ae_files_view_native_hit(v,(nx_point){180,16},&status,&title,&edge,&cursor) && title && !edge);
+    CHECK(ae_files_view_native_hit(v,(nx_point){998,678},&status,&title,&edge,&cursor) && !title && !edge);
+    status.state=NX_WINDOW_STATE_FULLSCREEN;
+    CHECK(ae_files_view_native_hit(v,(nx_point){180,16},&status,&title,&edge,&cursor) && !title && !edge);
+    status.state=0;status.capabilities=0;
+    CHECK(ae_files_view_native_hit(v,(nx_point){180,16},&status,&title,&edge,&cursor) && !title && !edge);
+    status.capabilities=NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_RESIZE;
+    ae_files_session_dialog_open(s,AE_FILES_CREATE_FILE);frame(v,1000,680);
+    CHECK(ae_files_view_native_hit(v,(nx_point){180,16},&status,&title,&edge,&cursor) && !title && !edge);
+    CHECK(ae_files_view_native_hit(v,(nx_point){998,678},&status,&title,&edge,&cursor) && !title && !edge);
+    ae_files_session_dialog_close(s);frame(v,1000,680);
+}
 static void naming_bounds(struct ae_files_view *v,float w,float h) {
     const enum ae_files_control controls[]={AE_FV_NAME,AE_FV_CANCEL,AE_FV_CONFIRM};nx_rect boxes[3];
     for(size_t i=0;i<3;++i) {nx_semantic_view node=get(v,ae_files_view_control_id(v,controls[i]));boxes[i]=node.bounds;
@@ -95,6 +117,7 @@ int main(int argc,char **argv) {
     unsigned attempts=0;struct ae_files_session s;ae_files_session_init(&s,reject_worker,unexpected_join,&attempts);enum ae_files_result r;s.files=ae_files_create(root,&r);CHECK(s.files);
     memcpy(s.root_label,"Documents",10);struct ae_files_view *v=NULL;CHECK(ae_files_view_create(&s,font,(size_t)length,&v));
     CHECK(nx_context_set_text_raster_scale(ae_files_view_context(v),(float)density)==NX_OK);frame(v,1000,680);
+    chrome_hits(v,&s);
     key(v,NX_KEY_H,NX_MOD_CONTROL);frame(v,1000,680);
     uint64_t hidden=named(v,NX_ROLE_BUTTON,".hidden");
     CHECK(nx_semantics_request_action(ae_files_view_context(v),hidden,NX_ACTION_PRESS)==NX_OK);

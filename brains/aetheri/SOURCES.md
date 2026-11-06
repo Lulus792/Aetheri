@@ -6,6 +6,11 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
+- Original-press native gesture handling in the
+  [host](../../src/files/nexaui_main.c), [view hit testing](../../src/files/nexaui_view.c),
+  [native geometry/pixel workflow](../../tools/test_files_view.py) and
+  [ordinary/maximized/modal hit tests](../../tests/test_files_view.c).
+  [Executed chrome record](journal/2026-11-06-files-chrome.md).
 - App-owned field selections and SDK text geometry in the
   [view](../../src/files/nexaui_view.c), with
   [editing regressions](../../tests/test_files_view.c) and native naming/query

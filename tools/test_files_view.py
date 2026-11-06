@@ -89,15 +89,79 @@ def main():
     def click(control):
         rows=re.findall(r"^CONTROL "+str(control)+r" (\d+) ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) (\d+)$",log(),re.M);assert rows
         _,x,y,w,h,_=rows[-1];event(f"M {40+float(x)+float(w)/2} {40+float(y)+float(h)/2}");event("B 272 1");event("B 272 0")
-    def capture(label):
+    def capture(label,checks=()):
         time.sleep(.08);sequence=len(images)//3+1;server.send_signal(signal.SIGUSR1)
         wait(lambda:all(f"CAPTURE {sequence} {i}\n" in log("server") for i in range(3)),label)
         for i in range(3):
             p=captures/f"capture-{sequence}-output-{i}.ppm";raw=p.read_bytes();magic,size,peak,pixels=raw.split(b"\n",3);w,h=map(int,size.split())
             assert magic==b"P6" and peak==b"255" and len(pixels)==w*h*3
-            if i==0:assert len(set(pixels))>20
+            if i==0:
+                assert len(set(pixels))>20
+                for x,y,expected in checks:assert tuple(pixels[(y*w+x)*3:(y*w+x)*3+3])==expected,(label,x,y)
             packed=p.with_suffix(".ppm.gz");packed.write_bytes(gzip.compress(raw,mtime=0));assert gzip.decompress(packed.read_bytes())==raw;p.unlink()
             images.append({"case":label,"output":i,"file":packed.name,"sha256":hashlib.sha256(raw).hexdigest()})
+    def chrome_cases():
+        # Actual app geometry and compositor RPCs, not request success alone.
+        for w,h,point in ((1920,1080,'M 220 56'),(1000,680,'M 180 16')):
+            event(point)
+            for _ in range(2):event('B 272 1');event('B 272 0')
+            wait(lambda:state(width=w,height=h),'title double-click '+str((w,h)))
+            capture('title double-click '+str((w,h)))
+        def edge_drag(x,y,w,h,left,right,top,bottom,dx,dy):
+            px=x+2 if left else x+w-2 if right else x+w/2;py=y+2 if top else y+h-2 if bottom else y+h/2
+            before=log('server').count('.resize(');event(f'M {px} {py}');event('B 272 1')
+            wait(lambda:log('server').count('.resize(')>before,'native resize edge admitted')
+            event(f'M {px+dx} {py+dy}')
+            nw=w+(-dx if left else dx if right else 0);nh=h+(-dy if top else dy if bottom else 0)
+            wait(lambda:state(width=nw,height=nh),'native edge geometry');event('B 272 0')
+            return x+(dx if left else 0),y+(dy if top else 0),nw,nh
+        for left,right,top,bottom in ((1,0,1,0),(0,0,1,0),(0,1,1,0),(0,1,0,0),(0,1,0,1),(0,0,0,1),(1,0,0,1),(1,0,0,0)):
+            dx=-20 if left else 20 if right else 0;dy=-15 if top else 15 if bottom else 0
+            geometry=edge_drag(40,40,1000,680,left,right,top,bottom,dx,dy)
+            assert edge_drag(*geometry,left,right,top,bottom,-dx,-dy)==(40,40,1000,680)
+        capture('all eight native resize edges restored',((50,80,(32,35,44)),(1100,740,(16,20,28))))
+        key(38,ctrl=True);typing('seed');wait(lambda:state(count=1),'filter before pending-title cancellation')
+        moves=log('server').count('.move(');titles=log().count('CHROME_TITLE down\n');cancelled=log().count('CHROME_TITLE cancel\n')
+        event('M 220 56');event('B 272 1');wait(lambda:log().count('CHROME_TITLE down\n')>titles,'original title press')
+        event('K 1 1');wait(lambda:log().count('CHROME_TITLE cancel\n')>cancelled,'pending caption cancelled')
+        event('K 1 1');event('K 1 0');event('M 308 116');event('B 272 0')
+        capture('pending title Escape consumes repeat and preserves filter')
+        assert state(count=1,width=1000,height=680) and log('server').count('.move(')==moves
+        key(38,ctrl=True);wait(lambda:state(count=2),'clear original filter')
+        titles=log().count('CHROME_TITLE down\n');cancelled=log('server').count('GRAB_CANCEL restored=1\n')
+        event('M 220 56');event('B 272 1');wait(lambda:log().count('CHROME_TITLE down\n')>titles,'title before native move')
+        event('M 228 56');wait(lambda:log('server').count('.move(')>moves,'native move admitted')
+        event('M 308 116');capture('native move before cancellation',((50,80,(16,20,28)),(125,185,(32,35,44))))
+        event('K 1 1');wait(lambda:log('server').count('GRAB_CANCEL restored=1\n')>cancelled,'compositor move cancelled')
+        event('K 1 1');event('K 1 0');event('M 388 176');event('B 272 0')
+        capture('native move Escape restores and fences held gesture',((50,80,(32,35,44)),(1100,740,(16,20,28))))
+        before=log('server').count('.resize(');cancelled=log('server').count('GRAB_CANCEL restored=1\n')
+        event('M 1038 718');event('B 272 1');wait(lambda:log('server').count('.resize(')>before,'resize before cancellation')
+        event('M 1138 768');wait(lambda:state(width=1100,height=730),'larger native window')
+        event('K 1 1');wait(lambda:log('server').count('GRAB_CANCEL restored=1\n')>cancelled,'compositor resize cancelled')
+        event('K 1 1');event('K 1 0');event('M 1238 818');event('B 272 0');wait(lambda:state(width=1000,height=680),'original geometry restored')
+        capture('native resize Escape restores and fences held gesture',((50,80,(32,35,44)),(1100,740,(16,20,28))))
+        titles=log().count('CHROME_TITLE down\n');moves=log('server').count('.move(')
+        event('M 220 56');event('B 272 1');wait(lambda:log().count('CHROME_TITLE down\n')>titles,'caption before dialog')
+        key(49,ctrl=True);wait(lambda:state(dialog=1),'dialog opened during pending caption')
+        event('M 308 116');event('B 272 0');capture('new dialog retires pending caption')
+        assert log('server').count('.move(')==moves and state(dialog=1,count=2)
+        key(1);wait(lambda:state(dialog=0),'cancel original empty dialog')
+        titles=log().count('CHROME_TITLE down\n');event('M 220 56');event('B 272 1')
+        wait(lambda:log().count('CHROME_TITLE down\n')>titles,'caption owns eventual release')
+        event('M 61 56');wait(lambda:log('server').count('.move(')>moves,'caption crossing Close admitted');event('B 272 0')
+        assert app.poll() is None and state(width=1000,height=680)
+        before=log('server').count('.move(');event('M 334 94');event('B 272 1');event('M 220 56');event('B 272 0')
+        capture('body press is not adopted as caption and Close is not triggered')
+        assert app.poll() is None and log('server').count('.move(')==before
+        titles=log().count('CHROME_TITLE down\n');event('M 220 56');event('B 272 1')
+        wait(lambda:log().count('CHROME_TITLE down\n')>titles,'caption before pointer removal')
+        frames=log().count('VIEW ');event('D');wait(lambda:log().count('VIEW ')>frames,'native focus/capture loss')
+        enters=len(re.findall(r'-> wl_pointer#\d+\.enter\(',log('server')));event('A');event('M 220 56')
+        wait(lambda:len(re.findall(r'-> wl_pointer#\d+\.enter\(',log('server')))>enters,'replacement native pointer entered')
+        released=log().count('CHROME_TITLE release\n');event('B 272 1');event('B 272 0')
+        wait(lambda:log().count('CHROME_TITLE release\n')>released,'fresh caption click after pointer loss')
+        assert state(width=1000,height=680,count=2) and sorted(p.name for p in folder.iterdir())==['existing','seed.txt']
     try:
         if fixture:
             bus=start(fixture/'usr/bin/dbus-daemon','bus','--nofork','--config-file='+str(configuration))
@@ -118,6 +182,7 @@ def main():
         assert metadata["revision"]==pin["revision"] and metadata["version"]==pin["version"] and metadata["atspi_compiled"]
         assert digest(library)==metadata["artifacts"][library.relative_to(candidate).as_posix()]
         (root/"maps.txt").write_text(maps);capture("initial list")
+        chrome_cases()
         if fixture:
             peer('initial');wait(lambda:state(grid=1,selected=1,depth=0),'native selection without opening')
             assert 'OPEN pid=' not in log()
