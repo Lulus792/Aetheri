@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — bound NexaUI Files in the development desktop.
+6 November 2026 — native Files accessibility and uncertain-operation inspection.
 
 ## Coordination
 
@@ -14,6 +14,39 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Own NexaUI Files now supplies a localized accessible Information name and native
+invalid-field state/explanation. Unknown file-operation outcomes have read-only
+captured metadata and one focused Close inspection action; there is no editable
+name or confirmation. Closing/reopening retains uncertainty and never repeats
+or rolls back the operation. SDK 0.1.18 and SDL defaults remain unchanged.
+
+A separate C17/libatspi peer on the actual private compositor/registry proves
+selection/actions, inline naming, stale/disabled rejection, invalid state and
+localized dialog focus/parent/lifetime; a disabled bridge fails registration.
+Actual held/lost mkdir/rename acknowledgements separately prove one attempt,
+retained effects and original-move-worker close waiting. Ordinary Files has no
+fault wrappers. See the [executed record](journal/2026-11-06-files-access.md)
+and [contract](../../spec/files.md#opt-in-nexaui-view).
+
+The full 64 app/desktop/compositor groups pass Release (208.25s) and ASan/UBSan
+(367.11s), without skips. The later read-only inspection refinement and stricter
+dialog-parent assertion change exactly three recorded inputs; all seven affected
+groups pass again on final bytes (29.27s/54.62s). This is full earlier coverage
+plus targeted final verification, not a repeated final full matrix. Audit joins
+366 source inputs, 116 exports/54 native images, unchanged 28 frozen contracts
+and nineteen protected hashes/no sidecars. The enforcing carrier is idle on
+tty1; no build/private-registry actors, Aetheri service or seat0 session remain.
+Closed development history and foreign files are unchanged; no new DRM session.
+
+Next: complete Files name/filter text editing and remaining chrome interactions,
+then continue per-view migration without waiting for global NexaUI completion.
+Complete text/IME, human/physical/material acceptance, normal session/admission/
+grant/recovery/removal, remaining apps/services/image/installer/updates/suspend/
+multimonitor and persistent experiment desktop remain required. The old
+quarantined runtime is unresolved. Keep the full goal active.
+
+## Prior Files owner checkpoint
 
 The new explicit `start --desktop --files-ui nexaui-owned` profile now selects
 our own Files through the fixed development owner. Settings selection remains

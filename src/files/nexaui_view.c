@@ -54,6 +54,7 @@ static bool sync_scope(struct ae_files_view *v) {
             v->row_base=v->next;v->next+=ID_BLOCK;v->last_click=v->double_click=0;
         }
         if(s->dialog_serial!=v->serial && s->dialog) v->focus_wanted=(uint64_t)(ae_files_session_unresolved(s)?AE_FV_CANCEL:AE_FV_NAME)+1;
+        if((state&16u) && !(v->state&16u) && s->dialog) v->focus_wanted=(uint64_t)AE_FV_CANCEL+1;
         v->base=v->next;v->next+=ID_BLOCK;v->revision=revision;v->selected=selected;v->serial=s->dialog_serial;v->state=state;
         v->draft_size=s->dialog?s->name_size:0;memcpy(v->draft,s->name,v->draft_size);v->draft[v->draft_size]=0;
         memset(v->drawn,0,sizeof(v->drawn));v->commit_active=false;
@@ -151,9 +152,10 @@ static bool text(struct ae_files_view *v,uint64_t id,uint64_t parent,const char 
 }
 struct intent { uint64_t id;bool native;unsigned count; };
 static bool widget(struct ae_files_view *v,uint64_t id,uint64_t parent,nx_semantic_role role,const char *name,const char *value,
-    nx_rect r,bool disabled,bool selected,struct intent *intent) {
+    nx_rect r,bool disabled,bool selected,bool invalid,struct intent *intent) {
     nx_widget_desc d={.semantic={.id=id,.parent_id=parent,.role=role,.bounds=r,.name=span(name),.value=span(value?value:""),
-        .state=(disabled?NX_SEM_DISABLED:0u)|(selected?NX_SEM_SELECTED:0u),.actions=NX_ACTION_FOCUS|(role==NX_ROLE_TEXT_FIELD?0u:NX_ACTION_PRESS)|(role==NX_ROLE_LIST_ITEM?NX_ACTION_SELECT:0u)},
+        .description=span(invalid?tr(v,"Input rejected; clear it before continuing","Eingabe abgewiesen; vor dem Fortfahren löschen"):""),
+        .state=(disabled?NX_SEM_DISABLED:0u)|(selected?NX_SEM_SELECTED:0u)|(invalid?NX_SEM_INVALID:0u),.actions=NX_ACTION_FOCUS|(role==NX_ROLE_TEXT_FIELD?0u:NX_ACTION_PRESS)|(role==NX_ROLE_LIST_ITEM?NX_ACTION_SELECT:0u)},
         .flags=NX_WIDGET_INTERACTIVE|NX_WIDGET_FOCUSABLE};
     nx_interaction_state i;
     if(nx_widget_register(v->ui,&d,&i)!=NX_OK) return false;
@@ -163,7 +165,7 @@ static bool widget(struct ae_files_view *v,uint64_t id,uint64_t parent,nx_semant
 }
 static bool button(struct ae_files_view *v,enum ae_files_control c,const char *name,nx_rect r,bool disabled,bool selected,struct intent *intent) {
     uint64_t id=control(v,c);v->drawn[c]=id;v->bounds[c]=r;
-    if(!widget(v,id,v->modal_parent?v->modal_parent:1,v->modal_parent && v->s->menu?NX_ROLE_MENU_ITEM:NX_ROLE_BUTTON,name,NULL,r,disabled,selected,intent)) return false;
+    if(!widget(v,id,v->modal_parent?v->modal_parent:1,v->modal_parent && v->s->menu?NX_ROLE_MENU_ITEM:NX_ROLE_BUTTON,name,NULL,r,disabled,selected,false,intent)) return false;
     nx_color ink=disabled?v->p.muted:v->p.text;float x=r.x+r.width/2,y=r.y+r.height/2;
     if(c==AE_FV_CLOSE) return nx_draw_line(v->ui,(nx_point){x-4,y-4},(nx_point){x+4,y+4},1,ink)==NX_OK &&
         nx_draw_line(v->ui,(nx_point){x+4,y-4},(nx_point){x-4,y+4},1,ink)==NX_OK;
@@ -181,11 +183,11 @@ static bool button(struct ae_files_view *v,enum ae_files_control c,const char *n
         nx_draw_line(v->ui,(nx_point){x+5,y+1},(nx_point){x+5,y+7},1,ink)==NX_OK;
     if(c==AE_FV_UP) return nx_draw_line(v->ui,(nx_point){x+3,y-5},(nx_point){x-3,y},1,ink)==NX_OK &&
         nx_draw_line(v->ui,(nx_point){x-3,y},(nx_point){x+3,y+5},1,ink)==NX_OK;
-    return text(v,id+256,id,name,(nx_rect){r.x+6,r.y,r.width-12,r.height},11*v->s->scale,ink,false);
+    return text(v,id+256,id,c==AE_FV_DETAILS?"i":name,(nx_rect){r.x+6,r.y,r.width-12,r.height},11*v->s->scale,ink,false);
 }
 static bool field(struct ae_files_view *v,enum ae_files_control c,const char *name,const char *value,nx_rect r,bool disabled,bool invalid,struct intent *intent) {
     uint64_t id=control(v,c);v->drawn[c]=id;v->bounds[c]=r;
-    if(!widget(v,id,v->modal_parent?v->modal_parent:1,NX_ROLE_TEXT_FIELD,name,value,r,disabled,false,intent)) return false;
+    if(!widget(v,id,v->modal_parent?v->modal_parent:1,NX_ROLE_TEXT_FIELD,name,value,r,disabled,false,invalid,intent)) return false;
     if(invalid && nx_stroke_rect(v->ui,r,2,rgb(0xffbdad))!=NX_OK) return false;
     return text(v,id+256,id,*value?value:name,(nx_rect){r.x+8,r.y,r.width-16,r.height},14*v->s->scale,*value?v->p.text:v->p.muted,true);
 }
@@ -245,6 +247,25 @@ static bool naming(struct ae_files_view *v,nx_rect r,bool review,struct intent *
     nx_semantic_desc dialog={.id=v->modal_parent,.parent_id=1,.role=NX_ROLE_DIALOG,.bounds=r,.name=span(heading)};
     if(nx_semantics_add(v->ui,&dialog,NULL)!=NX_OK) return false;
     if(nx_fill_round_rect(v->ui,r,8,v->p.card)!=NX_OK) return false;
+    if(unknown) {
+        /* Inspection describes the retained attempt; it offers neither editing
+           nor a confirmation that could imply retry or rollback. */
+        const char *labels[]={s->moving?tr(v,"From folder","Aus Ordner"):s->renaming?tr(v,"Previous name","Vorheriger Name"):tr(v,"Operation","Aktion"),
+            s->moving?tr(v,"To folder","In Ordner"):tr(v,"Folder","Ordner"),s->renaming?tr(v,"New name","Neuer Name"):tr(v,"Name","Name")};
+        const char *values[]={s->moving?s->from_folder:s->renaming?s->original_label:s->create_kind==AE_FILES_CREATE_DIRECTORY?tr(v,"New folder","Neuer Ordner"):tr(v,"New file","Neue Datei"),
+            s->folder,s->name};
+        float top=r.y+12+32*z,row=(r.height-70*z-8-(top-r.y))/3,column=fminf(150*z,(r.width-24)*.35f);
+        if(!text(v,v->base+70,v->modal_parent,heading,(nx_rect){r.x+12,r.y+8,r.width-24,32*z},18*z,v->p.text,false)) return false;
+        for(unsigned i=0;i<3;++i) {
+            nx_rect line={r.x+12,top+(float)i*row,r.width-24,row};
+            if(!text(v,v->base+71+(uint64_t)i*2,v->modal_parent,labels[i],(nx_rect){line.x,line.y,column,line.height},12*z,v->p.muted,false) ||
+               !text(v,v->base+72+(uint64_t)i*2,v->modal_parent,values[i],(nx_rect){line.x+column+8,line.y,line.width-column-8,line.height},12*z,v->p.text,false)) return false;
+        }
+        v->cancel=(nx_rect){r.x+12,r.y+r.height-40*z,r.width-24,32*z};s->name_focus=1;
+        bool okay=text(v,v->base+77,v->modal_parent,s->create_message,(nx_rect){r.x+12,r.y+r.height-70*z,r.width-24,26*z},11*z,v->p.text,false) &&
+            button(v,AE_FV_CANCEL,tr(v,"Close inspection","Prüfung schließen"),v->cancel,false,false,intent);
+        v->modal_parent=0;return okay;
+    }
     if(review) {
         v->name=(nx_rect){r.x+12,r.y+r.height-104*z,r.width-24,32*z};
         float top=r.y+12+32*z,row=(v->name.y-8-top)/3;
@@ -305,7 +326,7 @@ bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const 
        !button(v,AE_FV_ZOOM,restore?tr(v,"Restore","Zurück"):tr(v,"Zoom","Zoom"),(nx_rect){54,2,50,26},background,
             false,&intent) || !text(v,v->base+64,1,tr(v,"Files","Dateien"),(nx_rect){112,0,width-170,l->chrome.h},11*z,v->p.text,false)) return false;
     const enum ae_files_control tools[]={AE_FV_UP,AE_FV_LIST,AE_FV_GRID,AE_FV_NEW_FOLDER,AE_FV_NEW_FILE,AE_FV_DETAILS,AE_FV_MORE};
-    const char *names[]={tr(v,"Up","Zurück"),tr(v,"List","Liste"),tr(v,"Grid","Raster"),tr(v,"New folder","Neuer Ordner"),tr(v,"New file","Neue Datei"),"i",tr(v,"Actions","Aktionen")};
+    const char *names[]={tr(v,"Up","Zurück"),tr(v,"List","Liste"),tr(v,"Grid","Raster"),tr(v,"New folder","Neuer Ordner"),tr(v,"New file","Neue Datei"),tr(v,"Information","Informationen"),tr(v,"Actions","Aktionen")};
     nx_rect boxes[]={rect(l->back),rect(l->list),rect(l->grid),rect(l->new_folder),rect(l->new_file),rect(l->details),rect(l->more)};
     for(size_t i=0;i<sizeof(tools)/sizeof(tools[0]);++i)
         if(!button(v,tools[i],names[i],boxes[i],background,(tools[i]==AE_FV_GRID?s->grid:tools[i]==AE_FV_LIST?!s->grid:false),&intent)) return false;
@@ -320,7 +341,7 @@ bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const 
             size_t index=s->place_count++;s->place_depth[index]=d;s->place_snapshot[index]=SIZE_MAX;
             uint64_t id=place(v,index);
             const char *name=d?ae_files_ancestor_label(s->files,d):s->root_label;
-            if(!widget(v,id,1,NX_ROLE_BUTTON,name,NULL,r,background,d==ae_files_depth(s->files),&intent) ||
+            if(!widget(v,id,1,NX_ROLE_BUTTON,name,NULL,r,background,d==ae_files_depth(s->files),false,&intent) ||
                !text(v,id+1,id,name,(nx_rect){r.x+8,r.y,r.width-16,r.height},12*z,v->p.text,false)) return false;
             y+=38*z;
         }
@@ -330,7 +351,7 @@ bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const 
             nx_rect r={10*z,y,l->sidebar.w-20*z,32*z};if(r.y+r.height>l->status.y) break;
             size_t index=s->place_count++;s->place_depth[index]=1;s->place_snapshot[index]=i;
             uint64_t id=place(v,index);
-            if(!widget(v,id,1,NX_ROLE_BUTTON,e->label,NULL,r,background,false,&intent) ||
+            if(!widget(v,id,1,NX_ROLE_BUTTON,e->label,NULL,r,background,false,false,&intent) ||
                !text(v,id+1,id,e->label,(nx_rect){r.x+8,r.y,r.width-16,r.height},12*z,v->p.text,false)) return false;
             y+=38*z;
         }
@@ -348,7 +369,7 @@ bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const 
         if(inline_name && index==naming_index) { if(!naming(v,r,false,&intent)) return false;continue; }
         const struct ae_files_entry *e=ae_files_entry(s->files,index);if(!e) return false;
         uint64_t id=entry(v,index);
-        if(!widget(v,id,group,NX_ROLE_LIST_ITEM,e->label,ae_files_session_kind_label(s,e),r,background,id==selected,&intent)) return false;
+        if(!widget(v,id,group,NX_ROLE_LIST_ITEM,e->label,ae_files_session_kind_label(s,e),r,background,id==selected,false,&intent)) return false;
         float x=r.x+10,top=r.y,iw=s->grid?32*z:20*z;
         if(nx_stroke_rect(v->ui,(nx_rect){x,top+8,iw,e->kind==AE_FILES_DIRECTORY?iw*.7f:iw},1,v->p.muted)!=NX_OK) return false;
         if(e->kind==AE_FILES_DIRECTORY && nx_draw_line(v->ui,(nx_point){x,top+5},(nx_point){x+iw*.4f,top+5},2,v->p.muted)!=NX_OK) return false;

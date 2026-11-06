@@ -1,5 +1,15 @@
 # Decisions
 
+## Make uncertain file operations inspect-only — 6 November 2026
+
+An uncertain filesystem outcome retains its original attempt. The NexaUI Files
+dialog presents captured names/locations as read-only text with one focused
+Close inspection action. Do not present an editable field, retry confirmation
+or cancellation implying rollback. Closing/reopening the inspection does not
+settle the operation or permit a second mutation. Native invalid fields also
+publish invalid state and a localized explanation. See the
+[executed accessibility/fault record](journal/2026-11-06-files-access.md).
+
 ## Bind Files independently in the development owner — 6 November 2026
 
 Add an explicit Files UI choice and a distinct `aetheri-files-v1` selection,

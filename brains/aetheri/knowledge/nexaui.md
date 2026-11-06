@@ -24,6 +24,16 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Files accessibility/fault update: the own view now passes an
+independent C17/libatspi client with a real private registry, including actual
+selection/actions, invalid state, stale rejection and localized dialog/focus.
+Separate native tests hold/lose real mkdir/rename acknowledgements, retain the
+effects and verify a read-only inspection plus original-worker close waiting.
+The final affected seven groups pass in both Release and ASan/UBSan. See the
+[executed record](../journal/2026-11-06-files-access.md). Complete editable text,
+IME, human/normal-session and hardware acceptance remain separate. No SDK pin,
+default, catalogue or handoff change follows.
+
 6 November Files view/owner update: a separate `aetheri-files-nexaui` now uses the
 reviewed 0.1.18 SDK and the shared Files controller. Its own list/grid, held
 locations, inline naming, move review, menus and information work through native
@@ -34,9 +44,10 @@ retain snapshot/dialog/location identity. Minimum-size modal keyboard and
 `--files-ui nexaui-owned` profile now has original-owner, private-seat and actual
 virtual DRM evidence, including unsaved-editor close waiting and fresh Files.
 Settings selection is independent; SDL stays the default. See the
-[owner record](../journal/2026-11-06-files-owner.md). Independent Files AT-SPI, complete
-text/IME, fullscreen entry, full glass and normal session/hardware acceptance
-remain separate gates. No SDK pin, catalogue or handoff change follows.
+[owner record](../journal/2026-11-06-files-owner.md). At that checkpoint independent
+Files AT-SPI was still pending; the later update above supplies its bounded
+native evidence. Complete text/IME, fullscreen entry, full glass and normal
+session/hardware acceptance remain separate gates.
 
 6 November owned-view/owner update: Aetheri's own C17 Settings presentation now
 uses the reviewed 0.1.18 SDK through an explicit `--settings-ui nexaui-owned`

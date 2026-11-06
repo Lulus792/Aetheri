@@ -31,8 +31,8 @@ set(AETHERI_ATSPI_TEST_PREFIX "" CACHE PATH "Optional private native AT-SPI test
 if(AETHERI_NEXAUI_SETTINGS_PROBE AND NOT (AETHERI_SETTINGS AND AETHERI_COMPOSITOR))
     message(FATAL_ERROR "The NexaUI Settings probe requires AETHERI_SETTINGS and AETHERI_COMPOSITOR")
 endif()
-if(AETHERI_ATSPI_TEST_PREFIX AND NOT AETHERI_NEXAUI_SETTINGS_PROBE)
-    message(FATAL_ERROR "The AT-SPI Settings test requires AETHERI_NEXAUI_SETTINGS_PROBE")
+if(AETHERI_ATSPI_TEST_PREFIX AND NOT (AETHERI_NEXAUI_SETTINGS_PROBE OR (AETHERI_NEXAUI_PREFIX AND AETHERI_COMPOSITOR)))
+    message(FATAL_ERROR "Native AT-SPI tests require the reviewed owned-view SDK/compositor or the Settings probe")
 endif()
 option(AETHERI_FILES "Build the local Files development view" OFF)
 option(AETHERI_TERMINAL "Build the development graphical terminal" OFF)
@@ -478,10 +478,26 @@ if(AETHERI_SETTINGS)
                 add_test(NAME files.view_hidpi COMMAND test_files_view "${AETHERI_SETTINGS_TEST_FONT}" 2)
                 set_tests_properties(files.view files.view_hidpi PROPERTIES TIMEOUT 30 LABELS "nexaui")
                 if(AETHERI_COMPOSITOR AND AETHERI_TERMINAL AND AETHERI_EDITOR)
+                    add_executable(test_files_view_fault src/files/nexaui_main.c tests/files_create_fault.c)
+                    target_compile_definitions(test_files_view_fault PRIVATE AETHERI_FAULT_ATTEMPTS)
+                    target_compile_options(test_files_view_fault PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+                    target_link_options(test_files_view_fault PRIVATE -Wl,--wrap=mkdirat,--wrap=renameat2)
+                    target_link_libraries(test_files_view_fault PRIVATE aetheri_files_view Threads::Threads)
+                    add_test(NAME files.view_fault COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_files_view_fault.py"
+                        $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_files_view_fault> "${AETHERI_SETTINGS_TEST_FONT}"
+                        $<TARGET_FILE:aetheri-terminal> $<TARGET_FILE:aetheri-editor> "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
+                    set_tests_properties(files.view_fault PROPERTIES TIMEOUT 90 LABELS "nexaui")
                     add_test(NAME files.view_native COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_files_view.py"
                         $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-files-nexaui> "${AETHERI_SETTINGS_TEST_FONT}"
                         $<TARGET_FILE:aetheri-terminal> $<TARGET_FILE:aetheri-editor> "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
                     set_tests_properties(files.view_native PROPERTIES TIMEOUT 90 LABELS "nexaui")
+                    if(AETHERI_ATSPI_TEST_PREFIX)
+                        add_test(NAME files.view_atspi COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_files_view.py"
+                            $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-files-nexaui> "${AETHERI_SETTINGS_TEST_FONT}"
+                            $<TARGET_FILE:aetheri-terminal> $<TARGET_FILE:aetheri-editor> "${AETHERI_TERMINAL_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}"
+                            --atspi "${AETHERI_ATSPI_TEST_PREFIX}")
+                        set_tests_properties(files.view_atspi PROPERTIES TIMEOUT 90 LABELS "nexaui;accessibility")
+                    endif()
                 endif()
             endif()
         endif()

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from xml.sax.saxutils import escape
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -21,7 +22,10 @@ def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main():
-    server_bin,app_bin,font,terminal,editor,mono,build=map(lambda x:Path(x).resolve(),sys.argv[1:])
+    assert len(sys.argv) in (8,10)
+    server_bin,app_bin,font,terminal,editor,mono,build=map(lambda x:Path(x).resolve(),sys.argv[1:8])
+    fixture=Path(sys.argv[9]).resolve() if len(sys.argv)==10 and sys.argv[8]=='--atspi' else None
+    assert len(sys.argv)==8 or fixture is not None
     assert os.getuid()!=0
     assert digest(font)==json.loads((ROOT/"spec/ui-inputs.json").read_text())["font"]["sha256"]
     root=Path(tempfile.mkdtemp(prefix="files-view-native-",dir=build));runtime=root/"runtime";runtime.mkdir(mode=0o700)
@@ -31,11 +35,25 @@ def main():
          "DBUS_SESSION_BUS_ADDRESS":"unix:path="+str(root/"absent-bus"),"LIBGL_ALWAYS_SOFTWARE":"1","GALLIUM_DRIVER":"llvmpipe","LP_NUM_THREADS":"2",
          "ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"}
     for key in ("DISPLAY","WAYLAND_SOCKET","AT_SPI_BUS_ADDRESS"):env.pop(key,None)
+    client=root/'atspi-client'
+    if fixture:
+        assets=json.loads((fixture/'inputs.json').read_text())
+        for name,value in assets['files'].items():assert digest(fixture/name.lstrip('/'))==value,name
+        sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
+        command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/files_view_atspi.c'),'-o',str(client)]
+        command += ['-I'+str(fixture/p) for p in ('usr/include/at-spi-2.0','usr/include/glib-2.0','usr/lib64/glib-2.0/include')]
+        command += ['-I'+str(sdk/p) for p in ('include/dbus-1.0','lib64/dbus-1.0/include')]
+        command += [str(fixture/'usr/lib64/libatspi.so.0.0.1'),'-l:libgobject-2.0.so.0','-l:libglib-2.0.so.0','-Wl,-rpath,'+str(fixture/'usr/lib64'),'-Wl,-rpath-link,'+str(fixture/'usr/lib64')]
+        compiled=subprocess.run(command,capture_output=True,text=True);(root/'client-build.log').write_text(compiled.stdout+compiled.stderr);assert compiled.returncode==0,compiled.stderr
+        address='unix:path='+str(runtime/'bus');configuration=root/'bus.conf'
+        configuration.write_text('<busconfig><type>session</type><listen>'+escape(address)+'</listen><auth>EXTERNAL</auth><policy context="default"><allow user="'+str(os.getuid())+'"/><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>\n')
+        env.update(DBUS_SESSION_BUS_ADDRESS=address,AT_SPI_BUS_ADDRESS=address,LD_LIBRARY_PATH=str(fixture/'usr/lib64'),GSETTINGS_BACKEND='memory')
+        for name in ('NO_AT_BRIDGE','DBUS_STARTER_ADDRESS','DBUS_STARTER_BUS_TYPE'):env.pop(name,None)
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
     children=[];streams=[];pins=[];images=[]
-    def start(binary,name,*args,pass_fds=()):
+    def start(binary,name,*args,pass_fds=(),extra_env=None):
         stream=(root/(name+".log")).open("xb");streams.append(stream)
-        p=subprocess.Popen([str(binary),*map(str,args)],env={**env,**({"WAYLAND_DEBUG":"server"} if name=="server" else {})},stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,pass_fds=pass_fds)
+        p=subprocess.Popen([str(binary),*map(str,args)],env=extra_env or {**env,**({"WAYLAND_DEBUG":"server"} if name=="server" else {})},stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,pass_fds=pass_fds)
         children.append(p);return p
     def log(name="app"):return (root/(name+".log")).read_text(errors="replace")
     def wait(test,label):
@@ -53,6 +71,8 @@ def main():
     codes=dict(zip("abcdefghijklmnopqrstuvwxyz",(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)));codes["."]=52
     def typing(text):
         for c in text:key(codes[c])
+    def peer(mode):
+        p=start(client,'peer-'+mode,app.pid,mode);assert p.wait(timeout=12)==0,log('peer-'+mode);children.remove(p)
     def view():
         found=re.findall(r"^VIEW (.+)$",log(),re.M)
         return dict(re.findall(r"(\w+)=([^ ]+)",found[-1])) if found else {}
@@ -70,6 +90,14 @@ def main():
             packed=p.with_suffix(".ppm.gz");packed.write_bytes(gzip.compress(raw,mtime=0));assert gzip.decompress(packed.read_bytes())==raw;p.unlink()
             images.append({"case":label,"output":i,"file":packed.name,"sha256":hashlib.sha256(raw).hexdigest()})
     try:
+        if fixture:
+            bus=start(fixture/'usr/bin/dbus-daemon','bus','--nofork','--config-file='+str(configuration))
+            wait(lambda:(runtime/'bus').is_socket(),'private bus')
+            registry=start(fixture/'usr/libexec/at-spi2-registryd','registry')
+            def registry_ready():
+                p=subprocess.run(['busctl','--address='+address,'--timeout=1','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','NameHasOwner','s','org.a11y.atspi.Registry'],env=env,capture_output=True,text=True,timeout=2)
+                return p.returncode==0 and p.stdout.strip()=='b true'
+            wait(registry_ready,'private registry')
         server=start(server_bin,"server","--headless",env["WAYLAND_DISPLAY"],captures,right.fileno(),pass_fds=(right.fileno(),));right.close()
         wait(lambda:"READY " in log("server"),"server")
         app=start(app_bin,"app","--root",folder,"--font",font,"--terminal",terminal,"--editor",editor,"--terminal-font",mono,"--cache",cache,"--diagnostics")
@@ -81,6 +109,13 @@ def main():
         assert metadata["revision"]==pin["revision"] and metadata["version"]==pin["version"] and metadata["atspi_compiled"]
         assert digest(library)==metadata["artifacts"][library.relative_to(candidate).as_posix()]
         (root/"maps.txt").write_text(maps);capture("initial list")
+        if fixture:
+            peer('initial');wait(lambda:state(grid=1,selected=1,depth=0),'native selection without opening')
+            assert 'OPEN pid=' not in log()
+            peer('dialog');wait(lambda:state(dialog=1),'accessible inline naming')
+            typing('bad');key(53);wait(lambda:state(name_bad=1),'actual invalid name')
+            peer('invalid');peer('cancel');wait(lambda:state(dialog=0,selected=1),'accessible cancel/focus return')
+            assert sorted(p.name for p in folder.iterdir())==['existing','seed.txt']
         click(2);wait(lambda:state(grid=1),"pointer grid")
         key(49,ctrl=True,shift=True);wait(lambda:state(dialog=1),"inline folder")
         typing("work");capture("inline grid folder");key(28)
@@ -120,18 +155,33 @@ def main():
         key(49,ctrl=True);wait(lambda:state(dialog=1),"minimum 200 inline naming");typing("draft");capture("minimum German 200 inline naming");key(1)
         wait(lambda:state(dialog=0),"minimum inline cancellation");assert not (folder/"work/draft").exists()
         key(67);wait(lambda:state(info_overlay=1),"information overlay");capture("information overlay")
+        if fixture:peer('info');wait(lambda:state(info_overlay=0),'native localized information close')
         releases=log().count("KEY_END escape\n");key(1)
         wait(lambda:state(info_overlay=0) and log().count("KEY_END escape\n")>releases,"original Escape release processed and drawn")
         before=log().count("VIEW ");ticks=Path(f"/proc/{app.pid}/stat").read_text().rsplit(")",1)[1].split();initial=int(ticks[11])+int(ticks[12]);time.sleep(1.2)
         ticks=Path(f"/proc/{app.pid}/stat").read_text().rsplit(")",1)[1].split();delta=int(ticks[11])+int(ticks[12])-initial
         assert delta<=2 and log().count("VIEW ")==before,(delta,before,log().count("VIEW "))
-        key(16,ctrl=True);assert app.wait(timeout=8)==0;children.remove(app)
+        if fixture:peer('close')
+        else:key(16,ctrl=True)
+        assert app.wait(timeout=8)==0;children.remove(app)
+        if fixture:
+            wait(lambda:'UNMAP 0\n' in log('server'),'original app retired')
+            negative=start(app_bin,'negative-app','--root',folder,'--font',font,'--terminal',terminal,'--editor',editor,'--terminal-font',mono,'--cache',cache,'--diagnostics',extra_env={**env,'NO_AT_BRIDGE':'1'})
+            wait(lambda:'VIEW ' in log('negative-app'),'disabled-bridge native view')
+            rejected=start(client,'negative-peer',negative.pid,'initial')
+            assert rejected.wait(timeout=10)==1 and 'target app was not registered' in log('negative-peer'),log('negative-peer');children.remove(rejected)
+            negative.terminate();assert negative.wait(timeout=8)==0;children.remove(negative)
         server.terminate();assert server.wait(timeout=8)==0;children.remove(server)
-        for p in root.glob("*.log"):assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:",p.read_text(errors="replace")),p
+        if fixture:
+            for child in (registry,bus):
+                child.terminate();assert child.wait(timeout=8) in (0,-signal.SIGTERM);children.remove(child)
+        for p in root.glob("*.log"):assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:|GLib-GObject-CRITICAL",p.read_text(errors="replace")),p
         result={"result":"passed","scope":"opt-in opaque NexaUI Files on private compositor; no default/physical/production admission", "images":images,"actors":actors,
                 "idle_cpu_ticks":delta,"binaries":{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (server_bin,app_bin,terminal,editor)}}
         result["sdk"]={"revision":metadata["revision"],"version":metadata["version"],"library":str(library),"sha256":digest(library)}
         result["font"]={"path":str(font),"sha256":digest(font)}
+        result['atspi']='independent private registry/client and disabled-bridge negative' if fixture else 'unavailable bus only'
+        result['peer_sha256']=digest(client) if fixture else None
         (root/"result.json").write_text(json.dumps(result,indent=2)+"\n");print(json.dumps({"result":"passed","artifacts":str(root),"images":len(images)}))
     finally:
         for pin in reversed(pins):

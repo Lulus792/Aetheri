@@ -6,6 +6,10 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
+- [Independent C17 AT-SPI client](../../tests/files_view_atspi.c),
+  [native private-registry driver](../../tools/test_files_view.py) and
+  [actual lost-acknowledgement view tests](../../tools/test_files_view_fault.py).
+  [Executed checks, negative cases and limits](journal/2026-11-06-files-access.md).
 - Independent Files selection in the [development owner](../../tools/development_session.py),
   [contract guards](../../tools/test_development_session.py),
   [native owner workflow](../../tools/test_files_owner.py) and

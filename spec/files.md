@@ -116,9 +116,18 @@ and 200-percent text; information keeps its content above its Close action.
 Name/filter input is currently append-only, with whole-grapheme Backspace and
 Ctrl+U clearing. Complete untagged native commit batches are admitted atomically;
 filtered, incomplete, overflowed and tagged target/revision edits are refused.
-This is not full editable-text, caret/selection or external-IME support. The view
-publishes SDK semantics, but an independent Files AT-SPI client and human
-screenreader workflow have not yet been accepted.
+This is not full editable-text, caret/selection or external-IME support. Invalid
+name/filter fields publish the native invalid state and a localized explanation.
+The Information icon has an English/German accessible name while retaining its
+visual `i`. The independent native checks below cover a bounded set of semantics;
+human screenreader use and complete accessible text remain open.
+
+An unknown create/rename/move outcome opens a read-only inspection of the retained
+attempt. It shows the captured operation or previous name, folder(s) and attempted
+name. Its only action is **Close inspection**, initially focused; it offers no
+editable name or confirmation. Enter/Escape can close this view, and a new naming
+request returns to the retained inspection. Closing does not undo the filesystem
+effect, settle uncertainty or permit another mutation.
 
 `files.view` and `files.view_hidpi` exercise the real font at two raster densities,
 128 regular layouts each, stale snapshot/selection/dialog/draft/sidebar actions,
@@ -129,6 +138,23 @@ the original Terminal/editor. It records native resize, German 200-percent inlin
 naming/cancellation and information, selected SDK/font hashes and an idle sample.
 Its virtual outputs and test semantics do not establish physical monitors,
 normal app/session admission, production recovery or full accessibility.
+
+`files.view_atspi` adds a separate C17/libatspi client and real private registry
+to that native workflow. The client does not link NexaUI or the Files model. It
+checks actual names/roles, single selection, native Grid activation, focused
+inline naming, stale-action rejection, disabled confirmation, invalid input,
+cancel-to-selection focus and the localized minimum-size information dialog.
+A disabled-bridge instance must fail registration. Configure the existing
+`AETHERI_ATSPI_TEST_PREFIX` alongside the owned-view SDK/compositor; the upstream
+Settings example is not required. This is private test transport, not a normal
+desktop bus installation or human screenreader/event acceptance.
+
+`files.view_fault` links a separate test executable with the existing lost-reply
+adapters. Actual mkdir/rename effects precede the controlled error. It verifies
+one syscall attempt, retained object/bytes, responsive inspection without editable
+or confirmation controls, blocked repeat mutation and close waiting for the
+original move worker. The ordinary executable contains neither syscall hook.
+These tests do not simulate power loss or implement durable recovery/removal.
 
 `desktop.owner_files_nexaui` and `desktop.owner_both_nexaui` exercise the real
 fixed owner with SDL or own NexaUI Settings. Global search and dock reuse the

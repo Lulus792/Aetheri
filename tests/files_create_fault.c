@@ -9,6 +9,9 @@
 int __real_mkdirat(int directory,const char *name,mode_t mode);
 int __real_renameat2(int od,const char *old,int nd,const char *name,unsigned flags);
 int __wrap_renameat2(int od,const char *old,int nd,const char *name,unsigned flags) {
+#ifdef AETHERI_FAULT_ATTEMPTS
+    if(!strcmp(name,"unknown-name")) {puts("FAULT_ATTEMPT rename");fflush(stdout);}
+#endif
     int r=__real_renameat2(od,old,nd,name,flags);
     if (!r && !strcmp(name,"unknown-name")) {
         puts("FAULT_RENAMED entry");fflush(stdout);
@@ -18,6 +21,9 @@ int __wrap_renameat2(int od,const char *old,int nd,const char *name,unsigned fla
     return r;
 }
 int __wrap_mkdirat(int directory,const char *name,mode_t mode) {
+#ifdef AETHERI_FAULT_ATTEMPTS
+    if(!strcmp(name,"unknown-folder")) {puts("FAULT_ATTEMPT mkdir");fflush(stdout);}
+#endif
     int r=__real_mkdirat(directory,name,mode);
     if (!r && !strcmp(name,"unknown-folder")) {
         /* Real effect first, independently released acknowledgement second. */
