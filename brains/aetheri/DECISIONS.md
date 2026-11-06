@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep Files view actions bound to their original UI scope — 6 November 2026
+
+The optional NexaUI presentation reuses the Files controller rather than owning
+a second set of filesystem operations. Raw snapshot replacement retires row
+identities; selected-command, dialog and naming-draft lifetimes retire their own controls.
+Sidebar locations use original snapshot/depth bindings, never changing visible
+ordinals. A deferred action must not open a different folder after filtering.
+Use the reviewed 0.1.18 software Wayland profile for this first executable and
+retain SDL in the development owner until a separate bound profile is exercised.
+Fullscreen entry, full text/IME/accessibility and final material acceptance remain
+explicit gates. See [view contract](../../spec/files.md#opt-in-nexaui-view).
+
 ## Bind cross-folder moves before dispatch — 5 November 2026
 
 Extend the existing no-replace operation with an independently held destination;

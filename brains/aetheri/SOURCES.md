@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Aetheri-owned NexaUI Files — 6 November 2026
+
+- Original [view](../../src/files/nexaui_view.c), [boundary](../../src/files/nexaui_view.h)
+  and [native host](../../src/files/nexaui_main.c) over the existing Files controller.
+  The host retains the reviewed Settings/upstream scaffold attribution.
+- [Font/layout/action regression](../../tests/test_files_view.c) and
+  [native compositor/file/editor workflow](../../tools/test_files_view.py).
+  Their scope and remaining gates are in the [Files contract](../../spec/files.md#opt-in-nexaui-view).
+  The reviewed [SDK pin](../../spec/nexaui-inputs.json) remains 0.1.18/e71ee30.
+  [Executed record and audit](journal/2026-11-06-files-view.md).
+
 ## Aetheri-owned NexaUI Settings — 6 November 2026
 
 - [Bound development selection/supervisor](../../tools/development_session.py),

@@ -24,6 +24,17 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Files view update: a separate `aetheri-files-nexaui` now uses the
+reviewed 0.1.18 SDK and the shared Files controller. Its own list/grid, held
+locations, inline naming, move review, menus and information work through native
+Wayland/software input and the original file/editor operations. Deferred actions
+retain snapshot/dialog/location identity. Minimum-size modal keyboard and
+200-percent text cases supplement the ordinary layout matrix. See the
+[Files contract](../../../spec/files.md#opt-in-nexaui-view). This does not change
+the development owner's SDL Files selection. Independent Files AT-SPI, complete
+text/IME, fullscreen entry, full glass and normal session/hardware acceptance
+remain separate gates. No SDK pin, catalogue or handoff change follows.
+
 6 November owned-view/owner update: Aetheri's own C17 Settings presentation now
 uses the reviewed 0.1.18 SDK through an explicit `--settings-ui nexaui-owned`
 profile. Separate pages, opaque themes, narrow keyboard reading and native

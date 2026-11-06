@@ -8,7 +8,7 @@
 void ae_files_session_init(struct ae_files_session *a,ae_files_work_start start,ae_files_work_join join,void *context) {
     *a=(struct ae_files_session){.child={.pid=-1,.pin=-1},.create_dir=-1,.rename_witness=-1,
         .move_target=-1,.clip_dir=-1,.clip_witness=-1,.scale=1,.running=true,.dirty=true,.details=true,.sidebar=true,
-        .work_start=start,.work_join=join,.work_context=context};
+        .dialog_serial=1,.work_start=start,.work_join=join,.work_context=context};
     atomic_init(&a->create_done,false);
 }
 /* This entry belongs only to a successful original adapter start, once. */
@@ -53,6 +53,7 @@ void ae_files_session_clipboard_clear(struct ae_files_session *a) {
 }
 void ae_files_session_dialog_close(struct ae_files_session *a) {
     if (ae_files_session_creating(a)) return;
+    if (a->dialog && a->dialog_serial<UINT64_MAX) ++a->dialog_serial;
     if (a->create_dir>=0) close(a->create_dir);
     if (a->rename_witness>=0) close(a->rename_witness);
     if (a->move_target>=0) close(a->move_target);
@@ -65,7 +66,7 @@ void ae_files_session_request_close(struct ae_files_session *a) {
     else { ae_files_session_dialog_close(a);if (ae_files_session_busy(a)) ae_files_session_message(a,ae_files_session_tr(a,"Close the document window first; Files is waiting","Zuerst das Dokumentfenster schließen; Dateien wartet"));else a->running=false; }
 }
 void ae_files_session_dialog_open(struct ae_files_session *a,enum ae_files_create_kind kind) {
-    if (a->closing || ae_files_session_creating(a)) return;
+    if (a->closing || ae_files_session_creating(a) || a->dialog_serial==UINT64_MAX) return;
     a->pressed=0;a->query_focus=false;a->name_focus=0;a->name_bad=false;a->composing=false;*a->create_message=0;
     if (ae_files_session_unresolved(a)) {
         a->renaming=a->rename_unknown!=NULL;a->dialog=true;a->name_focus=1;snprintf(a->name,sizeof(a->name),"%s",a->renaming ? ae_files_rename_new(a->rename_unknown) : ae_files_create_leaf(a->unknown));a->name_size=strlen(a->name);
@@ -77,10 +78,10 @@ void ae_files_session_dialog_open(struct ae_files_session *a,enum ae_files_creat
         a->renaming=false;a->moving=false;a->rename_stale=false;a->create_dir=fd;a->create_kind=kind;a->name_size=0;*a->name=0;
         snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));a->dialog=true;
     }
-    a->dirty=true;
+    ++a->dialog_serial;a->dirty=true;
 }
 void ae_files_session_rename_open(struct ae_files_session *a) {
-    if (a->closing || ae_files_session_creating(a)) return;
+    if (a->closing || ae_files_session_creating(a) || a->dialog_serial==UINT64_MAX) return;
     if (ae_files_session_unresolved(a)) { ae_files_session_dialog_open(a,AE_FILES_CREATE_FILE);return; }
     if (a->child.pid>0) { ae_files_session_message(a,ae_files_session_tr(a,"Close the document before renaming","Dokument vor dem Umbenennen schließen"));return; }
     if (a->query_bad || !a->rows) return;
@@ -91,7 +92,7 @@ void ae_files_session_rename_open(struct ae_files_session *a) {
     snprintf(a->original_label,sizeof(a->original_label),"%s",e->label);snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));
     a->name_size=ae_files_create_name(a->original,strlen(a->original)) ? strlen(a->original) : 0;
     memcpy(a->name,a->original,a->name_size);a->name[a->name_size]=0;
-    a->renaming=true;a->moving=false;a->rename_stale=false;a->dialog=true;a->name_bad=false;a->name_focus=0;a->query_focus=false;a->pressed=0;a->composing=false;*a->create_message=0;a->dirty=true;
+    a->renaming=true;a->moving=false;a->rename_stale=false;a->dialog=true;a->name_bad=false;a->name_focus=0;a->query_focus=false;a->pressed=0;a->composing=false;*a->create_message=0;++a->dialog_serial;a->dirty=true;
 }
 void ae_files_session_cut_selected(struct ae_files_session *a) {
     if (a->closing || ae_files_session_creating(a) || ae_files_session_unresolved(a) || a->query_bad || !a->rows || a->child.pid>0) {
@@ -105,7 +106,7 @@ void ae_files_session_cut_selected(struct ae_files_session *a) {
     a->query_focus=false;ae_files_session_message(a,ae_files_session_tr(a,"Move selected; navigate to the target and press Ctrl+V","Verschieben vorgemerkt; Ziel öffnen und Strg+V drücken"));
 }
 void ae_files_session_paste_open(struct ae_files_session *a) {
-    if (a->closing || ae_files_session_creating(a)) return;
+    if (a->closing || ae_files_session_creating(a) || a->dialog_serial==UINT64_MAX) return;
     if (ae_files_session_unresolved(a)) { ae_files_session_dialog_open(a,AE_FILES_CREATE_FILE);return; }
     if (a->child.pid>0) { ae_files_session_message(a,ae_files_session_tr(a,"Close the document before moving","Dokument vor dem Verschieben schließen"));return; }
     if (a->clip_dir<0 || a->clip_witness<0) { ae_files_session_message(a,ae_files_session_tr(a,"Select a file or folder with Ctrl+X first","Zuerst Datei oder Ordner mit Strg+X auswählen"));return; }
@@ -116,7 +117,7 @@ void ae_files_session_paste_open(struct ae_files_session *a) {
     memcpy(a->original,a->clip_name,strlen(a->clip_name)+1);snprintf(a->original_label,sizeof(a->original_label),"%s",a->clip_label);
     snprintf(a->from_folder,sizeof(a->from_folder),"%s",a->clip_folder);snprintf(a->folder,sizeof(a->folder),"%s",ae_files_folder(a->files));
     a->name_size=ae_files_create_name(a->original,strlen(a->original)) ? strlen(a->original) : 0;memcpy(a->name,a->original,a->name_size);a->name[a->name_size]=0;
-    a->dialog=true;a->name_bad=false;a->name_focus=0;a->query_focus=false;a->pressed=0;a->composing=false;*a->create_message=0;a->dirty=true;
+    a->dialog=true;a->name_bad=false;a->name_focus=0;a->query_focus=false;a->pressed=0;a->composing=false;*a->create_message=0;++a->dialog_serial;a->dirty=true;
 }
 void ae_files_session_rename_submit(struct ae_files_session *a) {
     if (a->closing || ae_files_session_creating(a) || ae_files_session_unresolved(a) || a->rename_stale || a->name_bad || !ae_files_create_name(a->name,a->name_size) || (!a->moving && !strcmp(a->original,a->name))) return;

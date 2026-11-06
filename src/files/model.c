@@ -103,6 +103,7 @@ void ae_files_hidden(struct ae_files *f,bool show) { if (f) { f->hidden=show;fil
 bool ae_files_select(struct ae_files *f,size_t i) { if (!f || i>=f->count) return false;f->selected=i;return true; }
 size_t ae_files_count(const struct ae_files *f) { return f ? f->count : 0; }
 size_t ae_files_total(const struct ae_files *f) { return f ? f->snapshot->count : 0; }
+uint64_t ae_files_revision(const struct ae_files *f) { return f ? f->revision : 0; }
 size_t ae_files_selected(const struct ae_files *f) { return f ? f->selected : 0; }
 unsigned ae_files_depth(const struct ae_files *f) { return f ? f->depth : 0; }
 const char *ae_files_query(const struct ae_files *f) { return f ? f->query : ""; }

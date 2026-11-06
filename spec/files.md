@@ -3,8 +3,8 @@
 `aetheri-files` browses a selected directory and creates, renames or moves entries
 without replacing existing targets. It opens text documents in our
 [editor](editor.md), inside a separately owned [Terminal](terminal.md) window.
-Navigation and filtering use an original C17 model; SDL3 supplies the Wayland
-window and drawing. The app uses the existing reviewed SDL/text dependency profile.
+Navigation and filtering use an original C17 model. The default view uses the
+reviewed SDL/text profile; a separate opt-in NexaUI executable is described below.
 
 This is an ordinary-user development app, now launched from the fixed development
 dock/search owner. It is not yet a document broker, an installed app sandbox or
@@ -66,8 +66,8 @@ new mutation. Disposing a view or its in-memory state does not undo an observed
 filesystem effect. A still-live document remains an independent close obligation.
 Future toolkit adapters must retain the existing input rejection, menu/modal and
 selection rules; the controller's internal mutable state is not an untrusted SDK
-or permission API. No NexaUI Files executable or accessibility bridge follows
-from this extraction; those are the next integration work.
+or permission API. The separate NexaUI view below shares this controller; the
+controller itself contains no toolkit or accessibility transport.
 
 `files.session` exercises deferred completion and original join, worker-start
 failure without effects, close during pending work, real rename/move with retained
@@ -75,6 +75,58 @@ bytes, a real mkdir with lost acknowledgement, rejected name prefixes and the
 document-close fence. It runs without a display or UI library. The existing
 `files.native` suite separately exercises the real SDL worker, native input,
 document/editor and injected uncertain-operation paths.
+
+## Opt-in NexaUI view
+
+`aetheri-files-nexaui` supplies our own C17 list/grid, held-folder sidebar,
+filter, inline file/folder naming, rename, move review, action menu and read-only
+information view. It uses the same controller and filesystem operations as the
+SDL app. Build with the existing reviewed `AETHERI_NEXAUI_PREFIX` profile in
+[NexaUI integration](nexaui.md), plus Files and Settings. It currently selects
+exactly SDK 0.1.18. Run the command above with `aetheri-files-nexaui` in place of
+`aetheri-files`; its arguments and separately owned Terminal/editor are unchanged.
+The development dock/search owner still selects SDL Files.
+
+The host uses native Wayland windows, the SDK software renderer and one C17
+operation thread when needed. It sleeps on native input, operation notification
+and original document obligations; it does not repaint continuously. The Files
+process does not load SDL, X11, EGL or Vulkan. Its Terminal child still uses SDL.
+The original scaffold's MIT notice remains in `src/settings/NEXAUI-NOTICE.txt`.
+
+The first view implements an opaque dark/high-contrast material, English/German
+and 100/125/150/200-percent text. Below 640×420 it retains Close and a resize hint
+while refusing new editing commands. Native title/edge input supports move and
+resize; Zoom means work-area maximize/restore. SDK 0.1.18 has no public fullscreen
+entry request: F11 explicitly reports unavailable in this opt-in view. The SDL
+view retains fullscreen. Full glass and final visual/hardware acceptance remain.
+
+Native semantic actions use fresh monotonically allocated scopes. Every raw
+snapshot replacement, including an identical refresh, retires its row IDs.
+Selection-sensitive commands, reopened dialogs and changed naming drafts retire
+their old controls; a queued confirmation cannot submit a later name.
+sidebar children bind to raw snapshot entries, not changing visible ordinals.
+Queued actions cannot silently select the next location after a hidden-folder
+toggle. These are local UI safeguards, not filesystem permissions or object identity.
+The blocked list does not publish a required selected member that naming has
+scrolled out of view. Dialog controls remain keyboard reachable at minimum size
+and 200-percent text; information keeps its content above its Close action.
+
+Name/filter input is currently append-only, with whole-grapheme Backspace and
+Ctrl+U clearing. Complete untagged native commit batches are admitted atomically;
+filtered, incomplete, overflowed and tagged target/revision edits are refused.
+This is not full editable-text, caret/selection or external-IME support. The view
+publishes SDK semantics, but an independent Files AT-SPI client and human
+screenreader workflow have not yet been accepted.
+
+`files.view` and `files.view_hidpi` exercise the real font at two raster densities,
+128 regular layouts each, stale snapshot/selection/dialog/draft/sidebar actions,
+complete-commit rejection and minimum-size modal keyboard/layout cases.
+`files.view_native` uses actual Wayland pointer/keyboard input on the private
+Aetheri compositor, real create/rename/move workers and exact saved bytes through
+the original Terminal/editor. It records native resize, German 200-percent inline
+naming/cancellation and information, selected SDK/font hashes and an idle sample.
+Its virtual outputs and test semantics do not establish physical monitors,
+normal app/session admission, production recovery or full accessibility.
 
 ## Navigation and controls
 

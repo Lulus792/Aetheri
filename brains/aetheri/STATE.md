@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — shared Files application controller before NexaUI adoption.
+6 November 2026 — own opt-in NexaUI Files presentation.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+`aetheri-files-nexaui` now supplies our own C17 list/grid, held locations, filter,
+inline naming/rename, move review, menus and information on the shared Files
+controller. Native Wayland/software presentation retains the original worker and
+Terminal/editor obligations. Snapshot, selection, dialog/draft and sidebar action IDs
+cannot silently retarget after refresh or hidden-folder changes. Minimum-size
+modal keyboard and 200-percent information/name layouts are exercised. See the
+[executed record](journal/2026-11-06-files-view.md) and
+[contract](../../spec/files.md#opt-in-nexaui-view).
+
+All 60 affected app/desktop/compositor groups pass Release (184.55s) and ASan/UBSan
+(358.79s), without skips. After final draft-confirmation hardening, all three
+directly affected view groups pass again (8.26s/19.17s); the collector verifies
+only view/test sources changed and legacy tested program hashes are unchanged.
+Native Files view tests retain 21 images per profile,
+exact original editor save and real create/rename/move effects, plus native
+640×420 resize/200-percent naming/cancellation/information. Both bounded idle
+samples record zero CPU ticks and no new frame. Audit verifies 363 source inputs,
+unchanged 28 frozen SQL/XML and nineteen protected hashes/no sidecars; 70 final exports
+include 42 verified native images. Fourteen output-0 previews remain. Foreign
+project edits are unchanged. The enforcing guest is idle on tty1 with no build
+actors, running Aetheri service or seat0 session. Prior developer history and the
+quarantined old runtime are unchanged.
+
+The reviewed SDK stays 0.1.18/e71ee30. SDL Files remains selected by the development
+owner; this new executable has private-seat evidence, not a new DRM/owner result.
+Next: add a distinct bound development selection and actual virtual DRM lifetime
+tests, then independent Files AT-SPI and fault-state view checks. Complete text/
+IME, public fullscreen entry, full glass and human/physical acceptance remain
+open. Normal sessions/admission/recovery/removal, all apps/services, image/installer,
+updates/hardware/suspend/multimonitor and the persistent resettable experiment
+desktop remain required. Keep the full goal active and preserve the old runtime.
+
+## Prior shared-controller checkpoint
 
 Files now uses a shared C17 per-window controller in `src/files/session.*` for
 navigation feedback, naming/rename/move operations, worker completion, unknown

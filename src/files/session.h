@@ -21,7 +21,7 @@ struct ae_files_session {
     float scale;size_t first,rows;
     bool running,failed,closing,dirty,german,contrast,show_hidden,query_focus,query_bad,diagnostics;
     unsigned frames,launches,pressed;size_t pressed_row;
-    bool dialog,name_bad;unsigned name_focus,creations;int create_dir;
+    bool dialog,name_bad;unsigned name_focus,creations;int create_dir;uint64_t dialog_serial;
     enum ae_files_create_kind create_kind;char name[AE_FILES_NAME+1],folder[AE_FILES_LABEL+1],create_message[256];size_t name_size;
     struct ae_files_create *creation,*unknown;bool work_active;atomic_bool create_done;
     bool renaming,rename_stale;unsigned renames;int rename_witness;

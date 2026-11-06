@@ -33,6 +33,9 @@ void ae_files_hidden(struct ae_files *files,bool show);
 bool ae_files_select(struct ae_files *files,size_t visible_index);
 size_t ae_files_count(const struct ae_files *files);
 size_t ae_files_total(const struct ae_files *files);
+/* Process-local observation counter. Advances on every successful snapshot
+   replacement, including identical content; never an object/grant identity. */
+uint64_t ae_files_revision(const struct ae_files *files);
 size_t ae_files_selected(const struct ae_files *files);
 unsigned ae_files_depth(const struct ae_files *files);
 const char *ae_files_query(const struct ae_files *files);
