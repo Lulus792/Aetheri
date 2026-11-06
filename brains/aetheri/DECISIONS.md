@@ -1,5 +1,17 @@
 # Decisions
 
+## Bind one explicit Terminal choice across both entry paths — 6 November 2026
+
+Add a separate frozen `aetheri-terminal-v1` development profile and additive
+Terminal UI/binding fields. It covers the own executable, twelve model/I/O inputs,
+four presentation/build inputs, SDK/cache/metadata and both font/license assets.
+Pass the selected terminal to Files too; keep the actual editor and shell
+identities/lifetimes. Recheck before fresh Terminal or Files role starts, while
+reusing original live children. Preserve missing-field historical SDL semantics
+and all existing Settings/Files profile shapes. This is mutable developer
+consistency, not protected per-document loading or production admission. See
+the [owner record](journal/2026-11-06-terminal-owner.md).
+
 ## Migrate Terminal painting on its original native host — 6 November 2026
 
 Add an explicit NexaUI presenter using the actual shared terminal session and

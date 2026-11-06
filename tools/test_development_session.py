@@ -211,6 +211,63 @@ class DevelopmentContracts(unittest.TestCase):
         self.assertEqual(images[args[0]],selected['presentation']['sha256'])
         self.assertIn(build/'aetheri-editor',seen)
 
+    def terminal_profile(self):
+        return dict(revision="a"*40,version="0.1.18",build="/home/aetheri/deps/nexaui-settings-release-02",
+            artifacts={"prefix/lib/libnexaui.so.0.1.18":"2"*64},model={n:"3"*64 for n in session.TERMINAL_MODEL_SOURCES},
+            metadata_sha256="4"*64,pin_sha256="5"*64,ui_pin_sha256="9"*64,
+            assets={str(session.TERMINAL_FONT):"a"*64,str(session.TERMINAL_BOLD_FONT):"b"*64,
+                    "/usr/share/licenses/liberation-mono-fonts/LICENSE":"c"*64},
+            presentation=dict(kind="aetheri-terminal-v1",binary="/home/aetheri/build/session-release/aetheri-terminal-nexaui",
+                sha256="6"*64,sources={n:"7"*64 for n in session.OWN_TERMINAL_SOURCES},cache_sha256="8"*64))
+
+    def test_terminal_binding_is_distinct_and_keeps_closed_history(self):
+        selected=self.terminal_profile();record={**self.record,'desktop':True,'terminal_ui':'nexaui-owned',
+            'terminal_profile':selected,'terminal_binding':session.profile_fingerprint(selected)}
+        self.assertIs(session.validate(record,self.carrier),record);self.assertNotIn('terminal_ui',self.record)
+        for change in ({'terminal_ui':'nexaui'},{'terminal_ui':'sdl'},{'desktop':False},{'terminal_binding':'0'*64},
+                       {'terminal_profile':self.files_profile()}):
+            with self.subTest(change=change),self.assertRaises(RuntimeError):session.validate({**record,**change},self.carrier)
+        for field,value in (('model',{}),('assets',{}),('ui_pin_sha256',False),('revision','bad')):
+            changed=copy.deepcopy(selected);changed[field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        for field,value in (('kind','aetheri-files-v1'),('binary','/tmp/foreign'),('sources',{}),('cache_sha256','bad')):
+            changed=copy.deepcopy(selected);changed['presentation'][field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):session.validate_terminal_profile(changed,'release')
+        record['phase']='closed';before=copy.deepcopy(record)
+        with patch.object(session,'terminal_selection',side_effect=AssertionError('historical Terminal queried')), \
+             patch.object(session,'save',side_effect=AssertionError('historical write')), \
+             patch.object(session,'run',side_effect=AssertionError('historical effect')):
+            self.assertEqual(session.stop(record),before);self.assertEqual(session.observation(record),{'kind':'historical_closed'})
+
+    def test_terminal_binding_precedes_supervisor_and_seat_effects(self):
+        with patch.object(session.os,'getuid',return_value=1000,create=True),patch.object(session.os,'geteuid',return_value=1000,create=True), \
+             patch.object(session,'terminal_selection',return_value=self.terminal_profile()), \
+             patch.object(session.subprocess,'Popen',side_effect=AssertionError('premature spawn')):
+            with self.assertRaisesRegex(RuntimeError,'original Terminal selection'):
+                session.supervise('release','a'*32,desktop=True,terminal_ui='nexaui-owned',terminal_binding='0'*64)
+            with self.assertRaisesRegex(RuntimeError,'selected desktop'):
+                session.supervise('release','a'*32,terminal_ui='nexaui-owned')
+        with patch.object(session,'free_seat',side_effect=AssertionError('premature seat effect')):
+            with self.assertRaisesRegex(RuntimeError,'selected desktop'):
+                session.start(None,self.carrier,'release',terminal_ui='nexaui-owned')
+
+    def test_one_terminal_choice_serves_normal_and_document_commands(self):
+        selected=self.terminal_profile();build=session.build_for('release');cache=Path('/test/cache')
+        args=session.application_command('terminal',build,cache,terminal_profile=selected)
+        self.assertEqual(args[0],selected['presentation']['binary'])
+        self.assertEqual(args[args.index('--bold-font')+1],str(session.TERMINAL_BOLD_FONT))
+        for files in (None,self.files_profile()):
+            command=session.application_command('files',build,cache,files_profile=files,terminal_profile=selected)
+            self.assertEqual(command[command.index('--terminal')+1],args[0])
+            self.assertEqual(command[command.index('--editor')+1],str(build/'aetheri-editor'))
+        seen=[]
+        def hashed(p):
+            self.assertNotEqual(p.name,'aetheri-terminal');seen.append(p);return 'd'*64
+        with patch.object(session,'digest',side_effect=hashed):
+            images=session.development_binaries(build,True,terminal_profile=selected)
+        self.assertEqual(len(images),8);self.assertNotIn(str(build/'aetheri-terminal'),images)
+        self.assertEqual(images[args[0]],selected['presentation']['sha256']);self.assertIn(build/'aetheri-shell',seen)
+
     def test_closed_retry_is_historical_and_does_not_observe_a_later_unit(self):
         record = {**self.record, "phase": "closed"}; before = copy.deepcopy(record)
         with patch.object(session, "properties", side_effect=AssertionError("later unit")), \

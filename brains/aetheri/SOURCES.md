@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Explicit NexaUI Terminal development owner — 6 November 2026
+
+- Separate Terminal profile/CLI, original-root-to-user binding, shared normal/
+  document command choice and fresh-role drift checks in
+  [development_session.py](../../tools/development_session.py).
+- [Control/history checks](../../tools/test_development_session.py) and
+  [native original-owner workflow](../../tools/test_files_owner.py), with
+  [private test adapters](../../tests/development_session_fixture.py).
+  Executed source, native context and virtual DRM scope are in the
+  [owner record](journal/2026-11-06-terminal-owner.md).
+
 ## Own NexaUI terminal presenter — 6 November 2026
 
 - Original-model cell/text/raster adapter in

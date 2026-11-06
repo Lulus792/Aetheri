@@ -25,26 +25,33 @@ def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def main():
     build=Path(sys.argv[1]).resolve();settings_ui=sys.argv[2];assert settings_ui in ('sdl','nexaui-owned')
+    terminal_ui=sys.argv[3] if len(sys.argv)>3 else 'sdl';assert terminal_ui in ('sdl','nexaui-owned')
+    files_ui=sys.argv[4] if len(sys.argv)>4 else 'nexaui-owned';assert files_ui in ('sdl','nexaui-owned')
+    compose=len(sys.argv)>5 and sys.argv[5]=='compose'
     assert os.getuid()==1000
     source=Path(__file__).resolve().parents[1]
     profile='debug' if 'AETHERI_SANITIZERS:BOOL=ON' in (build/'CMakeCache.txt').read_text() else 'release'
-    selected=session.files_selection(profile,'nexaui-owned')
+    selected=session.files_selection(profile,files_ui)
+    terminal_profile=session.terminal_selection(profile,terminal_ui)
+    terminal=Path(terminal_profile['presentation']['binary']) if terminal_profile else build/'aetheri-terminal'
     root=Path(tempfile.mkdtemp(prefix='fx-own-',dir=build))
     for name in ('captures','sessions','sessions/fixture','sessions/fixture/runtime','sessions/fixture/cache','sessions/fixture/documents'):
         (root/name).mkdir(mode=0o700,parents=True,exist_ok=True)
     copies={'spec/nexaui-inputs.json',*session.FILES_MODEL_SOURCES,*session.OWN_FILES_SOURCES}
+    if terminal_profile:copies.update(('spec/ui-inputs.json',*session.TERMINAL_MODEL_SOURCES,*session.OWN_TERMINAL_SOURCES))
     if settings_ui=='nexaui-owned':copies.update((*session.OWN_SETTINGS_SOURCES,'src/settings/model.c','src/settings/model.h'))
     for name in copies:
         p=root/'source'/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_bytes((source/name).read_bytes())
     documents=root/'sessions/fixture/documents';(documents/'seed.txt').write_bytes(b'seed')
-    env={**os.environ,'AETHERI_TEST_FILES_UI':'nexaui-owned','AETHERI_TEST_FILES_SOURCE':str(root/'source'),
+    env={**os.environ,'AETHERI_TEST_FILES_UI':files_ui,'AETHERI_TEST_FILES_SOURCE':str(root/'source'),
+        'AETHERI_TEST_TERMINAL_UI':terminal_ui,'AETHERI_TEST_TERMINAL_SOURCE':str(root/'source'),
         'AETHERI_TEST_SETTINGS_UI':settings_ui,'AETHERI_TEST_SETTINGS_SOURCE':str(root/'source'),
         'DBUS_SESSION_BUS_ADDRESS':'unix:path='+str(root/'absent-bus'),
         'ASAN_OPTIONS':'detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'}
     env.pop('AT_SPI_BUS_ADDRESS',None)
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
     stream=(root/'owner.log').open('xb')
-    owner=subprocess.Popen([sys.executable,str(source/'tests/development_session_fixture.py'),str(build),str(root),str(right.fileno())],
+    owner=subprocess.Popen([sys.executable,str(source/'tests/development_session_fixture.py'),str(build),str(root),str(right.fileno()),*([str(source/'tools/development_session.py'),'compose'] if compose else [])],
         pass_fds=(right.fileno(),),env=env,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
     right.close();pins=[os.pidfd_open(owner.pid)];roles={};seen=0;images=[];cases=[];actors=[]
     def log():return (root/'owner.log').read_text(errors='replace')
@@ -78,15 +85,19 @@ def main():
     def typing(value):
         for c in value:key(codes[c])
     def search(query):
+        app={'files':'org.aetheri.Files','settings':'org.aetheri.Settings','terminal':'org.aetheri.Terminal','editor':'org.aetheri.Editor'}[query]
+        active=rolelog('desktop').count('app='+app+' active=1')
+        collapsed=rolelog('desktop').count('STABLE 0 1920x84\n')
         before=rolelog('desktop').count('STABLE 0 1920x1080\n');event('M 100 100');event('K 125 1');key(57);event('K 125 0')
         wait(lambda:rolelog('desktop').count('STABLE 0 1920x1080\n')>before,'search view')
         typing(query);wait(lambda:'query='+query+' ' in rolelog('desktop'),'native query');key(28)
+        wait(lambda:rolelog('desktop').count('app='+app+' active=1')>active and rolelog('desktop').count('STABLE 0 1920x84\n')>collapsed,'actual search activation and collapsed desktop')
     def dock(kind):
         rows=re.findall(r'VIEW (\d+) output=0 search=([01]) size=(\d+)x(\d+)',rolelog('desktop'));frame,expanded,_,height=map(int,rows[-1])
         x,y=map(float,re.findall(r'CONTROL '+str(frame)+' 0 '+str(kind)+r' 0 ([\d.]+) ([\d.]+)',rolelog('desktop'))[0])
         event(f'M {x} {y if expanded else 1080-height+y}');event('B 272 1');event('B 272 0')
     def file_state(**wanted):
-        rows=re.findall(r'^VIEW (.+)$',rolelog('files'),re.M)
+        rows=[r for r in re.findall(r'^VIEW (.+)$',rolelog('files'),re.M) if re.search(r'\bcount=',r)]
         values=dict(re.findall(r'(\w+)=([^ ]+)',rows[-1])) if rows else {}
         return all(values.get(k)==str(v) for k,v in wanted.items())
     def count(role):return len(re.findall(r'^SPAWN '+role+' ',log(),re.M))
@@ -103,8 +114,10 @@ def main():
         wait(lambda:'FIXTURE_NOTIFY READY=1' in log() and 'STABLE 2 3840x84\n' in rolelog('desktop'),'owner ready')
         search('files');wait(lambda:file_state(count=1) and 'LAUNCH_REPLY A F\n' in rolelog('desktop'),'bound Files search launch')
         first=roles['files'];maps=Path(f'/proc/{first[0]}/maps').read_text()
-        assert digest(Path(f'/proc/{first[0]}/exe'))==selected['presentation']['sha256']
-        assert str(Path(selected['build'])/'prefix/lib/libnexaui.so.') in maps and 'libSDL' not in maps
+        if selected:
+            assert digest(Path(f'/proc/{first[0]}/exe'))==selected['presentation']['sha256']
+            assert str(Path(selected['build'])/'prefix/lib/libnexaui.so.') in maps and 'libSDL' not in maps
+        else:assert (Path(f'/proc/{first[0]}/exe')).resolve()==build/'aetheri-files' and 'libnexaui' not in maps
         (root/'maps.txt').write_text(maps);capture('bound Files from global search')
         replies=rolelog('desktop').count('LAUNCH_REPLY A F\n');dock(5)
         wait(lambda:rolelog('desktop').count('LAUNCH_REPLY A F\n')>replies,'dock reuse');assert count('files')==1 and alive(first[1])
@@ -112,7 +125,13 @@ def main():
         wait(lambda:(documents/'note.txt').is_file() and file_state(dialog=0,count=2),'real creation');key(28)
         wait(lambda:re.search(r'^OPEN pid=(\d+) pin=1$',rolelog('files'),re.M) and re.search(r'^READY .*editor=(\d+)',rolelog('files'),re.M),'original document')
         doc_terminal=int(re.findall(r'^OPEN pid=(\d+) pin=1$',rolelog('files'),re.M)[-1]);doc_editor=int(re.findall(r'^READY .*editor=(\d+)',rolelog('files'),re.M)[-1])
-        terminal_pin=pin_process(doc_terminal,first[0],build/'aetheri-terminal');editor_pin=pin_process(doc_editor,doc_terminal,build/'aetheri-editor')
+        terminal_pin=pin_process(doc_terminal,first[0],terminal);editor_pin=pin_process(doc_editor,doc_terminal,build/'aetheri-editor')
+        if terminal_profile:
+            assert alive(terminal_pin)
+            editor_maps=Path(f'/proc/{doc_terminal}/maps').read_text()
+            assert digest(Path(f'/proc/{doc_terminal}/exe'))==terminal_profile['presentation']['sha256']
+            assert str(Path(terminal_profile['build'])/'prefix/lib/libnexaui.so.') in editor_maps and 'libSDL' in editor_maps
+            assert alive(terminal_pin);(root/'editor-maps.txt').write_text(editor_maps)
         def document_log():return rolelog('files').rsplit('READY wayland opengles2 editor=',1)[-1]
         wait(lambda:'FOCUS 1\n' in document_log() and re.search(r'^DRAWN \d+$',document_log(),re.M),'editor actually focused/drawn')
         def accepted():
@@ -120,15 +139,21 @@ def main():
         target=accepted()+6;typing('ihello');wait(lambda:accepted()==target,'dirty editor input')
         assert (documents/'note.txt').read_bytes()==b''
         focus=rolelog('desktop').count('app=org.aetheri.Files active=1')
-        search('files');wait(lambda:rolelog('desktop').count('app=org.aetheri.Files active=1')>focus,'return to Files');key(16,ctrl=True)
-        wait(lambda:file_state(closing=1),'Files waits for original document');assert alive(first[1]) and alive(terminal_pin) and alive(editor_pin)
+        search('files');wait(lambda:rolelog('desktop').count('app=org.aetheri.Files active=1')>focus,'return to Files')
+        before_views=len(re.findall(r'^VIEW .*\bcount=',rolelog('files'),re.M));key(16,ctrl=True)
+        if selected:wait(lambda:file_state(closing=1),'Files waits for original document')
+        else:
+            # The original SDL log has no closing field. Observe its new frame,
+            # retained original child, then the actual exit after that child saves.
+            wait(lambda:len(re.findall(r'^VIEW .*\bcount=',rolelog('files'),re.M))>before_views and file_state(child=doc_terminal),'SDL Files retains original document after close')
+        assert alive(first[1]) and alive(terminal_pin) and alive(editor_pin)
         capture('Files close retains the unsaved original editor')
         focus=rolelog('desktop').count('app=org.aetheri.Editor active=1')
         search('editor');wait(lambda:rolelog('desktop').count('app=org.aetheri.Editor active=1')>focus,'return to editor')
         key(31,ctrl=True);wait(lambda:(documents/'note.txt').read_bytes()==b'hello','original document save');key(16,ctrl=True)
         wait(lambda:'LAUNCH_REPLY X F\n' in rolelog('desktop'),'original Files and pipe retired')
         assert not alive(first[1]) and not alive(terminal_pin) and not alive(editor_pin)
-        for name in ('spec/nexaui-inputs.json','src/files/nexaui_view.c','src/files/session.c'):
+        for name in (('spec/nexaui-inputs.json','src/files/nexaui_view.c','src/files/session.c') if selected else ()):
             p=root/'source'/name;original=p.read_bytes()
             if p.suffix=='.json':
                 data=json.loads(original);data['adoption']+=' private drift';p.write_text(json.dumps(data)+'\n')
@@ -137,20 +162,60 @@ def main():
             wait(lambda:rolelog('desktop').count('LAUNCH_REPLY E F\n')>errors,'changed Files binding refuses spawn')
             assert count('files')==1 and 'FILES_PROFILE_REJECTED ' in log()
             p.write_bytes(original)
+        if terminal_profile:
+            for name in ('spec/nexaui-inputs.json','spec/ui-inputs.json','src/terminal/model.c','src/terminal/nexaui_view.c','src/terminal/main.c'):
+                p=root/'source'/name;original=p.read_bytes()
+                if p.suffix=='.json':
+                    data=json.loads(original);data['terminal_fixture_drift']=True;p.write_text(json.dumps(data)+'\n')
+                else:p.write_bytes(original+b'\n/* private terminal drift */\n')
+                for kind,role in ((4,'terminal'),(5,'files')):
+                    errors=rolelog('desktop').count('LAUNCH_REPLY E '+('T' if role=='terminal' else 'F')+'\n');dock(kind)
+                    wait(lambda:rolelog('desktop').count('LAUNCH_REPLY E '+('T' if role=='terminal' else 'F')+'\n')>errors,'Terminal drift refuses dependent fresh role')
+                    assert count('terminal')==0 and count('files')==1
+                    rejected='FILES_PROFILE_REJECTED ' if role=='files' and selected and name=='spec/nexaui-inputs.json' else 'TERMINAL_PROFILE_REJECTED '+role
+                    assert rejected in log()
+                p.write_bytes(original)
         dock(2);wait(lambda:('FRAME ' if settings_ui=='nexaui-owned' else 'READY ') in rolelog('settings'),'independent Settings')
         dock(4);wait(lambda:'READY ' in rolelog('terminal'),'independent Terminal')
-        dock(5);wait(lambda:count('files')==2 and file_state(count=2,closing=0),'fresh bound Files')
+        terminal_first=None
+        if terminal_profile:
+            terminal_first=roles['terminal'];shell=int(re.findall(r'^READY .*shell=(\d+)',rolelog('terminal'),re.M)[-1])
+            shell_pin=pin_process(shell,terminal_first[0],build/'aetheri-shell')
+            terminal_maps=Path(f'/proc/{terminal_first[0]}/maps').read_text()
+            assert digest(Path(f'/proc/{terminal_first[0]}/exe'))==terminal_profile['presentation']['sha256']
+            assert str(Path(terminal_profile['build'])/'prefix/lib/libnexaui.so.') in terminal_maps and 'libSDL' in terminal_maps
+            assert alive(terminal_first[1]);(root/'terminal-maps.txt').write_text(terminal_maps)
+            wait(lambda:'NEXAUI_FRAME ' in rolelog('terminal') and 'FOCUS 1\n' in rolelog('terminal'),'actual selected Terminal frame/focus')
+            if compose:
+                key(127);key(40);key(18)
+                wait(lambda:re.search(r'TEXT commit accepted=1 bytes=2',rolelog('terminal')),'supervised Compose reaches selected presenter')
+                key(22,ctrl=True)
+            p=root/'source/src/terminal/nexaui_view.c';original=p.read_bytes();p.write_bytes(original+b'\n/* live original remains owned */\n')
+            replies=rolelog('desktop').count('LAUNCH_REPLY A T\n');dock(4)
+            wait(lambda:rolelog('desktop').count('LAUNCH_REPLY A T\n')>replies,'reuse original Terminal under source drift')
+            assert count('terminal')==1 and alive(terminal_first[1]);p.write_bytes(original)
+            search('terminal');key(16,ctrl=True,shift=True)
+            wait(lambda:'LAUNCH_REPLY X T\n' in rolelog('desktop'),'original Terminal and pipe retired')
+            assert not alive(terminal_first[1]) and not alive(shell_pin)
+            ready_before=rolelog('terminal').count('READY ');frames_before=rolelog('terminal').count('NEXAUI_FRAME ')
+            dock(4);wait(lambda:count('terminal')==2 and alive(roles['terminal'][1]) and rolelog('terminal').count('READY ')>ready_before and rolelog('terminal').count('NEXAUI_FRAME ')>frames_before,'fresh selected Terminal')
+            assert roles['terminal'][0]!=terminal_first[0]
+            capture('same selected Terminal reused then freshly reopened with original child end')
+
+        dock(5);wait(lambda:count('files')==2 and file_state(**({'count':2,'closing':0} if selected else {'count':2,'child':-1})),'fresh bound Files')
         second=roles['files'];assert second[0]!=first[0] and all(alive(roles[r][1]) for r in ('files','settings','terminal','desktop','compositor'))
         assert (documents/'note.txt').read_bytes()==b'hello';capture('fresh Files coexists with Settings and Terminal')
         before=rolelog('desktop').count('STABLE 0 1920x1080\n');event('K 125 1');key(57);event('K 125 0')
         wait(lambda:rolelog('desktop').count('STABLE 0 1920x1080\n')>before,'quit search');key(16,ctrl=True)
         assert owner.wait(timeout=12)==0,log();enroll();assert all(not alive(fd) for fd in pins)
         end=json.loads(re.search(r'^SESSION_END (.+)$',log(),re.M)[1]);assert all(v==0 for v in end['children'].values())
-        assert end['app_history']==[{'role':'files','pid':first[0],'status':0}]
+        expected_history=[{'role':'files','pid':first[0],'status':0}]
+        if terminal_first:expected_history.append({'role':'terminal','pid':terminal_first[0],'status':0})
+        assert end['app_history']==expected_history
         assert log().rfind('files: CLOSED files ')<log().rfind('terminal: CLOSED ')<log().rfind('settings: ' + ('SHUTDOWN signal' if settings_ui=='nexaui-owned' else 'CLOSED '))<log().rfind('desktop: CLOSED ')
         assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',log())
         for name in copies:assert (root/'source'/name).read_bytes()==(source/name).read_bytes()
-        result={'result':'passed','profile':profile,'settings_ui':settings_ui,'selection':selected,'binding':session.profile_fingerprint(selected),
+        result={'result':'passed','profile':profile,'settings_ui':settings_ui,'files_ui':files_ui,'terminal_ui':terminal_ui,'terminal_selection':terminal_profile,'compose':compose,'selection':selected,'binding':session.profile_fingerprint(selected) if selected else None,
             'cases':cases,'images':images,'actors':actors,'end':end,'scope':'native private owner/seat; no DRM, production admission or complete removal'}
         (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}))
     finally:

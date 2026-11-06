@@ -32,6 +32,8 @@ python tools/development_session.py start --desktop --compose --settings-ui nexa
 python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned
 python tools/development_session.py start --desktop --compose --files-ui nexaui-owned
 python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned --files-ui nexaui-owned
+python tools/development_session.py start --desktop --compose --terminal-ui nexaui-owned
+python tools/development_session.py start --desktop --compose --settings-ui nexaui-owned --files-ui nexaui-owned --terminal-ui nexaui-owned
 python tools/development_session.py status
 python tools/development_session.py stop
 ```
@@ -72,12 +74,41 @@ The optional UI choice applies only to a new desktop start. Existing-window reus
 the original document-close fence and ordered app retirement keep the same protocol.
 Both own views share one SDK library entry in the eight-image runtime inventory.
 
+`--terminal-ui nexaui-owned` independently selects our own
+[NexaUI Terminal presenter](terminal.md#opt-in-nexaui-presenter). Build
+`aetheri-terminal-nexaui` with the matching reviewed SDK prefix first. This choice
+applies to the normal Terminal slot and to direct-editor windows opened by either
+Files view. The editor executable and original shell remain their own programs.
+There is no fallback to the unused SDL terminal or in-place switch of a live
+window. Existing original processes are reused until their process and pipe end;
+a later explicit request creates a fresh selected process.
+
+Its separate `aetheri-terminal-v1` selection binds twelve model/I/O source inputs,
+four presentation/build inputs, the executable, CMake cache, SDK metadata/library,
+the raw UI-input pin and the regular/bold font plus license hashes. Settings,
+Files and Terminal choices can be combined; the SDK library is recorded once.
+The original SDL terminal is not required when the new presenter is selected.
+Root checks selection before dispatch, and the user supervisor recomputes that
+same binding before creating children. Every fresh Terminal or Files role start
+rechecks its dependent Terminal selection; drift returns an error without a new
+process. Reusing an already running original window does not replace it because
+mutable source changed. Missing Terminal fields keep historical SDL meaning.
+
+These are development consistency checks on mutable build-user inputs. They do
+not provide publisher trust, atomic image pins or loader admission. A live Files
+process still starts its later document children through its existing internal
+mutable program paths; per-document protected image admission remains separate.
+The new terminal keeps its SDL native input/process host. Native accessibility,
+the accepted final chrome/material design and normal app/session admission remain
+work. See the [owner record](../brains/aetheri/journal/2026-11-06-terminal-owner.md).
+
 An already running headless VM must be stopped gracefully before selecting a different frontend;
 do not start another QEMU process against its disk. `run_vm.py status` checks
 QMP identity and the recorded host process. `run_vm.py poweroff` requests guest
 shutdown. The native viewer is the existing QEMU SDL2 frontend. The desktop and
 default app views use the reviewed SDL3 profile; explicit NexaUI Settings/Files use
-its own software presentation. No new viewer package is needed.
+their own software presentation, and the NexaUI terminal paints into its original
+SDL host. No new viewer package is needed.
 
 The viewer explicitly disables OpenGL and window-close shutdown. QMP remains
 host-local AF_UNIX, networking remains restricted in the example, and no VNC,

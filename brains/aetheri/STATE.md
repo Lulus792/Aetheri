@@ -15,6 +15,44 @@ resolve its provenance or lifecycle obligations.
 
 ## Current update
 
+The development owner now accepts `--terminal-ui nexaui-owned` for both the
+normal shell window and Files' direct-editor window. Its separate frozen
+Terminal profile binds original Root/User selection, source/executable/SDK/cache
+and font/license inputs. Fresh Terminal or Files role starts reject drift;
+live original windows are reused. Missing fields retain historical SDL meaning.
+SDK 0.1.18, the default SDL choice and installed capabilities are unchanged.
+See the [owner record](journal/2026-11-06-terminal-owner.md) and
+[guide](../../spec/development-session.md).
+
+All ten affected supervisor/owner groups pass Release (52.47s) and ASan/UBSan
+(82.95s), without skips, at `/home/aetheri/build/terminal-owner-mztov0ft`.
+The original supervisor executes all 24 tests on Linux. This is the affected
+integration matrix; app C/SDK bytes are unchanged and the full app suite was
+not rerun for this Python/controller change.
+
+The separate actual virtual DRM session `a2d8e87a70a14e32a832c1cc4aa0dcdc`
+creates a folder/file, edits and saves exact `hello` bytes, reopens Files,
+uses German 200-percent grid/information and runs a normal selected Terminal
+command producing exact `owner-files` bytes. Original held process/image/library
+observations bind both terminal entry paths. The original session then ends
+all five roles with status zero; Root stop and its historical retry are closed.
+Sixteen stable DRM captures and 108 native images supplement those observations.
+
+Audit joins 373 host/snapshot/guest inputs and 163 native evidence exports,
+unchanged 28 frozen contracts and nineteen protected hashes without sidecars.
+The previous closed record is archived byte-exact; older history and foreign
+edits are unchanged. The enforcing carrier is idle on tty1 without build/private
+registry actors, running Aetheri service or seat0 session. The old quarantined
+runtime remains unresolved. These developer hashes are not protected loader or
+per-document admission, and this is not a normal login/session acceptance.
+
+Next: continue the accepted UI design and native assistive integration on the
+working app models. Final compact/glass presentation, terminal tabs/panes,
+optimized/physical presentation and the complete OS/apps/image/installer/update/
+hardware/experiment-desktop objective remain incomplete; keep the full goal active.
+
+## Prior Terminal presenter checkpoint
+
 An explicit `aetheri-terminal-nexaui` now paints our actual terminal/editor
 through NexaUI cell-grid/text/raster APIs. The original SDL Wayland window,
 composition/clipboard/review, shared session, shell/editor identity and child/

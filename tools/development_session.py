@@ -31,6 +31,8 @@ APP_ROLES = ("files", "terminal", "settings")  # Files retains its document owne
 PROFILES = ("release", "debug")
 SETTINGS_UIS = ("sdl", "nexaui", "nexaui-owned")
 FILES_UIS = ("sdl", "nexaui-owned")
+TERMINAL_UIS = ("sdl", "nexaui-owned")
+TERMINAL_BOLD_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf")
 # Frozen shape of aetheri-settings-v1; new source sets need a new kind/validator.
 OWN_SETTINGS_SOURCES = ("CMakeLists.txt", "src/settings/nexaui_main.c", "src/settings/nexaui_view.c",
                         "src/settings/nexaui_view.h", "src/settings/NEXAUI-NOTICE.txt")
@@ -41,6 +43,10 @@ FILES_MODEL_SOURCES = tuple("src/files/" + name + suffix for name in
     "src/text/grapheme.c", "src/text/grapheme.h", "src/text/grapheme_data.h")
 OWN_FILES_SOURCES = ("CMakeLists.txt", "src/files/nexaui_main.c", "src/files/nexaui_view.c",
                     "src/files/nexaui_view.h", "src/settings/NEXAUI-NOTICE.txt")
+# Frozen aetheri-terminal-v1; its SDL host and compiled I/O dependencies are own code.
+TERMINAL_MODEL_SOURCES = tuple("src/terminal/" + name + suffix for name in
+    ("model", "session", "pty", "clipboard", "paste", "composition") for suffix in (".c", ".h"))
+OWN_TERMINAL_SOURCES = ("CMakeLists.txt", "src/terminal/main.c", "src/terminal/nexaui_view.c", "src/terminal/nexaui_view.h")
 PHASES = ("preparing", "starting", "running", "stopping", "exited", "closed")
 
 
@@ -226,7 +232,62 @@ def files_selection(build_profile, ui):
         raise RuntimeError("Files candidate check failed") from error
 
 
-def application_command(role, build, cache, settings_profile=None, files_profile=None):
+def validate_terminal_profile(profile, build_profile):
+    keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256",
+            "presentation", "assets", "ui_pin_sha256"}
+    if not isinstance(profile, dict) or set(profile) != keys: raise RuntimeError("invalid Terminal profile")
+    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+        raise RuntimeError("invalid Terminal SDK build")
+    if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
+        raise RuntimeError("invalid Terminal SDK revision")
+    if not isinstance(profile["version"], str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", profile["version"]) is None:
+        raise RuntimeError("invalid Terminal SDK version")
+    artifacts, model, view = profile["artifacts"], profile["model"], profile["presentation"]
+    if not isinstance(artifacts, dict) or set(artifacts) != {"prefix/lib/libnexaui.so." + profile["version"]}:
+        raise RuntimeError("invalid Terminal SDK artifacts")
+    if not isinstance(model, dict) or set(model) != set(TERMINAL_MODEL_SOURCES): raise RuntimeError("invalid Terminal model binding")
+    if not isinstance(view, dict) or set(view) != {"kind", "binary", "sha256", "sources", "cache_sha256"} or view["kind"] != "aetheri-terminal-v1":
+        raise RuntimeError("invalid Terminal presentation")
+    if view["binary"] != (build_for(build_profile) / "aetheri-terminal-nexaui").as_posix(): raise RuntimeError("invalid Terminal executable")
+    if not isinstance(view["sources"], dict) or set(view["sources"]) != set(OWN_TERMINAL_SOURCES): raise RuntimeError("invalid Terminal presentation sources")
+    assets = profile["assets"]
+    if not isinstance(assets, dict) or set(assets) != {str(TERMINAL_FONT), str(TERMINAL_BOLD_FONT), "/usr/share/licenses/liberation-mono-fonts/LICENSE"}:
+        raise RuntimeError("invalid Terminal assets")
+    for value in (*artifacts.values(), *model.values(), *assets.values(), profile["metadata_sha256"], profile["pin_sha256"],
+                  profile["ui_pin_sha256"], view["sha256"], view["cache_sha256"], *view["sources"].values()):
+        if not isinstance(value, str) or re.fullmatch("[0-9a-f]{64}", value) is None: raise RuntimeError("invalid Terminal digest")
+    return profile
+
+
+def terminal_selection(build_profile, ui):
+    # Developer consistency only, with the same mutable-source limits as Files.
+    if ui == "sdl": return None
+    if ui != "nexaui-owned" or build_profile not in PROFILES: raise RuntimeError("invalid Terminal UI/profile")
+    try:
+        pin, pin_bytes, sdk, record, metadata_bytes = nexaui_candidate(build_profile)
+        with (PROJECT / "spec/ui-inputs.json").open("rb") as stream: ui_bytes = stream.read(65537)
+        if len(ui_bytes) > 65536: raise RuntimeError("Terminal asset pin exceeded bound")
+        font = json.loads(ui_bytes)["terminal_font"]; bold = font["bold"]
+        license_path = "/usr/share/licenses/liberation-mono-fonts/LICENSE"
+        if font["path"] != str(TERMINAL_FONT) or bold["path"] != str(TERMINAL_BOLD_FONT) or font["license_path"] != license_path or bold["license_path"] != license_path or font["license_sha256"] != bold["license_sha256"]:
+            raise RuntimeError("unexpected fixed Terminal asset paths/license")
+        assets = {str(TERMINAL_FONT):font["sha256"], str(TERMINAL_BOLD_FONT):bold["sha256"], license_path:font["license_sha256"]}
+        for path, expected in assets.items():
+            if digest(path) != expected: raise RuntimeError("reviewed Terminal assets changed")
+        library = "prefix/lib/libnexaui.so." + pin["version"]; binary = build_for(build_profile) / "aetheri-terminal-nexaui"
+        selected = dict(revision=pin["revision"], version=pin["version"], build=str(sdk),
+            artifacts={library:checked_nexaui_artifact(sdk / library, record["artifacts"][library])},
+            model={n:digest(PROJECT / n) for n in TERMINAL_MODEL_SOURCES}, assets=assets,
+            metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(), pin_sha256=hashlib.sha256(pin_bytes).hexdigest(),
+            ui_pin_sha256=hashlib.sha256(ui_bytes).hexdigest(),
+            presentation=dict(kind="aetheri-terminal-v1", binary=str(binary), sha256=checked_nexaui_artifact(binary),
+                sources={n:digest(PROJECT / n) for n in OWN_TERMINAL_SOURCES}, cache_sha256=nexaui_view_cache(build_profile, sdk)))
+        return validate_terminal_profile(selected, build_profile)
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        raise RuntimeError("Terminal candidate check failed") from error
+
+
+def application_command(role, build, cache, settings_profile=None, files_profile=None, terminal_profile=None):
     if role == "settings":
         if settings_profile is not None:
             executable = settings_profile["presentation"]["binary"] if "presentation" in settings_profile else str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view")
@@ -235,23 +296,26 @@ def application_command(role, build, cache, settings_profile=None, files_profile
         return [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--cache", str(cache), "--diagnostics"]
     if role == "terminal":
-        return [str(build / "aetheri-terminal"), "--shell", str(build / "aetheri-shell"),
-                "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
+        executable = terminal_profile["presentation"]["binary"] if terminal_profile is not None else str(build / "aetheri-terminal")
+        command = [executable, "--shell", str(build / "aetheri-shell"), "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
+        if terminal_profile is not None: command += ["--bold-font", str(TERMINAL_BOLD_FONT)]
+        return command
     if role == "files":
         executable = files_profile["presentation"]["binary"] if files_profile is not None else str(build / "aetheri-files")
         return [executable, "--root", str(cache.parent / "documents"),
                 "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--terminal-font", str(TERMINAL_FONT), "--cache", str(cache),
-                "--terminal", str(build / "aetheri-terminal"), "--editor", str(build / "aetheri-editor"), "--diagnostics"]
+                "--terminal", terminal_profile["presentation"]["binary"] if terminal_profile is not None else str(build / "aetheri-terminal"), "--editor", str(build / "aetheri-editor"), "--diagnostics"]
     raise ValueError("unknown fixed development application")
 
 
-def development_binaries(build, desktop, settings_profile=None, files_profile=None):
+def development_binaries(build, desktop, settings_profile=None, files_profile=None, terminal_profile=None):
     names = ("aetheri-compositor", "aetheri-settings", "aetheri-desktop", "aetheri-terminal", "aetheri-shell", "aetheri-files", "aetheri-editor") if desktop else ("aetheri-compositor", "aetheri-settings")
     if settings_profile is not None: names = tuple(n for n in names if n != "aetheri-settings")
     if files_profile is not None: names = tuple(n for n in names if n != "aetheri-files")
+    if terminal_profile is not None: names = tuple(n for n in names if n != "aetheri-terminal")
     binaries = {str(build / name):digest(build / name) for name in names}
-    for selected in (settings_profile, files_profile):
+    for selected in (settings_profile, files_profile, terminal_profile):
         if selected is None: continue
         for name, value in selected["artifacts"].items():
             path = str(Path(selected["build"]) / name)
@@ -332,6 +396,14 @@ def validate(record, carrier):
         if not record.get("desktop", False): raise RuntimeError("Files selection requires desktop")
         validate_files_profile(files_profile, record["profile"])
         if files_binding != profile_fingerprint(files_profile): raise RuntimeError("development Files binding changed")
+    terminal_ui = record.get("terminal_ui", "sdl")
+    terminal_profile, terminal_binding = record.get("terminal_profile"), record.get("terminal_binding")
+    if terminal_ui not in TERMINAL_UIS or (terminal_ui == "sdl" and (terminal_profile is not None or terminal_binding is not None)):
+        raise RuntimeError("invalid development Terminal selection")
+    if terminal_ui != "sdl":
+        if not record.get("desktop", False): raise RuntimeError("Terminal selection requires desktop")
+        validate_terminal_profile(terminal_profile, record["profile"])
+        if terminal_binding != profile_fingerprint(terminal_profile): raise RuntimeError("development Terminal binding changed")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
@@ -394,7 +466,7 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl"):
+def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl", terminal_ui="sdl"):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
@@ -405,6 +477,10 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
         raise RuntimeError("Files UI requires its selected desktop profile")
     files_profile = files_selection(profile, files_ui)
     files_binding = profile_fingerprint(files_profile) if files_profile is not None else None
+    if terminal_ui not in TERMINAL_UIS or (terminal_ui != "sdl" and not desktop):
+        raise RuntimeError("Terminal UI requires its selected desktop profile")
+    terminal_profile = terminal_selection(profile, terminal_ui)
+    terminal_binding = profile_fingerprint(terminal_profile) if terminal_profile is not None else None
     free_seat()
     if record:
         history = CONTROL / "history" / (record["token"] + ".json")
@@ -421,8 +497,12 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
             finally: os.close(fd)
     token = uuid.uuid4().hex
     build = build_for(profile)
-    binaries = development_binaries(build, desktop, selected, files_profile)
+    binaries = development_binaries(build, desktop, selected, files_profile, terminal_profile)
     assets = terminal_assets() if desktop else {}
+    if terminal_profile is not None:
+        for path, value in terminal_profile["assets"].items():
+            if path in assets and assets[path] != value: raise RuntimeError("conflicting Terminal assets")
+            assets[path] = value
     record = dict(format=1, token=token, carrier=carrier, profile=profile,
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
@@ -430,6 +510,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
                   launch_protocol=3 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
     record.update(settings_ui=settings_ui, settings_profile=selected, settings_binding=binding)
     record.update(files_ui=files_ui, files_profile=files_profile, files_binding=files_binding)
+    record.update(terminal_ui=terminal_ui, terminal_profile=terminal_profile, terminal_binding=terminal_binding)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -452,6 +533,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
     if compose: args.append("--compose")
     if selected is not None: args += ["--settings-ui", settings_ui, "--settings-binding", binding]
     if files_profile is not None: args += ["--files-ui", files_ui, "--files-binding", files_binding]
+    if terminal_profile is not None: args += ["--terminal-ui", terminal_ui, "--terminal-binding", terminal_binding]
     # Start the unit without waiting for READY, then activate its inspected VT.
     # No second start is permitted if either dispatch acknowledgement is lost.
     args.insert(1, "--no-block")
@@ -566,7 +648,7 @@ def observation(record):
 
 
 def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None,
-              files_ui="sdl", files_binding=None):
+              files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
@@ -580,6 +662,11 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
     files_profile = files_selection(profile, files_ui)
     expected_files = profile_fingerprint(files_profile) if files_profile is not None else None
     if files_binding != expected_files: raise RuntimeError("original Files selection changed before supervision")
+    if terminal_ui not in TERMINAL_UIS or (terminal_ui != "sdl" and not desktop):
+        raise RuntimeError("Terminal UI requires its selected desktop profile")
+    terminal_profile = terminal_selection(profile, terminal_ui)
+    expected_terminal = profile_fingerprint(terminal_profile) if terminal_profile is not None else None
+    if terminal_binding != expected_terminal: raise RuntimeError("original Terminal selection changed before supervision")
     base = USER_ROOT / token
     for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
     if desktop: owned(base / "documents", 1000, 0o700, directory=True)
@@ -700,8 +787,15 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                         except RuntimeError as error:
                             print("FILES_PROFILE_REJECTED " + str(error), flush=True)
                             reply(b"E" + suffix); continue
+                    if role in ("terminal", "files") and terminal_profile is not None:
+                        try:
+                            if terminal_selection(profile, terminal_ui) != terminal_profile:
+                                raise RuntimeError("original Terminal selection changed before spawn")
+                        except RuntimeError as error:
+                            print("TERMINAL_PROFILE_REJECTED " + role + " " + str(error), flush=True)
+                            reply(b"E" + suffix); continue
                     try:
-                        spawn(role, application_command(role, build, base / "cache", selected, files_profile))
+                        spawn(role, application_command(role, build, base / "cache", selected, files_profile, terminal_profile))
                     except OSError:
                         # Popen reports an exec failure after reaping its failed child.
                         if role in children: raise  # Later pipe setup failed after a real spawn.
@@ -776,6 +870,8 @@ def main():
     parser.add_argument("--settings-binding", help=argparse.SUPPRESS)
     parser.add_argument("--files-ui", choices=FILES_UIS, default="sdl", help="explicit development desktop Files view")
     parser.add_argument("--files-binding", help=argparse.SUPPRESS)
+    parser.add_argument("--terminal-ui", choices=TERMINAL_UIS, default="sdl", help="explicit development desktop Terminal/editor view")
+    parser.add_argument("--terminal-binding", help=argparse.SUPPRESS)
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
@@ -790,11 +886,15 @@ def main():
         raise ValueError("a NexaUI Files selection requires a new --desktop start")
     if args.files_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.files_binding) is None):
         raise ValueError("Files binding belongs to the original supervisor only")
+    if args.terminal_ui != "sdl" and (not args.desktop or (args.action != "start" and not args.supervise)):
+        raise ValueError("a NexaUI Terminal selection requires a new --desktop start")
+    if args.terminal_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.terminal_binding) is None):
+        raise ValueError("Terminal binding belongs to the original supervisor only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
         return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding,
-                         args.files_ui, args.files_binding)
+                         args.files_ui, args.files_binding, args.terminal_ui, args.terminal_binding)
     if not args.guest:
         import shlex
         import run_vm as vm
@@ -804,6 +904,7 @@ def main():
         if args.compose: command.append("--compose")
         if args.settings_ui != "sdl": command += ["--settings-ui", args.settings_ui]
         if args.files_ui != "sdl": command += ["--files-ui", args.files_ui]
+        if args.terminal_ui != "sdl": command += ["--terminal-ui", args.terminal_ui]
         if args.token: command += ["--token", args.token]
         elif args.action == "stop":
             probe = [*command]; probe[4] = "status"
@@ -821,7 +922,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui, args.files_ui)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui, args.files_ui, args.terminal_ui)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

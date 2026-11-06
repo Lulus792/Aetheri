@@ -24,6 +24,16 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Terminal owner update: `--terminal-ui nexaui-owned` now selects the
+tested presenter for both normal Terminal and Files' direct-editor windows.
+The separate original-owner profile retains exact source/SDK/font bindings,
+fresh-role drift rejection, original live reuse and historical closed semantics.
+Ten affected groups pass Release and ASan/UBSan; a separate Root-bound virtual
+DRM session verifies actual document save, normal shell output and orderly end.
+See the [owner record](../journal/2026-11-06-terminal-owner.md). Default SDL,
+SDK 0.1.18, native assistive/design/performance boundaries and production
+admission remain unchanged. The delivered handoff still needs no new message.
+
 6 November Terminal presenter update: an explicit own terminal binary now paints
 the actual shared session through the pinned SDK's cell-grid/text/raster APIs.
 Its original SDL Wayland/event/clipboard/IME/process host remains. This is a

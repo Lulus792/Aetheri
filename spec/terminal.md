@@ -194,8 +194,10 @@ For the existing carrier:
 The bold default is that same reviewed carrier path. Both faces are from the
 existing `liberation-mono-fonts-2.1.5-15.fc44.noarch` package, with file/license
 pins in [ui-inputs.json](ui-inputs.json). This introduces no new library family.
-The SDK remains 0.1.18/e71ee30. This is an explicit development executable;
-the desktop owner and Files default continue to select the original terminal.
+The SDK remains 0.1.18/e71ee30. This is an explicit development executable.
+The [development owner](development-session.md) now accepts a separate
+`start --desktop --terminal-ui nexaui-owned` choice for normal Terminal and
+Files' direct-editor windows. Omitting it retains the original terminal.
 
 The shared host still owns the SDL Wayland window, native events/text input,
 borrowed-display clipboard connection, original PTY/session, editor handoff and

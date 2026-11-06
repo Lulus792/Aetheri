@@ -31,17 +31,22 @@ def main():
     session.compositor_launch = compositor
     ui=os.environ.get("AETHERI_TEST_SETTINGS_UI","sdl")
     files_ui=os.environ.get("AETHERI_TEST_FILES_UI","sdl")
+    terminal_ui=os.environ.get("AETHERI_TEST_TERMINAL_UI","sdl")
     if ui in ("nexaui", "nexaui-owned") and "AETHERI_TEST_SETTINGS_SOURCE" in os.environ:
         session.PROJECT=Path(os.environ["AETHERI_TEST_SETTINGS_SOURCE"])
     if files_ui == "nexaui-owned" and "AETHERI_TEST_FILES_SOURCE" in os.environ:
         session.PROJECT=Path(os.environ["AETHERI_TEST_FILES_SOURCE"])
+    if terminal_ui == "nexaui-owned" and "AETHERI_TEST_TERMINAL_SOURCE" in os.environ:
+        session.PROJECT=Path(os.environ["AETHERI_TEST_TERMINAL_SOURCE"])
     profile="debug" if "AETHERI_SANITIZERS:BOOL=ON" in (build/"CMakeCache.txt").read_text() else "release"
     selected=session.settings_selection(profile,ui)
     binding=session.settings_fingerprint(selected) if selected is not None else None
     files_profile=session.files_selection(profile,files_ui)
     files_binding=session.profile_fingerprint(files_profile) if files_profile is not None else None
+    terminal_profile=session.terminal_selection(profile,terminal_ui)
+    terminal_binding=session.profile_fingerprint(terminal_profile) if terminal_profile is not None else None
     return session.supervise(profile, "fixture", desktop=True, compose=len(sys.argv)>5 and sys.argv[5]=="compose",
-                             settings_ui=ui,settings_binding=binding,files_ui=files_ui,files_binding=files_binding)
+                             settings_ui=ui,settings_binding=binding,files_ui=files_ui,files_binding=files_binding,terminal_ui=terminal_ui,terminal_binding=terminal_binding)
 
 
 if __name__ == "__main__":
