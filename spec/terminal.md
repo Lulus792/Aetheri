@@ -62,6 +62,7 @@ the existing hangup path. This is an internal development handoff, not an app SD
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
 | Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
 | Ctrl+Shift+R in the NexaUI view | Toggle output reading focus without sending PTY input |
+| Ctrl+Shift+M in the NexaUI view | Request work-area zoom/restore; observed native state selects the next action |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
 | Escape while composing | Cancel the draft and reset native text input; no Escape byte enters the PTY |
 | Ctrl+Shift+C / Ctrl+Shift+V | Copy stable selected text / receive bounded clipboard text; these chords never become interrupt or literal-next |
@@ -319,6 +320,40 @@ positional-ID negative detects the movement regression. The native client checks
 row focus, the actual prompt caret, shortcut/input separation and stale Component
 refusal after original content changes. See the
 [focus record](../brains/aetheri/journal/2026-11-06-terminal-focus.md).
+
+### Compact window controls
+
+The NexaUI presenter has left-hand Close, unavailable Minimize and Zoom/Restore
+controls on a compact opaque header. It uses the accepted studio's dot treatment,
+with 22-by-26 logical targets and a smaller independently scaled title. The native
+fallback is 32 pixels high at ordinary text size and 38 at 200 percent; final
+28-pixel/glass material integration remains separate. No tab strip is shown for
+the current single session. Font cache entries distinguish text point sizes.
+
+Close follows the original shell/editor rules, including Save/Drop/Back and
+waiting for the actual child and output stream. Pointer release must match the
+originally pressed control. Escape, focus/pointer departure and geometry/state
+changes cancel pending presses; a body-origin selection cannot become a button
+action. The existing SDL hit-test excludes the controls from native caption and
+resize regions. Disabled controls consume their own press without sending PTY
+input or another action.
+
+Zoom and Ctrl+Shift+M use current SDL flags to request maximize or restore. A
+successful request does not acknowledge the native state; later observations
+change the Zoom/Restore name and actual grid geometry. The adapter refuses zoom
+while closing, composing, reviewing paste or fullscreen. Fullscreen is separate.
+Minimize is explicitly disabled because the current development compositor
+advertises only maximize/fullscreen and lacks a complete hide/restore lifecycle.
+The independent native peer checks its disabled state and lack of actions.
+
+View tests cover density/text scaling, localization, high contrast, unavailable
+and stale actions, and identical label pixels with or without a differently
+sized title. Native input and independent AT-SPI checks exercise actual zoom/
+restore, original-press rejection and original-shell Close. Compiled font-cache
+and pointer-owner counterexamples detect their corresponding regressions. See
+the [chrome record](../brains/aetheri/journal/2026-11-06-terminal-chrome.md).
+Final materials, title double-click/snapping, complete human/native activation,
+minimize/fullscreen integration and physical acceptance remain work.
 
 ## Inputs and evidence
 

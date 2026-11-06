@@ -8,7 +8,7 @@ struct shape {
     uint32_t code,marks[3];uint8_t count,bold,glyphs;bool used;
     nx_cell_glyph placed[NX_CELL_GRID_MAX_GLYPHS];uint64_t age;
 };
-struct label { char text[LABEL_BYTES+1];nx_text_layout *layout;uint64_t age; };
+struct label { char text[LABEL_BYTES+1];nx_text_layout *layout;uint64_t age;float points; };
 struct ae_terminal_view {
     nx_context *ui;nx_font *regular,*bold;nx_font_collection *fonts[2];
     nx_cell_view *cells;struct shape shapes[SHAPES];struct label labels[LABELS];
@@ -76,22 +76,72 @@ bool ae_terminal_view_clip(struct ae_terminal_view *v,const nx_rect *r) {
     if (r) {if (nx_push_clip(v->ui,*r)!=NX_OK) return false;v->clip=true;}
     return true;
 }
-bool ae_terminal_view_label(struct ae_terminal_view *v,const char *text,float x,float y,uint32_t color) {
+static bool label_size(struct ae_terminal_view *v,const char *text,float x,float y,float points,bool middle,uint32_t color) {
     if (!v || !v->frame || !text || strlen(text)>LABEL_BYTES) return false;
     struct label *found=NULL,*oldest=&v->labels[0];
     for (unsigned i=0;i<LABELS;++i) {
         struct label *l=&v->labels[i];
-        if (l->layout && !strcmp(l->text,text)) {found=l;break;}
+        if (l->layout && l->points==points && !strcmp(l->text,text)) {found=l;break;}
         if (!l->layout || l->age<oldest->age) oldest=l;
     }
     if (!found) {
         nx_text_layout *layout=NULL;
-        if (nx_text_layout_create(v->fonts[0],text,strlen(text),NX_BIDI_LTR,v->points,16384,&layout)!=NX_OK) return false;
+        if (nx_text_layout_create(v->fonts[0],text,strlen(text),NX_BIDI_LTR,points,16384,&layout)!=NX_OK) return false;
         /* Frame commands borrow the layout's fonts/masks, not the layout. */
-        nx_text_layout_destroy(oldest->layout);oldest->layout=layout;memcpy(oldest->text,text,strlen(text)+1);found=oldest;
+        nx_text_layout_destroy(oldest->layout);oldest->layout=layout;oldest->points=points;memcpy(oldest->text,text,strlen(text)+1);found=oldest;
     }
     found->age=++v->age;
+    if (middle) y-=(float)nx_text_layout_height(found->layout)/2;
     return nx_draw_text_layout(v->ui,found->layout,(nx_point){x,y},rgb(color),1024u*1024u)==NX_OK;
+}
+bool ae_terminal_view_label(struct ae_terminal_view *v,const char *text,float x,float y,uint32_t color) {
+    return v && label_size(v,text,x,y,v->points,false,color);
+}
+bool ae_terminal_chrome_layout(float width,float height,float scale,struct ae_terminal_chrome *out) {
+    if (!out) return false;
+    *out=(struct ae_terminal_chrome){0};
+    if (!isfinite(width) || !isfinite(height) || !isfinite(scale) || width<200 || height<64 || scale<.5f || scale>4) return false;
+    float header=fmaxf(32,12+13*scale),top=(header-26)/2;
+    *out=(struct ae_terminal_chrome){.bar={0,0,width,header},.title={92,0,width-104,header},
+        .buttons={{8,top,22,26},{30,top,22,26},{52,top,22,26}}};
+    return true;
+}
+unsigned ae_terminal_chrome_target(const struct ae_terminal_chrome *c,float x,float y) {
+    if (!c || !isfinite(x) || !isfinite(y)) return AE_TERM_CHROME_NONE;
+    for (unsigned i=0;i<3;++i) {nx_rect r=c->buttons[i];if (x>=r.x && y>=r.y && x<r.x+r.width && y<r.y+r.height) return i+1;}
+    return AE_TERM_CHROME_NONE;
+}
+bool ae_terminal_view_chrome(struct ae_terminal_view *v,const struct ae_terminal_chrome_state *s,unsigned *request) {
+    if (!request) return false;
+    *request=AE_TERM_CHROME_NONE;struct ae_terminal_chrome c;
+    if (!v || !v->frame || !s || !ae_terminal_chrome_layout(v->width,v->height,v->points/16,&c)) return false;
+    if (nx_fill_rect(v->ui,c.bar,rgb(s->contrast?0:0x1c1f28))!=NX_OK ||
+        nx_fill_rect(v->ui,(nx_rect){0,c.bar.height-1,v->width,1},rgb(s->contrast?0xffffff:0x343b48))!=NX_OK) return false;
+    const char *names[3]={s->german?"Fenster schließen":"Close window",
+        s->german?"Minimieren nicht verfügbar":"Minimize unavailable",
+        s->maximized?(s->german?"Fenster wiederherstellen":"Restore window"):(s->german?"Fenster vergrößern":"Zoom window")};
+    for (unsigned i=0;i<3;++i) {
+        unsigned action=i+1;bool disabled=action==AE_TERM_CHROME_MINIMIZE || (action==AE_TERM_CHROME_ZOOM && s->zoom_disabled);
+        nx_widget_desc w={.semantic={.id=i+3u,.parent_id=1,.role=NX_ROLE_BUTTON,.bounds=c.buttons[i],.name=span(names[i]),
+            .state=disabled?NX_SEM_DISABLED:0u,.actions=disabled?0u:NX_ACTION_PRESS},.flags=NX_WIDGET_INTERACTIVE};
+        nx_interaction_state interaction;if (nx_widget_register(v->ui,&w,&interaction)!=NX_OK) return false;
+        if (interaction.clicked && !disabled && !*request) *request=action;
+        bool hover=s->hovered==action && !disabled,held=s->pressed==action && hover;
+        nx_rect r=c.buttons[i];float x=r.x+r.width/2,y=r.y+r.height/2;
+        if ((hover || held) && nx_fill_round_rect(v->ui,r,5,rgb(held?0x3b4353:0x333946))!=NX_OK) return false;
+        uint32_t dot=disabled?0x747b87:s->contrast?0xffffff:action==AE_TERM_CHROME_CLOSE?0xb97e7d:0x829e8b;
+        if (nx_fill_round_rect(v->ui,(nx_rect){x-6,y-6,12,12},6,rgb(dot))!=NX_OK) return false;
+        if (!hover && !held && !s->contrast) continue;
+        nx_color ink=rgb(0x20242c);
+        if (action==AE_TERM_CHROME_CLOSE) {
+            if (nx_draw_line(v->ui,(nx_point){x-2,y-2},(nx_point){x+2,y+2},1,ink)!=NX_OK ||
+                nx_draw_line(v->ui,(nx_point){x-2,y+2},(nx_point){x+2,y-2},1,ink)!=NX_OK) return false;
+        } else if (action==AE_TERM_CHROME_ZOOM && nx_stroke_rect(v->ui,(nx_rect){x-2,y-2,4,4},1,ink)!=NX_OK) return false;
+    }
+    const char *title=s->editor?(s->german?"Terminaleditor":"Terminal editor"):"Terminal";
+    if (nx_push_clip(v->ui,c.title)!=NX_OK) return false;
+    bool okay=label_size(v,title,c.title.x,c.bar.height/2,11*v->points/16,true,s->contrast?0xffffff:0xe8eaf0);
+    return nx_pop_clip(v->ui)==NX_OK && okay;
 }
 static bool glyphs(struct ae_terminal_view *v,const struct ae_term_cell *c,nx_cell_view *out) {
     unsigned bold=(c->style&AE_TERM_BOLD)?1u:0u;struct shape *found=NULL,*oldest=&v->shapes[0];

@@ -38,6 +38,7 @@ struct app {
     SDL_Mutex *accessibility_lock;int accessibility_fd;short accessibility_events;
     uint64_t accessibility_deadline;bool accessibility_available,accessibility_focused;
     SDL_WindowFlags accessibility_visibility;
+    unsigned chrome_hover,chrome_pressed;bool chrome_escape;
 #endif
     SDL_Window *window;SDL_Renderer *renderer;TTF_Font *font;
     struct glyph glyphs[GLYPHS];size_t texture_bytes;uint64_t age;
@@ -64,6 +65,9 @@ static void clipboard_update(struct app *a);
 static void composition_cancel(struct app *a,bool reset);
 static bool composition_context(struct app *a);
 static void user_close(struct app *a);
+#ifdef AETHERI_TERMINAL_NEXAUI
+static void chrome_action(struct app *a,unsigned action);
+#endif
 static volatile sig_atomic_t wake_writer=-1,stop_signal;
 static void signalled(int number) { int saved=errno;stop_signal=number;unsigned char byte=1;if (wake_writer>=0) (void)write(wake_writer,&byte,1);errno=saved; }
 static void notify(struct app *a) { unsigned char byte=1;if (a->wake[1]>=0) (void)write(a->wake[1],&byte,1); }
@@ -282,8 +286,14 @@ static void layout(struct app *a) {
         if (!SDL_SetWindowMinimumSize(a->window,(int)(30*a->font_points),(int)(20*a->font_points))) { error(a,"text-size minimum window");return; }
         int advance;if (!TTF_GetGlyphMetrics(a->font,'M',NULL,NULL,NULL,NULL,&advance) || advance<1) { error(a,"cell metrics");return; }
         a->cell_w=(float)advance/density;a->cell_h=(float)TTF_GetFontHeight(a->font)/density+2;a->applied_points=a->font_points;
-        a->bar_height=fmaxf(40,a->cell_h+18);a->footer_height=fmaxf(28,a->cell_h+8);a->grid_y=a->bar_height+12;
+        a->bar_height=fmaxf(40,a->cell_h+18);a->footer_height=fmaxf(28,a->cell_h+8);
     }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    struct ae_terminal_chrome chrome;
+    if (!ae_terminal_chrome_layout((float)w,(float)h,(float)a->font_points/16,&chrome)) {error(a,"chrome geometry");return;}
+    a->bar_height=chrome.bar.height;
+#endif
+    a->grid_y=a->bar_height+12;
     int cols=(int)floorf(((float)w-32)/a->cell_w),rows=(int)floorf(((float)h-a->grid_y-a->footer_height-16)/a->cell_h);
     if (cols<2) cols=2;
     if (cols>AE_TERM_COLS) cols=AE_TERM_COLS;
@@ -374,19 +384,19 @@ static void draw(struct app *a) {
     if (!ae_terminal_view_begin(a->view,(float)w,(float)h,(float)pw/(float)w,(float)a->font_points,
         a->cell_w,a->cell_h,(float)TTF_GetFontAscent(a->font)/a->density)) { error(a,"NexaUI frame");return; }
 #endif
-    fill(a,(SDL_FRect){0,0,(float)w,a->bar_height},a->contrast ? 0 : 0x191f2b);
-    label(a,a->editor ? tr(a,"Terminal · Aetheri editor","Terminal · Aetheri-Editor") : tr(a,"Terminal · Aetheri shell","Terminal · Aetheri-Shell"),16,10,0xeff3fb);
-    label(a,"×",(float)w-32,10,0xeff3fb);
 #ifdef AETHERI_TERMINAL_NEXAUI
-    nx_widget_desc close={.semantic={.id=3,.parent_id=1,.role=NX_ROLE_BUTTON,
-        .bounds={(float)w-48,0,48,a->bar_height},.name={tr(a,"Close window","Fenster schließen"),0},
-        .actions=NX_ACTION_PRESS},.flags=NX_WIDGET_INTERACTIVE};
-    close.semantic.name.length=strlen(close.semantic.name.data);nx_interaction_state interaction;
-    if (nx_widget_register(ae_terminal_view_context(a->view),&close,&interaction)!=NX_OK) {error(a,"accessible close control");return;}
-    bool accessible_close=interaction.clicked!=0;
+    SDL_WindowFlags flags=SDL_GetWindowFlags(a->window);
+    struct ae_terminal_chrome_state chrome={.german=a->german,.contrast=a->contrast,.editor=a->editor,
+        .maximized=(flags&SDL_WINDOW_MAXIMIZED)!=0,.zoom_disabled=a->session.closing || a->composition.size ||
+        (a->paste.size && a->paste.review) || (flags&SDL_WINDOW_FULLSCREEN),.hovered=a->chrome_hover,.pressed=a->chrome_pressed};
+    unsigned chrome_request=0;
+    if (!ae_terminal_view_chrome(a->view,&chrome,&chrome_request)) {error(a,"NexaUI chrome");return;}
     if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended,
         !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review))) { error(a,"NexaUI grid");return; }
 #else
+    fill(a,(SDL_FRect){0,0,(float)w,a->bar_height},a->contrast ? 0 : 0x191f2b);
+    label(a,a->editor ? tr(a,"Terminal · Aetheri editor","Terminal · Aetheri-Editor") : tr(a,"Terminal · Aetheri shell","Terminal · Aetheri-Shell"),16,10,0xeff3fb);
+    label(a,"×",(float)w-32,10,0xeff3fb);
     for (unsigned y=0;y<a->session.model->rows;++y) {
         const struct ae_term_cell *r=ae_terminal_row(a->session.model,y);
         unsigned first=0,last=0;bool selected=ae_terminal_selected_range(a->session.model,y,&first,&last);
@@ -447,13 +457,13 @@ static void draw(struct app *a) {
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
 #ifdef AETHERI_TERMINAL_NEXAUI
     accessibility_publish(a);
-    if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));}
+    if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));printf("CHROME maximized=%d header=%.1f\n",chrome.maximized,a->bar_height);}
 #endif
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
     if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->session.model->cols,a->session.model->rows,a->session.model->x,a->session.model->y,a->session.model->history_count,a->session.model->view,(unsigned long long)a->session.model->sequence,a->session.closing,a->session.pty.ended,a->session.pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->session.model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
 #ifdef AETHERI_TERMINAL_NEXAUI
-    if (accessible_close) user_close(a);
+    if (chrome_request) chrome_action(a,chrome_request);
 #endif
 }
 static void flush_input(struct app *a) {
@@ -574,8 +584,60 @@ static void io_event(struct app *a) {
         else { snprintf(a->ended_message,sizeof(a->ended_message),"%s %d · %s",a->editor ? tr(a,"Editor ended:","Editor beendet:") : tr(a,"Shell ended:","Shell beendet:"),a->session.pty.status,tr(a,"Close to leave","Schließen zum Beenden"));a->message=a->ended_message;a->dirty=true; }
     }
 }
+#ifdef AETHERI_TERMINAL_NEXAUI
+static bool chrome_zoom_allowed(struct app *a) {
+    return !a->session.closing && !a->composition.size && !(a->paste.size && a->paste.review) &&
+        !(SDL_GetWindowFlags(a->window)&SDL_WINDOW_FULLSCREEN);
+}
+static void chrome_action(struct app *a,unsigned action) {
+    if (action==AE_TERM_CHROME_CLOSE) user_close(a);
+    else if (action==AE_TERM_CHROME_ZOOM && chrome_zoom_allowed(a)) {
+        bool maximized=(SDL_GetWindowFlags(a->window)&SDL_WINDOW_MAXIMIZED)!=0;
+        bool okay=maximized?SDL_RestoreWindow(a->window):SDL_MaximizeWindow(a->window);
+        if (a->diagnostics) printf("CHROME request=zoom observed=%d accepted=%d\n",maximized,okay);
+        if (!okay) {a->message=tr(a,"Window request was refused","Fensteranfrage wurde abgewiesen");a->dirty=true;}
+        /* Only later native events/flags acknowledge the requested state. */
+    }
+}
+static unsigned chrome_target(struct app *a,float x,float y) {
+    int w,h;struct ae_terminal_chrome c;
+    return SDL_GetWindowSize(a->window,&w,&h) && ae_terminal_chrome_layout((float)w,(float)h,(float)a->font_points/16,&c)?
+        ae_terminal_chrome_target(&c,x,y):AE_TERM_CHROME_NONE;
+}
+static bool chrome_event(struct app *a,const SDL_Event *e) {
+    if (e->type==SDL_EVENT_KEY_UP && e->key.key==SDLK_ESCAPE && a->chrome_escape) {a->chrome_escape=false;return true;}
+    if (e->type==SDL_EVENT_KEY_DOWN && e->key.key==SDLK_ESCAPE && (a->chrome_pressed || a->chrome_escape)) {
+        a->chrome_pressed=0;a->chrome_escape=true;a->dirty=true;return true;
+    }
+    if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST || e->type==SDL_EVENT_WINDOW_MOUSE_LEAVE ||
+        e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED ||
+        e->type==SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED || e->type==SDL_EVENT_WINDOW_MAXIMIZED || e->type==SDL_EVENT_WINDOW_RESTORED) {
+        a->chrome_hover=a->chrome_pressed=0;
+        if (e->type==SDL_EVENT_WINDOW_FOCUS_LOST) a->chrome_escape=false;
+        a->dirty=true;
+    }
+    if (e->type==SDL_EVENT_MOUSE_MOTION) {
+        unsigned hover=chrome_target(a,e->motion.x,e->motion.y);
+        if (hover!=a->chrome_hover) {a->chrome_hover=hover;a->dirty=true;}
+    }
+    if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button==SDL_BUTTON_LEFT) {
+        unsigned hit=chrome_target(a,e->button.x,e->button.y);
+        if (hit) {a->chrome_pressed=a->chrome_escape?0:hit;a->chrome_hover=hit;a->selecting=false;a->dirty=true;return true;}
+    }
+    if (e->type==SDL_EVENT_MOUSE_BUTTON_UP && e->button.button==SDL_BUTTON_LEFT && a->chrome_pressed) {
+        unsigned original=a->chrome_pressed;a->chrome_pressed=0;a->dirty=true;
+        if (original==chrome_target(a,e->button.x,e->button.y)) chrome_action(a,original);
+        return true;
+    }
+    return false;
+}
+#endif
 static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *data) {
     const struct app *a=data;int w,h;if (!SDL_GetWindowSize(window,&w,&h) || (SDL_GetWindowFlags(window)&(SDL_WINDOW_MAXIMIZED|SDL_WINDOW_FULLSCREEN))) return SDL_HITTEST_NORMAL;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    struct ae_terminal_chrome c;
+    if (!ae_terminal_chrome_layout((float)w,(float)h,(float)a->font_points/16,&c) || ae_terminal_chrome_target(&c,(float)p->x,(float)p->y)) return SDL_HITTEST_NORMAL;
+#endif
     bool l=p->x<8,r=p->x>=w-8,t=p->y<8,b=p->y>=h-8;
     if (t&&l) return SDL_HITTEST_RESIZE_TOPLEFT;
     if (t&&r) return SDL_HITTEST_RESIZE_TOPRIGHT;
@@ -585,7 +647,11 @@ static SDL_HitTestResult hit_test(SDL_Window *window,const SDL_Point *p,void *da
     if (r) return SDL_HITTEST_RESIZE_RIGHT;
     if (t) return SDL_HITTEST_RESIZE_TOP;
     if (b) return SDL_HITTEST_RESIZE_BOTTOM;
-    return (float)p->y<a->bar_height && p->x<w-48 ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
+    return (float)p->y<a->bar_height
+#ifndef AETHERI_TERMINAL_NEXAUI
+        && p->x<w-48
+#endif
+        ? SDL_HITTEST_DRAGGABLE : SDL_HITTEST_NORMAL;
 }
 static bool selection_point(struct app *a,float x,float y,bool clamp,unsigned *row,unsigned *column) {
     if (!isfinite(x) || !isfinite(y) || a->cell_w<=0 || a->cell_h<=0) return false;
@@ -675,6 +741,9 @@ static void event(struct app *a,const SDL_Event *e) {
     if (a->diagnostics && (e->type==SDL_EVENT_WINDOW_FOCUS_GAINED || e->type==SDL_EVENT_WINDOW_FOCUS_LOST)) printf("FOCUS %d\n",e->type==SDL_EVENT_WINDOW_FOCUS_GAINED);
     if (e->type==a->event) { if (e->user.code<0) error(a,"PTY event bridge");io_event(a);SDL_SignalSemaphore(a->ack);return; }
     if (e->type==SDL_EVENT_QUIT || e->type==SDL_EVENT_WINDOW_CLOSE_REQUESTED) { user_close(a);return; }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (chrome_event(a,e)) return;
+#endif
     if (paste_event(a,e)) return;
     if (e->type==SDL_EVENT_WINDOW_EXPOSED || e->type==SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || e->type==SDL_EVENT_WINDOW_RESIZED || e->type==SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) a->dirty=true;
     /* Committed text owns its input provenance. The current global modifier
@@ -690,7 +759,10 @@ static void event(struct app *a,const SDL_Event *e) {
         a->dirty=true;
     }
     else if ((e->type==SDL_EVENT_MOUSE_BUTTON_DOWN || e->type==SDL_EVENT_MOUSE_BUTTON_UP) && e->button.button==SDL_BUTTON_LEFT) {
-        int w,h;SDL_GetWindowSize(a->window,&w,&h);bool hit=e->button.y<a->bar_height && e->button.x>(float)w-48;
+        bool hit=false;
+#ifndef AETHERI_TERMINAL_NEXAUI
+        int w,h;SDL_GetWindowSize(a->window,&w,&h);hit=e->button.y<a->bar_height && e->button.x>(float)w-48;
+#endif
         unsigned row,column;
         if (e->type==SDL_EVENT_MOUSE_BUTTON_DOWN) {
             if (a->composition.size) composition_cancel(a,true);
@@ -715,6 +787,9 @@ static void event(struct app *a,const SDL_Event *e) {
                Never send a speculative Enter/arrow/backspace to the PTY. */
         }
 #ifdef AETHERI_TERMINAL_NEXAUI
+        else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_M) {
+            if (!e->key.repeat) chrome_action(a,AE_TERM_CHROME_ZOOM);
+        }
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_R) {
             if (a->session.closing) { /* Closing admits no new reading target. */ }
             else if (ae_terminal_view_reading(a->view)) {

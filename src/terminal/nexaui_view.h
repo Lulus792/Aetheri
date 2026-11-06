@@ -4,6 +4,14 @@
 #include "model.h"
 #include <nexaui/cell_grid.h>
 struct ae_terminal_view;
+enum ae_terminal_chrome_action { AE_TERM_CHROME_NONE,AE_TERM_CHROME_CLOSE,AE_TERM_CHROME_MINIMIZE,AE_TERM_CHROME_ZOOM };
+struct ae_terminal_chrome { nx_rect bar,title,buttons[3]; };
+struct ae_terminal_chrome_state { bool german,contrast,editor,maximized,zoom_disabled;unsigned hovered,pressed; };
+bool ae_terminal_chrome_layout(float width,float height,float text_scale,struct ae_terminal_chrome *);
+unsigned ae_terminal_chrome_target(const struct ae_terminal_chrome *,float x,float y);
+/* Minimize is explicitly unavailable until the development compositor supports
+   its complete hide/restore lifecycle. Requests never imply observed state. */
+bool ae_terminal_view_chrome(struct ae_terminal_view *,const struct ae_terminal_chrome_state *,unsigned *request);
 /* Font bytes are copied by the host and borrowed until view destruction. No
    window, PTY, clipboard connection, timer or second terminal model is created. */
 bool ae_terminal_view_create(const void *regular,size_t,const void *bold,size_t,struct ae_terminal_view **);

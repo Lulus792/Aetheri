@@ -1,6 +1,7 @@
 #define _XOPEN_SOURCE 700
 #include "terminal/nexaui_view.h"
 #include <locale.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,51 @@ static unsigned char *load(const char *name,size_t *length) {
 }
 static int width(uint32_t c) {return wcwidth((wchar_t)c);}
 static bool color(const unsigned char *p,unsigned rgb) {return p[0]==(rgb>>16) && p[1]==((rgb>>8)&255u) && p[2]==(rgb&255u) && p[3]==255;}
+static void chrome_cases(struct ae_terminal_view *v,const void *regular,size_t rn,const void *bold,size_t bn) {
+    struct ae_terminal_view *reference=NULL;CHECK(ae_terminal_view_create(regular,rn,bold,bn,&reference));
+    struct ae_terminal_chrome c;
+    CHECK(!ae_terminal_chrome_layout(NAN,320,1,&c));
+    CHECK(!ae_terminal_chrome_layout(480,320,0,&c));
+    for (unsigned i=0;i<8;++i) {
+        float text=(i&1u)?2:1,density=(i&2u)?2:1;
+        CHECK(ae_terminal_chrome_layout(480,320,text,&c));
+        CHECK(c.bar.height<40 && c.title.x>c.buttons[2].x+c.buttons[2].width && c.title.x+c.title.width<=480);
+        CHECK(ae_terminal_chrome_target(&c,19,c.bar.height/2)==AE_TERM_CHROME_CLOSE);
+        CHECK(ae_terminal_chrome_target(&c,41,c.bar.height/2)==AE_TERM_CHROME_MINIMIZE);
+        CHECK(ae_terminal_chrome_target(&c,63,c.bar.height/2)==AE_TERM_CHROME_ZOOM);
+        CHECK(!ae_terminal_chrome_target(&c,200,c.bar.height/2) && !ae_terminal_chrome_target(&c,NAN,0));
+        CHECK(ae_terminal_view_begin(v,480,320,density,16*text,10*text,22*text,17*text));
+        struct ae_terminal_chrome_state state={.german=(i&4u)!=0,.contrast=(i&4u)!=0,.editor=(i&1u)!=0,.hovered=AE_TERM_CHROME_CLOSE};
+        unsigned request=99;CHECK(ae_terminal_view_chrome(v,&state,&request) && !request);
+        CHECK(ae_terminal_view_label(v,"Terminal",92,65,0xe8eaf0));
+        const unsigned char *pixels=NULL;size_t stride=0;
+        CHECK(ae_terminal_view_finish(v,(unsigned)(480*density),(unsigned)(320*density),&pixels,&stride));
+        CHECK(pixels && stride==(size_t)(480*density)*4);
+        CHECK(ae_terminal_view_begin(reference,480,320,density,16*text,10*text,22*text,17*text));
+        CHECK(ae_terminal_view_label(reference,"Terminal",92,65,0xe8eaf0));
+        const unsigned char *expected=NULL;size_t expected_stride=0;
+        CHECK(ae_terminal_view_finish(reference,(unsigned)(480*density),(unsigned)(320*density),&expected,&expected_stride));
+        CHECK(expected_stride==stride);
+        /* Other labels at a different size must not change this label's pixels. */
+        for(unsigned y=(unsigned)(65*density);y<(unsigned)(140*density);++y)
+            CHECK(!memcmp(pixels+(size_t)y*stride,expected+(size_t)y*stride,stride));
+        uint32_t index;nx_semantic_view node;
+        CHECK(nx_semantics_find(ae_terminal_view_context(v),4,&index)==NX_OK && nx_semantics_get(ae_terminal_view_context(v),index,&node)==NX_OK);
+        CHECK(node.role==NX_ROLE_BUTTON && (node.state&NX_SEM_DISABLED) && !node.actions);
+        CHECK(nx_semantics_request_action(ae_terminal_view_context(v),4,NX_ACTION_PRESS)!=NX_OK);
+    }
+    CHECK(nx_semantics_request_action(ae_terminal_view_context(v),5,NX_ACTION_PRESS)==NX_OK);
+    CHECK(ae_terminal_view_begin(v,480,320,1,16,10,22,17));
+    struct ae_terminal_chrome_state state={.zoom_disabled=true};unsigned request;
+    CHECK(ae_terminal_view_chrome(v,&state,&request) && !request);
+    const unsigned char *pixels=NULL;size_t stride=0;CHECK(ae_terminal_view_finish(v,480,320,&pixels,&stride));
+    CHECK(nx_semantics_request_action(ae_terminal_view_context(v),5,NX_ACTION_PRESS)!=NX_OK);
+    CHECK(nx_semantics_request_action(ae_terminal_view_context(v),3,NX_ACTION_PRESS)==NX_OK);
+    CHECK(ae_terminal_view_begin(v,480,320,1,16,10,22,17));
+    CHECK(ae_terminal_view_chrome(v,&state,&request) && request==AE_TERM_CHROME_CLOSE);
+    CHECK(ae_terminal_view_finish(v,480,320,&pixels,&stride));
+    ae_terminal_view_destroy(reference);
+}
 static nx_semantic_view row_at(struct ae_terminal_view *v,unsigned row) {
     nx_semantic_view sem;CHECK(nx_semantics_get(ae_terminal_view_context(v),2u+row,&sem)==NX_OK);
     CHECK(sem.role==NX_ROLE_TEXT && sem.parent_id==2);return sem;
@@ -111,7 +157,7 @@ int main(int argc,char **argv) {
     CHECK(ae_terminal_view_begin(v,400,160,1,16,10,22,17));
     const unsigned char *pixels=NULL;size_t stride=0;CHECK(!ae_terminal_view_finish(v,8192,8192,&pixels,&stride) && !pixels);
     ae_terminal_view_destroy(v);v=NULL;CHECK(ae_terminal_view_create(regular,rn,bold,bn,&v));
-    ae_terminal_init(m,30,4,width);focus_cases(v,m);
+    chrome_cases(v,regular,rn,bold,bn);ae_terminal_init(m,30,4,width);focus_cases(v,m);
     ae_terminal_view_destroy(v);free(m);free(regular);free(bold);
     puts("terminal NexaUI view: native font raster, bold/combining/wide cells, selection/contrast, clipping, density and owner immutability passed");return 0;
 }

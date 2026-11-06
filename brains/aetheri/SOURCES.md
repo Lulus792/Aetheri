@@ -6,6 +6,18 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Native Terminal accessibility — 6 November 2026
 
+- Compact chrome geometry, mixed-size label cache and semantic controls in
+  [nexaui_view.c](../../src/terminal/nexaui_view.c); original-press/observed Zoom
+  adapter in [main.c](../../src/terminal/main.c). Native controls, actual original
+  shell Close and font/press mutants are recorded in the
+  [chrome journal](journal/2026-11-06-terminal-chrome.md).
+- SDL's [hit-test contract](https://wiki.libsdl.org/SDL3/SDL_SetWindowHitTest)
+  documents possible input consumption by native gestures. Its
+  [maximize contract](https://wiki.libsdl.org/SDL3/SDL_MaximizeWindow) distinguishes
+  request acceptance from subsequent observed state. Read 6 November 2026;
+  actual carrier tests, not these declarations alone, supply runtime evidence.
+  The compositor's [advertised capabilities](../../src/compositor/main.c) explain
+  the explicitly unavailable Minimize control; that source is unchanged.
 - Original-content semantic IDs, read-only focus and visible outline in
   [nexaui_view.c](../../src/terminal/nexaui_view.c), with model-immutability,
   movement, resize/back, stale queued target and exhaustion checks in

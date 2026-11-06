@@ -183,6 +183,35 @@ def main():
         start_terminal("terminal")
         wait(lambda: view().get("sequence",0)>1, "PTY prompt processed")
         snapshot("native terminal and original shell")
+        nexaui="PRESENTATION nexaui " in log()
+        if nexaui:
+            def zoomed():
+                rows=re.findall(r"^CHROME maximized=(\d+) header=([\d.]+)$",log(),re.M)
+                return int(rows[-1][0]) if rows else -1
+            assert re.findall(r"^CHROME maximized=0 header=32.0$",log(),re.M)
+            normal_cols=view()["cols"];before_input=accepted()
+            event("M 103 56");event("B 272 1");event("B 272 0")
+            wait(lambda:zoomed()==1 and view()["cols"]>normal_cols,"left native zoom button and actual configure")
+            snapshot("compact left controls and observed work-area zoom")
+            control(50,shift=True)
+            wait(lambda:zoomed()==0 and view()["cols"]==normal_cols,"keyboard restores actual normal geometry")
+            # Original-press ownership: mismatched releases and Escape cannot
+            # turn a chrome gesture into another action or shell input.
+            for x,y in ((59,103),(103,59)):
+                before=view()["frame"]
+                event(f"M {x} 56");event("B 272 1");event(f"M {y} 56");event("B 272 0")
+                wait(lambda:view()["frame"]>before,"mismatched chrome release processed")
+                assert current.poll() is None and zoomed()==0
+            before=view()["frame"]
+            event("M 103 56");event("B 272 1");tap(1);event("B 272 0")
+            wait(lambda:view()["frame"]>before,"Escape cancels original chrome press")
+            assert zoomed()==0 and accepted()==before_input
+            event("M 81 56");event("B 272 1");event("B 272 0")
+            event("M 500 200");event("B 272 1");event("M 103 56");event("B 272 0")
+            wait(lambda:view().get("selection",0)>0,"body-origin selection remains a selection")
+            tap(1);wait(lambda:view().get("selection")==0,"clear selection without shell Escape")
+            assert zoomed()==0 and accepted()==before_input
+            cases.append("compact chrome: observed pointer zoom/keyboard restore, mismatched/escaped/body-origin release refusal, explicit disabled minimize and no PTY shortcut input")
         typing("printf '\\033[32mAETHERI_NATIVE\\033[0m\\n'\n")
         typing("printf done > proof\n")
         wait(lambda: (root/"proof").is_file(), "typed command actual file effect")
@@ -303,6 +332,15 @@ def main():
         assert "shell_status=0 failed=0" in log()
         cases.append("original shell end and PTY EOF both observed before clean terminal close")
         current=None;shell_pin=None;shell_pid=None
+        if nexaui:
+            start_terminal("chrome-close")
+            wait(lambda:"NEXAUI_FRAME " in log("chrome-close") and "FOCUS 1\n" in log("chrome-close"),"fresh native close window")
+            home=int(re.findall(r"^MAP (\d+)$",log("server"),re.M)[-1]);assert home in (0,1,2)
+            event(f"M {(0,1920,4480)[home]+59} 56");event("B 272 1");event("B 272 0")
+            assert current.wait(timeout=8)==0,log("chrome-close")
+            assert "shell_status=129 failed=0" in log("chrome-close") and select.select([shell_pin],[],[],0)[0]
+            cases.append("left close button waits for its original shell and PTY")
+            current=None;shell_pin=None;shell_pid=None
         gate=root/"event-failure-gate"
         env["AETHERI_TERMINAL_EVENT_FAILURE_GATE"]=str(gate)
         start_terminal("event-failure",failure_binary)
@@ -326,7 +364,7 @@ def main():
         cases.append("persistent event-wait failure uses synchronous owned cleanup without retry loop")
         current=None;shell_pin=None;shell_pid=None
         server.terminate();assert server.wait(timeout=8)==0,log("server")
-        assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:",log()+log("server")+log("event-failure")+log("wait-failure"))
+        assert not re.search(r"AddressSanitizer|LeakSanitizer|runtime error:",log()+log("server")+log("event-failure")+log("wait-failure")+(log("chrome-close") if nexaui else ""))
         assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in binaries.items())
         result={"result":"passed","scope":"native SDL/Wayland input/pixels and original shell/PTY; no production app admission","cases":cases,"images":pictures,"binaries":binaries,"metrics":metrics,"artifacts":str(root)}
         (root/"result.json").write_text(json.dumps(result,indent=2));print(json.dumps(result))

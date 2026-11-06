@@ -132,6 +132,13 @@ def main():
         assert stale.wait(timeout=8)==0,log('retired-read-row');children.remove(stale);held.close()
         peers.append({'name':'retired-read-row','exit':0})
         wait(lambda:(root/'focus-proof').exists() and (root/'focus-proof').read_bytes()==b'ready' and reading()==0,'original shell writes proof after stale focus retires')
+        def zoomed():
+            rows=re.findall(r'^CHROME maximized=(\d+) header=',log(),re.M);return int(rows[-1]) if rows else -1
+        peer(app.pid,'chrome','Zoom window','native-zoom')
+        wait(lambda:zoomed()==1,'native action produces observed maximize')
+        peer(app.pid,'chrome','Restore window','native-restore')
+        wait(lambda:zoomed()==0,'native action produces observed restore')
+        peer(app.pid,'disabled','Minimize unavailable','disabled-minimize')
         # The same original app must survive loss/recreation of its private bus.
         retire(reg,-signal.SIGTERM);retire(bus,0)
         wait(lambda:not (root/'runtime/bus').exists(),'old bus retired')

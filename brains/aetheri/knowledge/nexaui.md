@@ -24,6 +24,14 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November compact Terminal chrome update: the own presenter reuses existing
+SDK shapes, label layouts and semantic buttons on its original SDL host. No SDK
+window or extra thread is introduced. Original-press cancellation and observed
+Zoom/Restore retain the native host's effects; disabled Minimize requires future
+compositor hide/restore work. Mixed-size label cache entries remain separate.
+See the [chrome record](../journal/2026-11-06-terminal-chrome.md) for actual tests
+and scoped visual limits. The pin/defaults and closed handoff stay unchanged.
+
 6 November original-content reading-focus update: the own Terminal now uses
 native read-only row focus and Ctrl+Shift+R on the unchanged SDK. Content-token
 semantic IDs preserve unchanged movement and retire edited/replaced targets;

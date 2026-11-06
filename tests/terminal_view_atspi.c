@@ -85,6 +85,16 @@ int main(int argc,char **argv) {
         int accepted=atspi_action_do_action(action,0,&e);g_object_unref(action);CHECK(accepted && !e);
         double limit=now()+4;while(!state(row,ATSPI_STATE_DEFUNCT) && now()<limit) pump();
         CHECK(state(row,ATSPI_STATE_DEFUNCT));
+    } else if(!strcmp(argv[2],"chrome") || !strcmp(argv[2],"disabled")) {
+        button=find(app,argv[3],0);CHECK(button && atspi_accessible_get_role(button,&e)==ATSPI_ROLE_PUSH_BUTTON && !e);
+        AtspiAction *action=atspi_accessible_get_action_iface(button);
+        if(!strcmp(argv[2],"disabled")) {
+            CHECK(!state(button,ATSPI_STATE_ENABLED));
+            if(action) {int count=atspi_action_get_n_actions(action,&e);g_object_unref(action);CHECK(!e && count==0);}
+        } else {
+            CHECK(action && await_state(frame,ATSPI_STATE_ACTIVE,1) && state(button,ATSPI_STATE_ENABLED));
+            int accepted=atspi_action_do_action(action,0,&e);g_object_unref(action);CHECK(accepted && !e);
+        }
     } else {
         CHECK(!strcmp(argv[2],"focused") || !strcmp(argv[2],"active-wire-stream") || !strcmp(argv[2],"focused-now") || !strcmp(argv[2],"unfocused") || !strcmp(argv[2],"focus") ||
             !strcmp(argv[2],"focused-row") || !strcmp(argv[2],"no-row-focus") || !strcmp(argv[2],"reject-focus") || !strcmp(argv[2],"retire-row"));

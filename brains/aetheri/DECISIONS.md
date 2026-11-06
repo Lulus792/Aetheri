@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep compact Terminal chrome on the original host — 6 November 2026
+
+Use the existing NexaUI shapes/semantic controls and smaller scaled title on
+the original SDL window. Preserve original-press cancellation and actual shell/
+editor close obligations. Pointer and keyboard Zoom share one adapter driven by
+observed native state, with no optimistic completion. Keep Minimize disabled
+until the compositor supplies its full hide/restore lifecycle. Original model,
+PTY, clipboard/IME and worker ownership stay unchanged. Distinguish label point
+sizes in the existing cache. This is a compact opaque fallback to the accepted
+studio, not final glass/physical or normal-session acceptance. See the
+[chrome record](journal/2026-11-06-terminal-chrome.md).
+
 ## Keep Terminal reading focus with original content — 6 November 2026
 
 Derive visible row semantic IDs from the original content-incarnation token,

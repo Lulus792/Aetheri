@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — original-content reading focus in the NexaUI Terminal.
+6 November 2026 — compact native controls in the NexaUI Terminal.
 
 ## Coordination
 
@@ -14,6 +14,35 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Compact NexaUI Terminal chrome now provides left Close/Zoom controls, observed
+maximize/restore, Ctrl+Shift+M and original-press cancellation. Minimize is
+explicitly unavailable until the compositor implements hide/restore. All 74
+app/UI groups pass Release (325.80s) and ASan/UBSan (543.66s), without skips, at
+`/home/aetheri/build/terminal-chrome-final-_rtszmuz`. Separate label-cache and
+press-owner counterexamples detect their intended regressions. See the
+[chrome record](journal/2026-11-06-terminal-chrome.md), including the initial
+fixture error, asynchronous negative detection and scoped visual acceptance.
+
+The final audit joins 375 host/snapshot/guest inputs and 253 exported records,
+including 96 native images, unchanged 28 frozen contracts/nineteen protected
+hashes and no sidecars. Sixteen native peers per profile include observed Zoom/
+Restore, unavailable Minimize and the two intended negatives. Native assistive
+samples have zero idle CPU ticks/frames across two seconds; the full terminal
+workflow records zero idle frames with 0.01s/0s CPU in Release/SAN respectively.
+The counterexample's linker metadata was regenerated through the normal link;
+the tested product stays byte-identical with unchanged object/library hashes.
+The enforcing carrier is idle on tty1 without test actors, running Aetheri unit
+or seat0 session. Closed DRM history, foreign files and old quarantined runtime
+remain unchanged. No new DRM session, SDK/pin/default or authority change.
+
+Next: implement the truthful accepted startup mark/system information, then
+actual tabs/panes on original sessions. Final glass/geometry, minimize/fullscreen
+integration, human/physical/normal-session acceptance and the earlier untraced
+native-state query remain open. The full OS/apps/image/installer/update/hardware/
+experiment-desktop goal remains active and incomplete.
+
+## Prior original-content reading focus checkpoint
 
 Original-content reading focus now works in the NexaUI Terminal: native row
 focus and Ctrl+Shift+R, preserved identity when content moves and retired focus
