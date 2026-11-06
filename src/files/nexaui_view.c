@@ -16,12 +16,13 @@ static nx_result checked(nx_result result,const char *call,int line) {
 #define nx_selection_group(...) checked(nx_selection_group(__VA_ARGS__),"selection",__LINE__)
 #define nx_draw_text_layout(...) checked(nx_draw_text_layout(__VA_ARGS__),"text",__LINE__)
 #define nx_end_frame(...) checked(nx_end_frame(__VA_ARGS__),"end frame",__LINE__)
+#define nx_text_field_widget(...) checked(nx_text_field_widget(__VA_ARGS__),"text field",__LINE__)
 
 #define LABEL_COUNT 768u
 #define ID_BLOCK UINT64_C(40000)
 struct label { char source[AE_FILES_LABEL+1];float size,width;bool tail;nx_text_layout *layout; };
 struct colors { nx_color canvas,side,card,text,muted,line,selected,hover,focus; };
-struct edit { char text[AE_FILES_NAME+1];size_t size,anchor,cursor;float scroll,em;bool ready;nx_rect box;nx_text_layout *layout; };
+struct edit { nx_text_field *field;char text[AE_FILES_NAME+1];size_t size;bool ready,drawn,disabled;int submitted; };
 struct ae_files_view {
     struct ae_files_session *s;struct ae_files *model;nx_context *ui;nx_font *font;nx_font_collection *fonts;
     struct label labels[LABEL_COUNT];size_t label_count;
@@ -31,7 +32,7 @@ struct ae_files_view {
     uint64_t drawn[AE_FV_CONTROLS];nx_rect bounds[AE_FV_CONTROLS];
     char commit[AE_FILES_NAME+1];size_t commit_size;bool commit_active,commit_bad;uint64_t commit_scope;
     char draft[AE_FILES_NAME+1];size_t draft_size;
-    struct edit edits[2];int drag;bool unfocused;char filter[AE_FILES_QUERY+1];
+    struct edit edits[2];bool unfocused,rebuilding;char filter[AE_FILES_QUERY+1];
 };
 static nx_utf8_span span(const char *p) { return (nx_utf8_span){p,strlen(p)}; }
 static nx_rect rect(struct ae_files_rect r) { return (nx_rect){r.x,r.y,r.w,r.h}; }
@@ -41,7 +42,8 @@ static const char *const rejected_input[]={"Input rejected; clear it before cont
 static bool inside(nx_rect r,nx_point p) { return r.width>0 && r.height>0 && p.x>=r.x && p.y>=r.y && p.x<r.x+r.width && p.y<r.y+r.height; }
 static unsigned scope_state(const struct ae_files_session *s,bool usable) {
     return (s->dialog?1u:0u)|(s->menu?2u:0u)|(s->info_overlay?4u:0u)|(s->work_active?8u:0u)|
-        (ae_files_session_unresolved(s)?16u:0u)|(s->rename_stale?32u:0u)|(s->closing?64u:0u)|(usable?128u:0u);
+        (ae_files_session_unresolved(s)?16u:0u)|(s->rename_stale?32u:0u)|(s->closing?64u:0u)|(usable?128u:0u)|
+        (s->name_bad?256u:0u)|(s->query_bad?512u:0u);
 }
 static bool sync_scope(struct ae_files_view *v) {
     struct ae_files_session *s=v->s;
@@ -57,7 +59,7 @@ static bool sync_scope(struct ae_files_view *v) {
         if(revision!=v->revision || filter_changed || ((state^v->state)&128u)) {
             v->row_base=v->next;v->next+=ID_BLOCK;v->last_click=v->double_click=0;
         }
-        if(s->dialog_serial!=v->serial) {v->edits[1].ready=false;v->drag=-1;}
+        if(s->dialog_serial!=v->serial) v->edits[1].ready=false;
         if(s->dialog_serial!=v->serial && s->dialog) v->focus_wanted=(uint64_t)(ae_files_session_unresolved(s)?AE_FV_CANCEL:AE_FV_NAME)+1;
         if((state&16u) && !(v->state&16u) && s->dialog) v->focus_wanted=(uint64_t)AE_FV_CANCEL+1;
         v->base=v->next;v->next+=ID_BLOCK;v->revision=revision;v->selected=selected;v->serial=s->dialog_serial;v->state=state;
@@ -95,7 +97,7 @@ bool ae_files_view_create(struct ae_files_session *s,const void *font,size_t n,s
     if(!out) return false;
     *out=NULL;if(!s || !s->files || !font || !n) return false;
     struct ae_files_view *v=calloc(1,sizeof(*v));if(!v) return false;
-    v->s=s;v->model=s->files;v->next=1024;v->drag=-1;
+    v->s=s;v->model=s->files;v->next=1024;
     if(nx_context_create(NULL,&v->ui)!=NX_OK || nx_font_open(font,n,NULL,&v->font)!=NX_OK ||
        nx_font_collection_create(NULL,&v->fonts)!=NX_OK || nx_font_collection_add(v->fonts,v->font)!=NX_OK) {
         ae_files_view_destroy(v);return false;
@@ -105,8 +107,9 @@ bool ae_files_view_create(struct ae_files_session *s,const void *font,size_t n,s
 void ae_files_view_destroy(struct ae_files_view *v) {
     if(!v) return;
     for(size_t i=0;i<LABEL_COUNT;++i) nx_text_layout_destroy(v->labels[i].layout);
-    for(unsigned i=0;i<2;++i) nx_text_layout_destroy(v->edits[i].layout);
-    nx_context_destroy(v->ui);nx_font_collection_destroy(v->fonts);nx_font_close(v->font);free(v);
+    nx_context_destroy(v->ui);
+    for(unsigned i=0;i<2;++i) nx_text_field_destroy(v->edits[i].field);
+    nx_font_collection_destroy(v->fonts);nx_font_close(v->font);free(v);
 }
 nx_context *ae_files_view_context(struct ae_files_view *v) { return v?v->ui:NULL; }
 bool ae_files_view_take_zoom(struct ae_files_view *v) { bool value=v && v->zoom;if(v) v->zoom=false;return value; }
@@ -192,55 +195,48 @@ static bool button(struct ae_files_view *v,enum ae_files_control c,const char *n
         nx_draw_line(v->ui,(nx_point){x-3,y},(nx_point){x+3,y+5},1,ink)==NX_OK;
     return text(v,id+256,id,c==AE_FV_DETAILS?"i":name,(nx_rect){r.x+6,r.y,r.width-12,r.height},11*v->s->scale,ink,false);
 }
-static void edit_sync(struct edit *e,const char *value) {
-    size_t n=strlen(value);
-    if(!e->ready || e->size!=n || memcmp(e->text,value,n)) {
-        nx_text_layout_destroy(e->layout);e->layout=NULL;e->scroll=0;
-        memcpy(e->text,value,n+1);e->size=n;e->anchor=e->cursor=n;e->ready=true;
+static bool edit_sync(struct edit *e,const char *value) {
+    size_t n=strlen(value);if(n>AE_FILES_NAME) return false;
+    if(!e->field) {
+        if(nx_text_field_create(value,n,0,&e->field)!=NX_OK) return false;
+    } else if(!e->ready || e->size!=n || memcmp(e->text,value,n)) {
+        if(nx_text_field_set_text(e->field,value,n)!=NX_OK) return false;
     }
+    memcpy(e->text,value,n+1);e->size=n;e->ready=true;return true;
 }
-static bool edit_caret(const struct edit *e,nx_text_caret *caret) {
-    for(size_t i=0;i<nx_text_layout_caret_count(e->layout);++i) {
-        if(nx_text_layout_caret_at(e->layout,i,caret)!=NX_OK) return false;
-        if(caret->byte_offset==e->cursor) return true;
-    }
-    return false;
+struct field_validation { bool name,invalid; };
+static int field_valid(nx_utf8_span value,void *data) {
+    const struct field_validation *rule=data;
+    if(rule->invalid || value.length>AE_FILES_NAME) return 0;
+    if(rule->name) return !value.length || ae_files_create_name(value.data,value.length) ||
+        (value.length==1 && value.data[0]=='.') || (value.length==2 && !memcmp(value.data,"..",2));
+    size_t at=0;while(at<value.length) {uint32_t scalar;if(!ae_utf8_next(value.data,value.length,&at,&scalar) || scalar<32 || (scalar>=0x7f && scalar<=0x9f)) return 0;}
+    return 1;
 }
 static bool field(struct ae_files_view *v,enum ae_files_control c,const char *name,const char *value,nx_rect r,bool disabled,bool invalid,struct intent *intent) {
-    uint64_t id=control(v,c);v->drawn[c]=id;v->bounds[c]=r;
-    if(!widget(v,id,v->modal_parent?v->modal_parent:1,NX_ROLE_TEXT_FIELD,name,value,r,disabled,false,invalid,intent)) return false;
-    if(invalid && nx_stroke_rect(v->ui,r,2,rgb(0xffbdad))!=NX_OK) return false;
-    struct edit *e=&v->edits[c==AE_FV_NAME?1:0];edit_sync(e,value);
-    float em=14*v->s->scale;
-    if(!e->layout || e->em!=em) {
-        nx_text_layout *layout=NULL;
-        if(nx_text_layout_create(v->fonts,e->text,e->size,NX_BIDI_LTR,em,16384,&layout)!=NX_OK) return false;
-        nx_text_layout_destroy(e->layout);e->layout=layout;e->em=em;
+    (void)intent;uint64_t id=control(v,c);v->drawn[c]=id;v->bounds[c]=r;
+    struct edit *e=&v->edits[c==AE_FV_NAME?1:0];if(!edit_sync(e,value)) return false;
+    if(nx_text_field_set_read_only(e->field,invalid || v->s->composing)!=NX_OK) return false;
+    /* The pinned field descriptor has no description member. Keep the
+       localized rejection explanation on its immediate, named group. */
+    nx_semantic_desc group={.id=id+256,.parent_id=v->modal_parent?v->modal_parent:1,.role=NX_ROLE_GROUP,.bounds=r,
+        .name=span(name),.description=span(invalid?rejected_input[v->s->german?1:0]:"")};
+    if(nx_semantics_add(v->ui,&group,NULL)!=NX_OK) return false;
+    struct field_validation validation={c==AE_FV_NAME,invalid};
+    nx_text_field_desc desc={.id=id,.parent_id=group.id,.bounds=r,.name=span(name),.fonts=v->fonts,
+        .pixels_per_em=14*v->s->scale,.glyph_cache_bytes=1024u*1024u,.disabled=disabled,.validate=field_valid,.validate_user=&validation};
+    nx_interaction_state interaction;int valid;
+    if(nx_text_field_widget(v->ui,&desc,e->field,&interaction,&valid,&e->submitted)!=NX_OK) return false;
+    e->drawn=true;e->disabled=disabled;
+    nx_utf8_span draft;if(nx_text_field_text(e->field,&draft)!=NX_OK) return false;
+    if(!draft.length) {
+        nx_rect box={r.x+4,r.y+4,r.width-8,r.height-8};nx_text_layout *placeholder=NULL;
+        nx_semantic_desc hint={.id=id+512,.parent_id=id,.role=NX_ROLE_TEXT,.bounds=box,.name=span(name)};
+        if(nx_semantics_add(v->ui,&hint,NULL)!=NX_OK || !label(v,name,14*v->s->scale,box.width,false,&placeholder) || nx_push_clip(v->ui,box)!=NX_OK) return false;
+        bool okay=nx_draw_text_layout(v->ui,placeholder,(nx_point){box.x,box.y},v->p.muted,1024u*1024u)==NX_OK;
+        if(nx_pop_clip(v->ui)!=NX_OK || !okay) return false;
     }
-    e->box=(nx_rect){r.x+8,r.y+2,r.width-16,r.height-4};
-    nx_text_caret caret;if(!edit_caret(e,&caret)) return false;
-    float cx=(float)caret.x,available=e->box.width-2;
-    if(cx-e->scroll<0) e->scroll=cx;
-    if(cx-e->scroll>available) e->scroll=cx-available;
-    e->scroll=fmaxf(0,fminf(e->scroll,fmaxf(0,(float)nx_text_layout_width(e->layout)-available)));
-    nx_text_layout *placeholder=NULL;
-    if(!*value && !label(v,name,em,e->box.width,false,&placeholder)) return false;
-    nx_semantic_desc sem={.id=id+256,.parent_id=id,.role=NX_ROLE_TEXT,.bounds=e->box,.name=span(*value?value:name)};
-    if(nx_semantics_add(v->ui,&sem,NULL)!=NX_OK || nx_push_clip(v->ui,e->box)!=NX_OK) return false;
-    bool focused=!disabled && !v->unfocused && nx_focus_id(v->ui)==id;
-    float top=e->box.y+(e->box.height-(float)nx_text_layout_height(e->layout))/2;
-    bool okay=true;
-    if(placeholder) okay=nx_draw_text_layout(v->ui,placeholder,(nx_point){e->box.x,e->box.y+(e->box.height-(float)nx_text_layout_height(placeholder))/2},v->p.muted,1024u*1024u)==NX_OK;
-    if(focused && e->anchor!=e->cursor) {
-        nx_text_selection_rect selections[AE_FILES_NAME+1];size_t count;
-        okay=nx_text_layout_selection(e->layout,e->anchor<e->cursor?e->anchor:e->cursor,e->anchor>e->cursor?e->anchor:e->cursor,
-            selections,AE_FILES_NAME+1,&count)==NX_OK;
-        for(size_t i=0;okay && i<count;++i) okay=nx_fill_rect(v->ui,(nx_rect){e->box.x+(float)selections[i].x-e->scroll,top+(float)selections[i].y,
-            (float)selections[i].width,(float)selections[i].height},v->p.selected)==NX_OK;
-    }
-    if(okay) okay=nx_draw_text_layout(v->ui,e->layout,(nx_point){e->box.x-e->scroll,top},v->p.text,1024u*1024u)==NX_OK;
-    if(okay && focused) okay=nx_fill_rect(v->ui,(nx_rect){e->box.x+cx-e->scroll,top+(float)caret.top,1.5f,(float)caret.height},v->p.focus)==NX_OK;
-    return nx_pop_clip(v->ui)==NX_OK && okay;
+    return true;
 }
 static void focus_control(struct ae_files_view *v,enum ae_files_control c) { v->focus_wanted=(uint64_t)c+1; }
 static bool blocked(const struct ae_files_session *s) { return s->dialog || s->menu || s->info_overlay || s->closing; }
@@ -345,11 +341,13 @@ static bool naming(struct ae_files_view *v,nx_rect r,bool review,struct intent *
     v->modal_parent=0;
     return true;
 }
+static bool apply_fields(struct ae_files_view *,bool *);
 bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const nx_window_status *status,bool *changed) {
     if(!v || !status || !changed || !isfinite(width) || !isfinite(height) || width<64 || height<64 || width>3840 || height>2160) return false;
     *changed=false;struct ae_files_session *s=v->s;
     if(!isfinite(s->scale) || s->scale<1 || s->scale>2) return false;
     v->width=width;v->height=height;v->usable=width>=640 && height>=420;v->label_count=0;v->modal_parent=0;
+    for(unsigned i=0;i<2;++i) {v->edits[i].drawn=false;v->edits[i].submitted=0;}
     if(!sync_scope(v) || !palette(v) || nx_begin_frame(v->ui,width,height,0)!=NX_OK) return false;
     memset(v->drawn,0,sizeof(v->drawn));
     nx_semantic_desc root={.id=1,.role=NX_ROLE_WINDOW,.bounds={0,0,width,height},.name=span(tr(v,"Files","Dateien"))};
@@ -458,12 +456,25 @@ bool ae_files_view_frame(struct ae_files_view *v,float width,float height,const 
         v->modal_parent=0;
     }
     if(nx_end_frame(v->ui)!=NX_OK) return false;
+    bool edited=false;if(!apply_fields(v,&edited)) return false;
+    if(edited) {
+        /* Never publish a speculative SDK draft or apply a simultaneous old
+           confirmation to new bytes. Rebuild once with fresh app scope. */
+        if(v->rebuilding) return false;
+        v->rebuilding=true;bool okay=ae_files_view_frame(v,width,height,status,changed);v->rebuilding=false;*changed=true;return okay;
+    }
     if(v->focus_wanted) {
         uint64_t id=control(v,(enum ae_files_control)(v->focus_wanted-1));v->focus_wanted=0;
         if(nx_focus_set(v->ui,id)==NX_OK) *changed=true;
     }
     if(v->row_focus) { v->row_focus=false;if(nx_focus_set(v->ui,entry(v,ae_files_selected(s->files)))==NX_OK) *changed=true; }
     s->query_focus=!blocked(s) && nx_focus_id(v->ui)==control(v,AE_FV_SEARCH);
+    if(v->edits[1].drawn && !v->edits[1].disabled && v->edits[1].submitted && !s->name_bad && !s->composing) {
+        ae_files_session_create_submit(s);*changed=true;return true;
+    }
+    if(v->edits[0].drawn && !v->edits[0].disabled && v->edits[0].submitted && !s->query_bad && !s->composing) {
+        s->query_focus=false;(void)nx_focus_set(v->ui,0);ae_files_session_activate(s);*changed=true;return true;
+    }
     if(intent.count==1) {
         bool acted=false;
         for(unsigned i=0;i<AE_FV_CONTROLS;++i) if(v->drawn[i] && v->drawn[i]==intent.id) { action(v,(enum ae_files_control)i);acted=true;break; }
@@ -483,67 +494,63 @@ static void reject_text(struct ae_files_view *v) {
     if(v->s->dialog) v->s->name_bad=true;else v->s->query_bad=true;
     ae_files_session_message(v->s,rejected_input[v->s->german?1:0]);
 }
-/* These bounded selections belong to the original app draft, not to a second
-   toolkit text model or undo stack. Native text geometry remains NexaUI-owned. */
-static struct edit *editing(struct ae_files_view *v) {
-    struct ae_files_session *s=v->s;
-    if(!v->usable || v->unfocused || s->closing || s->composing) return NULL;
-    if(s->dialog) {
-        if(s->name_focus || ae_files_session_creating(s) || ae_files_session_unresolved(s) || s->rename_stale) return NULL;
-        edit_sync(&v->edits[1],s->name);return &v->edits[1];
+static bool apply_fields(struct ae_files_view *v,bool *changed) {
+    *changed=false;struct ae_files_session *s=v->s;
+    for(unsigned i=0;i<2;++i) {
+        struct edit *e=&v->edits[i];if(!e->drawn) continue;
+        nx_utf8_span value;if(nx_text_field_text(e->field,&value)!=NX_OK) return false;
+        if(value.length==e->size && (!e->size || !memcmp(value.data,e->text,e->size))) continue;
+        bool bad=i?s->name_bad:s->query_bad;
+        struct field_validation validation={i!=0,bad};
+        if(e->disabled || !field_valid(value,&validation)) {
+            if(nx_text_field_set_text(e->field,e->text,e->size)!=NX_OK) return false;
+            if(!e->disabled) {
+                if(i) s->name_bad=true;else s->query_bad=true;
+                ae_files_session_message(s,rejected_input[s->german?1:0]);
+            }
+        } else {
+            if(i) {if(value.length) memcpy(s->name,value.data,value.length);s->name[value.length]=0;s->name_size=value.length;s->create_message[0]=0;}
+            else if(!ae_files_filter(s->files,value.data,value.length)) return false;
+            else s->first=0;
+            if(value.length) {memcpy(e->text,value.data,value.length);}e->text[value.length]=0;e->size=value.length;
+            if(!s->name_bad && !s->query_bad && (!strcmp(s->message,rejected_input[0]) || !strcmp(s->message,rejected_input[1]))) s->message[0]=0;
+        }
+        *changed=true;s->dirty=true;
     }
-    if(!s->query_focus || blocked(s)) return NULL;
-    edit_sync(&v->edits[0],ae_files_query(s->files));return &v->edits[0];
+    return true;
 }
-static void replace(struct ae_files_view *v,struct edit *e,const char *bytes,size_t length) {
-    struct ae_files_session *s=v->s;char value[AE_FILES_NAME+1];
-    size_t lo=e->anchor<e->cursor?e->anchor:e->cursor,hi=e->anchor>e->cursor?e->anchor:e->cursor;
-    if(length>AE_FILES_NAME-(e->size-(hi-lo))) {reject_text(v);return;}
-    size_t n=e->size-(hi-lo)+length;
-    memcpy(value,e->text,lo);memcpy(value+lo,bytes,length);memcpy(value+lo+length,e->text+hi,e->size-hi);value[n]=0;
-    size_t offsets[AE_FILES_NAME+1],count;
-    if(!ae_text_graphemes(value,n,offsets,AE_FILES_NAME+1,&count) ||
-       (s->dialog && n && !ae_files_create_name(value,n) && !(n==1 && value[0]=='.') && !(n==2 && !memcmp(value,"..",2)))) {reject_text(v);return;}
-    if(s->dialog) {memcpy(s->name,value,n+1);s->name_size=n;s->create_message[0]=0;}
-    else if(!ae_files_filter(s->files,value,n)) {reject_text(v);return;}
-    else s->first=0;
+static bool editing(const struct ae_files_view *v) {
+    const struct ae_files_session *s=v->s;
+    if(!v->usable || v->unfocused || s->closing || s->composing) return false;
+    if(s->dialog) return s->name_focus==0 && !ae_files_session_creating(s) && !ae_files_session_unresolved(s) && !s->rename_stale;
+    return s->query_focus && !blocked(s);
+}
+static bool clear_field(struct ae_files_view *v) {
+    struct ae_files_session *s=v->s;unsigned i=s->dialog?1u:0u;struct edit *e=&v->edits[i];
+    if(!edit_sync(e,i?s->name:ae_files_query(s->files)) || nx_text_field_set_text(e->field,"",0)!=NX_OK) return false;
+    if(i) {s->name_bad=false;s->name_size=0;s->name[0]=0;s->create_message[0]=0;}
+    else {if(!ae_files_filter(s->files,"",0)) return false;s->query_bad=false;s->first=0;}
+    e->text[0]=0;e->size=0;
     if(!s->name_bad && !s->query_bad && (!strcmp(s->message,rejected_input[0]) || !strcmp(s->message,rejected_input[1]))) s->message[0]=0;
-    /* Inserting a combining character/ZWJ can merge neighbouring clusters.
-       Keep the resulting caret on an actual whole-cluster boundary. */
-    size_t at=lo+length;for(size_t i=0;i<count;++i) if(offsets[i]>=at) {at=offsets[i];break;}
-    memcpy(e->text,value,n+1);e->size=n;e->anchor=e->cursor=at;
-    nx_text_layout_destroy(e->layout);e->layout=NULL;s->dirty=true;
+    return true;
 }
 static void append(struct ae_files_view *v,const char *bytes,size_t length) {
-    struct edit *e=editing(v);if(!e) return;
-    if(v->s->dialog?v->s->name_bad:v->s->query_bad) return;
-    if(!length) {reject_text(v);return;}replace(v,e,bytes,length);
+    if(!editing(v) || (v->s->dialog?v->s->name_bad:v->s->query_bad)) return;
+    size_t at=0;while(at<length) {
+        uint32_t scalar;if(!ae_utf8_next(bytes,length,&at,&scalar)) {reject_text(v);return;}
+        nx_event event={.type=NX_EVENT_TEXT,.scalar=scalar};
+        if(nx_context_queue_event(v->ui,&event)!=NX_OK) {reject_text(v);return;}
+    }
 }
 static bool edit_key(struct ae_files_view *v,const nx_event *event,bool *handled) {
-    *handled=false;struct edit *e=editing(v);if(!e) return true;
-    uint32_t key=event->key,mods=event->modifiers;bool shift=(mods&NX_MOD_SHIFT)!=0,ctrl=(mods&NX_MOD_CONTROL)!=0;
+    *handled=false;if(!editing(v)) return true;
+    uint32_t key=event->key,mods=event->modifiers;bool ctrl=(mods&NX_MOD_CONTROL)!=0;
     if(mods&(NX_MOD_ALT|NX_MOD_SUPER)) return true;
-    if(ctrl && key==NX_KEY_A) {*handled=true;e->anchor=0;e->cursor=e->size;return true;}
-    if(ctrl && key==NX_KEY_U) {
-        *handled=true;v->s->name_bad=v->s->dialog?false:v->s->name_bad;v->s->query_bad=v->s->dialog?v->s->query_bad:false;
-        e->anchor=0;e->cursor=e->size;replace(v,e,"",0);return true;
+    if(ctrl && key==NX_KEY_U) {*handled=true;return clear_field(v);}
+    if((ctrl && key==NX_KEY_A) || (!ctrl && (key==NX_KEY_LEFT || key==NX_KEY_RIGHT || key==NX_KEY_HOME || key==NX_KEY_END ||
+        key==NX_KEY_BACKSPACE || key==NX_KEY_DELETE || key==NX_KEY_ENTER))) {
+        *handled=true;return nx_context_queue_event(v->ui,event)==NX_OK;
     }
-    if(ctrl || (key!=NX_KEY_LEFT && key!=NX_KEY_RIGHT && key!=NX_KEY_HOME && key!=NX_KEY_END && key!=NX_KEY_BACKSPACE && key!=NX_KEY_DELETE)) return true;
-    *handled=true;size_t offsets[AE_FILES_NAME+1],count;
-    if(!ae_text_graphemes(e->text,e->size,offsets,AE_FILES_NAME+1,&count)) return false;
-    size_t index=0;while(index<count && offsets[index]!=e->cursor) ++index;if(index==count) return false;
-    size_t lo=e->anchor<e->cursor?e->anchor:e->cursor,hi=e->anchor>e->cursor?e->anchor:e->cursor;
-    if(key==NX_KEY_BACKSPACE || key==NX_KEY_DELETE) {
-        if(v->s->dialog?v->s->name_bad:v->s->query_bad) return true;
-        if(lo==hi) {if(key==NX_KEY_BACKSPACE && index) e->anchor=offsets[index-1];else if(key==NX_KEY_DELETE && index+1<count) e->anchor=offsets[index+1];else return true;}
-        replace(v,e,"",0);return true;
-    }
-    if(key==NX_KEY_HOME) e->cursor=0;
-    else if(key==NX_KEY_END) e->cursor=e->size;
-    else if(!shift && lo!=hi) e->cursor=key==NX_KEY_LEFT?lo:hi;
-    else if(key==NX_KEY_LEFT && index) e->cursor=offsets[index-1];
-    else if(key==NX_KEY_RIGHT && index+1<count) e->cursor=offsets[index+1];
-    if(!shift) e->anchor=e->cursor;
     return true;
 }
 static size_t scalar(uint32_t c,char out[4]) {
@@ -553,27 +560,16 @@ static size_t scalar(uint32_t c,char out[4]) {
     if(c<0x10000) { out[0]=(char)(0xe0u|(c>>12));out[1]=(char)(0x80u|((c>>6)&63u));out[2]=(char)(0x80u|(c&63u));return 3; }
     out[0]=(char)(0xf0u|(c>>18));out[1]=(char)(0x80u|((c>>12)&63u));out[2]=(char)(0x80u|((c>>6)&63u));out[3]=(char)(0x80u|(c&63u));return 4;
 }
-static bool edit_point(struct edit *e,nx_point point,bool extend) {
-    if(!e->layout) return false;
-    nx_text_caret caret;
-    if(nx_text_layout_hit_test(e->layout,(double)(point.x-e->box.x+e->scroll),0,&caret)!=NX_OK) return false;
-    size_t offsets[AE_FILES_NAME+1],count;
-    if(!ae_text_graphemes(e->text,e->size,offsets,AE_FILES_NAME+1,&count)) return false;
-    bool boundary=false;for(size_t i=0;i<count;++i) if(offsets[i]==caret.byte_offset) boundary=true;
-    if(!boundary) return false;
-    e->cursor=caret.byte_offset;if(!extend) e->anchor=e->cursor;return true;
-}
 bool ae_files_view_event(struct ae_files_view *v,const nx_event *e) {
     if(!v || !e || !sync_scope(v)) return false;
     struct ae_files_session *s=v->s;s->dirty=true;
     if(e->type==NX_EVENT_FOCUS) v->unfocused=!e->focused;
     if(e->type==NX_EVENT_FOCUS && !e->focused) {
-        v->drag=-1;
         s->menu=false;v->consume_release=false;v->last_click=0;
         if(s->composing || v->commit_active) reject_text(v);
         s->composing=false;v->commit_active=false;
     }
-    if(e->type==NX_EVENT_POINTER_CANCEL || e->type==NX_EVENT_RESIZE) { v->drag=-1;v->consume_release=false;v->last_click=0;s->menu=false; }
+    if(e->type==NX_EVENT_POINTER_CANCEL || e->type==NX_EVENT_RESIZE) { v->consume_release=false;v->last_click=0;s->menu=false; }
     if(v->commit_active && (e->type==NX_EVENT_KEY_DOWN || e->type==NX_EVENT_POINTER_DOWN)) { reject_text(v);v->commit_active=false; }
     if(e->type==NX_EVENT_TEXT) {
         /* Tagged native IME edits still require a host-owned target/revision.
@@ -592,7 +588,8 @@ bool ae_files_view_event(struct ae_files_view *v,const nx_event *e) {
     if(e->type==NX_EVENT_IME_PREEDIT_CHANGED) { s->composing=true;return true; }
     if(e->type==NX_EVENT_IME_DELETE_RANGE || e->type==NX_EVENT_IME_DELETE_SURROUNDING || e->type==NX_EVENT_TEXT_COMMAND) { reject_text(v);return true; }
     if(e->type==NX_EVENT_KEY_DOWN) {
-        v->drag=-1;bool handled;if(!edit_key(v,e,&handled)) return false;if(handled) return true;
+        if(v->unfocused) return true;
+        bool handled;if(!edit_key(v,e,&handled)) return false;if(handled) return true;
     }
     if(e->type==NX_EVENT_KEY_DOWN && !e->repeat) {
         uint32_t k=e->key,m=e->modifiers;bool ctrl=(m&NX_MOD_CONTROL)!=0,alt=(m&NX_MOD_ALT)!=0;
@@ -605,11 +602,7 @@ bool ae_files_view_event(struct ae_files_view *v,const nx_event *e) {
         else if(s->dialog) {
             if(ae_files_session_creating(s)) return true;
             if(k==NX_KEY_ESCAPE) { ae_files_session_dialog_close(s);v->row_focus=true; }
-            else if(k==NX_KEY_ENTER) { if(s->name_focus==1) ae_files_session_dialog_close(s);else ae_files_session_create_submit(s); }
-            else if(ctrl && k==NX_KEY_U && !ae_files_session_unresolved(s) && !s->rename_stale && s->name_focus==0) { s->name_bad=false;s->composing=false;s->name_size=0;s->name[0]=0;s->create_message[0]=0; }
-            else if(k==NX_KEY_BACKSPACE && !s->name_bad && s->name_focus==0 && !ae_files_session_unresolved(s) && !s->rename_stale && s->name_size) {
-                size_t offsets[AE_FILES_NAME+1],count;if(ae_text_graphemes(s->name,s->name_size,offsets,AE_FILES_NAME+1,&count)) { s->name_size=offsets[count-2];s->name[s->name_size]=0; }
-            } else return nx_context_queue_event(v->ui,e)==NX_OK;
+            else return nx_context_queue_event(v->ui,e)==NX_OK;
         } else if(s->info_overlay) { if(k==NX_KEY_ESCAPE || k==NX_KEY_F9) { s->info_overlay=false;s->details=false; } }
         else if(s->menu) {
             if(k==NX_KEY_ESCAPE || k==NX_KEY_F10) s->menu=false;
@@ -634,35 +627,18 @@ bool ae_files_view_event(struct ae_files_view *v,const nx_event *e) {
                 ae_files_session_move(s,(k==NX_KEY_UP || k==NX_KEY_PAGE_UP || k==NX_KEY_LEFT)?-step:step); }
             s->query_focus=false;ae_files_session_reveal(s);v->row_focus=true;
         } else if(k==NX_KEY_ENTER) {
+            if(s->query_focus) return nx_context_queue_event(v->ui,e)==NX_OK;
             uint64_t f=nx_focus_id(v->ui);bool toolbar=false;
             for(unsigned i=0;i<AE_FV_CONTROLS;++i) if(i!=AE_FV_SEARCH && v->drawn[i] && v->drawn[i]==f) toolbar=true;
             if(toolbar) return nx_context_queue_event(v->ui,e)==NX_OK;
             s->query_focus=false;(void)nx_focus_set(v->ui,0);ae_files_session_activate(s);
         }
-        else if(k==NX_KEY_BACKSPACE) {
-            if(s->query_focus) { const char *q=ae_files_query(s->files);size_t n=strlen(q),offsets[AE_FILES_QUERY+1],count;
-                if(!s->query_bad && n && ae_text_graphemes(q,n,offsets,AE_FILES_QUERY+1,&count)) (void)ae_files_filter(s->files,q,offsets[count-2]);
-            }else action(v,AE_FV_UP);
-        } else return nx_context_queue_event(v->ui,e)==NX_OK;
+        else if(k==NX_KEY_BACKSPACE && !s->query_focus) action(v,AE_FV_UP);
+        else return nx_context_queue_event(v->ui,e)==NX_OK;
         return true;
     }
     if(e->type==NX_EVENT_WHEEL && !blocked(s)) { ae_files_session_move(s,e->delta_y>0?-3:e->delta_y<0?3:0);v->row_focus=true;return true; }
     nx_point point={e->x,e->y};
-    if(v->drag>=0 && (e->type==NX_EVENT_POINTER_MOVE || (e->type==NX_EVENT_POINTER_UP && e->button==1))) {
-        if(!edit_point(&v->edits[(unsigned)v->drag],point,true)) return false;
-        if(e->type==NX_EVENT_POINTER_UP) v->drag=-1;
-        return nx_context_queue_event(v->ui,e)==NX_OK;
-    }
-    if(e->type==NX_EVENT_POINTER_DOWN && e->button==1 && v->usable && !v->unfocused) {
-        enum ae_files_control c=s->dialog?AE_FV_NAME:AE_FV_SEARCH;
-        if(v->drawn[c] && inside(v->bounds[c],point) && !s->closing && !ae_files_session_creating(s) &&
-           !ae_files_session_unresolved(s) && !s->rename_stale && (s->dialog || !blocked(s))) {
-            unsigned index=s->dialog?1u:0u;v->drag=(int)index;
-            if(!edit_point(&v->edits[index],point,(e->modifiers&NX_MOD_SHIFT)!=0)) return false;
-            s->query_focus=!s->dialog;if(s->dialog) s->name_focus=0;v->focus_wanted=(uint64_t)c+1;
-            return nx_context_queue_event(v->ui,e)==NX_OK;
-        }
-    }
     if(e->type==NX_EVENT_POINTER_DOWN && e->button==2 && !blocked(s)) { action(v,AE_FV_MORE);return true; }
     if(e->type==NX_EVENT_POINTER_DOWN && e->button==1) {
         bool swallow=false;

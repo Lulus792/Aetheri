@@ -1,5 +1,19 @@
 # Decisions
 
+## Use one SDK editor with an app admission boundary — 6 November 2026
+
+Replace own Files custom field painting/selections with the existing pinned
+NexaUI text field. The concrete new evidence is that custom semantic fields
+cannot expose native editable text, while the SDK-owned editor already implements
+the required Text/EditableText profile. The view owns that one editor with undo
+history disabled; the controller retains only validated operation/query bytes.
+Admit the complete candidate at frame end, reject over-limit/invalid input without
+publishing it, and discard simultaneous old actions before rebuilding fresh scope.
+Enter follows that same path. This supersedes the earlier custom field editor
+implementation below, retaining its complete-validation and operation-ownership
+rules. It does not change SDK versions, normal app admission or document rights.
+See the [native text record](journal/2026-11-06-files-text.md).
+
 ## Keep window gestures with their original press — 6 November 2026
 
 Own Files follows the tested Settings title/edge gesture rules. A pending

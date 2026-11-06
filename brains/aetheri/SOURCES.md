@@ -6,6 +6,10 @@ current security status, complete license compliance or runtime acceptance.
 
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
+- SDK editor/application admission and same-frame action fencing in the
+  [view](../../src/files/nexaui_view.c), [native value/lifetime tests](../../tests/test_files_view.c)
+  and [independent Text/EditableText client](../../tests/files_view_atspi.c).
+  [Executed text record](journal/2026-11-06-files-text.md).
 - Original-press native gesture handling in the
   [host](../../src/files/nexaui_main.c), [view hit testing](../../src/files/nexaui_view.c),
   [native geometry/pixel workflow](../../tools/test_files_view.py) and

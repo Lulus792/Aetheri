@@ -24,6 +24,18 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Files native-text update: the custom field editor is replaced by one
+SDK text field per view input, with history disabled and complete Aetheri candidate
+admission before publication/actions. Independent native Text/EditableText tests
+cover Unicode reads, caret/selection and range/whole edits, stale handles and
+retained over-limit rejection. See the [text record](../journal/2026-11-06-files-text.md).
+This supersedes the earlier custom-field implementation below. The pinned field
+descriptor lacks a description member, so localized rejection context is on the
+immediate named group. Human/geometry/event/IME/clipboard acceptance stays open;
+no SDK pin or default changes.
+The existing catalogue now records this scoped evidence and the pinned
+description/style limitation under existing IDs; no new handoff text is due.
+
 6 November Files chrome update: own Files now follows the tested Settings
 original-press move/resize and Escape ownership rules, with title double-click
 maximize/restore and fresh modal-admission checks. Native geometry/pixel/device

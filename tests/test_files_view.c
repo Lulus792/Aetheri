@@ -46,21 +46,21 @@ static void pointer(struct ae_files_view *v,nx_event_type type,float x,float y,u
 static void editing_cases(struct ae_files_view *v,struct ae_files_session *s) {
     CHECK(ae_files_select(s->files,0));frame(v,1000,680);uint64_t old=ae_files_view_entry_id(v,0);
     CHECK(nx_semantics_request_action(ae_files_view_context(v),old,NX_ACTION_PRESS)==NX_OK);
-    key(v,NX_KEY_L,NX_MOD_CONTROL);text(v,"abc");CHECK(!s->dialog && ae_files_depth(s->files)==0);
+    CHECK(ae_files_filter(s->files,"abc",3));frame(v,1000,680);CHECK(!s->dialog && ae_files_depth(s->files)==0);
     key(v,NX_KEY_L,NX_MOD_CONTROL);frame(v,1000,680);text(v,"abcd");
     key(v,NX_KEY_HOME,0);key(v,NX_KEY_RIGHT,0);key(v,NX_KEY_RIGHT,NX_MOD_SHIFT);key(v,NX_KEY_RIGHT,NX_MOD_SHIFT);text(v,"X");
     CHECK(!strcmp(ae_files_query(s->files),"aXd"));
     key(v,NX_KEY_BACKSPACE,0);key(v,NX_KEY_DELETE,0);frame(v,1000,680);CHECK(!strcmp(ae_files_query(s->files),"a"));
     key(v,NX_KEY_A,NX_MOD_CONTROL);text(v,"replacement");CHECK(!strcmp(ae_files_query(s->files),"replacement"));
-    key(v,NX_KEY_U,NX_MOD_CONTROL);unicode(v,"a\xcc\x81" "b");key(v,NX_KEY_LEFT,0);key(v,NX_KEY_BACKSPACE,0);frame(v,1000,680);
+    key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);unicode(v,"a\xcc\x81" "b");key(v,NX_KEY_LEFT,0);key(v,NX_KEY_BACKSPACE,0);frame(v,1000,680);
     CHECK(!strcmp(ae_files_query(s->files),"b"));
-    key(v,NX_KEY_U,NX_MOD_CONTROL);unicode(v,"\xf0\x9f\x91\xa9\xe2\x80\x8d\xf0\x9f\x92\xbb" "x");
+    key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);unicode(v,"\xf0\x9f\x91\xa9\xe2\x80\x8d\xf0\x9f\x92\xbb" "x");
     key(v,NX_KEY_HOME,0);key(v,NX_KEY_DELETE,0);frame(v,1000,680);CHECK(!strcmp(ae_files_query(s->files),"x"));
-    key(v,NX_KEY_U,NX_MOD_CONTROL);text(v,"pointer");nx_rect r=get(v,ae_files_view_control_id(v,AE_FV_SEARCH)).bounds;
-    pointer(v,NX_EVENT_POINTER_DOWN,r.x+8,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+8,r.y+r.height/2,0);
+    key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);text(v,"pointer");nx_rect r=get(v,ae_files_view_control_id(v,AE_FV_SEARCH)).bounds;
+    pointer(v,NX_EVENT_POINTER_DOWN,r.x+2,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+2,r.y+r.height/2,0);
     text(v,"a");CHECK(!strcmp(ae_files_query(s->files),"apointer"));
     pointer(v,NX_EVENT_POINTER_DOWN,r.x+r.width-3,r.y+r.height/2,0);
-    pointer(v,NX_EVENT_POINTER_MOVE,r.x+8,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+8,r.y+r.height/2,0);
+    pointer(v,NX_EVENT_POINTER_MOVE,r.x+2,r.y+r.height/2,0);pointer(v,NX_EVENT_POINTER_UP,r.x+2,r.y+r.height/2,0);
     text(v,"dragged");CHECK(!strcmp(ae_files_query(s->files),"dragged"));
     key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);key(v,NX_KEY_N,NX_MOD_CONTROL);frame(v,1000,680);text(v,"abcd");
     key(v,NX_KEY_HOME,0);key(v,NX_KEY_RIGHT,0);key(v,NX_KEY_END,NX_MOD_SHIFT);text(v,"Q");CHECK(!strcmp(s->name,"aQ"));
@@ -94,10 +94,34 @@ static void chrome_hits(struct ae_files_view *v,struct ae_files_session *s) {
     CHECK(ae_files_view_native_hit(v,(nx_point){998,678},&status,&title,&edge,&cursor) && !title && !edge);
     ae_files_session_dialog_close(s);frame(v,1000,680);
 }
+static void native_value_cases(struct ae_files_view *v,struct ae_files_session *s,unsigned *attempts) {
+    key(v,NX_KEY_N,NX_MOD_CONTROL);frame(v,1000,680);text(v,"before");
+    uint64_t id=ae_files_view_control_id(v,AE_FV_NAME),confirm=ae_files_view_control_id(v,AE_FV_CONFIRM);
+    CHECK(get(v,id).actions&NX_ACTION_SET_VALUE);
+    CHECK(nx_semantics_request_text_value(ae_files_view_context(v),id,(nx_utf8_span){"after",5})==NX_OK);
+    CHECK(nx_semantics_request_action(ae_files_view_context(v),confirm,NX_ACTION_PRESS)==NX_OK);
+    frame(v,1000,680);CHECK(!strcmp(s->name,"after") && *attempts==0 && !s->work_active);
+    CHECK(ae_files_view_control_id(v,AE_FV_CONFIRM)!=confirm);
+    id=ae_files_view_control_id(v,AE_FV_NAME);
+    CHECK(nx_semantics_request_text_value(ae_files_view_context(v),id,(nx_utf8_span){"/",1})==NX_OK);
+    frame(v,1000,680);CHECK(s->name_bad && !strcmp(s->name,"after"));
+    id=ae_files_view_control_id(v,AE_FV_NAME);CHECK(get(v,id).state&NX_SEM_READONLY);
+    CHECK(nx_semantics_request_text_value(ae_files_view_context(v),id,(nx_utf8_span){"blocked",7})!=NX_OK);
+    key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);CHECK(!s->name_bad && !s->name_size);
+    text(v,"held");nx_event focus={.type=NX_EVENT_FOCUS,.focused=0};CHECK(ae_files_view_event(v,&focus));frame(v,1000,680);
+    key(v,NX_KEY_ENTER,0);frame(v,1000,680);CHECK(*attempts==0 && !s->work_active && !strcmp(s->name,"held"));
+    focus.focused=1;CHECK(ae_files_view_event(v,&focus));frame(v,1000,680);key(v,NX_KEY_U,NX_MOD_CONTROL);frame(v,1000,680);
+    id=ae_files_view_control_id(v,AE_FV_NAME);
+    CHECK(nx_semantics_request_text_value(ae_files_view_context(v),id,(nx_utf8_span){"retired",7})==NX_OK);
+    ae_files_session_dialog_close(s);ae_files_session_dialog_open(s,AE_FILES_CREATE_FILE);frame(v,1000,680);
+    CHECK(!s->name_size && *attempts==0);key(v,NX_KEY_ESCAPE,0);frame(v,1000,680);
+}
 static void naming_bounds(struct ae_files_view *v,float w,float h) {
     const enum ae_files_control controls[]={AE_FV_NAME,AE_FV_CANCEL,AE_FV_CONFIRM};nx_rect boxes[3];
     for(size_t i=0;i<3;++i) {nx_semantic_view node=get(v,ae_files_view_control_id(v,controls[i]));boxes[i]=node.bounds;
-        nx_semantic_view parent=get(v,node.parent_id);CHECK(parent.role==NX_ROLE_DIALOG);
+        nx_semantic_view parent=get(v,node.parent_id);
+        if(controls[i]==AE_FV_NAME) {CHECK(parent.role==NX_ROLE_GROUP);parent=get(v,parent.parent_id);}
+        CHECK(parent.role==NX_ROLE_DIALOG);
         CHECK(boxes[i].width>0 && boxes[i].height>0 && boxes[i].x>=0 && boxes[i].y>=0 && boxes[i].x+boxes[i].width<=w && boxes[i].y+boxes[i].height<=h);
         CHECK(boxes[i].x>=parent.bounds.x && boxes[i].y>=parent.bounds.y && boxes[i].x+boxes[i].width<=parent.bounds.x+parent.bounds.width && boxes[i].y+boxes[i].height<=parent.bounds.y+parent.bounds.height);
     }
@@ -118,6 +142,7 @@ int main(int argc,char **argv) {
     memcpy(s.root_label,"Documents",10);struct ae_files_view *v=NULL;CHECK(ae_files_view_create(&s,font,(size_t)length,&v));
     CHECK(nx_context_set_text_raster_scale(ae_files_view_context(v),(float)density)==NX_OK);frame(v,1000,680);
     chrome_hits(v,&s);
+    native_value_cases(v,&s,&attempts);
     key(v,NX_KEY_H,NX_MOD_CONTROL);frame(v,1000,680);
     uint64_t hidden=named(v,NX_ROLE_BUTTON,".hidden");
     CHECK(nx_semantics_request_action(ae_files_view_context(v),hidden,NX_ACTION_PRESS)==NX_OK);

@@ -136,22 +136,43 @@ field, including its rejection state. A rejected edit retains the original bytes
 and blocks further text/deletion until that explicit clear; replacing a selection
 still checks the size and validity of the complete resulting value.
 
-Selections use the app's Unicode grapheme boundaries. NexaUI supplies full text
-layout, hit testing, selection rectangles and clipped rendering. The viewport
-scrolls to keep the caret visible rather than eliding an editable prefix/tail.
-Scale/layout changes retain the selection; focus loss cancels drag and hides the
-caret. There is no idle blink/repaint loop, second text model or undo stack.
+The view now uses actual NexaUI text fields for editing, selection, layout,
+hit testing and clipped caret viewing. Each field has one SDK editor with history
+disabled; the controller retains the validated name/filter used by operations.
+This replaces the earlier custom field painting/selection implementation.
+Scale/layout changes retain selection. There is no idle repaint loop or second
+undo stack.
 Changed filter contents retire visible-action scopes, even when the selected
 ordinal stays zero. Reopened naming dialogs reset their selection identity.
 
 Complete untagged native commit batches are admitted atomically; filtered,
-incomplete, overflowed and tagged target/revision edits are refused. Native
-EditableText/Text/caret transport, external IMEs, field undo/redo, clipboard
-shortcuts and word-navigation commands remain separate work. Invalid
-name/filter fields publish the native invalid state and a localized explanation.
+incomplete, overflowed and tagged target/revision edits are refused. External
+IMEs, field undo/redo, clipboard shortcuts and word navigation remain separate
+work. Invalid fields publish the native invalid state. The pinned descriptor
+has no description member, so the localized explanation belongs to the field's
+immediate named group. Native clients can inspect that group without mistaking
+the retained valid prefix for an accepted edit.
 The Information icon has an English/German accessible name while retaining its
 visual `i`. The independent native checks below cover a bounded set of semantics;
-human screenreader use and complete accessible text remain open.
+human screenreader use, complete native geometry/events and final accessibility
+acceptance remain open.
+
+The actual entry now exposes the SDK's AT-SPI Text/EditableText profile. Native
+content, character count, caret, selection, whole replacement and range insert/
+delete are exercised independently. Native offsets are Unicode scalars, while
+the application validates complete UTF-8 bytes and the editor uses grapheme
+boundaries. The SDK transport may admit up to 65,536 bytes; Aetheri still accepts
+at most 255. An over-limit/invalid candidate restores the prior validated bytes,
+marks the field invalid/read-only and requires Ctrl+U to clear it. A native setter
+reply is not a file-operation receipt.
+
+At frame end Aetheri admits or rejects the entire SDK candidate before publishing
+the view. Any changed candidate discards simultaneous old actions and rebuilds
+once with fresh scopes. A confirmation must refer to that new state. Enter from
+the name/filter or naming-dialog controls follows the same frame path; late
+keydown after window focus loss is ignored. Reopened fields and later read-only/
+disabled policy invalidate old native mutations. None of this dispatches a file
+operation merely because accessible text was written.
 
 An unknown create/rename/move outcome opens a read-only inspection of the retained
 attempt. It shows the captured operation or previous name, folder(s) and attempted
@@ -192,6 +213,12 @@ A disabled-bridge instance must fail registration. Configure the existing
 `AETHERI_ATSPI_TEST_PREFIX` alongside the owned-view SDK/compositor; the upstream
 Settings example is not required. This is private test transport, not a normal
 desktop bus installation or human screenreader/event acceptance.
+The client also checks Unicode text/character offsets, caret and selection
+mutation, range insert/delete, stale-target rejection and an over-limit native
+replacement retaining the original draft. Native Search replacement/clear is
+joined to actual filtered-entry counts. Controlled C cases independently verify
+the controller's admitted bytes, rejection/clear, retired field requests, an
+old confirmation accompanying new native text and Enter after focus loss.
 
 `files.view_fault` links a separate test executable with the existing lost-reply
 adapters. Actual mkdir/rename effects precede the controlled error. It verifies

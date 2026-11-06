@@ -187,8 +187,14 @@ def main():
             peer('initial');wait(lambda:state(grid=1,selected=1,depth=0),'native selection without opening')
             assert 'OPEN pid=' not in log()
             peer('dialog');wait(lambda:state(dialog=1),'accessible inline naming')
+            peer('text');wait(lambda:state(name_bad=1),'native oversized replacement retains original draft')
+            capture('native text read write selection and retained rejection')
+            key(22,ctrl=True);wait(lambda:state(name_bad=0),'explicit native keyboard clear')
             typing('bad');key(53);wait(lambda:state(name_bad=1),'actual invalid name')
             peer('invalid');peer('cancel');wait(lambda:state(dialog=0,selected=1),'accessible cancel/focus return')
+            peer('query');wait(lambda:state(count=1,depth=0),'native query changes actual filtered entries')
+            capture('native query edits actual filtered entries')
+            peer('query-clear');wait(lambda:state(count=2,depth=0),'native query clear restores actual entries')
             assert sorted(p.name for p in folder.iterdir())==['existing','seed.txt']
         click(2);wait(lambda:state(grid=1),"pointer grid")
         key(49,ctrl=True,shift=True);wait(lambda:state(dialog=1),"inline folder")
@@ -219,7 +225,7 @@ def main():
         key(38,ctrl=True);typing("seed");wait(lambda:state(count=1),"filter")
         rows=re.findall(r"^CONTROL 5 (\d+) ([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) (\d+)$",log(),re.M);assert rows
         _,x,y,w,h,_=rows[-1];x,y,w,h=map(float,(x,y,w,h))
-        event(f"M {40+x+8} {40+y+h/2}");event("B 272 1");event("B 272 0")
+        event(f"M {40+x+2} {40+y+h/2}");event("B 272 1");event("B 272 0")
         event("K 42 1");event(f"M {40+x+w-3} {40+y+h/2}");event("B 272 1");event("B 272 0");event("K 42 0")
         capture("native mouse query selection");typing("seed");wait(lambda:state(count=1),"mouse selection replacement")
         key(60);wait(lambda:state(dialog=1),"rename");key(22,ctrl=True);typing("renamed.txt");key(28)

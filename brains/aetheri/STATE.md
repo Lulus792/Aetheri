@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — original-press window gestures in own Files.
+6 November 2026 — native Text/EditableText for own Files inputs.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Own Files name/filter inputs now use actual NexaUI text fields with history
+disabled, replacing custom editing/painting. Aetheri still admits the complete
+candidate into its 255-byte operation/query state. Invalid/over-limit edits
+restore prior bytes and become invalid/read-only until clear. Changes rebuild
+before publication and discard simultaneous old confirmations. Enter follows the
+same frame path; a new regression prevents direct dispatch after focus loss.
+The pinned descriptor has no description member, so localized rejection context
+is on the immediate named group. SDK 0.1.18 and defaults remain unchanged.
+
+An independent native C17/libatspi client verifies Unicode text/character counts,
+caret and selection mutations, range insertion/deletion, retired targets and a
+256-byte replacement retaining the old draft. Native Search changes actual
+filtered-entry counts. All seven affected view/owner groups pass final Release
+51.49s and ASan/UBSan 103.25s, without skips. Controller byte/confirmation/lifetime
+checks and the full original create/rename/move/editor/fault/owner workflow remain.
+See the [native text record](journal/2026-11-06-files-text.md) and
+[contract](../../spec/files.md#opt-in-nexaui-view).
+
+Audit joins 366 source inputs, 263 exports/180 native images, unchanged 28 frozen
+contracts/nineteen protected hashes and closed development records. The enforcing
+carrier is idle on tty1 without build/private-registry actors, an Aetheri service
+or seat0 session. No new DRM session; foreign files remain unchanged. Unicode
+semantics are tested; the font's missing emoji glyph remains a coverage gap.
+
+Next: continue Terminal/editor presentation migration on these established SDK
+boundaries, keeping its original PTY, composition, clipboard and app state. Full
+native geometry/events/human assistive acceptance, field styling/IME/clipboard,
+final materials/physical hardware, normal session/admission/grant/recovery/removal
+and the full remaining OS/apps/image/installer/updates/suspend/multimonitor/
+experiment-desktop goal stay open. Preserve the old quarantined runtime and keep
+the full goal active.
+
+## Prior Files chrome checkpoint
 
 Own NexaUI Files now supports native title double-click maximize/restore,
 including the maximized title, and the tested Settings-style original-press
