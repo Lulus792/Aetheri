@@ -47,6 +47,7 @@ struct ae_input {
     struct window *focused, *grabbed;
     double start_x, start_y;
     int grab_x, grab_y, width, height;
+    int32_t grab_min_width, grab_min_height, grab_max_width, grab_max_height;
     uint32_t edges, cursor_serial;
     uint32_t clipboard_floor;
     bool clipboard_focus_valid;
@@ -305,6 +306,25 @@ static void keymap_changed(struct wl_listener *listener,void *data) {
     (void)data;struct keyboard *k=wl_container_of(listener,k,keymap);
     ae_text_input_forget_keyboard(k->input->server->text_input,k->keyboard);
 }
+static void cancel_grab(struct ae_input *in) {
+    struct window *w=in->grabbed;
+    if(!w) return;
+    in->grabbed=NULL;
+    const struct wlr_xdg_toplevel_state *state=&w->toplevel->current;
+    bool restore=!w->is_fullscreen && !w->maximized && !state->fullscreen && !state->maximized &&
+        state->min_width==in->grab_min_width && state->min_height==in->grab_min_height &&
+        state->max_width==in->grab_max_width && state->max_height==in->grab_max_height;
+    if(restore) {
+        w->x=in->grab_x;w->y=in->grab_y;
+        wlr_scene_node_set_position(&w->tree->node,w->x,w->y);
+        if(in->edges) wlr_xdg_toplevel_set_size(w->toplevel,in->width,in->height);
+    }
+    wlr_xdg_toplevel_set_resizing(w->toplevel,false);
+    in->edges=0;
+#ifdef AETHERI_INPUT_TEST
+    printf("GRAB_CANCEL restored=%d\n",restore);fflush(stdout);
+#endif
+}
 static void key(struct wl_listener *listener, void *data) {
     struct keyboard *k = wl_container_of(listener, k, key);
     struct wlr_keyboard_key_event *e = data;
@@ -313,6 +333,12 @@ static void key(struct wl_listener *listener, void *data) {
     wlr_seat_set_keyboard(in->seat, k->keyboard);
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;
+    }
+    if(e->state==WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode==KEY_ESC) {
+        if(k->suppressed[KEY_ESC]) return;
+        if(in->grabbed && ae_input_focused(in,in->grabbed) && !ae_desktop_keyboard_surface(in->server->desktop)) {
+            k->suppressed[KEY_ESC]=true;cancel_grab(in);return;
+        }
     }
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && (e->keycode == KEY_UP || e->keycode == KEY_DOWN) &&
             (wlr_keyboard_get_modifiers(k->keyboard) & WLR_MODIFIER_LOGO)) {
@@ -458,6 +484,8 @@ static void begin(struct window *w, struct wlr_seat_client *seat, uint32_t seria
     in->start_x = in->cursor->x; in->start_y = in->cursor->y;
     in->grab_x = w->x; in->grab_y = w->y;
     in->width = w->toplevel->base->geometry.width; in->height = w->toplevel->base->geometry.height;
+    in->grab_min_width=w->toplevel->current.min_width;in->grab_min_height=w->toplevel->current.min_height;
+    in->grab_max_width=w->toplevel->current.max_width;in->grab_max_height=w->toplevel->current.max_height;
     if (edges) wlr_xdg_toplevel_set_resizing(w->toplevel, true);
 }
 void ae_input_move(struct window *w, void *data) {

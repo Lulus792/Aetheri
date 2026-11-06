@@ -109,7 +109,7 @@ def main():
         key(15)
         wait(lambda: focus() == target, "native Tab to " + str(target))
 
-    def capture(label):
+    def capture(label, checks=()):
         def settled():
             values = re.findall(r"^SETTLED theme=(\d+) german=(\d+) text=(\d+) page=(\d+) (\d+) (\d+)$", log(), re.M)
             frames = re.findall(r"^FRAME (\d+) (\d+) ", log(), re.M)
@@ -130,8 +130,11 @@ def main():
             if i == 0:
                 # Initial/restored app begins at 40,40; maximized begins at 0,0.
                 sample = pixel(60, 60)
-                assert sample != (16, 20, 28), (label, sample)
+                if not checks:
+                    assert sample != (16, 20, 28), (label, sample)
                 assert len({pixel(x, y) for y in range(0, height, 2) for x in range(0, width, 2)}) > 10
+                for x, y, expected in checks:
+                    assert pixel(x, y) == expected, (label, x, y, pixel(x,y), expected)
             else:
                 assert pixel(80, 80) == (16, 20, 28)
             packed = path.with_suffix(".ppm.gz")
@@ -163,7 +166,7 @@ def main():
                 return p.returncode == 0 and p.stdout.strip() == "b true"
             wait(registry_ready, "private accessibility registry")
         server = start(server_binary, "server", "--headless", env["WAYLAND_DISPLAY"], captures,
-                       issuer.fileno(), pass_fds=(issuer.fileno(),))
+                       issuer.fileno(), pass_fds=(issuer.fileno(),), extra_env={**env,"WAYLAND_DEBUG":"server"})
         issuer.close()
         wait(lambda: "READY " in log("server"), "compositor ready")
         app = start(app_binary, "app", "--font", font, "--diagnostics")
@@ -184,6 +187,130 @@ def main():
         assert not any(name in maps for name in ("libSDL", "libvulkan", "libEGL", "libGLX", "libX11"))
         (root / "loaded-maps.txt").write_text(maps)
         capture("own Settings display page")
+        # Native title dragging waits for the app to own the original press,
+        # then for the actual server RPC before advancing the compositor grab.
+        moves = log("server").count(".move(")
+        titles = log().count("CHROME_TITLE down\n")
+        event("M 220 56"); event("B 272 1")
+        wait(lambda: log().count("CHROME_TITLE down\n") > titles, "native title press")
+        event("M 228 56")
+        wait(lambda: log("server").count(".move(") > moves, "native move request")
+        event("M 308 116"); event("B 272 0")
+        capture("native title drag moves the actual surface", ((50,80,(16,20,28)),(130,160,(28,31,40))))
+        resizes = log("server").count(".resize(")
+        event("M 1118 818"); event("B 272 1")
+        wait(lambda: log("server").count(".resize(") > resizes, "native bottom-right resize request")
+        event("M 1298 918")
+        wait(lambda: "FRAME 1180 820 " in log(), "native larger configure")
+        event("B 272 0")
+        capture("native lower-right resize", ((1250,900,(40,44,54)),))
+        resizes = log("server").count(".resize(")
+        event("M 1298 918"); event("B 272 1")
+        wait(lambda: log("server").count(".resize(") > resizes, "native return resize request")
+        event("M 1118 818")
+        wait(lambda: re.findall(r"^FRAME (\d+) (\d+) ", log(), re.M)[-1] == ("1000","720"), "native original size")
+        event("B 272 0")
+        moves = log("server").count(".move(")
+        titles = log().count("CHROME_TITLE down\n")
+        event("M 300 116"); event("B 272 1")
+        wait(lambda: log().count("CHROME_TITLE down\n") > titles, "native return title press")
+        event("M 308 116")
+        wait(lambda: log("server").count(".move(") > moves, "native return move request")
+        event("M 228 56"); event("B 272 0")
+        capture("native title and size restored", ((50,80,(28,31,40)),(1100,800,(16,20,28))))
+        def edge_drag(x,y,w,h,left,right,top,bottom,dx,dy):
+            px=x+2 if left else x+w-2 if right else x+w/2
+            py=y+2 if top else y+h-2 if bottom else y+h/2
+            before=log("server").count(".resize(")
+            event(f"M {px} {py}");event("B 272 1")
+            wait(lambda:log("server").count(".resize(")>before,"native edge admission")
+            event(f"M {px+dx} {py+dy}")
+            expected=(str(int(w+(-dx if left else dx if right else 0))),str(int(h+(-dy if top else dy if bottom else 0))))
+            wait(lambda:re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1]==expected,"native edge configure "+str(expected))
+            event("B 272 0")
+            return x+(dx if left else 0),y+(dy if top else 0),float(expected[0]),float(expected[1])
+        for left,right,top,bottom in ((1,0,1,0),(0,0,1,0),(0,1,1,0),(0,1,0,0),
+                                      (0,1,0,1),(0,0,0,1),(1,0,0,1),(1,0,0,0)):
+            dx=-20 if left else 20 if right else 0;dy=-15 if top else 15 if bottom else 0
+            geometry=edge_drag(40,40,1000,720,left,right,top,bottom,dx,dy)
+            restored=edge_drag(*geometry,left,right,top,bottom,-dx,-dy)
+            assert restored==(40,40,1000,720)
+        capture("all eight native resize edges restore their original geometry", ((50,80,(28,31,40)),(1100,800,(16,20,28))))
+        # Escape cancels an app-owned pending caption press, including repeats.
+        moves=log("server").count(".move(");titles=log().count("CHROME_TITLE down\n")
+        cancelled=log().count("CHROME_TITLE cancel\n")
+        event("M 220 56");event("B 272 1")
+        wait(lambda:log().count("CHROME_TITLE down\n")>titles,"pending caption before Escape")
+        event("K 1 1")
+        wait(lambda:log().count("CHROME_TITLE cancel\n")>cancelled,"pending caption cancellation")
+        event("K 1 1");event("K 1 0");event("M 308 116");event("B 272 0")
+        assert log("server").count(".move(")==moves and app.poll() is None
+        capture("Escape cancels pending caption without closing", ((50,80,(28,31,40)),(1100,800,(16,20,28))))
+        # Once the compositor owns the move, it consumes Escape and restores
+        # the original geometry. Further motion under the held press is inert.
+        titles=log().count("CHROME_TITLE down\n");cancelled=log("server").count("GRAB_CANCEL restored=1\n")
+        event("M 220 56");event("B 272 1")
+        wait(lambda:log().count("CHROME_TITLE down\n")>titles,"moving caption before Escape")
+        event("M 228 56")
+        wait(lambda:log("server").count(".move(")>moves,"move admission before Escape")
+        event("M 308 116")
+        capture("native move before cancellation", ((50,80,(16,20,28)),(130,160,(28,31,40))))
+        event("K 1 1")
+        wait(lambda:log("server").count("GRAB_CANCEL restored=1\n")>cancelled,"compositor cancels original move")
+        event("K 1 1");event("K 1 0");event("M 388 176");event("B 272 0")
+        capture("Escape restores native move and consumes repeat", ((50,80,(28,31,40)),(1100,800,(16,20,28))))
+        resizes=log("server").count(".resize(");cancelled=log("server").count("GRAB_CANCEL restored=1\n")
+        event("M 1038 758");event("B 272 1")
+        wait(lambda:log("server").count(".resize(")>resizes,"resize admission before Escape")
+        event("M 1138 808")
+        wait(lambda:re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1]==("1100","770"),"larger size before Escape")
+        event("K 1 1")
+        wait(lambda:log("server").count("GRAB_CANCEL restored=1\n")>cancelled,"compositor cancels original resize")
+        event("K 1 1");event("K 1 0");event("M 1238 858");event("B 272 0")
+        wait(lambda:re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1]==("1000","720"),"original size after Escape")
+        capture("Escape restores native resize without continuing held gesture", ((50,80,(28,31,40)),(1100,800,(16,20,28))))
+        assert model()==(0,0,100,0)
+        # A title-origin gesture released over Close never becomes a button click.
+        moves = log("server").count(".move(")
+        titles = log().count("CHROME_TITLE down\n")
+        event("M 220 56"); event("B 272 1")
+        wait(lambda: log().count("CHROME_TITLE down\n") > titles, "title owns release")
+        event("M 61 56")
+        wait(lambda: log("server").count(".move(") > moves, "native crossing gesture")
+        event("B 272 0")
+        wait(lambda: log().count("FRAME ") > 5, "original title gesture finished")
+        assert app.poll() is None and model() == (0,0,100,0)
+        # A body control's press/release cannot be adopted as a title gesture.
+        nav = re.findall(r"^CONTROL 51 ([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+) ",log(),re.M)[-1]
+        x,y,w,h = map(float,nav)
+        moves = log("server").count(".move(")
+        event(f"M {40+x+w/2} {40+y+h/2}"); event("B 272 1")
+        event("M 220 56"); event("B 272 0")
+        time.sleep(0.05)
+        assert model() == (0,0,100,0) and log("server").count(".move(") == moves
+        # Two ordinary title clicks zoom/restore; each is a real native pair.
+        for expected in (("1920","1080"),("1000","720")):
+            event("M 220 56" if expected[0]=="1920" else "M 180 16")
+            for _ in range(2):
+                event("B 272 1");event("B 272 0")
+            wait(lambda: re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1] == expected, "native title double click " + str(expected))
+        capture("native title double-click restore")
+        titles=log().count("CHROME_TITLE down\n")
+        event("M 220 56");event("B 272 1")
+        wait(lambda:log().count("CHROME_TITLE down\n")>titles,"title press before native device loss")
+        frames=log().count("FRAME ")
+        event("D")
+        wait(lambda:log().count("FRAME ")>frames,"native focus/capture cancellation")
+        def pointer_enters():
+            return len(re.findall(r"-> wl_pointer#\d+\.enter\(",log("server")))
+        enters=pointer_enters()
+        event("A");event("M 220 56")
+        wait(lambda:pointer_enters()>enters,"client binds the replacement native pointer")
+        titles=log().count("CHROME_TITLE release\n")
+        event("B 272 1");event("B 272 0")
+        wait(lambda:log().count("CHROME_TITLE release\n")>titles,"fresh native caption click after device replacement")
+        assert re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1]==("1000","720")
+        assert model()==(0,0,100,0)
         click(51)
         wait(lambda: model() == (0, 0, 100, 1), "pointer opens Appearance")
         capture("own Appearance dark")
@@ -238,6 +365,12 @@ def main():
         wait(lambda: footer_y() > before_footer, "keyboard PageUp preserves reading overlap")
         key(102)
         assert model() == (2, 1, 200, 1) and focus() == 112
+        event("O 0 240 180")
+        wait(lambda: re.findall(r"^FRAME (\d+) (\d+) ",log(),re.M)[-1] == ("240","180"), "below-minimum native configure")
+        current = log().rsplit("FRAME ",1)[-1]
+        assert re.findall(r"^CONTROL (\d+) ",current,re.M) == ["10"]
+        assert model() == (2,1,200,1)
+        capture("below-minimum view has only a working close control")
         event("O 0 1920 1080")
         wait(lambda: re.findall(r"^FRAME (\d+) (\d+) ", log(), re.M)[-1] == ("1920", "1080"), "restore")
         capture("own restored view")

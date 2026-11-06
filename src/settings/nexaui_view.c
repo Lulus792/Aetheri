@@ -8,7 +8,7 @@
    No compositor blur or backdrop permission is inferred from a painted panel. */
 struct palette { nx_color canvas, sidebar, card, text, secondary, line, accent, selected, hover, focus; };
 struct label { char bytes[512]; float width, size; nx_text_layout *layout; };
-enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV };
+enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV, CHROME };
 struct node {
     enum node_kind kind;
     uint64_t id, parent;
@@ -45,6 +45,50 @@ static nx_color rgb(unsigned value) {
 }
 static const char *tr(const struct ae_settings_view *v, const char *en, const char *de) {
     return v->model->german?de:en;
+}
+bool ae_settings_chrome_layout(const struct ae_settings *m, float width, float height,
+    struct ae_settings_chrome *out) {
+    if(!out) return false;
+    *out=(struct ae_settings_chrome){0};
+    if(!m || !isfinite(width) || !isfinite(height) || width<64 || height<64 ||
+       (m->text_percent!=100 && m->text_percent!=150 && m->text_percent!=200)) return false;
+    float s=(float)m->text_percent/100, header=fmaxf(32,12+13*s), top=(header-26)/2;
+    *out=(struct ae_settings_chrome){.titlebar={0,0,width,header},.title={102,0,width-114,header},
+        .close={8,top,26,26},.minimize={36,top,26,26},.zoom={64,top,26,26},.resize_margin=6};
+    if(width<320 || height<240) {out->minimize=(nx_rect){0};out->zoom=(nx_rect){0};out->title=(nx_rect){0};}
+    return true;
+}
+static bool contains(nx_rect r,nx_point p) {
+    return p.x>=r.x && p.x<r.x+r.width && p.y>=r.y && p.y<r.y+r.height;
+}
+bool ae_settings_chrome_hit(const struct ae_settings *m, float width, float height,
+    const nx_window_status *status, nx_point p, struct ae_settings_hit *out) {
+    if(!out) return false;
+    *out=(struct ae_settings_hit){.cursor=NX_CURSOR_DEFAULT};
+    struct ae_settings_chrome c;
+    if(!status || !isfinite(p.x) || !isfinite(p.y) ||
+       !ae_settings_chrome_layout(m,width,height,&c)) return false;
+    if(p.x<0 || p.y<0 || p.x>=width || p.y>=height ||
+       contains(c.close,p) || contains(c.minimize,p) || contains(c.zoom,p)) return true;
+    bool normal=(status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN))==0;
+    if(normal && (status->capabilities&NX_WINDOW_CAP_RESIZE)) {
+        bool left=p.x<c.resize_margin,right=p.x>=width-c.resize_margin;
+        bool top=p.y<c.resize_margin,bottom=p.y>=height-c.resize_margin;
+        if(left || right || top || bottom) {
+            out->kind=AE_SETTINGS_HIT_RESIZE;
+            if(left && top) out->edge=NX_WINDOW_RESIZE_TOP_LEFT;
+            else if(right && top) out->edge=NX_WINDOW_RESIZE_TOP_RIGHT;
+            else if(left && bottom) out->edge=NX_WINDOW_RESIZE_BOTTOM_LEFT;
+            else if(right && bottom) out->edge=NX_WINDOW_RESIZE_BOTTOM_RIGHT;
+            else out->edge=left?NX_WINDOW_RESIZE_LEFT:right?NX_WINDOW_RESIZE_RIGHT:top?NX_WINDOW_RESIZE_TOP:NX_WINDOW_RESIZE_BOTTOM;
+            out->cursor=(left||right)&&(top||bottom)?((left&&top)||(right&&bottom)?NX_CURSOR_RESIZE_DIAGONAL_NW_SE:NX_CURSOR_RESIZE_DIAGONAL_NE_SW):
+                (left||right)?NX_CURSOR_RESIZE_HORIZONTAL:NX_CURSOR_RESIZE_VERTICAL;
+            return true;
+        }
+    }
+    if(!(status->state&NX_WINDOW_STATE_FULLSCREEN) && contains(c.titlebar,p) &&
+       (status->capabilities&(NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_MAXIMIZE|NX_WINDOW_CAP_RESTORE))) out->kind=AE_SETTINGS_HIT_TITLE;
+    return true;
 }
 static bool palette(struct ae_settings_view *v) {
     enum ae_settings_theme kind=v->model->theme;
@@ -146,7 +190,7 @@ static bool choice(struct ae_settings_view *v, enum node_kind kind, uint64_t id,
     size_t i;
     float padding=kind==RADIO || icon!=NX_ICON_NONE?56:24;
     if(!label(v,value,size,fmaxf(1,rect->width-padding),&i)) return false;
-    float h=(float)nx_text_layout_height(v->labels[i].layout)+24;
+    float h=(*value || icon==NX_ICON_NONE)?(float)nx_text_layout_height(v->labels[i].layout)+24:0;
     if(rect->height<h) rect->height=h;
     return node(v,(struct node){.kind=kind,.id=id,.parent=parent,.rect=*rect,.label=i,
         .selected=selected,.disabled=disabled,.icon=icon});
@@ -258,16 +302,31 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
             nx_fill_round_rect(v->context,r,10,p.line)==NX_OK &&
             nx_fill_round_rect(v->context,(nx_rect){r.x+1,r.y+1,r.width-2,r.height-2},9,p.card)==NX_OK;
     }
-    struct label *l=&v->labels[n.label];
+    struct label *l=n.kind==CHROME?NULL:&v->labels[n.label];
     if(n.kind==TEXT) return nx_label(v->context,n.id,n.parent,r,l->layout,(nx_point){r.x,r.y},
         n.secondary?p.secondary:p.text,GLYPH_CACHE)==NX_OK;
     nx_widget_desc widget={.semantic={.id=n.id,.parent_id=n.parent,.bounds=r,.name=span(n.name?n.name:l->bytes),
         .role=n.kind==RADIO?NX_ROLE_RADIO:NX_ROLE_BUTTON,
-        .state=(n.disabled?NX_SEM_DISABLED:0u)|(n.selected?(n.kind==RADIO?NX_SEM_CHECKED:NX_SEM_SELECTED):0u),
+        .state=(n.disabled?NX_SEM_DISABLED:0u)|(n.selected?(n.kind==RADIO?NX_SEM_CHECKED:n.kind==NAV?NX_SEM_SELECTED:0u):0u),
         .actions=NX_ACTION_PRESS|NX_ACTION_FOCUS},.flags=NX_WIDGET_INTERACTIVE|NX_WIDGET_FOCUSABLE};
     nx_interaction_state interaction;
     if(nx_widget_register(v->context,&widget,&interaction)!=NX_OK) return false;
     if(interaction.clicked && !n.disabled) *pressed=n.id;
+    if(n.kind==CHROME) {
+        if((interaction.hovered || interaction.held) && nx_fill_round_rect(v->context,r,6,interaction.held?p.selected:p.hover)!=NX_OK) return false;
+        if(interaction.focused && nx_stroke_rect(v->context,r,2,p.focus)!=NX_OK) return false;
+        nx_color dot=n.disabled?rgb(0x747b87):n.id==10?rgb(0xb97e7d):n.id==12?rgb(0xbdab7f):rgb(0x829e8b);
+        if(v->model->theme==AE_SETTINGS_CONTRAST && !n.disabled) dot=p.text;
+        nx_color ink=rgb(0x20242c);
+        if(v->model->theme==AE_SETTINGS_CONTRAST) ink=p.canvas;
+        float cx=r.x+r.width/2,cy=r.y+r.height/2;
+        if(nx_fill_round_rect(v->context,(nx_rect){cx-6,cy-6,12,12},6,dot)!=NX_OK) return false;
+        if(n.id==10) return nx_draw_line(v->context,(nx_point){cx-2,cy-2},(nx_point){cx+2,cy+2},1,ink)==NX_OK &&
+            nx_draw_line(v->context,(nx_point){cx-2,cy+2},(nx_point){cx+2,cy-2},1,ink)==NX_OK;
+        if(n.id==12) return nx_draw_line(v->context,(nx_point){cx-3,cy},(nx_point){cx+3,cy},1,ink)==NX_OK;
+        if(n.selected && nx_stroke_rect(v->context,(nx_rect){cx-1,cy-3,4,4},1,ink)!=NX_OK) return false;
+        return nx_stroke_rect(v->context,(nx_rect){cx-3,cy-1,4,4},1,ink)==NX_OK;
+    }
     nx_color fill=n.selected?p.selected:interaction.held?p.selected:interaction.hovered?p.hover:n.kind==NAV?p.sidebar:p.card;
     if(nx_fill_round_rect(v->context,r,7,fill)!=NX_OK) return false;
     if(n.kind==BUTTON && nx_stroke_rect(v->context,r,1,p.line)!=NX_OK) return false;
@@ -287,9 +346,26 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
     if(n.icon_only) return true;
     return nx_draw_text_layout(v->context,l->layout,(nx_point){tx,ty},n.disabled?p.secondary:p.text,GLYPH_CACHE)==NX_OK;
 }
+static bool small_frame(struct ae_settings_view *v,float width,float height) {
+    struct ae_settings_chrome c;
+    if(!ae_settings_chrome_layout(v->model,width,height,&c) || !palette(v) ||
+       nx_begin_frame(v->context,width,height,0)!=NX_OK) return false;
+    nx_semantic_desc root={.id=1,.role=NX_ROLE_WINDOW,.bounds={0,0,width,height},.name=span(tr(v,"Settings","Einstellungen"))};
+    if(nx_semantics_add(v->context,&root,NULL)!=NX_OK ||
+       nx_fill_rect(v->context,root.bounds,v->colors.canvas)!=NX_OK) return false;
+    uint64_t pressed=0;
+    if(!paint(v,(struct node){.kind=CHROME,.id=10,.parent=1,.rect=c.close,.name=tr(v,"Close","Schließen")},0,0,&pressed)) return false;
+    float y=c.titlebar.height+8;
+    if(!text(v,20,1,tr(v,"Enlarge the window to continue.","Vergrößere das Fenster, um fortzufahren."),
+        11*(float)v->model->text_percent/100,12,&y,width-24,true) ||
+       nx_push_clip(v->context,(nx_rect){0,c.titlebar.height,width,height-c.titlebar.height})!=NX_OK ||
+       !paint(v,v->nodes[0],0,0,&pressed) || nx_pop_clip(v->context)!=NX_OK || nx_end_frame(v->context)!=NX_OK) return false;
+    if(pressed==10) v->action=AE_SETTINGS_WINDOW_CLOSE;
+    return true;
+}
 bool ae_settings_view_frame(struct ae_settings_view *v, float width, float height,
     const nx_window_status *status, bool *changed) {
-    if(!v || !changed || !status || !isfinite(width) || !isfinite(height) || width<320 || height<240) return false;
+    if(!v || !changed || !status || !isfinite(width) || !isfinite(height) || width<64 || height<64) return false;
     *changed=false;
     struct ae_settings *m=v->model;
     if(m->page<AE_SETTINGS_DISPLAY || m->page>AE_SETTINGS_LANGUAGE || m->count>AE_SETTINGS_DISPLAYS ||
@@ -298,31 +374,34 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     for(size_t i=0;i<m->count;++i)
         if(!m->displays[i].id || !memchr(m->displays[i].name,0,sizeof(m->displays[i].name))) return false;
     v->label_count=v->node_count=0;
+    if(width<320 || height<240) return small_frame(v,width,height);
     float s=(float)m->text_percent/100;
     bool narrow=width<640*s;
-    float header=48*s, side=narrow?0:210*s;
-    if(header>height-100) header=height-100;
+    struct ae_settings_chrome chrome;
+    if(!ae_settings_chrome_layout(m,width,height,&chrome)) return false;
+    float header=chrome.titlebar.height, side=narrow?0:210*s;
     if(!palette(v) || nx_begin_frame(v->context,width,height,0)!=NX_OK) return false;
     nx_semantic_desc root={.id=1,.role=NX_ROLE_WINDOW,.bounds={0,0,width,height},.name=span(tr(v,"Settings","Einstellungen"))};
     nx_semantic_desc nav={.id=2,.parent_id=1,.role=NX_ROLE_GROUP,.bounds={0,header,narrow?width:side,height-header},
         .name=span(tr(v,"Settings sections","Einstellungsbereiche"))};
     if(nx_semantics_add(v->context,&root,NULL)!=NX_OK || nx_semantics_add(v->context,&nav,NULL)!=NX_OK ||
        nx_fill_rect(v->context,(nx_rect){0,0,width,height},v->colors.canvas)!=NX_OK ||
+       nx_fill_rect(v->context,chrome.titlebar,v->colors.sidebar)!=NX_OK ||
        nx_fill_rect(v->context,(nx_rect){0,header,side,height-header},v->colors.sidebar)!=NX_OK) return false;
     uint64_t pressed=0;
-    float title_y=12*s;
-    if(!narrow && !text(v,3,1,tr(v,"Settings","Einstellungen"),14*s,18,&title_y,width-170*s,false)) return false;
-    nx_rect close={width-44*s,8*s,34*s,32*s};
-    if(!choice(v,BUTTON,10,1,"×",14*s,&close,false,false,NX_ICON_NONE)) return false;
-    v->nodes[v->node_count-1].name=tr(v,"Close","Schließen");
+    size_t title_label;
+    if(!label(v,tr(v,"Settings","Einstellungen"),11*s,chrome.title.width,&title_label)) return false;
+    nx_rect title=chrome.title;title.y=(header-(float)nx_text_layout_height(v->labels[title_label].layout))/2;
+    title.height=(float)nx_text_layout_height(v->labels[title_label].layout);
+    if(!node(v,(struct node){.kind=TEXT,.id=3,.parent=1,.rect=title,.label=title_label}) ||
+       !node(v,(struct node){.kind=CHROME,.id=10,.parent=1,.rect=chrome.close,.name=tr(v,"Close","Schließen")}) ||
+       !node(v,(struct node){.kind=CHROME,.id=12,.parent=1,.rect=chrome.minimize,.name=tr(v,"Minimize","Minimieren"),
+                           .disabled=!(status->capabilities&NX_WINDOW_CAP_MINIMIZE)})) return false;
     /* Window operations remain supported requests; the host observes the result. */
-    nx_rect zoom={width-82*s,8*s,34*s,32*s};
-    if(!choice(v,BUTTON,11,1,"+",14*s,&zoom,false,
-        !(status->capabilities&((status->state&NX_WINDOW_STATE_MAXIMIZED)?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE)),NX_ICON_NONE)) return false;
-    v->nodes[v->node_count-1].name=(status->state&NX_WINDOW_STATE_MAXIMIZED)?tr(v,"Restore","Wiederherstellen"):tr(v,"Maximize","Maximieren");
-    nx_rect minimize={width-120*s,8*s,34*s,32*s};
-    if(!choice(v,BUTTON,12,1,"−",14*s,&minimize,false,!(status->capabilities&NX_WINDOW_CAP_MINIMIZE),NX_ICON_NONE)) return false;
-    v->nodes[v->node_count-1].name=tr(v,"Minimize","Minimieren");
+    bool restore=(status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN))!=0;
+    if(!node(v,(struct node){.kind=CHROME,.id=11,.parent=1,.rect=chrome.zoom,
+        .name=restore?tr(v,"Restore","Wiederherstellen"):tr(v,"Maximize","Maximieren"),.selected=restore,
+        .disabled=!(status->capabilities&(restore?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE))})) return false;
     float nav_y=header+18, nav_x=12, nav_width=narrow?(width-32)/3:side-24;
     const char *names[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache")};
     const nx_icon icons[]={NX_ICON_GRID,NX_ICON_SUN,NX_ICON_SETTINGS};

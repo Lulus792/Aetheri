@@ -9,6 +9,7 @@
 #include <nexaui/wayland_outputs.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,114 @@ fail:
 static double monotonic_seconds(void) {
     struct timespec t;
     return clock_gettime(CLOCK_MONOTONIC,&t)==0 ? (double)t.tv_sec+(double)t.tv_nsec/1e9 : -1;
+}
+
+struct chrome_pointer {
+    bool title_down, suppress_release, escape_down;
+    nx_point down, current, last_click;
+    double last_release;
+    nx_cursor_shape cursor;
+    uint32_t mode;
+};
+static bool expected_request(nx_result result) {
+    return result==NX_OK || result==NX_ERROR_STATE || result==NX_ERROR_UNSUPPORTED;
+}
+static nx_result zoom_window(nx_window *window,const nx_window_status *status) {
+    bool restore=(status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN))!=0;
+    if(!(status->capabilities&(restore?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE))) return NX_ERROR_UNSUPPORTED;
+    return restore?nx_window_restore(window):nx_window_maximize(window);
+}
+static float distance2(nx_point a,nx_point b) {float x=a.x-b.x,y=a.y-b.y;return x*x+y*y;}
+/* Only native events can begin gestures. The SDK retains their still-held press
+   and serial; no caller-supplied token, retry or synthetic pointer is used. */
+static bool chrome_event(nx_window *window,const struct ae_settings *model,
+    const nx_window_info *info,const nx_window_status *status,const nx_event *event,
+    struct chrome_pointer *pointer,bool diagnostics,bool *handled) {
+    *handled=false;
+    if((event->type==NX_EVENT_KEY_DOWN || event->type==NX_EVENT_KEY_UP) && event->key==NX_KEY_ESCAPE) {
+        if(event->type==NX_EVENT_KEY_UP && pointer->escape_down) {
+            pointer->escape_down=false;*handled=true;return true;
+        }
+        if(event->type==NX_EVENT_KEY_DOWN && (pointer->title_down || pointer->escape_down)) {
+            pointer->title_down=false;pointer->suppress_release=true;pointer->last_release=0;
+            if(!pointer->escape_down && diagnostics) {puts("CHROME_TITLE cancel");fflush(stdout);}
+            pointer->escape_down=true;*handled=true;return true;
+        }
+    }
+    uint32_t mode=status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN);
+    if(mode!=pointer->mode) {
+        if(pointer->title_down) pointer->suppress_release=true;
+        pointer->title_down=false;pointer->last_release=0;pointer->mode=mode;
+    }
+    if(event->type==NX_EVENT_POINTER_CANCEL || (event->type==NX_EVENT_FOCUS && !event->focused)) {
+        pointer->title_down=false;pointer->suppress_release=false;pointer->escape_down=false;pointer->last_release=0;
+        if(pointer->cursor!=NX_CURSOR_DEFAULT) {
+            if(!expected_request(nx_window_set_cursor(window,NX_CURSOR_DEFAULT))) return false;
+            pointer->cursor=NX_CURSOR_DEFAULT;
+        }
+        return true;
+    }
+    if(event->type==NX_EVENT_RESIZE) {
+        if(pointer->title_down) pointer->suppress_release=true;
+        pointer->title_down=false;pointer->last_release=0;return true;
+    }
+    if(event->type==NX_EVENT_POINTER_MOVE || event->type==NX_EVENT_POINTER_DOWN) {
+        if(!isfinite(event->x) || !isfinite(event->y)) return false;
+        pointer->current=(nx_point){event->x,event->y};
+    }
+    if(event->type==NX_EVENT_POINTER_MOVE && pointer->title_down) {
+        *handled=true;
+        if(distance2(pointer->current,pointer->down)>16) {
+            pointer->title_down=false;pointer->suppress_release=true;pointer->last_release=0;
+            nx_result result=NX_ERROR_UNSUPPORTED;
+            if(!(status->state&(NX_WINDOW_STATE_MAXIMIZED|NX_WINDOW_STATE_FULLSCREEN)) &&
+               (status->capabilities&NX_WINDOW_CAP_MOVE)) result=nx_window_begin_move(window);
+            if(diagnostics) {printf("CHROME_MOVE result=%d\n",(int)result);fflush(stdout);}
+            return expected_request(result);
+        }
+        return true;
+    }
+    if(event->type==NX_EVENT_POINTER_MOVE && pointer->suppress_release) {*handled=true;return true;}
+    if(event->type==NX_EVENT_POINTER_DOWN && event->button==1) {
+        if(pointer->suppress_release || pointer->title_down) {*handled=true;return true;}
+        struct ae_settings_hit hit;
+        if(!ae_settings_chrome_hit(model,info->width,info->height,status,pointer->current,&hit)) return false;
+        if(hit.kind==AE_SETTINGS_HIT_TITLE) {
+            pointer->down=pointer->current;pointer->title_down=true;*handled=true;
+            if(diagnostics) {puts("CHROME_TITLE down");fflush(stdout);}return true;
+        }
+        pointer->last_release=0;
+        if(hit.kind==AE_SETTINGS_HIT_RESIZE) {
+            *handled=true;pointer->suppress_release=true;
+            nx_result result=nx_window_begin_resize(window,hit.edge);
+            if(diagnostics) {printf("CHROME_RESIZE edge=%d result=%d\n",(int)hit.edge,(int)result);fflush(stdout);}
+            return expected_request(result);
+        }
+    }
+    if(event->type==NX_EVENT_POINTER_UP && event->button==1) {
+        if(pointer->suppress_release) {pointer->suppress_release=false;*handled=true;return true;}
+        if(pointer->title_down) {
+            pointer->title_down=false;*handled=true;
+            double now=monotonic_seconds();if(now<0) return false;
+            if(distance2(pointer->current,pointer->down)<=16 && pointer->last_release>0 &&
+               now-pointer->last_release<=0.45 && distance2(pointer->current,pointer->last_click)<=36) {
+                pointer->last_release=0;nx_result result=zoom_window(window,status);
+                if(diagnostics) {printf("CHROME_ZOOM result=%d\n",(int)result);fflush(stdout);}
+                return expected_request(result);
+            }
+            pointer->last_release=now;pointer->last_click=pointer->current;
+            if(diagnostics) {puts("CHROME_TITLE release");fflush(stdout);}return true;
+        }
+    }
+    if(event->type==NX_EVENT_POINTER_MOVE) {
+        struct ae_settings_hit hit;
+        if(!ae_settings_chrome_hit(model,info->width,info->height,status,pointer->current,&hit)) return false;
+        if(hit.cursor!=pointer->cursor) {
+            if(!expected_request(nx_window_set_cursor(window,hit.cursor))) return false;
+            pointer->cursor=hit.cursor;
+        }
+    }
+    return true;
 }
 
 static unsigned char *load_font(const char *path, size_t *length) {
@@ -103,6 +212,7 @@ int main(int argc, char **argv) {
     double next_ax_retry=0;
     uint64_t outputs_seen=UINT64_MAX;
     nx_window_info previous={0};
+    struct chrome_pointer pointer={0};
     size_t length=0; unsigned char *font=load_font(font_path,&length);
     struct ae_settings model; ae_settings_init(&model);
     nx_window *window=NULL; nx_software_view *renderer=NULL; struct ae_settings_view *view=NULL;
@@ -129,15 +239,13 @@ int main(int argc, char **argv) {
         do {
             if(nx_window_next_event(window,&event,&available)!=NX_OK) {okay=0;break;}
             if(available) {
-                if(event.type==NX_EVENT_KEY_DOWN && (event.key==NX_KEY_ESCAPE ||
+                nx_window_status event_status;bool chrome_handled=false;
+                if(nx_window_get_status(window,&event_status)!=NX_OK ||
+                   !chrome_event(window,&model,&info,&event_status,&event,&pointer,diagnostics,&chrome_handled)) {okay=0;break;}
+                if(!chrome_handled && event.type==NX_EVENT_KEY_DOWN && (event.key==NX_KEY_ESCAPE ||
                    (event.key==NX_KEY_Q && event.modifiers==NX_MOD_CONTROL))) quit=1;
                 else if(event.type==NX_EVENT_KEY_DOWN && event.key==NX_KEY_F5) {outputs_seen=UINT64_MAX;dirty=1;}
-                else if(event.type==NX_EVENT_POINTER_DOWN && event.button==1 && event.y<8 &&
-                        event.x<info.width-130) {
-                    nx_result move=nx_window_begin_move(window);
-                    if(move!=NX_OK && move!=NX_ERROR_UNSUPPORTED && move!=NX_ERROR_STATE) {okay=0;break;}
-                }
-                else if(nx_context_queue_event(ae_settings_view_context(view),&event)!=NX_OK) {okay=0;break;}
+                else if(!chrome_handled && nx_context_queue_event(ae_settings_view_context(view),&event)!=NX_OK) {okay=0;break;}
                 dirty=1;
             }
         } while(available);
@@ -161,7 +269,7 @@ int main(int argc, char **argv) {
             }
             continue;
         }
-        if(info.width<320 || info.height<240) {dirty=0;busy=0;continue;}
+        if(info.width<64 || info.height<64) {dirty=0;busy=0;continue;}
         bool changed=false; nx_window_status status;
         if(nx_window_get_status(window,&status)!=NX_OK) {okay=0;break;}
         if(nx_context_set_text_raster_scale(ae_settings_view_context(view),info.scale)!=NX_OK ||
@@ -170,8 +278,7 @@ int main(int argc, char **argv) {
         if(action==AE_SETTINGS_WINDOW_CLOSE) break;
         nx_result request=NX_OK;
         if(action==AE_SETTINGS_WINDOW_MINIMIZE) request=nx_window_minimize(window);
-        if(action==AE_SETTINGS_WINDOW_ZOOM) request=(status.state&NX_WINDOW_STATE_MAXIMIZED)?
-            nx_window_restore(window):nx_window_maximize(window);
+        if(action==AE_SETTINGS_WINDOW_ZOOM) request=zoom_window(window,&status);
         if(request!=NX_OK && request!=NX_ERROR_UNSUPPORTED && request!=NX_ERROR_STATE) {okay=0;break;}
         if(ae_settings_view_take_refresh(view)) {outputs_seen=UINT64_MAX;changed=true;}
         const nx_command *commands=NULL; size_t count=0; nx_color background;

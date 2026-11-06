@@ -39,6 +39,36 @@ static void contrast(nx_context *ui,nx_color_token foreground,nx_color_token bac
     double x=luminance(a),y=luminance(b);
     CHECK((fmax(x,y)+0.05)/(fmin(x,y)+0.05)>=minimum);
 }
+static void chrome_contracts(struct ae_settings *m,float width,float height) {
+    struct ae_settings_chrome c;struct ae_settings_hit hit;
+    nx_window_status status={.capabilities=NX_WINDOW_CAP_RESIZE|NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_MAXIMIZE|NX_WINDOW_CAP_RESTORE};
+    CHECK(ae_settings_chrome_layout(m,width,height,&c));
+    CHECK(c.close.x<c.minimize.x && c.minimize.x<c.zoom.x && c.zoom.x+c.zoom.width<c.title.x);
+    CHECK(c.close.width>=24 && c.close.height>=24 && c.titlebar.height<48);
+    const nx_point points[]={{1,1},{width/2,1},{width-1,1},{width-1,height/2},
+        {width-1,height-1},{width/2,height-1},{1,height-1},{1,height/2}};
+    const nx_window_resize_edge edges[]={NX_WINDOW_RESIZE_TOP_LEFT,NX_WINDOW_RESIZE_TOP,NX_WINDOW_RESIZE_TOP_RIGHT,NX_WINDOW_RESIZE_RIGHT,
+        NX_WINDOW_RESIZE_BOTTOM_RIGHT,NX_WINDOW_RESIZE_BOTTOM,NX_WINDOW_RESIZE_BOTTOM_LEFT,NX_WINDOW_RESIZE_LEFT};
+    for(size_t i=0;i<8;++i) {
+        CHECK(ae_settings_chrome_hit(m,width,height,&status,points[i],&hit));
+        CHECK(hit.kind==AE_SETTINGS_HIT_RESIZE && hit.edge==edges[i] && hit.cursor!=NX_CURSOR_DEFAULT);
+    }
+    const nx_rect buttons[]={c.close,c.minimize,c.zoom};
+    for(size_t i=0;i<3;++i) {
+        CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){buttons[i].x+3,buttons[i].y+1},&hit));
+        CHECK(hit.kind==AE_SETTINGS_HIT_NONE); /* Buttons take precedence over the top resize margin. */
+    }
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){120,c.titlebar.height/2},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_TITLE);
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){120,100},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_NONE);
+    status.state=NX_WINDOW_STATE_MAXIMIZED;
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){width-1,height/2},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_NONE);
+    status.state=NX_WINDOW_STATE_FULLSCREEN;
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){120,10},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_NONE);
+    status=(nx_window_status){0};
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){1,height/2},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_NONE);
+    CHECK(ae_settings_chrome_hit(m,width,height,&status,(nx_point){-1,10},&hit));CHECK(hit.kind==AE_SETTINGS_HIT_NONE);
+    CHECK(!ae_settings_chrome_hit(m,width,height,&status,(nx_point){NAN,10},&hit));
+}
 int main(int argc,char **argv) {
     CHECK(argc==2 || argc==3);
     unsigned density_only=0;
@@ -72,6 +102,7 @@ int main(int argc,char **argv) {
         m.theme=(enum ae_settings_theme)theme;m.german=german!=0;m.text_percent=scale;m.page=(enum ae_settings_page)page;
         CHECK(nx_context_set_text_raster_scale(ui,(float)density)==NX_OK);
         float w=sizes[size][0],h=sizes[size][1];frame(v,w,h);
+        chrome_contracts(&m,w,h);
         contrast(ui,NX_COLOR_TEXT,NX_COLOR_BACKGROUND,4.5);
         contrast(ui,NX_COLOR_TEXT_MUTED,NX_COLOR_BACKGROUND,4.5);
         contrast(ui,NX_COLOR_TEXT,NX_COLOR_SELECTION,4.5);
@@ -124,7 +155,21 @@ int main(int argc,char **argv) {
     CHECK(find(ui,11).state&NX_SEM_DISABLED);
     CHECK(nx_semantics_request_action(ui,11,NX_ACTION_PRESS)==NX_ERROR_STATE);
     CHECK(!ae_settings_view_frame(v,NAN,720,&unavailable,&changed));
-    CHECK(!ae_settings_view_frame(v,319,720,&unavailable,&changed));
+    CHECK(!ae_settings_view_frame(v,63,720,&unavailable,&changed));
+    m.page=AE_SETTINGS_APPEARANCE;frame(v,1000,720);
+    CHECK(nx_semantics_request_action(ui,101,NX_ACTION_PRESS)==NX_OK);
+    const float tiny[][2]={{240,180},{64,64},{319,720},{1000,239}};
+    for(size_t i=0;i<sizeof(tiny)/sizeof(tiny[0]);++i) {
+        frame(v,tiny[i][0],tiny[i][1]);visible(ui,10,tiny[i][0],tiny[i][1]);
+        uint32_t unused;CHECK(nx_semantics_find(ui,101,&unused)!=NX_OK && nx_semantics_find(ui,112,&unused)!=NX_OK);
+        CHECK(nx_semantics_find(ui,50,&unused)!=NX_OK && nx_semantics_find(ui,5,&unused)!=NX_OK);
+        CHECK(m.theme==AE_SETTINGS_CONTRAST && m.german && m.text_percent==200 && m.page==AE_SETTINGS_APPEARANCE);
+        CHECK(nx_semantics_request_action(ui,101,NX_ACTION_PRESS)!=NX_OK);
+        struct ae_settings_hit hit;nx_window_status normal={.capabilities=NX_WINDOW_CAP_RESIZE};
+        CHECK(ae_settings_chrome_hit(&m,tiny[i][0],tiny[i][1],&normal,(nx_point){tiny[i][0]-1,tiny[i][1]-1},&hit));
+        CHECK(hit.kind==AE_SETTINGS_HIT_RESIZE && hit.edge==NX_WINDOW_RESIZE_BOTTOM_RIGHT);
+    }
+    frame(v,1000,720);CHECK(find(ui,102).state&NX_SEM_CHECKED);
     memset(d[0].name,'W',sizeof(d[0].name)-1);d[0].name[sizeof(d[0].name)-1]=0;
     CHECK(ae_settings_snapshot(&m,d,1));m.page=AE_SETTINGS_DISPLAY;frame(v,320,320);
     nx_semantic_view long_name=find(ui,UINT64_C(0x100000000)+42);

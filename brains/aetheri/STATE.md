@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — bound own Settings in the actual development desktop.
+6 November 2026 — compact own Settings chrome and native window gestures.
 
 ## Coordination
 
@@ -14,6 +14,36 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Own Settings now uses compact semantic window controls, a shared painting/hit-test
+geometry, original-press native title dragging and all eight border resize
+directions. Double-click maximizes/restores; Escape cancels pending/native gestures
+without leaking repeats or continuing the held drag. Below 320x240, a clipped
+hint/Close replaces stale page actions while retaining the model. The pure fallback
+is checked down to 64x64. No SDK pin/default/production authority changes.
+
+All 56 affected app/desktop/compositor groups pass Release (186.46s) and
+ASan/UBSan (323.22s), without skips. A final test-only refinement waits for the
+replacement **pointer** enter rather than any device enter; its two native
+Settings groups also pass separately (45.10s/119.29s). Audit joins 355 source
+inputs, unchanged 28 frozen SQL/XML and nineteen protected hashes/no sidecars.
+The 142 verified exports include 114 native images. The enforcing carrier is
+idle on tty1, without build actors, an Aetheri service or a seat0 session.
+Actual DRM token
+84a8ed394f664ab19cdc67b88f0eeaca proves the current own image, reuse/fresh lifetime,
+Terminal/Files coexistence and localized 200-percent maximize/restore. All five
+roles and Root end0; historical retry is unchanged. See the
+[chrome record](journal/2026-11-06-settings-chrome.md) and
+[interaction contract](../../spec/nexaui.md#window-chrome-and-gestures).
+
+Next: continue per-view adoption from the accepted studio and finish the remaining
+window/design behaviors. Full glass, public fullscreen entry, snapping/drag-out of
+maximized windows, human/physical acceptance, real services, other apps, normal
+session/lifecycle/recovery/removal, image/installer/hardware and the persistent
+resettable experiment desktop remain required. Preserve the quarantined old runtime;
+the full project goal stays active.
+
+## Prior development-owner checkpoint
 
 The explicit `start --desktop --settings-ui nexaui-owned` profile now selects
 our own Settings executable. Original Root/user/fresh-spawn checks bind its
@@ -40,12 +70,9 @@ idle on tty1 without build actors, running Aetheri unit or seat0; the old
 quarantined recovery stays unresolved. No normal accessibility service or default
 toolkit replacement is implied. SDL and the original upstream option remain.
 
-Next: complete own Settings window chrome/input from the accepted studio,
-including ordinary move/resize behavior and compact controls, then continue
-per-view adoption. Full glass/design/human accessibility, normal session services,
-real backends, further apps, lifecycle/recovery/removal, image/installer/hardware
-and the persistent resettable experiment desktop remain required. Keep the full
-project goal active.
+The subsequent chrome checkpoint above adds ordinary move/resize and compact
+controls. Full glass/design/human accessibility, normal session services, real
+backends and the wider OS/app scope remain open.
 
 ## Own Settings presentation — completed checkpoint
 

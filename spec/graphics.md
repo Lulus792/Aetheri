@@ -62,6 +62,11 @@ Client move/resize requires the same seat, the actual focused root surface and a
 current single-button grab serial. Old/released/foreign-window requests cannot
 select a target. Implicit grabs retain surface-relative coordinates outside the
 window. Unmapping the origin does not redirect the held release to another app.
+Escape now cancels the original focused native move/resize and consumes its
+press/repeats/release. Captured geometry is restored only with unchanged ordinary
+mode and size constraints; held pointer motion cannot resume the cancelled grab.
+The [own Settings native tests](nexaui.md#window-chrome-and-gestures) verify actual
+requests, sizes and moved/restored pixels separately from the DRM keyboard check.
 Resize uses bounded geometry and client min/max constraints. Device removal
 withdraws capabilities; a fresh keyboard does not inherit an old held Shift.
 An optional [built-in Compose/dead-key provider](compose.md) now supplies native

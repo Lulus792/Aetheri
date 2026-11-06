@@ -48,8 +48,10 @@ model, presentation sources, CMake configuration and SDK library before effects
 and each fresh launch. `--settings-ui nexaui` retains the earlier upstream consumer;
 SDL remains default. Native owner and actual DRM launch/reuse/close/fresh-lifetime
 evidence is recorded in the [integration record](../brains/aetheri/journal/2026-11-06-owned-settings-owner.md).
-Normal session accessibility, full input/
-window chrome, real settings services and physical/performance acceptance remain work.
+Normal session accessibility, full glass, real settings services and
+physical/performance acceptance remain work. The window interaction boundary is
+described below; snapping and dragging a maximized window out of its work area
+remain separate work.
 
 The checks are `settings.view` and `settings.view_hidpi` (layout/model/keyboard/contrast
 at separate raster densities),
@@ -59,6 +61,52 @@ disabled-bridge negative). The latter reuses verified private headers/runtime,
 compiles a separate test peer and changes no installed accessibility service.
 See the [dated project record](../brains/aetheri/journal/2026-11-06-settings-view.md)
 for executed results and limitations.
+
+### Window chrome and gestures
+
+The own view has compact left-side Close, Minimize and Maximize/Restore controls.
+Each uses a 26-logical-pixel hit target, a visible symbol, a localized semantic
+name and a keyboard focus outline. Unsupported requests stay disabled. The title
+bar is 32 pixels at ordinary text size and grows to 38 at 200 percent. Painting
+and native hit testing share `ae_settings_chrome_layout`; controls take precedence
+over border resizing and title dragging. Resize cursors cover all eight edges.
+
+A primary title press stays pending until movement exceeds four logical pixels.
+Only then does the host issue one native move request against the SDK's original
+held press. A border press requests the corresponding native resize. Releasing a
+title-origin gesture over a button cannot activate it; a body-origin press cannot
+be adopted as a title gesture. Focus/capture loss and mode changes discard the
+pending title action. A double click within 450 milliseconds and six pixels
+requests work-area maximize/restore. It is distinct from fullscreen.
+
+Escape cancels a pending title gesture in the app. During a native move/resize,
+the compositor consumes Escape and its repeats/release for the original focused
+window. It restores the captured position and, for resize, dimensions only while
+the window remains ordinary and its size constraints match the original ones.
+Mode or constraint drift ends the gesture without restoring obsolete geometry.
+Further pointer motion under that same held press cannot resume the gesture.
+These are window interactions, not process cancellation or lifecycle settlement.
+
+Below 320x240, down to 64x64, a clipped enlargement hint and Close replace the
+normal controls. Old page actions are absent rather than left active underneath
+old pixels. The app model is retained and returns when the window grows again;
+ordinary border resizing remains available. This fallback does not change the
+desktop's supported output modes.
+
+The reviewed SDK supports observed fullscreen and restore, but has no public
+fullscreen-entry request. The third control therefore names and requests
+Maximize/Restore honestly. Fullscreen entry is recorded under W07 in the existing
+[NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md), without a toolkit upgrade or
+private platform workaround.
+
+The native test observes actual Wayland move/resize requests, configured sizes
+and compositor pixels. It covers all eight edges, pending and native Escape
+cancellation with repeat, title/body press ownership, device replacement,
+double-click maximize/restore and the small-window fallback. Test-only output
+modes extend down to 128x96 and the test compositor permits 32 diagnostic captures;
+ordinary desktop mode checks and the production 16-capture limit stay unchanged.
+See the [chrome checkpoint](../brains/aetheri/journal/2026-11-06-settings-chrome.md)
+for executed evidence and remaining acceptance.
 
 ## Earlier pinned consumer
 

@@ -4,7 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wayland-server-core.h>
+#ifdef AETHERI_INPUT_TEST
+/* Native interaction suites retain more intermediate geometry observations. */
+enum { OUTPUT_LIMIT = 3, WINDOW_LIMIT = 64, CAPTURE_LIMIT = 32 };
+#else
 enum { OUTPUT_LIMIT = 3, WINDOW_LIMIT = 64, CAPTURE_LIMIT = 16 };
+#endif
 struct server;
 struct ae_input;
 struct output {
