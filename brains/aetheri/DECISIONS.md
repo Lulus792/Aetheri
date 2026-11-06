@@ -1,5 +1,18 @@
 # Decisions
 
+## Migrate Terminal painting on its original native host — 6 November 2026
+
+Add an explicit NexaUI presenter using the actual shared terminal session and
+unchanged SDL event/clipboard/IME/process host. Reuse NexaUI core/cell-grid/text
+and raster APIs instead of adopting an example's substitute shell, polling
+queue or synthetic mark placement. This keeps the tested original native input
+and close obligations while presentation moves to NexaUI. The resulting RGBA
+upload is a first bounded CPU path, not final performance/material acceptance.
+Read-only text is split into complete visible rows rather than silently cutting
+a large Unicode snapshot. Native assistive transport and desktop-owner adoption
+are separate steps. SDK/defaults and production admission remain unchanged. See
+the [view record](journal/2026-11-06-terminal-view.md).
+
 ## Share original terminal state before replacing its view — 6 November 2026
 
 Extract the bounded PTY input/output/resize/close-intake state into an internal

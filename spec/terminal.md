@@ -176,6 +176,68 @@ This retains app logic for later NexaUI views. No toolkit handle enters durable
 app state, and no installed authority, grant, lifecycle lease or public capability
 is added by the terminal.
 
+## Opt-in NexaUI presenter
+
+6 November 2026. With the reviewed `AETHERI_NEXAUI_PREFIX` Settings configuration
+and `AETHERI_TERMINAL=ON`, build `aetheri-terminal-nexaui`. It accepts the same
+shell/direct-editor arguments as the original terminal, plus `--bold-font`.
+For the existing carrier:
+
+```sh
+/home/aetheri/build/session-release/aetheri-terminal-nexaui \
+  --shell /home/aetheri/build/session-release/aetheri-shell \
+  --font /usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf \
+  --bold-font /usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf \
+  --cache /absolute/owned/cache-directory
+```
+
+The bold default is that same reviewed carrier path. Both faces are from the
+existing `liberation-mono-fonts-2.1.5-15.fc44.noarch` package, with file/license
+pins in [ui-inputs.json](ui-inputs.json). This introduces no new library family.
+The SDK remains 0.1.18/e71ee30. This is an explicit development executable;
+the desktop owner and Files default continue to select the original terminal.
+
+The shared host still owns the SDL Wayland window, native events/text input,
+borrowed-display clipboard connection, original PTY/session, editor handoff and
+readiness worker. NexaUI creates no second window, connection, parser or input
+queue. It paints the complete view: rectangles, labels, composition/paste-review
+overlays and the original model's visible cell grid. The host uploads one complete
+RGBA8 canvas to its existing renderer. There is no idle frame timer or automatic
+fallback to the old painter after a failure. SDL_ttf remains for the original
+host's font/cell metrics; NexaUI's own font/shaping/raster APIs draw the new view.
+
+The view borrows independently loaded regular/bold font bytes. Per-cell shaping
+uses actual NexaUI glyph advances and mark offsets in each terminal cluster;
+it does not apply paragraph bidi/reflow to the terminal. Selection, reverse and
+underline styles and default-color contrast come from the original model.
+The cache is bounded to 512 shaped clusters and 64 label layouts; the complete
+RGBA canvas has a 64 MiB limit and 8,192-pixel dimension limit. These are prototype
+resource limits, not final multi-monitor/performance acceptance. Missing glyphs
+still use the selected face's .notdef; CJK/emoji font coverage is not supplied.
+
+Completed contexts contain one full read-only snapshot per visible row. This
+preserves a 240x100 Unicode grid even when its combined text exceeds the SDK's
+65,536-byte per-object limit. Rows retain original content-incarnation identity;
+offscreen history is not copied into another text model. Only a live, visible,
+unselected input cursor is represented as a row caret. Other rows expose no
+invented caret or clipped selection. These semantics are not yet connected to
+the SDL host's native AT-SPI transport, and controls are not a native accessible
+terminal profile. Human assistive acceptance remains open.
+
+`terminal.view` checks actual pixels, fonts, styles, density, row snapshots,
+dense Unicode bounds and unchanged model state. `terminal.view_native`,
+`terminal.view_clipboard` and `terminal.view_ime` run the original native workflows
+against the new executable. `files.terminal_nexaui` runs the real Files/editor
+workflow with that terminal. The wrapper checks font/license pins, the actual
+NexaUI-frame logs, ordinary binary symbols and the selected SDK metadata/library.
+It preserves each old driver's result/logs. See the
+[executed record](../brains/aetheri/journal/2026-11-06-terminal-view.md).
+
+This first presenter retains the existing opaque geometry. The accepted compact
+chrome/glass design, startup mark with truthful system information, tabs/panes,
+native assistive integration, optimized presentation and physical acceptance
+remain work; the design studio is not copied as fake shell output or operations.
+
 ## Inputs and evidence
 
 The SDL3 3.4.20/SDL_ttf 3.2.2/FreeType 2.15.0/HarfBuzz 15.0.0 and Mesa profile is

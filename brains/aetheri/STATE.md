@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — shared original Terminal I/O session before NexaUI migration.
+6 November 2026 — own NexaUI Terminal presenter on the original native host.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+An explicit `aetheri-terminal-nexaui` now paints our actual terminal/editor
+through NexaUI cell-grid/text/raster APIs. The original SDL Wayland window,
+composition/clipboard/review, shared session, shell/editor identity and child/
+stream cleanup remain. NexaUI opens no second window/connection/parser. The
+current path uploads one bounded RGBA canvas to the original renderer. Same-family
+regular/bold fonts are pinned; SDK 0.1.18/default owner selection remain unchanged.
+See the [view record](journal/2026-11-06-terminal-view.md) and
+[contract](../../spec/terminal.md#opt-in-nexaui-presenter).
+
+Initial five native groups pass Release 53.48s and ASan/UBSan 71.62s. Later
+complete-row semantics and explicit native-presenter/SDK/font checks now pass
+all 70 final groups in Release (279.58s) and ASan/UBSan (468.75s), without skips,
+at `/home/aetheri/build/terminal-view-final-pdn6_7my`. The dense
+240x100 pixel/semantic test retains over 65,536 aggregate UTF-8 bytes without
+truncation or model mutation. Native assistive host transport is not connected.
+
+Audit joins 373 host/snapshot/guest inputs and 668 exports/456 native images,
+unchanged 28 frozen contracts and nineteen protected hashes without sidecars.
+Both native terminal samples record zero new idle frames/CPU ticks over two
+seconds. Shell/preedit, German 200-percent review and the actual dirty editor
+Save/Drop/Back were inspected. The enforcing carrier is idle on tty1 without
+build/private-registry actors, Aetheri service or seat0 session. Closed DRM
+history/foreign files are unchanged; no new DRM run. The existing NexaUI
+catalogue received scoped adoption evidence only, retaining all 103 IDs.
+
+Next: continue actual presenter/owner/design/assistive integration, beginning
+with explicit development-owner selection. Accepted compact chrome/glass,
+truthful startup mark, tabs/panes,
+optimized/physical presentation and the complete OS/apps/image/installer/update/
+hardware/experiment-desktop objective remain incomplete. The old quarantined
+runtime remains unresolved; keep the full goal active.
+
+## Prior shared Terminal session checkpoint
 
 The actual SDL Terminal now uses the internal toolkit-free session for bounded
 input admission/flush, original-master output feeding, PTY/grid resize and close

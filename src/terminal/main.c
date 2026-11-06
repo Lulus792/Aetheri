@@ -5,6 +5,9 @@
 #include "clipboard.h"
 #include "paste.h"
 #include "composition.h"
+#ifdef AETHERI_TERMINAL_NEXAUI
+#include "nexaui_view.h"
+#endif
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <errno.h>
@@ -27,6 +30,10 @@ enum { GLYPHS=512, TEXTURE_BUDGET=8*1024*1024, INPUT_BYTES=AE_TERM_INPUT_BYTES }
 struct glyph { uint32_t code,marks[3];uint8_t count,style;SDL_Texture *texture;float w,h;size_t bytes;uint64_t age; };
 struct app {
     struct ae_terminal_session session;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    struct ae_terminal_view *view;SDL_Texture *view_texture;
+    unsigned char *view_font,*view_bold;unsigned view_width,view_height;
+#endif
     SDL_Window *window;SDL_Renderer *renderer;TTF_Font *font;
     struct glyph glyphs[GLYPHS];size_t texture_bytes;uint64_t age;
     SDL_Thread *worker;SDL_Semaphore *ack;
@@ -118,6 +125,7 @@ static void glyphs_clear(struct app *a) {
     for (unsigned i=0;i<GLYPHS;++i) { SDL_DestroyTexture(a->glyphs[i].texture);a->glyphs[i]=(struct glyph){0}; }
     a->texture_bytes=0;
 }
+#ifndef AETHERI_TERMINAL_NEXAUI
 static size_t utf8(char *out,uint32_t c) {
     if (c<0x80) { out[0]=(char)c;return 1; }
     if (c<0x800) { out[0]=(char)(0xc0|(c>>6));out[1]=(char)(0x80|(c&63));return 2; }
@@ -153,16 +161,33 @@ static struct glyph *glyph(struct app *a,const struct ae_term_cell *cell) {
     if (!g->texture) { error(a,"glyph texture");return NULL; }
     a->texture_bytes+=bytes;return g;
 }
+#endif
+static bool set_clip(struct app *a,const SDL_Rect *r) {
+#ifdef AETHERI_TERMINAL_NEXAUI
+    nx_rect clip={0};if (r) clip=(nx_rect){(float)r->x,(float)r->y,(float)r->w,(float)r->h};
+    return ae_terminal_view_clip(a->view,r?&clip:NULL);
+#else
+    return SDL_SetRenderClipRect(a->renderer,r);
+#endif
+}
 static void fill(struct app *a,SDL_FRect r,uint32_t color) {
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (!ae_terminal_view_fill(a->view,(nx_rect){r.x,r.y,r.w,r.h},color)) error(a,"NexaUI rectangle");
+#else
     if (!SDL_SetRenderDrawColor(a->renderer,(uint8_t)(color>>16),(uint8_t)(color>>8),(uint8_t)color,255) || !SDL_RenderFillRect(a->renderer,&r)) error(a,"rectangle");
+#endif
 }
 static void label(struct app *a,const char *text,float x,float y,uint32_t color) {
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (!ae_terminal_view_label(a->view,text,x,y,color)) error(a,"NexaUI text");
+#else
     TTF_SetFontStyle(a->font,TTF_STYLE_NORMAL);
     SDL_Surface *s=TTF_RenderText_Blended(a->font,text,0,(SDL_Color){(uint8_t)(color>>16),(uint8_t)(color>>8),(uint8_t)color,255});
     if (!s) { error(a,"label rasterization");return; }
     SDL_Texture *t=SDL_CreateTextureFromSurface(a->renderer,s);SDL_FRect r={x,y,(float)s->w/a->density,(float)s->h/a->density};SDL_DestroySurface(s);
     if (!t || !SDL_RenderTexture(a->renderer,t,NULL,&r)) error(a,"label presentation");
     SDL_DestroyTexture(t);
+#endif
 }
 static void frame_done(void *data,struct wl_callback *callback,uint32_t when) {
     (void)when;struct app *a=data;if (a->frame_callback==callback) { a->frame_callback=NULL;printf("DRAWN %u\n",a->drawn_frame); }wl_callback_destroy(callback);
@@ -207,7 +232,7 @@ static void draw_composition(struct app *a) {
         cursor=view.cursor;
         unsigned occupied=view.cells<columns ? view.cells+1 : columns;
         SDL_Rect clip={(int)x,(int)y,(int)ceilf((float)columns*a->cell_w),(int)ceilf(a->cell_h)};
-        if (!SDL_SetRenderClipRect(a->renderer,&clip)) { error(a,"composition clip");return; }
+        if (!set_clip(a,&clip)) { error(a,"composition clip");return; }
         fill(a,(SDL_FRect){x,y,(float)occupied*a->cell_w,a->cell_h},0x263043);
         if (view.selection_end>view.selection_begin)
             fill(a,(SDL_FRect){x+(float)view.selection_begin*a->cell_w,y,(float)(view.selection_end-view.selection_begin)*a->cell_w,a->cell_h},0x304e78);
@@ -218,7 +243,7 @@ static void draw_composition(struct app *a) {
         if (view.caret) fill(a,(SDL_FRect){x+(float)cursor*a->cell_w,y,2,a->cell_h},0xffffff);
         if (view.hidden_before) fill(a,(SDL_FRect){x,y,2,a->cell_h},0xa2c7ff);
         if (view.hidden_after) fill(a,(SDL_FRect){x+(float)columns*a->cell_w-2,y,2,a->cell_h},0xa2c7ff);
-        (void)SDL_SetRenderClipRect(a->renderer,NULL);
+        (void)set_clip(a,NULL);
     }
     SDL_Rect area={(int)floorf(x+(float)cursor*a->cell_w),(int)floorf(y),(int)ceilf(a->cell_w),(int)ceilf(a->cell_h)};
     if (area.x!=a->input_area.x || area.y!=a->input_area.y || area.w!=a->input_area.w || area.h!=a->input_area.h) {
@@ -249,12 +274,12 @@ static void draw_paste(struct app *a,int w,int h) {
     offset=0;
     for (unsigned i=0;i<a->paste_scroll;++i) offset=ae_terminal_paste_preview(&a->paste,offset,columns,width,line);
     SDL_Rect clip={(int)card.x+24,(int)top,(int)card.w-48,(int)(help_y-top-8)};
-    if (!SDL_SetRenderClipRect(a->renderer,&clip)) { error(a,"paste preview clip");return; }
+    if (!set_clip(a,&clip)) { error(a,"paste preview clip");return; }
     for (unsigned i=0;i<a->paste_visible && offset<a->paste.size;++i) {
         offset=ae_terminal_paste_preview(&a->paste,offset,columns,width,line);
         label(a,line,card.x+24,top+(float)i*a->cell_h,0xeff3fb);
     }
-    (void)SDL_SetRenderClipRect(a->renderer,NULL);
+    (void)set_clip(a,NULL);
     label(a,tr(a,"Ctrl+Enter: paste · Esc: cancel","Strg+Enter: einfügen · Esc: abbrechen"),card.x+24,help_y,0xb2c0d6);
     for (unsigned i=0;i<2;++i) {
         a->paste_buttons[i]=(SDL_FRect){card.x+24+(float)i*(card.w/2-12),buttons_y,(card.w-72)/2,button_h};
@@ -267,9 +292,16 @@ static void draw(struct app *a) {
     if (!SDL_GetWindowSize(a->window,&w,&h) || !SDL_GetWindowSizeInPixels(a->window,&pw,&ph) ||
             !SDL_SetRenderScale(a->renderer,(float)pw/(float)w,(float)ph/(float)h) ||
             !SDL_SetRenderDrawColor(a->renderer,16,20,28,255) || !SDL_RenderClear(a->renderer)) { error(a,"frame setup");return; }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (!ae_terminal_view_begin(a->view,(float)w,(float)h,(float)pw/(float)w,(float)a->font_points,
+        a->cell_w,a->cell_h,(float)TTF_GetFontAscent(a->font)/a->density)) { error(a,"NexaUI frame");return; }
+#endif
     fill(a,(SDL_FRect){0,0,(float)w,a->bar_height},a->contrast ? 0 : 0x191f2b);
     label(a,a->editor ? tr(a,"Terminal · Aetheri editor","Terminal · Aetheri-Editor") : tr(a,"Terminal · Aetheri shell","Terminal · Aetheri-Shell"),16,10,0xeff3fb);
     label(a,"×",(float)w-32,10,0xeff3fb);
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (!ae_terminal_view_grid(a->view,a->session.model,(nx_rect){a->left,a->grid_y,(float)a->session.model->cols*a->cell_w,(float)a->session.model->rows*a->cell_h},a->contrast,!a->session.pty.ended)) { error(a,"NexaUI grid");return; }
+#else
     for (unsigned y=0;y<a->session.model->rows;++y) {
         const struct ae_term_cell *r=ae_terminal_row(a->session.model,y);
         unsigned first=0,last=0;bool selected=ae_terminal_selected_range(a->session.model,y,&first,&last);
@@ -288,12 +320,13 @@ static void draw(struct app *a) {
             if (c->width && c->code!=' ' && c->code) {
                 struct glyph *g=glyph(a,c);SDL_FRect dest={box.x,box.y,g ? g->w : 0,g ? g->h : 0};
                 SDL_Rect clip={(int)box.x,(int)box.y,(int)ceilf(a->cell_w*(float)c->width),(int)ceilf(a->cell_h)};
-                if (g && (!SDL_SetRenderClipRect(a->renderer,&clip) || !SDL_SetTextureColorMod(g->texture,(uint8_t)(fg>>16),(uint8_t)(fg>>8),(uint8_t)fg) || !SDL_RenderTexture(a->renderer,g->texture,NULL,&dest))) error(a,"cell presentation");
-                (void)SDL_SetRenderClipRect(a->renderer,NULL);
+                if (g && (!set_clip(a,&clip) || !SDL_SetTextureColorMod(g->texture,(uint8_t)(fg>>16),(uint8_t)(fg>>8),(uint8_t)fg) || !SDL_RenderTexture(a->renderer,g->texture,NULL,&dest))) error(a,"cell presentation");
+                (void)set_clip(a,NULL);
             }
             if (c->style&AE_TERM_UNDERLINE) fill(a,(SDL_FRect){box.x,box.y+box.h-2,box.w,1},fg);
         }
     }
+#endif
     if (a->session.model->cursor && !a->session.model->view && !a->session.pty.ended) {
         SDL_FRect cursor={a->left+(float)a->session.model->x*a->cell_w,a->grid_y+(float)a->session.model->y*a->cell_h,a->cell_w,2};cursor.y+=a->cell_h-2;fill(a,cursor,0xa2c7ff);
     }
@@ -311,7 +344,21 @@ static void draw(struct app *a) {
         a->frame_callback=surface ? wl_surface_frame(surface) : NULL;a->drawn_frame=a->frame+1;
         if (!a->frame_callback || wl_callback_add_listener(a->frame_callback,&frame_listener,a)) { error(a,"frame observation");return; }
     }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    const unsigned char *pixels=NULL;size_t stride=0;
+    if (!ae_terminal_view_finish(a->view,(unsigned)pw,(unsigned)ph,&pixels,&stride) || stride>INT_MAX) {error(a,"NexaUI raster");return;}
+    if (a->view_width!=(unsigned)pw || a->view_height!=(unsigned)ph) {
+        SDL_Texture *texture=SDL_CreateTexture(a->renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STREAMING,pw,ph);
+        if (!texture || !SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST)) {SDL_DestroyTexture(texture);error(a,"NexaUI canvas");return;}
+        SDL_DestroyTexture(a->view_texture);a->view_texture=texture;a->view_width=(unsigned)pw;a->view_height=(unsigned)ph;
+    }
+    if (!SDL_UpdateTexture(a->view_texture,NULL,pixels,(int)stride) || !SDL_SetRenderScale(a->renderer,1,1) ||
+        !SDL_RenderTexture(a->renderer,a->view_texture,NULL,NULL)) {error(a,"NexaUI canvas upload");return;}
+#endif
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if (a->diagnostics) printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);
+#endif
     a->dirty=false;++a->frame;
     if (a->paste.size && a->paste.review && !a->paste_shown) a->paste_shown=SDL_GetTicksNS();
     if (a->diagnostics) printf("VIEW %u cols=%u rows=%u x=%u y=%u history=%u view=%u sequence=%llu closing=%d ended=%d eof=%d german=%d contrast=%d points=%u width=%d height=%d selection=%zu selecting=%d paste=%zu receiving=%d review=%d preview_scroll=%u preview_total=%u composition=%zu grid_left=%.3f grid_top=%.3f cell_width=%.3f cell_height=%.3f\n",a->frame,a->session.model->cols,a->session.model->rows,a->session.model->x,a->session.model->y,a->session.model->history_count,a->session.model->view,(unsigned long long)a->session.model->sequence,a->session.closing,a->session.pty.ended,a->session.pty.eof,a->german,a->contrast,a->font_points,w,h,ae_terminal_selection_size(a->session.model),a->selecting,a->paste.size,a->paste_receiving,a->paste.size && a->paste.review,a->paste_scroll,a->paste_total,a->composition.size,(double)a->left,(double)a->grid_y,(double)a->cell_w,(double)a->cell_h);
@@ -605,11 +652,28 @@ static void event(struct app *a,const SDL_Event *e) {
         else if (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_RIGHT || key==SDLK_LEFT) { char seq[]={27,a->session.model->application_cursor ? 'O' : '[',key==SDLK_UP ? 'A' : key==SDLK_DOWN ? 'B' : key==SDLK_RIGHT ? 'C' : 'D'};input(a,seq,sizeof(seq)); }
     }
 }
+#ifdef AETHERI_TERMINAL_NEXAUI
+static unsigned char *load_view_font(const char *path,size_t *size) {
+    int fd=open(path,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);struct stat st;
+    if (fd<0) return NULL;
+    if (fstat(fd,&st) || !S_ISREG(st.st_mode) || st.st_size<1 || st.st_size>16*1024*1024) {close(fd);return NULL;}
+    *size=(size_t)st.st_size;unsigned char *bytes=malloc(*size);size_t used=0;
+    if (!bytes) {close(fd);return NULL;}
+    while (used<*size) {ssize_t n=read(fd,bytes+used,*size-used);if (n<0 && errno==EINTR) continue;if (n<=0) {free(bytes);close(fd);return NULL;}used+=(size_t)n;}
+    close(fd);return bytes;
+}
+#endif
 int main(int argc,char **argv) {
     struct app a={.session=AE_TERMINAL_SESSION_INIT,.wake={-1,-1},.clipboard_fd=-1,.paste_pressed=-1,.running=true,.dirty=true,.font_points=16,.bar_height=40};
     const char *font=NULL,*cache=NULL,*shell=NULL,*editor=NULL,*leaf=NULL;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    const char *bold_font="/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf";bool bold_selected=false;
+#endif
     for (int i=1;i<argc;++i) {
         if (!strcmp(argv[i],"--font") && !font && i+1<argc) font=argv[++i];
+#ifdef AETHERI_TERMINAL_NEXAUI
+        else if (!strcmp(argv[i],"--bold-font") && !bold_selected && i+1<argc) {bold_font=argv[++i];bold_selected=true;}
+#endif
         else if (!strcmp(argv[i],"--cache") && !cache && i+1<argc) cache=argv[++i];
         else if (!strcmp(argv[i],"--shell") && !shell && i+1<argc) shell=argv[++i];
         else if (!strcmp(argv[i],"--editor") && !editor && i+1<argc) editor=argv[++i];
@@ -635,6 +699,12 @@ int main(int argc,char **argv) {
     a.font=TTF_OpenFont(font,16);a.window=SDL_CreateWindow(a.editor ? "Aetheri Editor" : "Aetheri Terminal",1000,700,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (a.window) a.renderer=SDL_CreateRenderer(a.window,"opengles2");
     if (!a.font || !TTF_FontIsFixedWidth(a.font) || !a.window || !a.renderer || !SDL_SetWindowMinimumSize(a.window,480,320) || !SDL_SetWindowHitTest(a.window,hit_test,&a) || !SDL_StartTextInput(a.window)) { error(&a,"font/window/renderer/input setup");goto cleanup; }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    size_t regular_size=0,bold_size=0;
+    a.view_font=load_view_font(font,&regular_size);a.view_bold=load_view_font(bold_font,&bold_size);
+    if (!a.view_font || !a.view_bold || !ae_terminal_view_create(a.view_font,regular_size,a.view_bold,bold_size,&a.view)) {error(&a,"NexaUI fonts/view");goto cleanup;}
+    if (a.diagnostics) puts("PRESENTATION nexaui 0.1.18 sdl-host rgba8");
+#endif
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);
     struct wl_surface *surface=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,NULL);
     if (!ae_clipboard_open(&a.clipboard,display,surface,clipboard_wake,&a)) a.clipboard_fd=ae_clipboard_watch_fd(a.clipboard);
@@ -665,6 +735,9 @@ cleanup:
     }
     if (ae_terminal_pty_close(&a.session.pty)) a.failed=true;
     if (a.frame_callback) wl_callback_destroy(a.frame_callback);
+#ifdef AETHERI_TERMINAL_NEXAUI
+    SDL_DestroyTexture(a.view_texture);ae_terminal_view_destroy(a.view);free(a.view_font);free(a.view_bold);
+#endif
     glyphs_clear(&a);SDL_DestroySemaphore(a.ack);for (unsigned i=0;i<2;++i) if (a.wake[i]>=0) close(a.wake[i]);
     SDL_DestroyRenderer(a.renderer);SDL_DestroyWindow(a.window);TTF_CloseFont(a.font);TTF_Quit();SDL_Quit();
     printf("CLOSED frames=%u shell_status=%d failed=%d\n",a.frame,a.session.pty.status,a.failed);free(a.session.model);return a.failed ? 1 : 0;

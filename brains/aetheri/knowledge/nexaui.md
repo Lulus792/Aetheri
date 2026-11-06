@@ -24,6 +24,16 @@ Aetheri task; the historical request must not become the next task after resumin
 
 ## Current decision — 4 November 2026
 
+6 November Terminal presenter update: an explicit own terminal binary now paints
+the actual shared session through the pinned SDK's cell-grid/text/raster APIs.
+Its original SDL Wayland/event/clipboard/IME/process host remains. This is a
+bounded CPU RGBA upload path, not a second toolkit window or substitute shell.
+Complete per-row read-only snapshots cover dense Unicode grids without silent
+per-object truncation. Native host accessibility transport, accepted final
+materials/chrome, default-owner adoption and physical/performance acceptance
+remain separate work. See the [view record](../journal/2026-11-06-terminal-view.md).
+The SDK version/defaults and delivered handoff status remain unchanged.
+
 6 November Files native-text update: the custom field editor is replaced by one
 SDK text field per view input, with history disabled and complete Aetheri candidate
 admission before publication/actions. Independent native Text/EditableText tests

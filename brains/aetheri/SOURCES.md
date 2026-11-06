@@ -4,6 +4,22 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Own NexaUI terminal presenter — 6 November 2026
+
+- Original-model cell/text/raster adapter in
+  [nexaui_view.c](../../src/terminal/nexaui_view.c), the conditional
+  [original host](../../src/terminal/main.c),
+  [pixel/row-bound checks](../../tests/test_terminal_view.c) and
+  [native workflow wrapper](../../tools/test_terminal_view_native.py).
+  [Executed record](journal/2026-11-06-terminal-view.md).
+- Same-family bold face: carrier `rpm -qf` identifies
+  `liberation-mono-fonts-2.1.5-15.fc44.noarch`; actual bold SHA-256
+  `bd62a0672d0b9b6710b01df434c80ad54fa5f0835207eb7b17b7a761463067bb`
+  and existing OFL-1.1-RFN license SHA-256
+  `93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b`.
+  Pins in [ui-inputs.json](../../spec/ui-inputs.json). This checks existing
+  package/file/license identity, not a fresh independent RPM signature.
+
 ## Shared terminal session — 6 November 2026
 
 - Internal original-PTY queue/read/resize/close boundaries in
