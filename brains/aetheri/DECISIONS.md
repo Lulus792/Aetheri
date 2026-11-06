@@ -1,5 +1,16 @@
 # Decisions
 
+## Share original terminal state before replacing its view — 6 November 2026
+
+Extract the bounded PTY input/output/resize/close-intake state into an internal
+C17 session and make the existing SDL host use it. A later NexaUI view must
+borrow that original state, not start an example-owned substitute shell or
+create a competing queue/parser. Keep clipboard/IME provenance and review,
+original-child waits and editor Save/Drop/Back with their existing owners.
+Admission counters and empty queues are not execution or drain receipts. This
+changes no SDK pin/default or installed launch capability. See the
+[session record](journal/2026-11-06-terminal-session.md).
+
 ## Use one SDK editor with an app admission boundary — 6 November 2026
 
 Replace own Files custom field painting/selections with the existing pinned

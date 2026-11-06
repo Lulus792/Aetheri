@@ -1,6 +1,6 @@
 # State
 
-6 November 2026 — native Text/EditableText for own Files inputs.
+6 November 2026 — shared original Terminal I/O session before NexaUI migration.
 
 ## Coordination
 
@@ -14,6 +14,36 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The actual SDL Terminal now uses the internal toolkit-free session for bounded
+input admission/flush, original-master output feeding, PTY/grid resize and close
+intake. Model/PTY identity, shell/editor startup, original child/stream waits,
+composition/paste review and clipboard ownership remain with their existing
+owners. No NexaUI Terminal executable, new SDK pin/default or installed launch
+capability is implied. See the [session record](journal/2026-11-06-terminal-session.md)
+and [contract](../../spec/terminal.md#model-and-ownership).
+
+Focused Release/ASan/UBSan session tests pass. Four separately compiled Release
+counterexamples detect capacity, unsent-suffix, close-fence and read-budget
+regressions at their exact expected checks. The first fixture's FIONREAD
+assumption was independently disproved; actual remaining bytes are checked by
+MSG_PEEK without changing product limits. All 65 app/UI groups pass in Release
+(244.75s) and ASan/UBSan (416.26s), without skips, on final source bytes at
+`/home/aetheri/build/terminal-session-full-4sx3exx_`.
+
+Audit joins 369 host/snapshot/guest inputs and 392 evidence exports, including
+264 native images. Twenty-eight frozen SQL/XML contracts, nineteen protected
+hashes, closed development history and foreign edits are unchanged. The enforcing
+carrier is idle on tty1 without build/private-registry actors, an Aetheri service
+or seat0 session. No new DRM session. Native shell output, composition, German
+200-percent paste review and the original Files/editor desktop were inspected.
+
+Next: connect NexaUI presentation to this real session. Remaining terminal
+presentation/input/assistive acceptance and the complete OS/apps/image/installer/
+updates/hardware/experiment-desktop scope are incomplete. The old quarantined
+runtime stays unresolved; keep the full goal active.
+
+## Prior Files native text checkpoint
 
 Own Files name/filter inputs now use actual NexaUI text fields with history
 disabled, replacing custom editing/painting. Aetheri still admits the complete

@@ -82,11 +82,35 @@ persistence and its eventual UI are still separate product decisions.
 | Module | Responsibility |
 | --- | --- |
 | [model.h](../src/terminal/model.h), [model.c](../src/terminal/model.c) | Toolkit-independent cell/escape/UTF-8 state, cursor and bounded history |
+| [session.h](../src/terminal/session.h), [session.c](../src/terminal/session.c) | Toolkit-independent input queue, original-master output feeding, grid/PTY resize and close-intake fence for native presentation adapters |
 | [pty.h](../src/terminal/pty.h), [pty.c](../src/terminal/pty.c) | Held PTY peer, original child/pidfd, resize, independent stream/process observations and one-shot hangup |
 | [paste.h](../src/terminal/paste.h), [paste.c](../src/terminal/paste.c) | Toolkit-free whole-snapshot validation, CR normalization and bounded escaped preview |
 | [composition.h](../src/terminal/composition.h), [composition.c](../src/terminal/composition.c) | Owned bounded preedit text, scalar selection and horizontal viewport without PTY effects |
 | [clipboard.h](../src/terminal/clipboard.h), [clipboard.c](../src/terminal/clipboard.c) | Owner-thread native Wayland selection and bounded nonblocking transfer ownership |
 | [main.c](../src/terminal/main.c) | SDL input/rendering, font/texture ownership and readiness-to-owner-thread handoff |
+
+The SDL host now uses the shared session rather than implementing a second queue
+or PTY pump. The session borrows the original initialized model and holds the
+original PTY state. The host still allocates that model, opens the independently
+selected shell/editor image before workers, authenticates input context, reaps
+the original child, waits for stream end and performs final descriptor cleanup.
+Never copy or replace a live session to change its presentation.
+
+Queue admission is whole-event: 4,096 bytes maximum, no write on admission and no
+selection/scrollback change on rejection. Its byte counter records accepted input,
+not delivery or command execution. The separate nonblocking flush retries EINTR,
+retains the exact unsent suffix after partial progress/EAGAIN/error and does not
+report an empty queue merely because it returned zero. A zero-byte submission
+does nothing. Close fences new intake before the existing one-shot pidfd hangup;
+it does not discard pending bytes, close handles or claim child/stream drain.
+The explicit editor Save/Drop/Back user-close path remains in the host.
+
+The shared read method feeds at most 16 KiB of actual output per turn. Child
+observation remains independent. Paste validation/review, composition provenance,
+clipboard dispatch/deadlines, wakeups and rendering remain original host/model
+responsibilities. This extraction prepares the actual Terminal/editor for NexaUI;
+there is no new NexaUI terminal executable or changed default yet. See the
+[session record](../brains/aetheri/journal/2026-11-06-terminal-session.md).
 
 The model holds at most 240×100 cells, a separate alternate screen and 1,024
 history rows, with up to three combining marks per cell. UTF-8 can span reads;

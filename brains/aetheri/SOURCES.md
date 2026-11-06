@@ -4,6 +4,17 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Shared terminal session — 6 November 2026
+
+- Internal original-PTY queue/read/resize/close boundaries in
+  [session.h](../../src/terminal/session.h) and
+  [session.c](../../src/terminal/session.c), used by the actual
+  [SDL host](../../src/terminal/main.c).
+- [Native C session checks](../../tests/test_terminal_session.c), including
+  whole-event admission, partial/error suffix preservation, actual bounded
+  reads and original-shell close. Executed scope and counterexamples belong to
+  the [session record](journal/2026-11-06-terminal-session.md).
+
 ## Aetheri-owned NexaUI Files — 6 November 2026
 
 - SDK editor/application admission and same-frame action fencing in the
