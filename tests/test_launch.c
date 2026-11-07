@@ -1243,7 +1243,15 @@ static void process_journal_test(struct ae_catalogue **root,struct ae_catalogue 
     process_enrollment(root,ri,rd,p,e,&app,2,scenario);
     struct ae_execution_handoff handoff=handoff_record(&app); int with_handoff=strncmp(scenario,"exec-handoff-",13)==0;
     int with_transport=strncmp(scenario,"exec-bridge-store-",18)==0;
-    if (with_transport) {
+    if (strncmp(scenario,"exec-bridge-fence-",18)==0) {
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+        void ae_test_handoff_fence(struct ae_catalogue *,struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_handoff *,const char *);
+        ae_test_handoff_fence(*root,*user,p,&handoff,scenario);
+        CHECK(scalar(rd,"SELECT state='running' FROM generation_leases")==1 && scalar(rd,"SELECT state='dispatching' FROM launch_dispatches")==1); return;
+#else
+        CHECK(0 && "handoff fence requires AETHERI_LINUX_IPC");
+#endif
+    } else if (with_transport) {
 #ifdef AETHERI_TEST_EXECUTION_SERVICE
         void ae_test_handoff_transport_begin(struct ae_catalogue *,const struct ae_execution_profile *,const struct ae_execution_handoff *,const char *);
         ae_test_handoff_transport_begin(*root,p,&handoff,scenario);

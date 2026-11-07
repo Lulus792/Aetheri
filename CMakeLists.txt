@@ -1127,6 +1127,9 @@ if(BUILD_TESTING)
             add_test(NAME authority.handoff_transport COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" handoff-transport)
             set_tests_properties(authority.handoff_transport PROPERTIES TIMEOUT 180)
+            add_test(NAME authority.handoff_fence COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" handoff-fence)
+            set_tests_properties(authority.handoff_fence PROPERTIES TIMEOUT 360)
             add_test(NAME authority.execution_service COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" service)
             set_tests_properties(authority.execution_service PROPERTIES TIMEOUT 180)

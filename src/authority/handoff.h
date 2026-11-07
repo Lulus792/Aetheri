@@ -16,7 +16,11 @@ struct ae_handoff_transfer {
  * and current catalogue runtime must already be admitted. No service starts,
  * configuration provisioning or wire API here. The optional four-slot supervisor
  * transport below is separate from the raw prepare/restore boundary.
- * Observed actor/runtime drift latches ESTALE; matching later is not recovery. */
+ * Observed actor/runtime drift latches ESTALE; matching later is not recovery.
+ * Source exports share the SYSTEM catalogue's local execution fence. Bracketed
+ * calls prevent catalogue close/runtime replacement, not external holder drain.
+ * Existing admitted receive/retirement cleanup remains possible while fenced;
+ * cleanup never grants new export, launch or lease-release permission. */
 int ae_handoff_service_new(struct ae_catalogue *,sd_bus *,const struct ae_execution_profile *,
     const struct ae_process_context *admitted_self,struct ae_handoff_service **);
 /* Original runtime only. Export actual original objects, join them to the
@@ -25,7 +29,9 @@ int ae_handoff_service_new(struct ae_catalogue *,sd_bus *,const struct ae_execut
  * four owned CLOEXEC duplicates and transfer_required=1. Every existing-intent
  * retry returns no handles/permission to transfer. Unknown commit closes these
  * local duplicates, preserves the original observer/SQL obligation and changes
- * no output. A lost reply never permits automatic repeat transfer. */
+ * no output. A lost reply never permits automatic repeat transfer. A fence
+ * before export or after fresh PREPARE rejects and closes local duplicates;
+ * a committed PREPARE stays pending, with no renewed transfer permission. */
 int ae_handoff_service_prepare(struct ae_handoff_service *,struct ae_lifetime *,int64_t,struct ae_handoff_transfer *);
 /* Replacement runtime and new invocation of the SAME admitted custodian only.
  * Caller first admits the complete exact supervisor inventory/transport (no
@@ -44,7 +50,10 @@ int ae_handoff_service_restore(struct ae_handoff_service *,const int *,size_t,in
  * from the original profile digest; labels/counters/barriers never admit objects.
  * SEND joins fresh PREPARE before four one-shot FDPOLL=0 notifications. An existing
  * intent returns EALREADY without sending. Unknown/partial effects stay pending;
- * do not automatically retry. Success is processing/count evidence only.
+ * do not automatically retry. Check the local source fence before every send.
+ * A send already entered may complete after fencing; stop remaining sends.
+ * Success is processing/count evidence only, including a fence during the last
+ * already-entered send/barrier; it never establishes drain.
  * RECEIVE requires the complete four-name PID1 activation inventory; rejects
  * unknown/duplicate/missing names and reorders before actual restore/OBSERVE.
  * Supplied FDs remain caller-owned, including after successful receive.

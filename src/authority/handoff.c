@@ -1,4 +1,5 @@
 #include "authority/handoff.h"
+#include "catalogue/effect.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -16,6 +17,24 @@ struct ae_handoff_service {
     struct ae_process_context self;
     uint8_t runtime[16];
 };
+static struct ae_effect_owner effect_owner(const struct ae_handoff_service *s)
+{
+    struct ae_effect_owner owner;
+    memcpy(owner.epoch,s->profile.system_epoch,16); memcpy(owner.boot,s->profile.boot,16);
+    memcpy(owner.runtime,s->runtime,16); return owner;
+}
+static int begin_bracket(struct ae_handoff_service *s,int cleanup)
+{
+    struct ae_effect_owner owner=effect_owner(s);
+    return cleanup ? ae_catalogue_begin_owner_cleanup(s->store,&owner) : ae_catalogue_begin_owner_effect(s->store,&owner);
+}
+static int check_export(struct ae_handoff_service *s)
+{ struct ae_effect_owner owner=effect_owner(s); return ae_catalogue_check_owner_effect(s->store,&owner); }
+static int end_bracket(struct ae_handoff_service *s,int result)
+{
+    int ended=ae_catalogue_end_execution_effect(s->store);
+    return result!=0 ? result : ended;
+}
 static int current(struct ae_handoff_service *s)
 {
     if (s->stale) return -ESTALE;
@@ -76,6 +95,8 @@ int ae_handoff_service_prepare(struct ae_handoff_service *s,struct ae_lifetime *
     if (r==0) for (int n=0;n<AE_LIFETIME_HANDLE_COUNT;++n) if (output->handles[n]!=-1) r=-EINVAL;
     if (r==0 && memcmp(s->runtime,s->profile.system_runtime,16)!=0) r=-ESTALE;
     if (r==0) r=current(s);
+    if (r==0) r=begin_bracket(s,0);
+    int held=r==0;
     struct ae_execution_process_snapshot stored;
     if (r==0) r=ae_catalogue_get_execution_process(s->store,&s->profile,AE_EXECUTION_APP,&stored);
     struct ae_lifetime_checkpoint actual;
@@ -94,6 +115,8 @@ int ae_handoff_service_prepare(struct ae_handoff_service *s,struct ae_lifetime *
     }
     if (r==0) r=current(s);
     if (r==0) r=ae_catalogue_handoff(s->store,&s->profile,AE_HANDOFF_PREPARE,&h,stamp,&result.journal);
+    if (r==0 && result.journal.transfer_required) r=check_export(s);
+    if (held) r=end_bracket(s,r);
     if (r!=0 || !result.journal.transfer_required) handles_close(result.handles);
     if (r==0) *output=result;
     s->busy=0; return r;
@@ -110,6 +133,8 @@ int ae_handoff_service_restore(struct ae_handoff_service *s,const int *handles,s
     }
     if (r==0 && memcmp(s->runtime,s->profile.system_runtime,16)==0) r=-ESTALE;
     if (r==0) r=current(s);
+    if (r==0) r=begin_bracket(s,1);
+    int held=r==0;
     struct ae_handoff_snapshot original;
     if (r==0) r=ae_catalogue_get_handoff(s->store,&s->profile,&original);
     if (r==0 && (original.state>AE_HANDOFF_OBSERVED || strcmp(original.original.custodian,s->self.unit)!=0 ||
@@ -122,6 +147,7 @@ int ae_handoff_service_restore(struct ae_handoff_service *s,const int *handles,s
     if (r==0) r=current(s);
     struct ae_handoff_result result;
     if (r==0) r=ae_catalogue_handoff(s->store,&s->profile,AE_HANDOFF_OBSERVE,&original.original,stamp,&result);
+    if (held) r=end_bracket(s,r);
     if (r==0) { *output=observer; *snapshot=result.snapshot; }
     else (void)ae_lifetime_close(&observer);
     s->busy=0; return r;
@@ -166,12 +192,14 @@ int ae_handoff_service_send(struct ae_handoff_service *s,struct ae_lifetime *ori
     if (!original || !output || stamp<0) r=-EINVAL;
     if (r==0 && memcmp(s->runtime,s->profile.system_runtime,16)!=0) r=-ESTALE;
     if (r==0) r=current(s);
+    if (r==0) r=begin_bracket(s,0);
+    int held=r==0;
     struct ae_handoff_snapshot existing;
     if (r==0) { r=ae_catalogue_get_handoff(s->store,&s->profile,&existing); if (r==0) r=-EALREADY; else if (r==-ENOENT) r=0; }
     uint32_t count=0; if (r==0) r=store_profile(s,&count);
     if (r==0 && count) r=-EEXIST;
     s->busy=0;
-    if (r!=0) return r;
+    if (r!=0) { if (held) r=end_bracket(s,r); return r; }
     struct ae_handoff_transfer transfer=AE_HANDOFF_TRANSFER_INIT;
     r=ae_handoff_service_prepare(s,original,stamp,&transfer);
     if (r==0 && !transfer.journal.transfer_required) r=-EALREADY;
@@ -181,6 +209,8 @@ int ae_handoff_service_send(struct ae_handoff_service *s,struct ae_lifetime *ori
         if (r==0) r=store_profile(s,&count);
         if (r==0 && count) r=-EEXIST;
         for (size_t n=0;r==0 && n<4;++n) {
+            r=check_export(s);
+            if (r!=0) break;
             char message[160]; int size=snprintf(message,sizeof message,"FDSTORE=1\nFDPOLL=0\nFDNAME=%s",labels[n]);
             if (size<0 || size>=(int)sizeof message) r=-EOVERFLOW;
             else { int sent=sd_pid_notify_with_fds(0,0,message,&transfer.handles[n],1); r=sent>0 ? 0 : sent<0 ? sent : -ENOTCONN; }
@@ -188,10 +218,12 @@ int ae_handoff_service_send(struct ae_handoff_service *s,struct ae_lifetime *ori
         if (r==0) r=processed();
         if (r==0) r=store_profile(s,&count);
         if (r==0 && count!=4) r=-EAGAIN;
-        if (r==0) *output=transfer.journal.snapshot;
         s->busy=0;
     }
-    handles_close(transfer.handles); return r;
+    handles_close(transfer.handles);
+    if (held) r=end_bracket(s,r);
+    if (r==0) *output=transfer.journal.snapshot;
+    return r;
 }
 int ae_handoff_service_receive(struct ae_handoff_service *s,const int *fds,const char *const *labels,size_t count,int64_t stamp,
     struct ae_lifetime **output,struct ae_handoff_snapshot *snapshot)
@@ -221,6 +253,8 @@ int ae_handoff_service_retire_store(struct ae_handoff_service *s,int64_t stamp,s
     struct ae_handoff_snapshot original;
     if (r==0) r=ae_catalogue_get_handoff(s->store,&s->profile,&original);
     if (r==0 && original.state==AE_HANDOFF_FINISHED) { *output=original; s->busy=0; return 0; }
+    if (r==0) r=begin_bracket(s,1);
+    int held=r==0;
     if (r==0 && (!s->received || original.state<AE_HANDOFF_OBSERVED)) r=-EACCES;
     uint32_t count=0; if (r==0) r=store_profile(s,&count);
     if (r==0 && original.state==AE_HANDOFF_OBSERVED && count!=4) r=-EAGAIN;
@@ -238,6 +272,7 @@ int ae_handoff_service_retire_store(struct ae_handoff_service *s,int64_t stamp,s
     if (r==0) r=store_profile(s,&count);
     if (r==0 && count) r=-EAGAIN; /* No repeat removal after a lost/partial effect. */
     if (r==0) r=ae_catalogue_handoff(s->store,&s->profile,AE_HANDOFF_RETIRED,&original.original,stamp,&result);
+    if (held) r=end_bracket(s,r);
     if (r==0) *output=result.snapshot;
     s->busy=0; return r;
 }

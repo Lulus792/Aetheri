@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — local execution-source fence verified; normal Root shutdown updated.
+7 November 2026 — custodian export source fenced; admitted cleanup retained.
 
 ## Coordination
 
@@ -14,6 +14,46 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The native original-observer handoff bridge now shares the retained SYSTEM
+catalogue's local source latch. Current Root-custodian permits bind epoch/boot/
+runtime without inventing a current User delegation. Raw export checks after
+fresh PREPARE; fixed-slot transport checks before every notification. Partial
+or unknown sets remain pending and cannot be filled/replayed. Existing admitted
+receive/retirement use separate cleanup brackets allowed while fenced, preserving
+all original exact-object/terminal/holder conditions. Local frames prevent
+catalogue close/runtime replacement, never prove external drain or lease release.
+No SQL/XML, policy/dependency or public capability change. See the
+[executed handoff-fence record](journal/2026-11-07-handoff-fence.md).
+
+Both complete builds pass. Fourteen new cases pass without skips in Release
+(101.92s) and ASan/UBSan (183.38s); ten affected regression groups pass respectively
+373.52s/413.08s. These new handoff cases use real SQLite/local descriptors with
+controlled lifetime/PID1 adapters, not joined live app/supervisor acceptance.
+Three deliberately defective producers are rejected at the intended post-commit,
+per-send and cleanup boundaries, leaving original artifacts unchanged. All 50
+contract/migration and 24 runtime-vector tests pass; full case output is retained.
+
+Normal P0 is updated and checked enforcing through the reviewed seven-stage
+controller sequence, including actual connection negatives, User replacement,
+Root restart, idle and stop. All 52 files are compared; owner/epochs, writer-lock
+inodes, policy and every non-runtime table remain unchanged. Services are stopped.
+Installed authority SHA-256:
+`bf69732c3af586858bf7fccea6732be66e21dfa7da3c454200ea966ff0509194`.
+
+Final audit: 406 source inputs, unchanged 28 frozen contracts/19 protected old-
+runtime hashes/four foreign files/exact CLOSED DRM/SDK 0.1.18/SDL04; no own actor,
+Aetheri service, protected sidecar or seat0 session. Fifty verified evidence
+exports are in `local/handoff-fence-2026-11-07`. Git records publication.
+
+Next: admitted owner/volume continuity, remaining effect and old/intervening-owner
+sources, supervisor activation/exported/delegated holders and durable per-run
+recovery. The old v6/User-v4 lost-handle quarantine stays unchanged. No normal
+executing launch, full recovery or removal is claimed; the complete OS/apps/
+image/installer/update/hardware/experiment-desktop goal remains active/incomplete.
+No repeated NexaUI handoff.
+
+## Prior local execution-source checkpoint
 
 The retained SYSTEM catalogue now owns an explicit one-way local execution latch
 shared by borrowing coordinators and writer/release transport. Fresh native

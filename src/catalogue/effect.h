@@ -3,6 +3,7 @@
 #include "catalogue/reservation.h"
 
 struct ae_execution_fence_status { unsigned int active; int fenced; };
+struct ae_effect_owner { uint8_t epoch[16],boot[16],runtime[16]; };
 /* Local, process-owned, one-way barrier shared by all execution coordinators
  * borrowing this SYSTEM catalogue. No SQL/IPC/filesystem effect and no reopen.
  * Fence acknowledgment excludes NEW locally permitted execution effects; active
@@ -23,4 +24,14 @@ int ae_catalogue_execution_fence_status(struct ae_catalogue *,struct ae_executio
 int ae_catalogue_check_execution_effect(struct ae_catalogue *,const struct ae_launch_context *);
 int ae_catalogue_begin_execution_effect(struct ae_catalogue *,const struct ae_launch_context *);
 int ae_catalogue_end_execution_effect(struct ae_catalogue *);
+/* Root-custodian variant: independently admitted current owner context, not a
+ * fabricated User/broker delegation. Exporting original observation handles
+ * uses the same source fence. Cleanup/receive of an EXISTING independently
+ * admitted obligation remains possible after fencing; that bracket grants no
+ * new export/start right. Both variants count toward local store lifetime and
+ * require autocommit. The caller still admits image/unit/transport/objects and
+ * every retirement prerequisite. These values are not bearer capabilities. */
+int ae_catalogue_check_owner_effect(struct ae_catalogue *,const struct ae_effect_owner *);
+int ae_catalogue_begin_owner_effect(struct ae_catalogue *,const struct ae_effect_owner *);
+int ae_catalogue_begin_owner_cleanup(struct ae_catalogue *,const struct ae_effect_owner *);
 #endif

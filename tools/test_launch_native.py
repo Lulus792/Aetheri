@@ -137,6 +137,11 @@ def main():
             scenarios=('exec-bridge-fresh','exec-bridge-lost')
         if len(sys.argv)==4 and sys.argv[3]=='handoff-transport':
             scenarios=tuple('exec-bridge-store-'+case for case in ('fresh','send-lost','barrier-lost','retire-lost','retire-commit','retired-commit'))
+        if len(sys.argv)==4 and sys.argv[3]=='handoff-fence':
+            scenarios=tuple('exec-bridge-fence-'+case for case in (
+                'before-prepare','export','prepare-commit','send-before','send-commit','send-property',
+                'send-1','send-2','send-3','send-4','send-barrier','owner'))+(
+                'exec-bridge-store-cleanup-fenced','exec-bridge-store-cleanup-fenced-retire-lost')
         if len(sys.argv)==4 and sys.argv[3]=='run-recovery':
             scenarios=tuple('exec-recover-'+case for case in (
                 'fresh','existing-close','twice','lost-begin','lost-release',

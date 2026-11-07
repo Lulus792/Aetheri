@@ -1,4 +1,5 @@
 #include "authority/handoff.h"
+#include "catalogue/effect.h"
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -12,15 +13,33 @@
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"handoff service line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 void ae_test_execution_commit_fault(int);
 struct adapters {
+    struct ae_catalogue *store;
     struct ae_process_context self;
     struct ae_lifetime_checkpoint original;
     int exported,restored,closed,drift,restore_error,objects,commit_fault,drift_after_restore;
     int commit_stage,store_bad,sends,removes,barriers,held,send_fail,remove_fail,barrier_fail,properties;
+    int fence_export,fence_commit,fence_property,fence_send,fence_barrier;
     int saved[4]; char labels[4][AE_HANDOFF_NAME_BYTES];
     struct ae_handoff_service **service;
 };
 static struct adapters *active;
 static max_align_t live_original;
+static void guard(struct adapters *a)
+{
+    struct ae_execution_fence_status status;
+    CHECK(a->store && ae_catalogue_execution_fence_status(a->store,&status)==0 && status.active>0);
+    struct ae_catalogue *alias=a->store;
+    CHECK(ae_catalogue_close(&alias)==-EBUSY && alias==a->store);
+    struct ae_catalogue_info info; CHECK(ae_catalogue_get_info(a->store,&info)==0);
+    uint8_t runtime[16]; memcpy(runtime,info.runtime_incarnation,16); runtime[15]^=0x10;
+    CHECK(ae_catalogue_begin_runtime(a->store,info.boot_id,runtime)==-EBUSY);
+}
+static void fence_local(struct adapters *a)
+{
+    struct ae_execution_fence_status before,after;
+    CHECK(ae_catalogue_execution_fence_status(a->store,&before)==0);
+    CHECK(ae_catalogue_fence_execution(a->store,&after)==0 && after.fenced && after.active==before.active);
+}
 int __real_ae_catalogue_handoff(struct ae_catalogue *,const struct ae_execution_profile *,enum ae_handoff_stage,
     const struct ae_execution_handoff *,int64_t,struct ae_handoff_result *);
 int __wrap_ae_catalogue_handoff(struct ae_catalogue *store,const struct ae_execution_profile *p,enum ae_handoff_stage stage,
@@ -28,7 +47,11 @@ int __wrap_ae_catalogue_handoff(struct ae_catalogue *store,const struct ae_execu
 {
     /* Scope fault to the mutation, after all read-only admission transactions. */
     if (active && active->commit_fault && (!active->commit_stage || active->commit_stage==(int)stage)) { ae_test_execution_commit_fault(active->commit_fault); active->commit_fault=0; }
-    return __real_ae_catalogue_handoff(store,p,stage,h,stamp,out);
+    int r=__real_ae_catalogue_handoff(store,p,stage,h,stamp,out);
+    if (active && r==0 && stage==AE_HANDOFF_PREPARE && out->transfer_required && active->fence_commit) {
+        active->fence_commit=0; fence_local(active);
+    }
+    return r;
 }
 int __real_ae_process_observe_self(sd_bus *,struct ae_process_context *);
 int __wrap_ae_process_observe_self(sd_bus *bus,struct ae_process_context *out)
@@ -41,14 +64,18 @@ int __wrap_ae_lifetime_export(struct ae_lifetime *v,struct ae_lifetime_checkpoin
 {
     if (!active) return __real_ae_lifetime_export(v,out,fds);
     CHECK(v==(struct ae_lifetime *)&live_original);
+    guard(active);
     for (int n=0;n<4;++n) { CHECK(fds[n]==-1); fds[n]=open("/dev/null",O_RDONLY|O_CLOEXEC); CHECK(fds[n]>=3); }
     *out=active->original; ++active->exported;
-    CHECK(ae_handoff_service_close(active->service)==-EBUSY); return 0;
+    CHECK(ae_handoff_service_close(active->service)==-EBUSY);
+    if (active->fence_export) fence_local(active);
+    return 0;
 }
 int __real_ae_lifetime_restore(sd_bus *,const struct ae_lifetime_checkpoint *,const int *,struct ae_lifetime **);
 int __wrap_ae_lifetime_restore(sd_bus *bus,const struct ae_lifetime_checkpoint *expected,const int *fds,struct ae_lifetime **out)
 {
     if (!active) return __real_ae_lifetime_restore(bus,expected,fds,out);
+    guard(active);
     CHECK(!*out && expected->pid==active->original.pid &&
         expected->process.pidfd_id==active->original.process.pidfd_id &&
         memcmp(expected->process.boot,active->original.process.boot,16)==0 &&
@@ -89,6 +116,9 @@ int __real_sd_bus_get_property_trivial(sd_bus *,const char *,const char *,const 
 int __wrap_sd_bus_get_property_trivial(sd_bus *bus,const char *destination,const char *path,const char *interface,const char *key,sd_bus_error *error,char type,void *out)
 {
     if (!active) return __real_sd_bus_get_property_trivial(bus,destination,path,interface,key,error,type,out);
+    if (active->fence_property && active->exported && !active->sends) {
+        active->fence_property=0; fence_local(active);
+    }
     CHECK(type=='u' && strcmp(interface,"org.freedesktop.systemd1.Service")==0); ++active->properties;
     if (strcmp(key,"FileDescriptorStoreMax")==0) *(uint32_t *)out=active->store_bad==3 ? 3U : 4U;
     else { CHECK(strcmp(key,"NFileDescriptorStore")==0); *(uint32_t *)out=(uint32_t)active->held; }
@@ -98,17 +128,20 @@ int __real_sd_pid_notify_with_fds(pid_t,int,const char *,const int *,unsigned in
 int __wrap_sd_pid_notify_with_fds(pid_t pid,int unset,const char *message,const int *fds,unsigned int count)
 {
     if (!active) return __real_sd_pid_notify_with_fds(pid,unset,message,fds,count);
+    guard(active);
     const char *prefix="FDSTORE=1\nFDPOLL=0\nFDNAME=";
     CHECK(!pid && !unset && count==1 && active->sends<4 && strncmp(message,prefix,strlen(prefix))==0);
     const char *label=strstr(message,"FDNAME="); CHECK(label && strlen(label+7)<AE_HANDOFF_NAME_BYTES);
     int slot=active->sends++; strcpy(active->labels[slot],label+7);
     active->saved[slot]=fcntl(fds[0],F_DUPFD_CLOEXEC,3); CHECK(active->saved[slot]>=3); ++active->held;
+    if (active->fence_send==active->sends) fence_local(active);
     return active->send_fail==active->sends ? -EIO : 1;
 }
 int __real_sd_notify(int,const char *);
 int __wrap_sd_notify(int unset,const char *message)
 {
     if (!active) return __real_sd_notify(unset,message);
+    guard(active);
     const char *prefix="FDSTOREREMOVE=1\nFDNAME="; CHECK(!unset && strncmp(message,prefix,strlen(prefix))==0);
     int found=0; for (int n=0;n<4;++n) if (strcmp(message+strlen(prefix),active->labels[n])==0 && active->saved[n]>=0) {
         CHECK(close(active->saved[n])==0); active->saved[n]=-1; --active->held; ++found;
@@ -120,7 +153,9 @@ int __real_sd_notify_barrier(int,uint64_t);
 int __wrap_sd_notify_barrier(int unset,uint64_t timeout)
 {
     if (!active) return __real_sd_notify_barrier(unset,timeout);
+    guard(active);
     CHECK(!unset && timeout==UINT64_C(2000000)); ++active->barriers;
+    if (active->fence_barrier) fence_local(active);
     return active->barrier_fail==active->barriers ? -EIO : 1;
 }
 static void unchanged_restore(struct ae_handoff_service *s,const int *fds,size_t count,int error)
@@ -136,7 +171,7 @@ void ae_test_handoff_service(struct ae_catalogue *store,const struct ae_executio
     const struct ae_execution_handoff *h,const char *scenario)
 {
     CHECK(getuid()==0 && geteuid()==0); int baseline=descriptors();
-    struct adapters a={0}; a.self.uid=0; memcpy(a.self.boot,p->boot,16); memcpy(a.self.invocation,h->custodian_invocation,16);
+    struct adapters a={.store=store}; a.self.uid=0; memcpy(a.self.boot,p->boot,16); memcpy(a.self.invocation,h->custodian_invocation,16);
     a.self.cgroup_id=99; strcpy(a.self.unit,h->custodian); strcpy(a.self.cgroup,"/system.slice/test-root.service"); strcpy(a.self.label,"system_u:system_r:aetheri_system_t:s0");
     a.original=(struct ae_lifetime_checkpoint){.root=h->root,.group=h->group,.pid_namespace=h->pid_namespace,
         .cgroup_namespace=h->cgroup_namespace,.events_inode=h->events_inode,.events_mount=h->events_mount,
@@ -230,10 +265,103 @@ static void transport_init(const struct ae_execution_profile *p,const struct ae_
     strcpy(a->original.context.unit,h->process.unit); strcpy(a->original.context.label,h->process.label); strcpy(a->original.context.cgroup,h->process.cgroup);
     memcpy(a->original.process.boot,h->process.boot,16); a->original.process.pidfd_id=h->process.pidfd_id; active=a;
 }
+static void owner_fence(struct ae_catalogue *store,struct ae_catalogue *user)
+{
+    struct ae_catalogue_info before,after; CHECK(ae_catalogue_get_info(store,&before)==0);
+    struct ae_effect_owner owner;
+    memcpy(owner.epoch,before.authority_epoch,16); memcpy(owner.boot,before.boot_id,16);
+    memcpy(owner.runtime,before.runtime_incarnation,16);
+    CHECK(ae_catalogue_begin_owner_effect(NULL,&owner)==-EINVAL);
+    CHECK(ae_catalogue_begin_owner_effect(store,NULL)==-EINVAL);
+    CHECK(ae_catalogue_begin_owner_cleanup(store,NULL)==-EINVAL);
+    CHECK(ae_catalogue_begin_owner_effect(user,&owner)==-EPERM);
+    CHECK(ae_catalogue_begin_owner_cleanup(user,&owner)==-EPERM);
+    for (int n=0;n<3;++n) {
+        struct ae_effect_owner wrong=owner;
+        if (!n) wrong.epoch[15]^=1; else if (n==1) wrong.boot[15]^=1; else wrong.runtime[15]^=1;
+        CHECK(ae_catalogue_check_owner_effect(store,&wrong)==-ESTALE);
+        CHECK(ae_catalogue_begin_owner_effect(store,&wrong)==-ESTALE);
+        CHECK(ae_catalogue_begin_owner_cleanup(store,&wrong)==-ESTALE);
+    }
+    pid_t child=fork(); CHECK(child>=0);
+    if (!child) {
+        CHECK(ae_catalogue_check_owner_effect(store,&owner)==-ECHILD);
+        CHECK(ae_catalogue_begin_owner_effect(store,&owner)==-ECHILD);
+        CHECK(ae_catalogue_begin_owner_cleanup(store,&owner)==-ECHILD); _exit(0);
+    }
+    int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && !WEXITSTATUS(status));
+    CHECK(ae_catalogue_begin_owner_effect(store,&owner)==0); guard(active);
+    fence_local(active);
+    CHECK(ae_catalogue_check_owner_effect(store,&owner)==-ESHUTDOWN);
+    CHECK(ae_catalogue_begin_owner_effect(store,&owner)==-ESHUTDOWN);
+    CHECK(ae_catalogue_begin_owner_cleanup(store,&owner)==0); guard(active);
+    struct ae_execution_fence_status observed;
+    CHECK(ae_catalogue_execution_fence_status(store,&observed)==0 && observed.fenced && observed.active==2);
+    CHECK(ae_catalogue_end_execution_effect(store)==0 && ae_catalogue_end_execution_effect(store)==0);
+    CHECK(ae_catalogue_end_execution_effect(store)==-EINVAL);
+    CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision &&
+        memcmp(before.runtime_incarnation,after.runtime_incarnation,16)==0);
+}
+void ae_test_handoff_fence(struct ae_catalogue *store,struct ae_catalogue *user,const struct ae_execution_profile *p,
+    const struct ae_execution_handoff *h,const char *scenario)
+{
+    int baseline=descriptors(); transport_init(p,h); transport.store=store;
+    CHECK(ae_catalogue_upgrade_handoffs(store)==0 && sd_bus_new(&transport_bus)>=0);
+    CHECK(ae_handoff_service_new(store,transport_bus,p,&transport.self,&transport_service)==0);
+    const char *prefix="exec-bridge-fence-"; CHECK(strncmp(scenario,prefix,strlen(prefix))==0);
+    const char *mode=scenario+strlen(prefix);
+    int raw=strcmp(mode,"before-prepare")==0 || strcmp(mode,"export")==0 || strcmp(mode,"prepare-commit")==0;
+    int no_intent=strcmp(mode,"before-prepare")==0 || strcmp(mode,"export")==0 || strcmp(mode,"send-before")==0 || strcmp(mode,"owner")==0;
+    int completed=strcmp(mode,"send-4")==0 || strcmp(mode,"send-barrier")==0;
+    if (strcmp(mode,"owner")==0) owner_fence(store,user);
+    else {
+        if (strcmp(mode,"before-prepare")==0 || strcmp(mode,"send-before")==0) fence_local(&transport);
+        else if (strcmp(mode,"export")==0) transport.fence_export=1;
+        else if (strcmp(mode,"prepare-commit")==0 || strcmp(mode,"send-commit")==0) transport.fence_commit=1;
+        else if (strcmp(mode,"send-property")==0) transport.fence_property=1;
+        else if (strcmp(mode,"send-barrier")==0) transport.fence_barrier=1;
+        else if (strlen(mode)==6 && strncmp(mode,"send-",5)==0 && mode[5]>='1' && mode[5]<='4') transport.fence_send=mode[5]-'0';
+        else CHECK(0 && "unknown handoff fence scenario");
+        struct ae_handoff_snapshot out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+        struct ae_handoff_transfer transfer=AE_HANDOFF_TRANSFER_INIT,unchanged=AE_HANDOFF_TRANSFER_INIT;
+        memset(&unchanged.journal,0xa5,sizeof unchanged.journal); transfer=unchanged;
+        struct ae_lifetime *source=(struct ae_lifetime *)&live_original;
+        int r=raw ? ae_handoff_service_prepare(transport_service,source,125001,&transfer) :
+            ae_handoff_service_send(transport_service,source,125001,&out);
+        if (raw) CHECK(r==-ESHUTDOWN && memcmp(&transfer,&unchanged,sizeof transfer)==0);
+        else if (completed) CHECK(r==0 && out.state==AE_HANDOFF_PENDING);
+        else CHECK(r==-ESHUTDOWN && memcmp(&out,&marker,sizeof out)==0);
+        int sent=transport.sends,exported=transport.exported;
+        CHECK(sent==transport.fence_send || (transport.fence_barrier && sent==4));
+        CHECK(transport.held==sent && transport.barriers==completed);
+        CHECK(exported==!(strcmp(mode,"before-prepare")==0 || strcmp(mode,"send-before")==0));
+        CHECK(ae_handoff_service_send(transport_service,source,125002,&out)==-ESHUTDOWN);
+        CHECK(ae_handoff_service_prepare(transport_service,source,125002,&transfer)==-ESHUTDOWN);
+        CHECK(transport.sends==sent && transport.exported==exported);
+    }
+    struct ae_handoff_snapshot snapshot;
+    struct ae_handoff_result ack,marker; memset(&marker,0xa5,sizeof marker); ack=marker;
+    if (no_intent) {
+        CHECK(ae_catalogue_get_handoff(store,p,&snapshot)==-ENOENT);
+        CHECK(__real_ae_catalogue_handoff(store,p,AE_HANDOFF_PREPARE,h,125003,&ack)==-ESHUTDOWN && memcmp(&ack,&marker,sizeof ack)==0);
+    } else {
+        CHECK(ae_catalogue_get_handoff(store,p,&snapshot)==0 && snapshot.state==AE_HANDOFF_PENDING && snapshot.revision==1);
+        CHECK(__real_ae_catalogue_handoff(store,p,AE_HANDOFF_PREPARE,h,999999,&ack)==0 && !ack.transfer_required);
+        CHECK(ack.snapshot.revision==snapshot.revision && ack.snapshot.recorded_unix_ms==snapshot.recorded_unix_ms);
+    }
+    struct ae_execution_fence_status status;
+    CHECK(ae_catalogue_execution_fence_status(store,&status)==0 && status.fenced && !status.active);
+    for (int n=0;n<4;++n) if (transport.saved[n]>=0) CHECK(close(transport.saved[n])==0);
+    CHECK(ae_handoff_service_close(&transport_service)==0 && !transport.objects);
+    sd_bus_unref(transport_bus); transport_bus=NULL; active=NULL;
+    CHECK(descriptors()==baseline);
+    printf("Handoff fence: %s; actual local bracket/SQLite/FD ownership, controlled lifetime/PID1; no drain or lease release.\n",mode);
+}
 void ae_test_handoff_transport_begin(struct ae_catalogue *store,const struct ae_execution_profile *p,
     const struct ae_execution_handoff *h,const char *scenario)
 {
-    transport_baseline=descriptors(); transport_init(p,h); CHECK(ae_catalogue_upgrade_handoffs(store)==0 && sd_bus_new(&transport_bus)>=0);
+    transport_baseline=descriptors(); transport_init(p,h); transport.store=store;
+    CHECK(ae_catalogue_upgrade_handoffs(store)==0 && sd_bus_new(&transport_bus)>=0);
     CHECK(ae_handoff_service_new(store,transport_bus,p,&transport.self,&transport_service)==0);
     struct ae_handoff_snapshot out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
     struct ae_lifetime *source=(struct ae_lifetime *)&live_original;
@@ -260,6 +388,7 @@ void ae_test_handoff_transport_finish(struct ae_catalogue *store,const struct ae
     CHECK(ae_handoff_service_new(store,transport_bus,p,&transport.self,&transport_service)==0);
     struct ae_handoff_snapshot out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
     struct ae_lifetime *observer=NULL;
+    if (strstr(scenario,"cleanup-fenced")) fence_local(&transport);
     if (transport.held==3) {
         const char *labels[3]={transport.labels[0],transport.labels[1],transport.labels[2]};
         CHECK(ae_handoff_service_receive(transport_service,transport.saved,labels,3,125003,&observer,&out)==-EINVAL && !observer && memcmp(&out,&marker,sizeof out)==0);

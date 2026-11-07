@@ -1497,13 +1497,46 @@ int ae_catalogue_check_execution_effect(struct ae_catalogue *store,const struct 
     if (r==0 && store->execution_fenced) r=-ESHUTDOWN;
     return r;
 }
-int ae_catalogue_begin_execution_effect(struct ae_catalogue *store,const struct ae_launch_context *context)
+static int begin_execution_bracket(struct ae_catalogue *store)
 {
-    int r=ae_catalogue_check_execution_effect(store,context);
-    if (r==0 && !sqlite3_get_autocommit(store->db)) r=-EBUSY;
+    int r=sqlite3_get_autocommit(store->db) ? 0 : -EBUSY;
     if (r==0 && store->execution_effects==UINT_MAX) r=-EOVERFLOW;
     if (r==0) ++store->execution_effects;
     return r;
+}
+int ae_catalogue_begin_execution_effect(struct ae_catalogue *store,const struct ae_launch_context *context)
+{
+    int r=ae_catalogue_check_execution_effect(store,context);
+    return r==0 ? begin_execution_bracket(store) : r;
+}
+static int effect_owner_context(struct ae_catalogue *store,const struct ae_effect_owner *owner)
+{
+    int r=execution_effect_owner(store);
+    if (r==0 && (!owner || !projection_id(owner->epoch) || !projection_id(owner->runtime) || !nonzero(owner->boot))) r=-EINVAL;
+    if (r==0) r=still_named(store);
+    struct ae_catalogue_info info;
+    if (r==0) r=read_info(store,&info);
+    if (r==0 && (memcmp(info.authority_epoch,owner->epoch,16)!=0 || memcmp(info.boot_id,owner->boot,16)!=0 ||
+        memcmp(info.runtime_incarnation,owner->runtime,16)!=0)) r=-ESTALE;
+    return r;
+}
+int ae_catalogue_check_owner_effect(struct ae_catalogue *store,const struct ae_effect_owner *owner)
+{
+    int r=execution_effect_owner(store);
+    if (r==0 && store->execution_fenced) r=-ESHUTDOWN;
+    if (r==0) r=effect_owner_context(store,owner);
+    if (r==0 && store->execution_fenced) r=-ESHUTDOWN;
+    return r;
+}
+int ae_catalogue_begin_owner_effect(struct ae_catalogue *store,const struct ae_effect_owner *owner)
+{
+    int r=ae_catalogue_check_owner_effect(store,owner);
+    return r==0 ? begin_execution_bracket(store) : r;
+}
+int ae_catalogue_begin_owner_cleanup(struct ae_catalogue *store,const struct ae_effect_owner *owner)
+{
+    int r=effect_owner_context(store,owner);
+    return r==0 ? begin_execution_bracket(store) : r;
 }
 int ae_catalogue_end_execution_effect(struct ae_catalogue *store)
 {
@@ -3108,6 +3141,7 @@ int ae_catalogue_handoff(struct ae_catalogue *s,const struct ae_execution_profil
             else if (result.snapshot.state==AE_HANDOFF_RETIRING) fresh=1;
         }
     }
+    if (r==0 && fresh && stage==AE_HANDOFF_PREPARE && s->execution_fenced) r=-ESHUTDOWN;
     if (r==0 && fresh && (info.revision==INT64_MAX || (stage!=AE_HANDOFF_PREPARE && result.snapshot.revision==INT64_MAX))) r=-EOVERFLOW;
     if (r==0 && fresh && stage>=AE_HANDOFF_RETIRE) {
         int64_t settled=0;

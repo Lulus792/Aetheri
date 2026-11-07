@@ -1,5 +1,20 @@
 # Decisions
 
+## Separate custodian exports from admitted cleanup — 7 November 2026
+
+Join the original-observer handoff bridge to the retained SYSTEM source latch.
+Use an independently admitted current Root epoch/boot/runtime, rather than
+fabricating current User delegation from the historical execution profile.
+Check after fresh PREPARE and before each fixed-slot notification; entered sends
+may finish, partial sets remain pending and retries never refill them.
+
+Receive and authorized retirement need separate current-owner cleanup brackets:
+blocking them merely because new exports are fenced would prevent settlement of
+existing obligations. They preserve every exact-object/terminal/holder condition
+and confer no new export/start/release permission. Local frames protect catalogue
+lifetime, not global drain. Keep SQL/XML, installed capabilities and policy
+unchanged. See the [runtime boundary](../../spec/runtime.md#original-observer-export-and-fd-store-cleanup).
+
 ## Fence the current local execution source explicitly — 7 November 2026
 
 Use a one-way latch on the retained SYSTEM catalogue, shared by every borrowing

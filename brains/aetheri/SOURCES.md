@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Custodian export source and retained cleanup — 7 November 2026
+
+- Original [owner permit contract](../../src/catalogue/effect.h),
+  [native journal](../../src/catalogue/store.c) and
+  [handoff bridge](../../src/authority/handoff.c): shared process-local source
+  latch, current Root-owner binding, post-commit/per-notification checks and
+  separate admitted cleanup brackets. No durable/global holder proof follows.
+- [Permanent scenarios](../../tests/test_handoff_service.c),
+  [native owner setup](../../tests/test_launch.c) and
+  [runner](../../tools/test_launch_native.py): real SQLite and actual local FD
+  ownership with controlled lifetime/PID1 adapters. These new tests do not
+  establish joined live app/supervisor acceptance or settle the old quarantine.
+  The [executed record](journal/2026-11-07-handoff-fence.md) separates those
+  component scenarios, deliberately defective producers and normal P0 checks.
+
 ## Local execution-source fence — 7 November 2026
 
 - Original [internal contract](../../src/catalogue/effect.h) and

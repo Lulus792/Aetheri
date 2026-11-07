@@ -934,3 +934,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   supervisor/old-owner/export/delegated sources require separate coordination.
   No SQL/XML/policy/public capability change. Keep the old lost-handle quarantine
   untouched; no normal executing launch or complete recovery follows.
+
+- authority/handoff now shares that local source fence for raw observer export
+  and every fresh four-slot FDSTORE notification. Root-custodian permits match
+  current epoch/boot/runtime without inventing a historical User delegation.
+  Hold brackets across source effects; recheck after PREPARE and before each
+  send. An entered last send/barrier may still finish; partial/unknown sets stay
+  pending and are never filled or replayed. Receive and independently authorized
+  retirement use cleanup brackets allowed after fencing, with all original
+  exact-object/terminal/holder prerequisites intact. Read spec/runtime.md's
+  original-observer-export section; run authority.handoff_fence and affected
+  catalogue/handoff/execution-fence regressions. These new component scenarios
+  use real SQL/local FDs with controlled lifetime/PID1 adapters, not joined live
+  app/supervisor acceptance. No installed public launch/recovery or old-volume
+  provenance follows; preserve the existing quarantine and frozen contracts.

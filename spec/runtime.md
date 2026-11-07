@@ -4710,3 +4710,40 @@ recovery or turn an empty inventory into global readiness.
 
 See the [executed source-fence record](../brains/aetheri/journal/2026-11-07-execution-fence.md)
 for actual tests and the remaining integration boundary.
+
+### Original-observer export and FD-store cleanup
+
+The native [`authority/handoff.h`](../src/authority/handoff.h) bridge now shares
+that retained SYSTEM source fence. Its Root-custodian permit matches the current
+authority epoch, boot and runtime, independently of the execution profile's old
+User/broker delegation. It does not fabricate a live User from historical data.
+Current protected image/unit/domain, continuous supervisor retention, exact
+original objects and transport admission remain caller obligations.
+
+Raw PREPARE holds a local bracket across actual observer export and the native
+journal commit. It checks again after a fresh PREPARE commit, before publishing
+owned duplicates. Native fresh PREPARE itself rejects a fenced source. An
+intervening fence closes local duplicates and leaves any committed intent
+pending; a historical native acknowledgment grants no fresh transfer right.
+
+The fixed four-slot send holds an outer bracket, including the nested raw
+PREPARE, and rechecks before each individual notification. A fence after an
+entered notification stops the remaining notifications. Partial or unknown
+sets preserve the original intent and cannot be filled or replayed. A fence
+inside the fourth entered notification or its barrier can still leave a complete
+processed four-slot set; success is only the existing processing/count evidence,
+never holder drain, readiness or permission to release a lease.
+
+Restoring an already admitted exact observation set and independently authorized
+retirement use separate current-owner cleanup brackets. They remain available
+after fencing and still block catalogue close/runtime replacement while active.
+Cleanup grants no new source-export or launch permission. Existing exact-set,
+replacement-invocation, terminal-run, released-lease, closed-copy and future-effect
+requirements remain; the local fence alone satisfies none of those wider facts.
+All error outputs remain unchanged. The count measures nested local frames,
+not processes or enumerated global holders. The latch remains process-local;
+replacement-owner/volume continuity and durable recovery are still separate work.
+
+See the [executed handoff-fence record](../brains/aetheri/journal/2026-11-07-handoff-fence.md)
+for the component tests, deliberately defective producer checks, normal-service
+update and remaining live-integration boundary.
