@@ -4,6 +4,25 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Native Terminal pane descriptions — 7 November 2026
+
+- Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079` public
+  [semantic descriptor](https://github.com/Lulus792/NexaUI/blob/e71ee304f1e6c23fa562d9e4b11f7e8e12152079/include/nexaui/nexaui.h)
+  and [Linux transport](https://github.com/Lulus792/NexaUI/blob/e71ee304f1e6c23fa562d9e4b11f7e8e12152079/platform/linux/accessibility.c),
+  read from the exact local Git object: copied descriptions, native actions and
+  focus admission are existing SDK contracts. The app supplies selected-pane
+  context through them; no new SDK version is selected.
+- GNOME [Action.do_action](https://gnome.pages.gitlab.gnome.org/at-spi2-core/libatspi/method.Action.do_action.html)
+  and [Component.grab_focus](https://gnome.pages.gitlab.gnome.org/at-spi2-core/libatspi/method.Component.grab_focus.html),
+  read 7 November: invoking an action and attempting keyboard focus are distinct
+  operations. The exact pinned source and actual native task establish this
+  host's background selection and refused inactive-window reading focus; this is
+  not a universal activation policy inferred from generic documentation.
+- The [executed record](journal/2026-11-07-terminal-pane-access.md) retains the
+  native old-path Defunct response, missing-description negative, controlled
+  compiled negative and the two-observation focus-fixture counterexample. It
+  separates client copies from server reads and test readiness from app behavior.
+
 ## SDL native wakeup investigation — 6–7 November 2026
 
 - Pinned SDL 3.4.20 archive, `src/events/SDL_events.c` and Wayland wait/device

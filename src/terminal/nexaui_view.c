@@ -250,7 +250,7 @@ static bool row_text(struct ae_terminal_view *v,const struct ae_terminal *m,unsi
         return nx_semantics_add_readonly_text_snapshot(v->ui,&sem,token,offsets[m->x],offsets[m->x],NULL)==NX_OK;
     return nx_semantics_add_readonly_text_snapshot_without_caret(v->ui,&sem,token,NULL)==NX_OK;
 }
-static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect bounds,bool contrast,bool live_caret,bool read_focus,bool enabled,struct projection *pane,const char *name) {
+static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect bounds,bool contrast,bool live_caret,bool read_focus,bool enabled,struct projection *pane,const char *name,const char *description) {
     if (!v || !v->frame || !m || m->cols<2 || m->cols>AE_TERM_COLS || m->rows<2 || m->rows>AE_TERM_ROWS ||
         m->history_count>AE_TERM_HISTORY || m->history_head>=AE_TERM_HISTORY || (!m->alt && m->view>m->history_count)) return false;
     /* Resize changes the projected row, even when the original cell model keeps
@@ -268,7 +268,8 @@ static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect 
         if (!v->id_offset) v->id_offset=UINT64_C(1000);
         v->model_rows=m->rows;v->model_cols=m->cols;v->row_count=0;
     }
-    nx_semantic_desc group={.id=pane?pane->group:2,.parent_id=1,.role=NX_ROLE_GROUP,.bounds=bounds,.name=span(name)};
+    nx_semantic_desc group={.id=pane?pane->group:2,.parent_id=1,.role=NX_ROLE_GROUP,.bounds=bounds,.name=span(name),
+        .description=span(description?description:"")};
     if (nx_semantics_add(v->ui,&group,NULL)!=NX_OK) return false;
     for (unsigned y=0;y<m->rows;++y) {
         const struct ae_term_cell *row=ae_terminal_row(m,y);if (!row) return false;
@@ -295,16 +296,17 @@ static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect 
 }
 bool ae_terminal_view_grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect bounds,bool contrast,bool live_caret,bool read_focus) {
     if(!v || v->named_mode) return false;
-    v->legacy_mode=true;return grid(v,m,bounds,contrast,live_caret,read_focus,read_focus,NULL,"Terminal output");
+    v->legacy_mode=true;return grid(v,m,bounds,contrast,live_caret,read_focus,read_focus,NULL,"Terminal output",NULL);
 }
 bool ae_terminal_view_pane(struct ae_terminal_view *v,const struct ae_terminal_pane_view *s) {
-    if(!v || !v->frame || !s || !s->id || !s->model || !s->name || strlen(s->name)>LABEL_BYTES || v->legacy_mode || v->named_calls>=8) return false;
+    if(!v || !v->frame || !s || !s->id || !s->model || !s->name || strlen(s->name)>LABEL_BYTES ||
+        (s->description && strlen(s->description)>LABEL_BYTES) || v->legacy_mode || v->named_calls>=8) return false;
     struct projection *p=NULL,*empty=NULL;
     for(unsigned i=0;i<16;++i) {if(v->panes[i].key==s->id) p=&v->panes[i];else if(!v->panes[i].key && !empty) empty=&v->panes[i];}
     if(p && (p->seen || p->model!=s->model)) return false;
     if(!p) {if(!empty) return false;uint64_t group=next_named(v);if(!group) return false;p=empty;*p=(struct projection){.key=s->id,.group=group,.model=s->model};}
     v->named_mode=true;++v->named_calls;p->seen=true;
-    return grid(v,s->model,s->bounds,s->contrast,s->caret,s->enabled && s->focusable,s->enabled,p,s->name);
+    return grid(v,s->model,s->bounds,s->contrast,s->caret,s->enabled && s->focusable,s->enabled,p,s->name,s->description);
 }
 bool ae_terminal_view_finish(struct ae_terminal_view *v,unsigned w,unsigned h,const unsigned char **pixels,size_t *stride) {
     if (!v || !v->frame || !pixels || !stride || !w || !h || w>8192 || h>8192 ||

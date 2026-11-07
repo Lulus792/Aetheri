@@ -654,6 +654,31 @@ Primary references: [SDL editing events](https://wiki.libsdl.org/SDL3/SDL_TextEd
 reset and event behavior was additionally read in the already-pinned SDL archive;
 the generic API documentation does not establish the backend's actual effect.
 
+### Native pane descriptions and original-shell tasks
+
+Each visible pane now supplies its output group with a localized description
+of whether it is selected. The app chooses that description from the original
+selected session; the private view descriptor borrows it for the call and the
+existing NexaUI semantics copy it. Description is optional and bounded to
+4096 bytes. It is presentation metadata, not focus or process authority.
+
+An explicit native header action may select a pane in an inactive window.
+Reading focus still requires the actual active host window; pane selection
+does not manufacture window activation. Menu state blocks pane actions. Hiding
+a tab retains its shells but retires its native row objects; restoring it creates
+fresh projections. An old object cannot target the new projection.
+
+`terminal.panes_atspi` independently reads and selects actual original panes,
+verifies same-name file writes in their separate working directories, checks
+modal/focus boundaries, changes fresh output after hide/restore and requires
+the retained original D-Bus text path to return Defunct. It also checks German/
+English descriptions, larger text and high contrast. A client may retain text
+already copied locally; this is distinct from a new server read. The multiplexer
+clipboard fixture separately waits for both native clipboard and queued SDL
+focus observations before recording its strict same-window switch baseline.
+See the [executed scope](../brains/aetheri/journal/2026-11-07-terminal-pane-access.md).
+Human screenreader tasks and complete accessible Terminal behavior remain open.
+
 ## Native worker wakeup regression
 
 The private SDL 3.4.20 profile now rechecks queued events after arming native

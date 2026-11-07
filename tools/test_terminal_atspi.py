@@ -18,18 +18,20 @@ ROOT=Path(__file__).resolve().parents[1]
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def main():
-    assert len(sys.argv) in (7,8)
+    assert len(sys.argv) in (7,8,9)
     server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
     query_concurrent=len(sys.argv)==8 and sys.argv[7]=='--query-concurrent'
     query_stress=query_concurrent or (len(sys.argv)==8 and sys.argv[7]=='--query-stress')
-    starter=Path(sys.argv[7]).resolve() if len(sys.argv)==8 and not query_stress else None
+    pane_task=len(sys.argv)==9 and sys.argv[8]=='--panes'
+    assert len(sys.argv)!=9 or pane_task
+    starter=Path(sys.argv[7]).resolve() if len(sys.argv)>=8 and not query_stress else None
     assert os.getuid()==1000
     assets=json.loads((fixture/'inputs.json').read_text())
     for n,h in assets['files'].items():assert digest(fixture/n.lstrip('/'))==h,n
     pin=json.loads((ROOT/'spec/ui-inputs.json').read_text())['terminal_font']
     for f in (pin,pin['bold']):
         assert digest(Path(f['path']))==f['sha256'] and digest(Path(f['license_path']))==f['license_sha256']
-    root=Path(tempfile.mkdtemp(prefix='terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
+    root=Path(tempfile.mkdtemp(prefix='terminal-panes-atspi-' if pane_task else 'terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
     for n in ('runtime','cache','captures'):(root/n).mkdir(mode=0o700)
     client=root/'client';sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
@@ -75,9 +77,12 @@ def main():
         if shift:event('K 42 0')
         if ctrl:event('K 29 0')
     codes=dict(zip('abcdefghijklmnopqrstuvwxyz',(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
-    codes.update(dict(zip('1234567890',range(2,12))));codes.update({' ':57,"'":40,'\\':43,'-':12,'\n':28})
+    codes.update(dict(zip('1234567890',range(2,12))));codes.update({' ':57,"'":40,'\\':43,'-':12,'[':26,']':27,'\n':28})
     def typing(s):
-        for c in s:key(52,shift=True) if c=='>' else key(codes[c])
+        for c in s:
+            if c=='>':key(52,shift=True)
+            elif 'A'<=c<='Z':key(codes[c.lower()],shift=True)
+            else:key(codes[c])
     def reading():
         rows=re.findall(r'^READ_FOCUS id=(\d+)$',log(),re.M);return int(rows[-1]) if rows else -1
     def accepted():
@@ -135,6 +140,90 @@ def main():
                     assert int(parent)==app.pid and (actual.st_dev,actual.st_ino)==(expected.st_dev,expected.st_ino)
                     sessions[cookie]={'pid':pane['pid'],'pin':fd,'inode':os.fstat(fd).st_ino}
             wait(lambda:shells_ready(1),'first original shell');retain()
+            if pane_task:
+                for name in ('first-work','second-work'):(root/name).mkdir(mode=0o700)
+                input_bytes={}
+                def pane_command(command,count):
+                    slot=workspace()['active'];previous=workspace()['panes'][slot]
+                    cookie=previous['cookie'];expected=input_bytes.get(cookie,0)+len(command.encode())
+                    typing(command)
+                    wait(lambda:accepted()==expected and shells_ready(count) and
+                         (workspace()['panes'][slot]['y'],workspace()['panes'][slot]['history'])!=(previous['y'],previous['history']),
+                         'complete original pane command, output and prompt')
+                    input_bytes[cookie]=expected
+                pane_command('cd first-work\n',1)
+                pane_command("printf 'pane-first\\n'\n",1)
+                key(32,ctrl=True,shift=True);wait(lambda:shells_ready(2) and workspace()['visible']==3,'two original visible panes');retain()
+                pane_command('cd second-work\n',2)
+                pane_command("printf 'pane-second\\n'\n",2)
+                first=workspace()['panes'][0]['cookie'];second=workspace()['panes'][1]['cookie']
+                before=accepted()
+                peer(app.pid,'pane-read',f'Shell {first}|pane-first','read-inactive-original-pane')
+                peer(app.pid,'pane-no-focus',f'Shell {first}|pane-first','refuse-inactive-row-focus')
+                assert workspace()['active']==1 and accepted()==before
+                peer(app.pid,'pane-switch',f'Shell {first}|pane-first','activate-original-first-pane')
+                wait(lambda:workspace()['active']==0,'native action selected first original pane')
+                peer(app.pid,'pane-focus',f'Shell {first}|pane-first','read-focus-first-pane')
+                wait(lambda:reading()>0,'first original row has reading focus');assert accepted()==before
+                key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'clear first reading focus');assert accepted()==before
+                pane_command('printf first > native-proof\n',2)
+                assert (root/'first-work/native-proof').read_bytes()==b'first' and not (root/'second-work/native-proof').exists()
+                before=accepted()
+                peer(app.pid,'pane-switch',f'Shell {second}|pane-second','activate-original-second-pane')
+                wait(lambda:workspace()['active']==1,'native action selected second original pane')
+                peer(app.pid,'pane-focus',f'Shell {second}|pane-second','read-focus-second-pane')
+                wait(lambda:reading()>0,'second original row has reading focus');assert accepted()==before
+                key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'clear second reading focus')
+                pane_command('printf second > native-proof\n',2)
+                assert (root/'second-work/native-proof').read_bytes()==b'second' and (root/'first-work/native-proof').read_bytes()==b'first'
+                before=accepted()
+                key(68,shift=True);wait(lambda:workspace()['menu']==1,'modal pane command menu')
+                peer(app.pid,'pane-blocked',f'Shell {first}|pane-first','modal-refuses-pane-activation')
+                assert workspace()['active']==1 and accepted()==before
+                key(1);wait(lambda:workspace()['menu']==0,'cancel pane menu')
+                event('D');wait(lambda:'FOCUS 0\n' in log(),'native pane window focus loss')
+                peer(app.pid,'pane-background-switch',f'Shell {first}|pane-first','explicit-background-pane-action')
+                wait(lambda:workspace()['active']==0,'explicit native action selects pane without host activation')
+                peer(app.pid,'pane-unfocused',f'Shell {first}|pane-first','inactive-window-refuses-reading-focus')
+                assert accepted()==before
+                gains=log().count('FOCUS 1\n');event('A');wait(lambda:log().count('FOCUS 1\n')==gains+1,'native pane window focus return')
+                held,channel=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);held.settimeout(8)
+                stale=start(client,'hidden-pane-row',app.pid,'pane-retire',f'Shell {first}|pane-first',channel.fileno(),pass_fds=(channel.fileno(),));channel.close()
+                assert held.recv(16)==b'HELD'
+                key(20,ctrl=True,shift=True);wait(lambda:shells_ready(3) and workspace()['tabs']==2,'new original tab hides existing panes');retain()
+                assert held.recv(16)==b'RETIRED'
+                peer(app.pid,'tabs','2:1:0','restore-original-pane-tab')
+                wait(lambda:workspace()['visible']==3 and workspace()['active']==0,'restore exact original two-pane workspace')
+                pane_command("printf '\\033[2J\\033[Hpane-updated\\n'\n",3)
+                peer(app.pid,'pane-read',f'Shell {first}|pane-updated','fresh-text-after-original-pane-restore')
+                held.sendall(b'REUSED');assert stale.wait(timeout=8)==0,log('hidden-pane-row');children.remove(stale);held.close()
+                peers.append({'name':'hidden-pane-row','exit':0})
+                assert workspace()['panes'][0]['cookie']==first and workspace()['panes'][1]['cookie']==second
+                peer(app.pid,'pane-read',f'Shell {first}|pane-updated','read-original-after-hide-restore')
+                assert (root/'first-work/native-proof').read_bytes()==b'first' and (root/'second-work/native-proof').read_bytes()==b'second'
+                def view_field(name):
+                    values=re.findall(r'^VIEW .* '+name+r'=(\d+)(?= |$)',log(),re.M)
+                    return int(values[-1]) if values else -1
+                key(64);wait(lambda:view_field('german')==1,'German native pane descriptions')
+                peer(app.pid,'pane-description-de',f'Shell {first}|pane-updated','German-selected-pane-description')
+                peer(app.pid,'pane-description-de',f'Shell {second}|pane-second','German-other-pane-description')
+                key(64);wait(lambda:view_field('german')==0,'restore English pane descriptions')
+                key(65);wait(lambda:view_field('contrast')==1,'high contrast pane presentation')
+                key(66);wait(lambda:view_field('points')==20,'larger original pane text')
+                peer(app.pid,'pane-focus',f'Shell {first}|pane-updated','scaled-selected-pane-reading-focus')
+                wait(lambda:f'DRAWN {workspace()["frame"]}\n' in log(),'presented native pane result')
+                capture('independent native pane activation, exact text and stale row after hide/restore')
+                maps=Path(f'/proc/{app.pid}/maps').read_text();assert 'libnexaui.so.0.1.18' in maps and 'ui-gles-release-04/prefix/lib/libSDL3.so' in maps
+                (root/'app-maps.txt').write_text(maps)
+                key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
+                assert all(select.select([s['pin']],[],[],0)[0] for s in sessions.values())
+                retire(server,0);retire(reg,-signal.SIGTERM);retire(bus,0)
+                assert all(select.select([p],[],[],0)[0] for p in pins)
+                for path in root.glob('*.log'):assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',path.read_text(errors='replace')),path
+                result={'result':'passed','images':images,'peers':peers,'client_sha256':digest(client),
+                        'sessions':{str(k):{n:v for n,v in s.items() if n!='pin'} for k,s in sessions.items()},
+                        'scope':'native original-pane read/activate/focus/modal/blur/hidden-row lifetime; not human screenreader acceptance'}
+                (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}));return
             for count in (2,3):
                 key(20,ctrl=True,shift=True);wait(lambda:shells_ready(count),'new original tab');retain()
             peer(app.pid,'tabs','3:2:0','select-first-tab')

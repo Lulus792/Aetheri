@@ -15,7 +15,10 @@ static uint64_t first_row(struct ae_terminal_view *v,const char *name) {
     size_t count;CHECK(nx_semantics_count(ae_terminal_view_context(v),&count)==NX_OK && count<1000);uint64_t group=0;
     for(size_t i=0;i<count;++i) {
         nx_semantic_view node;CHECK(nx_semantics_get(ae_terminal_view_context(v),(uint32_t)i,&node)==NX_OK);
-        if(node.role==NX_ROLE_GROUP && node.name.length==strlen(name) && !memcmp(node.name.data,name,node.name.length)) group=node.id;
+        if(node.role==NX_ROLE_GROUP && node.name.length==strlen(name) && !memcmp(node.name.data,name,node.name.length)) {
+            group=node.id;const char *description=!strcmp(name,"Pane 0")?"Selected pane":"Other pane";
+            CHECK(node.description.length==strlen(description) && !memcmp(node.description.data,description,node.description.length));
+        }
     }
     CHECK(group);
     for(size_t i=0;i<count;++i) {
@@ -29,6 +32,7 @@ static void frame(struct ae_terminal_view *v,struct ae_terminal *models[8],unsig
     for(unsigned i=0;i<8;++i) if(mask&(1u<<i)) {
         char name[32];snprintf(name,sizeof(name),"Pane %u",i);
         struct ae_terminal_pane_view pane={.id=i+1u,.name=name,.model=models[i],
+            .description=i==0?"Selected pane":"Other pane",
             .bounds={(float)(i%4)*220,(float)(i/4)*110,200,66},.enabled=true,.focusable=i==0,.caret=i==0};
         CHECK(ae_terminal_view_pane(v,&pane));
     }

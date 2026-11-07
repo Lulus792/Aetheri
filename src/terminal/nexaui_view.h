@@ -5,7 +5,7 @@
 #include <nexaui/cell_grid.h>
 struct ae_terminal_view;
 struct ae_terminal_pane_view {
-    uint64_t id;const char *name;const struct ae_terminal *model;nx_rect bounds;
+    uint64_t id;const char *name,*description;const struct ae_terminal *model;nx_rect bounds;
     bool contrast,caret,focusable,enabled;
 };
 struct ae_terminal_view_control {

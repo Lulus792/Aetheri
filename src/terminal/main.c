@@ -869,6 +869,8 @@ static uint64_t workspace_draw(struct app *a,int w,int h) {
         bool focused=&a->sessions[i]==a->session;
         if(header && !workspace_control(a,WORK_PANE|a->workspace.nodes[node].id,1,(SDL_FRect){p.x,p.y,p.w,header},name,name,focused,!workspace_switchable(a) || blocked,false,&action)) goto failed;
         SDL_FRect r=a->pane_grids[i];struct ae_terminal_pane_view pane={.id=a->session_cookie[i],.name=name,.model=a->sessions[i].model,
+            .description=focused?tr(a,"Selected terminal pane","Ausgewählter Terminal-Bereich"):
+                tr(a,"Terminal pane. Activate its header to select this shell.","Terminal-Bereich. Über die Kopfzeile diese Shell auswählen."),
             .bounds={r.x,r.y,r.w,r.h},.contrast=a->contrast,.caret=focused && !a->sessions[i].pty.ended,
             .focusable=focused && enabled && !a->sessions[i].closing && !blocked,.enabled=!blocked};
         if(!ae_terminal_view_pane(a->view,&pane)) goto failed;

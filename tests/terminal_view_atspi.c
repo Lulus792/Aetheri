@@ -61,6 +61,48 @@ static AtspiAccessible *find(AtspiAccessible *a,const char *name,unsigned depth)
     }
     return NULL;
 }
+/* A pane header and its output group intentionally share a name. Resolve the
+   role as well, so the client cannot accidentally read a button as a document. */
+static AtspiAccessible *find_role(AtspiAccessible *a,const char *name,AtspiRole role,unsigned depth) {
+    if(!a || depth>4) return NULL;
+    atspi_accessible_clear_cache(a);GError *error=NULL;
+    char *actual=atspi_accessible_get_name(a,&error);
+    int same=!error && actual && !strcmp(actual,name);g_free(actual);
+    AtspiRole found=error?ATSPI_ROLE_INVALID:atspi_accessible_get_role(a,&error);
+    if(error) {g_error_free(error);return NULL;}
+    if(same && found==role) return g_object_ref(a);
+    int count=atspi_accessible_get_child_count(a,&error);
+    if(error) {g_error_free(error);return NULL;}
+    if(count<0 || count>128) return NULL;
+    for(int i=0;i<count;++i) {
+        AtspiAccessible *child=atspi_accessible_get_child_at_index(a,i,&error);
+        if(error) {g_error_free(error);return NULL;}
+        AtspiAccessible *match=find_role(child,name,role,depth+1);
+        if(child) g_object_unref(child);
+        if(match) return match;
+    }
+    return NULL;
+}
+struct retained_wire {DBusConnection *bus;char *name,*path;};
+static int retain_wire(AtspiAccessible *a,struct retained_wire *out) {
+    AtspiObject *object=ATSPI_OBJECT(a);
+    if(out->bus || !object->app || !object->app->bus || !object->app->bus_name || !object->path) return 0;
+    out->bus=dbus_connection_ref(object->app->bus);out->name=g_strdup(object->app->bus_name);out->path=g_strdup(object->path);
+    return out->name && out->path;
+}
+static int wire_retired_text(const struct retained_wire *target) {
+    if(!target->bus || !target->name || !target->path) return 0;
+    DBusError error;dbus_error_init(&error);
+    DBusMessage *query=dbus_message_new_method_call(target->name,target->path,"org.a11y.atspi.Text","GetText");
+    dbus_int32_t first=0,last=-1;
+    if(!query) return 0;
+    if(!dbus_message_append_args(query,DBUS_TYPE_INT32,&first,DBUS_TYPE_INT32,&last,DBUS_TYPE_INVALID)) {dbus_message_unref(query);return 0;}
+    DBusMessage *reply=dbus_connection_send_with_reply_and_block(target->bus,query,1000,&error);dbus_message_unref(query);
+    int retired=!reply && dbus_error_has_name(&error,"org.a11y.atspi.Error.Defunct");
+    fprintf(stderr,"RETIRED_TEXT bus=%s path=%s reply=%d error=%s\n",target->name,target->path,reply!=NULL,error.name?error.name:"none");
+    if(reply) dbus_message_unref(reply);
+    dbus_error_free(&error);return retired;
+}
 static void wire_state(AtspiAccessible *a) {
     AtspiObject *o=ATSPI_OBJECT(a);
     if(!o->app || !o->app->bus || !o->app->bus_name || !o->path) {fputs("WIRE_STATE retired client reference\n",stderr);return;}
@@ -118,13 +160,73 @@ int main(int argc,char **argv) {
     if(argc!=4 && argc!=5) return 2;
     char *end;unsigned long pid=strtoul(argv[1],&end,10);if(!pid || *end || pid>2147483647ul) return 2;
     int control=-1;
-    if(argc==5) {long fd=strtol(argv[4],&end,10);if(*end || fd<0 || fd>INT_MAX || (strcmp(argv[2],"retire-row") && strcmp(argv[2],"retire-tab"))) return 2;control=(int)fd;}
-    int result=1,initialized=0;AtspiAccessible *desktop=NULL,*app=NULL,*frame=NULL,*group=NULL,*row=NULL,*button=NULL;AtspiText *text=NULL;AtspiSelection *selection=NULL;GError *e=NULL;
+    if(argc==5) {long fd=strtol(argv[4],&end,10);if(*end || fd<0 || fd>INT_MAX || (strcmp(argv[2],"retire-row") && strcmp(argv[2],"retire-tab") && strcmp(argv[2],"pane-retire"))) return 2;control=(int)fd;}
+    int result=1,initialized=0;AtspiAccessible *desktop=NULL,*app=NULL,*frame=NULL,*group=NULL,*row=NULL,*button=NULL;AtspiText *text=NULL;AtspiSelection *selection=NULL;GError *e=NULL;char *pane_snapshot=NULL;struct retained_wire old_wire={0};
     CHECK(atspi_init()==0);initialized=1;atspi_set_timeout(1000,1000);desktop=atspi_get_desktop(0);CHECK(desktop);
     app=target(desktop,pid,now()+3);if(!app) {fputs("target app was not registered\n",stderr);goto done;}
     frame=atspi_accessible_get_child_at_index(app,0,&e);CHECK(frame && !e);
     CHECK(atspi_accessible_get_role(frame,&e)==ATSPI_ROLE_FRAME && !e);
-    if(!strcmp(argv[2],"tabs") || !strcmp(argv[2],"tabs-disabled") || !strcmp(argv[2],"retire-tab")) {
+    if(!strncmp(argv[2],"pane-",5)) {
+        const char *separator=strchr(argv[3],'|');char name[96];
+        CHECK(separator && separator>argv[3] && (size_t)(separator-argv[3])<sizeof(name) && separator[1]);
+        memcpy(name,argv[3],(size_t)(separator-argv[3]));name[separator-argv[3]]='\0';
+        int unfocused=!strcmp(argv[2],"pane-unfocused") || !strcmp(argv[2],"pane-background-switch"),blocked=!strcmp(argv[2],"pane-blocked");
+        CHECK(await_state(frame,ATSPI_STATE_ACTIVE,!unfocused));
+        button=find_role(app,name,ATSPI_ROLE_PUSH_BUTTON,0);CHECK(button);
+        if(blocked) CHECK(!state(button,ATSPI_STATE_ENABLED));
+        if(!strcmp(argv[2],"pane-switch") || !strcmp(argv[2],"pane-background-switch") || blocked) {
+            AtspiAction *action=atspi_accessible_get_action_iface(button);
+            int accepted=action?atspi_action_do_action(action,0,&e):0;
+            if(action) g_object_unref(action);
+            if(blocked) {CHECK(!accepted);if(e) {g_error_free(e);e=NULL;}}
+            else CHECK(accepted && !e && await_state(button,ATSPI_STATE_SELECTED,1));
+        }
+        group=find_role(app,name,ATSPI_ROLE_GROUPING,0);CHECK(group);
+        int selected=state(button,ATSPI_STATE_SELECTED),german=!strcmp(argv[2],"pane-description-de");
+        const char *wanted=german?(selected?"Ausgewählter Terminal-Bereich":"Terminal-Bereich. Über die Kopfzeile diese Shell auswählen."):
+            selected?"Selected terminal pane":"Terminal pane. Activate its header to select this shell.";
+        char *description=atspi_accessible_get_description(group,&e);
+        int described=!e && description && !strcmp(description,wanted);
+        if(!described) fprintf(stderr,"PANE_DESCRIPTION selected=%d wanted=%s actual=%s error=%s\n",selected,wanted,description?description:"null",e?e->message:"none");
+        g_free(description);CHECK(described);
+        int count=atspi_accessible_get_child_count(group,&e);CHECK(!e && count>=2 && count<=100);
+        for(int i=0;i<count;++i) {
+            AtspiAccessible *candidate=atspi_accessible_get_child_at_index(group,i,&e);CHECK(candidate && !e);
+            AtspiText *candidate_text=atspi_accessible_get_text_iface(candidate);CHECK(candidate_text);
+            char *value=atspi_text_get_text(candidate_text,0,-1,&e);CHECK(value && !e);
+            int same=!strncmp(value,separator+1,strlen(separator+1));
+            if(same) {pane_snapshot=g_strdup(value);g_free(value);CHECK(pane_snapshot);row=candidate;text=candidate_text;break;}
+            g_free(value);
+            g_object_unref(candidate_text);g_object_unref(candidate);
+        }
+        CHECK(row && text && state(row,ATSPI_STATE_READ_ONLY));
+        CHECK(!atspi_accessible_get_editable_text_iface(row));
+        if(!strcmp(argv[2],"pane-focus") || !strcmp(argv[2],"pane-no-focus") || !strcmp(argv[2],"pane-retire") || !strcmp(argv[2],"pane-unfocused")) {
+            AtspiComponent *component=atspi_accessible_get_component_iface(row);CHECK(component);
+            int accepted=atspi_component_grab_focus(component,&e);
+            if(!strcmp(argv[2],"pane-no-focus") || unfocused) {CHECK(!accepted && !state(row,ATSPI_STATE_FOCUSED));if(e) {g_error_free(e);e=NULL;}}
+            else {CHECK(accepted && !e && await_state(row,ATSPI_STATE_FOCUSED,1));}
+            if(!strcmp(argv[2],"pane-retire")) {
+                CHECK(control>=0 && retain_wire(row,&old_wire));ssize_t n;
+                do {n=write(control,"HELD",4);}while(n<0 && errno==EINTR);CHECK(n==4);
+                CHECK(await_state(row,ATSPI_STATE_DEFUNCT,1));
+                do {n=write(control,"RETIRED",7);}while(n<0 && errno==EINTR);CHECK(n==7);
+                char ack[6];do {n=read(control,ack,sizeof(ack));}while(n<0 && errno==EINTR);
+                CHECK(n==6 && !memcmp(ack,"REUSED",6));
+                CHECK(!atspi_component_grab_focus(component,&e));if(e) {g_error_free(e);e=NULL;}
+                /* A client may still hold its original cached text. It must
+                   never read replacement content through the retired path. */
+                int retired=wire_retired_text(&old_wire);
+                char *value=atspi_text_get_text(text,0,-1,&e);
+                int original=!value || !*value || !strcmp(value,pane_snapshot);
+                fprintf(stderr,"RETIRED_TEXT_CACHE length=%zu original=%d error=%s\n",value?strlen(value):0,original,e?e->message:"none");g_free(value);
+                if(e) {g_error_free(e);e=NULL;}
+                CHECK(retired && original);
+            }
+            g_object_unref(component);
+        }
+        if(unfocused) CHECK(!state(frame,ATSPI_STATE_ACTIVE) && !state(row,ATSPI_STATE_FOCUSED));
+    } else if(!strcmp(argv[2],"tabs") || !strcmp(argv[2],"tabs-disabled") || !strcmp(argv[2],"retire-tab")) {
         int count=-1,selected=-1,next=-2;char extra;
         CHECK(sscanf(argv[3],"%d:%d:%d%c",&count,&selected,&next,&extra)==3 && count>=2 && count<=8 && selected>=0 && selected<count && next>=-1 && next<count);
         group=find(app,"Terminal tabs",0);CHECK(group && atspi_accessible_get_role(group,&e)==ATSPI_ROLE_PAGE_TAB_LIST && !e);
@@ -270,6 +372,9 @@ int main(int argc,char **argv) {
     }
     puts("TERMINAL_ATSPI passed");result=0;
 done:
+    if(old_wire.bus) dbus_connection_unref(old_wire.bus);
+    g_free(old_wire.name);g_free(old_wire.path);
+    g_free(pane_snapshot);
     if(e) g_error_free(e);
     if(text) g_object_unref(text);
     if(selection) g_object_unref(selection);

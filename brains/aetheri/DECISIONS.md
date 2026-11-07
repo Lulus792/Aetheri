@@ -1,5 +1,15 @@
 # Decisions
 
+## Describe original pane selection independently of window focus — 7 November 2026
+
+Use the existing NexaUI semantic Description for localized selected/other pane
+context. Keep original shell/model/PTY ownership and native row identities;
+do not create a second accessibility document. Native header invocation may
+select a background pane without claiming window activation. Reading focus
+continues to require the actual active host. Hold independent original routing
+before testing retired native references; a client copy is not a fresh server
+read. See the [executed boundary](journal/2026-11-07-terminal-pane-access.md).
+
 ## Correct the original SDL wake boundary — 7 November 2026
 
 Keep SDL 3.4.20 and the original app worker/UI ownership while correcting the

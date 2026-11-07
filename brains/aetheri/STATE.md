@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — native SDL wakeup and Wayland callback lifetime correction.
+7 November 2026 — native Terminal pane descriptions and original-shell tasks.
 
 ## Coordination
 
@@ -14,6 +14,42 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The original multipane Terminal now supplies localized selected/other-pane
+descriptions through the existing NexaUI 0.1.18 semantics. Its bounded optional
+view description does not own a model or change process/window ownership.
+Independent native clients read both panes, select their original shells, verify
+same-name proof files in separate working directories and distinguish background
+selection from refused inactive-window reading focus. Menu refusal, old-row
+retirement across hide/restore, fresh changed text, DE/EN metadata, larger text
+and high contrast are checked. An independently retained original D-Bus text
+path must still return Defunct after the fresh view is published.
+
+Thirty distinct affected groups pass both profiles across the recorded runs:
+four focused groups R 15.58s/SAN 21.39s plus other 26 R 151.26s and SAN 25/26 in 243.68s;
+the remaining multiplexer case then passes R 7.51s/SAN 12.60s after a proven test
+readiness correction. Its original failure sampled the clipboard callback before
+the queued SDL focus event. A real-log-prefix counterexample and native trace
+support waiting for both observations from before peer mapping, preserving the
+original no-extra-focus/closed-transfer assertions and deadlines. This is not a
+claim that a complete new 81-group suite was run. A compiled no-description
+producer is rejected by the independent native task; its inputs/ELF are retained.
+
+Audit: 394 source inputs, 530 exports/198 verified native images, unchanged nineteen
+protected hashes/28 frozen contracts/NexaUI 0.1.18/SDL 04/CLOSED DRM history and no
+sidecars. Both eight-shell samples have zero idle frames and at most one CPU tick
+over 2s. The Enforcing carrier is on tty1 with no own build/native/private-registry
+actor, Aetheri service or seat0 session. The old quarantined runtime remains
+unchanged. See the [executed record](journal/2026-11-07-terminal-pane-access.md)
+and `local/terminal-pane-access-2026-11-07`; Git history records publication.
+
+Next: keyboard navigation within explicit Terminal reading focus, then the
+remaining accepted desktop/app work. Human/full screenreader, physical/final
+design, persistent sessions and production lifecycle remain open. The complete
+OS/apps/image/installer/update/hardware/experiment-desktop goal stays active and
+incomplete. No new SDK requirement or repeated NexaUI handoff is implied.
+
+## Prior native SDL wakeup checkpoint
 
 The original Terminal query workload exposed a concrete SDL 3.4.20 queue/arm
 race: a worker successfully queued an event before native wakeup was armed,
@@ -45,7 +81,7 @@ See the [investigation record](journal/2026-11-06-sdl-wakeup.md).
 
 Audit: 394 source inputs, 727 exports/216 verified native images, unchanged nineteen
 protected hashes/28 frozen contracts/SDK/CLOSED DRM history and no sidecars. The
-eight-shell samples have zero idle frames and one CPU tick over2s. Enforcing tty1,
+eight-shell samples have zero idle frames and one CPU tick over 2s. Enforcing tty1,
 no remaining build/native/private-registry actor, Aetheri service or seat0 session.
 The old quarantined runtime remains unchanged. Local evidence is under
 `local/terminal-native-query-2026-11-06`. Git history records publication.
@@ -106,7 +142,7 @@ Final `terminal-multiplex-final-canonical-6girjfpb` passes all79 app/UI groups
 in Release318.29s and ASan/UBSan547.56s, without skips. The audit joins387 source
 inputs and601 retained exports, including252 native images and16 selected
 executable hashes. Ordinary and large-text/high-contrast/owner images were
-inspected. Both eight-session idle samples have zero frames/ticks over2s.
+inspected. Both eight-session idle samples have zero frames/ticks over 2s.
 Protected19/frozen28, unchanged SDK0.1.18, no sidecars, historical closed DRM and
 no remaining build/native/private-registry actors are checked. The Enforcing
 carrier is idle on tty1 with no Aetheri unit/seat0 session; the old quarantined

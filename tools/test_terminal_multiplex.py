@@ -63,11 +63,21 @@ def main():
     def clipboard():
         rows=re.findall(r'^CLIPBOARD state (.+)$',log(),re.M)
         return fields(rows[-1]) if rows else {}
+    def settled_focus(value,events=None):
+        # Clipboard keyboard callbacks can precede the queued SDL focus event.
+        # Use one log snapshot and wait for BOTH observations before recording
+        # the no-extra-focus baseline for an internal pane/tab switch.
+        text=log();focus=re.findall(r'^FOCUS ([01])\n',text,re.M)
+        rows=re.findall(r'^CLIPBOARD state (.+)$',text,re.M)
+        return bool(focus) and (events is None or len(focus)==events) and focus[-1]==str(value) and bool(rows) and fields(rows[-1]).get('focused')==value
     def peer_command(p,name,command):
         before=log(name).count(f'CLIPBOARD_SYNC {command}\n')
         p.stdin.write(command.encode());p.stdin.flush()
         wait(lambda:log(name).count(f'CLIPBOARD_SYNC {command}\n')>before,'independent peer '+command)
     def publish(name,payload=None):
+        # Mapping the peer can itself move focus, before our explicit click.
+        wait(lambda:settled_focus(1),'original terminal focus before peer mapping')
+        focus=len(re.findall(r'^FOCUS [01]\n',log(),re.M))
         if payload is None:p=start(peer_bin,name,'--clipboard-stall',pipe=True)
         else:
             path=root/(name+'.payload');path.write_bytes(payload)
@@ -76,11 +86,12 @@ def main():
         p.stdin.write(b'df');p.stdin.flush()
         wait(lambda:re.search(r'^FRAME 0 \d+ \d+ 1$',log(name),re.M),'clipboard peer on third output')
         event('M 4580 100');event('B 272 1');event('B 272 0')
-        wait(lambda:log(name).rfind('KEYBOARD_ENTER 0\n')>log(name).rfind('KEYBOARD_LEAVE\n') and clipboard().get('focused')==0,'peer actual focus')
+        wait(lambda:log(name).rfind('KEYBOARD_ENTER 0\n')>log(name).rfind('KEYBOARD_LEAVE\n') and settled_focus(0,focus+1),'peer native and SDL focus')
         peer_command(p,name,'C')
         pane=state()['panes'][state()['active']]
+        focus=len(re.findall(r'^FOCUS [01]\n',log(),re.M))
         event(f'M {40+pane["left"]+5} {40+pane["top"]+10}');event('B 272 1');event('B 272 0')
-        wait(lambda:clipboard().get('focused')==1 and clipboard().get('available')==1,'original pane focus and clipboard offer')
+        wait(lambda:settled_focus(1,focus+1) and clipboard().get('available')==1,'original pane native/SDL focus and clipboard offer')
         return p
     def close_peer(p):
         p.stdin.write(b'q');p.stdin.flush();assert p.wait(timeout=8)==0
