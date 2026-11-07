@@ -4598,3 +4598,63 @@ non-runtime tables and policy remain unchanged; services are stopped. The new
 startup inventory is now observed in both actual services. Exact test/retirement
 boundaries and remaining recovery work are in the
 [executed image record](../brains/aetheri/journal/2026-11-07-authority-image.md).
+
+
+## Reciprocal current Root connection
+
+7 November 2026. The normal P0 User now uses
+[`authority/system_connection.h`](../src/authority/system_connection.h) on its
+separate outbound system-bus connection. This is current protocol-actor binding,
+not recovery-owner admission, volume continuity or app/lease settlement.
+
+Root independently provisions `registry/system-unit.conf`, root-owned 0444 and
+`aetheri_registry_t`, with `AETHERI-P0-SYSTEM-1` and a normal selected `unit=`.
+The explicit controller verifies its recorded selection; init/enrollment/fixture/
+offline recovery/probe units cannot be normal Root selections. An older stopped
+bootstrap receives an initially empty slot only through `update-owned`. File and
+parent flushes precede dispatch. Unknown publication/administrative update still
+requires manual reconciliation; this is not a production power-loss journal.
+
+User resolves the well-known System1 name, installs a narrow ownership-change
+watch and sends discovery to the selected unique connection. Every successful
+reply must correlate to the original retained sent request, actual bus, sender
+and cookie through the existing authenticated ProcessFD capture. Require UID0,
+exact Root domain and repeated current credentials/label, active MainPID, unit,
+invocation, boot and cgroup observations. Match the independently selected unit
+and Root epoch. Management1's second byte array is an **event incarnation**;
+only Broker1.Register supplies the Root runtime. The parser checks complete
+bounded replies. Root's own protected ELF/self-MainPID/unit selection complements
+this proof; User never reads Root's executable or process memory.
+
+Retain the actual original Root pin/context/name/runtime. Recheck them and the
+protected selection before Check/delegation. Normal User catalogue projection,
+reservation/receipt and no-exec setup RPCs now use that same unique destination
+and correlated successful-reply path. No call automatically retries a timeout or
+rejection. Failed calls preserve the original lifecycle journals; ordinary method
+errors are not authenticated outcome evidence. The conservative P0 connection
+latches errors while that original actor remains live; richer operation-error
+and recovery coordination remain separate from this private profile.
+
+A synchronous name-owner query can see the same final unique name after a
+release/reacquire while earlier ownership signals remain queued. Verification
+therefore dispatches at most 64 pending messages around the owner observation on
+User's dedicated outbound bus. Observed loss remains terminal even if the same
+process/name reacquires ownership. Queue exhaustion fails closed. This is bounded
+on-demand dispatch, not a resident polling loop. Nested use/close returns EBUSY;
+forked use returns ECHILD. Callbacks latch departure without closing a descriptor
+being used by a nested check. Terminal departure retires local watches/pins only.
+
+Changed context/configuration/runtime/protocol remains quarantined; restoring
+text does not clear the live binding. Independently observed process exit or name
+loss permits a later fresh identity registration. That does not adopt an old
+run, restore READY, fence future effects, prove holder drain or release a lease.
+No SQL/XML/version/public capability or ordinary catalogue schema changes.
+
+The enforcing policy adds only User-to-Root `process getattr`, proc directory
+search/getattr and file read/open/getattr. Explicit neverallow rules exclude
+Root executable access and ptrace. No new capability, dependency or raw app bus
+access. Upstream Linux 6.19.10 `fs/pidfs.c` separates PIDFD_GET_INFO metadata from
+namespace-FD ptrace checks; actual cross-UID acceptance is separately exercised
+on the Fedora carrier. See the
+[executed connection record](../brains/aetheri/journal/2026-11-07-system-connection.md)
+for source hashes, actual tests, the reproduced ownership-loss defect and limits.

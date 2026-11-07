@@ -904,3 +904,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   inventory. Policy and non-runtime owner tables stay unchanged. This does not
   prove loaded-dependency/remote-owner/continuity/future-effect/holder admission
   or settle the old quarantine. Preserve its lost-handle boundary.
+
+- authority/system_connection.h now binds normal User to the protected current
+  Root unit/epoch using actual correlated successful replies, an original
+  ProcessFD and repeated active MainPID/unit/invocation/cgroup/boot checks. Read
+  spec/runtime.md's reciprocal-current-Root section; run
+  authority.system_connection and the explicit controller connection-check.
+  Management event incarnation is not Root runtime. Private normal User Root
+  RPCs use the same unique destination. Bounded pending-message dispatch retains
+  name-loss evidence through same-name reacquisition; nested use/close is EBUSY.
+  Live drift quarantines, actual departure drops identity only; never replay a
+  sent call or infer old-run adoption/drain/lease release. The normal v2 bootstrap
+  now includes the protected selected-Root slot and minimal reciprocal proc
+  metadata policy, with explicit User ptrace/Root-ELF denials. No SQL/XML/public
+  capability change. Interrupted controller probe/update needs manual review.
+  Continuity, prior-owner/future-effect/holder recovery remain separate work;
+  preserve the old lost-handle quarantine and all unsettled owner journals.

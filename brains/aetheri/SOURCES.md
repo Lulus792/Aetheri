@@ -4,6 +4,28 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Reciprocal current Root identity — 7 November 2026
+
+- Upstream stable Linux [6.19.10 pidfs implementation](https://raw.githubusercontent.com/gregkh/linux/v6.19.10/fs/pidfs.c),
+  directly read 7 November; 29,513 bytes, SHA-256
+  `49e14ed42427e9c5e5ee7c71dba91596e2d577cbddf4138e1153870782e00b3a`.
+  `pidfd_info` returns credentials/cgroup metadata; the namespace-opening ioctl
+  path separately performs a ptrace access check. This upstream source is not
+  a claim that all Fedora patches or arbitrary kernels are identical. The
+  browser fetch failed; the official raw URL was retrieved directly and retained.
+- Original [connection contract](../../src/authority/system_connection.h),
+  [implementation](../../src/authority/system_connection.c),
+  [actual reply/lifetime component](../../tests/test_system_connection.c) and
+  [normal enforcing controller](../../tools/p0_services.py): original ProcessFD,
+  typed supervisor context, protected selection and no automatic request replay.
+  Source/pin/current-process semantics remain those of the existing peer/process
+  modules; no path/PID reconstruction or cross-UID executable access.
+- [Executed connection record](journal/2026-11-07-system-connection.md): Release/
+  sanitizer cases, ownership-loss counterexample, actual UID1000/Root services,
+  preserved catalogue state and unchanged old quarantine. Historical results do
+  not establish volume continuity, holder drain or production recovery.
+
+
 ## Current authority ELF selection — 7 November 2026
 
 - Linux man-pages [pidfd_open](https://man7.org/linux/man-pages/man2/pidfd_open.2.html)

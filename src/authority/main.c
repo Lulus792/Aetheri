@@ -5,6 +5,7 @@
 #include "linux/image.h"
 #include "core/digest.h"
 #include "authority/broker.h"
+#include "authority/system_connection.h"
 #include "core/allocation.h"
 #include "core/fixture.h"
 #include "authority/fixture.h"
@@ -44,7 +45,8 @@ struct authority {
     sd_bus *system_bus;
     struct ae_broker broker;
     sd_id128_t system_runtime;
-    int registered;
+    struct ae_system_connection *system_connection;
+    sd_bus *local_bus; /* Borrowed; Root uses it for its own protected MainPID. */
     struct ae_setup_service setup;
     struct ae_image image;
     int image_ready,image_stale,setup_recovery;
@@ -218,9 +220,11 @@ static int load_registry(struct authority *authority, char *state_path)
     return result;
 }
 
-static int broker_unit(char output[256])
+static int selected_unit(char output[256], int system)
 {
-    int fd = open_trusted(ROOT "/registry/broker.conf", 0);
+    int parent=root_directory(ROOT "/registry","aetheri_registry_t");
+    if (parent!=0) return parent;
+    int fd = open_trusted(system ? ROOT "/registry/system-unit.conf" : ROOT "/registry/broker.conf", 0);
     if (fd < 0) return fd;
     struct stat info;
     char bytes[256] = {0};
@@ -228,20 +232,28 @@ static int broker_unit(char output[256])
                  (info.st_mode & 07777) == 0444 && info.st_size > 0 && info.st_size < 256 ? labeled(fd, "aetheri_registry_t") : -EACCES;
     ssize_t count = result == 0 ? read(fd, bytes, sizeof bytes - 1U) : -1;
     close(fd);
-    const char prefix[] = "AETHERI-P0-BROKER-1\nunit=";
+    const char *prefix = system ? "AETHERI-P0-SYSTEM-1\nunit=" : "AETHERI-P0-BROKER-1\nunit=";
+    size_t prefix_size = strlen(prefix);
     if (result < 0) return result;
-    if (count != info.st_size || count <= (ssize_t)sizeof prefix || bytes[count - 1] != '\n' ||
-        memchr(bytes, 0, (size_t)count) != NULL || memcmp(bytes, prefix, sizeof prefix - 1U) != 0) return -EBADMSG;
+    if (count != info.st_size || count <= (ssize_t)(prefix_size + 1U) || bytes[count - 1] != '\n' ||
+        memchr(bytes, 0, (size_t)count) != NULL || memcmp(bytes, prefix, prefix_size) != 0) return -EBADMSG;
     bytes[count - 1] = 0;
-    const char *unit = bytes + sizeof prefix - 1U;
+    const char *unit = bytes + prefix_size;
     size_t length = strlen(unit);
-    if (length < 20 || length >= 256 || strncmp(unit, "aetheri-p0-", 11) != 0 ||
-        strstr(unit, "-user-") == NULL || strcmp(unit + length - 8, ".service") != 0) return -ENODATA;
+    const char *role = system ? "-system-" : "-user-";
+    size_t digits = 43U + strlen(role);
+    if (length <= digits + 8U || length >= 256 || strncmp(unit,"aetheri-p0-",11)!=0 ||
+        memcmp(unit+43,role,strlen(role))!=0 || strcmp(unit+length-8,".service")!=0) return -ENODATA;
+    for (size_t n=11;n<43;++n)
+        if (!((unit[n]>='0' && unit[n]<='9') || (unit[n]>='a' && unit[n]<='f'))) return -EBADMSG;
+    for (size_t n=digits;n<length-8U;++n) if (unit[n]<'0' || unit[n]>'9') return -EBADMSG;
     for (size_t n = 0; n < length; ++n)
         if (!((unit[n] >= 'a' && unit[n] <= 'z') || (unit[n] >= '0' && unit[n] <= '9') || unit[n] == '-' || unit[n] == '.')) return -EBADMSG;
     memcpy(output, unit, length + 1U);
     return 0;
 }
+
+static int broker_unit(char output[256]) { return selected_unit(output,0); }
 
 static int read_id(sd_bus_message *message, uint8_t output[16])
 {
@@ -257,6 +269,15 @@ static int authority_info(struct authority *authority, struct ae_catalogue_info 
 {
     int result = enforced_domain(authority->identity.kind == AE_CATALOGUE_SYSTEM ? "aetheri_system_t" : "aetheri_user_t");
     if (result == 0) result = authority_image(authority,0);
+    if (result == 0 && authority->identity.kind == AE_CATALOGUE_SYSTEM) {
+        struct ae_process_context supervised; sd_id128_t invocation; char unit[256];
+        result = selected_unit(unit,1);
+        if (result == 0) result = ae_process_observe_self_main(authority->local_bus,&supervised);
+        if (result == 0 && (sd_id128_get_invocation(&invocation) != 0 ||
+            supervised.uid != authority->uid || !context_is(supervised.label,"aetheri_system_t") ||
+            strcmp(supervised.unit,unit) != 0 || memcmp(invocation.bytes,supervised.invocation,16) != 0 ||
+            memcmp(authority->boot.bytes,supervised.boot,16) != 0)) result = -ESTALE;
+    }
     if (result == 0) result = ae_catalogue_get_info(authority->catalogue, info);
     if (result == 0 && (memcmp(info->boot_id, authority->boot.bytes, 16) != 0 ||
         memcmp(info->runtime_incarnation, authority->runtime.bytes, 16) != 0)) result = -ESTALE;
@@ -332,60 +353,59 @@ static int method_check(sd_bus_message *message, void *userdata, sd_bus_error *e
     return runtime_reply(message, authority);
 }
 
-static int owner_changed(sd_bus_message *message, void *userdata, sd_bus_error *error)
-{
-    (void)error;
-    struct authority *authority = userdata;
-    const char *name, *old_owner, *new_owner;
-    int result = sd_bus_message_read(message, "sss", &name, &old_owner, &new_owner);
-    (void)old_owner;
-    if (result < 0) return result;
-    if (authority->identity.kind == AE_CATALOGUE_SYSTEM) ae_broker_name_lost(&authority->broker, name, new_owner);
-    else if (strcmp(name, "org.aetheri.System1") == 0) authority->registered = 0;
-    return 0;
-}
-
 static int register_system(struct authority *authority)
 {
-    struct authority system = {.uid = 0, .identity.kind = AE_CATALOGUE_SYSTEM};
-    int result = authority_image(authority,0);
-    if (result == 0) result = load_registry(&system, NULL);
-    sd_bus_message *request = NULL, *reply = NULL;
-    if (result == 0) result = sd_bus_message_new_method_call(authority->system_bus, &request, "org.aetheri.System1", "/org/aetheri/Broker1", "org.aetheri.Broker1", "Register");
-    if (result >= 0) result = sd_bus_message_append_array(request, 'y', system.identity.authority_epoch, 16);
-    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->identity.owner, 16);
-    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->identity.authority_epoch, 16);
-    if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->runtime.bytes, 16);
-    if (result >= 0) result = sd_bus_call(authority->system_bus, request, 2000000, NULL, &reply);
-    if (result > 0) result = read_id(reply, authority->system_runtime.bytes);
-    sd_bus_message_unref(request); sd_bus_message_unref(reply);
-    authority->registered = result == 0;
-    return result;
+    struct authority system = {.uid=0, .identity.kind=AE_CATALOGUE_SYSTEM};
+    int r=authority_image(authority,0); char unit[256];
+    if (r==0) r=load_registry(&system,NULL);
+    if (r==0) r=selected_unit(unit,1);
+    struct ae_broker_identity user;
+    memcpy(user.account,authority->identity.owner,16);
+    memcpy(user.epoch,authority->identity.authority_epoch,16);
+    memcpy(user.runtime,authority->runtime.bytes,16);
+    if (r==0) r=ae_system_connection_new(authority->system_bus,authority->event,unit,
+        system.identity.authority_epoch,authority->boot.bytes,&user,&authority->system_connection);
+    if (r==0) r=ae_system_connection_runtime(authority->system_connection,authority->system_runtime.bytes);
+    return r;
 }
 
 static int check_system(struct authority *authority)
 {
-    int result = authority_image(authority,0);
-    if (result == 0 && !authority->registered) result = register_system(authority);
-    for (unsigned int attempt = 0; result == 0 && attempt < 2; ++attempt) {
-        sd_bus_message *request = NULL, *reply = NULL;
-        sd_bus_error error = SD_BUS_ERROR_NULL;
-        result = sd_bus_message_new_method_call(authority->system_bus, &request, "org.aetheri.System1", "/org/aetheri/Broker1", "org.aetheri.Broker1", "Check");
-        if (result >= 0) result = sd_bus_message_append_array(request, 'y', authority->runtime.bytes, 16);
-        if (result >= 0) result = sd_bus_call(authority->system_bus, request, 2000000, &error, &reply);
-        sd_id128_t runtime;
-        if (result > 0) result = read_id(reply, runtime.bytes);
-        if (result == 0 && memcmp(runtime.bytes, authority->system_runtime.bytes, 16) != 0) result = -ESTALE;
-        int retry = attempt == 0 && result < 0 && sd_bus_error_has_name(&error, "org.aetheri.Error1.NotAuthorized");
-        sd_bus_error_free(&error); sd_bus_message_unref(request); sd_bus_message_unref(reply);
-        if (!retry) break;
-        /* Explicit rejection can follow a root restart. Identity registration is
-         * idempotent and still rechecks protected enrollment. Never retry timeout. */
-        authority->registered = 0;
-        result = register_system(authority);
+    int r=authority_image(authority,0);
+    if (r==0 && authority->system_connection) {
+        r=ae_system_connection_verify(authority->system_connection);
+        if (r!=0 && ae_system_connection_departed(authority->system_connection)==1) {
+            r=ae_system_connection_close(&authority->system_connection);
+        }
     }
-    if (result < 0) authority->registered = 0;
-    return result;
+    if (r==0 && !authority->system_connection) r=register_system(authority);
+    struct authority system={.uid=0,.identity.kind=AE_CATALOGUE_SYSTEM}; char unit[256];
+    if (r==0) r=load_registry(&system,NULL);
+    if (r==0) r=selected_unit(unit,1);
+    if (r==0) r=ae_system_connection_verify_selection(authority->system_connection,unit,
+        system.identity.authority_epoch,authority->boot.bytes);
+    /* No retry after a sent Check: timeout/rejection cannot replace a live peer. */
+    if (r==0) r=ae_system_connection_check(authority->system_connection);
+    return r;
+}
+
+static int system_projection(struct authority *a,const struct ae_projection_context *context,
+    const uint8_t account[16],const uint8_t install[16],struct ae_install_snapshot *output)
+{
+    sd_bus_message *request=NULL,*reply=NULL;
+    int r=ae_system_connection_request(a->system_connection,"/org/aetheri/Catalogue1",
+        "org.aetheri.Catalogue1","ResolveAppInstall",&request);
+    if (r>=0) r=sd_bus_message_append_array(request,'y',context->system_epoch,16);
+    if (r>=0) r=sd_bus_message_append_array(request,'y',context->user_runtime,16);
+    if (r>=0) r=sd_bus_message_append_array(request,'y',install,16);
+    if (r>=0) r=ae_system_connection_call(a->system_connection,request,&reply);
+    struct ae_install_snapshot snapshot;
+    if (r==0) r=ae_projection_read(reply,&snapshot);
+    if (r==0 && (memcmp(snapshot.system_epoch,context->system_epoch,16)!=0 ||
+        memcmp(snapshot.system_runtime,context->system_runtime,16)!=0 || memcmp(snapshot.boot,context->boot,16)!=0 ||
+        memcmp(snapshot.account,account,16)!=0 || memcmp(snapshot.install,install,16)!=0)) r=-ESTALE;
+    if (r==0) *output=snapshot;
+    sd_bus_message_unref(request); sd_bus_message_unref(reply); return r;
 }
 
 static int authenticate(sd_bus_message *message, struct authority *authority, sd_bus_error *error)
@@ -409,14 +429,6 @@ static int method_info(sd_bus_message *message, void *userdata, sd_bus_error *er
         return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Authority context is unavailable");
     if (authority->identity.kind == AE_CATALOGUE_SYSTEM) {
         if (authority->broker.peer.pidfd >= 0 && ae_peer_alive(&authority->broker.peer) == -ESRCH) ae_broker_clear(&authority->broker);
-        struct ae_process_context supervised;
-        sd_id128_t invocation;
-        result = ae_process_observe_self_main(sd_bus_message_get_bus(message), &supervised);
-        if (result != 0 || sd_id128_get_invocation(&invocation) != 0 ||
-            supervised.uid != authority->uid || !context_is(supervised.label, "aetheri_system_t") ||
-            memcmp(invocation.bytes, supervised.invocation, sizeof supervised.invocation) != 0 ||
-            memcmp(authority->boot.bytes, supervised.boot, sizeof supervised.boot) != 0)
-            return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "Supervised authority context is unavailable");
     } else if (check_system(authority) != 0) return sd_bus_error_set_const(error, "org.aetheri.Error1.NeedsRecovery", "System broker registration is unavailable");
     sd_bus_message *reply = NULL;
     result = sd_bus_message_new_method_return(message, &reply);
@@ -497,9 +509,10 @@ static int method_refresh_fixture(sd_bus_message *message,void *userdata,sd_bus_
         memcpy(context.boot,authority->boot.bytes,16); memcpy(context.user_runtime,authority->runtime.bytes,16);
     }
     struct ae_install_snapshot snapshot;
-    if (result==0) result=ae_projection_fetch(authority->system_bus,&context,authority->identity.owner,selection.install,&snapshot);
+    if (result==0) result=system_projection(authority,&context,authority->identity.owner,selection.install,&snapshot);
     if (result==0 && (memcmp(snapshot.publisher,selection.publisher,16)!=0 || memcmp(snapshot.artifact,selection.artifact,32)!=0 ||
-        memcmp(snapshot.generation,selection.generation,16)!=0 || !authority->registered)) result=-ESTALE;
+        memcmp(snapshot.generation,selection.generation,16)!=0)) result=-ESTALE;
+    if (result==0) result=ae_system_connection_verify(authority->system_connection);
     if (result==0) result=ae_process_verify(&peer,authority->system_bus,&controller);
     char current_unit[256];
     if (result==0) result=ae_authority_projection_unit(current_unit);
@@ -524,7 +537,7 @@ static int app_data_action(struct authority *authority,const char *control,int e
 static int fixture_runtime_call(struct authority *authority,const char *method,const struct ae_launch_request *request,const uint8_t cause[16],sd_bus_message **reply)
 {
     sd_bus_message *call=NULL;
-    int result=sd_bus_message_new_method_call(authority->system_bus,&call,"org.aetheri.System1","/org/aetheri/Runtime1","org.aetheri.Runtime1",method);
+    int result=ae_system_connection_request(authority->system_connection,"/org/aetheri/Runtime1","org.aetheri.Runtime1",method,&call);
     if (result>=0 && strcmp(method,"ReserveLaunch")==0) result=ae_reservation_write(call,request);
     else if (result>=0 && strcmp(method,"GetDispatch")==0) result=sd_bus_message_append_array(call,'y',request->lease,16);
     else if (result>=0) {
@@ -532,7 +545,7 @@ static int fixture_runtime_call(struct authority *authority,const char *method,c
         for (size_t n=0;result>=0 && n<4;++n) result=sd_bus_message_append_array(call,'y',ids[n],16);
         if (result>=0) result=sd_bus_message_append(call,"t",UINT64_C(1));
     }
-    if (result>=0) result=sd_bus_call(authority->system_bus,call,2000000,NULL,reply);
+    if (result>=0) result=ae_system_connection_call(authority->system_connection,call,reply);
     sd_bus_message_unref(call); return result<0 ? result : 0;
 }
 static int fixture_dispatch_state(struct authority *authority,const struct ae_launch_request *request,const char *expected,uint64_t revision,uint64_t gate)
@@ -579,7 +592,7 @@ static int method_test_reservation(sd_bus_message *message,void *userdata,sd_bus
         memcpy(context.user_runtime,authority->runtime.bytes,16); memcpy(context.boot,authority->boot.bytes,16);
     }
     struct ae_install_snapshot install;
-    if (result==0) result=ae_projection_fetch(authority->system_bus,&context,authority->identity.owner,data.install,&install);
+    if (result==0) result=system_projection(authority,&context,authority->identity.owner,data.install,&install);
     struct ae_launch_request request={0};
     if (result==0) {
         memcpy(request.system_epoch,context.system_epoch,16); memcpy(request.broker_epoch,authority->identity.authority_epoch,16);
@@ -783,9 +796,9 @@ static int fetch_receipt(struct authority *a,const uint8_t lease[16],struct ae_r
     if (r==0) r=load_registry(&root,NULL);
     sd_id128_t expected=a->system_runtime;
     sd_bus_message *call=NULL,*reply=NULL; struct ae_reservation_receipt receipt;
-    if (r==0) r=sd_bus_message_new_method_call(a->system_bus,&call,"org.aetheri.System1","/org/aetheri/Catalogue1","org.aetheri.Catalogue1","GetReservationReceipt");
+    if (r==0) r=ae_system_connection_request(a->system_connection,"/org/aetheri/Catalogue1","org.aetheri.Catalogue1","GetReservationReceipt",&call);
     if (r>=0) r=sd_bus_message_append_array(call,'y',lease,16);
-    if (r>=0) r=sd_bus_call(a->system_bus,call,2000000,NULL,&reply);
+    if (r>=0) r=ae_system_connection_call(a->system_connection,call,&reply);
     if (r>=0) r=ae_receipt_read(reply,&receipt);
     if (r==0 && (memcmp(receipt.system_epoch,root.identity.authority_epoch,16)!=0 || memcmp(receipt.system_runtime,expected.bytes,16)!=0 ||
         memcmp(receipt.boot,a->boot.bytes,16)!=0 || memcmp(receipt.lease,lease,16)!=0)) r=-ESTALE;
@@ -825,7 +838,7 @@ static int method_prepare_fixture_launch(sd_bus_message *message,void *userdata,
     if (r==0) {
         memcpy(context.system_epoch,system.identity.authority_epoch,16); memcpy(context.system_runtime,a->system_runtime.bytes,16);
         memcpy(context.boot,a->boot.bytes,16); memcpy(context.user_runtime,a->runtime.bytes,16);
-        r=ae_projection_fetch(a->system_bus,&context,a->identity.owner,data.install,&q.source);
+        r=system_projection(a,&context,a->identity.owner,data.install,&q.source);
     }
     if (r==0) {
         struct ae_launch_request *request=&q.reservation;
@@ -910,12 +923,12 @@ static int method_fixture_setup(sd_bus_message *message,void *userdata,sd_bus_er
     if (r==0 && !cancel) r=ae_catalogue_authorize_user_setup(a->catalogue,&p);
     if (r==0) r=launch_controller_current(a,&peer,&controller,unit);
     sd_bus_message *call=NULL,*reply=NULL;
-    if (r==0) r=sd_bus_message_new_method_call(a->system_bus,&call,"org.aetheri.System1","/org/aetheri/Setup1","org.aetheri.Setup1",cancel ? "WithdrawSetup" : "PrepareSetup");
+    if (r==0) r=ae_system_connection_request(a->system_connection,"/org/aetheri/Setup1","org.aetheri.Setup1",cancel ? "WithdrawSetup" : "PrepareSetup",&call);
     if (r>=0) r=sd_bus_message_append_array(call,'y',p.lease,16);
     if (r>=0 && cancel) r=sd_bus_message_append_array(call,'y',p.user_operation,16);
     if (r>=0 && !cancel) r=sd_bus_message_append(call,"t",(uint64_t)p.data_gate_revision);
     if (r>=0 && !cancel) r=sd_bus_message_append_array(call,'y',hash,32);
-    if (r>=0) r=sd_bus_call(a->system_bus,call,2000000,NULL,&reply);
+    if (r>=0) r=ae_system_connection_call(a->system_connection,call,&reply);
     struct ae_reservation_receipt receipt;
     if (r>=0) r=fetch_receipt(a,p.lease,&receipt);
     if (r==0 && cancel) {
@@ -1177,6 +1190,7 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_bus_set_method_call_timeout(bus, 2000000);
     if (result >= 0) result = sd_bus_set_exit_on_disconnect(bus, 1);
     if (result >= 0) result = sd_bus_start(bus);
+    authority.local_bus=bus;
     authority.setup=(struct ae_setup_service){.catalogue=authority.catalogue,.bus=bus,.owner=&authority,.broker=setup_broker,.peer=AE_PEER_INIT};
     memcpy(authority.setup.epoch,authority.identity.authority_epoch,16); memcpy(authority.setup.runtime,authority.runtime.bytes,16); memcpy(authority.setup.boot,authority.boot.bytes,16);
     if (result >= 0 && !system) {
@@ -1187,8 +1201,6 @@ int main(int argc, char **argv)
         if (result >= 0) result = sd_bus_set_exit_on_disconnect(authority.system_bus, 1);
         if (result >= 0) result = sd_bus_start(authority.system_bus);
         if (result >= 0) result = sd_bus_attach_event(authority.system_bus, event, 0);
-        if (result >= 0) result = sd_bus_add_match(authority.system_bus, NULL,
-            "type='signal',sender='org.freedesktop.DBus',path='/org/freedesktop/DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='org.aetheri.System1'", owner_changed, &authority);
         if (result >= 0) result = register_system(&authority);
     }
     for (size_t n = 0; result >= 0 && wire_interfaces[n].roles != 0; ++n) {
@@ -1203,6 +1215,7 @@ int main(int argc, char **argv)
     if (result < 0) fprintf(stderr, "Authority startup/runtime failed: %d\n", result);
     ae_setup_service_clear(&authority.setup);
     ae_broker_clear(&authority.broker);
+    (void)ae_system_connection_close(&authority.system_connection);
     sd_bus_flush_close_unref(authority.system_bus);
     sd_bus_flush_close_unref(bus);
     sd_event_unref(event);

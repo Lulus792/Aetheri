@@ -125,6 +125,13 @@
 (allow aetheri_system_t aetheri_user_t (dir (search getattr)))
 (allow aetheri_system_t aetheri_user_t (file (read open getattr)))
 (allow aetheri_system_t aetheri_user_t (lnk_file (read getattr)))
+; Reciprocal current-Root metadata only. The executing ELF is checked by Root
+; itself; User gains neither Root executable reads, ptrace nor capabilities.
+(allow aetheri_user_t aetheri_system_t (process (getattr)))
+(allow aetheri_user_t aetheri_system_t (dir (search getattr)))
+(allow aetheri_user_t aetheri_system_t (file (read open getattr)))
+(neverallow aetheri_user_t aetheri_system_t (process (ptrace)))
+(neverallow aetheri_user_t aetheri_system_exec_t (file (read open map execute)))
 ; The broker reaches System1; apps still cannot use the raw system bus.
 (allow aetheri_user_t system_dbusd_var_run_t (dir (search getattr)))
 (allow aetheri_user_t system_dbusd_var_run_t (sock_file (write getattr)))

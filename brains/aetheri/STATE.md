@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — current authority ELF selection verified and installed in P0.
+7 November 2026 — reciprocal current Root connection verified and installed in P0.
 
 ## Coordination
 
@@ -14,6 +14,47 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Normal User now retains and repeatedly authenticates the selected current Root
+connection, joining correlated sent-request replies, original ProcessFD/current
+MainPID/unit/invocation/cgroup/boot and protected Root epoch/unit selection. Its
+private Root RPCs use that unique destination. Discovery event bytes are not
+interpreted as the Root runtime. Root also checks its own selected MainPID/unit
+on protected context use. Live drift quarantines; actual departure retires only
+identity. No automatic sent-call replay, app adoption, drain or lease release.
+See the [connection record](journal/2026-11-07-system-connection.md).
+
+An initial native release/reacquire case exposed queued ownership loss despite
+final unique-name equality. Bounded on-demand dispatch closes that demonstrated
+gap; the final test rejects a deliberately disabled-dispatch producer. Five
+relevant groups pass without skips in Release (3.62s) and ASan/UBSan (3.88s);
+both complete native builds pass. All 50 contract/migration and 24 runtime-vector
+tests pass. Existing SQL/XML and normal v2 schemas stay unchanged.
+
+The stopped normal bootstrap was updated through the reviewed controller, adding
+one protected selected-Root slot and minimal reciprocal proc-metadata rights.
+Root ELF access and ptrace have explicit denials. Actual enforcing discovery/
+denials, changed-selection rejection, retained live quarantine, fresh User,
+User replacement, Root restart with User retained and idle checks pass. All 52
+normal files are compared with explicit program/policy/slot/runtime exceptions;
+owner/epochs, stable lock inodes and every non-runtime table are preserved.
+Services are stopped. Authority SHA-256:
+`df418f839cfd3414b0643fc1602550ee2f5cc488050b7e52531de13aa8b1d495`.
+
+Audit: 405 source inputs, 40 verified evidence exports, unchanged 28 frozen
+contracts/19 protected old-runtime hashes/four foreign files, exact CLOSED DRM
+history, SDK 0.1.18 and SDL04. No native/build actor, Aetheri service, protected
+sidecar or seat0 session; Enforcing/tty1. Evidence:
+`local/counterpart-2026-11-07`; Git history records publication.
+
+Next: independently admitted volume/clone continuity, prior-owner/future-effect
+fencing and complete holder/recovery coordination. The conservative private
+connection is not a normal SDK or complete recovery-owner admission. Preserve
+the old quarantined v6/User v4 runtime and all unresolved leases/operations.
+Whole OS/apps/image/installer/update/hardware/experiment-desktop work remains
+active and incomplete. No NexaUI pin change or repeated handoff is required.
+
+## Prior authority-image checkpoint
 
 Normal Root/User now select their independently provisioned role ELF before
 catalogue access and recheck their current own program at context queries and

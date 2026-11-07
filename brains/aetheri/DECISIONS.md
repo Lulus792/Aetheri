@@ -1,5 +1,22 @@
 # Decisions
 
+## Bind User to the independently selected current Root — 7 November 2026
+
+Use actual correlated unique-destination replies, the original authenticated
+ProcessFD and repeated active MainPID/unit/invocation/boot/cgroup observations.
+Select the Root unit through a protected controller slot; keep event and runtime
+incarnations distinct. Reuse this binding for normal User's private Root RPCs.
+Retain narrow name/exit watches and bounded queued-signal dispatch so final-name
+equality cannot hide a release/reacquire. Never replay a sent call automatically.
+A live mismatch remains quarantined; independent departure retires identity only.
+
+Permit only the required reciprocal process metadata. Keep explicit ptrace/Root
+ELF denials, Root's own image guard, existing SQL/XML and empty public capability
+sets. This is an engineering choice within the accepted local authority model,
+not permission to adopt the quarantined old app or claim complete recovery.
+See the [executed record](journal/2026-11-07-system-connection.md).
+
+
 ## Match each authority's own protected role ELF — 7 November 2026
 
 Use a self-only ProcessFD/image check for each current Root/User, joined to the

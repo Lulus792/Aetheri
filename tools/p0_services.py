@@ -90,6 +90,8 @@ def validate_record(record):
         raise RuntimeError("unrecognized active authority")
     if any(re.search("-" + role + r"-[0-9]+\.service$", unit) is None for role, unit in record.get("active_units", {}).items()):
         raise RuntimeError("administrative/probe unit cannot be an active authority")
+    if record.get("system_unit") is not None and (record["system_unit"] not in record["units"] or re.search(r"-system-[0-9]+\.service$", record["system_unit"]) is None):
+        raise RuntimeError("unrecognized protected system unit")
     if record.get("broker_unit") is not None and (record["broker_unit"] not in record["units"] or re.search(r"-user-[0-9]+\.service$", record["broker_unit"]) is None):
         raise RuntimeError("unrecognized protected broker unit")
     if record.get("projection_unit","-")!="-" and (record["projection_unit"] not in record["units"] or re.search(r"-probe-projection-[0-9]+\.service$",record["projection_unit"]) is None):
@@ -178,6 +180,13 @@ def verified(record, allow_new_probe=False, allow_unreceipted_storage=False, all
     owned_file(mount, 0o444)
     if mount.stat().st_size != 0:
         raise RuntimeError("untrusted bus mount placeholder")
+    system_slot = ROOT / "registry/system-unit.conf"
+    if "system_unit" in record:
+        owned_file(system_slot, 0o444)
+        if system_slot.read_text() != "AETHERI-P0-SYSTEM-1\nunit=" + (record["system_unit"] or "-") + "\n":
+            raise RuntimeError("protected system slot changed")
+    elif system_slot.exists() or system_slot.is_symlink():
+        raise RuntimeError("unregistered system slot exists")
     owned_file(ROOT / "registry/broker.conf", 0o444)
     if (ROOT / "registry/broker.conf").read_text() != "AETHERI-P0-BROKER-1\nunit=" + (record.get("broker_unit") or "-") + "\n":
         raise RuntimeError("protected broker slot changed")
@@ -255,6 +264,8 @@ def prepare():
     run("semodule", "-X", "400", "-i", str(cil))
     label(ROOT, "aetheri_root_t")
     directory(ROOT / "registry", "aetheri_registry_t")
+    publish_system_slot(record, "-")
+    save(record)
     publish(ROOT / "registry/broker.conf", b"AETHERI-P0-BROKER-1\nunit=-\n", "aetheri_registry_t")
     publish(ROOT / "registry/projection.conf", b"AETHERI-P0-PROJECTION-1\nunit=-\n", "aetheri_registry_t")
     directory(ROOT / "system", "aetheri_system_state_t", mode=0o700)
@@ -1004,6 +1015,18 @@ def unit_has_job(unit):
     return jobs["type"] != "a(usssoo)" or any(job[1] == unit for job in jobs["data"][0])
 
 
+def publish_system_slot(record, unit):
+    pattern = "aetheri-p0-" + record["token"].replace("-", "") + r"-system-[0-9]+\.service"
+    if unit != "-" and re.fullmatch(pattern, unit) is None:
+        raise RuntimeError("administrative or foreign system selection")
+    temporary = ROOT / "registry/system-unit.next"
+    publish(temporary, ("AETHERI-P0-SYSTEM-1\nunit=" + unit + "\n").encode(), "aetheri_registry_t")
+    flush_path(temporary)
+    os.replace(temporary, ROOT / "registry/system-unit.conf")
+    flush_path(ROOT / "registry", True)
+    record["system_unit"] = None if unit == "-" else unit
+
+
 def publish_broker_slot(record, unit):
     temporary = ROOT / "registry/broker.next"
     publish(temporary, ("AETHERI-P0-BROKER-1\nunit=" + unit + "\n").encode(), "aetheri_registry_t")
@@ -1051,6 +1074,8 @@ def start_unit(record, role, init=False, probe=None, claims=None, enroll=False, 
     if record["pending"]:
         raise RuntimeError("previous dispatch is unacknowledged")
     unit = "aetheri-p0-" + record["token"].replace("-", "") + "-" + suffix + "-" + str(len(record["units"])) + ".service"
+    if role == "system" and not init and not enroll and not recover_setup and probe is None and fixture is None:
+        publish_system_slot(record, unit)
     if role == "user" and not init and probe is None and storage is None and data is None:
         publish_broker_slot(record, unit)
     if probe=="projection":
@@ -1681,6 +1706,8 @@ def cleanup(record):
              ROOT / "system-authority": (0, 0o555), ROOT / "user-authority": (0, 0o555),
              ROOT / "probe-service": (0, 0o555), ROOT / "user-bus": (0, 0o444),
              ROOT / "registry/system.conf": (0, 0o444), ROOT / "registry/user-1000.conf": (0, 0o444)}
+    if "system_unit" in record:
+        files[ROOT / "registry/system-unit.conf"] = (0, 0o444)
     files[ROOT / "registry/broker.conf"] = (0, 0o444)
     files[ROOT / "probe-broker"] = (0, 0o555)
     files[ROOT / "probe-projection"] = (0, 0o555)
@@ -1824,6 +1851,9 @@ def update_owned(record):
     stop(record)
     record["state"] = "updating-owned-inputs"
     save(record)
+    if "system_unit" not in record:
+        publish_system_slot(record, "-")
+        save(record)
     cil = ROOT / (MODULE + ".cil")
     new_policy = (SOURCE / "policy/p0-services.cil").read_bytes()
     cil.write_bytes(new_policy)
@@ -1956,6 +1986,66 @@ def lifecycle_check(record):
                       "fresh_registry": True, "after_recreation": replacement["report"]}))
 
 
+def connection_check(record):
+    """Explicit reciprocal metadata negative; no app or lease transitions.
+
+    Interruption preserves the probe stage and selected slot for manual review.
+    Never automatically restore a slot or repeat an unknown dispatch.
+    """
+    previous = record.get("connection_probe")
+    if previous and previous["state"] != "closed":
+        raise RuntimeError("reconcile the interrupted connection probe first")
+    start(record)
+    check(record)
+    original = record["system_unit"]
+    other = next((unit for unit in record["units"] if unit != original and
+                  re.search(r"-system-[0-9]+\.service$", unit)), None)
+    if other is None:
+        raise RuntimeError("connection negative needs an already owned historical Root unit")
+    root_pid = record["report"]["system"]["observed"]["MainPID"]
+    user_pid = record["report"]["user"]["observed"]["MainPID"]
+    probe = dict(state="selecting-negative", original=original, alternate=other,
+                 root_pid=root_pid, user_pid=user_pid)
+    record["connection_probe"] = probe
+    save(record)
+    publish_system_slot(record, other)
+    probe["state"] = "negative-selected"
+    save(record)
+    def rejected():
+        try:
+            protocol("user")
+        except subprocess.CalledProcessError as error:
+            if "System broker registration is unavailable" not in (error.stderr or ""):
+                raise
+        else:
+            raise AssertionError("User accepted a changed protected Root selection")
+    rejected()
+    # Restore only our exact current selection/record, not unexplained content.
+    verified(record)
+    if run("systemctl", "show", original, "--property=MainPID", "--value") != root_pid:
+        raise RuntimeError("Root changed during connection negative; preserve probe")
+    if run("systemctl", "show", record["active_units"]["user"], "--property=MainPID", "--value") != user_pid:
+        raise RuntimeError("User changed during connection negative; preserve probe")
+    probe["state"] = "restoring-original"
+    save(record)
+    publish_system_slot(record, original)
+    probe["state"] = "original-restored"
+    save(record)
+    rejected()  # Restoring text cannot clear a live connection's quarantine.
+    protocol("system")
+    stop_unit(record["active_units"]["user"])
+    probe["state"] = "user-stopped"
+    save(record)
+    start(record)
+    check(record)
+    if record["report"]["system"]["observed"]["MainPID"] != root_pid:
+        raise AssertionError("connection negative replaced Root")
+    probe.update(state="closed", changed_selection_rejected=True,
+                 live_quarantine_retained=True, fresh_user_accepted=True)
+    save(record)
+    print(json.dumps(probe))
+
+
 def broker_check(record):
     start(record)
     check(record)
@@ -2045,6 +2135,7 @@ def main():
         elif action == "lifecycle-check": lifecycle_check(record)
         elif action == "idle-check": idle_check(record)
         elif action == "broker-check": broker_check(record)
+        elif action == "connection-check": connection_check(record)
         elif action == "projection-check": projection_check(record)
         elif action == "exec-projection-check": projection_check(record,profile="exec")
         elif action == "exec-data-prepare": data_prepare(record,profile="exec")

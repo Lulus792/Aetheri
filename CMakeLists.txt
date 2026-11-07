@@ -139,7 +139,7 @@ if(AETHERI_LINUX_IPC)
         COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_api.py" "${AETHERI_WIRE_TABLES}"
         DEPENDS tools/embed_api.py spec/api/management-v1.xml spec/api/documents-v1.xml spec/api/runtime-v1.xml spec/api/broker-v1.xml spec/api/catalogue-v1.xml spec/api/development-v1.xml spec/api/setup-v1.xml
         VERBATIM)
-    add_executable(aetheri-authority src/authority/main.c src/authority/broker.c src/authority/fixture.c src/authority/projection.c src/authority/reservation.c src/authority/setup.c src/authority/setup_profile.c "${AETHERI_WIRE_TABLES}")
+    add_executable(aetheri-authority src/authority/main.c src/authority/system_connection.c src/authority/broker.c src/authority/fixture.c src/authority/projection.c src/authority/reservation.c src/authority/setup.c src/authority/setup_profile.c "${AETHERI_WIRE_TABLES}")
     target_include_directories(aetheri-authority PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
     target_compile_definitions(aetheri-authority PRIVATE _GNU_SOURCE)
     target_compile_options(aetheri-authority PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -1199,6 +1199,16 @@ if(BUILD_TESTING)
         add_test(NAME authority.broker COMMAND test_broker)
         set_tests_properties(authority.broker PROPERTIES TIMEOUT 25)
         if(AETHERI_PRIVILEGED_TESTS)
+            add_executable(test_system_connection tests/test_system_connection.c src/authority/system_connection.c)
+            target_compile_definitions(test_system_connection PRIVATE _GNU_SOURCE)
+            target_compile_options(test_system_connection PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+            target_link_libraries(test_system_connection PRIVATE aetheri_linux)
+            target_link_options(test_system_connection PRIVATE -Wl,--wrap=ae_peer_capture_reply
+                -Wl,--wrap=ae_process_observe_main -Wl,--wrap=ae_process_verify_main)
+            add_test(NAME authority.system_connection COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_system_connection.py"
+                $<TARGET_FILE:test_system_connection> "${CMAKE_CURRENT_BINARY_DIR}")
+            set_tests_properties(authority.system_connection PROPERTIES TIMEOUT 60)
             add_executable(test_boot tests/test_boot.c)
             target_compile_definitions(test_boot PRIVATE _GNU_SOURCE)
             target_compile_options(test_boot PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
