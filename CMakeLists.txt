@@ -50,7 +50,7 @@ find_package(OpenSSL 3.5.9 REQUIRED COMPONENTS Crypto)
 if(NOT OPENSSL_VERSION VERSION_LESS "3.6.0")
     message(FATAL_ERROR "Review a new OpenSSL release family before adoption; supported family is 3.5 LTS.")
 endif()
-add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c src/core/digest.c src/core/import.c src/core/publish.c src/core/unit_custody.c)
+add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c src/core/digest.c src/core/import.c src/core/publish.c src/core/unit_custody.c src/core/image.c src/core/unit_issuer.c)
 target_include_directories(aetheri_core PUBLIC src)
 target_link_libraries(aetheri_core PUBLIC OpenSSL::Crypto)
 target_compile_definitions(aetheri_core PRIVATE _GNU_SOURCE)
@@ -75,7 +75,7 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
             spec/schema/system-v5.sql spec/schema/system-v6.sql
             spec/schema/common-v7.sql spec/schema/system-v7.sql spec/schema/user-v7.sql
             spec/schema/common-v8.sql spec/schema/system-v8.sql spec/schema/user-v8.sql
-            spec/schema/system-v9.sql spec/schema/system-v10.sql
+            spec/schema/system-v9.sql spec/schema/system-v10.sql spec/schema/system-v11.sql
     VERBATIM)
 add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c src/catalogue/interruption.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
@@ -92,7 +92,7 @@ if(AETHERI_LINUX_IPC)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd>=259)
     pkg_check_modules(SELINUX REQUIRED IMPORTED_TARGET libselinux>=3.10)
-    add_library(aetheri_linux STATIC src/linux/peer.c src/linux/process.c src/linux/boot.c src/linux/lifetime.c src/linux/view.c src/linux/image.c src/linux/execute.c src/linux/exec_channel.c src/linux/start.c src/linux/unit.c)
+    add_library(aetheri_linux STATIC src/linux/peer.c src/linux/process.c src/linux/boot.c src/linux/lifetime.c src/linux/view.c src/linux/image.c src/linux/execute.c src/linux/exec_channel.c src/linux/start.c src/linux/unit.c src/linux/issuer.c)
     target_include_directories(aetheri_linux PUBLIC src)
     target_compile_definitions(aetheri_linux PRIVATE _GNU_SOURCE)
     target_compile_options(aetheri_linux PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -968,6 +968,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.units COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" units)
     set_tests_properties(catalogue.units PROPERTIES TIMEOUT 180)
+    add_test(NAME catalogue.unit_issuers COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" unit-issuers)
+    set_tests_properties(catalogue.unit_issuers PROPERTIES TIMEOUT 180)
     add_test(NAME catalogue.unit_custody COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" unit-custody)
     set_tests_properties(catalogue.unit_custody PROPERTIES TIMEOUT 240)
@@ -1049,6 +1052,12 @@ if(BUILD_TESTING)
     add_test(NAME core.import COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_import_native.py" $<TARGET_FILE:test_import> "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(core.import PROPERTIES TIMEOUT 90)
+    add_executable(test_unit_issuer tests/test_unit_issuer.c)
+    target_compile_options(test_unit_issuer PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    target_link_libraries(test_unit_issuer PRIVATE aetheri_core)
+    add_test(NAME core.unit_issuer COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_unit_issuer_native.py" $<TARGET_FILE:test_unit_issuer> "${CMAKE_CURRENT_BINARY_DIR}")
+    set_tests_properties(core.unit_issuer PROPERTIES TIMEOUT 20)
     add_executable(test_digest tests/test_digest.c)
     target_compile_definitions(test_digest PRIVATE _GNU_SOURCE)
     target_compile_options(test_digest PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
@@ -1210,7 +1219,13 @@ if(BUILD_TESTING)
             target_link_libraries(test_root_unit PRIVATE aetheri_supervisor_start)
             add_test(NAME authority.unit_custody COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_root_unit_native.py" $<TARGET_FILE:test_root_unit> "${CMAKE_CURRENT_BINARY_DIR}")
-            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 420)
+            add_test(NAME authority.issuer_barriers COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_root_issuer_publish.py")
+            set_tests_properties(authority.issuer_barriers PROPERTIES TIMEOUT 15)
+            # 32 separately supervised issuer drivers now add image staging,
+            # native ProcessFD/MainPID negatives and independent PID1 retirement.
+            # Each original work observation retains its 40-second deadline.
+            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 1800)
         endif()
         add_executable(test_reservation_wire tests/test_reservation_wire.c src/authority/reservation.c)
         target_compile_definitions(test_reservation_wire PRIVATE _GNU_SOURCE)

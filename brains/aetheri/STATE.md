@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — durable connection/RPC custody and asynchronous Root fencing.
+7 November 2026 — original issuer identity and durable connection custody.
 
 ## Coordination
 
@@ -14,6 +14,46 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Root v11 now binds the original connection to its actual issuing main process,
+systemd invocation/cgroup, pidfs identity and independently selected original
+Root ELF. Enrollment precedes REQUEST; fresh effects and original cleanup
+repeat actual admission. AETHUIS1 and historical getters cannot replace those
+held/current observations. The unchanged AETHIMG1 codec now lives in core.
+See the [contract](../../spec/unit-profiles.md#root-v11-original-issuer-identity)
+and [execution record](journal/2026-11-07-issuer-identity-work.md).
+
+Final source-v9 has 444 inputs. Both complete native builds and all five groups
+pass Release and ASan/UBSan: 438.085s/469.514s, including all 32 supervised
+drivers per profile. All eleven affected regression groups pass without skips:
+394.448s/446.280s. Host contracts/runtime/issuer tests pass 55/25/3. The checked
+export contains 541 files / 2,907,189 bytes. Earlier compile/STDOUT/cgroup/barrier
+fixture failures remain attributed; a deterministic regression rejects the old
+named-file publisher and passes anonymous, fully flushed create-only publication.
+
+All 64 final driver configurations/images are retired. Three earlier terminal
+administrative configurations received separate inspected operator cleanup;
+their logs, original observations and both owner histories remain retained.
+Resetting a failed test-unit marker is not native recovery or lease settlement.
+No new test actor/unit/image remains. The audit preserves all 30 published SQL/XML,
+19 old-quarantine hashes, 52 normal files/controller and unchanged CLOSED DRM,
+SDK0.1.18/SDL04/vendor inputs. Parallel planning/UI edits are preserved/excluded.
+
+Explicit quiesced Root10->11 migration backfills no process evidence and changes
+no old rows/gates/runtime/revisions. Normal creation/installed owners remain v2;
+open validates exact Root 2–11/User 2–4,7–8 without migrating. No wire/capability,
+normal admission or production confined Root provisioning is added. Bus-loss/
+owner recovery, volume/clone continuity, external holders and durable issuer/
+custody retirement remain work; preserve the old executing quarantine.
+
+UI maintenance: the user asked why the SDK remains 0.1.18. It is an explicit
+tested consumer pin, not a decision to stay on an old toolkit. Review a controlled
+upgrade using the newer standalone consumer evidence and Aetheri's original
+Settings/Files/Terminal/desktop tests. No pin/default change is part of this
+issuer checkpoint. The full OS/apps/image/installer/update/hardware/experiment
+desktop goal stays active and incomplete; no repeated NexaUI handoff is needed.
+
+## Prior connection-custody checkpoint
 
 Root v10 now binds the original exclusive system-bus connection and ordered
 per-node Subscribe/Ref/Start/Unref/Unsubscribe intent/acknowledgement history to

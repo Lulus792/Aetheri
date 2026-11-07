@@ -68,6 +68,7 @@ int ae_catalogue_upgrade_interruptions(struct ae_catalogue *);
  * caller quiesces external dispatch. Unknown commit inspects the same DB. */
 int ae_catalogue_upgrade_units(struct ae_catalogue *);
 int ae_catalogue_upgrade_unit_custody(struct ae_catalogue *);
+int ae_catalogue_upgrade_unit_issuers(struct ae_catalogue *);
 /* Commit fresh runtime + boot. Existing open gates close; closing gates keep
  * their durable cause. Triggers mark recovery obligations. This does not settle
  * holders, reopen gates or establish a global service-readiness gate. Reusing

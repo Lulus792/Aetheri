@@ -1,5 +1,23 @@
 # Decisions
 
+## Original issuer evidence belongs to the Root owner journal — 7 November 2026
+
+Persist the original connection/process/image observation in the existing
+Root catalogue, under its retained writer lock and before REQUEST. A sidecar
+would add another store to reconcile without removing any admission obligation.
+The additive v11 migration never fabricates evidence for older allocations.
+
+Use the trusted bus's authenticated own ProcessFD, current independently selected
+main service/invocation/cgroup/label and original self ELF together. A local
+self-pidfd, shared UID/cgroup or matching executable name alone cannot replace
+the original bus credential. Keep the unchanged image byte codec in core and
+Linux observation in its platform module. Root repeats actual admission on fresh
+effects and original cleanup; historical metadata never transfers handles or
+permits replay. The [contract](../../spec/unit-profiles.md#root-v11-original-issuer-identity)
+and [executed record](journal/2026-11-07-issuer-identity-work.md) define the scope.
+Normal installed owners remain v2; production provisioning and durable issuer/
+custody retirement remain separate work.
+
 ## Journal unit connection effects under the owner lock — 7 November 2026
 
 Use explicit Root v10 connection origins and per-node intent/acknowledgement rows

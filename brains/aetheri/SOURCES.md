@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Original issuer observation — 7 November 2026
+
+- Upstream systemd v259 [bus-control.c](https://raw.githubusercontent.com/systemd/systemd/v259/src/libsystemd/sd-bus/bus-control.c),
+  read during issuer review: own unique-name lookup rejects a changed process
+  origin; multi-field credential lookup uses GetConnectionCredentials and
+  duplicates a returned ProcessFD with CLOEXEC. The separate
+  [bus-creds.c](https://raw.githubusercontent.com/systemd/systemd/v259/src/libsystemd/sd-bus/bus-creds.c)
+  returns before local augmentation when AUGMENT is absent. Aetheri additionally
+  checks the complete required mask and rejects augmented required fields.
+  These base-release facts are distinct from Fedora259.10 native evidence.
+- The [credential-query manual](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_get_name_creds.html),
+  currently systemd262, distinguishes named-client queries from bus-creator
+  credentials. It is descriptive context, not evidence of the carrier version.
+- [Issuer contract](../../spec/unit-profiles.md#root-v11-original-issuer-identity),
+  [native owner](../../src/linux/issuer.c), [owner journal](../../src/catalogue/unit.h),
+  [independent vector](../../spec/vectors/unit-issuer-v1.json) and
+  [execution record](journal/2026-11-07-issuer-identity-work.md) record original
+  implementation and scoped carrier evidence, including the final native and
+  affected-regression suites and retained earlier fixture failures.
+
 ## Durable unit connection history — 7 November 2026
 
 - Upstream systemd v259 [Manager](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-manager.c)

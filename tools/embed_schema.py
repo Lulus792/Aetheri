@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 
-from catalogue_contracts import source,extension_v3,extension_v4,extension_v5,extension_v6,extension_v7,extension_v8,extension_v9,extension_v10
+from catalogue_contracts import source,extension_v3,extension_v4,extension_v5,extension_v6,extension_v7,extension_v8,extension_v9,extension_v10,extension_v11
 
 
 def main():
@@ -67,6 +67,12 @@ def main():
     for sql in extension_v10('system'):
         sql.encode('ascii')
         if len(sql)>4095: raise ValueError('v10 SQL exceeds C17 literal bound')
+        lines.append('    '+json.dumps(sql)+',')
+    lines.extend(['    0','};'])
+    lines.append('const char *const ae_schema_system_v11[] = {')
+    for sql in extension_v11('system'):
+        sql.encode('ascii')
+        if len(sql)>4095: raise ValueError('v11 SQL exceeds C17 literal bound')
         lines.append('    '+json.dumps(sql)+',')
     lines.extend(['    0','};'])
     destination.parent.mkdir(parents=True, exist_ok=True)

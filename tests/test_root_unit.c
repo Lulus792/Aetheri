@@ -28,6 +28,7 @@ static struct {
     int create_fault;
     struct ae_unit_file created;
     unsigned int rpc_seen[5][8];
+    struct ae_root_unit_issuer_selection issuer;
 } s;
 void ae_test_root_unit_commit_fault(int);
 void ae_test_root_unit_custody_fault(int,int);
@@ -201,10 +202,81 @@ static int terminal(sd_bus *bus,const char *name)
     CHECK(sd_bus_get_property_trivial(bus,MANAGER,path,MANAGER ".Service","MainPID",NULL,'u',&pid)>=0);
     sd_bus_message_unref(m); return ended && !pid;
 }
+static void issuer_selection(void)
+{
+    const char *unit=getenv("AETHERI_TEST_ISSUER_UNIT"),*label=getenv("AETHERI_TEST_ISSUER_LABEL"),*digest=getenv("AETHERI_TEST_ISSUER_SHA256"),*path=getenv("AETHERI_TEST_ISSUER_IMAGE");
+    CHECK(unit && label && digest && path && strlen(unit)<sizeof s.issuer.unit && strlen(label)<sizeof s.issuer.label && strlen(digest)==64);
+    strcpy(s.issuer.unit,unit); strcpy(s.issuer.label,label); uint8_t hash[32],raw[AE_IMAGE_BYTES]; decode(digest,hash);
+    int fd=open(path,O_RDONLY|O_NOFOLLOW|O_CLOEXEC); struct stat st; char extra;
+    CHECK(fd>=0 && !fstat(fd,&st) && S_ISREG(st.st_mode) && !st.st_uid && !st.st_gid && st.st_nlink==1 && (st.st_mode&0777)==0600 && st.st_size==AE_IMAGE_BYTES);
+    CHECK(read(fd,raw,sizeof raw)==sizeof raw && read(fd,&extra,1)==0 && !close(fd));
+    CHECK(!ae_image_decode(raw,sizeof raw,&s.issuer.image) && !memcmp(hash,s.issuer.image.digest,32));
+}
+void ae_test_issuer_image(const char *path,const char *digest,const char *output)
+{
+    s.mode="issuer-image"; uint8_t hash[32],raw[AE_IMAGE_BYTES]; decode(digest,hash);
+    int input=open(path,O_RDONLY|O_NOFOLLOW|O_CLOEXEC); struct ae_image image;
+    CHECK(input>=0 && !ae_image_verify(input,hash,&image) && !ae_image_encode(&image,raw) && !close(input));
+    int fd=open(output,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+    CHECK(fd>=0 && write(fd,raw,sizeof raw)==sizeof raw && !fsync(fd) && !close(fd));
+}
+void ae_test_issuer_barrier(const char *directory)
+{
+    s.mode="issuer-barrier"; issuer_selection();
+    CHECK(!getuid() && !geteuid() && !getgid() && !getegid() && security_getenforce()==1);
+    sd_bus *bus=NULL; connect_bus(&bus); struct ae_peer pid1=AE_PEER_INIT; manager(bus,&pid1);
+    sd_id128_t boot; CHECK(sd_id128_get_boot(&boot)>=0); const char *name=NULL; CHECK(sd_bus_get_unique_name(bus,&name)>=0);
+    struct ae_unit_origin origin={0}; memcpy(origin.boot,boot.bytes,16); memcpy(origin.bus,pid1.bus_id,16);
+    strcpy(origin.issuer,name); strcpy(origin.manager,pid1.unique_name); strcpy(origin.manager_label,pid1.connection_label); ae_peer_clear(&pid1);
+    struct ae_issuer *issuer=NULL; int result=-EAGAIN;
+    for (unsigned int n=0;n<100 && result==-EAGAIN;++n) {
+        result=ae_issuer_open(bus,&origin,s.issuer.unit,s.issuer.label,&s.issuer.image,&issuer);
+        if (result==-EAGAIN) usleep(10000);
+    }
+    CHECK(!result && issuer);
+    int held_fds=fds();
+    struct ae_issuer *rejected=NULL;
+    CHECK(ae_issuer_open(bus,&origin,"foreign.service",s.issuer.label,&s.issuer.image,&rejected)==-EACCES && !rejected);
+    CHECK(ae_issuer_open(bus,&origin,s.issuer.unit,"system_u:system_r:foreign_t:s0",&s.issuer.image,&rejected)==-EACCES && !rejected);
+    struct ae_image wrong=s.issuer.image; wrong.digest[0]^=1;
+    CHECK(ae_issuer_open(bus,&origin,s.issuer.unit,s.issuer.label,&wrong,&rejected)<0 && !rejected);
+    struct ae_unit_origin changed=origin; strcpy(changed.issuer,":1.999999999");
+    CHECK(ae_issuer_verify(issuer,bus,&changed)==-ESTALE && !ae_issuer_verify(issuer,bus,&origin));
+    struct ae_peer own=AE_PEER_INIT; CHECK(!ae_peer_capture_self(bus,&own) && own.connection_pid==getpid() && !own.connection_uid);
+    int pin=own.pidfd; CHECK(ae_peer_capture_self(bus,&own)==-EINVAL && own.pidfd==pin); ae_peer_clear(&own);
+    pid_t child=fork(); CHECK(child>=0);
+    if (!child) {
+        struct ae_peer empty=AE_PEER_INIT; CHECK(ae_peer_capture_self(bus,&empty)<0 && empty.pidfd==-1);
+        CHECK(ae_issuer_verify(issuer,bus,&origin)==-ECHILD && ae_issuer_close(&issuer)==-ECHILD);
+        sd_bus *fresh=NULL; connect_bus(&fresh); const char *unique=NULL; CHECK(sd_bus_get_unique_name(fresh,&unique)>=0);
+        struct ae_unit_origin child_origin=origin; strcpy(child_origin.issuer,unique);
+        CHECK(ae_issuer_open(fresh,&child_origin,s.issuer.unit,s.issuer.label,&s.issuer.image,&rejected)<0 && !rejected);
+        sd_bus_flush_close_unref(fresh); _exit(0);
+    }
+    int child_status; CHECK(waitpid(child,&child_status,0)==child && WIFEXITED(child_status) && !WEXITSTATUS(child_status));
+    CHECK(fds()==held_fds);
+    struct ae_unit_issuer snapshot; uint8_t raw[AE_UNIT_ISSUER_MAX]; size_t used=0;
+    CHECK(!ae_issuer_snapshot(issuer,&snapshot) && !ae_unit_issuer_encode(&snapshot,raw,sizeof raw,&used));
+    int parent=open(directory,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+    int fd=parent>=0 ? openat(parent,".",O_WRONLY|O_TMPFILE|O_CLOEXEC,0600) : -1;
+    CHECK(fd>=0 && write(fd,raw,used)==(ssize_t)used && !fsync(fd) &&
+        !linkat(fd,"",parent,"issuer-start.bin",AT_EMPTY_PATH) && !fsync(parent) && !close(fd));
+    int gate=-1;
+    for (unsigned int n=0;n<500;++n) {
+        gate=openat(parent,"issuer-go",O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
+        if (gate>=0) break;
+        CHECK(errno==ENOENT); usleep(10000);
+    }
+    struct stat st; char value=0;
+    CHECK(gate>=0 && !fstat(gate,&st) && S_ISREG(st.st_mode) && !st.st_uid && !st.st_gid && st.st_nlink==1 && (st.st_mode&0777)==0600 && st.st_size==1);
+    CHECK(read(gate,&value,1)==1 && value=='G' && !close(gate) && !close(parent));
+    CHECK(!ae_issuer_verify(issuer,bus,&origin) && !ae_issuer_close(&issuer)); sd_bus_flush_close_unref(bus);
+}
 void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,struct ae_execution_profile *p,
     struct ae_launch_context *broker,const char *directory,const char *mode)
 {
     s.mode=mode; s.store=store; s.profile=p; s.broker=broker; s.directory=directory;
+    issuer_selection();
     CHECK(!getuid() && !geteuid() && !getgid() && !getegid() && security_getenforce()==1);
     struct stat carrier; CHECK(!lstat("/etc/aetheri-p0-carrier",&carrier) && S_ISREG(carrier.st_mode) && !carrier.st_uid && !(carrier.st_mode&0022));
     FILE *f=fopen("/sys/class/dmi/id/product_name","r"); char product[128]={0};
@@ -225,7 +297,7 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     CHECK(!ae_sha256_fd(image.image_fd,(uint64_t)st.st_size,p->starter_digest) && !ae_image_verify(image.image_fd,p->starter_digest,&image.image));
     struct ae_user_execution_result prepared; CHECK(!ae_catalogue_prepare_user_execution(user,p,&prepared) && prepared.submit_required);
     CHECK(!ae_catalogue_upgrade_lifetimes(store) && !ae_catalogue_upgrade_processes(store) && !ae_catalogue_upgrade_handoffs(store) &&
-        !ae_catalogue_upgrade_recovery(store) && !ae_catalogue_upgrade_owner_recovery(store) && !ae_catalogue_upgrade_interruptions(store) && !ae_catalogue_upgrade_units(store) && !ae_catalogue_upgrade_unit_custody(store));
+        !ae_catalogue_upgrade_recovery(store) && !ae_catalogue_upgrade_owner_recovery(store) && !ae_catalogue_upgrade_interruptions(store) && !ae_catalogue_upgrade_units(store) && !ae_catalogue_upgrade_unit_custody(store) && !ae_catalogue_upgrade_unit_issuers(store));
     struct ae_unit_profile *selection=calloc(1,sizeof *selection); CHECK(selection); selection->count=3;
     struct ae_unit_node *n=&selection->nodes[0]; n->kind=AE_UNIT_SERVICE;
     struct ae_dispatch_snapshot dispatch; CHECK(!ae_catalogue_get_dispatch(store,p->lease,broker,&dispatch)); strcpy(n->name,dispatch.unit);
@@ -296,12 +368,12 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     selection->nodes[1].edges[AE_UNIT_REQUIRES]=selection->nodes[1].edges[AE_UNIT_AFTER]=4;
     sd_bus *bus=NULL,*control=NULL; connect_bus(&bus); connect_bus(&control); struct ae_peer pid1=AE_PEER_INIT; manager(bus,&pid1);
     struct ae_unit *unit=NULL; CHECK(!ae_unit_new(&bus,&pid1,p->boot,selection,&unit) && !bus); ae_peer_clear(&pid1);
-    n->ambient=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); n->ambient=0;
-    image.image.digest[0]^=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); image.image.digest[0]^=1;
-    CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root);
+    n->ambient=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,&s.issuer,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); n->ambient=0;
+    image.image.digest[0]^=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,&s.issuer,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); image.image.digest[0]^=1;
+    CHECK(ae_root_unit_new(store,&unit,selection,&image,&s.issuer,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root);
     uint8_t selected[32]; CHECK(!ae_root_unit_selection_digest(p,selection,&image,selected));
     CHECK(!ae_catalogue_witness_unit(store,p,broker,&allocation,selected,123501));
-    CHECK(!ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root) && !unit);
+    CHECK(!ae_root_unit_new(store,&unit,selection,&image,&s.issuer,p,broker,admit,NULL,&s.root) && !unit);
     if (!strcmp(mode,"copy")) { strcpy(n->argv[0],"changed"); strcpy(image.label,"changed"); }
     if (!strcmp(mode,"precommit")) {
         CHECK(ae_root_unit_request(s.root,p,&dispatch)==-ESTALE && !s.effects);
@@ -359,7 +431,7 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
         struct ae_execution_fence_status fence; CHECK(!ae_catalogue_execution_fence_status(store,&fence) && fence.active==(acquired ? 1U : 0U));
         if (lost) { struct ae_root_unit *other=NULL; struct ae_unit *again=NULL; connect_bus(&bus); manager(bus,&pid1);
             CHECK(!ae_unit_new(&bus,&pid1,p->boot,selection,&again)); ae_peer_clear(&pid1);
-            CHECK(ae_root_unit_new(store,&again,selection,&image,p,broker,admit,NULL,&other)==-EALREADY && !other && again);
+            CHECK(ae_root_unit_new(store,&again,selection,&image,&s.issuer,p,broker,admit,NULL,&other)==-EALREADY && !other && again);
             CHECK(!ae_unit_close(&again)); }
         if (acquired && !acquisition_fault && !blocked_start) {
             for (unsigned int i=0;!blocked_start && i<500;++i) { CHECK(sd_bus_process(ae_root_unit_bus(s.root),NULL)>=0 && !ae_root_unit_status(s.root,&status));

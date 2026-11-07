@@ -3,6 +3,7 @@
 #include "catalogue/execution.h"
 #include "catalogue/effect.h"
 #include "core/unit_custody.h"
+#include "core/unit_issuer.h"
 
 /* A separate unit-allocation ID, never an app StorageRef/DataEpoch or the
  * execution profile's private-view allocation digest. Recipe is the expected
@@ -58,4 +59,20 @@ int ae_catalogue_confirm_unit_effect(struct ae_catalogue *,const struct ae_execu
     const struct ae_effect_owner *,enum ae_unit_effect,unsigned int node,int64_t);
 int ae_catalogue_get_unit_custody(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_effect_owner *,struct ae_unit_custody_snapshot *);
+struct ae_unit_issuer_snapshot {
+    struct ae_unit_origin origin;
+    struct ae_unit_issuer issuer;
+    int64_t enrolled_unix_ms;
+};
+/* Root v11 only, original context and witnessed allocation before REQUEST.
+ * Caller owes actual original authenticated own connection/MainPID/pidfs/image
+ * and protected role/source evidence. Digest/metadata alone is not that proof.
+ * Exact retry acknowledges the original immutable bytes/time without permitting
+ * a new effect. Conflicting origins/processes/images never rebind an old tuple.
+ * Getter is historical for the current same-epoch owner; it adopts no handles.
+ * Outputs unchanged on error. No run/lease or connection retirement is implied. */
+int ae_catalogue_enroll_unit_issuer(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,const struct ae_unit_origin *,const struct ae_unit_issuer *,int64_t);
+int ae_catalogue_get_unit_issuer(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_effect_owner *,struct ae_unit_issuer_snapshot *);
 #endif

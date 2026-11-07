@@ -38,6 +38,14 @@ int ae_peer_capture_signal(sd_bus_message *message,struct ae_peer *output);
  * well-known destinations, local/proc augmentation or PID fallback. Same output
  * ownership/error rules as capture; request/reply remain borrowed. */
 int ae_peer_capture_reply(sd_bus_message *reply,sd_bus_message *request,struct ae_peer *output);
+/* Trusted BUS-client connection of the CALLING process only. Query its actual
+ * local unique name through the bus credential service; require non-augmented
+ * EUID/PID/ProcessFD/SELinux credentials and match this live calling process.
+ * Never accepts a name/PID from a caller, opens pidfd_open(PID), or substitutes
+ * for a remote method's required ProcessFD. Caller still owes current supervised
+ * main/image/policy admission; this is only connection provenance. Own output
+ * starts AE_PEER_INIT; failures preserve it. Fork-inherited connections fail. */
+int ae_peer_capture_self(sd_bus *,struct ae_peer *);
 /* Zero-time liveness observation, not a promise of future life or exec identity. */
 int ae_peer_alive(const struct ae_peer *peer);
 /* Clear an initialized capture. Does not stop/signal the process. */

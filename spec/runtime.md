@@ -5001,3 +5001,14 @@ to its original process-local revision. The current Root constructor cannot use
 an unrecorded or merely preparing selection. Normal installed catalogues stay v2;
 actual production unit/volume/owner admission, custody recovery and retirement
 remain work. No old execution quarantine is migrated or adopted.
+
+The [Root v11 issuer addition](unit-profiles.md#root-v11-original-issuer-identity)
+now binds the unit owner to its actual original bus-authenticated main process,
+invocation/cgroup, pidfs identity and independently selected self ELF before
+REQUEST. AETHUIS1 is an immutable observation, not a handle or admission token.
+The constructor and fresh/cleanup paths use actual current checks; an old row
+cannot substitute for them. The [execution record](../brains/aetheri/journal/2026-11-07-issuer-identity-work.md)
+records final native and affected-regression evidence with their scoped limits.
+Normal installed owners stay v2, capability tables stay closed and the old
+executing quarantine remains untouched. This adds no bus-loss/owner recovery,
+durable custody retirement, app drain or lease settlement.

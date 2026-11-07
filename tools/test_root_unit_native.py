@@ -8,6 +8,7 @@ import tempfile
 import time
 import runtime_contracts as reference
 from test_launch_native import identity
+from root_issuer_fixture import run as supervised
 
 
 def main():
@@ -21,6 +22,7 @@ def main():
                 effects=[dict(number=0, kind='data', component='aetheri.probe', ref=identity(12),
                               disposition='retain', reason='launch_data_reservation')])
     root = Path(tempfile.mkdtemp(prefix='root-unit-', dir=build))
+    print('ROOT_UNIT_PENDING '+str(root), flush=True)
     expected = root/'expected'
     expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
     vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/unit-selection-v1.json').read_bytes())
@@ -28,20 +30,22 @@ def main():
     codec.write_bytes(bytes.fromhex(vector['profile_hex']+vector['unit_sha256']+vector['selection_sha256']+vector['placement_sha256']))
     subprocess.run([executable,'unit-codec',codec],check=True,timeout=15)
     reports = []
-    for mode in ('create-before','create-after','create-lost','create-fence','create-recipe','create-placement','normal', 'copy', 'fork', 'fenced', 'end-deny', 'precommit', 'commit-lost', 'last-gate', 'image', 'guard-image',
+    modes=('create-before','create-after','create-lost','create-fence','create-recipe','create-placement','normal', 'copy', 'fork', 'fenced', 'end-deny', 'precommit', 'commit-lost', 'last-gate', 'image', 'guard-image',
                  'guard-deny', 'late-fence', 'subscribe-before', 'subscribe-after', 'ref-before', 'ref-after',
                  'unref-before', 'unref-after', 'unsubscribe-before', 'unsubscribe-after',
-                 'journal-origin-lost','journal-intent-before','journal-intent-lost','journal-ack-before','journal-ack-lost','start-ack-lost'):
+                 'journal-origin-lost','journal-intent-before','journal-intent-lost','journal-ack-before','journal-ack-lost','start-ack-lost')
+    assert len(sys.argv) in (3,4) and (len(sys.argv)==3 or sys.argv[3] in modes)
+    for mode in modes:
+        if len(sys.argv)==4 and mode!=sys.argv[3]: continue
         case = root/mode
         case.mkdir(mode=0o700)
         system, user = case/'system', case/'user'
         system.mkdir(mode=0o700)
         user.mkdir(mode=0o700)
         started = time.monotonic()
-        result = subprocess.run([executable, system, user, expected, 'exec-root-unit-'+mode], timeout=40)
-        reports.append(dict(case=mode, exit=result.returncode, seconds=time.monotonic()-started))
+        supervised(executable, system, user, expected, 'exec-root-unit-'+mode)
+        reports.append(dict(case=mode, exit=0, seconds=time.monotonic()-started))
         (root/'results.json').write_text(json.dumps(reports, indent=2)+'\n')
-        result.check_returncode()
     # Native REQUEST/user preparation and reserved leases remain unsettled.
     # Keep both catalogues/receipts, even on success; no release/rollback inferred.
     print('ROOT_UNIT_RECEIPTS '+str(root), flush=True)

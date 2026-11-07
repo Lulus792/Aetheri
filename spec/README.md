@@ -1,6 +1,15 @@
 # Versioned catalogue and API contracts
 
-Root v10 adds the separate [connection-custody journal](unit-profiles.md#root-v10-connection-custody-journal)
+The working native prototype adds Root v11
+[original issuer observations](unit-profiles.md#root-v11-original-issuer-identity)
+and explicit `upgrade_unit_issuers` / `migrate_unit_issuers` v10-to-v11 migration.
+The final Release/ASan/UBSan matrices and affected regressions pass; the
+[execution record](../brains/aetheri/journal/2026-11-07-issuer-identity-work.md)
+retains their actual scope and earlier fixture failures.
+Normal creation/installed owners remain v2. No installed API or launch capability
+is added, and migration never fabricates observations for old rows.
+
+Root v10 added the separate [connection-custody journal](unit-profiles.md#root-v10-connection-custody-journal)
 and explicit `ae_catalogue_upgrade_unit_custody` / development
 `migrate_unit_custody` v9-to-v10 migration. Normal create remains v2; open accepts
 exact prior versions plus Root v10 without migrating. No User v9/v10, old-row
@@ -40,6 +49,8 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [common-v7](schema/common-v7.sql), [system-v7](schema/system-v7.sql), [user-v7](schema/user-v7.sql) | Explicit paired-owner close-only recovery after Root v6/User v4; immutable original evidence and current pair binding |
 | [common-v8](schema/common-v8.sql), [system-v8](schema/system-v8.sql), [user-v8](schema/user-v8.sql), [interruption.h](../src/catalogue/interruption.h), [vector](vectors/run-interruption-v1.json) | Separate cross-boot interruption bindings/stages after v7; preserve original successful start, no installed continuity/actor/fencing admission |
 | [system-v9](schema/system-v9.sql), [unit.h](../src/catalogue/unit.h), [unit profiles](unit-profiles.md) | Root-only allocation intent and immutable unit selection before executing REQUEST/ARM; no automatic upgrade, adoption or custody retirement |
+| [system-v10](schema/system-v10.sql), [origin vector](vectors/unit-origin-v1.json) | Original connection and ordered one-shot RPC intent/acknowledgement history |
+| [system-v11](schema/system-v11.sql), [issuer vector](vectors/unit-issuer-v1.json), [Linux owner](../src/linux/issuer.h) | Original authenticated issuer main-process/image enrollment before REQUEST; historical metadata does not recover handles or retire custody |
 | [run-recovery-pair-v1.json](vectors/run-recovery-pair-v1.json) | Independent 232-byte AETHRCP1 vector; no actor authentication or process-drain proof |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
@@ -54,11 +65,12 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v9/User v2–v4,v7–v8 opening and explicit upgrades under the retained owner lock |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v11/User v2–v4,v7–v8 opening and explicit upgrades under the retained owner lock |
 | [recovery.h](../src/catalogue/recovery.h), [inventory tests](../tools/test_recovery_inventory.py) | One bounded read-only owner snapshot of unresolved lifecycle metadata; no automatic recovery, holder drain or replay |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
+| [test_unit_issuer.py](../tools/test_unit_issuer.py) | Independent AETHUIS1 bytes and explicit Root v11 migration/fault tests |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [image.h](../src/linux/image.h), [image-v1.json](vectors/image-v1.json) | Bounded 112-byte AETHIMG1 executable observation codec; authenticated source and current-process matching are separate obligations |
 | [self-image test](../tools/test_image_self.py), [authority image test](../tools/test_authority_image.py) | Calling-process ELF matching, including capability-empty UID0; explicit protected P0 role selection and enforcing foreign-object counterexamples |
@@ -295,7 +307,7 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact Root v2–v9/User v2–v4,v7–v8 validation and startup-context writes.
+The C17 store implements v2 creation, exact Root v2–v11/User v2–v4,v7–v8 validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
 The later explicit v3/v4 upgrades add independent run/process evidence; published
@@ -321,6 +333,9 @@ v1/v2/v3 SQL and existing protocol versions remain unchanged.
 | ae_catalogue_get_run_receipt | Read original historical closure evidence; no new process effect or fresh kernel proof |
 | ae_catalogue_enroll_execution_process | Persist original authenticated process evidence at its exact stage; immutable bytes/time and no replayed effects |
 | ae_catalogue_get_execution_process | Same-authority/account/boot historical maintenance read, including after owner-runtime replacement; no run adoption or current process proof |
+| ae_catalogue_upgrade_unit_issuers | Explicit quiesced Root10-to-11 addition; no old issuer evidence is backfilled |
+| ae_catalogue_enroll_unit_issuer | Before REQUEST, persist the independently admitted original connection/process/image observation; exact retries preserve bytes/time and permit no effect |
+| ae_catalogue_get_unit_issuer | Same-epoch historical read; never a current process, recovered handle or retirement proof |
 | ae_catalogue_close | Close SQLite and release process-owned writer resources; reject inherited fork handles |
 
 The caller supplies an already protected, stable absolute directory and identity
@@ -421,6 +436,7 @@ Run from the repository root with Python 3.11+ and SQLite 3.37+:
 ```text
 python tools/test_contracts.py
 python tools/test_runtime_contracts.py
+python tools/test_unit_issuer.py
 python tools/test_vm_inputs.py
 python tools/test_vm_tools.py
 ```

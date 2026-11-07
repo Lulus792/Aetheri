@@ -80,6 +80,8 @@ def main():
             scenarios=tuple('exec-start-'+case for case in (
                 'normal','early','foreign-job','wrong-sender','lost-reply','bad-path','conflict','overflow','late-owner-loss',
                 'owner-loss','guard-deny','late-fence','submit-before','submit-after','fenced-pending','fork','missing-job','failed-job','guard-owner-loss'))
+        if len(sys.argv)==4 and sys.argv[3]=='unit-issuers':
+            scenarios=tuple('exec-issuer-'+case for case in ('fresh','migration','migration-crash-before','migration-crash-after','lost','replacement','too-late','legacy'))
         if len(sys.argv)==4 and sys.argv[3]=='units':
             scenarios=tuple('exec-unit-'+mode for mode in ('fresh','migration','crash-before','crash-after','lost-prepare','lost-witness','fence','replacement'))
         if len(sys.argv)==4 and sys.argv[3]=='unit-custody':

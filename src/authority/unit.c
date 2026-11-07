@@ -26,7 +26,27 @@ struct ae_root_unit {
     ae_root_unit_admit admit;
     void *admission;
     unsigned int node_count;
+    struct ae_issuer *issuer;
+    struct ae_unit_origin origin;
 };
+static void failed(void *,int);
+static int issuer_record(struct ae_root_unit *s)
+{
+    struct ae_unit_issuer actual; struct ae_unit_issuer_snapshot stored;
+    struct ae_effect_owner original;
+    memcpy(original.epoch,s->profile.system_epoch,16); memcpy(original.runtime,s->profile.system_runtime,16); memcpy(original.boot,s->profile.boot,16);
+    int r=ae_issuer_verify(s->issuer,ae_unit_bus(s->unit),&s->origin);
+    if (!r) r=ae_issuer_snapshot(s->issuer,&actual);
+    if (!r) r=ae_catalogue_get_unit_issuer(s->catalogue,&s->profile,&original,&stored);
+    uint8_t a[AE_UNIT_ISSUER_MAX],b[AE_UNIT_ISSUER_MAX],x[AE_UNIT_ORIGIN_BYTES],y[AE_UNIT_ORIGIN_BYTES]; size_t na=0,nb=0;
+    if (!r) r=ae_unit_issuer_encode(&actual,a,sizeof a,&na);
+    if (!r) r=ae_unit_issuer_encode(&stored.issuer,b,sizeof b,&nb);
+    if (!r) r=ae_unit_origin_encode(&s->origin,x);
+    if (!r) r=ae_unit_origin_encode(&stored.origin,y);
+    if (!r && (na!=nb || memcmp(a,b,na) || memcmp(x,y,sizeof x))) r=-ESTALE;
+    if (r) failed(s,r);
+    return r;
+}
 static int owner(struct ae_root_unit *s) { return !s ? -EINVAL : s->owner==getpid() ? 0 : -ECHILD; }
 int ae_root_unit_placement_digest(const char *directory,const struct ae_root_identity *parent,uint8_t out[32])
 {
@@ -173,10 +193,12 @@ static int fresh(void *data)
     struct ae_unit_allocation_snapshot allocation; struct ae_effect_owner original=context(s);
     if (!r) r=ae_catalogue_get_unit(s->catalogue,&s->profile,&original,&allocation);
     if (!r && (!allocation.witnessed || memcmp(allocation.selection,s->selection,32))) r=-ESTALE;
+    if (!r) r=issuer_record(s);
     if (!r) r=image(s);
     if (!r) r=s->admit(s->admission,&s->profile);
     if (r>0) r=-EIO;
     if (!r) r=image(s);
+    if (!r) r=issuer_record(s);
     if (!r) r=ae_catalogue_execution_request_state(s->catalogue,&s->profile,&s->broker,&present);
     if (!r && !present) r=-ESTALE;
     if (!r) r=ae_catalogue_check_execution_effect(s->catalogue,&s->broker);
@@ -212,10 +234,13 @@ static void failed(void *data,int error)
     s->busy=previous;
 }
 int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const struct ae_unit_profile *selected,
-    const struct ae_root_unit_image *source,const struct ae_execution_profile *p,const struct ae_launch_context *broker,
+    const struct ae_root_unit_image *source,const struct ae_root_unit_issuer_selection *issuer_selection,
+    const struct ae_execution_profile *p,const struct ae_launch_context *broker,
     ae_root_unit_admit admit,void *data,struct ae_root_unit **out)
 {
-    if (!store || !unit || !*unit || !selected || !source || !p || !broker || !admit || !out || *out ||
+    if (!store || !unit || !*unit || !selected || !source || !issuer_selection || !p || !broker || !admit || !out || *out ||
+        !memchr(issuer_selection->unit,0,sizeof issuer_selection->unit) || !issuer_selection->unit[0] ||
+        !memchr(issuer_selection->label,0,sizeof issuer_selection->label) || !issuer_selection->label[0] ||
         source->directory_fd<0 || source->image_fd<0 || !memchr(source->directory,0,sizeof source->directory) || source->directory[0]!='/' ||
         !memchr(source->leaf,0,sizeof source->leaf) || !source->leaf[0] || strchr(source->leaf,'/') ||
         !strcmp(source->leaf,".") || !strcmp(source->leaf,"..") || !memchr(source->label,0,sizeof source->label) || !source->label[0] ||
@@ -230,7 +255,9 @@ int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const stru
     struct ae_root_unit *s=calloc(1,sizeof *s); if (!s) return -ENOMEM;
     s->owner=getpid(); s->catalogue=store; s->profile=*p; s->broker=*broker; s->source=*source;
     s->source.directory_fd=-1; s->source.image_fd=-1; s->admit=admit; s->admission=data;
-    r=ae_execution_digest(p,s->digest);
+    const struct ae_root_unit_issuer_selection role=*issuer_selection;
+    r=ae_catalogue_begin_execution_effect(store,broker); int frame=!r;
+    if (!r) r=ae_execution_digest(p,s->digest);
     if (!r && memcmp(p->starter_digest,source->image.digest,32)) r=-ESTALE;
     struct ae_dispatch_snapshot dispatch; int present=0;
     if (!r) r=ae_catalogue_check_execution_effect(store,broker);
@@ -258,9 +285,19 @@ int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const stru
     if (!r) r=image(s);
     struct ae_unit_custody_snapshot custody;
     if (!r) { int found=ae_catalogue_get_unit_custody(store,p,&original,&custody); if (found!=-ENOENT) r=found ? found : -EALREADY; }
+    if (!r) r=ae_unit_origin(*unit,&s->origin);
+    if (!r) r=ae_issuer_open(ae_unit_bus(*unit),&s->origin,role.unit,role.label,&role.image,&s->issuer);
+    struct ae_unit_issuer actor; int64_t enrolled=0;
+    if (!r) r=ae_issuer_snapshot(s->issuer,&actor);
+    if (!r) r=timestamp(&enrolled);
+    if (!r) r=ae_catalogue_enroll_unit_issuer(store,p,broker,&s->origin,&actor,enrolled);
+    if (!r) r=ae_issuer_verify(s->issuer,ae_unit_bus(*unit),&s->origin);
+    if (!r) r=ae_catalogue_check_execution_effect(store,broker);
+    if (frame) { int ended=ae_catalogue_end_execution_effect(store); if (!r) r=ended; }
     struct ae_unit_journal hooks={.before=intend,.confirmed=confirmed,.failed=failed,.data=s};
     if (!r) r=ae_unit_set_journal(*unit,&hooks);
     if (r) {
+        (void)ae_issuer_close(&s->issuer);
         if (s->source.directory_fd>=0) close(s->source.directory_fd);
         if (s->source.image_fd>=0) close(s->source.image_fd);
         free(s); return r;
@@ -311,10 +348,12 @@ static int end_guard(void *data)
     struct ae_effect_owner original=context(s);
     int r=ae_catalogue_begin_owner_cleanup(s->catalogue,&original);
     if (!r) r=ae_catalogue_end_execution_effect(s->catalogue);
+    if (!r) r=issuer_record(s);
     if (!r) r=end->admit(end->data);
     if (r>0) r=-EIO;
     if (!r) r=ae_catalogue_begin_owner_cleanup(s->catalogue,&original);
     if (!r) r=ae_catalogue_end_execution_effect(s->catalogue);
+    if (!r) r=issuer_record(s);
     return r;
 }
 int ae_root_unit_retire(struct ae_root_unit *s,ae_start_guard admit,void *data)
@@ -340,6 +379,7 @@ static int dispose(struct ae_root_unit **out,int abandon)
     if (r) return r;
     r=abandon ? ae_unit_abandon(&s->unit) : ae_unit_close(&s->unit);
     if (r) return r;
+    r=ae_issuer_close(&s->issuer); if (r) return r;
     release_hold(s); if (s->held) return s->error ? s->error : -EBUSY;
     close(s->source.directory_fd); close(s->source.image_fd); free(s); *out=NULL; return 0;
 }

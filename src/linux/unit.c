@@ -590,6 +590,7 @@ int ae_unit_set_journal(struct ae_unit *u,const struct ae_unit_journal *hooks)
     int r=owner(u); if (!r && (!hooks || !hooks->before || !hooks->confirmed)) r=-EINVAL;
     if (!r && u->busy) r=-EBUSY;
     if (!r && (u->journal.before || u->status.used || u->status.start_used || u->status.retire_used)) r=-EALREADY;
+    if (!r && (u->status.fenced || u->status.quarantined || u->status.error)) r=-ESTALE;
     if (!r) u->journal=*hooks;
     return r;
 }

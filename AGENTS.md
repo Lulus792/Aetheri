@@ -1048,3 +1048,24 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   does not settle metadata or prohibit independently admitted historical cleanup.
   Once published, keep v10 SQL and unit-origin-v1 unchanged; future schema changes
   need a new explicit version, never an edit to a published development contract.
+
+- Root unit construction now requires explicit Root v11 original issuer
+  enrollment before REQUEST. Read spec/unit-profiles.md#root-v11-original-issuer-identity.
+  linux/issuer retains an actual bus-authenticated own ProcessFD and checks the
+  independently selected main service/label, invocation/cgroup, pidfs identity
+  and original self ELF. Same-unit children, wrong image/label/role and inherited
+  connections reject. Local self-image pinning never replaces the required bus
+  ProcessFD; remote UID0 image admission remains forbidden. AETHUIS1 and getters
+  are historical metadata, never current proof, recovered handles or new effects.
+  Fresh effects and independently admitted original cleanup repeat issuer checks;
+  close only drops local handles. Explicit quiesced upgrade_unit_issuers adds no
+  old evidence or gate/runtime/revision changes. Normal create/installed owners
+  stay v2; open validates exact Root2–11/User2–4,7–8 without migrating. Preserve
+  published v1-v10 SQL/XML and unit-issuer-v1 once published. Run core.unit_issuer,
+  catalogue.unit_issuers, tools/test_unit_issuer.py and explicit enforcing-carrier
+  authority.unit_custody / authority.issuer_barriers. Their UID0 administrative
+  drivers are not production confined Root provisioning. All owner histories and
+  reserved leases remain; operator cleanup of known terminal test configurations
+  never settles native obligations. No bus-loss/owner/volume/clone recovery,
+  external holder settlement or durable issuer/custody retirement is implied.
+  Preserve the old executing quarantine, normal inputs and SDK/UI defaults.

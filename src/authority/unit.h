@@ -3,6 +3,7 @@
 #include "authority/execution.h"
 #include "linux/unit.h"
 #include "linux/image.h"
+#include "linux/issuer.h"
 #include "catalogue/unit.h"
 
 struct ae_root_unit;
@@ -10,6 +11,10 @@ struct ae_root_unit_image {
     int directory_fd,image_fd;
     char directory[4096],leaf[AE_UNIT_TEXT],label[512];
     struct ae_root_identity parent;
+    struct ae_image image;
+};
+struct ae_root_unit_issuer_selection {
+    char unit[256],label[512];
     struct ae_image image;
 };
 /* Compiled current caller/data/mutation admission. The independent unit/image
@@ -36,12 +41,16 @@ struct ae_root_unit_status { struct ae_unit_status unit; int used,held,error; };
  * owner on success only. Match an independently authorized protected selection,
  * exact launch-derived name and held/named starter ELF against AETHEXE1.
  * Copies the image selection/duplicates FDs and requires the original witnessed
- * v9 allocation/selection. No enrollment, Ref/Subscribe/Start or new effect
- * permission is created by this constructor.
+ * v9 allocation/selection in a v11 catalogue. The independently selected Root
+ * main-process role/image is pinned and durably enrolled before REQUEST. No
+ * Ref/Subscribe/Start or new effect permission is created by this constructor.
+ * Unknown enrollment acknowledgement preserves the original row/connection;
+ * never substitute another origin/process/image after uncertainty.
  * Caller owes original unused allocation, volume/configuration/MAC admission,
  * mutation exclusion and trusted host buses; never adopt candidate self-claims. */
 int ae_root_unit_new(struct ae_catalogue *,struct ae_unit **,
     const struct ae_unit_profile *independent_selection,const struct ae_root_unit_image *,
+    const struct ae_root_unit_issuer_selection *,
     const struct ae_execution_profile *,const struct ae_launch_context *,
     ae_root_unit_admit,void *,struct ae_root_unit **);
 /* ae_execution_effect request adapter ONLY for the original coordinator's

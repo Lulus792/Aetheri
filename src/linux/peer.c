@@ -24,33 +24,19 @@ void ae_peer_clear(struct ae_peer *peer)
     peer->pidfd = -1;
 }
 
-static int capture(sd_bus_message *message,uint8_t expected_type,struct ae_peer *output)
+static const uint64_t required = SD_BUS_CREDS_EUID | SD_BUS_CREDS_PID |
+                                 SD_BUS_CREDS_PIDFD | SD_BUS_CREDS_SELINUX_CONTEXT;
+static int credentials_peer(sd_bus *bus,const char *sender,sd_bus_creds *credentials,struct ae_peer *output)
 {
-    if (message == NULL || output == NULL || output->pidfd>=0) return -EINVAL;
-    uint8_t type = 0;
-    int result = sd_bus_message_get_type(message, &type);
-    if (result < 0) return result;
-    if (type != expected_type) return -EPROTO;
-    sd_bus *bus = sd_bus_message_get_bus(message);
-    if (bus == NULL || sd_bus_is_bus_client(bus) <= 0) return -EPROTO;
-    const char *sender = sd_bus_message_get_sender(message);
-    if (sender == NULL || sender[0] != ':' || !sd_bus_service_name_is_valid(sender)) return -EPROTO;
-
     struct ae_peer temporary = AE_PEER_INIT;
     size_t length = strnlen(sender, sizeof temporary.unique_name);
     if (length == sizeof temporary.unique_name) return -E2BIG;
     memcpy(temporary.unique_name, sender, length + 1U);
     sd_id128_t bus_id;
-    result = sd_bus_get_bus_id(bus, &bus_id);
+    int result = sd_bus_get_bus_id(bus, &bus_id);
     if (result < 0) return result;
     memcpy(temporary.bus_id, bus_id.bytes, sizeof temporary.bus_id);
 
-    const uint64_t required = SD_BUS_CREDS_EUID | SD_BUS_CREDS_PID |
-                              SD_BUS_CREDS_PIDFD | SD_BUS_CREDS_SELINUX_CONTEXT;
-    sd_bus_creds *credentials = NULL;
-    /* Deliberately omit SD_BUS_CREDS_AUGMENT. Missing ProcessFD must fail. */
-    result = sd_bus_query_sender_creds(message, required, &credentials);
-    if (result < 0) return result;
     if ((sd_bus_creds_get_mask(credentials) & required) != required ||
         (sd_bus_creds_get_augmented_mask(credentials) & required) != 0) {
         result = -ENODATA;
@@ -76,9 +62,47 @@ static int capture(sd_bus_message *message,uint8_t expected_type,struct ae_peer 
     *output = temporary;
     temporary.pidfd = -1;
 done:
-    sd_bus_creds_unref(credentials);
     ae_peer_clear(&temporary);
     return result;
+}
+static int capture(sd_bus_message *message,uint8_t expected_type,struct ae_peer *output)
+{
+    if (message == NULL || output == NULL || output->pidfd>=0) return -EINVAL;
+    uint8_t type = 0;
+    int result = sd_bus_message_get_type(message, &type);
+    if (result < 0) return result;
+    if (type != expected_type) return -EPROTO;
+    sd_bus *bus = sd_bus_message_get_bus(message);
+    if (bus == NULL || sd_bus_is_bus_client(bus) <= 0) return -EPROTO;
+    const char *sender = sd_bus_message_get_sender(message);
+    if (sender == NULL || sender[0] != ':' || !sd_bus_service_name_is_valid(sender)) return -EPROTO;
+    sd_bus_creds *credentials = NULL;
+    /* Deliberately omit SD_BUS_CREDS_AUGMENT. Missing ProcessFD must fail. */
+    result = sd_bus_query_sender_creds(message, required, &credentials);
+    if (result>=0) result=credentials_peer(bus,sender,credentials,output);
+    sd_bus_creds_unref(credentials); return result;
+}
+
+int ae_peer_capture_self(sd_bus *bus,struct ae_peer *output)
+{
+    if (!bus || !output || output->pidfd>=0) return -EINVAL;
+    if (sd_bus_is_bus_client(bus)<=0) return -EPROTO;
+    const char *borrowed=NULL; int r=sd_bus_get_unique_name(bus,&borrowed);
+    if (r<0) return r;
+    char name[256];
+    if (!borrowed || borrowed[0]!=':' || !sd_bus_service_name_is_valid(borrowed)) return -EPROTO;
+    size_t size=strnlen(borrowed,sizeof name); if (size==sizeof name) return -E2BIG;
+    memcpy(name,borrowed,size+1U);
+    sd_bus_creds *creds=NULL; struct ae_peer self=AE_PEER_INIT;
+    r=sd_bus_get_name_creds(bus,name,required,&creds);
+    if (r>=0) r=credentials_peer(bus,name,creds,&self);
+    sd_bus_creds_unref(creds);
+    if (!r && (self.connection_pid!=getpid() || self.connection_uid!=geteuid())) r=-ESTALE;
+    if (!r) { r=sd_bus_get_unique_name(bus,&borrowed); if (r>=0) r=0; }
+    if (r>=0 && (!borrowed || strcmp(name,borrowed))) r=-ESTALE;
+    if (!r) r=ae_peer_alive(&self);
+    if (!r) { *output=self; self.pidfd=-1; }
+    ae_peer_clear(&self); return r<0 ? r : 0;
 }
 
 int ae_peer_capture(sd_bus_message *message,struct ae_peer *output)

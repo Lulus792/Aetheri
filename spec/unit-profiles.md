@@ -161,3 +161,88 @@ process/unit/image evidence, owner replacement, bus-disconnect observation,
 independent end/holder admission and durable retirement/reconciliation still need
 separate connected implementation and tests. Never infer app drain, rollback,
 allocation removal or generation-lease release from this journal.
+
+## Root v11 original issuer identity
+
+The native prototype now joins the original connection to the actual issuing
+Root process. Execution evidence is tracked in the
+[record](../brains/aetheri/journal/2026-11-07-issuer-identity-work.md);
+the normal installed owners still use v2 and advertise no launch capability.
+
+`unit_issuers` adds one immutable observation per original allocation. It stores
+the exact `AETHUBS1` origin, a canonical `AETHUIS1` process/image observation and
+the original enrollment time. Fresh enrollment requires the original Root
+runtime/boot, witnessed allocation, reserved launch/lease, current install gate
+and no REQUEST or custody. It changes only the catalogue revision. An exact
+retry acknowledges the original bytes and time; it creates no effect permission.
+A conflicting connection, process or image cannot replace an earlier row.
+
+The native getter permits historical inspection by a current same-epoch owner.
+It does not recover the old ProcessFD, connection, invocation, cgroup handles or
+permission to operate an earlier run. The recovery inventory retains the issuer
+as an unsettled retirement obligation. UPDATE and DELETE are refused until a
+separate retirement protocol exists.
+
+The Linux issuer owner uses `ae_peer_capture_self` only for its calling Root.
+It asks the trusted bus for that connection's actual unique name credentials,
+requiring authenticated EUID, PID, ProcessFD and raw SELinux label without `/proc`
+augmentation. A fork-inherited connection is rejected. The separate remote
+caller APIs still require credentials from their original authenticated message.
+
+Admission then requires the independently selected main service and security
+label, current invocation and cgroup, original pidfs identity and independently
+selected original Root ELF. A child in the same service does not pass MainPID
+admission. Root uses the existing self-image check; the remote image API still
+refuses UID0. The issuer retains its original ProcessFD and repeats current
+connection/process/unit/image checks. A serialized snapshot never substitutes
+for those actual observations.
+
+The Root unit constructor requires v11 and enrolls the issuer before REQUEST,
+without Subscribe/Ref/Start. It keeps the catalogue runtime under its execution
+hold during construction. Fresh custody admission checks the issuer before and
+after the caller/data callout. Independently admitted original cleanup also
+requires the same actual issuer. Drift fences further fresh execution. Closing
+the issuer releases only a local ProcessFD; it never releases a lease or proves
+that an app, holder or connection obligation has ended.
+
+### AETHUIS1 byte profile
+
+All integers are big endian; strings have no terminator in the frame. Root
+UID/GID0 are implicit in this profile. No native padding, descriptor value or
+numeric PID is serialized.
+
+| Field | Bytes |
+| --- | ---: |
+| `AETHUIS1` tag | 8 |
+| Original boot | 16 |
+| Original 64-bit pidfs identity | 8 |
+| Original systemd invocation | 16 |
+| Original cgroup identity | 8 |
+| Unchanged `AETHIMG1` original ELF observation | 112 |
+| Unit, cgroup, raw label | Each has a 4-byte length followed by its bytes |
+
+Frames are bounded to 2,048 bytes. The current canonical fields occupy 192–1,969
+bytes: printable ASCII service name up to 255 bytes, canonical absolute cgroup
+up to 1,023 bytes and raw label up to 511 bytes. Empty/dot/dot-dot cgroup
+components, embedded NULs, trailing bytes, empty identities and malformed image
+observations are rejected. The independent
+[vector](vectors/unit-issuer-v1.json) exercises full-width process identities and
+the existing signed image timestamps. Both encoders preserve outputs on error.
+
+### Explicit migration and remaining work
+
+`ae_catalogue_upgrade_unit_issuers` and development `migrate_unit_issuers` perform
+only the explicit, quiesced Root v10-to-v11 addition under the retained writer
+lock. They add no old issuer rows and change no existing gates, runtime,
+revisions or operation history. An old custody remains readable after migration
+but cannot obtain additional effect steps without its original issuer record;
+that evidence is never fabricated afterward. Opening does not migrate, normal
+creation remains v2 and User v9/v10/v11 are unsupported. Published v1-v10
+SQL/XML stay unchanged. Unknown commits require inspection, never backup restore.
+
+Tests use separately supervised administrative UID0 drivers in the enforcing
+carrier. They do not prove normal confined Root provisioning or app admission.
+Current protected configuration, loaded-library/base trust, source/volume
+continuity, bus-loss recovery, external/delegated holders and durable issuer/
+custody retirement remain separate work. No old executing quarantine is opened,
+adopted, migrated or released by this addition.
