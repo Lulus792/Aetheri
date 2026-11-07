@@ -4774,3 +4774,38 @@ their own source/holder coordination. Do not use this path for executing starter
 The [admission-fence record](../brains/aetheri/journal/2026-11-07-admission-fence.md)
 identifies the actual native tests, deliberately defective producers, normal P0
 update and remaining integration boundary. No SQL/XML or public capability changed.
+
+### No-exec setup reply source and method lifetime
+
+The installed [`authority/setup.c`](../src/authority/setup.c) methods now hold a
+current-owner cleanup bracket for their entire synchronous frame. Match the
+retained SYSTEM epoch/boot/runtime before callbacks; reject reentrant methods,
+public clear and external exit observation while busy. Catalogue close/runtime
+replacement also reject while a frame is entered. Current process/image/unit/
+policy and caller admission remain separate prerequisites.
+
+PrepareSetup, RegisterSetup and ReportPrepared success replies obtain a separate
+source permit after native journal work. Check again after reply construction,
+immediately before send. A pre-send fence denies progress without undoing the
+original journal or discarding an already admitted helper pin/unit reference.
+Existing helper observation and independently proven no-exec withdrawal remain
+available through cleanup brackets while fenced. WithdrawSetup's terminal reply
+is cleanup metadata, not a new view or execution grant.
+
+An entered send may deliver or return an unknown error. Once entered, the method
+is handled: never ask sd-bus to generate a replacement error reply. Preserve
+the original intent/helper obligations and emit only a bounded local diagnostic.
+An unreceived response can leave the caller in its original bounded timeout;
+the server never infers rollback, absence or drain from that timeout. A delivered
+response is likewise not readiness/holder drain. The fixed helper still calls
+each phase once; this is no general replay/restart protocol.
+
+The original ProcessFD and selected unit reference survive a denied/unknown
+response. Actual same-invocation process/unit/cgroup/job drain must still precede
+no-exec withdrawal. These rules never extend its proof to executing starters or
+settle external/delegated holders. Local frame counts are not global drain.
+Supervisor StartUnit sources and admitted owner/volume continuity remain separate.
+
+See the [executed setup-fence record](../brains/aetheri/journal/2026-11-07-setup-fence.md)
+for actual private-bus/process-pin evidence, controlled context boundaries and
+the normal P0 update. SQL/XML, policy and public capabilities stay unchanged.

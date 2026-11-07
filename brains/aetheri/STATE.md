@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — fresh reservation admission fenced; history/cleanup retained.
+7 November 2026 — no-exec progress replies fenced; original helper pins retained.
 
 ## Coordination
 
@@ -14,6 +14,45 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Installed Setup1 methods now hold a current retained SYSTEM cleanup frame,
+rejecting reentrant use/clear and catalogue close/runtime replacement. Prepare,
+Register and Prepared success replies source-check after native work and again
+after construction before sending. Entered sends are handled even when unknown,
+preventing an automatic replacement error. Original journals/helper/unit pins
+remain; admitted observation and independently proven no-exec withdrawal still
+work while fenced. No SQL/XML/policy/dependency/public capability changes. See the
+[executed setup-fence record](journal/2026-11-07-setup-fence.md).
+
+Both complete builds pass. All 22 final private-bus/process-pin/native journal
+cases pass without skips in Release (94.95s) and ASan/UBSan (102.78s). Actor labels,
+broker/PID1 context and drain admission remain controlled, not live MAC/view
+acceptance. Three final deliberately defective producers are rejected without
+changing original artifacts. Four affected regressions pass 93.47s/98.97s.
+Initial 19-case results and the selector/timeout-expectation fixture failures are
+retained; final checks use exact Error.Timeout/-ETIMEDOUT without widening timeouts.
+The existing private broker replaces an unavailable dbus-run-session wrapper.
+
+Normal P0's reviewed seven-stage update/check/stop sequence passes enforcing,
+including actual connection negatives, User replacement, Root restart with User
+retained and idle. Both services are stopped. All 52 files are compared, preserving
+owner/epochs, lock inodes, policy and every non-runtime owner table. Authority SHA:
+`dd111cfb9fdd632fed3b86c22df22ec31e946fcf22236ea283171e85a94c2ae9`.
+
+Final audit: 407 source inputs, unchanged 28 frozen contracts/19 protected old-
+runtime hashes/four foreign files/exact CLOSED DRM/SDK 0.1.18/SDL04; no own actor,
+Aetheri service, protected sidecar or seat0 session. Sixty verified exports are in
+`local/setup-fence-2026-11-07`; Git records publication. Unchanged migration/codec
+campaigns are not represented as rerun by this transport-only step.
+
+Next: actual supervisor activation and its original pending request/job duties,
+then old/intervening owners, external/delegated holders and admitted owner/volume
+continuity with durable per-run recovery. The local latch and handled reply are
+not global drain, general replay/recovery or executing-start/removal permission.
+Preserve old v6/User-v4 quarantine. The full OS/apps/image/installer/update/
+hardware/experiment-desktop goal remains active/incomplete; no NexaUI handoff.
+
+## Prior fresh-admission checkpoint
 
 The retained SYSTEM source latch now rejects fresh opening of install
 reservation admission, new canonical reservation/lease/dispatch and the first

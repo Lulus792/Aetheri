@@ -959,3 +959,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   native metadata with synthetic caller evidence, not live supervisor/drain
   admission. Keep all original cleanup proofs and frozen SQL/XML; the latch
   remains local and does not resolve old-owner/volume/holder continuity.
+
+- authority/setup methods now bracket the current owner for the whole method,
+  reject reentrant use/clear, and source-permit Prepare/Register/Prepared replies
+  after native work and again before send. Entered uncertain sends are handled;
+  never generate a replacement error reply or drop original pins/journals.
+  Existing admitted observations and proven no-exec withdrawal remain cleanup
+  while fenced. Read spec/runtime.md's no-exec-setup-reply section; run
+  authority.setup_fence plus setup-supervisor/launch/admission/transport regressions.
+  Its private-bus/process pins are real, actor labels/PID1 context controlled;
+  no live MAC/view/drain acceptance follows. Clear now returns EBUSY while active.
+  No SQL/XML/policy/public capability changes; preserve old quarantine and all
+  remaining supervisor/volume/old-owner/holder obligations.

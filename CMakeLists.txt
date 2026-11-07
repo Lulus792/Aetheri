@@ -1154,6 +1154,20 @@ if(BUILD_TESTING)
         target_link_libraries(test_setup_supervisor PRIVATE aetheri_catalogue aetheri_linux PkgConfig::SELINUX)
         add_test(NAME authority.setup_supervisor COMMAND test_setup_supervisor)
         set_tests_properties(authority.setup_supervisor PROPERTIES TIMEOUT 15)
+        if(AETHERI_PRIVILEGED_TESTS)
+            add_executable(test_setup_wire tests/test_launch.c tests/test_setup_wire.c src/authority/setup.c src/authority/setup_profile.c)
+            target_compile_definitions(test_setup_wire PRIVATE _GNU_SOURCE AETHERI_TEST_SETUP_SERVICE)
+            target_compile_options(test_setup_wire PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+            target_link_options(test_setup_wire PRIVATE -Wl,--wrap=sqlite3_exec -Wl,--wrap=sqlite3_step
+                -Wl,--wrap=ae_setup_load -Wl,--wrap=ae_peer_capture -Wl,--wrap=ae_process_observe_registration
+                -Wl,--wrap=ae_catalogue_begin_setup -Wl,--wrap=ae_catalogue_register_setup -Wl,--wrap=ae_catalogue_prepared_setup
+                -Wl,--wrap=sd_bus_message_new_method_return -Wl,--wrap=sd_bus_send -Wl,--wrap=sd_bus_call_method
+                -Wl,--wrap=sd_bus_get_property -Wl,--wrap=sd_bus_get_property_string -Wl,--wrap=sd_bus_get_property_trivial)
+            target_link_libraries(test_setup_wire PRIVATE aetheri_catalogue aetheri_linux PkgConfig::SELINUX)
+            add_test(NAME authority.setup_fence COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_setup_wire> "${CMAKE_CURRENT_BINARY_DIR}" setup-wire)
+            set_tests_properties(authority.setup_fence PROPERTIES TIMEOUT 360)
+        endif()
         add_executable(test_reservation_wire tests/test_reservation_wire.c src/authority/reservation.c)
         target_compile_definitions(test_reservation_wire PRIVATE _GNU_SOURCE)
         target_compile_options(test_reservation_wire PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

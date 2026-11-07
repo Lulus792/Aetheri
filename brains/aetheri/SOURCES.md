@@ -4,6 +4,23 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## No-exec setup reply source — 7 November 2026
+
+- Original [setup contract](../../src/authority/setup.h) and
+  [implementation](../../src/authority/setup.c): current-owner method frames,
+  post-journal/pre-send source checks, retained helper pins and handled unknown
+  sends without replacement responses. These local facts do not prove drain.
+- [Private-bus native cases](../../tests/test_setup_wire.c),
+  [original native owner setup](../../tests/test_launch.c) and
+  [runner](../../tools/test_launch_native.py): actual private bus, correlated
+  replies, ProcessFDs and SQL; actor labels/PID1 context remain controlled.
+  The [executed record](journal/2026-11-07-setup-fence.md) separates that evidence,
+  fixture corrections/counterexamples and actual normal-service checks.
+- Carrier `/usr/include/systemd/sd-bus-protocol.h:77` defines
+  `SD_BUS_ERROR_TIMEOUT`. The actual unreceived-send test returns that exact
+  `org.freedesktop.DBus.Error.Timeout` with `-ETIMEDOUT`, not `NoReply`.
+  This is local header/runtime evidence, not a cross-version API guarantee.
+
 ## Fresh reservation admission fence — 7 November 2026
 
 - Original [reservation contract](../../src/catalogue/reservation.h),

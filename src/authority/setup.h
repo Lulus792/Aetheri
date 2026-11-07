@@ -20,7 +20,7 @@ struct ae_setup_service {
     struct ae_peer peer;
     struct ae_process_context context;
     uint8_t lease[16],digest[32],evidence[32];
-    int pinned,terminal_only;
+    int pinned,terminal_only,busy;
 };
 int ae_setup_method_prepare(sd_bus_message *,struct ae_setup_service *,sd_bus_error *);
 int ae_setup_method_register(sd_bus_message *,struct ae_setup_service *,sd_bus_error *);
@@ -29,5 +29,11 @@ int ae_setup_method_withdraw(sd_bus_message *,struct ae_setup_service *,sd_bus_e
 /* Offline owner administration, under the exclusive catalogue lock and original
  * runtime, for a failed unregistered setup-only invocation. No target exec. */
 int ae_setup_recover_unbound(struct ae_catalogue *,const uint8_t boot[16]);
-void ae_setup_service_clear(struct ae_setup_service *);
+/* Borrow the current SYSTEM catalogue/bus for the complete method frame. Local
+ * frames prevent catalogue/runtime replacement and reentrant clear/use. Success
+ * replies granting setup progress use separate source permits, including a
+ * post-build pre-send recheck. An entered send may finish or be unknown; never
+ * send a replacement response. Existing admitted observation/withdrawal remains
+ * possible while fenced. No bracket proves process/transport/holder drain. */
+int ae_setup_service_clear(struct ae_setup_service *);
 #endif

@@ -72,6 +72,9 @@ def main():
                 "failure","unknown","malformed","request-timeout","request-commit-lost","bind-commit-lost",
                 "prepare-commit-lost","arm-commit-lost","release-timeout","context-drift","root-restart","broker-replacement","early-eof",
                 "observer-error","report-commit-lost","early-data"))
+        if len(sys.argv)==4 and sys.argv[3]=='setup-wire':
+            scenarios=tuple('setup-wire-'+phase+'-'+point for phase in ('prepare','register','prepared')
+                for point in ('before','commit','build','send','send-lost','send-before'))+tuple('setup-wire-'+case for case in ('register-lost','prepared-lost','success','owner-drift'))
         if len(sys.argv)==4 and sys.argv[3]=="fence":
             scenarios=tuple("exec-service-fence-"+case for case in (
                 "request-before","request-commit","request-active","bind-ref","bind-commit",
@@ -160,7 +163,7 @@ def main():
                                 b''.join(bytes.fromhex(item['hex'])+bytes.fromhex(item['sha256']) for item in vector['receipts']))
             subprocess.run([executable,'interruption-codec',encoded],check=True,timeout=10)
             scenarios=tuple('exec-interrupt-'+case for case in ('fresh','faults','crashes','owners','reboot','after-release','existing-close','existing-quiet','guards','gates','overflow','missing-start'))
-        with private_bus(root) if len(sys.argv)==4 and sys.argv[3] in ("wire", "fence-wire") else nullcontext(None) as environment:
+        with private_bus(root) if len(sys.argv)==4 and sys.argv[3] in ("wire", "fence-wire", "setup-wire") else nullcontext(None) as environment:
             for scenario in scenarios:
                 plan["action"]="run" if scenario.startswith("exec-") else "main"
                 expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())

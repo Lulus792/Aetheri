@@ -1,5 +1,18 @@
 # Decisions
 
+## Fence no-exec progress replies and retain cleanup — 7 November 2026
+
+Hold a current SYSTEM owner cleanup frame through each setup method, with
+reentrant use/clear rejected. Source-permit Prepare/Register/Prepared success
+replies after native work, and recheck after construction before send. Keep
+admitted helper identity/unit references after reply denial or uncertainty;
+observation and proven no-exec withdrawal must still work while fenced.
+Once send is entered, return handled even on uncertainty, preventing sd-bus
+from generating a second response. Retain original obligations; do not infer
+rollback or repeat a helper phase automatically. Supervisor activation and
+global holder/volume/restart coordination remain separate. See the
+[runtime boundary](../../spec/runtime.md#no-exec-setup-reply-source-and-method-lifetime).
+
 ## Stop fresh reservation admission while preserving history — 7 November 2026
 
 Use the existing retained SYSTEM latch for fresh reservation-gate opening,

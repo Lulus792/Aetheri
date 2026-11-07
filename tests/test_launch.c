@@ -19,6 +19,9 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"user launch line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 static int commit_fault,step_fault,step_number,crash_mode,ddl_fault,ddl_number;
+#ifdef AETHERI_TEST_SETUP_SERVICE
+void ae_test_setup_commit_fault(int value) { commit_fault=value; }
+#endif
 #ifdef AETHERI_TEST_EXECUTION_SERVICE
 void ae_test_execution_service(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
 void ae_test_execution_wire(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
@@ -1732,6 +1735,13 @@ int main(int argc,char **argv)
         memcpy(p.generation,r->generation,16); memcpy(p.data,r->data,16); memcpy(p.storage,q.storage,16); memcpy(p.launch,r->launch,16);
         memcpy(p.lease,r->lease,16); memcpy(p.root_operation,proposed.operation,16); memcpy(p.user_operation,q.local.operation,16);
         uint8_t hash[32]={1},evidence[32]={2},invocation[16]; id(invocation,66);
+#ifdef AETHERI_TEST_SETUP_SERVICE
+        if (strncmp(argv[4],"setup-wire-",11)==0) {
+            void ae_test_setup_wire(struct ae_catalogue *,const struct ae_setup_profile *,const uint8_t *,struct ae_launch_context *,const char *,const char *);
+            ae_test_setup_wire(root,&p,hash,&rc,argv[1],argv[4]+11);
+            CHECK(ae_catalogue_close(&root)==0 && ae_catalogue_close(&user)==0); return 0;
+        }
+#endif
         struct ae_dispatch_snapshot before; memset(&before,0xa5,sizeof before);
         CHECK(ae_catalogue_authorize_user_setup(user,&p)==0);
         struct ae_setup_profile wrong_profile=p; wrong_profile.storage[15]++;

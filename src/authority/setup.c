@@ -1,4 +1,5 @@
 #include "authority/setup.h"
+#include "catalogue/effect.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <limits.h>
@@ -6,8 +7,25 @@
 #include <string.h>
 #include <time.h>
 #include <signal.h>
+#include <stdio.h>
 
 #define SETUP_IMAGE "/var/lib/aetheri-p0/setup-helper"
+static void clear(struct ae_setup_service *s);
+static struct ae_effect_owner effect_owner(const struct ae_setup_service *s)
+{
+    struct ae_effect_owner owner;
+    memcpy(owner.epoch,s->epoch,16); memcpy(owner.runtime,s->runtime,16); memcpy(owner.boot,s->boot,16);
+    return owner;
+}
+static int enter(struct ae_setup_service *s)
+{
+    if (!s) return -EINVAL;
+    if (s->busy) return -EBUSY;
+    struct ae_effect_owner owner=effect_owner(s);
+    int r=ae_catalogue_begin_owner_cleanup(s->catalogue,&owner);
+    if (r==0) s->busy=1;
+    return r;
+}
 static void setup_unit(const struct ae_setup_profile *p,char output[80])
 {
     static const char hex[]="0123456789abcdef";
@@ -97,15 +115,27 @@ static int profile(struct ae_setup_service *s,struct ae_setup_profile *p,uint8_t
     if (r==0 && (memcmp(p->system_epoch,s->epoch,16)!=0 || memcmp(p->system_runtime,s->runtime,16)!=0 || memcmp(p->boot,s->boot,16)!=0)) r=-ESTALE;
     return r;
 }
-static int respond(sd_bus_message *message,const struct ae_dispatch_snapshot *d)
+static int respond(sd_bus_message *message,struct ae_setup_service *s,const struct ae_dispatch_snapshot *d,int source)
 {
-    sd_bus_message *reply=NULL; int r=sd_bus_message_new_method_return(message,&reply);
+    struct ae_effect_owner owner=effect_owner(s);
+    int r=source ? ae_catalogue_begin_owner_effect(s->catalogue,&owner) : 0;
+    if (r!=0) return r;
+    sd_bus_message *reply=NULL; r=sd_bus_message_new_method_return(message,&reply);
     if (r>=0) r=sd_bus_message_append_array(reply,'y',d->operation,16);
     if (r>=0) r=sd_bus_message_append(reply,"t",(uint64_t)d->revision);
-    if (r>=0) r=sd_bus_send(NULL,reply,NULL);
-    sd_bus_message_unref(reply); return r<0 ? r : 1;
+    if (r>=0 && source) r=ae_catalogue_check_owner_effect(s->catalogue,&owner);
+    int attempted=r>=0;
+    if (attempted) r=sd_bus_send(s->bus,reply,NULL);
+    sd_bus_message_unref(reply);
+    int ended=source ? ae_catalogue_end_execution_effect(s->catalogue) : 0;
+    if (r>=0 && ended!=0) r=ended;
+    if (attempted) {
+        if (r<0) fprintf(stderr,"Setup reply send uncertain: %d; preserve original intent and helper obligations\n",r);
+        return 1; /* Never ask sd-bus to send a second response after entry. */
+    }
+    return r<0 ? r : 1;
 }
-int ae_setup_method_prepare(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
+static int prepare(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
 {
     struct ae_launch_context current; int r=s->broker(s->owner,message,&current);
     if (r!=0) return reply_error(error,-EACCES);
@@ -121,11 +151,12 @@ int ae_setup_method_prepare(sd_bus_message *message,struct ae_setup_service *s,s
         struct ae_reservation_receipt old;
         r=(s->terminal_only || ae_peer_alive(&s->peer)==-ESRCH) ? ae_catalogue_get_receipt(s->catalogue,s->lease,&current,&old) : -EBUSY;
         if (r==0 && !old.withdrawn) r=-EAGAIN;
-        if (r==0) ae_setup_service_clear(s);
+        if (r==0) clear(s);
     }
     struct ae_dispatch_snapshot d;
     if (r==0) r=ae_catalogue_begin_setup(s->catalogue,&p,hash,&current,&d);
-    return r!=0 ? reply_error(error,r) : respond(message,&d);
+    if (r==0) r=respond(message,s,&d,1);
+    return r<0 ? reply_error(error,r) : r;
 }
 static int setup_peer(sd_bus_message *message,struct ae_setup_service *s,struct ae_peer *peer,struct ae_process_context *context,
     struct ae_setup_profile *p,uint8_t hash[32])
@@ -147,7 +178,7 @@ static int setup_peer(sd_bus_message *message,struct ae_setup_service *s,struct 
     if (r==0 && (context->uid!=0 || memcmp(context->boot,p->boot,16)!=0 || strcmp(context->unit,expected)!=0 || strcmp(context->label,"system_u:system_r:aetheri_setup_t:s0")!=0)) r=-EACCES;
     return r;
 }
-int ae_setup_method_register(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
+static int register_setup(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
 {
     struct ae_peer peer=AE_PEER_INIT; struct ae_process_context context; struct ae_setup_profile p; uint8_t hash[32],evidence[32];
     int r=setup_peer(message,s,&peer,&context,&p,hash);
@@ -165,16 +196,20 @@ int ae_setup_method_register(sd_bus_message *message,struct ae_setup_service *s,
     struct ae_dispatch_snapshot d;
     if (r==0) r=ae_catalogue_register_setup(s->catalogue,&p,hash,context.invocation,evidence,&d);
     if (r==0 && strcmp(d.state,"reserved")!=0) r=-EAGAIN;
-    ae_peer_clear(&peer); return r!=0 ? reply_error(error,r) : respond(message,&d);
+    ae_peer_clear(&peer);
+    if (r==0) r=respond(message,s,&d,1);
+    return r<0 ? reply_error(error,r) : r;
 }
-int ae_setup_method_prepared(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
+static int prepared(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
 {
     struct ae_peer peer=AE_PEER_INIT; struct ae_process_context context; struct ae_setup_profile p; uint8_t hash[32];
     int r=setup_peer(message,s,&peer,&context,&p,hash);
     if (r==0 && (s->peer.pidfd<0 || strcmp(s->peer.unique_name,peer.unique_name)!=0 || !ae_process_context_equal(&s->context,&context) || memcmp(s->lease,p.lease,16)!=0 || memcmp(s->digest,hash,32)!=0)) r=-EACCES;
     struct ae_dispatch_snapshot d;
     if (r==0) r=ae_catalogue_prepared_setup(s->catalogue,&p,hash,context.invocation,s->evidence,&d);
-    ae_peer_clear(&peer); return r!=0 ? reply_error(error,r) : respond(message,&d);
+    ae_peer_clear(&peer);
+    if (r==0) r=respond(message,s,&d,1);
+    return r<0 ? reply_error(error,r) : r;
 }
 static int supervisor_drained(struct ae_setup_service *s)
 {
@@ -196,15 +231,17 @@ static int supervisor_drained(struct ae_setup_service *s)
     free(state); free(group); sd_bus_message_unref(unit); sd_bus_message_unref(job); sd_bus_message_unref(inv);
     return r<0 ? r : 0;
 }
-int ae_setup_observe_exit(struct ae_setup_service *s,const struct ae_setup_profile *p,const uint8_t hash[32])
+static int observe_exit(struct ae_setup_service *s,const struct ae_setup_profile *p,const uint8_t hash[32])
 {
     if (s==NULL || p==NULL || hash==NULL || s->peer.pidfd>=0 || s->pinned) return -EINVAL;
     int r=terminal_setup(s,p,hash);
     if (r==0) r=supervisor_drained(s);
-    if (r!=0) ae_setup_service_clear(s);
+    if (r!=0) clear(s);
     return r;
 }
-int ae_setup_method_withdraw(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
+int ae_setup_observe_exit(struct ae_setup_service *s,const struct ae_setup_profile *p,const uint8_t hash[32])
+{ return s && s->busy ? -EBUSY : observe_exit(s,p,hash); }
+static int withdraw(sd_bus_message *message,struct ae_setup_service *s,sd_bus_error *error)
 {
     struct ae_launch_context context; int r=s->broker(s->owner,message,&context);
     if (r!=0) return reply_error(error,-EACCES);
@@ -213,7 +250,7 @@ int ae_setup_method_withdraw(sd_bus_message *message,struct ae_setup_service *s,
     if (r==0) r=profile(s,&p,hash);
     if (r==0 && (memcmp(lease,p.lease,16)!=0 || memcmp(cause,p.user_operation,16)!=0 || sd_bus_message_at_end(message,1)!=1)) r=-ESTALE;
     if (r==0 && s->peer.pidfd<0 && !s->terminal_only) {
-        r=ae_setup_observe_exit(s,&p,hash);
+        r=observe_exit(s,&p,hash);
         if (r==0) { s->terminal_only=1; memcpy(s->digest,hash,32); memcpy(s->lease,p.lease,16); }
     }
     if (r==0 && (memcmp(hash,s->digest,32)!=0 || memcmp(s->lease,p.lease,16)!=0)) r=-ESTALE;
@@ -234,14 +271,35 @@ int ae_setup_method_withdraw(sd_bus_message *message,struct ae_setup_service *s,
         int unref=sd_bus_call_method(s->bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","UnrefUnit",NULL,NULL,"s",s->context.unit);
         if (unref>=0) s->pinned=0;
     }
-    return r!=0 ? reply_error(error,r) : respond(message,&d);
+    if (r==0) r=respond(message,s,&d,0);
+    return r<0 ? reply_error(error,r) : r;
 }
-void ae_setup_service_clear(struct ae_setup_service *s)
+static void clear(struct ae_setup_service *s)
 {
     if (s->pinned && s->bus!=NULL) (void)sd_bus_call_method(s->bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","UnrefUnit",NULL,NULL,"s",s->context.unit);
     s->pinned=0; s->terminal_only=0; ae_peer_clear(&s->peer);
     memset(&s->context,0,sizeof s->context); memset(s->lease,0,sizeof s->lease); memset(s->digest,0,sizeof s->digest); memset(s->evidence,0,sizeof s->evidence);
 }
+int ae_setup_service_clear(struct ae_setup_service *s)
+{ if (!s) return -EINVAL; if (s->busy) return -EBUSY; clear(s); return 0; }
+static int invoke(sd_bus_message *m,struct ae_setup_service *s,sd_bus_error *e,
+    int (*method)(sd_bus_message *,struct ae_setup_service *,sd_bus_error *))
+{
+    if (!m || !s || sd_bus_message_get_bus(m)!=s->bus || sd_bus_message_get_expect_reply(m)!=1) return reply_error(e,-EPROTO);
+    int r=enter(s); if (r!=0) return reply_error(e,r);
+    r=method(m,s,e);
+    int ended=ae_catalogue_end_execution_effect(s->catalogue); s->busy=0;
+    if (r>=0 && ended!=0) fprintf(stderr,"Setup frame balance failed: %d; preserve original obligations\n",ended);
+    return r; /* A handled send must never acquire a fallback error response. */
+}
+int ae_setup_method_prepare(sd_bus_message *m,struct ae_setup_service *s,sd_bus_error *e)
+{ return invoke(m,s,e,prepare); }
+int ae_setup_method_register(sd_bus_message *m,struct ae_setup_service *s,sd_bus_error *e)
+{ return invoke(m,s,e,register_setup); }
+int ae_setup_method_prepared(sd_bus_message *m,struct ae_setup_service *s,sd_bus_error *e)
+{ return invoke(m,s,e,prepared); }
+int ae_setup_method_withdraw(sd_bus_message *m,struct ae_setup_service *s,sd_bus_error *e)
+{ return invoke(m,s,e,withdraw); }
 int ae_setup_recover_unbound(struct ae_catalogue *catalogue,const uint8_t boot[16])
 {
     struct ae_setup_profile p; uint8_t hash[32]; int r=ae_setup_load(&p,hash);
