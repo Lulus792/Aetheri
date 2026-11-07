@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — developer work disk prepared; actual carrier enrollment pending.
+7 November 2026 — direct graphical-editor input tested; window integration pending.
 
 ## Coordination
 
@@ -12,6 +12,24 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Direct graphical-editor input — 7 November 2026
+
+The new C17 `aetheri_direct` library provides non-modal input over our existing
+document/history kernel: whole-grapheme selection/movement/deletion, direct text,
+line-ending-aware newline, undo/redo and original-input paste tokens. Cancellation
+preserves selection while invalidating a delayed receive; identities do not reuse
+object addresses. No new dependency or process is added. The separate modal
+Terminal editor is unchanged. Read the [contract](../../spec/graphical-editor.md)
+and [executed record](journal/2026-11-07-direct-editor.md).
+
+All eight editor groups pass in isolated Release and ASan/UBSan (3.023 s/19.728 s),
+with actual UID1000/Enforcing execution and 160 hash-verified evidence files.
+Normal sources/builds/history are untouched. There is no graphical Editor window
+yet: next connect original document-tab/file lifetimes, approved close review and
+native presentation/accessibility. The work disk below remains unattached while
+the foreign NexaUI helper is live. Other OS work can progress independently; full
+OS/apps/image/installer/hardware/experiment scope remains active and incomplete.
 
 ## Developer storage prepared; live attachment deferred — 7 November 2026
 

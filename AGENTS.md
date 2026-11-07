@@ -1095,3 +1095,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Host create/guest format have distinct pending records and no automatic replay.
   initialize-guest requires the actual original QMP block/image/serial; mount-guest
   never formats. Keep old build paths, root reserve, policies and protected state.
+
+- editor/direct.h now supplies the separate graphical Editor's toolkit-free
+  non-modal input controller over the original document kernel. Read
+  spec/graphical-editor.md; run editor.direct with existing editor regressions.
+  Input tokens are process-local correlations, not native clipboard/grant proof.
+  Host focus/tab/file changes must cancel original input without losing selection.
+  No graphical Editor window, document tabs or close/save integration exists yet;
+  preserve the modal Terminal editor and normal launch paths.

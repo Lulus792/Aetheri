@@ -1,5 +1,16 @@
 # Decisions
 
+## Separate direct graphical editing from modal commands — 7 November 2026
+
+Reuse the original document/history kernel with a separate direct-entry C17
+controller. Toolkit events must not send ordinary graphical input through modal
+command parsing. Keep half-open grapheme selections and input cancellation
+independent from rendering/files. A process-local, non-reused controller identity
+plus gesture/document state correlates delayed paste; it does not admit a native
+transfer or replace the eventual window/clipboard owner. The implementation is
+tested without claiming graphical app or save/close completion. See the
+[contract](../../spec/graphical-editor.md).
+
 ## Keep developer work capacity on a separately registered disk — 7 November 2026
 
 Use a fixed 8 GiB sparse developer image for future builds/captures. Bind the
