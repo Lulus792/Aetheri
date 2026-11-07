@@ -11,6 +11,7 @@ struct ae_document {
     size_t *starts,line_capacity,lines;uint64_t revision,state,clean;
     struct edit *history[AE_DOCUMENT_HISTORY];size_t used,at,history_bytes;bool merging;
 };
+struct ae_document_snapshot {struct ae_document *owner,*body;uint64_t revision,state,body_revision;bool acknowledged;};
 struct statistics { size_t breaks,first,last; };
 static void wipe(void *memory,size_t size) { volatile unsigned char *p=memory;while (size--) *p++=0; }
 static size_t edit_bytes(const struct edit *e) { return sizeof(*e)+e->capacity; }
@@ -67,6 +68,29 @@ void ae_document_destroy(struct ae_document *d) {
 bool ae_document_info(const struct ae_document *d,struct ae_document_info *info) {
     if (!d || !info) return false;
     *info=(struct ae_document_info){d->size,d->lines,d->cursor,d->revision,d->state!=d->clean};return true;
+}
+enum ae_document_result ae_document_snapshot_create(struct ae_document *d,struct ae_document_snapshot **out) {
+    if(!d || !out) return AE_DOCUMENT_INVALID;
+    struct ae_document_snapshot *s=calloc(1,sizeof(*s));if(!s) return AE_DOCUMENT_NOMEM;
+    char *bytes=d->size?malloc(d->size):NULL;
+    if(d->size && !bytes) {free(s);return AE_DOCUMENT_NOMEM;}
+    if(!ae_document_copy(d,0,d->size,bytes,d->size)) {free(bytes);free(s);return AE_DOCUMENT_INVALID;}
+    enum ae_document_result result;s->body=ae_document_create(bytes,d->size,&result);
+    if(bytes) {wipe(bytes,d->size);free(bytes);}
+    if(!s->body) {free(s);return result;}
+    s->owner=d;s->revision=d->revision;s->state=d->state;s->body_revision=s->body->revision;d->merging=false;*out=s;return AE_DOCUMENT_OK;
+}
+struct ae_document *ae_document_snapshot_body(struct ae_document_snapshot *s) {return s?s->body:NULL;}
+bool ae_document_snapshot_acknowledge(struct ae_document *d,struct ae_document_snapshot *s) {
+    if(!d || !s || s->owner!=d || d->revision<s->revision) return false;
+    if(s->acknowledged) return true;
+    if(s->body->revision!=s->body_revision) return false;
+    d->clean=s->state;
+    if(d->state==s->state) d->merging=false;
+    s->acknowledged=true;return true;
+}
+void ae_document_snapshot_destroy(struct ae_document_snapshot *s) {
+    if(s) {ae_document_destroy(s->body);wipe(s,sizeof(*s));free(s);}
 }
 bool ae_document_slice(const struct ae_document *d,size_t start,size_t size,struct ae_document_slice *slice) {
     if (!slice) return false;

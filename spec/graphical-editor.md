@@ -92,7 +92,7 @@ decisions cannot close another tab. UNKNOWN blocks save/discard completion even
 when the text happens to be clean. Recovery/export of that condition remains
 separate work; cancellation can return to the retained document.
 
-One synchronous owner manages documents and file operations. Read-only tab views
+One UI owner manages documents and explicit save-work loans. Read-only tab views
 and the active input handle are borrowed only until the next workspace operation.
 Review blocks new input handles; callers must not keep an old handle across it.
 Normal UI shutdown must resolve all tabs first. Destruction only releases local
@@ -117,8 +117,64 @@ glass design, icons and remaining interactions still need faithful implementatio
 The local picker borrows an admitted development root, navigates held folders and
 hands the selected original regular-file FD witness to the workspace for both
 new reads and duplicate-tab reuse. First saves remain create-only. Named saves
-retain original-file conflict checks. File I/O and folder enumeration currently
-run synchronously; responsive operation ownership is the next host work.
+retain original-file conflict checks. The save worker below now performs writes;
+file loading and folder enumeration still run synchronously and are next.
+
+## Responsive original save ownership
+
+`workspace.h` now prepares one original save job at a time. The UI captures a
+bounded copied document/history checkpoint and transfers its existing file adapter
+to that job. The worker reads only its private document, never the live UI document
+or workspace. It performs baseline checks, writes, metadata preservation, flushes
+and publication through the existing file adapter. A first save owns a duplicated
+original parent and copied literal leaf; it also borrows the fixed incumbent file
+adapters for duplicate checks. Their close is blocked until the original join.
+
+The document stays editable. Tabs can switch, new documents can be created and
+unrelated unborrowed tabs can close while saving. Another filesystem operation
+gets bounded Busy feedback rather than entering a second job or unbounded queue.
+The original saved tab cannot disappear while its file adapter is on the worker.
+Its tab/footer show that saving is still in progress.
+
+Worker start publishes immutable inputs. A release/acquire completion flag makes
+its result observable, but the UI must join the original C17 thread before reading/
+retiring its owned state. The pipe wake is advisory. A known failed start can abort
+before apply; a started write is not cancelled, rolled back or replayed. Workspace
+destruction refuses active ownership. No permanent worker/service is added.
+
+After actual successful file saving, only the captured original history state is
+acknowledged. Newer text remains dirty; Undo can return to the exact saved state.
+Capture freezes that history boundary, while a late acknowledgement preserves
+newer adjacent typing. Repeated acknowledgement never restores an older clean
+marker over a later one. The checkpoint is a local model correlation, not file
+durability evidence or a grant by itself. The caller still owes actual save
+success, serialized commits and the original document's retained lifetime.
+
+Finish returns the adapter/uncertainty obligation to the original retained tab,
+regardless of later active-tab/input changes. First saves stay create-only. Known
+failure leaves an untitled document untitled; UNKNOWN retains its exact file/name
+and close fence even when text is clean. New destination attempts need fresh
+original destination correlation after cancellation/failed preparation.
+
+Close requests wait for the original job; Escape cancels that pending close.
+Cancelling a close review keeps the document editable while the write continues.
+A successful completion closes a reviewed document only if its exact original
+review ID/revision/serial is still pending. It cannot revive a cancelled review or
+close another tab. Failed/unknown saves never satisfy the close decision. Error
+status names the original saved document instead of silently selecting it.
+
+Native tests pause an actual file-save fsync through a separate test-only adapter.
+They check editing/focus/tabs, original saved bytes and newer dirty state, Undo/
+Redo, pending/review cancellation, first-create and external-change conflicts,
+and clean-text UNKNOWN. The unknown test process is administratively retired only
+after worker join; it is not successful user close or production recovery.
+The [save-work record](../brains/aetheri/journal/2026-11-07-editor-save-work.md)
+separates actual native evidence, controlled faults and remaining acceptance.
+
+Open/read/folder scan, startup file loads and their cancellation still need
+responsive ownership. Snapshot copying is bounded synchronous memory work, not a
+claim of constant UI latency for every maximum-size document. Full durable save/
+abnormal-close recovery and normal brokered permissions remain unfinished.
 
 The document-first close review defaults to Cancel. Save keeps the original review
 while asking for a first destination, then closes only after actual success.
@@ -239,3 +295,16 @@ Actual held pipe writers prove cancellation, saved file bytes prove accepted or
 rejected edits, and a live partial sender exercises the overall timeout. A short
 quiet precondition drains finite focus/input frames before the unchanged idle
 CPU/redraw measurement; it does not weaken that measurement's budget.
+
+The save suite uses the separately built `test_editor_save_pause` target; the
+normal `aetheri-text-editor` contains no pause/fault hook:
+
+```sh
+python3 tools/test_editor_save_native.py TEST_COMPOSITOR TEST_EDITOR_SAVE_PAUSE UI_FONT MONO_FONT BUILD_DIR
+```
+
+Run `editor.save_work` with the existing editor groups for the native owned-job/
+history cases. All ten groups and the native window/clipboard/save workflows
+pass Release and ASan/UBSan. ThreadSanitizer could not link its absent carrier
+runtime; no race-detector acceptance is claimed. Controlled scheduling is not
+physical slow-disk or power-loss acceptance.

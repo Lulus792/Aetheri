@@ -1,13 +1,23 @@
 #include "workspace.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdatomic.h>
+#include <fcntl.h>
+#include <unistd.h>
 struct tab {
     struct ae_document *document;struct ae_direct *input;struct ae_editor_file *file;
-    uint64_t id;char leaf[256];
+    uint64_t id;char leaf[256];bool saving;
 };
 struct ae_editor_workspace {
     struct tab tabs[AE_EDITOR_TABS];unsigned count;uint64_t active,serial;
     struct ae_editor_close_token review;
+    struct ae_editor_save_work *work;
+};
+struct ae_editor_save_work {
+    uint64_t document;bool first;int directory;char leaf[256];
+    struct ae_editor_file *file,*incumbents[AE_EDITOR_TABS];unsigned count;
+    struct ae_document_snapshot *snapshot;
+    atomic_bool started,done;enum ae_editor_workspace_result result;
 };
 static enum ae_editor_workspace_result mapped(enum ae_editor_file_result result) {
     switch (result) {
@@ -39,14 +49,14 @@ static void free_tab(struct tab *tab) {
 }
 struct ae_editor_workspace *ae_editor_workspace_create(void) { return calloc(1,sizeof(struct ae_editor_workspace)); }
 void ae_editor_workspace_destroy(struct ae_editor_workspace *w) {
-    if (w) { for (unsigned i=0;i<w->count;++i) free_tab(&w->tabs[i]);free(w); }
+    if (w && !w->work) { for (unsigned i=0;i<w->count;++i) free_tab(&w->tabs[i]);free(w); }
 }
 unsigned ae_editor_workspace_count(const struct ae_editor_workspace *w) { return w ? w->count : 0; }
 uint64_t ae_editor_workspace_active(const struct ae_editor_workspace *w) { return w ? w->active : 0; }
 bool ae_editor_workspace_get(const struct ae_editor_workspace *w,uint64_t id,struct ae_editor_tab *out) {
     struct tab *tab=find(w,id);if (!tab || !out) return false;
-    *out=(struct ae_editor_tab){tab->id,tab->file ? tab->leaf : NULL,ae_editor_file_recovery(tab->file),tab->document,
-        w->active==id,ae_editor_file_uncertain(tab->file)};return true;
+    *out=(struct ae_editor_tab){tab->id,tab->leaf[0] ? tab->leaf : NULL,ae_editor_file_recovery(tab->file),tab->document,
+        w->active==id,ae_editor_file_uncertain(tab->file),tab->saving};return true;
 }
 bool ae_editor_workspace_at(const struct ae_editor_workspace *w,unsigned index,struct ae_editor_tab *out) {
     return w && index<w->count && ae_editor_workspace_get(w,w->tabs[index].id,out);
@@ -82,6 +92,7 @@ enum ae_editor_workspace_result ae_editor_workspace_select(struct ae_editor_work
 }
 static enum ae_editor_workspace_result open_document(struct ae_editor_workspace *w,int directory,const char *leaf,int witness,uint64_t *id) {
     if (!w || !id) return AE_EDITOR_WORKSPACE_INVALID;
+    if (w->work) return AE_EDITOR_WORKSPACE_BUSY;
     if (w->review.id) return AE_EDITOR_WORKSPACE_BUSY;
     for (unsigned i=0;i<w->count;++i) if (w->tabs[i].file) {
         bool match=false;enum ae_editor_file_result result=witness>=0 ? ae_editor_file_matches_selected(w->tabs[i].file,directory,leaf,witness,&match) :
@@ -104,6 +115,7 @@ enum ae_editor_workspace_result ae_editor_workspace_open_selected(struct ae_edit
 }
 static enum ae_editor_workspace_result save_admission(struct ae_editor_workspace *w,struct tab *tab) {
     if (!tab) return AE_EDITOR_WORKSPACE_INVALID;
+    if (w->work) return AE_EDITOR_WORKSPACE_BUSY;
     if (w->review.id && w->review.id!=tab->id) return AE_EDITOR_WORKSPACE_BUSY;
     if (w->review.id) {
         struct ae_document_info info;
@@ -153,6 +165,7 @@ static void retire(struct ae_editor_workspace *w,struct tab *tab) {
 }
 enum ae_editor_workspace_result ae_editor_workspace_request_close(struct ae_editor_workspace *w,uint64_t id,struct ae_editor_close_token *out) {
     struct tab *tab=find(w,id);if (!tab || !out) return AE_EDITOR_WORKSPACE_INVALID;
+    if (tab->saving || (w->work && w->work->first && tab->file)) return AE_EDITOR_WORKSPACE_BUSY;
     if (w->review.id) { if (w->review.id!=id) return AE_EDITOR_WORKSPACE_BUSY;*out=w->review;return AE_EDITOR_WORKSPACE_REVIEW; }
     struct ae_document_info info;if (!ae_document_info(tab->document,&info)) return AE_EDITOR_WORKSPACE_INVALID;
     bool review=info.dirty || ae_editor_file_uncertain(tab->file);
@@ -172,9 +185,89 @@ enum ae_editor_workspace_result ae_editor_workspace_resolve_close(struct ae_edit
     if (!tab || !ae_document_info(tab->document,&info) || info.revision!=token->revision) return AE_EDITOR_WORKSPACE_CONFLICT;
     if (choice==AE_EDITOR_CLOSE_CANCEL) { w->review=(struct ae_editor_close_token){0};return AE_EDITOR_WORKSPACE_OK; }
     if (choice!=AE_EDITOR_CLOSE_DISCARD && choice!=AE_EDITOR_CLOSE_SAVE) return AE_EDITOR_WORKSPACE_INVALID;
+    if (tab->saving || (w->work && w->work->first && tab->file)) return AE_EDITOR_WORKSPACE_BUSY;
     if (ae_editor_file_uncertain(tab->file)) return AE_EDITOR_WORKSPACE_UNKNOWN;
     if (choice==AE_EDITOR_CLOSE_SAVE && info.dirty) {
         enum ae_editor_workspace_result r=ae_editor_workspace_save(w,tab->id);if (r!=AE_EDITOR_WORKSPACE_OK) return r;
     }
     retire(w,tab);return AE_EDITOR_WORKSPACE_OK;
+}
+static void free_work(struct ae_editor_save_work *work) {
+    if(work->directory>=0) (void)close(work->directory);
+    ae_editor_file_close(work->file);ae_document_snapshot_destroy(work->snapshot);free(work);
+}
+static enum ae_editor_workspace_result prepare_work(struct ae_editor_workspace *w,struct tab *tab,
+    bool first,int directory,const char *leaf,struct ae_editor_save_work **out) {
+    if(!out || !cancellable(tab)) return AE_EDITOR_WORKSPACE_INVALID;
+    struct ae_editor_save_work *work=calloc(1,sizeof(*work));if(!work) return AE_EDITOR_WORKSPACE_NOMEM;
+    work->directory=-1;work->document=tab->id;work->first=first;
+    atomic_init(&work->started,false);atomic_init(&work->done,false);
+    if(first) {
+        if(!leaf || !*leaf || strnlen(leaf,256)>255 || !strcmp(leaf,".") || !strcmp(leaf,"..") || strchr(leaf,'/')) {free_work(work);return AE_EDITOR_WORKSPACE_INVALID;}
+        work->directory=fcntl(directory,F_DUPFD_CLOEXEC,4);
+        if(work->directory<0) {free_work(work);return AE_EDITOR_WORKSPACE_IO;}
+        memcpy(work->leaf,leaf,strlen(leaf)+1);
+        for(unsigned i=0;i<w->count;++i) if(w->tabs[i].file) work->incumbents[work->count++]=w->tabs[i].file;
+    }
+    enum ae_document_result result=ae_document_snapshot_create(tab->document,&work->snapshot);
+    if(result!=AE_DOCUMENT_OK) {free_work(work);return result==AE_DOCUMENT_NOMEM?AE_EDITOR_WORKSPACE_NOMEM:AE_EDITOR_WORKSPACE_INVALID;}
+    (void)ae_direct_cancel_input(tab->input);
+    if(!first) {work->file=tab->file;tab->file=NULL;}
+    tab->saving=true;w->work=work;*out=work;return AE_EDITOR_WORKSPACE_OK;
+}
+enum ae_editor_workspace_result ae_editor_workspace_prepare_save(struct ae_editor_workspace *w,uint64_t id,struct ae_editor_save_work **out) {
+    struct tab *tab=find(w,id);enum ae_editor_workspace_result result=save_admission(w,tab);
+    if(result!=AE_EDITOR_WORKSPACE_OK) return result;
+    if(!tab->file) return AE_EDITOR_WORKSPACE_NEEDS_PATH;
+    return prepare_work(w,tab,false,-1,NULL,out);
+}
+enum ae_editor_workspace_result ae_editor_workspace_prepare_save_new(struct ae_editor_workspace *w,
+    const struct ae_editor_destination_token *token,int directory,const char *leaf,struct ae_editor_save_work **out) {
+    if(!token) return AE_EDITOR_WORKSPACE_INVALID;
+    struct tab *tab=find(w,token->id);enum ae_editor_workspace_result result=save_admission(w,tab);
+    if(result!=AE_EDITOR_WORKSPACE_OK) return result;
+    if(tab->file) return AE_EDITOR_WORKSPACE_CONFLICT;
+    struct ae_editor_destination_token current;result=ae_editor_workspace_destination(w,token->id,&current);
+    if(result!=AE_EDITOR_WORKSPACE_OK) return result;
+    if(token->revision!=current.revision || token->interaction!=current.interaction || token->review!=current.review) return AE_EDITOR_WORKSPACE_CONFLICT;
+    return prepare_work(w,tab,true,directory,leaf,out);
+}
+bool ae_editor_save_work_apply(struct ae_editor_save_work *work) {
+    if(!work) return false;
+    bool expected=false;if(!atomic_compare_exchange_strong(&work->started,&expected,true)) return false;
+    work->result=AE_EDITOR_WORKSPACE_OK;
+    if(work->first) {
+        for(unsigned i=0;i<work->count;++i) {
+            bool match=false;enum ae_editor_file_result r=ae_editor_file_matches(work->incumbents[i],work->directory,work->leaf,&match);
+            if(r!=AE_EDITOR_FILE_OK || match) {work->result=match?AE_EDITOR_WORKSPACE_CONFLICT:mapped(r);goto done;}
+        }
+        struct ae_document *empty=NULL;
+        enum ae_editor_file_result r=ae_editor_file_new(work->directory,work->leaf,&work->file,&empty);
+        if(r!=AE_EDITOR_FILE_OK) {work->result=mapped(r);goto done;}
+        ae_document_destroy(empty);
+    }
+    work->result=mapped(ae_editor_file_save(work->file,ae_document_snapshot_body(work->snapshot)));
+done:
+    atomic_store_explicit(&work->done,true,memory_order_release);return true;
+}
+bool ae_editor_save_work_done(const struct ae_editor_save_work *work) {return work && atomic_load_explicit(&work->done,memory_order_acquire);}
+uint64_t ae_editor_save_work_document(const struct ae_editor_save_work *work) {return work?work->document:0;}
+bool ae_editor_workspace_abort_save(struct ae_editor_workspace *w,struct ae_editor_save_work *work) {
+    if(!w || !work || w->work!=work) return false;
+    struct tab *tab=find(w,work->document);if(!tab || !tab->saving) return false;
+    bool expected=false;if(!atomic_compare_exchange_strong(&work->started,&expected,true)) return false;
+    if(!work->first) {tab->file=work->file;work->file=NULL;}
+    tab->saving=false;w->work=NULL;free_work(work);return true;
+}
+enum ae_editor_workspace_result ae_editor_workspace_finish_save(struct ae_editor_workspace *w,struct ae_editor_save_work *work) {
+    if(!w || !work || w->work!=work) return AE_EDITOR_WORKSPACE_INVALID;
+    if(!ae_editor_save_work_done(work)) return AE_EDITOR_WORKSPACE_BUSY;
+    struct tab *tab=find(w,work->document);if(!tab || !tab->saving || tab->file) return AE_EDITOR_WORKSPACE_INVALID;
+    enum ae_editor_workspace_result result=work->result;
+    if(result==AE_EDITOR_WORKSPACE_OK && !ae_document_snapshot_acknowledge(tab->document,work->snapshot)) return AE_EDITOR_WORKSPACE_INVALID;
+    if(!work->first || result==AE_EDITOR_WORKSPACE_OK || result==AE_EDITOR_WORKSPACE_UNKNOWN) {
+        tab->file=work->file;work->file=NULL;
+        if(work->first) memcpy(tab->leaf,work->leaf,sizeof(tab->leaf));
+    }
+    tab->saving=false;w->work=NULL;free_work(work);return result;
 }

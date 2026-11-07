@@ -115,7 +115,7 @@ def main():
         key(31, ctrl=True); wait(lambda: state(mode=2, draft=0), 'first-save picker')
         typing('draft.txt'); wait(lambda: state(draft=9), 'native filename field')
         capture('first save with labelled filename')
-        key(28); wait(lambda: state(mode=0) and (folder/'draft.txt').exists(), 'actual first save')
+        key(28); wait(lambda: state(mode=0,io=0) and (folder/'draft.txt').exists(), 'actual first save joined')
         assert (folder/'draft.txt').read_bytes() == b'hello\nworld'
         key(30, ctrl=True); wait(lambda: state(selected=1, begin=0, end=11), 'select original whole document')
         typing('changed'); wait(lambda: state(cursor=7, selected=0), 'direct replacement')
@@ -125,7 +125,8 @@ def main():
         key(44, ctrl=True); wait(lambda: state(cursor=11), 'undo original replacement')
         key(21, ctrl=True); wait(lambda: state(cursor=1), 'redo original replacement')
         key(21, ctrl=True); wait(lambda: state(cursor=7), 'redo adjacent typing')
-        key(31, ctrl=True); wait(lambda: (folder/'draft.txt').read_bytes() == b'changed', 'save actual edited bytes')
+        completed=log().count('SAVE complete=');key(31, ctrl=True)
+        wait(lambda:log().count('SAVE complete=')>completed and state(io=0) and (folder/'draft.txt').read_bytes()==b'changed','save actual edited bytes and original join')
         key(49, ctrl=True); wait(lambda: state(docs=2, cursor=0), 'new original tab')
         second = view()['active']; assert second != first
         typing('unsaved'); wait(lambda: state(cursor=7), 'second tab input')
@@ -154,7 +155,7 @@ def main():
         typing('added'); wait(lambda: state(cursor=14), 'append original source')
         # External modification must not be silently replaced by save.
         (folder/'seed.txt').write_bytes(b'external')
-        key(31, ctrl=True); wait(lambda: state(error=1), 'external-change conflict')
+        key(31, ctrl=True); wait(lambda: state(error=1,io=0), 'external-change conflict')
         assert (folder/'seed.txt').read_bytes() == b'external'
         capture('external change retains document and file')
         key(17, ctrl=True); wait(lambda: int(view().get('review', '0')) != 0, 'conflicting document review')

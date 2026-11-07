@@ -50,6 +50,22 @@ enum ae_document_result ae_document_history(struct ae_document *document,int dir
    save evidence; this neither writes nor proves durability/ownership. Stale
    generations fail, cursor motion does not change content generation. */
 bool ae_document_mark_clean(struct ae_document *document,uint64_t revision);
+struct ae_document_snapshot;
+/* Original UI owner captures a bounded private document for a file worker.
+   Successful capture ends typing coalescing at the saved history state. Keep
+   the original document alive through snapshot retirement. The worker owns only
+   snapshot_body; its text must remain immutable (file-save clean marking is
+   allowed), and it must never read or mutate the original. A changed private
+   body cannot acknowledge the original captured state. After actual file
+   success AND worker join, the original UI owner may acknowledge this captured
+   state even after further edits. Those edits stay dirty; Undo can return to the
+   exact saved state. Ack retries do not restore a later clean marker. Caller
+   still owes original-object binding, serialized file commits and save evidence.
+   Failure leaves output/content/history grouping unchanged. No file effect. */
+enum ae_document_result ae_document_snapshot_create(struct ae_document *,struct ae_document_snapshot **);
+struct ae_document *ae_document_snapshot_body(struct ae_document_snapshot *);
+bool ae_document_snapshot_acknowledge(struct ae_document *,struct ae_document_snapshot *);
+void ae_document_snapshot_destroy(struct ae_document_snapshot *);
 /* Read-only case-sensitive literal, single-line search. Both match endpoints
    must be whole document grapheme boundaries. Direction is -1/+1; include_origin
    chooses >=/<= rather than strictly after/before origin. No wrapping, mutation,

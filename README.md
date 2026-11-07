@@ -59,7 +59,8 @@ The separate [graphical Editor](spec/graphical-editor.md) now has an opt-in nati
 NexaUI window with direct input, document tabs, a local file picker and explicit
 Save/Discard/Cancel review. Real Wayland tests cover saved bytes, undo/redo,
 external-change conflicts, English/German, themes and a 2x virtual output.
-Responsive file I/O, complete text accessibility, final design and normal desktop
+Saving now uses an original bounded worker while newer edits remain unsaved.
+Responsive file loading/folder reads, complete text accessibility, final design and normal desktop
 admission remain work; the modal Terminal editor keeps its existing role.
 
 The opt-in [Files app](spec/files.md) now provides list/card views, a held-location

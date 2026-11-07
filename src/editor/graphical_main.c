@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <threads.h>
 #include <unistd.h>
 
 enum { ROWS=512,LAYOUTS=2048,CACHE=1024*1024 };
@@ -25,6 +26,7 @@ struct ids { uint64_t document,tab,close,canvas,text,sidebar; };
 struct painted_row { size_t start,size;nx_text_layout *layout;nx_rect bounds; };
 struct line {size_t start,size;};
 struct paste {uint64_t native,document,canvas;struct ae_direct_token input;};
+struct save_actor {struct ae_editor_save_work *work;int wake;};
 struct app {
     struct ae_editor_workspace *workspace;struct ae_files *picker;int root;
     nx_context *context;nx_font *font,*mono_font;nx_font_collection *fonts,*mono_fonts;nx_window *window;nx_software_view *renderer;
@@ -41,6 +43,9 @@ struct app {
     nx_rect picker_list,review_title;float review_scroll,review_max_scroll;
     bool overlay_shown,close_seen;uint64_t clicked_row;double clicked_at;
     struct paste paste;
+    struct save_actor save;thrd_t save_thread;bool save_live,save_notice;
+    uint64_t pending_close,save_notice_id;struct ae_editor_close_token save_close;
+    char save_label[AE_FILES_LABEL+1];
 };
 static volatile sig_atomic_t stopping,signal_fd=-1;
 static void stop_signal(int number) { (void)number;int saved=errno;stopping=1;if(signal_fd>=0) {char byte=1;(void)write((int)signal_fd,&byte,1);}errno=saved; }
@@ -76,6 +81,7 @@ static struct ids *tab_ids(struct app *a,uint64_t document) {
     return NULL;
 }
 static void message(struct app *a,enum ae_editor_workspace_result result) {
+    a->save_notice=false;
     const char *text="";
     switch(result) {
     case AE_EDITOR_WORKSPACE_OK:break;
@@ -83,6 +89,7 @@ static void message(struct app *a,enum ae_editor_workspace_result result) {
     case AE_EDITOR_WORKSPACE_UNKNOWN:text=tr(a,"The save could not be confirmed. Keep this document open.","Das Speichern konnte nicht bestätigt werden. Lass dieses Dokument geöffnet.");break;
     case AE_EDITOR_WORKSPACE_LIMIT:text=tr(a,"Close a document before opening another.","Schließe ein Dokument, bevor du ein weiteres öffnest.");break;
     case AE_EDITOR_WORKSPACE_NOMEM:text=tr(a,"Not enough memory to finish this action.","Nicht genug Arbeitsspeicher für diese Aktion.");break;
+    case AE_EDITOR_WORKSPACE_BUSY:text=tr(a,"A file operation is still running.","Ein Dateivorgang läuft noch.");break;
     case AE_EDITOR_WORKSPACE_UNSUPPORTED:text=tr(a,"This file cannot be edited here.","Diese Datei kann hier nicht bearbeitet werden.");break;
     default:text=tr(a,"The action could not be completed. Your document is still open.","Die Aktion konnte nicht abgeschlossen werden. Dein Dokument bleibt geöffnet.");break;
     }
@@ -129,6 +136,7 @@ static void close_picker(struct app *a) {
 }
 static bool begin_picker(struct app *a,bool saving) {
     cancel_input(a);
+    if(a->save.work) {message(a,AE_EDITOR_WORKSPACE_BUSY);return true;}
     if(saving) {
         enum ae_editor_workspace_result result=ae_editor_workspace_destination(a->workspace,ae_editor_workspace_active(a->workspace),&a->destination);
         if(result!=AE_EDITOR_WORKSPACE_OK) {message(a,result);return true;}
@@ -143,11 +151,64 @@ static bool advance_close(struct app *a) {
     while(a->close_all && ae_editor_workspace_count(a->workspace)) {
         uint64_t id=ae_editor_workspace_active(a->workspace);
         enum ae_editor_workspace_result result=ae_editor_workspace_request_close(a->workspace,id,&a->review);
+        if(result==AE_EDITOR_WORKSPACE_BUSY && a->save.work) {a->dirty=true;return true;}
         if(result==AE_EDITOR_WORKSPACE_REVIEW) {a->focus_modal=true;return true;}
         if(result!=AE_EDITOR_WORKSPACE_OK) {message(a,result);a->close_all=false;return true;}
     }
     if(a->close_all) a->running=false;
     return true;
+}
+static int save_worker(void *data) {
+    const struct save_actor *actor=data;
+    if(!ae_editor_save_work_apply(actor->work)) _Exit(125);
+    char byte=2;(void)write(actor->wake,&byte,1);return 0;
+}
+static bool start_save(struct app *a,struct ae_editor_save_work *work,const char *label) {
+    if(a->save.work || a->save_live) return false;
+    if(!label || !ae_files_format_name(label,strlen(label),a->save_label)) {
+        if(!ae_editor_workspace_abort_save(a->workspace,work)) _Exit(125);
+        message(a,AE_EDITOR_WORKSPACE_INVALID);return true;
+    }
+    a->save.work=work;a->save_close=(struct ae_editor_close_token){0};
+    struct ae_editor_close_token review;
+    if(ae_editor_workspace_review(a->workspace,&review) && review.id==ae_editor_save_work_document(work)) a->save_close=review;
+    if(thrd_create(&a->save_thread,save_worker,&a->save)!=thrd_success) {
+        a->save.work=NULL;
+        if(!ae_editor_workspace_abort_save(a->workspace,work)) _Exit(125);
+        message(a,AE_EDITOR_WORKSPACE_IO);return true;
+    }
+    a->save_live=true;a->message[0]=0;a->save_notice=false;a->dirty=true;
+    if(a->save_close.id) a->focus_modal=true;
+    if(a->diagnostics) {printf("SAVE begin=%llu\n",(unsigned long long)ae_editor_save_work_document(work));fflush(stdout);}
+    return true;
+}
+static bool progress_save(struct app *a) {
+    if(!a->save.work || !ae_editor_save_work_done(a->save.work)) return true;
+    int code=-1;
+    if(!a->save_live || thrd_join(a->save_thread,&code)!=thrd_success || code) _Exit(125);
+    a->save_live=false;uint64_t id=ae_editor_save_work_document(a->save.work);
+    enum ae_editor_workspace_result result=ae_editor_workspace_finish_save(a->workspace,a->save.work);
+    if(result==AE_EDITOR_WORKSPACE_INVALID || result==AE_EDITOR_WORKSPACE_BUSY) _Exit(125);
+    a->save.work=NULL;message(a,result);a->save_notice=result!=AE_EDITOR_WORKSPACE_OK;a->save_notice_id=id;
+    if(a->diagnostics) {printf("SAVE complete=%llu result=%d\n",(unsigned long long)id,(int)result);fflush(stdout);}
+    struct ae_editor_close_token review;
+    if(result==AE_EDITOR_WORKSPACE_OK && a->save_close.id && ae_editor_workspace_review(a->workspace,&review) &&
+       review.id==a->save_close.id && review.revision==a->save_close.revision && review.serial==a->save_close.serial) {
+        result=ae_editor_workspace_resolve_close(a->workspace,&review,AE_EDITOR_CLOSE_SAVE);
+        if(result!=AE_EDITOR_WORKSPACE_OK) message(a,result);
+        else {close_overlay(a);a->focus_document=true;}
+    }
+    a->save_close=(struct ae_editor_close_token){0};
+    if(a->pending_close) {
+        uint64_t pending=a->pending_close;a->pending_close=0;struct ae_editor_tab tab;
+        if(ae_editor_workspace_get(a->workspace,pending,&tab)) {
+            result=ae_editor_workspace_request_close(a->workspace,pending,&a->review);
+            if(result==AE_EDITOR_WORKSPACE_REVIEW) a->focus_modal=true;
+            else if(result!=AE_EDITOR_WORKSPACE_OK) message(a,result);
+            else a->focus_document=true;
+        }
+    }
+    a->dirty=true;return advance_close(a);
 }
 static bool choose_file(struct app *a) {
     enum ae_editor_workspace_result result;
@@ -156,7 +217,13 @@ static bool choose_file(struct app *a) {
         if(!name.length || name.length>AE_FILES_NAME || memchr(name.data,'/',name.length) || memchr(name.data,0,name.length)) {message(a,AE_EDITOR_WORKSPACE_INVALID);return true;}
         char leaf[AE_FILES_NAME+1];memcpy(leaf,name.data,name.length);leaf[name.length]=0;
         int directory=ae_files_directory(a->picker);if(directory<0) {message(a,AE_EDITOR_WORKSPACE_IO);return true;}
-        result=ae_editor_workspace_save_new(a->workspace,&a->destination,directory,leaf);close(directory);
+        struct ae_editor_save_work *work=NULL;
+        result=ae_editor_workspace_prepare_save_new(a->workspace,&a->destination,directory,leaf,&work);close(directory);
+        if(result==AE_EDITOR_WORKSPACE_OK) {
+            if(!start_save(a,work,leaf)) return false;
+            if(a->save.work) close_picker(a);
+            return true;
+        }
     } else {
         const struct ae_files_entry *entry=ae_files_entry(a->picker,ae_files_selected(a->picker));
         if(entry && entry->kind==AE_FILES_DIRECTORY) {
@@ -183,15 +250,25 @@ static bool apply(struct app *a,enum action action,uint64_t document) {
     if(action==NEW) {result=ae_editor_workspace_new(a->workspace,&id);a->focus_document=true;}
     else if(action==OPEN) return begin_picker(a,false);
     else if(action==SAVE) {
-        result=ae_editor_workspace_save(a->workspace,ae_editor_workspace_active(a->workspace));
+        uint64_t active=ae_editor_workspace_active(a->workspace);struct ae_editor_save_work *work=NULL;
+        result=ae_editor_workspace_prepare_save(a->workspace,active,&work);
         if(result==AE_EDITOR_WORKSPACE_NEEDS_PATH) return begin_picker(a,true);
-    } else if(action==CLOSE_TAB) {result=ae_editor_workspace_request_close(a->workspace,document,&a->review);if(result==AE_EDITOR_WORKSPACE_REVIEW) {a->focus_modal=true;return true;}a->focus_document=true;}
+        if(result==AE_EDITOR_WORKSPACE_OK) {struct ae_editor_tab tab;if(!ae_editor_workspace_get(a->workspace,active,&tab)) return false;return start_save(a,work,tab.leaf);}
+    } else if(action==CLOSE_TAB) {result=ae_editor_workspace_request_close(a->workspace,document,&a->review);
+        if(result==AE_EDITOR_WORKSPACE_BUSY && a->save.work) {if(!a->pending_close || a->pending_close==document) a->pending_close=document;a->dirty=true;return true;}
+        if(result==AE_EDITOR_WORKSPACE_REVIEW) {a->focus_modal=true;return true;}a->focus_document=true;}
     else if(action==CLOSE_WINDOW) {a->close_all=true;return advance_close(a);}
     else if(action==CANCEL) {
         if(a->mode!=EDITING) close_picker(a);
         else if(ae_editor_workspace_review(a->workspace,&a->review)) result=ae_editor_workspace_resolve_close(a->workspace,&a->review,AE_EDITOR_CLOSE_CANCEL);
-        close_overlay(a);a->close_all=false;a->focus_document=true;
+        close_overlay(a);a->close_all=false;a->pending_close=0;a->focus_document=true;
     } else if(action==DISCARD || action==CONFIRM) {
+        if(action==CONFIRM) {
+            struct ae_editor_save_work *work=NULL;result=ae_editor_workspace_prepare_save(a->workspace,a->review.id,&work);
+            if(result==AE_EDITOR_WORKSPACE_NEEDS_PATH) return begin_picker(a,true);
+            if(result==AE_EDITOR_WORKSPACE_OK) {struct ae_editor_tab tab;if(!ae_editor_workspace_get(a->workspace,a->review.id,&tab)) return false;return start_save(a,work,tab.leaf);}
+            message(a,result);return true;
+        }
         result=ae_editor_workspace_resolve_close(a->workspace,&a->review,action==DISCARD?AE_EDITOR_CLOSE_DISCARD:AE_EDITOR_CLOSE_SAVE);
         if(result==AE_EDITOR_WORKSPACE_NEEDS_PATH) return begin_picker(a,true);
         if(result==AE_EDITOR_WORKSPACE_OK) {close_overlay(a);a->focus_document=true;return advance_close(a);}
@@ -347,8 +424,9 @@ static bool paint_review(struct app *a) {
     if(tab.leaf) {if(!ae_files_format_name(tab.leaf,strlen(tab.leaf),title)) return false;}else snprintf(title,sizeof(title),"%s",tr(a,"Untitled","Unbenannt"));
     float inset=16,gap=8,width=fminf(a->width-32,620*a->scale),button_height=fmaxf(36,13*a->scale*1.4f+12);
     bool stacked=width<440*a->scale;float footer=stacked?3*button_height+2*gap:button_height;
-    const char *question=tab.uncertain?tr(a,"The save could not be confirmed. Keep this document open.","Das Speichern konnte nicht bestätigt werden. Lass dieses Dokument geöffnet."):
-        tr(a,"Save the changes before closing?","Änderungen vor dem Schließen speichern?");
+    const char *question=tab.saving?tr(a,"Saving changes. Cancel keeps the document open.","Änderungen werden gespeichert. Abbrechen hält das Dokument geöffnet."):
+        tab.uncertain?tr(a,"The save could not be confirmed. Keep this document open.","Das Speichern konnte nicht bestätigt werden. Lass dieses Dokument geöffnet."):
+        a->save_notice && a->save_notice_id==tab.id?a->message:tr(a,"Save the changes before closing?","Änderungen vor dem Schließen speichern?");
     nx_text_layout *name_layout=layout(a,title,strlen(title),16*a->scale,width-2*inset);
     nx_text_layout *question_layout=layout(a,question,strlen(question),13*a->scale,width-2*inset);
     if(!name_layout || !question_layout) return false;
@@ -368,7 +446,7 @@ static bool paint_review(struct app *a) {
     const enum action actions[]={DISCARD,CANCEL,CONFIRM};float bw=stacked?width-2*inset:(width-2*inset-2*gap)/3;
     for(unsigned i=0;i<3;++i) {
         nx_rect r={box.x+inset+(stacked?0:(float)i*(bw+gap)),box.y+height-inset-button_height-(stacked?(float)(2-i)*(button_height+gap):0),bw,button_height};
-        if(!button(a,a->modal_id+4+i,a->modal_id,r,labels[i],labels[i],tab.uncertain && i!=1,false,actions[i],a->review.id)) return false;
+        if(!button(a,a->modal_id+4+i,a->modal_id,r,labels[i],labels[i],(tab.uncertain || tab.saving) && i!=1,false,actions[i],a->review.id)) return false;
     }
     if(a->focus_modal) {if(nx_focus_set(a->context,a->modal_id+5)!=NX_OK) return false;a->focus_modal=false;}
     return nx_overlay_end(a->context)==NX_OK;
@@ -434,6 +512,7 @@ static bool frame(struct app *a,bool *busy) {
     if(!sync_document(a) || !theme(a) || nx_begin_frame(a->context,a->width,a->height,0)!=NX_OK) return false;
     if(!ae_editor_workspace_review(a->workspace,&a->review)) a->review=(struct ae_editor_close_token){0};
     bool blocked=a->mode!=EDITING || a->review.id!=0;
+    struct ae_editor_tab active_tab;bool uncertain=a->document && ae_editor_workspace_get(a->workspace,a->document,&active_tab) && active_tab.uncertain;
     nx_semantic_desc root={.id=1,.role=NX_ROLE_WINDOW,.bounds={0,0,a->width,a->height},.name=span(tr(a,"Editor","Editor"))};
     if(nx_semantics_add(a->context,&root,NULL)!=NX_OK || nx_fill_rect(a->context,root.bounds,background(a))!=NX_OK) return false;
     float header=fmaxf(36,13*a->scale*1.4f+12);
@@ -453,7 +532,7 @@ static bool frame(struct app *a,bool *busy) {
     if(nx_semantics_add(a->context,&toolbar,NULL)!=NX_OK) return false;
     for(unsigned i=0;i<6;++i) {
         float width=widths[i]*a->scale;if(x+width>a->width-8 && x>8) {x=8;y+=h+4;}
-        bool disabled=blocked || ((i==2 || i==3) && !a->document) || (i==4 && a->text_percent==100) || (i==5 && a->text_percent==200);
+        bool disabled=blocked || ((i==2 || i==3) && !a->document) || (i==2 && (a->save.work || uncertain)) || (i==4 && a->text_percent==100) || (i==5 && a->text_percent==200);
         if(!button(a,20+i,2,(nx_rect){x,y,width,h},tools[i],tools[i],disabled,false,actions[i],a->document)) return false;
         x+=width+4;
     }
@@ -475,7 +554,7 @@ static bool frame(struct app *a,bool *busy) {
         struct ids *ids=tab_ids(a,tab.id);if(!ids) return false;
         char name[AE_FILES_LABEL+1],display[AE_FILES_LABEL+8];struct ae_document_info info;if(!ae_document_info(tab.document,&info)) return false;
         if(tab.leaf) {if(!ae_files_format_name(tab.leaf,strlen(tab.leaf),name)) return false;}else snprintf(name,sizeof(name),"%s",tr(a,"Untitled","Unbenannt"));
-        snprintf(display,sizeof(display),"%s%s",name,tab.uncertain?" !":info.dirty?" *":"");
+        snprintf(display,sizeof(display),"%s%s",name,tab.saving?" …":tab.uncertain?" !":info.dirty?" *":"");
         nx_rect r={nav+12+(float)(i-first)*tab_width,y,tab_width-3,tab_height};float close_width=28*a->scale;
         if(!button(a,ids->tab,5,(nx_rect){r.x,r.y,r.width-close_width,r.height},display,name,blocked,tab.active,SELECT_TAB,tab.id) ||
            !button(a,ids->close,5,(nx_rect){r.x+r.width-close_width,r.y,close_width,r.height},"×",tr(a,"Close document","Dokument schließen"),blocked,false,CLOSE_TAB,tab.id)) return false;
@@ -498,8 +577,11 @@ static bool frame(struct app *a,bool *busy) {
     if(a->document) {if(!paint_document(a)) return false;}
     else if(!wrapped(a,4,1,tr(a,"No document open. Create a document or open a file.","Kein Dokument geöffnet. Erstelle ein Dokument oder öffne eine Datei."),
         (nx_rect){a->canvas.x+32,y+32,a->canvas.width-64,100*a->scale},16*a->scale,foreground(a))) return false;
-    char status[320];size_t row=0;
-    const char *notice=a->paste.native?tr(a,"Receiving clipboard text…","Zwischenablagentext wird empfangen…"):a->message;
+    char status[AE_FILES_LABEL+512],save_message[AE_FILES_LABEL+300];size_t row=0;
+    if(a->save_notice) snprintf(save_message,sizeof(save_message),"%s: %s",a->save_label,a->message);
+    const char *notice=a->save.work?(a->close_all || a->pending_close?tr(a,"Waiting for saving before closing. Escape keeps the window open.","Schließen wartet auf das Speichern. Escape hält das Fenster geöffnet."):
+        a->paste.native?tr(a,"Saving… · Receiving clipboard text…","Speichern… · Zwischenablagentext wird empfangen…"):tr(a,"Saving…","Speichern…")):
+        a->paste.native?tr(a,"Receiving clipboard text…","Zwischenablagentext wird empfangen…"):a->save_notice?save_message:a->message;
     if(a->document) {while(row+1<a->line_count && a->lines[row+1].start<=a->info.cursor) ++row;
         snprintf(status,sizeof(status),"%s%zu  ·  %s%zu  ·  %s",tr(a,"Line ","Zeile "),row+1,tr(a,"Byte ","Byte "),a->info.cursor-a->lines[row].start+1,notice);}
     else snprintf(status,sizeof(status),"%s",notice);
@@ -515,10 +597,11 @@ render:
     if(outcome==NX_SOFTWARE_VIEW_READY) {
         nx_result result=nx_window_publish_semantics(a->window,a->context);if(result!=NX_OK && result!=NX_ERROR_UNSUPPORTED) return false;
         if(a->diagnostics) {nx_utf8_span draft={0};if(a->mode==PICK_SAVE && nx_text_field_text(a->name,&draft)!=NX_OK) return false;
-            printf("FRAME %.0f %.0f %u docs=%u active=%llu revision=%llu cursor=%zu mode=%d review=%llu focus=%llu draft=%zu error=%u selected=%u begin=%zu end=%zu density=%.2f paste=%u focused=%u\n",
+            printf("FRAME %.0f %.0f %u docs=%u active=%llu revision=%llu cursor=%zu mode=%d review=%llu focus=%llu draft=%zu error=%u selected=%u begin=%zu end=%zu density=%.2f paste=%u focused=%u io=%u closing=%u pending=%llu dirty=%u uncertain=%u\n",
             a->width,a->height,a->text_percent,ae_editor_workspace_count(a->workspace),(unsigned long long)a->document,
             (unsigned long long)a->revision,a->document?a->info.cursor:0,(int)a->mode,(unsigned long long)a->review.id,(unsigned long long)nx_focus_id(a->context),
-            draft.length,a->message[0]?1u:0u,a->selection.active?1u:0u,a->selection.begin,a->selection.end,a->density,a->paste.native?1u:0u,a->focused?1u:0u);fflush(stdout);}
+            draft.length,a->message[0]?1u:0u,a->selection.active?1u:0u,a->selection.begin,a->selection.end,a->density,a->paste.native?1u:0u,a->focused?1u:0u,
+            a->save.work?1u:0u,a->close_all?1u:0u,(unsigned long long)a->pending_close,a->document && a->info.dirty?1u:0u,uncertain?1u:0u);fflush(stdout);}
     }
     if(a->action!=NONE) {if(!apply(a,a->action,a->action_document)) return false;a->dirty=true;}
     return true;
@@ -542,6 +625,7 @@ static bool pointer_position(struct app *a,float x,float y,bool extend) {
     a->ensure_caret=false;return true;
 }
 static void clipboard_failure(struct app *a,bool paste) {
+    a->save_notice=false;
     snprintf(a->message,sizeof(a->message),"%s",paste?tr(a,"Couldn't paste this clipboard text. Your document is unchanged.","Dieser Zwischenablagentext konnte nicht eingefügt werden. Dein Dokument bleibt unverändert."):
         tr(a,"Couldn't copy the selection. Your document is unchanged.","Die Auswahl konnte nicht kopiert werden. Dein Dokument bleibt unverändert."));
     a->dirty=true;
@@ -580,6 +664,7 @@ static bool progress_paste(struct app *a) {
 static bool clipboard(struct app *a,nx_key key) {
     cancel_input(a);
     struct ae_direct *input=ae_editor_workspace_input(a->workspace);if(!input) return true;
+    a->save_notice=false;a->message[0]=0;
     if(key==NX_KEY_V) {
         struct paste pending={.document=ae_editor_workspace_active(a->workspace),.canvas=nx_focus_id(a->context)};
         if(!ae_direct_token(input,&pending.input)) return false;
@@ -610,6 +695,7 @@ static bool event(struct app *a,const nx_event *e,bool *handled) {
         cancel_paste(a);
         *handled=true;
         if(a->mode!=EDITING || review) return apply(a,CANCEL,0);
+        if(a->pending_close || a->close_all) {a->pending_close=0;a->close_all=false;cancel_input(a);return true;}
         struct ae_direct *input=ae_editor_workspace_input(a->workspace);if(input) (void)ae_direct_clear_selection(input);a->dragging=false;return true;
     }
     if(review) {
@@ -727,6 +813,7 @@ int main(int argc,char **argv) {
     unsigned char *font=NULL,*mono=NULL;size_t font_size=0,mono_size=0;int fds[2]={-1,-1},result=1;
     a.root=open(directory,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);a.workspace=ae_editor_workspace_create();
     if(a.root<0 || !a.workspace || !signal_pipe(fds)) goto done;
+    a.save.wake=fds[1];
     char *display=realpath(directory,NULL);if(!display || !ae_files_format_name(display,strlen(display),a.root_label)) {free(display);goto done;}free(display);
     for(unsigned i=0;i<count;++i) {uint64_t id;if(ae_editor_workspace_open(a.workspace,a.root,files[i],&id)!=AE_EDITOR_WORKSPACE_OK) goto done;}
     if(!count) {uint64_t id;if(ae_editor_workspace_new(a.workspace,&id)!=AE_EDITOR_WORKSPACE_OK) goto done;}
@@ -762,6 +849,10 @@ int main(int argc,char **argv) {
              * direct document input must share the original native ordering. */
             continue;
         }
+        if(a.save.work && ae_editor_save_work_done(a.save.work)) {
+            if(!progress_save(&a)) goto done;
+            if(!busy) continue;
+        }
         /* Retry drawing only for an actual receive transition. An unrelated
          * dirty but too-small drawable must still reach the native wait. */
         if(progress_paste(&a) && !busy) continue;
@@ -773,6 +864,14 @@ int main(int argc,char **argv) {
     result=0;
 done:
     cancel_paste(&a);
+    if(a.save.work) {
+        int code=-1;
+        if(!a.save_live || thrd_join(a.save_thread,&code)!=thrd_success || code) _Exit(125);
+        a.save_live=false;
+        enum ae_editor_workspace_result completed=ae_editor_workspace_finish_save(a.workspace,a.save.work);
+        if(completed==AE_EDITOR_WORKSPACE_INVALID || completed==AE_EDITOR_WORKSPACE_BUSY) _Exit(125);
+        a.save.work=NULL;
+    }
     if(result) fputs("Aetheri graphical Editor stopped unexpectedly; normal close was not completed.\n",stderr);
     if(a.renderer && nx_software_view_close(&a.renderer)!=NX_OK) result=1;
     if(a.context && a.window) (void)nx_window_publish_semantics(a.window,NULL);

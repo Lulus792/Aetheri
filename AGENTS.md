@@ -1120,7 +1120,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   never route the unexamined remainder directly to the toolkit. The local picker
   passes the original held file witness for both new reads and duplicate reuse.
   Rendering may query selection while original close review blocks input handles.
-  File I/O is still synchronous; add responsive original operation ownership.
+  Save I/O now has the explicit original-worker integration below; loading and
+  folder enumeration still need responsive original operation ownership.
   Clipboard/focus cancellation now has the separate native integration below.
   Text snapshots are read-only, not a
   complete accessible editor. Search, IME, native chrome/reflow/design, Save As/
@@ -1141,5 +1142,25 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   source intent. Use the SDK wiping release with the exact returned length.
   Fourteen independent native workflows pass Release/ASan with original pipe
   cancellation, real file bytes and overall timeout evidence. There is no new
-  thread/service, installed permission or normal desktop acceptance. Responsive
-  file I/O, final design/accessibility and the full OS goal remain pending.
+  thread/service for clipboard, installed permission or normal desktop acceptance.
+  Save work below adds a bounded on-demand worker; loading/scanning, final design/
+  accessibility and the full OS goal remain pending.
+
+- The graphical Editor now prepares one original save job through workspace.h.
+  Read spec/graphical-editor.md and the 2026-11-07 editor-save-work journal/STATE.
+  Document snapshots freeze the captured saved-history boundary; actual OK may
+  acknowledge that state after newer edits, preserving dirty state/newer typing.
+  Ack retries never restore later clean markers. Worker owns only its private
+  document/file adapter; never read the live workspace/document from it. First
+  saves borrow fixed incumbent adapters for checks; their close is blocked.
+  The trusted host MUST join the original worker before finish/free; done/wake
+  alone is not termination or save success. No started-write cancellation/replay.
+  Finish binds only the retained original tab, including UNKNOWN even for clean
+  text. Destruction refuses active work. A later save reply never closes a newer
+  or cancelled review. All ten native editor groups and actual window/clipboard/
+  controlled save workflows pass Release/ASan. test_editor_save_pause contains
+  the separate test-only fsync pause/fault, not the normal app. Its UNKNOWN actor
+  is pidfd-administratively retired only after join, not production close/recovery.
+  TSan compiler probe fails because its runtime is absent; do not claim TSan or
+  change global packages/policy. Loading/scanning and full OS acceptance remain
+  work; preserve normal inputs, protected history and foreign planning/design.

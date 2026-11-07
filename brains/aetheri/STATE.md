@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — native Editor asynchronous clipboard tested; normal integration pending.
+7 November 2026 — native Editor background saving tested; loading/scanning remain synchronous.
 
 ## Coordination
 
@@ -13,7 +13,37 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Native Editor asynchronous clipboard — 7 November 2026
+## Native Editor original background saving — 7 November 2026
+
+Named and first saves now run in one original on-demand C17 worker. It owns the
+copied text and file adapter while the UI keeps its live document editable.
+Actual success acknowledges only the captured history state; newer edits stay
+dirty and adjacent typing is not split by completion timing. Undo can reach the
+saved state. Original close/review correlations survive tab and input changes;
+Cancel never pretends to cancel a started disk write. UNKNOWN retains its file/
+name/close fence even with clean text. Read the [contract](../../spec/graphical-editor.md)
+and [executed record](journal/2026-11-07-editor-save-work.md).
+
+Both profiles pass all ten editor groups, native window workflows, fourteen
+clipboard cases and nine controlled native save attempts. The save fixture
+pauses real fsync on the worker while actual UI input continues, then verifies
+saved bytes, newer dirty/Undo state, close cancellation, conflicts and uncertainty.
+The full-matrix 375 evidence files are independently verified before original private
+namespace retirement. Final snapshot-body mutation rejection also passes all ten
+groups and nine native saves in both profiles, with 279 separately verified files.
+Native saving-state images are reviewed. ThreadSanitizer
+could not link the missing runtime; no TSan result is claimed. The UNKNOWN test
+actor is separately administratively retired after join, not normally closed.
+
+Next prioritize the own-image boot path toward the requested laptop alpha.
+File loading and folder enumeration still need moving off the UI thread; those
+paths remain synchronous. Full accessibility/IME, search/chrome/reflow/final design,
+Save As/export/abnormal recovery and normal app/session admission remain work.
+Normal sources/builds/authority/quarantine and foreign work are preserved. No new
+NexaUI requirement/handoff or dependency family/version is introduced. The full
+OS/apps/image/installer/hardware/experiment objective remains active/incomplete.
+
+## Prior native Editor asynchronous clipboard checkpoint — 7 November 2026
 
 Ctrl+V now uses the existing SDK's bounded nonblocking Wayland read. Original
 document/input/caret/selection/focus correlations are checked after queued native
