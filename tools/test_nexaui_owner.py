@@ -18,7 +18,7 @@ import tempfile
 import time
 
 import development_session as session
-from test_development_desktop import control_position,role_output
+from test_development_desktop import artifact_root,control_position,role_output
 
 
 def digest(path):
@@ -36,7 +36,7 @@ def main():
     session.build_for = lambda selected_profile: build
     selected = session.settings_selection(profile, ui)
     # Leave space for the fixed runtime/socket suffix within sockaddr_un.
-    root = Path(tempfile.mkdtemp(prefix="nx-own-" if ui == "nexaui-owned" else "nexaui-owner-", dir=build))
+    root = Path(tempfile.mkdtemp(prefix="nx-own-" if ui == "nexaui-owned" else "nexaui-owner-", dir=artifact_root(build)))
     for name in ("captures", "sessions", "sessions/fixture", "sessions/fixture/runtime", "sessions/fixture/cache", "sessions/fixture/documents", "source/spec", "source/src/settings"):
         (root / name).mkdir(mode=0o700, parents=True, exist_ok=True)
     copied_sources = ("spec/nexaui-inputs.json", "src/settings/model.c", "src/settings/model.h")

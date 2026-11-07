@@ -18,7 +18,7 @@ import tempfile
 import time
 
 import development_session as session
-from test_development_desktop import control_position,role_output
+from test_development_desktop import artifact_root,control_position,role_output
 
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -36,7 +36,7 @@ def main():
     selected=session.files_selection(profile,files_ui)
     terminal_profile=session.terminal_selection(profile,terminal_ui)
     terminal=Path(terminal_profile['presentation']['binary']) if terminal_profile else build/'aetheri-terminal'
-    root=Path(tempfile.mkdtemp(prefix='fx-own-',dir=build))
+    root=Path(tempfile.mkdtemp(prefix='fx-own-',dir=artifact_root(build)))
     for name in ('captures','sessions','sessions/fixture','sessions/fixture/runtime','sessions/fixture/cache','sessions/fixture/documents'):
         (root/name).mkdir(mode=0o700,parents=True,exist_ok=True)
     copies={'spec/nexaui-inputs.json',*session.FILES_MODEL_SOURCES,*session.OWN_FILES_SOURCES}

@@ -6,8 +6,9 @@
 [controlled consumer review](../brains/aetheri/journal/2026-11-07-nexaui-upgrade.md).
 The previous 0.1.18 pin represented tested consumer behavior, not an intentional
 version lag. Both versions' private artifacts remain distinct. No floating branch
-or automatic dependency update is used. Shared normal development source/build
-promotion is separate; private tests do not switch an existing session.
+or automatic dependency update is used. The subsequent [normal development promotion](../brains/aetheri/journal/2026-11-07-development-promotion.md)
+now refreshes both fixed app builds and tests a new original DRM session; the
+private consumer tests themselves did not switch an existing session.
 
 ## Aetheri-owned Settings presentation
 

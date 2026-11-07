@@ -17,8 +17,13 @@ import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
+
+TEMPORARY_PROFILE = "tmpfs-v1"
+TEMPORARY_BYTES = 1024**3
+TEMPORARY_FILESYSTEM = "/tmp:rw,nosuid,nodev,size=1G,mode=1777"
 
 CONTROL = Path("/var/lib/aetheri-development-session")
 USER_ROOT = Path("/home/aetheri/development-sessions")
@@ -374,6 +379,33 @@ def owned(path, uid, mode, directory=False):
         raise RuntimeError("unexpected development record bounds")
 
 
+def temporary_area():
+    """Observe this developer unit's tmpfs; not production app admission."""
+    fd = os.open("/tmp", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info, space = os.fstat(fd), os.fstatvfs(fd)
+        flags = os.ST_NOSUID | os.ST_NODEV
+        if (info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o1777 or
+                space.f_blocks * space.f_frsize != TEMPORARY_BYTES or space.f_flag & flags != flags):
+            raise RuntimeError("development temporary filesystem differs")
+        with Path("/proc/self/mountinfo").open() as stream: mounts = stream.read(1024**2 + 1)
+        if len(mounts) > 1024**2: raise RuntimeError("development mount table exceeded bound")
+        selected = [line.split(" - ") for line in mounts.splitlines()
+                    if len(line.split()) > 5 and line.split()[4] == "/tmp"]
+        if len(selected) != 1 or len(selected[0]) != 2:
+            raise RuntimeError("development temporary mount is ambiguous")
+        native = selected[0][1].split()
+        if len(native) != 3 or native[0] != "tmpfs" or any(
+                option in native[2].split(",") for option in ("usrquota", "grpquota", "prjquota")):
+            raise RuntimeError("development requires its separate temporary tmpfs")
+        # Sparse ftruncate/mmap success does not prove writable backing pages.
+        with tempfile.TemporaryFile(dir="/tmp") as probe:
+            os.posix_fallocate(probe.fileno(), 0, 4 * 1024**2)
+        return dict(profile=TEMPORARY_PROFILE, bytes=TEMPORARY_BYTES,
+                    available=space.f_bavail * space.f_frsize, device=info.st_dev)
+    finally: os.close(fd)
+
+
 def save(record):
     # A preexisting .next is an unresolved write, never disposable retry debris.
     temporary = CONTROL / "active.next"
@@ -430,6 +462,8 @@ def validate(record, carrier):
         if not record.get("desktop", False): raise RuntimeError("Terminal selection requires desktop")
         validate_terminal_profile(terminal_profile, record["profile"])
         if terminal_binding != profile_fingerprint(terminal_profile): raise RuntimeError("development Terminal binding changed")
+    if "temporary_profile" in record and record["temporary_profile"] != TEMPORARY_PROFILE:
+        raise RuntimeError("invalid development temporary profile")
     protocol = record.get("launch_protocol", 1)
     if type(protocol) is not int or protocol not in (1, 2, 3) or (not record.get("desktop", False) and protocol != 1):
         raise RuntimeError("invalid development launch protocol")
@@ -453,7 +487,7 @@ def load(carrier, token=None):
 
 def properties(unit):
     names = ("LoadState", "ActiveState", "SubState", "MainPID", "ExecMainPID", "ExecMainStatus",
-             "ExecMainCode", "InvocationID", "ControlGroup", "Result", "Type", "RemainAfterExit", "User")
+             "ExecMainCode", "InvocationID", "ControlGroup", "Result", "Type", "RemainAfterExit", "User", "TemporaryFileSystem")
     return dict(line.split("=", 1) for line in run("systemctl", "show", unit,
                 *["--property=" + name for name in names]).splitlines())
 
@@ -465,6 +499,9 @@ def require_original(record, props):
         raise RuntimeError("original development unit was lost or replaced")
     if props["MainPID"] not in ("0", str(record["pid"])):
         raise RuntimeError("development main process changed")
+    expected_tmp = TEMPORARY_FILESYSTEM if record.get("temporary_profile") == TEMPORARY_PROFILE else ""
+    if props.get("TemporaryFileSystem", "") != expected_tmp:
+        raise RuntimeError("development temporary unit configuration drift")
     if props["RemainAfterExit"] != "yes" or props["Type"] != "notify" or props["User"] != "aetheri":
         raise RuntimeError("development unit configuration drift")
 
@@ -495,6 +532,8 @@ def free_seat():
 def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl", terminal_ui="sdl"):
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
+    if (PROJECT / ".aetheri-promotion.pending").exists():
+        raise RuntimeError("development source/build promotion is incomplete")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     selected = settings_selection(profile, settings_ui)
@@ -533,7 +572,8 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
                   boot=Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                   unit="aetheri-development-" + token + ".service", phase="preparing",
                   invocation=None, pid=None, binaries=binaries, assets=assets, desktop=desktop,
-                  launch_protocol=3 if desktop else 1, compose=compose, created_unix=time.time(), exit=None)
+                  launch_protocol=3 if desktop else 1, compose=compose, temporary_profile=TEMPORARY_PROFILE,
+                  created_unix=time.time(), exit=None)
     record.update(settings_ui=settings_ui, settings_profile=selected, settings_binding=binding)
     record.update(files_ui=files_ui, files_profile=files_profile, files_binding=files_binding)
     record.update(terminal_ui=terminal_ui, terminal_profile=terminal_profile, terminal_binding=terminal_binding)
@@ -549,12 +589,14 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
             "--property=Group=aetheri", "--property=PAMName=login", "--property=TTYPath=/dev/tty8",
             "--property=StandardInput=tty", "--property=StandardOutput=journal", "--property=StandardError=journal",
             "--property=TTYReset=yes", "--property=NoNewPrivileges=yes", "--property=CapabilityBoundingSet=",
+            "--property=TemporaryFileSystem=" + TEMPORARY_FILESYSTEM,
             "--property=AmbientCapabilities=", "--property=Restart=no", "--property=KillMode=control-group",
             "--property=SendSIGKILL=no", "--property=TimeoutStartSec=15", "--property=TimeoutStopSec=10",
             "--property=Conflicts=getty@tty8.service", "--property=After=getty@tty8.service",
             "--setenv=XDG_SESSION_TYPE=wayland", "--setenv=XDG_SESSION_CLASS=user",
             "--setenv=XDG_SEAT=seat0", "--setenv=XDG_VTNR=8", "--setenv=LIBSEAT_BACKEND=logind",
-            "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token]
+            "/usr/bin/python3", str(SOURCE), "--supervise", "--profile", profile, "--token", token,
+            "--temporary-profile", TEMPORARY_PROFILE]
     if desktop: args.append("--desktop")
     if compose: args.append("--compose")
     if selected is not None: args += ["--settings-ui", settings_ui, "--settings-binding", binding]
@@ -674,11 +716,15 @@ def observation(record):
 
 
 def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None,
-              files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None):
+              files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None, temporary_profile=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
+    if temporary_profile not in (None, TEMPORARY_PROFILE):
+        raise RuntimeError("invalid supervised temporary profile")
+    if temporary_profile is not None:
+        print("TEMPORARY " + json.dumps(temporary_area()), flush=True)
     selected = settings_selection(profile, settings_ui)
     expected_binding = settings_fingerprint(selected) if selected is not None else None
     if settings_binding != expected_binding:
@@ -900,6 +946,7 @@ def main():
     parser.add_argument("--terminal-binding", help=argparse.SUPPRESS)
     parser.add_argument("--guest", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--supervise", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--temporary-profile", choices=(TEMPORARY_PROFILE,), help=argparse.SUPPRESS)
     parser.add_argument("--carrier-uuid", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.compose and args.action != "start" and not args.supervise:
@@ -917,10 +964,12 @@ def main():
     if args.terminal_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.terminal_binding) is None):
         raise ValueError("Terminal binding belongs to the original supervisor only")
     if args.token is not None and re.fullmatch("[0-9a-f]{32}", args.token) is None: raise ValueError("invalid development token")
+    if args.temporary_profile is not None and not args.supervise:
+        raise ValueError("temporary profile belongs to the original supervisor only")
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
         return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding,
-                         args.files_ui, args.files_binding, args.terminal_ui, args.terminal_binding)
+                         args.files_ui, args.files_binding, args.terminal_ui, args.terminal_binding, args.temporary_profile)
     if not args.guest:
         import shlex
         import run_vm as vm

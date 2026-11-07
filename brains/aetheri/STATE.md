@@ -13,7 +13,36 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Current UI checkpoint
+## Normal development promotion — 7 November 2026
+
+Both fixed development builds and the shared source now select NexaUI 0.1.23.
+All six owner groups pass in each profile (Release 32.020 s / ASan 61.608 s),
+plus all 32 Linux controller tests. Three real PID1 temporary-profile probes and
+foreign-carrier rejection pass. A new original virtual-DRM session exercises
+Files/editor/save/reopen, Settings, Terminal split/tab commands and individual
+retirement. All five roles exit 0; Root closes the exact session and historical
+retries preserve both the older and current completed records.
+
+Fresh starts journal `tmpfs-v1`: a separate bounded 1 GiB `/tmp`, actual backing
+preflight and original-unit property checking. A pending source/build marker
+blocks new starts during promotion. The final capture-heavy tests use a separate
+private temporary artifact root and verified host export; normal binary/cache/
+SDK checks are unchanged. Read the [executed record](journal/2026-11-07-development-promotion.md).
+The first source/cache and Debug disk-full failures remain attributed; no failed
+input was adopted by relaxing an owner guard. The normal desktop now uses the
+new SDK; the private consumer checkpoint below remains historical evidence.
+
+No development actor/session remains; tty1 and the free-seat baseline are restored.
+The audit preserves 445 source inputs, 31 frozen SQL/XML, 19 quarantine hashes,
+52 normal-P0 files/controller, old SDK/SDL inputs and the original closed history.
+Rebuildable inactive compiler caches were reclaimed with an explicit source
+allowlist and per-object hashes. Root space remains limited: provision dedicated
+build/capture capacity before more broad carrier runs, preserving existing volume/
+object identities and protected state. Production admission/recovery/removal,
+bootable image/installer, hardware acceptance and the full experiment product
+remain work. The full goal remains active; no new NexaUI handoff is pending.
+
+## Prior private consumer checkpoint
 
 NexaUI now selects the exact 0.1.23/97a4264 source pin. Both private SDK/app builds
 pass; all 73 app groups have successful Release evidence (67 plus six corrected

@@ -1076,3 +1076,13 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   promotion. Preserve old 0.1.18/CLOSED inputs and normal P0/quarantine. Never
   weaken owner/artifact checks for test permissions, or remove foreign /tmp
   data to resolve quota failures. The delivered chat handoff remains closed.
+
+- The normal development source and session-release/session-debug builds now use
+  the reviewed NexaUI 0.1.23 inputs. Read the 2026-11-07 development-promotion record.
+  New Root starts persist tmpfs-v1 and verify the original unit option; supervisor
+  preflights a separate 1 GiB temporary filesystem. Preserve older records/history.
+  A source .aetheri-promotion.pending fences new starts during a partial refresh;
+  never clear unexplained pending state. Native owner fixtures can use an explicit
+  canonical UID1000/mode0700 artifact root, with binary bindings unchanged. Export
+  private tmpfs evidence before retiring it. Carrier root capacity is limited;
+  do not delete foreign caches/data or protected lifecycle fixtures to make room.

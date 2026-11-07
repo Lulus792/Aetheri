@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 import development_session as session
-from test_development_desktop import control_position,role_output
+from test_development_desktop import artifact_root,control_position,role_output
 
 
 class DevelopmentContracts(unittest.TestCase):
@@ -339,6 +339,65 @@ class DevelopmentContracts(unittest.TestCase):
             self.assertEqual(session.stop(record), before)
             self.assertEqual(session.observation(record), {"kind": "historical_closed"})
         self.assertEqual(record, before)
+
+    def test_temporary_profile_preserves_history_and_rejects_unknown_values(self):
+        self.assertIs(session.validate(self.record, self.carrier), self.record)
+        modern = {**self.record, "temporary_profile": session.TEMPORARY_PROFILE}
+        self.assertIs(session.validate(modern, self.carrier), modern)
+        for value in (None, False, 1, "shared", "tmpfs-v2", {}):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                session.validate({**self.record, "temporary_profile": value}, self.carrier)
+        modern["phase"] = "closed"; before = copy.deepcopy(modern)
+        with patch.object(session, "properties", side_effect=AssertionError("historical lookup")):
+            self.assertEqual(session.observation(modern), {"kind": "historical_closed"})
+            self.assertEqual(session.stop(modern), before)
+
+    def test_pending_deployment_blocks_new_start_but_not_historical_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory); (project / ".aetheri-promotion.pending").write_text("pending")
+            old = {**self.record, "phase": "closed"}; before = copy.deepcopy(old)
+            with patch.object(session, "PROJECT", project), \
+                    patch.object(session, "settings_selection", side_effect=AssertionError("premature selection")), \
+                    patch.object(session, "save", side_effect=AssertionError("premature mutation")):
+                with self.assertRaisesRegex(RuntimeError, "promotion is incomplete"):
+                    session.start(old, self.carrier, "release")
+                self.assertEqual(session.observation(old), {"kind": "historical_closed"})
+                self.assertEqual(session.stop(old), before)
+
+    @unittest.skipUnless(sys.platform == "linux" and os.getuid() == 1000, "requires Linux carrier account")
+    def test_separate_artifact_volume_keeps_binary_selection_and_rejects_aliases(self):
+        build = Path('/independently-selected-build')
+        with patch.dict(os.environ, {}, clear=True): self.assertEqual(artifact_root(build), build)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); selected = root/'artifacts'; selected.mkdir(mode=0o700)
+            with patch.dict(os.environ, AETHERI_TEST_ARTIFACT_ROOT=str(selected)):
+                self.assertEqual(artifact_root(build), selected)
+                selected.chmod(0o755)
+                with self.assertRaises(RuntimeError): artifact_root(build)
+            selected.chmod(0o700); alias=root/'alias'; alias.symlink_to(selected)
+            with patch.dict(os.environ, AETHERI_TEST_ARTIFACT_ROOT=str(alias)):
+                with self.assertRaises(RuntimeError): artifact_root(build)
+
+    def test_temporary_unit_drift_never_permits_a_stop(self):
+        modern = {**self.record, "temporary_profile": session.TEMPORARY_PROFILE}
+        actual = {**self.props, "TemporaryFileSystem": session.TEMPORARY_FILESYSTEM}
+        with patch.object(session.Path, "read_text", return_value=self.record["boot"]):
+            session.require_original(modern, actual)
+            for value in ("", "/tmp:size=2G", session.TEMPORARY_FILESYSTEM + " /var/tmp"):
+                with self.subTest(value=value), patch.object(session, "properties", return_value={**actual, "TemporaryFileSystem": value}), \
+                        patch.object(session, "run", side_effect=AssertionError("drifted stop")), \
+                        patch.object(session, "save", side_effect=AssertionError("drifted write")):
+                    with self.assertRaises(RuntimeError): session.stop(modern)
+            with self.assertRaises(RuntimeError): session.require_original(self.record, actual)
+
+    def test_failed_temporary_backing_precedes_any_ui_selection_or_spawn(self):
+        with patch.object(session.os, "getuid", return_value=1000, create=True), \
+                patch.object(session.os, "geteuid", return_value=1000, create=True), \
+                patch.object(session, "temporary_area", side_effect=OSError("quota")), \
+                patch.object(session, "settings_selection", side_effect=AssertionError("premature selection")), \
+                patch.object(session.subprocess, "Popen", side_effect=AssertionError("premature process")):
+            with self.assertRaisesRegex(OSError, "quota"):
+                session.supervise("release", "a" * 32, temporary_profile=session.TEMPORARY_PROFILE)
 
     def test_replaced_unit_process_or_configuration_cannot_be_stopped(self):
         changes = [dict(InvocationID="c" * 32), dict(ExecMainPID="101"), dict(MainPID="101"),

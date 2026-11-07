@@ -15,6 +15,18 @@ import tempfile
 import time
 
 
+def artifact_root(build):
+    """Optional private test volume, independent of the checked binary prefix."""
+    selected = os.environ.get("AETHERI_TEST_ARTIFACT_ROOT")
+    if selected is None: return build
+    root = Path(selected).absolute()
+    info = root.lstat()
+    if (root.resolve() != root or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != 1000 or stat.S_IMODE(info.st_mode) != 0o700):
+        raise RuntimeError("test artifact root must be an owned private directory")
+    return root
+
+
 def role_output(text,role):
     prefix=role+': '
     return ''.join(line[len(prefix):] for line in text.splitlines(keepends=True)
@@ -63,7 +75,7 @@ def main():
     source_hash=hashlib.sha256(owner_source.read_bytes()).hexdigest()
     binaries={str(build/n):hashlib.sha256((build/n).read_bytes()).hexdigest() for n in
               ("test_compositor_server","aetheri-desktop","aetheri-settings","aetheri-terminal","aetheri-shell","aetheri-files","aetheri-editor")}
-    root = Path(tempfile.mkdtemp(prefix="desktop-owner-", dir=build))
+    root = Path(tempfile.mkdtemp(prefix="desktop-owner-", dir=artifact_root(build)))
     for name in ("captures", "sessions", "sessions/fixture", "sessions/fixture/runtime", "sessions/fixture/cache", "sessions/fixture/documents"):
         (root/name).mkdir(mode=0o700)
     (root/"wait_job.py").write_text("import signal,time\nfrom pathlib import Path\nsignal.signal(signal.SIGHUP,signal.SIG_IGN)\nPath('job-ready').write_text('ready')\ntime.sleep(30)\n")

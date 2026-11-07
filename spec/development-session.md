@@ -4,16 +4,34 @@
 dedicated Fedora carrier. It is a development workflow, not the finished desktop,
 an Aetheri system image, normal app admission or the resettable experiment product.
 
-## SDK upgrade checkpoint — 7 November 2026
+## Current carrier checkpoint — 7 November 2026
 
-The source manifest now selects NexaUI 0.1.23/97a4264. Its checked private app
-builds are `/home/aetheri/build/u23r` and `/home/aetheri/build/u23d`; these do not
-replace the controller's fixed `session-release`/`session-debug` builds or shared
-`/home/aetheri/source`. SDK preparation, application rebuilding and controlled
-shared-source promotion remain separate operations. Existing CLOSED records and
-old 0.1.18 artifacts remain historical. See the
-[consumer upgrade record](../brains/aetheri/journal/2026-11-07-nexaui-upgrade.md)
-for exact executed tests and remaining promotion/resource boundaries.
+The normal `session-release`/`session-debug` builds and `/home/aetheri/source` now
+select NexaUI 0.1.23/97a4264. Both builds and selected owner regressions pass; a
+fresh Root-bound virtual-DRM session exercises Files/editor/save, Settings and
+Terminal split/tab shells, then closes all original roles and retains history.
+See the [promotion record](../brains/aetheri/journal/2026-11-07-development-promotion.md)
+for exact evidence and limitations. The earlier private `u23r`/`u23d` builds remain
+separate evidence, not the controller's active build selection.
+
+New sessions use additive `temporary_profile: tmpfs-v1`. PID1 supplies a separate
+1 GiB `/tmp`; the ordinary supervisor checks its actual filesystem/budget/flags
+and backing allocation before UI starts. This avoids the exhausted shared tmpfs
+quota without modifying other projects' temporary files or global configuration.
+It is developer resource isolation; application persistence remains in the
+session's existing managed development directory. This does not implement the
+production app sandbox or the resettable experiment product.
+
+A `.aetheri-promotion.pending` source marker rejects new starts during a controlled
+source/build transition. Do not delete an unexplained marker to force startup;
+inspect its original source/build intent and tests. Historical status/stop remain
+available. CMake SDK selection requires the exact typed `NexaUI_DIR:PATH` entry.
+
+Native owner tests may set `AETHERI_TEST_ARTIFACT_ROOT` to a canonical mode 0700,
+UID 1000-owned directory on a separate test volume. Their binaries/cache/SDK remain
+bound to the explicitly passed build. Keep a private temporary filesystem alive
+until its evidence has been exported and independently verified; fixtures remain
+disposable-carrier tests, not public application options.
 
 ## Use it
 
@@ -262,9 +280,9 @@ as a dependency of the future production desktop.
 | `active.json` in that directory | Root, version1 development intent and original unit/invocation/process/result |
 | `history/TOKEN.json` | Root, closed original attempts; never changed by historical stop |
 | `active.next` | Root, an interrupted/uncertain write; never removed automatically |
-| `/home/aetheri/development-sessions/TOKEN/runtime` | UID1000, private development Wayland socket directory |
-| `cache` beside that runtime | UID1000, development-view shader cache with the existing soft budget |
-| `documents` beside that runtime | UID1000, initially empty workspace for Files; retained across window and session close |
+| `/home/aetheri/development-sessions/TOKEN/runtime` | UID 1000, private development Wayland socket directory |
+| `cache` beside that runtime | UID 1000, development-view shader cache with the existing soft budget |
+| `documents` beside that runtime | UID 1000, initially empty workspace for Files; retained across window and session close |
 | system journal | Native and supervisor diagnostics, filtered to avoid per-control layout spam |
 
 These dedicated folders make the development footprint explicit. They are retained

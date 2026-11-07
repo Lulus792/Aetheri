@@ -1,5 +1,18 @@
 # Decisions
 
+## Separate developer temporary storage from shared carrier quotas — 7 November 2026
+
+Use an explicitly bounded per-session tmpfs with actual backing preflight and
+recorded original unit options. Changing global quotas or deleting another
+project's files would not define the new session's resource boundary. Keep
+persistent app/test documents in their original owner directory. Native owner
+fixtures may place capture artifacts on another independently checked test
+volume and export them before retirement; this does not select another binary.
+Journal a pending deployment fence before exposing a source/build transition,
+retain failed evidence, and preserve historical reads. This is development
+infrastructure, not the production sandbox/update/recovery protocol. See the
+[executed record](journal/2026-11-07-development-promotion.md).
+
 ## Review an exact NexaUI update across original consumers — 7 November 2026
 
 The user asked why the SDK remained 0.1.18. Keep explicit immutable versions for

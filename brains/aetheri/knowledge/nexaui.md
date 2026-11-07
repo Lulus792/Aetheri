@@ -22,6 +22,17 @@ Do not append the old overview, implementation request or a request to paste it.
 Context summaries should retain the closed handoff status and the actual current
 Aetheri task; the historical request must not become the next task after resuming.
 
+## Normal development adoption — 7 November 2026
+
+The fixed Release/Debug builds now use the selected 0.1.23 SDK after twelve
+native owner checks and a fresh original virtual-DRM session. Files/editor/save,
+Settings, split/tab shells and ordered five-role closure are observed. Bounded
+per-session tmpfs and independent test-artifact storage remove the shared-quota/
+capture-root dependency. See the [promotion record](../journal/2026-11-07-development-promotion.md).
+This remains a development desktop; final reflow/design, assistive/hardware and
+production app admission remain separate. The earlier private pin review did not
+itself switch sessions. Handoff remains closed; no new chat message is needed.
+
 ## Consumer upgrade — 7 November 2026
 
 The old 0.1.18/e71ee30 pin was the last tested Aetheri consumer selection.
