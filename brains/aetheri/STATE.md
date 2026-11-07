@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — opt-in native graphical Editor tested; normal integration pending.
+7 November 2026 — native Editor asynchronous clipboard tested; normal integration pending.
 
 ## Coordination
 
@@ -13,7 +13,37 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Native graphical Editor window — 7 November 2026
+## Native Editor asynchronous clipboard — 7 November 2026
+
+Ctrl+V now uses the existing SDK's bounded nonblocking Wayland read. Original
+document/input/caret/selection/focus correlations are checked after queued native
+events. Editing, focus/tab/file/review changes cancel the exact request; empty or
+failed transfers never delete a selection. Repeated explicit Paste owns a new
+reader. Cut keeps the document open on a failed model deletion. No new thread,
+service, dependency version or installed capability is added. Read the
+[contract](../../spec/graphical-editor.md) and
+[executed record](journal/2026-11-07-editor-clipboard.md).
+
+All 14 independent native clipboard cases pass Release/ASan, including actual
+Unicode bytes, undo/redo, native copy receiver/cut/self-paste, no-op EOF, repeated
+request, cursor/F6/Escape/tab/picker/type/focus cancellation, live partial timeout
+and UTF-8/NUL/line-limit failures. Timeout is observed at about 5 seconds and idle
+uses zero CPU ticks/no redraw. Both older graphical workflows and all nine editor
+groups still pass (3.010 s/18.319 s). Native receiving-status captures are reviewed;
+missing emoji glyphs remain a font-coverage limitation, not lost source bytes.
+All 331 main, 197 initial visual and 259 final-reviewed evidence files are
+host-verified before exact private namespace retirement. Final native window/
+clipboard suites pass both profiles after an explicit progress/redraw loop guard;
+no tiny-window runtime acceptance is inferred from that inspection correction.
+Normal sources/builds/authority/quarantine remain unchanged.
+
+Next implement responsive original file I/O; it remains synchronous. Full native
+editable accessibility/IME, search, chrome/reflow/final design, Save As/export and
+abnormal/UNKNOWN recovery remain work, followed by normal app/session integration.
+The full OS/apps/image/installer/hardware/experiment objective remains incomplete.
+NexaUI handoff stays closed; no new requirement catalogue delta is needed here.
+
+## Prior native graphical Editor window checkpoint — 7 November 2026
 
 The opt-in `aetheri-text-editor` now renders real direct input, document tabs,
 workspace/gutter/selection, held-file picker and document-first close review.

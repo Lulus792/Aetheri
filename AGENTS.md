@@ -1120,8 +1120,9 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   never route the unexamined remainder directly to the toolkit. The local picker
   passes the original held file witness for both new reads and duplicate reuse.
   Rendering may query selection while original close review blocks input handles.
-  Current synchronous I/O/paste is provisional: next add responsive ownership and
-  asynchronous clipboard/focus cancellation. Text snapshots are read-only, not a
+  File I/O is still synchronous; add responsive original operation ownership.
+  Clipboard/focus cancellation now has the separate native integration below.
+  Text snapshots are read-only, not a
   complete accessible editor. Search, IME, native chrome/reflow/design, Save As/
   recovery and normal app admission remain work. Sticky SDK native close is
   latched once; repeated native-close/management acceptance is unproven (W01).
@@ -1130,3 +1131,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Preserve normal sources/builds/authority/quarantine, protected VM and foreign
   work. Use private /tmp backing for native tests; never remove foreign quota data
   or treat tmpfs as the known SDK sparse-mmap failure fix. Goal remains incomplete.
+
+- The graphical Editor now uses the pinned public Wayland clipboard asynchronous
+  begin/take/cancel/release API. Read the updated graphical-editor contract and
+  2026-11-07 editor-clipboard journal. Original document/direct token/canvas/focus
+  admission precedes take, after all queued native events and focus frames; a wake
+  is advisory. Retire only the original app-owned request, never a field's other
+  request. Empty results do not delete selection; native EOF does not prove full
+  source intent. Use the SDK wiping release with the exact returned length.
+  Fourteen independent native workflows pass Release/ASan with original pipe
+  cancellation, real file bytes and overall timeout evidence. There is no new
+  thread/service, installed permission or normal desktop acceptance. Responsive
+  file I/O, final design/accessibility and the full OS goal remain pending.

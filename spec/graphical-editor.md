@@ -139,15 +139,40 @@ The loop blocks when idle and redraws on logical size or raster-density changes.
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous original tab |
 | Arrows, Home/End, Ctrl+Home/End | Move; Shift extends the selection |
 | Ctrl+A / Ctrl+Z / Ctrl+Y | Select All / Undo / Redo |
+| Ctrl+C / Ctrl+X / Ctrl+V | Native Copy / Cut / asynchronous Paste |
 | F6 | Move between document and toolbar focus |
 | Escape | Cancel picker/review or clear document selection |
 
-The host includes local copy/cut/paste adapters, but native clipboard transfer,
-queued focus loss and cancellation still need asynchronous integration and their
-own tests. The current synchronous paste path is provisional. It is not the
-Terminal's already tested asynchronous transport. External IME/direct-editor
-composition, search UI, plugins, scroll/drag refinements and page navigation
-remain work.
+The host now uses the pinned public `nexaui/wayland_clipboard.h` asynchronous
+read interface. A request binds the original active document, direct-input
+identity/interaction/revision/caret/selection and canvas focus. Its bound is
+8 MiB with a five-second overall deadline and sensitive-buffer handling. No
+additional thread, process or clipboard protocol implementation is added.
+
+Completion is inspected only after already-queued native events and their focus
+frames. A wake alone is not success. Before taking data, the host rejects a changed
+input token, active tab, focus or review/picker state. Explicit tab/file/review/
+close/focus changes and Escape cancel the original native request. Other accepted
+editing gestures invalidate it even at an unchanged EOF. A repeated Paste starts
+a new request and cannot let the old completion cancel or overwrite it. Only
+that app-owned token is retired; unrelated filename-field requests are not displaced.
+
+Completed bytes are length-delimited and released through the SDK's wiping
+release function. Nonempty admitted text becomes one document edit/undo group;
+invalid UTF-8/NUL or document/line limits preserve content and selection. An empty
+result does not delete a selection. SDK completion/EOF does not prove a producer
+sent its entire intended value; never adopt a timed-out partial transfer. Native
+Copy exports an owned snapshot; Cut deletes only after Copy succeeds, and a failed
+model deletion keeps the document open. Clipboard persistence after all source
+windows close remains separate system work.
+
+The status line reports an in-progress receive while document/toolbar/dialog
+input remains available. Fourteen actual native clipboard workflows pass in both
+Release and ASan/UBSan; read the
+[clipboard execution record](../brains/aetheri/journal/2026-11-07-editor-clipboard.md).
+This is separate from Terminal's existing asynchronous clipboard transport.
+External IME/direct-editor composition, search UI, plugins, scroll/drag refinements
+and page navigation remain work.
 
 Buttons expose names/roles/state; document text is a bounded read-only accessibility
 snapshot, not a complete native editable-text interface. The native filename
@@ -201,3 +226,16 @@ output. Idle CPU is measured, and native images are reviewed. See the
 [execution record](../brains/aetheri/journal/2026-11-07-editor-window.md).
 This is not normal desktop provisioning, complete native accessibility, physical
 monitor/laptop acceptance or a bootable Aetheri image.
+
+The additional explicit native clipboard suite uses an independent existing
+libwayland test producer/receiver:
+
+```sh
+python3 tools/test_editor_clipboard.py TEST_COMPOSITOR APP TEST_COMPOSITOR_CLIENT UI_FONT MONO_FONT BUILD_DIR
+```
+
+It shares the same disposable-carrier/private temporary-backing requirement.
+Actual held pipe writers prove cancellation, saved file bytes prove accepted or
+rejected edits, and a live partial sender exercises the overall timeout. A short
+quiet precondition drains finite focus/input frames before the unchanged idle
+CPU/redraw measurement; it does not weaken that measurement's budget.

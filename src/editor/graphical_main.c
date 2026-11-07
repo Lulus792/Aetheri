@@ -7,6 +7,7 @@
 #include "files/model.h"
 #include <nexaui/nexaui.h>
 #include <nexaui/software.h>
+#include <nexaui/wayland_clipboard.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
@@ -23,6 +24,7 @@ enum action { NONE,NEW,OPEN,SAVE,CLOSE_TAB,CLOSE_WINDOW,CANCEL,DISCARD,CONFIRM,U
 struct ids { uint64_t document,tab,close,canvas,text,sidebar; };
 struct painted_row { size_t start,size;nx_text_layout *layout;nx_rect bounds; };
 struct line {size_t start,size;};
+struct paste {uint64_t native,document,canvas;struct ae_direct_token input;};
 struct app {
     struct ae_editor_workspace *workspace;struct ae_files *picker;int root;
     nx_context *context;nx_font *font,*mono_font;nx_font_collection *fonts,*mono_fonts;nx_window *window;nx_software_view *renderer;
@@ -38,6 +40,7 @@ struct app {
     uint64_t action_document;enum action action;
     nx_rect picker_list,review_title;float review_scroll,review_max_scroll;
     bool overlay_shown,close_seen;uint64_t clicked_row;double clicked_at;
+    struct paste paste;
 };
 static volatile sig_atomic_t stopping,signal_fd=-1;
 static void stop_signal(int number) { (void)number;int saved=errno;stopping=1;if(signal_fd>=0) {char byte=1;(void)write((int)signal_fd,&byte,1);}errno=saved; }
@@ -86,7 +89,16 @@ static void message(struct app *a,enum ae_editor_workspace_result result) {
     snprintf(a->message,sizeof(a->message),"%s",text);a->dirty=true;
     if(a->diagnostics) {printf("RESULT %d\n",(int)result);fflush(stdout);}
 }
+static void cancel_paste(struct app *a) {
+    uint64_t token=a->paste.native;a->paste=(struct paste){0};
+    if(token) {
+        nx_result result=nx_wayland_clipboard_read_cancel(a->window,token);
+        if(a->diagnostics) {printf("PASTE cancel=%d\n",(int)result);fflush(stdout);}
+        a->dirty=true;
+    }
+}
 static void cancel_input(struct app *a) {
+    cancel_paste(a);
     struct ae_direct *input=ae_editor_workspace_input(a->workspace);if(input) (void)ae_direct_cancel_input(input);a->dragging=false;
 }
 static bool sync_document(struct app *a) {
@@ -165,6 +177,8 @@ static bool choose_file(struct app *a) {
     a->ensure_caret=true;return true;
 }
 static bool apply(struct app *a,enum action action,uint64_t document) {
+    if(a->mode==EDITING && (action==NEW || action==OPEN || action==SAVE || action==CLOSE_TAB ||
+       action==CLOSE_WINDOW || action==SELECT_TAB || action==SMALLER || action==LARGER || action==ZOOM)) cancel_input(a);
     uint64_t id;enum ae_editor_workspace_result result=AE_EDITOR_WORKSPACE_OK;
     if(action==NEW) {result=ae_editor_workspace_new(a->workspace,&id);a->focus_document=true;}
     else if(action==OPEN) return begin_picker(a,false);
@@ -485,9 +499,10 @@ static bool frame(struct app *a,bool *busy) {
     else if(!wrapped(a,4,1,tr(a,"No document open. Create a document or open a file.","Kein Dokument geöffnet. Erstelle ein Dokument oder öffne eine Datei."),
         (nx_rect){a->canvas.x+32,y+32,a->canvas.width-64,100*a->scale},16*a->scale,foreground(a))) return false;
     char status[320];size_t row=0;
+    const char *notice=a->paste.native?tr(a,"Receiving clipboard text…","Zwischenablagentext wird empfangen…"):a->message;
     if(a->document) {while(row+1<a->line_count && a->lines[row+1].start<=a->info.cursor) ++row;
-        snprintf(status,sizeof(status),"%s%zu  ·  %s%zu  ·  %s",tr(a,"Line ","Zeile "),row+1,tr(a,"Byte ","Byte "),a->info.cursor-a->lines[row].start+1,a->message);}
-    else snprintf(status,sizeof(status),"%s",a->message);
+        snprintf(status,sizeof(status),"%s%zu  ·  %s%zu  ·  %s",tr(a,"Line ","Zeile "),row+1,tr(a,"Byte ","Byte "),a->info.cursor-a->lines[row].start+1,notice);}
+    else snprintf(status,sizeof(status),"%s",notice);
     nx_semantic_desc footer={.id=3,.parent_id=1,.role=NX_ROLE_STATUS,.bounds={0,a->height-status_height,a->width,status_height},.name=span(status)};
     if(nx_semantics_add(a->context,&footer,NULL)!=NX_OK || !label(a,status,(nx_rect){12,a->height-status_height,a->width-24,status_height},11*a->scale,secondary(a))) return false;
     if(a->mode!=EDITING) {if(!paint_picker(a)) return false;}
@@ -500,10 +515,10 @@ render:
     if(outcome==NX_SOFTWARE_VIEW_READY) {
         nx_result result=nx_window_publish_semantics(a->window,a->context);if(result!=NX_OK && result!=NX_ERROR_UNSUPPORTED) return false;
         if(a->diagnostics) {nx_utf8_span draft={0};if(a->mode==PICK_SAVE && nx_text_field_text(a->name,&draft)!=NX_OK) return false;
-            printf("FRAME %.0f %.0f %u docs=%u active=%llu revision=%llu cursor=%zu mode=%d review=%llu focus=%llu draft=%zu error=%u selected=%u begin=%zu end=%zu density=%.2f\n",
+            printf("FRAME %.0f %.0f %u docs=%u active=%llu revision=%llu cursor=%zu mode=%d review=%llu focus=%llu draft=%zu error=%u selected=%u begin=%zu end=%zu density=%.2f paste=%u focused=%u\n",
             a->width,a->height,a->text_percent,ae_editor_workspace_count(a->workspace),(unsigned long long)a->document,
             (unsigned long long)a->revision,a->document?a->info.cursor:0,(int)a->mode,(unsigned long long)a->review.id,(unsigned long long)nx_focus_id(a->context),
-            draft.length,a->message[0]?1u:0u,a->selection.active?1u:0u,a->selection.begin,a->selection.end,a->density);fflush(stdout);}
+            draft.length,a->message[0]?1u:0u,a->selection.active?1u:0u,a->selection.begin,a->selection.end,a->density,a->paste.native?1u:0u,a->focused?1u:0u);fflush(stdout);}
     }
     if(a->action!=NONE) {if(!apply(a,a->action,a->action_document)) return false;a->dirty=true;}
     return true;
@@ -526,26 +541,63 @@ static bool pointer_position(struct app *a,float x,float y,bool extend) {
     if(!input || !ae_direct_seek(input,painted->start+caret.byte_offset,extend)) return true;
     a->ensure_caret=false;return true;
 }
+static void clipboard_failure(struct app *a,bool paste) {
+    snprintf(a->message,sizeof(a->message),"%s",paste?tr(a,"Couldn't paste this clipboard text. Your document is unchanged.","Dieser Zwischenablagentext konnte nicht eingefügt werden. Dein Dokument bleibt unverändert."):
+        tr(a,"Couldn't copy the selection. Your document is unchanged.","Die Auswahl konnte nicht kopiert werden. Dein Dokument bleibt unverändert."));
+    a->dirty=true;
+}
+static bool paste_context(struct app *a,struct ae_direct **out) {
+    if(!a->paste.native || !a->focused || a->mode!=EDITING || a->review.id ||
+       a->paste.document!=ae_editor_workspace_active(a->workspace) || nx_focus_id(a->context)!=a->paste.canvas) return false;
+    struct ae_direct *input=ae_editor_workspace_input(a->workspace);struct ae_direct_token token;
+    const struct ae_direct_token *original=&a->paste.input;
+    if(!input || !ae_direct_token(input,&token) || token.identity!=original->identity || token.interaction!=original->interaction ||
+       token.revision!=original->revision || token.cursor!=original->cursor || token.anchor!=original->anchor || token.selecting!=original->selecting) return false;
+    *out=input;return true;
+}
+/* Only after all already-queued native events and their focus frames. A wake is
+ * advisory; the native token and original direct-input context must both match. */
+static bool progress_paste(struct app *a) {
+    if(!a->paste.native) return false;
+    struct ae_direct *input=NULL;if(!paste_context(a,&input)) {cancel_paste(a);return true;}
+    char *bytes=NULL;size_t size=0;int ready=0;
+    nx_result result=nx_wayland_clipboard_read_take(a->window,a->paste.native,&bytes,&size,&ready);
+    if(result==NX_OK && !ready) return false;
+    struct ae_direct_token token=a->paste.input;
+    /* Failed takes can invalidate a native request. Retire only our own token;
+     * never cancel/displace a filename widget's unrelated clipboard request. */
+    if(ready) a->paste=(struct paste){0};else cancel_paste(a);
+    if(result==NX_OK && ready) {
+        if(size) {
+            enum ae_document_result inserted=ae_direct_paste(input,&token,bytes,size);
+            if(inserted!=AE_DOCUMENT_OK) clipboard_failure(a,true);
+            else {a->ensure_caret=true;a->message[0]=0;}
+        }
+    } else clipboard_failure(a,true);
+    if(a->diagnostics) {printf("PASTE complete=%d ready=%d bytes=%zu\n",(int)result,ready,size);fflush(stdout);}
+    nx_wayland_clipboard_read_release(bytes,size);a->dirty=true;return true;
+}
 static bool clipboard(struct app *a,nx_key key) {
+    cancel_input(a);
     struct ae_direct *input=ae_editor_workspace_input(a->workspace);if(!input) return true;
     if(key==NX_KEY_V) {
-        struct ae_direct_token token;if(!ae_direct_token(input,&token)) return false;
-        size_t size=0;nx_result result=nx_window_clipboard_get_text(a->window,NULL,0,&size);
-        if(result!=NX_OK || !size || size>AE_DOCUMENT_BYTES) {message(a,AE_EDITOR_WORKSPACE_UNSUPPORTED);return true;}
-        char *bytes=malloc(size+1);if(!bytes) {message(a,AE_EDITOR_WORKSPACE_NOMEM);return true;}
-        size_t actual=0;result=nx_window_clipboard_get_text(a->window,bytes,size+1,&actual);
-        if(result==NX_OK && actual==size && a->focused) {
-            enum ae_document_result inserted=ae_direct_paste(input,&token,bytes,size);
-            if(inserted!=AE_DOCUMENT_OK) message(a,AE_EDITOR_WORKSPACE_UNSUPPORTED);
-        }
-        free(bytes);
+        struct paste pending={.document=ae_editor_workspace_active(a->workspace),.canvas=nx_focus_id(a->context)};
+        if(!ae_direct_token(input,&pending.input)) return false;
+        nx_result result=nx_wayland_clipboard_read_begin(a->window,AE_DOCUMENT_BYTES,5000,1,&pending.native);
+        if(result!=NX_OK) {clipboard_failure(a,true);return true;}
+        a->paste=pending;a->dirty=true;
+        if(a->diagnostics) {puts("PASTE begin");fflush(stdout);}
     } else {
         struct ae_direct_selection selection;if(!ae_direct_selection(input,&selection)) return false;
         size_t size=selection.end-selection.begin;if(!selection.active || !size) return true;
         char *bytes=malloc(size);if(!bytes) {message(a,AE_EDITOR_WORKSPACE_NOMEM);return true;}
         bool copied=ae_document_copy(ae_direct_document(input),selection.begin,size,bytes,size) && nx_window_clipboard_set_text(a->window,bytes,size)==NX_OK;
         free(bytes);
-        if(copied && key==NX_KEY_X && ae_direct_delete(input,false)!=AE_DOCUMENT_OK) return false;
+        if(!copied) clipboard_failure(a,false);
+        if(copied && key==NX_KEY_X && ae_direct_delete(input,false)!=AE_DOCUMENT_OK) {
+            snprintf(a->message,sizeof(a->message),"%s",tr(a,"Couldn't cut the selection. Your document is unchanged.","Die Auswahl konnte nicht ausgeschnitten werden. Dein Dokument bleibt unverändert."));
+            a->dirty=true;
+        }
     }
     a->ensure_caret=true;return true;
 }
@@ -555,6 +607,7 @@ static bool event(struct app *a,const nx_event *e,bool *handled) {
     if(e->type==NX_EVENT_POINTER_CANCEL) {cancel_input(a);return true;}
     bool review=a->mode==EDITING && a->review.id!=0;
     if(e->type==NX_EVENT_KEY_DOWN && e->key==NX_KEY_ESCAPE) {
+        cancel_paste(a);
         *handled=true;
         if(a->mode!=EDITING || review) return apply(a,CANCEL,0);
         struct ae_direct *input=ae_editor_workspace_input(a->workspace);if(input) (void)ae_direct_clear_selection(input);a->dragging=false;return true;
@@ -618,6 +671,7 @@ static bool event(struct app *a,const nx_event *e,bool *handled) {
         return true;
     }
     if(e->type==NX_EVENT_KEY_DOWN && e->key==NX_KEY_F6 && ids) {
+        cancel_input(a);
         *handled=true;return nx_focus_set(a->context,nx_focus_id(a->context)==ids->canvas?20:ids->canvas)==NX_OK;
     }
     if(!input || !ids || !a->focused || nx_focus_id(a->context)!=ids->canvas) return true;
@@ -708,6 +762,9 @@ int main(int argc,char **argv) {
              * direct document input must share the original native ordering. */
             continue;
         }
+        /* Retry drawing only for an actual receive transition. An unrelated
+         * dirty but too-small drawable must still reach the native wait. */
+        if(progress_paste(&a) && !busy) continue;
         uint32_t signals=0;
         if(nx_window_poll_with_fd(a.window,busy?16:UINT32_MAX,fds[0],&signals)!=NX_OK) goto done;
         if(signals&(NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP)) goto done;
@@ -715,6 +772,7 @@ int main(int argc,char **argv) {
     }
     result=0;
 done:
+    cancel_paste(&a);
     if(result) fputs("Aetheri graphical Editor stopped unexpectedly; normal close was not completed.\n",stderr);
     if(a.renderer && nx_software_view_close(&a.renderer)!=NX_OK) result=1;
     if(a.context && a.window) (void)nx_window_publish_semantics(a.window,NULL);
