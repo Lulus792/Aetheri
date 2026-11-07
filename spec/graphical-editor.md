@@ -66,8 +66,48 @@ paste and allocation/validation failures. Release and ASan/UBSan both pass.
 Seven existing document/modal/history/search/selection/file/view groups also pass
 in each profile. See the [executed record](../brains/aetheri/journal/2026-11-07-direct-editor.md).
 
-Next connect this controller to the native graphical Editor: document-tab
-lifetimes, existing file adapter, approved unsaved-change review, then actual
+## Implemented: document tabs, local saving and close review
+
+`editor/workspace.h` now joins up to eight original documents, their direct-entry
+controllers and the existing local file adapters. These are native backend tabs,
+not rendered controls. Opening an unchanged already-open local source selects
+its original tab with unsaved edits intact. Changed/replaced source conflicts
+instead of silently reloading. Closing the last tab leaves an empty workspace.
+
+An untitled document creates no file. Its first save uses an independently chosen
+directory FD and literal leaf with create-only publication. A destination token
+binds the original active document/revision, input sequence and current close
+review. Edits, switching away/back or a new close review invalidate a delayed
+picker result before file effects. Known failed first saves leave the document
+untitled; UNKNOWN retains the original file adapter, name and recovery information.
+Existing named saves keep that original binding. File preservation/restrictions
+remain those of the [local file adapter](editor.md); no normal grant is implied.
+
+Clean known tabs close immediately. Dirty or uncertain tabs become active and
+freeze workspace edits/switches until an original ID/revision/review-serial
+decision. Cancel keeps the document. Discard drops only its unsaved in-memory
+tab, never its file. Save closes only after actual successful file saving; a
+missing first destination keeps the same review pending. Stale/replayed close
+decisions cannot close another tab. UNKNOWN blocks save/discard completion even
+when the text happens to be clean. Recovery/export of that condition remains
+separate work; cancellation can return to the retained document.
+
+One synchronous owner manages documents and file operations. Read-only tab views
+and the active input handle are borrowed only until the next workspace operation.
+Review blocks new input handles; callers must not keep an old handle across it.
+Normal UI shutdown must resolve all tabs first. Destruction only releases local
+memory/FDs, never approves user close or removes file/recovery artifacts. The
+eventual responsive I/O host, file picker/grant admission, complete Save As/export
+and native UI still need integration.
+
+`editor.workspace` passes eight native file/tab/close workflows, including real
+saves, no-replace conflicts, external changes, allocation/ENOSPC failures,
+post-rename uncertainty, delayed picker rejection and stale decisions. All nine
+editor groups pass in Release and ASan/UBSan without skips; see the
+[workspace execution record](../brains/aetheri/journal/2026-11-07-editor-workspace.md).
+
+Next connect these controllers to the native graphical Editor: render the actual
+tabs, original file picker and approved unsaved-change review, then obtain native
 window/input/rendering and accessibility evidence. Closing the last tab must
 leave the approved empty Editor view. Do not replace the modal Terminal editor
 or its fixed development launch path to simulate that integration. Search UI,

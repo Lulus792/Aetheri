@@ -1101,5 +1101,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   spec/graphical-editor.md; run editor.direct with existing editor regressions.
   Input tokens are process-local correlations, not native clipboard/grant proof.
   Host focus/tab/file changes must cancel original input without losing selection.
-  No graphical Editor window, document tabs or close/save integration exists yet;
-  preserve the modal Terminal editor and normal launch paths.
+  The native tab/save/close coordinator below is separate from its still-pending
+  graphical window; preserve the modal Terminal editor and normal launch paths.
+
+- editor/workspace.h now owns bounded graphical-editor documents/direct inputs/
+  local file adapters and original close/destination correlations. Read the
+  current graphical-editor contract and 2026-11-07 workspace journal; run
+  editor.workspace and affected editor regressions. First saves are create-only;
+  UNKNOWN retains the original adapter/name and blocks save/discard completion,
+  even for clean text. Normal UI shutdown must resolve tabs before destruction.
+  Tabs/close/picker are native backend state only; the graphical window, complete
+  Save As/export/recovery, responsive I/O and normal grants remain unfinished.

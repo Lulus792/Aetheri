@@ -33,6 +33,12 @@ enum ae_editor_file_result ae_editor_file_new(int directory,const char *leaf,
    Existing-name checks are not an atomic conditional rename against other apps. */
 enum ae_editor_file_result ae_editor_file_save(struct ae_editor_file *file,struct ae_document *document);
 bool ae_editor_file_uncertain(const struct ae_editor_file *file);
+/* Local duplicate-tab selection only: compare the held original parent and
+   literal leaf, then recheck the original file baseline. Different names or
+   parents return OK/matches=false; matching drift/uncertainty is an error.
+   Output unchanged on error. No path, grant or volume authentication. */
+enum ae_editor_file_result ae_editor_file_matches(struct ae_editor_file *file,
+    int directory,const char *leaf,bool *matches);
 /* Borrowed literal leaf of an owned/potential recovery artifact, or NULL.
    Do not concatenate it into shell commands or delete a name merely on this basis.
    Close frees memory/FDs; it never deletes an uncertain artifact. */

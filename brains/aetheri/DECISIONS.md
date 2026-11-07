@@ -1,5 +1,16 @@
 # Decisions
 
+## Keep original Editor documents and explicit close/save decisions — 7 November 2026
+
+The native graphical-editor workspace owns bounded documents and their original
+local file adapters. Reuse an unchanged open source without reloading unsaved
+content. First saves are create-only and correlate delayed destination replies
+with the original document/input/review. Freeze review and require its original
+token before close; uncertainty cannot become successful discard or save. Keep
+all remaining picker/grant and recovery obligations explicit. The native backend
+does not imply rendered UI or normal app admission. See the
+[contract](../../spec/graphical-editor.md).
+
 ## Separate direct graphical editing from modal commands — 7 November 2026
 
 Reuse the original document/history kernel with a separate direct-entry C17

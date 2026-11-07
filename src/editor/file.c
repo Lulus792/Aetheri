@@ -156,6 +156,18 @@ static enum ae_editor_file_result current(struct ae_editor_file *f) {
     if (fstat(f->fd,&s) || !same(&f->observed,&s) || !named(f,&s)) return AE_EDITOR_FILE_CONFLICT;
     return AE_EDITOR_FILE_OK;
 }
+enum ae_editor_file_result ae_editor_file_matches(struct ae_editor_file *f,int directory,const char *leaf,bool *matches) {
+    if (!f || !leaf || !*leaf || strnlen(leaf,256)>255 || !strcmp(leaf,".") || !strcmp(leaf,"..") || strchr(leaf,'/') || !matches)
+        return AE_EDITOR_FILE_INVALID;
+    if (strcmp(f->leaf,leaf)) { *matches=false;return AE_EDITOR_FILE_OK; }
+    struct stat original,selected;
+    if (fstat(f->directory,&original) || fstat(directory,&selected)) return AE_EDITOR_FILE_IO;
+    if (!S_ISDIR(selected.st_mode)) return AE_EDITOR_FILE_INVALID;
+    if (original.st_dev!=selected.st_dev || original.st_ino!=selected.st_ino) { *matches=false;return AE_EDITOR_FILE_OK; }
+    if (f->uncertain) return AE_EDITOR_FILE_UNKNOWN;
+    enum ae_editor_file_result r=current(f);if (r!=AE_EDITOR_FILE_OK) return r;
+    *matches=true;return AE_EDITOR_FILE_OK;
+}
 static bool write_all(int fd,const char *text,size_t size) {
     size_t at=0;while (at<size) { ssize_t n=write(fd,text+at,size-at);if (n<0 && errno==EINTR) continue;if (n<=0) return false;at+=(size_t)n; }return true;
 }

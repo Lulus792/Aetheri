@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — direct graphical-editor input tested; window integration pending.
+7 November 2026 — graphical-editor document workspace tested; native window pending.
 
 ## Coordination
 
@@ -13,7 +13,26 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Direct graphical-editor input — 7 November 2026
+## Graphical-editor document workspace — 7 November 2026
+
+`aetheri_editor_workspace` now joins eight original document tabs, direct input,
+local file saving and correlated close review. Existing unchanged sources reuse
+their original tab; first saves are create-only. Original document/input/review
+tokens reject delayed picker results before writes. Cancel preserves content,
+Discard never deletes a file and Save closes only after actual success. UNKNOWN
+keeps its exact file/name context and blocks completion even when text is clean.
+Read the [contract](../../spec/graphical-editor.md) and
+[execution record](journal/2026-11-07-editor-workspace.md).
+
+Both isolated native builds and all nine editor groups pass Release/ASan without
+skips (3.565 s/18.531 s). All 186 evidence files are host-verified before original
+private-namespace retirement. No normal source/build/app/authority is replaced.
+There is still no graphical Editor window: next render actual tabs, picker and
+approved close review, with responsive original I/O and accessibility. Full Save
+As/export/unknown recovery and normal grants remain work. The full OS/apps/image/
+installer/hardware/experiment goal remains active and incomplete.
+
+## Prior direct graphical-editor input checkpoint — 7 November 2026
 
 The new C17 `aetheri_direct` library provides non-modal input over our existing
 document/history kernel: whole-grapheme selection/movement/deletion, direct text,
