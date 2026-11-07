@@ -4931,6 +4931,60 @@ administrative fixtures, not production executing-app drain. The older PID1
 process-free target case remains separate. See the
 [executed unit-custody record](../brains/aetheri/journal/2026-11-07-unit-custody.md).
 No normal installed unit/profile/API/policy/capability or schema changes follow.
-The live Root adapter still needs protected profile registration, whole-lifetime
-catalogue custody and admitted end/recovery integration; do not equate its older
-job-only hold with this longer reference lifetime.
+The older supervisor adapter still has only job-lifetime custody. The distinct
+Root composition below retains full connection custody; protected persistent
+registry/provisioning and general admitted end/recovery integration remain work.
+
+## Root request and full unit custody
+
+The internal [Root unit adapter](../src/authority/unit.h) now joins the existing
+execution coordinator's fresh REQUEST callback to the unit owner above. Before
+REQUEST, move an unused unit owner into this adapter against an independently
+authorized unit selection and protected starter-image selection. This is a
+process-local selection binding, not persistent profile-registry enrollment.
+The unit name must derive from the original launch; its selected executable must
+name the original held/named root-owned ELF, whose object/digest/raw MAC and
+protected parent match the independent witness and AETHEXE1 starter digest.
+Unit profile comparison ignores descriptor numbers/native padding and includes
+meaningful source, drop-in, graph and service fields. The adapter copies its
+profile/context/image selection and duplicates image/parent FDs.
+
+The native read-only `ae_catalogue_execution_request_state` distinguishes the
+original current tuple before REQUEST from its exact pending REQUEST. It rejects
+later/conflicting steps, closed or changed install gates, and context drift.
+No query grants replay permission. Constructor requires absent REQUEST; the
+compiled request adapter requires it present. Only the coordinator's confirmed
+fresh `effect_required` result permits entry; unknown commit never invokes it.
+Reconstructing a new adapter after a recorded REQUEST is rejected. There is no
+public API, untrusted callback or caller-selected unit registry here.
+
+Before Subscribe/Ref/Start, a retained current-owner cleanup hold protects the
+original catalogue/runtime. Fresh checks bracket compiled caller/data/mutation
+admission with the original pending tuple, current source fence, held/named image
+and final gate checks. An admission callback that changes the gate cannot leave
+a usable stale decision. The existing unit owner separately checks sources and
+loaded configuration after the last callout. Each effect is still one-shot.
+If nothing was attempted, local cleanup releases the hold. Any attempted custody
+keeps it through failures, unknown returns and confirmed JobRemoved. Therefore
+catalogue close/runtime replacement remain busy even after the starter job ends.
+
+Retirement uses an independent compiled ORIGINAL end/holder admission callback,
+bracketed by the original SYSTEM epoch/boot/runtime cleanup context. A later
+source fence or old broker delegation does not require reauthorizing a new start
+in order to retire original references. This is not permission to retire without
+end evidence. Only confirmed unit retirement releases this local hold; uncertain
+Unref/Unsubscribe retains it without retry. Explicit abandon closes local
+observation/connection without a queue flush and drops only the local hold.
+Neither path settles the REQUEST, User preparation, operation or generation lease.
+The caller must keep the adapter alive through coordinator callbacks and drive
+its exclusive bus separately from the coordinator's own connection.
+
+Run explicit `authority.unit_custody` only in the enforcing disposable carrier.
+It joins native Root/User fixture journals to actual PID1 using independently
+copied inert UID0 administrative `true` helpers, controlled lost returns and a
+test-scoped end guard. This is no UID1000 app/private-view/MCS dispatch, normal
+login/session admission, durable unit-custody recovery or production holder/end
+proof. See the [executed record](../brains/aetheri/journal/2026-11-07-root-unit.md).
+Keep both synthetic owner catalogues and unknown journals; the old quarantined
+execution fixture is neither opened nor settled by these tests. No frozen schema,
+wire, installed policy/profile/capability, SDK pin or UI default changes.

@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — protected unit inputs and exclusive reference custody tested.
+7 November 2026 — Root REQUEST joined to full unit-reference custody.
 
 ## Coordination
 
@@ -14,6 +14,44 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The internal Root adapter now binds an unused exclusive unit owner, independently
+selected source/graph/service profile and original held/named starter ELF to the
+original AETHEXE1 before REQUEST. Native read-only REQUEST-state checking does
+not grant replay; the coordinator still requires a confirmed fresh commit. Its
+retained catalogue/runtime hold survives actual JobRemoved and unknown reference
+releases. Original SYSTEM cleanup context plus independent end/holder admission
+governs retirement even after source fencing. Abandon changes only local ownership.
+The last compiled admission callback is followed by a new original tuple/gate
+check, preventing a closed gate from leaving a usable stale decision. See the
+[executed Root-custody record](journal/2026-11-07-root-unit.md).
+
+Both complete isolated core/IPC builds pass; the final 20 native cases pass
+Release and ASan/UBSan without skips. Four deliberately defective Root producers
+are detected with positive controls and suppressed target submission. Host
+contract/migration tests pass 50/50 and frozen runtime/codec tests 24/24. The new
+source/build directories leave concurrent NexaUI sources/builds alone. This is
+actual PID1 plus synthetic native owner journals and inert UID0 administrative
+helpers, not a normal UID1000/private-view app launch or production end proof.
+Original unresolved fixture journals remain retained. No installed input, frozen
+schema/wire, SDK pin or UI default is changed.
+
+All six affected native regression groups also pass without skips: Release
+282.68s, ASan/UBSan 342.13s. The checked export contains 180 evidence files /
+446,878 bytes. Final audit verifies 421 source inputs, 28 unchanged frozen SQL/XML
+contracts, 19 protected quarantine hashes, all 52 normal-P0 files/controller and
+four untouched foreign files. The exact CLOSED DRM record, SDK 0.1.18/SDL04 and
+vendor drop-in remain unchanged. All own native actors, 94 recorded administrative
+units and their image files have retired; their owner journals remain.
+
+Next: durable independent unit/profile allocation and provisioning, original
+owner/volume continuity and custody recovery, followed by remaining external/
+delegated-holder settlement. Never replace the old quarantined executing intent
+with a new app fixture or infer SQL/lease release from completed jobs/disconnect.
+The full OS/apps/image/installer/update/hardware/experiment-desktop goal remains
+active/incomplete; no new NexaUI handoff.
+
+## Prior unit-input and connection-custody checkpoint
 
 The new internal unit owner now moves an exclusive PID1 client connection,
 retains its original pin and duplicates independently witnessed fragment/drop-in

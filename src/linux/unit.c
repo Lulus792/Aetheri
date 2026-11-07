@@ -434,6 +434,32 @@ static int dispose(struct ae_unit **out,int abandon)
     if (u->bus) sd_bus_close(u->bus);
     sd_bus_unref(u->bus); free(u); *out=NULL; return 0;
 }
+int ae_unit_match_profile(struct ae_unit *u,const uint8_t boot[16],const struct ae_unit_profile *p)
+{
+    int r=owner(u); if (!r && !boot) r=-EINVAL; if (!r) r=shape(p);
+    if (r) return r;
+    if (memcmp(u->boot,boot,16) || u->profile.count!=p->count) return -ESTALE;
+    for (unsigned int i=0;i<p->count;++i) {
+        const struct ae_unit_node *a=&u->profile.nodes[i],*b=&p->nodes[i];
+        if (a->kind!=b->kind || strcmp(a->name,b->name) || memcmp(a->edges,b->edges,sizeof a->edges)) return -ESTALE;
+        if (builtin(a)) continue;
+        if (strcmp(a->directory,b->directory) || !ae_root_equal(&a->parent,&b->parent) ||
+            !same_stat(&a->file.object,&b->file.object) || memcmp(a->file.digest,b->file.digest,32) || a->dropin_count!=b->dropin_count) return -ESTALE;
+        for (unsigned int j=0;j<a->dropin_count;++j) {
+            const struct ae_unit_dropin *x=&a->dropins[j],*y=&b->dropins[j];
+            if (strcmp(x->directory,y->directory) || strcmp(x->leaf,y->leaf) || !ae_root_equal(&x->parent,&y->parent) ||
+                !same_stat(&x->file.object,&y->file.object) || memcmp(x->file.digest,y->file.digest,32)) return -ESTALE;
+        }
+        if (a->kind!=AE_UNIT_SERVICE) continue;
+        if (strcmp(a->executable,b->executable) || strcmp(a->label,b->label) || a->argc!=b->argc || a->envc!=b->envc ||
+            a->capabilities!=b->capabilities || a->ambient!=b->ambient || a->umask!=b->umask ||
+            a->no_new_privileges!=b->no_new_privileges || a->private_mounts!=b->private_mounts ||
+            a->private_network!=b->private_network || a->private_devices!=b->private_devices) return -ESTALE;
+        for (unsigned int j=0;j<a->argc;++j) if (strcmp(a->argv[j],b->argv[j])) return -ESTALE;
+        for (unsigned int j=0;j<a->envc;++j) if (strcmp(a->environment[j],b->environment[j])) return -ESTALE;
+    }
+    return 0;
+}
 int ae_unit_new(sd_bus **bus,const struct ae_peer *manager,const uint8_t boot[16],const struct ae_unit_profile *p,struct ae_unit **out)
 {
     if (!bus || !*bus || !manager || !boot || !out || *out || manager->pidfd<0 || manager->connection_pid!=1 || manager->connection_uid ||

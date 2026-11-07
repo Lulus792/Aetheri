@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+authority/unit.h now joins fresh native execution REQUEST to exclusive unit
+custody. Read spec/runtime.md's Root request section. Constructor moves only an
+unused unit against independent source/graph/service and starter-ELF witnesses;
+read-only REQUEST-state queries never grant replay. Keep the Root catalogue hold
+through Subscribe/Ref/Start, completed jobs and unknown releases. Original SYSTEM
+cleanup context plus independently admitted original end/holders governs retire;
+source fencing does not require renewed broker start delegation. Abandon drops
+only local observation/hold. Keep its bus separate from the coordinator's bus,
+and the adapter alive through callbacks. Run explicit authority.unit_custody in
+the enforcing carrier. This is inert UID0 administrative/native-journal evidence,
+not persistent registry/provisioning, production end/volume/recovery admission,
+normal launch or lease settlement. Preserve the old execution quarantine.
+
 Local Files creation now uses files/create.h: an immutable literal name/held
 parent, preparation without effects, one worker attempt and cached retry results.
 Existing entries are conflicts. Unknown mkdir/save/flush acknowledgements retain

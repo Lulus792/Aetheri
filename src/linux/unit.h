@@ -54,6 +54,11 @@ struct ae_unit_status {
  * Constructor has no RefUnit/Subscribe/StartUnit effects; output starts NULL. */
 int ae_unit_new(sd_bus **exclusive_bus,const struct ae_peer *pid1,const uint8_t boot[16],
     const struct ae_unit_profile *,struct ae_unit **);
+/* Compare the copied selection with an INDEPENDENT protected selection. Ignores
+ * descriptor numbers and native padding; includes source object witnesses and
+ * every meaningful graph/service field. Read-only historical equality, not
+ * fresh source/loaded-state or allocation/volume admission. */
+int ae_unit_match_profile(struct ae_unit *,const uint8_t boot[16],const struct ae_unit_profile *);
 /* Caller journals custody intent before entry. Each subscription/reference is
  * attempted at most once and authenticates the original reply. Unknown results
  * retain the object; never retry/adopt from matching names or Refs observations.

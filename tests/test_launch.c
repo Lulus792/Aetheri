@@ -19,6 +19,10 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"user launch line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 static int commit_fault,step_fault,step_number,crash_mode,ddl_fault,ddl_number;
+#ifdef AETHERI_TEST_ROOT_UNIT
+#include <systemd/sd-id128.h>
+void ae_test_root_unit_commit_fault(int value) { commit_fault=value; }
+#endif
 #ifdef AETHERI_TEST_SETUP_SERVICE
 void ae_test_setup_commit_fault(int value) { commit_fault=value; }
 #endif
@@ -71,6 +75,10 @@ static void edit(const char *directory,const char *sql)
 {
     sqlite3 *db=database(directory); CHECK(sqlite3_exec(db,sql,NULL,NULL,NULL)==SQLITE_OK && sqlite3_close(db)==SQLITE_OK);
 }
+#ifdef AETHERI_TEST_ROOT_UNIT
+void ae_test_root_unit_close_gate(const char *directory)
+{ edit(directory,"UPDATE admission_gates SET state='closed',revision=revision+1 WHERE subject_kind='install'"); }
+#endif
 static int64_t scalar(const char *directory,const char *sql)
 {
     sqlite3 *db=database(directory); sqlite3_stmt *statement=NULL;
@@ -1619,6 +1627,11 @@ int main(int argc,char **argv)
     struct ae_launch_request *r=&q.reservation;
     id(r->system_epoch,1); id(r->lease,32); id(r->launch,31); id(r->broker_epoch,50); id(r->broker_runtime,51);
     id(r->account,2); id(r->install,10); id(r->generation,14); id(r->data,12); id(r->boot,4);
+#ifdef AETHERI_TEST_ROOT_UNIT
+    sd_id128_t actual_boot,unit_token; CHECK(sd_id128_get_boot(&actual_boot)>=0 && sd_id128_randomize(&unit_token)>=0);
+    memcpy(r->boot,actual_boot.bytes,16); memcpy(r->launch,unit_token.bytes,16);
+    r->launch[6]=(uint8_t)((r->launch[6]&15U)|64U); r->launch[8]=(uint8_t)((r->launch[8]&63U)|128U);
+#endif
     int execution=strncmp(argv[4],"exec-",5)==0;
     r->install_revision=2; strcpy(r->action,execution ? "run" : "main"); strcpy(r->session,"p0"); strcpy(r->seat,"none");
     id(q.local.plan,60); id(q.local.operation,61); id(q.actor,62); id(q.request_key,63); id(q.storage,13);
@@ -1717,6 +1730,13 @@ int main(int argc,char **argv)
             struct ae_user_execution_result prepared;
             CHECK(ae_catalogue_prepare_user_execution(user,&p,&prepared)==0);
             ae_test_start(root,&p,&rc,argv[1],argv[4]+11);
+        } else
+#endif
+#ifdef AETHERI_TEST_ROOT_UNIT
+        if (strncmp(argv[4],"exec-root-unit-",15)==0) {
+            void ae_test_root_unit(struct ae_catalogue *,struct ae_catalogue *,struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            ae_test_root_unit(root,user,&p,&rc,argv[1],argv[4]+15);
         } else
 #endif
         if (strncmp(argv[4],"exec-user-observe-",18)==0) {

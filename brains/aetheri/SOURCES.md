@@ -4,6 +4,18 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Root request and full unit custody — 7 November 2026
+
+- The original [Root composition](../../src/authority/unit.c),
+  [read-only catalogue contract](../../src/catalogue/execution.h),
+  [connected native cases](../../tests/test_root_unit.c) and
+  [retaining runner](../../tools/test_root_unit_native.py) provide implementation
+  evidence. The [executed record](journal/2026-11-07-root-unit.md) distinguishes
+  actual PID1/native owner journals from controlled lost returns, inert
+  administrative helpers and pending production registry/admission/recovery.
+- Existing systemd 259 and native-source references below still apply. This
+  change adds no new dependency/version family or upstream contract claim.
+
 ## Unit configuration and connection custody — 7 November 2026
 
 - systemd v259 [Manager implementation](https://github.com/systemd/systemd/blob/v259/src/core/dbus-manager.c)

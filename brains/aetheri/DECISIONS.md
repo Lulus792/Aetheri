@@ -1,5 +1,18 @@
 # Decisions
 
+## Keep Root ownership through unit custody — 7 November 2026
+
+Compose the existing execution REQUEST coordinator with the exclusive unit owner
+through a separate Root adapter. Bind independently selected unit sources and
+starter ELF to the original AETHEXE1 before REQUEST; do not serialize native
+padding or adopt matching candidates. Read-only journal presence never grants a
+replay. Keep the original catalogue/runtime hold after job completion and through
+unknown reference releases. Cleanup uses original SYSTEM context plus independently
+admitted original end/holders, rather than current broker start delegation.
+Abandon retires local observation only. Persistent registry/provisioning, durable
+custody recovery and general end/volume admission remain separate work. See the
+[runtime contract](../../spec/runtime.md#root-request-and-full-unit-custody).
+
 ## Own unit configuration and subscription lifetime — 7 November 2026
 
 Use a separate internal owner for the exclusive PID1 client, original references

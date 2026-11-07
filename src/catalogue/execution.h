@@ -87,6 +87,12 @@ struct ae_execution_result {
 int ae_catalogue_execution(struct ae_catalogue *,const struct ae_execution_profile *,
     const struct ae_launch_context *,enum ae_execution_stage,const struct ae_execution_evidence *,
     struct ae_execution_result *);
+/* Read-only current original tuple: 0 before REQUEST, 1 for its exact pending
+ * REQUEST only. Conflicting/later steps, closed gate or owner drift reject.
+ * Never grants an effect/replay right; only a fresh successful REQUEST result
+ * authorizes the compiled coordinator callback. Output unchanged on error. */
+int ae_catalogue_execution_request_state(struct ae_catalogue *,const struct ae_execution_profile *,
+    const struct ae_launch_context *,int *present);
 /* Root observed its own issued channel under the original held starter pin.
  * Record immutable integration step 4 (invocation + AETHEXD1 digest) and bounded
  * canonical reason, atomically. This also permits reporting after an ambiguous

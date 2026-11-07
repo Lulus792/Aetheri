@@ -2598,6 +2598,29 @@ int ae_catalogue_observe_user_execution(struct ae_catalogue *store,const struct 
 #undef AQ
     return r;
 }
+int ae_catalogue_execution_request_state(struct ae_catalogue *store,const struct ae_execution_profile *p,
+    const struct ae_launch_context *context,int *present)
+{
+    if (!present) return -EINVAL;
+    uint8_t hash[32]; int r=ae_execution_digest(p,hash);
+    if (!r) r=reservation_context(store,context);
+    if (!r && (memcmp(p->system_epoch,store->identity.authority_epoch,16) || memcmp(p->system_runtime,context->system_runtime,16) ||
+        memcmp(p->boot,context->boot,16) || memcmp(p->broker_epoch,context->broker_epoch,16) ||
+        memcmp(p->broker_runtime,context->broker_runtime,16) || memcmp(p->account,context->account,16))) r=-ESTALE;
+    int64_t match=0,steps=0,one=0;
+#define RQ(sql,out) execution_statement(store,p,hash,NULL,EXEC_INPUT sql,out)
+    if (!r) r=RQ("SELECT count(*) " EXEC_TUPLE "WHERE o.state='running' AND d.state='reserved' AND l.state='reserved' AND d.invocation_ref IS NULL AND d.ready_data_gate_revision IS NULL AND d.close_cause_epoch IS NULL",&match);
+    if (!r && match!=1) r=-ESTALE;
+    if (!r) r=RQ("SELECT count(*) FROM installs i,admission_gates f,p WHERE i.install_id=p.i AND i.state='active' AND i.active_generation_id=p.g AND i.revision=p.ir AND f.subject_kind='install' AND f.subject_ref=p.i AND f.state='open' AND f.closing_operation_id IS NULL AND f.revision=p.igate",&match);
+    if (!r && match!=1) r=-ESTALE;
+    if (!r) r=RQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no>0",&steps);
+    if (!r) r=RQ("SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=1 AND action='stage' AND subject_kind='generation' AND subject_ref=p.g AND evidence_digest=p.hash AND state='executing'",&one);
+    if (!r && steps!=one) r=-EAGAIN;
+    if (!r) r=still_named(store);
+    if (!r) *present=one ? 1 : 0;
+#undef RQ
+    return r;
+}
 int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_profile *p,const struct ae_launch_context *context,
     enum ae_execution_stage stage,const struct ae_execution_evidence *e,struct ae_execution_result *output)
 {
