@@ -4809,3 +4809,56 @@ Supervisor StartUnit sources and admitted owner/volume continuity remain separat
 See the [executed setup-fence record](../brains/aetheri/journal/2026-11-07-setup-fence.md)
 for actual private-bus/process-pin evidence, controlled context boundaries and
 the normal P0 update. SQL/XML, policy and public capabilities stay unchanged.
+
+## Original supervisor start request and job observation
+
+The internal [Linux start observer](../src/linux/start.h) submits one asynchronous
+`StartUnit(unit, "fail")` to the independently admitted original PID1 unique bus
+name. Its caller first holds its own unit reference and Manager subscription on
+a dedicated trusted host-system-bus connection, and independently admits the
+immutable unit configuration, complete dependency graph and unused original unit
+allocation. The observer does not install units, subscribe on behalf of another
+owner, or prove application/image/private-data admission.
+
+The [Root request adapter](../src/authority/start.h) derives the service name from
+the original launch ID and checks the exact AETHEXE1/dispatch tuple. The existing
+execution coordinator calls it only after a confirmed fresh REQUEST commit.
+Admission and source checks run before message construction and again immediately
+before submission. The adapter holds the original catalogue/runtime through a
+separate cleanup bracket while the request or job is unsettled. Catalogue close
+and runtime replacement return EBUSY during that local obligation. This bracket
+does not keep a source permission open after a fence and never proves global
+holder drain. Compiled provisioning admission remains a caller prerequisite;
+there is no default permissive production adapter.
+
+The object is process-owned, single-threaded and usable once, including a
+pre-submission failure. Sending uses an sd-bus asynchronous slot and a retained
+original request/cookie; the caller drives the normal event loop. No extra worker
+or polling thread is created. A send error, timeout or error reply is unknown:
+retain original intent and do not retry, replace IDs or conclude that PID1 did
+not queue work. An already queued job can still start after source fencing.
+
+JobRemoved watches are installed before submission. Signals require the original
+bus ID, unique connection, UID 0, PID 1, label and live retained ProcessFD; no
+augmented numeric-PID lookup is accepted. Up to four exact-unit events may arrive
+before the reply. Only a separately authenticated, correlated original method
+reply can bind its canonical job path/ID to one of those observations. Never
+adopt a job merely because its unit name matches. Conflicting or excessive events,
+malformed job paths and pre-terminal Manager replacement quarantine the observer.
+A known exact reply plus its exact JobRemoved retires signal watches and releases
+only the adapter's local catalogue hold. Later Manager changes cannot rewrite
+that historical result. Quarantine never automatically settles.
+
+An ordinary close refuses an unsettled attempted request/job. Explicit abandon
+retires local slots, message and peer references only: it cannot retract a queued
+call, cancel a PID1 job, release the caller's unit/subscription, settle SQL or free
+a generation lease. Callback-time close is EBUSY. A job result, including `done`,
+is not target execution, REGISTER/READY, original end, process/unit/cgroup/holder
+drain or permission to withdraw an executing attempt.
+
+Run `authority.supervisor_start` for actual private-bus/ProcessFD/native-journal
+cases with controlled PID1 role, and explicit `linux.start_pid1` only in the
+disposable enforcing carrier. The latter independently admits actual PID1 and
+an exact process-free target with no dependency graph; it is not a new app
+execution fixture. Normal installed profiles/APIs/capabilities remain unchanged.
+See the [executed supervisor record](../brains/aetheri/journal/2026-11-07-supervisor-start.md).

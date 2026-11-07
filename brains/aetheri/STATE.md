@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — no-exec progress replies fenced; original helper pins retained.
+7 November 2026 — original asynchronous supervisor request and job observer tested.
 
 ## Coordination
 
@@ -14,6 +14,43 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The internal Linux start observer and Root request adapter now submit exactly
+one StartUnit/fail after the existing coordinator's fresh REQUEST commit. Original
+PID1 reply/signal credentials and exact job path join bounded early JobRemoved
+events; a same-unit job never recovers a lost reply. A cleanup hold keeps the
+original catalogue/runtime alive while request/job state is unsettled, including
+after source fencing. Known job completion retires watches/local hold only;
+quarantine remains pending, and explicit abandon has no cancellation/SQL/lease
+effect. A final local latch blocks Manager loss dispatched by the last compiled
+admission callback. See the [executed supervisor record](journal/2026-11-07-supervisor-start.md).
+
+Both complete builds pass. All 19 final private-bus/native-journal cases plus an
+actual PID1 process-free target case pass without skips in Release (74.60s) and
+ASan/UBSan (74.83s). The private cases control PID1 role/unit admission; the
+separate target case verifies actual credentials, no dependencies, original job
+result and exact owned cleanup. No new executing app fixture is created.
+Four deliberately defective producers are rejected without changing originals.
+Three existing peer/coordinator/fence regressions pass 92.89s/102.12s on unchanged
+inputs. Earlier positive revisions and one strict-compiler indentation failure
+remain separately attributed; no weakened deadlines, flags or policy.
+
+Final audit preserves all 52 normal-P0 files/controller, 19 protected old-runtime
+hashes, 28 frozen SQL/XML contracts, four foreign files, exact CLOSED DRM and
+SDK 0.1.18/SDL04. All own actors and test target files are gone; the VM is running.
+Normal services stay stopped with their previous authority binary; no installed
+profile/API/policy/capability or UI default changes. Sixty-five evidence exports
+are in `local/supervisor-start-2026-11-07`; Git records publication.
+
+Next: independently admitted immutable unit/dependency configuration and
+reference/subscription custody for the live supervisor integration; then remaining
+old/intervening owner, external/delegated holder and owner/volume continuity with
+durable per-run recovery. A queued or completed PID1 job is never target exec,
+REGISTER/READY or executing drain/lease release. Preserve old v6/User-v4 quarantine.
+The complete OS/apps/image/installer/update/hardware/experiment-desktop goal stays
+active/incomplete; no NexaUI handoff.
+
+## Prior no-exec reply checkpoint
 
 Installed Setup1 methods now hold a current retained SYSTEM cleanup frame,
 rejecting reentrant use/clear and catalogue close/runtime replacement. Prepare,

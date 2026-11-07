@@ -1,5 +1,18 @@
 # Decisions
 
+## Retain the original supervisor request and exact job — 7 November 2026
+
+Submit StartUnit/fail once after the confirmed fresh native execution REQUEST.
+Install observation first, authenticate the original PID1 connection and correlate
+the original reply's exact job path with bounded early JobRemoved events. A unit
+name cannot recover a missing reply; unknown outcomes remain original obligations.
+Retain a separate local catalogue cleanup hold until known original job completion
+or explicit local abandon, without releasing the lease or claiming execution/drain.
+Retire terminal watches so later Manager replacement does not rewrite history.
+Compiled unit/dependency admission and caller-owned RefUnit/Subscribe remain
+explicit prerequisites; do not pretend that this observer installs or authorizes
+normal app units. See the [runtime boundary](../../spec/runtime.md#original-supervisor-start-request-and-job-observation).
+
 ## Fence no-exec progress replies and retain cleanup — 7 November 2026
 
 Hold a current SYSTEM owner cleanup frame through each setup method, with

@@ -4,6 +4,25 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Original supervisor start and job observation — 7 November 2026
+
+- systemd's [259 Manager API](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.systemd1.html)
+  and [asynchronous call API](https://www.freedesktop.org/software/systemd/man/259/sd_bus_call.html),
+  read 7 November: StartUnit returns a queued job path; subscribe/watch before
+  submitting, then correlate JobRemoved with that original job. An asynchronous
+  slot owns local reply observation, not cancellation of PID1 effects. These
+  hosted pages identify 259.6; the tested Fedora carrier has 259.10-1.fc44.
+- Original [Linux observer](../../src/linux/start.c),
+  [Root adapter](../../src/authority/start.c) and
+  [process credential capture](../../src/linux/peer.c): one-shot submission,
+  original reply/signal authentication, bounded early events and local owner hold.
+- [Private-bus cases](../../tests/test_start.c) use actual native journals and
+  bus-authenticated ProcessFDs, with PID1 role controlled. The separate
+  [actual PID1 case](../../tests/test_start_pid1.c) admits an owned dependency-free
+  process-free target. Neither establishes normal app provisioning, target
+  readiness or executing drain/recovery. See the
+  [executed record](journal/2026-11-07-supervisor-start.md).
+
 ## No-exec setup reply source — 7 November 2026
 
 - Original [setup contract](../../src/authority/setup.h) and

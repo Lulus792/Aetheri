@@ -83,6 +83,8 @@ done:
 
 int ae_peer_capture(sd_bus_message *message,struct ae_peer *output)
 { return capture(message,SD_BUS_MESSAGE_METHOD_CALL,output); }
+int ae_peer_capture_signal(sd_bus_message *message,struct ae_peer *output)
+{ return capture(message,SD_BUS_MESSAGE_SIGNAL,output); }
 
 int ae_peer_capture_reply(sd_bus_message *reply,sd_bus_message *request,struct ae_peer *output)
 {

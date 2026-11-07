@@ -1710,6 +1710,15 @@ int main(int argc,char **argv)
             CHECK(ae_catalogue_execution_fence_status(user,&fence_state)==-EPERM && memcmp(&fence_state,&fence_marker,sizeof fence_state)==0);
             CHECK(ae_catalogue_begin_execution_effect(user,&rc)==-EPERM && ae_catalogue_end_execution_effect(user)==-EPERM);
         }
+#ifdef AETHERI_TEST_START_SERVICE
+        if (strncmp(argv[4],"exec-start-",11)==0) {
+            void ae_test_start(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            struct ae_user_execution_result prepared;
+            CHECK(ae_catalogue_prepare_user_execution(user,&p,&prepared)==0);
+            ae_test_start(root,&p,&rc,argv[1],argv[4]+11);
+        } else
+#endif
         if (strncmp(argv[4],"exec-user-observe-",18)==0) {
             user_observe_test(root,&user,&ui,&q,&rc,argv[2],argv[4]);
         } else if (strncmp(argv[4],"exec-user-prepare-",18)==0) {

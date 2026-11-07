@@ -26,6 +26,10 @@ struct ae_peer {
  * supervised invocation/cgroup, registry, policy and admission under this pin.
  */
 int ae_peer_capture(sd_bus_message *message, struct ae_peer *output);
+/* Same trusted-bus credential/pin requirements, for an actual signal only.
+ * Caller still independently admits its exact sender/interface/purpose; a
+ * captured signal is not authorization or a lifecycle outcome by itself. */
+int ae_peer_capture_signal(sd_bus_message *message,struct ae_peer *output);
 /* Capture only a successful actual sd_bus_call reply to a retained sent request
  * on the same trusted bus connection. Request must address an independently
  * resolved UNIQUE name and expect a reply; sender/cookie/type must agree.

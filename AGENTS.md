@@ -971,3 +971,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   no live MAC/view/drain acceptance follows. Clear now returns EBUSY while active.
   No SQL/XML/policy/public capability changes; preserve old quarantine and all
   remaining supervisor/volume/old-owner/holder obligations.
+
+- linux/start and authority/start now submit/observe one original asynchronous
+  PID1 StartUnit/fail after the coordinator's fresh REQUEST commit. The compiled
+  caller still owes immutable unit/dependency-graph/exclusive allocation admission,
+  its own RefUnit/Subscribe on a dedicated host bus, and current app/data context.
+  Authenticate original reply and JobRemoved; never adopt matching-unit jobs
+  after a lost reply. Keep the catalogue cleanup hold for pending/quarantined
+  work; ordinary close is EBUSY, explicit abandon is local only. Known job result
+  is neither target exec/readiness nor process/unit/holder drain or lease release.
+  Terminal watches stop and historical results survive later Manager replacement.
+  Read spec/runtime.md's original-supervisor section; run authority.supervisor_start
+  and explicit linux.start_pid1. The first controls PID1 role on a real private
+  bus; the second uses actual PID1 with an owned process-free target, not a new
+  executing app fixture. No installed source/profile/capability or SQL/XML change.
+  Keep the old quarantine; normal provisioning/restart/volume/holder recovery remains.
