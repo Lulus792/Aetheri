@@ -60,8 +60,19 @@ int main(int argc,char **argv) {
         ae_terminal_init(m,30,4,width);
         for(unsigned i=0;i<10;++i) {char line[32];int n=snprintf(line,sizeof(line),"read-%u\r\n",i);CHECK(n>0);ae_terminal_feed(m,line,(size_t)n);}
         CHECK(m->history_count==7);paint(v,m,named,true,true);focus(v,named,1);
+        uint64_t source=0,target=0;bool selected=true;
+        CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&source,&selected) && !selected && source==m->screen_rows[1].token);
         move(v,m,named,AE_TERM_READ_UP);move(v,m,named,AE_TERM_READ_UP);
+        CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,NULL) && target!=source);
         CHECK(m->view==1);paint(v,m,named,true,true);expected(v,"read-6");
+        CHECK(ae_terminal_select_rows(m,source,target,false));paint(v,m,named,true,true);
+        CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,&selected) && selected);
+        ae_terminal_select_clear(m); /* Before a fresh frame, Copy must see the old range. */
+        CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,&selected) && selected);
+        paint(v,m,named,true,true);CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,&selected) && !selected);
+        CHECK(ae_terminal_select_all(m));ae_terminal_select_clear(m);
+        CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,&selected) && selected);
+        paint(v,m,named,true,true);CHECK(ae_terminal_view_read_target(v,m,named?17u:0u,&target,&selected) && !selected);
         move(v,m,named,AE_TERM_READ_PAGE_UP);paint(v,m,named,true,true);expected(v,"read-3");
         move(v,m,named,AE_TERM_READ_OLDEST);paint(v,m,named,true,true);expected(v,"read-0");CHECK(m->view==7);
         move(v,m,named,AE_TERM_READ_UP);paint(v,m,named,true,true);expected(v,"read-0");
@@ -74,6 +85,7 @@ int main(int argc,char **argv) {
         /* A target edited after the key is not replaced by its new contents. */
         focus(v,named,1);move(v,m,named,AE_TERM_READ_UP);
         ae_terminal_feed(m,"\033[1;1HX",7);paint(v,m,named,true,true);CHECK(!ae_terminal_view_reading(v));
+        CHECK(!ae_terminal_view_read_target(v,m,named?17u:0u,&target,NULL) && !target);
         /* Another focus owner wins over a deferred keyboard request. */
         focus(v,named,1);move(v,m,named,AE_TERM_READ_DOWN);
         CHECK(nx_focus_set(ae_terminal_view_context(v),row_id(v,0))==NX_OK);

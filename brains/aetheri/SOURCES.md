@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Terminal reading selection and clipboard — 7 November 2026
+
+- Original [model selection/export](../../src/terminal/model.c),
+  [presentation context](../../src/terminal/nexaui_view.c) and
+  [clipboard owner](../../src/terminal/clipboard.c): checked original content
+  tokens and copied exports have different lifetimes. Selection-gesture history
+  is local metadata, not permission or process proof. No dependency is added.
+- [Model tests](../../tests/test_terminal_selection.c),
+  [view tests](../../tests/test_terminal_reading.c) and the
+  [native task](../../tools/test_terminal_atspi.py) use actual original shell
+  output, independent libatspi queries and an independent libwayland receiver.
+  The [executed record](journal/2026-11-07-terminal-reading-selection.md) separates
+  actual old-producer refusal from the first peer-idle harness interruption and
+  the corrected eviction-fixture setup. Full assistive/physical acceptance remains open.
+
 ## Terminal keyboard reading — 7 November 2026
 
 - Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079`

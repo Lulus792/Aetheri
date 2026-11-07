@@ -1,5 +1,17 @@
 # Decisions
 
+## Select and copy original reading content — 7 November 2026
+
+Use Shift with the existing reading moves for inclusive whole-row selection in
+the original model. Preserve its anchor only through a matching valid endpoint;
+validate before replacing the range. Ctrl+Shift+C prefers explicit selection and
+otherwise exports the checked original reading row without modifying the model.
+Retain selection-gesture history across clear so lost ranges cannot silently
+become a different row copy before presentation. Reuse bounded native clipboard
+ownership; copied bytes are independent of later output, while new requests must
+recheck current content. Keep native read-only Text and installed capabilities
+unchanged. See the [selection record](journal/2026-11-07-terminal-reading-selection.md).
+
 ## Read original Terminal rows without shell navigation — 7 November 2026
 
 Keep one content-bound deferred reading target on the existing owner thread.

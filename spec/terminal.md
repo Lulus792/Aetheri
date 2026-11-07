@@ -66,10 +66,11 @@ the existing hangup path. This is an internal development handoff, not an app SD
 | PgUp/PgDn while reading | Move by a viewport with one overlapping row |
 | Home/End while reading | Read the first/last visible row; Ctrl extends to the entire retained history |
 | Escape while reading | Leave reading focus without sending Escape to the shell |
+| Shift+Up/Down/PgUp/PgDn/Home/End while reading | Select whole original rows, including retained history |
 | Ctrl+Shift+M in the NexaUI view | Request work-area zoom/restore; observed native state selects the next action |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
 | Escape while composing | Cancel the draft and reset native text input; no Escape byte enters the PTY |
-| Ctrl+Shift+C / Ctrl+Shift+V | Copy stable selected text / receive bounded clipboard text; these chords never become interrupt or literal-next |
+| Ctrl+Shift+C / Ctrl+Shift+V | Copy selected text (or the focused reading row) / receive bounded clipboard text; these chords never become interrupt or literal-next |
 | Escape / Enter in paste review | Cancel staged paste; Cancel is the initial focused action |
 | Ctrl+Enter / Tab then Enter in paste review | Confirm the complete reviewed snapshot with a fresh non-repeat action |
 | Arrows, PageUp/Down, Home/End, wheel in paste review | Navigate the complete escaped preview without submitting text |
@@ -346,6 +347,40 @@ window blur, while native FOCUSED is reported only with actual window focus.
 The live input row still exposes its actual model caret; other snapshots do not
 invent a caret merely because their row is focused. Selection/range navigation,
 full screenreader behavior and native activation remain separate work.
+
+#### Reading selection and copy
+
+In reading focus, Shift with a row/page/visible-end key selects complete original
+rows inclusively. Further Shift moves keep the original anchor while the current
+endpoint matches; reversing contracts the same range and can cross the anchor.
+A new source starts a new range. Existing Ctrl+Shift cell-selection shortcuts
+retain their behavior. Plain reading navigation retains an existing selection.
+Escape leaves reading; the ordinary selection Escape can then clear that range.
+
+Ctrl+Shift+C first copies an existing valid selection. With no selection it can
+copy the original focused reading row, including a still-valid pending navigation
+target. This does not change selection, cursor or viewport. Both exports retain
+the existing UTF-8, wide/combining-cell, trailing-space and soft-wrap rules. An
+empty row does not replace the clipboard. Published clipboard bytes are owned
+copies; later output edits do not revoke a copy already transferred.
+
+New copy requests still require the original reading context. The presenter
+retains displayed/observed selection state and the model's selection-gesture
+serial. Clearing a range preserves that serial: an intervening selection that
+disappears before the next frame cannot silently turn into copying another row.
+Saturation does not wrap and disables implicit row fallback. Selection serials
+are local UI observations, not authority or durable identity. Whole-row range
+replacement validates all content tokens before atomically replacing selection;
+invalid source/target tokens preserve its previous state.
+
+`terminal.selection` covers row/range export, contraction/reversal, history,
+Unicode, soft wraps, stale/evicted tokens and atomic short-buffer failure.
+`terminal.reading` checks the original current/pending token and selection fence
+in legacy and named panes. The actual original-shell native reading task also
+uses an independent libwayland receiver for exact single-row, range, history-edge
+and Unicode bytes. Native Text writes remain refused; full screenreader range
+integration is separate. See the
+[selection record](../brains/aetheri/journal/2026-11-07-terminal-reading-selection.md).
 
 The view test verifies unchanged model bytes, row movement/replacement, stale
 queued focus, disabled targets and a visible outline. An independently compiled

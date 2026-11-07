@@ -59,6 +59,11 @@ enum ae_terminal_read_move {
    Repeated calls before that frame compose; the view never edits the model. */
 bool ae_terminal_view_read_move(struct ae_terminal_view *,const struct ae_terminal *,uint64_t pane,
     enum ae_terminal_read_move,int *scroll);
+/* Resolve only the original current/pending reading content. No model mutation.
+   had_selection retains displayed/observed selection, so a vanished selection
+   cannot silently turn Copy into copying a different focused row. */
+bool ae_terminal_view_read_target(const struct ae_terminal_view *,const struct ae_terminal *,uint64_t pane,
+    uint64_t *token,bool *had_selection);
 void ae_terminal_view_clear_reading(struct ae_terminal_view *);
 /* Complete-frame RGBA8, borrowed until the next finish/destroy. At most 64 MiB;
    the SDL host uploads it once and remains the sole native window dispatcher. */

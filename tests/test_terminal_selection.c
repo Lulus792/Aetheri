@@ -14,8 +14,34 @@ static void copied(struct ae_terminal *m,const char *expected) {
     CHECK(ae_terminal_selection_copy(m,out,n));CHECK(!strcmp(out,expected));
     CHECK(out[n]=='!' && out[n+1]=='!');free(out);
 }
+static void reading_rows(struct ae_terminal *m) {
+    ae_terminal_init(m,8,3,width);feed(m,"zero\r\none\r\ntwo\r\nthree");
+    uint64_t zero=m->history_rows[m->history_head].token,one=m->screen_rows[0].token,two=m->screen_rows[1].token,three=m->screen_rows[2].token;
+    CHECK(ae_terminal_select_rows(m,two,zero,false));copied(m,"zero\none\ntwo");CHECK(m->selection.linewise && m->selection.reverse);
+    CHECK(ae_terminal_select_rows(m,zero,one,true));copied(m,"one\ntwo");
+    CHECK(ae_terminal_select_rows(m,one,three,true));copied(m,"two\nthree");CHECK(!m->selection.reverse);
+    CHECK(ae_terminal_select_rows(m,zero,one,true));copied(m,"zero\none"); /* A new source starts a new range. */
+    struct ae_term_selection saved=m->selection;
+    CHECK(!ae_terminal_select_rows(m,UINT64_MAX,one,true) && !memcmp(&saved,&m->selection,sizeof(saved)));
+    CHECK(!ae_terminal_select_rows(m,one,0,true) && !memcmp(&saved,&m->selection,sizeof(saved)));
+    char line[32];memset(line,'!',sizeof(line));size_t n=ae_terminal_line_size(m,zero);CHECK(n==5);
+    CHECK(!ae_terminal_line_copy(m,zero,line,n-1));for(unsigned i=0;i<sizeof(line);++i) CHECK(line[i]=='!');
+    CHECK(ae_terminal_line_copy(m,zero,line,n) && !strcmp(line,"zero") && !memcmp(&saved,&m->selection,sizeof(saved)));
+    ae_terminal_scroll(m,1);CHECK(ae_terminal_line_copy(m,zero,line,sizeof(line)) && !strcmp(line,"zero"));
+    feed(m,"\033[1;1HX");CHECK(!m->selection.count); /* Whole-range interior replacement invalidates. */
+    CHECK(ae_terminal_line_copy(m,zero,line,sizeof(line)) && !strcmp(line,"zero"));
+    feed(m,"\033[3;1H"); /* Every following newline now scrolls the original bottom. */
+    for(unsigned i=0;i<AE_TERM_HISTORY+1;++i) feed(m,"\r\nx");
+    CHECK(!ae_terminal_line_size(m,zero) && !ae_terminal_line_copy(m,zero,line,sizeof(line)));
+    ae_terminal_init(m,8,3,width);feed(m,"Ae\xcc\x81\xe4\xb8\xadZ");zero=m->screen_rows[0].token;
+    CHECK(ae_terminal_line_copy(m,zero,line,sizeof(line)) && !strcmp(line,"Ae\xcc\x81\xe4\xb8\xadZ"));
+    CHECK(ae_terminal_select_rows(m,zero,zero,false));copied(m,"Ae\xcc\x81\xe4\xb8\xadZ");
+    ae_terminal_init(m,8,3,width);feed(m,"12345678AB\r\nend");
+    CHECK(ae_terminal_select_rows(m,m->screen_rows[0].token,m->screen_rows[2].token,false));copied(m,"12345678AB\nend");
+}
 int main(void) {
     struct ae_terminal *m=malloc(sizeof(*m));CHECK(m);
+    reading_rows(m);
     ae_terminal_init(m,8,3,width);CHECK(!ae_terminal_select_all(m));
     feed(m,"hello");CHECK(ae_terminal_select_all(m));copied(m,"hello");
     ae_terminal_init(m,8,3,width);feed(m,"abcdef\r\nsecond\r\nlast");

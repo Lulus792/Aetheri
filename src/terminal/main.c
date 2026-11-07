@@ -501,7 +501,7 @@ static void draw(struct app *a) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     if(!a->message && a->workspace_fallback) status=tr(a,"Focused pane · enlarge window to show all","Aktiver Bereich · größeres Fenster zeigt alle");
     if (!a->message && !a->session->pty.ended && ae_terminal_view_reading(a->view) && !a->session->closing && !a->composition.size && !(a->paste.size && a->paste.review))
-        status=tr(a,"Reading · Up/Down · PgUp/PgDn · Esc exits","Lesen · ↑/↓ · Bild↑/↓ · Esc beendet");
+        status=tr(a,"Reading · Shift selects · Ctrl+Shift+C copies · Esc exits","Lesen · Umschalt: Auswahl · Strg+Umschalt+C: kopieren · Esc");
 #endif
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
     draw_paste(a,w,h);
@@ -600,11 +600,21 @@ static void paste_apply(struct app *a) {
 static void clipboard_copy(struct app *a) {
     if (a->session->closing) return;
     paste_cancel(a,NULL);composition_cancel(a,true);size_t needed=ae_terminal_selection_size(a->session->model);
+    uint64_t row_token=0;bool row_copy=false;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if(!needed && !a->session->model->selection.count && ae_terminal_view_reading(a->view)) {
+        uint64_t pane=a->spawner.helper>=0?a->session_cookie[ae_terminal_workspace_focused(&a->workspace)]:0;bool selected=false;
+        if(!ae_terminal_view_read_target(a->view,a->session->model,pane,&row_token,&selected) || selected) {
+            a->message=tr(a,"Reading target changed; nothing copied","Leseziel geändert; nichts kopiert");return;
+        }
+        needed=ae_terminal_line_size(a->session->model,row_token);row_copy=true;
+    }
+#endif
     if (needed<2) { a->message=tr(a,"No text selected","Kein Text ausgewählt");return; }
     char *text=malloc(needed);
-    if (!text || !ae_terminal_selection_copy(a->session->model,text,needed)) { free(text);a->message=tr(a,"Copy failed","Kopieren fehlgeschlagen");return; }
+    if (!text || !(row_copy?ae_terminal_line_copy(a->session->model,row_token,text,needed):ae_terminal_selection_copy(a->session->model,text,needed))) { free(text);a->message=tr(a,"Copy failed","Kopieren fehlgeschlagen");return; }
     int result=a->clipboard ? ae_clipboard_publish(a->clipboard,&text,needed-1) : EOPNOTSUPP;free(text);
-    a->message=result ? tr(a,"Copy unavailable","Kopieren nicht verfügbar") : tr(a,"Selection copied","Auswahl kopiert");
+    a->message=result ? tr(a,"Copy unavailable","Kopieren nicht verfügbar") : row_copy?tr(a,"Output row copied","Ausgabezeile kopiert"):tr(a,"Selection copied","Auswahl kopiert");
     if (a->diagnostics) printf("CLIPBOARD copy result=%d bytes=%zu\n",result,needed-1);
 }
 static void clipboard_paste(struct app *a) {
@@ -1246,7 +1256,7 @@ static void event(struct app *a,const SDL_Event *e) {
             a->selecting=false;a->dirty=true;
         }
 #ifdef AETHERI_TERMINAL_NEXAUI
-        else if(ae_terminal_view_reading(a->view) && !(mod&(SDL_KMOD_SHIFT|SDL_KMOD_ALT|SDL_KMOD_GUI)) &&
+        else if(ae_terminal_view_reading(a->view) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && !((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT)) &&
             (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_LEFT || key==SDLK_RIGHT || key==SDLK_PAGEUP || key==SDLK_PAGEDOWN ||
              key==SDLK_HOME || key==SDLK_END || key==SDLK_ESCAPE)) {
             if(key==SDLK_ESCAPE) ae_terminal_view_clear_reading(a->view);
@@ -1256,9 +1266,16 @@ static void event(struct app *a,const SDL_Event *e) {
                     key==SDLK_HOME?((mod&SDL_KMOD_CTRL)?AE_TERM_READ_OLDEST:AE_TERM_READ_FIRST):
                     ((mod&SDL_KMOD_CTRL)?AE_TERM_READ_LATEST:AE_TERM_READ_LAST);
                 uint64_t pane=a->spawner.helper>=0?a->session_cookie[ae_terminal_workspace_focused(&a->workspace)]:0;
-                int scroll=0;
-                if(ae_terminal_view_read_move(a->view,a->session->model,pane,move,&scroll) && scroll)
-                    ae_terminal_scroll(a->session->model,scroll);
+                bool selecting=(mod&SDL_KMOD_SHIFT)!=0,selected=false;uint64_t from=0,to=0;int scroll=0;
+                bool ready=!selecting || (ae_terminal_view_read_target(a->view,a->session->model,pane,&from,&selected) &&
+                    (!selected || a->session->model->selection.count));
+                if(ready && ae_terminal_view_read_move(a->view,a->session->model,pane,move,&scroll)) {
+                    if(scroll) ae_terminal_scroll(a->session->model,scroll);
+                    if(selecting && (!ae_terminal_view_read_target(a->view,a->session->model,pane,&to,NULL) ||
+                       !ae_terminal_select_rows(a->session->model,from,to,true))) ready=false;
+                } else ready=false;
+                if(!ready && selecting) {ae_terminal_view_clear_reading(a->view);a->message=tr(a,"Reading selection unavailable","Zeilenauswahl nicht verfügbar");}
+                else if(ready) {a->message=NULL;if(selecting) a->selecting=false;}
             }
             a->dirty=true;
         }

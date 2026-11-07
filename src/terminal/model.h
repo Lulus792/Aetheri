@@ -10,7 +10,7 @@ struct ae_term_row { uint64_t token; unsigned wrap_at; };
 struct ae_term_selection {
     uint64_t anchor, rows[AE_TERM_LINES];
     unsigned anchor_col, first_col, last_col, count;
-    bool reverse;
+    bool reverse,linewise;
 };
 typedef int (*ae_term_width)(uint32_t code);
 struct ae_terminal {
@@ -18,7 +18,9 @@ struct ae_terminal {
     struct ae_term_cell history[AE_TERM_HISTORY][AE_TERM_COLS];
     struct ae_term_row screen_rows[AE_TERM_ROWS], alternate_rows[AE_TERM_ROWS], history_rows[AE_TERM_HISTORY];
     struct ae_term_selection selection;
-    uint64_t row_serial;
+    /* Selection serial survives clear, recording an intervening user gesture.
+       Saturation never wraps; implicit reading-row copy then fails closed. */
+    uint64_t row_serial,selection_serial;
     unsigned cols,rows,x,y,saved_x,saved_y,top,bottom,history_head,history_count,view;
     unsigned normal_x,normal_y;uint32_t normal_fg,normal_bg;uint8_t normal_style;bool normal_wrap;
     uint32_t fg,bg,unicode;unsigned need,minimum;
@@ -43,6 +45,9 @@ bool ae_terminal_select_begin(struct ae_terminal *model,unsigned row,unsigned co
 bool ae_terminal_select_extend(struct ae_terminal *model,unsigned row,unsigned column);
 bool ae_terminal_select_step(struct ae_terminal *model,int dx,int dy);
 bool ae_terminal_select_all(struct ae_terminal *model);
+/* Whole original rows, inclusive. Extend keeps a still-valid linewise anchor
+   only when from is its current endpoint. Failure preserves the old selection. */
+bool ae_terminal_select_rows(struct ae_terminal *model,uint64_t from,uint64_t to,bool extend);
 void ae_terminal_select_clear(struct ae_terminal *model);
 bool ae_terminal_selected_range(const struct ae_terminal *model,unsigned row,unsigned *first,unsigned *last);
 /* Size includes NUL; zero means invalid/empty range. Copy fails atomically if
@@ -50,4 +55,8 @@ bool ae_terminal_selected_range(const struct ae_terminal *model,unsigned row,uns
    UTF-8 is synthesized from scalar cells, never ANSI or control strings. */
 size_t ae_terminal_selection_size(const struct ae_terminal *model);
 bool ae_terminal_selection_copy(const struct ae_terminal *model,char *text,size_t capacity);
+/* Same UTF-8/trim/atomic-copy rules for one current content token, without
+   changing selection, scroll or cursor. A copied clipboard export is independent. */
+size_t ae_terminal_line_size(const struct ae_terminal *model,uint64_t token);
+bool ae_terminal_line_copy(const struct ae_terminal *model,uint64_t token,char *text,size_t capacity);
 #endif

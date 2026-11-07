@@ -22,9 +22,10 @@ def main():
     server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
     query_concurrent=len(sys.argv)==8 and sys.argv[7]=='--query-concurrent'
     query_stress=query_concurrent or (len(sys.argv)==8 and sys.argv[7]=='--query-stress')
-    reading_task=len(sys.argv)==8 and sys.argv[7]=='--reading'
+    reading_task=len(sys.argv)>=8 and sys.argv[7]=='--reading'
+    copy_peer=Path(sys.argv[8]).resolve() if len(sys.argv)==9 and reading_task else None
     pane_task=len(sys.argv)==9 and sys.argv[8]=='--panes'
-    assert len(sys.argv)!=9 or pane_task
+    assert len(sys.argv)!=9 or pane_task or copy_peer
     starter=Path(sys.argv[7]).resolve() if len(sys.argv)>=8 and not query_stress and not reading_task else None
     assert os.getuid()==1000
     assets=json.loads((fixture/'inputs.json').read_text())
@@ -54,15 +55,15 @@ def main():
         assert candidate.read_bytes()[:4]==b'\x7fELF' and digest(candidate)==os.environ['AETHERI_TEST_SDL_SHA256']
         env['LD_LIBRARY_PATH']=str(candidate.parent)+':'+env['LD_LIBRARY_PATH']
     for n in ('DISPLAY','WAYLAND_SOCKET','NO_AT_BRIDGE','DBUS_STARTER_ADDRESS','DBUS_STARTER_BUS_TYPE'):env.pop(n,None)
-    children=[];streams=[];pins=[];images=[];peers=[];actors=[]
+    children=[];streams=[];pins=[];images=[];peers=[];actors=[];clipboard_reads=[]
     left,right=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET);left.settimeout(4)
     def log(n='app'):return (root/(n+'.log')).read_text(errors='replace')
-    def start(binary,name,*args,pass_fds=(),extra_env=None):
+    def start(binary,name,*args,pass_fds=(),extra_env=None,pipe=False):
         stream=(root/(name+'.log')).open('xb');streams.append(stream)
-        p=subprocess.Popen([str(binary),*map(str,args)],cwd=root,env=extra_env or env,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,pass_fds=pass_fds)
+        p=subprocess.Popen([str(binary),*map(str,args)],cwd=root,env=extra_env or env,stdin=subprocess.PIPE if pipe else subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,pass_fds=pass_fds)
         children.append(p);pins.append(os.pidfd_open(p.pid));return p
-    def wait(check,label):
-        end=time.monotonic()+10
+    def wait(check,label,limit=10):
+        end=time.monotonic()+limit
         while not check():
             assert time.monotonic()<end,(label,root,log()[-2000:] if (root/'app.log').exists() else '')
             assert all(p.poll() is None for p in children),(label,[(p.pid,p.returncode) for p in children],root)
@@ -302,11 +303,52 @@ def main():
             expected=accepted()+len(command.encode());typing(command)
             def viewport():
                 rows=re.findall(r'^VIEW (.+)$',log(),re.M)
-                return {k:int(v) for k,v in re.findall(r'(\w+)=(\d+)(?= |$)',rows[-1])} if rows else {}
+                if not rows:return {}
+                value={k:int(v) for k,v in re.findall(r'(\w+)=(\d+)(?= |$)',rows[-1])};value['frame']=int(rows[-1].split()[0]);return value
             wait(lambda:accepted()==expected and viewport().get('x')==9 and viewport().get('history',0)>30,'numbered scrollback and returned original prompt')
+            reader=None
+            def focus_original():
+                event('M 240 54');event('B 272 1');event('B 272 0')
+                wait(lambda:re.findall(r'^FOCUS ([01])$',log(),re.M)[-1]=='1' and
+                     re.findall(r'^CLIPBOARD state .*focused=(\d+)',log(),re.M)[-1]=='1','actual original window focus without touching cell selection')
+            if copy_peer:
+                reader=start(copy_peer,'clipboard-reader','--clipboard-stall',pipe=True)
+                wait(lambda:'FRAME 1 ' in log('clipboard-reader'),'independent clipboard receiver')
+                reader.stdin.write(b'df');reader.stdin.flush()
+                wait(lambda:re.search(r'^FRAME 0 \d+ \d+ 1$',log('clipboard-reader'),re.M),'clipboard receiver on third output')
+                focus_original()
+            def copy_value(value,label):
+                assert reader and len(value)<128
+                copies=log().count('CLIPBOARD copy result=0 ');key(46,ctrl=True,shift=True)
+                wait(lambda:log().count('CLIPBOARD copy result=0 ')==copies+1,label+' original publication',5)
+                event('M 4580 100');event('B 272 1');event('B 272 0')
+                wait(lambda:log('clipboard-reader').rfind('KEYBOARD_ENTER 0\n')>log('clipboard-reader').rfind('KEYBOARD_LEAVE\n') and
+                     re.findall(r'^FOCUS ([01])$',log(),re.M)[-1]=='0',label+' receiver focus')
+                sync=log('clipboard-reader').count('CLIPBOARD_SYNC R\n');reader.stdin.write(b'R');reader.stdin.flush()
+                wait(lambda:log('clipboard-reader').count('CLIPBOARD_SYNC R\n')==sync+1,label+' actual native transfer')
+                row=re.findall(r'^CLIPBOARD_READ (.+)$',log('clipboard-reader'),re.M)[-1].split()
+                actual=bytes(int(x,16) for x in row[1:]);assert int(row[0])==len(actual) and actual==value,(label,actual,value)
+                clipboard_reads.append({'case':label,'hex':actual.hex()});focus_original()
             before=accepted();key(19,ctrl=True,shift=True);wait(lambda:reading()>0,'enter original prompt reading focus')
             peer(app.pid,'focused-row','aetheri>  ','reading-original-prompt')
             key(103);peer(app.pid,'reading-row','read-59','read-previous-output')
+            if reader:
+                copy_value(b'read-59','focused original row without selection')
+                key(103,shift=True);peer(app.pid,'reading-row','read-58','range-previous-row')
+                copy_value(b'read-58\nread-59','reverse whole-row selection')
+                key(103,shift=True);copy_value(b'read-57\nread-58\nread-59','extend original anchor')
+                wait(lambda:f'DRAWN {viewport()["frame"]}\n' in log(),'presented original selected rows')
+                capture('whole-row reading selection and independent clipboard transfer')
+                key(108,shift=True);copy_value(b'read-58\nread-59','contract same anchor')
+                key(108,shift=True);copy_value(b'read-59','contract to original row')
+                visible=61-viewport()['rows'];key(102);key(103,shift=True)
+                peer(app.pid,'reading-row',f'read-{visible-1:02d}','selected-history-edge-row')
+                copy_value(f'read-{visible-1:02d}\nread-{visible:02d}'.encode(),'new anchor crossing into retained history')
+                # Explicitly clear through the existing selection path; reading
+                # itself still exits only on its ordinary Escape/shortcut.
+                key(1);key(1);wait(lambda:reading()==0 and viewport().get('selection')==0,'exit reading and clear range')
+                key(19,ctrl=True,shift=True);key(107,ctrl=True);key(103)
+                peer(app.pid,'reading-row','read-59','same original row after selection clear')
             key(103);peer(app.pid,'reading-row','read-58','read-next-previous-output')
             key(108);peer(app.pid,'reading-row','read-59','read-down-output')
             page=viewport()['rows']-1
@@ -322,18 +364,26 @@ def main():
             key(1);wait(lambda:reading()==0,'Escape exits reading without shell input');assert accepted()==before
             typing('printf intact > reading-proof\n')
             wait(lambda:(root/'reading-proof').exists() and (root/'reading-proof').read_bytes()==b'intact' and position()[0]==9,'same original shell after reading')
+            if reader:
+                command="printf 'copy-\\303\\251\\344\\270\\255\\n'\n";expected=accepted()+len(command.encode());previous=viewport()['history'];typing(command)
+                wait(lambda:accepted()==expected and position()[0]==9 and viewport()['history']>previous,'original Unicode output and fresh prompt')
+                key(19,ctrl=True,shift=True);key(103);peer(app.pid,'reading-row','copy-é中','read-original-Unicode-copy-row')
+                copy_value('copy-é中'.encode(),'exact original Unicode clipboard bytes')
+                key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'clear Unicode reading focus')
             key(64);key(65);key(66)
             wait(lambda:viewport().get('german')==1 and viewport().get('contrast')==1 and viewport().get('points')==20,'localized large high-contrast reading')
             key(19,ctrl=True,shift=True);wait(lambda:reading()>0,'scaled prompt reading focus')
-            key(103);peer(app.pid,'reading-row','aetheri> printf intact > reading-proof','scaled-read-previous-command')
+            key(103);peer(app.pid,'reading-row','copy-é中' if reader else 'aetheri> printf intact > reading-proof','scaled-read-previous-command')
             capture('keyboard row and history reading on original shell, German high contrast and larger text')
             key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'explicit reading shortcut exits')
+            if reader:
+                reader.stdin.write(b'q');reader.stdin.flush();assert reader.wait(timeout=8)==0;reader.stdin.close();children.remove(reader)
             key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
             assert select.select([shell_pin],[],[],0)[0]
             retire(server,0);retire(reg,-signal.SIGTERM);retire(bus,0)
             assert all(select.select([p],[],[],0)[0] for p in pins)
             for path in root.glob('*.log'):assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',path.read_text(errors='replace')),path
-            result={'result':'passed','images':images,'peers':peers,'actors':actors,'client_sha256':digest(client),
+            result={'result':'passed','images':images,'peers':peers,'actors':actors,'clipboard_reads':clipboard_reads,'client_sha256':digest(client),
                     'scope':'original-shell keyboard row/page/visible/full-history focus, no navigation PTY bytes; not human screenreader acceptance'}
             (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}));return
         if query_stress:

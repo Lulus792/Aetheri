@@ -253,10 +253,12 @@ static bool select_to(struct ae_terminal *m,unsigned row,unsigned column) {
     unsigned first=row<anchor ? row : anchor,last=row>anchor ? row : anchor;
     s->first_col=s->reverse ? column : s->anchor_col;s->last_col=s->reverse ? s->anchor_col : column;
     s->count=last-first+1;
+    s->linewise=false;
     for (unsigned i=0;i<s->count;++i) {
         s->rows[i]=line_meta(m,first+i)->token;
         if (!s->rows[i]) { ae_terminal_select_clear(m);return false; }
     }
+    if(m->selection_serial!=UINT64_MAX) ++m->selection_serial;
     ++m->sequence;return true;
 }
 bool ae_terminal_select_begin(struct ae_terminal *m,unsigned row,unsigned column) {
@@ -283,6 +285,21 @@ bool ae_terminal_select_all(struct ae_terminal *m) {
     if (!end) return false;
     m->selection.anchor=line_meta(m,0)->token;m->selection.anchor_col=0;
     return select_to(m,last,end);
+}
+bool ae_terminal_select_rows(struct ae_terminal *m,uint64_t from,uint64_t to,bool extend) {
+    unsigned source=find_token(m,from),target=find_token(m,to);uint64_t anchor=from;
+    if(source==UINT_MAX || target==UINT_MAX) return false;
+    const struct ae_term_selection *s=&m->selection;
+    if(extend && s->linewise && s->count) {
+        if(!selection_valid(m,NULL)) return false;
+        if(from==s->rows[s->reverse?0:s->count-1]) anchor=s->anchor;
+    }
+    unsigned origin=find_token(m,anchor);if(origin==UINT_MAX) return false;
+    unsigned first=origin<target?origin:target,last=origin>target?origin:target;
+    struct ae_term_selection next={.anchor=anchor,.anchor_col=target<origin?m->cols:0,
+        .first_col=0,.last_col=m->cols,.count=last-first+1,.reverse=target<origin,.linewise=true};
+    for(unsigned i=0;i<next.count;++i) {next.rows[i]=line_meta(m,first+i)->token;if(!next.rows[i]) return false;}
+    m->selection=next;if(m->selection_serial!=UINT64_MAX) ++m->selection_serial;++m->sequence;return true;
 }
 bool ae_terminal_select_step(struct ae_terminal *m,int dx,int dy) {
     if (dx < -1 || dx>1 || dy < -1 || dy>1 || (dx && dy) || (!dx && !dy)) return false;
@@ -326,13 +343,13 @@ static size_t scalar(char *out,uint32_t code) {
     if (out) memcpy(out,b,n);
     return n;
 }
-static size_t selection_export(const struct ae_terminal *m,unsigned at,char *text) {
+static size_t selection_export(const struct ae_terminal *m,const struct ae_term_selection *s,unsigned at,char *text) {
     size_t used=0;
-    for (unsigned i=0;i<m->selection.count;++i) {
+    for (unsigned i=0;i<s->count;++i) {
         const struct ae_term_cell *cells=line_cells(m,at+i);
-        unsigned first=i ? 0 : m->selection.first_col,last=i+1==m->selection.count ? m->selection.last_col : m->cols;
+        unsigned first=i ? 0 : s->first_col,last=i+1==s->count ? s->last_col : m->cols;
         unsigned wrap_at=line_meta(m,at+i)->wrap_at;
-        bool join=i+1<m->selection.count && wrap_at && wrap_at<=m->cols && last>=wrap_at;
+        bool join=i+1<s->count && wrap_at && wrap_at<=m->cols && last>=wrap_at;
         if (join) { if (last>wrap_at) last=wrap_at; }
         else while (last>first && cells[last-1].code==' ' && !cells[last-1].count) --last;
         for (unsigned x=first;x<last;++x) {
@@ -340,7 +357,7 @@ static size_t selection_export(const struct ae_terminal *m,unsigned at,char *tex
             used+=scalar(text ? text+used : NULL,cells[x].code);
             for (unsigned k=0;k<cells[x].count;++k) used+=scalar(text ? text+used : NULL,cells[x].marks[k]);
         }
-        if (i+1<m->selection.count && !join) { if (text) text[used]='\n';++used; }
+        if (i+1<s->count && !join) { if (text) text[used]='\n';++used; }
     }
     if (text) text[used]=0;
     return used+1;
@@ -348,10 +365,19 @@ static size_t selection_export(const struct ae_terminal *m,unsigned at,char *tex
 size_t ae_terminal_selection_size(const struct ae_terminal *m) {
     unsigned first;
     if (!selection_valid(m,&first) || (m->selection.count==1 && m->selection.first_col==m->selection.last_col)) return 0;
-    return selection_export(m,first,NULL);
+    return selection_export(m,&m->selection,first,NULL);
 }
 bool ae_terminal_selection_copy(const struct ae_terminal *m,char *text,size_t capacity) {
     size_t needed=ae_terminal_selection_size(m);unsigned first;
     if (!needed || !text || capacity<needed || !selection_valid(m,&first)) return false;
-    return selection_export(m,first,text)==needed;
+    return selection_export(m,&m->selection,first,text)==needed;
+}
+size_t ae_terminal_line_size(const struct ae_terminal *m,uint64_t token) {
+    unsigned at=find_token(m,token);if(at==UINT_MAX) return 0;
+    const struct ae_term_selection row={.count=1,.last_col=m->cols};return selection_export(m,&row,at,NULL);
+}
+bool ae_terminal_line_copy(const struct ae_terminal *m,uint64_t token,char *text,size_t capacity) {
+    size_t needed=ae_terminal_line_size(m,token);unsigned at=find_token(m,token);
+    if(!needed || !text || capacity<needed || at==UINT_MAX) return false;
+    const struct ae_term_selection row={.count=1,.last_col=m->cols};return selection_export(m,&row,at,text)==needed;
 }

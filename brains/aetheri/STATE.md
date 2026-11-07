@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — original Terminal keyboard row/history reading.
+7 November 2026 — original Terminal reading selection and native clipboard.
 
 ## Coordination
 
@@ -14,6 +14,44 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Reading Shift moves now select whole original rows across viewport/history
+boundaries, retaining/reversing/contracting a valid anchor. Ctrl+Shift+C prefers
+explicit selection and otherwise copies the checked original current/pending
+reading row without changing selection, cursor or viewport. Model export shares
+the existing UTF-8/wide/combining/soft-wrap rules. Selection gesture history
+survives clear: a range that disappears before presentation cannot silently
+become another row copy. New requests require current original content; already
+transferred clipboard bytes remain independent copies. No new SDK/dependency,
+thread/process or installed capability.
+
+All 32 affected groups pass each Release and ASan/UBSan without skips:
+8 focused R 21.85s/SAN 31.06s plus 24 other R 148.47s/SAN 213.55s. Independent
+libatspi/libwayland peers verify exact focus and seven actual clipboard transfers
+per profile, including range contraction, a fresh history-edge anchor and exact
+Unicode bytes. The actual preceding producer fails the bounded no-selection row
+copy task. Its first peer-idle harness interruption and the corrected eviction
+fixture are retained separately. See the
+[executed record](journal/2026-11-07-terminal-reading-selection.md). This does not
+claim complete screenreader range integration or a new full 83-group app suite.
+
+Audit: 395 source inputs, 502 exports/216 verified native images, unchanged
+nineteen protected hashes/28 frozen contracts/SDK 0.1.18/SDL 04/exact CLOSED DRM
+history and no sidecars. Both eight-shell idle samples have zero frames/ticks
+over 2s. Enforcing tty1; no own build/native/private-registry actor, Aetheri
+service or seat0 session. Quarantined old runtime unchanged. Inspected captures
+retain the selected Mono font's CJK missing-glyph limit despite exact text/copy;
+broader font coverage remains work. Evidence:
+`local/terminal-reading-selection-2026-11-07`; Git history records publication.
+
+Next: inspect and continue the P0 executing recovery/holder-coordination boundary
+in the current runtime contracts before normal session/image admission. Preserve
+the old quarantine; do not replay/recover/adopt its lost-handle fixture. Remaining
+accepted desktop/apps, font coverage, human/physical/final design and persistence
+remain open. The whole OS/apps/image/installer/update/hardware/full experiment-
+desktop goal stays active and incomplete. No repeated NexaUI handoff is needed.
+
+## Prior keyboard reading checkpoint
 
 The original Terminal now reads rows, pages, visible ends and complete retained
 history by keyboard without sending navigation bytes to its shell. Escape leaves
