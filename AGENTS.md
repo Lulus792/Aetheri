@@ -885,3 +885,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Files' document editor receives no multiplexer helper. Run terminal.workspace,
   terminal.spawn, terminal.panes_view, terminal.multiplex and affected owner/input
   regressions. Persistence, normal admission and complete assistive use remain work.
+- catalogue/recovery.h now provides one bounded read-only owner metadata snapshot
+  on the retained SQLite connection. Read spec/runtime.md's recovery-inventory
+  section and run catalogue.recovery_inventory. It never authorizes replay,
+  holder drain, gate reopening or old-volume/process adoption; empty counts are
+  not service readiness. Preserve historical uncertain closure rows and separate
+  terminal interruption semantics. Source startup scans before protocol
+  publication, but the protected installed bootstrap is not updated by that build.

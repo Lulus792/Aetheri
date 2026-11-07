@@ -9,6 +9,7 @@
 #include "catalogue/lifetime.h"
 #include "catalogue/interruption.h"
 #include "catalogue/handoff.h"
+#include "catalogue/recovery.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -3736,4 +3737,88 @@ int ae_catalogue_close(struct ae_catalogue **output)
     destroy(store);
     *output = NULL;
     return 0;
+}
+
+static int recovery_text(sqlite3_stmt *q,int column,char *out,size_t capacity)
+{
+    if(sqlite3_column_type(q,column)!=SQLITE_TEXT) return -EUCLEAN;
+    int bytes=sqlite3_column_bytes(q,column);const void *text=sqlite3_column_text(q,column);
+    if(bytes<0 || !text || memchr(text,0,(size_t)bytes)) return -EUCLEAN;
+    if((size_t)bytes>=capacity) return -E2BIG;
+    memcpy(out,text,(size_t)bytes);out[bytes]=0;return 0;
+}
+static int recovery_rows(struct ae_catalogue *s,struct ae_recovery_inventory *v,size_t limit,size_t *capacity,
+                         enum ae_recovery_record_kind kind,const char *sql)
+{
+    sqlite3_stmt *q=NULL;int result=failure(sqlite3_prepare_v2(s->db,sql,-1,&q,NULL));
+    while(result==0) {
+        int code=sqlite3_step(q);if(code==SQLITE_DONE) break;
+        if(code!=SQLITE_ROW) {result=failure(code);break;}
+        if(v->count==limit) {result=-E2BIG;break;}
+        struct ae_recovery_record row={.kind=kind};
+        result=read_id(q,0,row.id);
+        if(result==0 && sqlite3_column_type(q,1)!=SQLITE_NULL) {result=read_id(q,1,row.related);row.has_related=1;}
+        if(result==0 && (sqlite3_column_type(q,2)!=SQLITE_INTEGER || sqlite3_column_int64(q,2)<1 ||
+                        sqlite3_column_type(q,7)!=SQLITE_INTEGER || sqlite3_column_int64(q,7)<0)) result=-EUCLEAN;
+        if(result==0) {row.revision=sqlite3_column_int64(q,2);row.unfinished_steps=sqlite3_column_int64(q,7);}
+        if(result==0) result=recovery_text(q,3,row.state,sizeof(row.state));
+        if(result==0) result=recovery_text(q,4,row.detail,sizeof(row.detail));
+        if(result==0) result=recovery_text(q,5,row.phase,sizeof(row.phase));
+        if(result==0) result=recovery_text(q,6,row.reason,sizeof(row.reason));
+        if(result!=0) break;
+        if(v->count==*capacity) {
+            size_t next=*capacity?*capacity*2:16;if(next>limit) next=limit;
+            struct ae_recovery_record *records=realloc(v->records,next*sizeof(*records));
+            if(!records) {result=-ENOMEM;break;}v->records=records;*capacity=next;
+        }
+        v->records[v->count++]=row;++v->by_kind[kind];
+    }
+    int final=failure(sqlite3_finalize(q));return result?result:final;
+}
+void ae_recovery_inventory_free(struct ae_recovery_inventory **value)
+{
+    if(!value || !*value) return;
+    free((*value)->records);free(*value);*value=NULL;
+}
+int ae_catalogue_recovery_inventory(struct ae_catalogue *s,size_t limit,struct ae_recovery_inventory **output)
+{
+    if(!output || *output || !limit || limit>AE_RECOVERY_MAX_RECORDS) return -EINVAL;
+    int result=still_named(s);if(result!=0) return result;
+    if(!sqlite3_get_autocommit(s->db)) return -EBUSY;
+    result=exec_sql(s->db,"BEGIN");
+    struct ae_recovery_inventory *v=NULL;size_t capacity=0;sqlite3_int64 version=0;
+    if(result==0) {v=calloc(1,sizeof(*v));if(!v) result=-ENOMEM;}
+    if(result==0) {v->identity=s->identity;result=read_info(s,&v->context);}
+    if(result==0) result=scalar_int(s->db,"PRAGMA user_version",&version);
+    if(result==0 && (version<2 || version>8 || (s->identity.kind==AE_CATALOGUE_USER && (version==5 || version==6)))) result=-EPROTONOSUPPORT;
+    if(result==0) v->schema_version=(unsigned)version;
+    const struct {enum ae_recovery_record_kind kind;unsigned owner,min_version;const char *sql;} queries[]={
+        {AE_RECOVERY_OPERATION,3,2,"SELECT o.operation_id,coalesce(p.install_ref,p.data_epoch_ref),o.revision,o.state,p.kind,o.phase,o.reason_code,"
+         "(SELECT count(*) FROM operation_steps t WHERE t.operation_id=o.operation_id AND t.state<>'applied') FROM operations o JOIN plans p USING(plan_id) "
+         "WHERE o.state<>'completed' OR EXISTS(SELECT 1 FROM operation_steps t WHERE t.operation_id=o.operation_id AND t.state<>'applied') ORDER BY o.operation_id"},
+        {AE_RECOVERY_GATE,3,2,"SELECT subject_ref,closing_operation_id,revision,state,subject_kind,'','',0 FROM admission_gates WHERE state<>'closed' OR closing_operation_id IS NOT NULL ORDER BY subject_ref"},
+        {AE_RECOVERY_INSTALL,1,2,"SELECT install_id,active_generation_id,revision,state,'','','',0 FROM installs WHERE state IN('preparing','removing') ORDER BY install_id"},
+        {AE_RECOVERY_GENERATION,1,2,"SELECT generation_id,install_id,revision,publication_state,'','','',0 FROM generations WHERE publication_state IN('staged','reclaiming') ORDER BY generation_id"},
+        {AE_RECOVERY_CODE_LEASE,1,2,"SELECT lease_id,generation_id,revision,state,kind,'','',0 FROM generation_leases WHERE state<>'released' ORDER BY lease_id"},
+        {AE_RECOVERY_DISPATCH,1,2,"SELECT launch_id,lease_id,revision,state,'','','',0 FROM launch_dispatches WHERE state<>'terminal' ORDER BY launch_id"},
+        {AE_RECOVERY_LAUNCH,2,2,"SELECT launch_id,operation_id,revision,state,readiness,'','',0 FROM launches WHERE state NOT IN('exited','start_failed') ORDER BY launch_id"},
+        {AE_RECOVERY_GRANT,2,2,"SELECT grant_id,launch_id,revision,state,'','','',0 FROM grants WHERE state NOT IN('revoked','expired') ORDER BY grant_id"},
+        {AE_RECOVERY_ACCESS,2,2,"SELECT access_id,grant_id,revision,state,'','','',0 FROM access_leases WHERE state<>'released' ORDER BY access_id"},
+        {AE_RECOVERY_RESOURCE,2,2,"SELECT resource_id,owner_scope,revision,state,'','','',0 FROM resources WHERE state='needs_reselect' ORDER BY resource_id"},
+        {AE_RECOVERY_DATA,2,2,"SELECT data_epoch_id,storage_ref,revision,state,'','','',0 FROM data_epochs WHERE state='purging' ORDER BY data_epoch_id"},
+        {AE_RECOVERY_CLOSURE,3,3,"SELECT launch_id,start_operation_id,revision,state,'','','',0 FROM run_closures WHERE state<>'released' ORDER BY launch_id"},
+        {AE_RECOVERY_HANDOFF,1,5,"SELECT launch_id,NULL,revision,state,'','','',0 FROM execution_handoffs WHERE state<>'retired' ORDER BY launch_id"},
+        {AE_RECOVERY_INTERRUPTION,1,8,"SELECT launch_id,start_operation_id,revision,'begin','','','',0 FROM run_interruption_steps s WHERE kind=1 AND NOT EXISTS(SELECT 1 FROM run_interruption_steps t WHERE t.launch_id=s.launch_id AND t.kind=3) ORDER BY launch_id"},
+        {AE_RECOVERY_INTERRUPTION,2,8,"SELECT launch_id,start_operation_id,revision,'quiet','','','',0 FROM run_interruption_steps s WHERE kind=2 AND NOT EXISTS(SELECT 1 FROM run_interruption_steps t WHERE t.launch_id=s.launch_id AND t.kind=4) ORDER BY launch_id"}
+    };
+    for(size_t i=0;result==0 && i<sizeof(queries)/sizeof(queries[0]);++i)
+        if((queries[i].owner&(unsigned)s->identity.kind) && version>=queries[i].min_version)
+            result=recovery_rows(s,v,limit,&capacity,queries[i].kind,queries[i].sql);
+    if(result==0) result=exec_sql(s->db,"COMMIT");
+    if(result==0) result=still_named(s);
+    if(result!=0) {
+        if(!sqlite3_get_autocommit(s->db)) (void)exec_sql(s->db,"ROLLBACK");
+        ae_recovery_inventory_free(&v);return result;
+    }
+    *output=v;return 0;
 }

@@ -4467,3 +4467,85 @@ The retained old host records contain UUID/PID/command metadata but no preexisti
 independent disk-object witness. Do not invent one retroactively or turn a fresh
 normal-service proof into old-volume/clone admission. The remaining recovery
 coordinator needs separately reviewed continuity and current-actor/source bindings.
+
+## Read-only owner recovery inventory
+
+7 November 2026. `catalogue/recovery.h` adds
+`ae_catalogue_recovery_inventory` to the native single-threaded catalogue API.
+It reads the already independently selected owner store under its retained
+writer lock and database/mount binding. It never selects a catalogue from a
+client path or an inventory record, creates a runtime, migrates a schema,
+replays an effect or changes a gate, operation, run or lease.
+
+The result owns its identity, current catalogue context, exact schema version,
+per-kind counts and copied records. All queries share one explicit SQLite read
+transaction, beginning with the context read. Rows are ordered by record kind
+and binary ID. A record contains its source ID, optional related ID, original
+row revision, raw state, bounded detail/phase/reason and the number of non-applied
+operation steps where relevant. These are observations, not capabilities,
+current actor evidence or a mutation fence. A caller must not execute effects
+from this list.
+
+| Source | Included records |
+| --- | --- |
+| Both owners: operations | State other than completed, or any non-applied operation step; detail is plan kind, relation is its install or data reference |
+| Both owners: admission gates | Open/closing gates, and closed gates retaining a closing-operation cause |
+| Root: installs and generations | Preparing/removing installs and staged/reclaiming generations |
+| Root: code leases and dispatches | Every lease not released and every dispatch not terminal, even after start-result completion |
+| User: launches | Every launch not exited/start_failed |
+| User: grants and access leases | Grants not revoked/expired; access leases not released |
+| User: resources and data | Resources needing reselection and data epochs purging |
+| Both owners v3+: run closures | Every closure not released, including uncertain historical rows |
+| Root v5+: execution handoffs | Every handoff not retired |
+| Both owners v8: interruption steps | Root BEGIN without RELEASE; User QUIET without EXIT |
+
+Supported schemas match normal open: Root v2-v8; User v2-v4 and v7-v8.
+The inventory does not enumerate every actor, retained descriptor, unstarted
+interruption binding, namespace, export or future-effect source. An uncertain
+successful-closure row can remain historical after a separately completed v8
+interruption. Consequently neither an empty list nor its count is a global
+readiness, quiescence or removal decision. Inspect exact current protocols and
+independently admitted holders before any later mutation. Runtime replacement
+marks Root dispatches uncertain and User launches recovery_required; it does not
+itself rewrite or release Root's separate generation leases.
+
+The caller supplies a record limit from 1 to 65,536 and an initially NULL result.
+The implementation publishes only a complete successful snapshot. Record/text
+overflow returns E2BIG rather than a truncated success; allocation/SQLite/path
+failures return an error with no result. The largest copied reason has room for
+64 four-byte Unicode scalars. Embedded NULs and invalid source-column types are
+rejected. The caller frees the owned snapshot through
+`ae_recovery_inventory_free`, which clears its pointer.
+
+An existing transaction is rejected with EBUSY before BEGIN so the function
+cannot roll back a caller's transaction. On its own failure, the function uses
+SQLite's actual autocommit state to attempt closing its remaining read transaction;
+failure or lost acknowledgement is not interpreted as a data mutation rollback.
+Cleanup IO failure is not a successful reset: a remaining transaction makes the
+next inventory return EBUSY; the startup error path closes the owner store rather
+than continuing to admission. No rollback attempt applies to a caller's preexisting
+transaction.
+See SQLite's [transaction rules](https://www.sqlite.org/lang_transaction.html)
+and [autocommit interface](https://www.sqlite.org/c3ref/get_autocommit.html).
+
+The authority source now scans after `ae_catalogue_begin_runtime` and before
+explicit fixture admission, bus publication and protocol READY. It logs only
+schema/context revision/count with `metadata_only=1`; a failed scan stops that
+startup. A successful scan does not advertise lifecycle capabilities or prove
+recovery complete. The separately installed protected v2 bootstrap has not been
+updated or accepted by this source/build change.
+
+The native inventory test uses private populated owner catalogues and explicit
+development migrations through every supported schema. It compares complete
+typed records to an independent table-walking reference, preserves database
+bytes/rows, checks bounds/FD cleanup and injects BEGIN/COMMIT/query/allocation
+errors, including acknowledgements lost after actual SQL success. A reentrant
+call must preserve the outer transaction. A separate SQLite writer attempts to
+commit during the scan and is refused by the actual read transaction; its test
+connection stays open until the original read transaction ends. Explicit native
+startup checks retain the original Root lease and durable gate-closing causes.
+Later journal queries are also checked against populated native closure,
+handoff and interruption stages in `test_launch.c`. These are isolated metadata
+tests with controlled actor/drain inputs, not production recovery acceptance.
+Execution results and limitations belong in the
+[inventory record](../brains/aetheri/journal/2026-11-07-recovery-inventory.md).

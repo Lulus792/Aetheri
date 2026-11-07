@@ -4,6 +4,7 @@
 #include "catalogue/lifetime.h"
 #include "catalogue/interruption.h"
 #include "catalogue/handoff.h"
+#include "catalogue/recovery.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -456,14 +457,27 @@ static void completion_test(struct ae_catalogue **root,struct ae_catalogue **use
         database_digest(ud,before); CHECK(ae_catalogue_finish_user_execution(*user,p,&ue,app_hash,&receipt,999999,&launch)==0 && strcmp(launch.state,"exited")==0); database_digest(ud,after); CHECK(memcmp(before,after,32)==0);
     }
 }
+static void inventory_state(struct ae_catalogue *store,enum ae_recovery_record_kind kind,const uint8_t key[16],const char *state)
+{
+    struct ae_recovery_inventory *v=NULL;
+    CHECK(ae_catalogue_recovery_inventory(store,AE_RECOVERY_MAX_RECORDS,&v)==0);
+    const struct ae_recovery_record *found=NULL;
+    for(size_t i=0;i<v->count;++i) if(v->records[i].kind==kind && !memcmp(v->records[i].id,key,16)) {
+        CHECK(!found);found=&v->records[i];
+    }
+    CHECK(state ? found && !strcmp(found->state,state) : !found);
+    ae_recovery_inventory_free(&v);
+}
 static int close_call(int stage,struct ae_catalogue *root,struct ae_catalogue *user,const struct ae_execution_profile *p,struct ae_launch_context *c,
     const struct ae_execution_evidence *e,const struct ae_execution_evidence *ue,const struct ae_execution_completion *started,
     const struct ae_run_receipt receipts[3],const uint8_t ended[32],struct ae_run_receipt *out,struct ae_user_launch_snapshot *launch)
 {
-    if (stage==0) return ae_catalogue_begin_run_close(root,p,c,e,started,124000,out);
-    if (stage==1) return ae_catalogue_quiesce_user_run(user,p,ue,&receipts[0],124100,out);
-    if (stage==2) return ae_catalogue_release_run(root,p,c,e,&receipts[1],ended,124200,out);
-    return ae_catalogue_end_user_run(user,p,ue,&receipts[2],124300,launch);
+    int result=stage==0 ? ae_catalogue_begin_run_close(root,p,c,e,started,124000,out) :
+        stage==1 ? ae_catalogue_quiesce_user_run(user,p,ue,&receipts[0],124100,out) :
+        stage==2 ? ae_catalogue_release_run(root,p,c,e,&receipts[1],ended,124200,out) :
+        ae_catalogue_end_user_run(user,p,ue,&receipts[2],124300,launch);
+    if(result==0) inventory_state(stage%2 ? user : root,AE_RECOVERY_CLOSURE,p->launch,stage<2 ? "closing" : NULL);
+    return result;
 }
 static void lifetime_test(struct ae_catalogue **root,struct ae_catalogue **user,const struct ae_catalogue_identity *ri,const struct ae_catalogue_identity *ui,
     const struct ae_execution_profile *p,struct ae_launch_context *c,const struct ae_execution_evidence *e,const char *rd,const char *ud,const char *scenario)
@@ -473,6 +487,7 @@ static void lifetime_test(struct ae_catalogue **root,struct ae_catalogue **user,
     struct ae_execution_completion started; struct ae_user_launch_snapshot launch,launch_marker;
     memset(&launch_marker,0xa5,sizeof launch_marker);
     CHECK(ae_catalogue_complete_execution(*root,p,c,e,app,123900,&started)==0);
+    inventory_state(*root,AE_RECOVERY_CODE_LEASE,p->lease,"running");
     struct ae_run_receipt unsupported,unsupported_marker; memset(&unsupported_marker,0xa5,sizeof unsupported_marker); unsupported=unsupported_marker;
     CHECK(ae_catalogue_begin_run_close(*root,p,c,e,&started,124000,&unsupported)==-EPROTONOSUPPORT && memcmp(&unsupported,&unsupported_marker,sizeof unsupported)==0);
     int64_t root_rev=scalar(rd,"SELECT revision FROM operations"),user_rev=scalar(ud,"SELECT revision FROM operations");
@@ -633,6 +648,8 @@ static void handoff_action(struct ae_catalogue **slot,const struct ae_catalogue_
         CHECK(ae_catalogue_open(directory,ri,slot)==0); committed=!early;
     }
     CHECK(ae_catalogue_handoff(*slot,p,stage,original,125000+stage,&out)==0);
+    const char *handoff_state=stage==AE_HANDOFF_PREPARE ? "pending" : stage==AE_HANDOFF_OBSERVE ? "observed" : "retiring";
+    inventory_state(*slot,AE_RECOVERY_HANDOFF,p->launch,stage==AE_HANDOFF_RETIRED ? NULL : handoff_state);
     CHECK(out.transfer_required==(stage==AE_HANDOFF_PREPARE && !committed) && out.retire_required==(stage==AE_HANDOFF_RETIRE && !committed));
     CHECK(out.snapshot.revision==revision && out.snapshot.recorded_unix_ms==125001);
     database_digest(directory,before);
@@ -868,8 +885,9 @@ static int interruption_stage(struct interruption_test *t,int stage,int64_t stam
     const struct ae_launch_context *c=owner ? NULL : &t->context;
     if (stage<2) return ae_catalogue_enroll_interruption(s,t->p,c,e,&t->binding,stamp);
     int k=stage-1;
-    return ae_catalogue_interrupt_run(s,t->p,c,e,&t->binding,(enum ae_interruption_kind)k,
+    int result=ae_catalogue_interrupt_run(s,t->p,c,e,&t->binding,(enum ae_interruption_kind)k,
         k==1 ? NULL : &t->receipts[k-2],k==1 ? t->started : NULL,stamp,out);
+    return result;
 }
 static void original_start_digest(const char *directory,uint8_t hash[32])
 {
@@ -993,18 +1011,24 @@ static void interruption_test(struct ae_catalogue **root,struct ae_catalogue **u
             if (mode==1) { database_digest(directory,after); CHECK(memcmp(before,after,32)==0); }
         }
         CHECK(interruption_stage(&t,stage,124500+stage,&out)==0);
+        if(stage>=2) inventory_state(owner ? t.user : t.root,AE_RECOVERY_INTERRUPTION,p->launch,
+                                     stage<4 ? (owner ? "quiet" : "begin") : NULL);
         if (stage>=2) t.receipts[stage-2]=out;
         database_digest(directory,before); CHECK(interruption_stage(&t,stage,999999,&out)==0); database_digest(directory,after); CHECK(memcmp(before,after,32)==0);
     }
     CHECK(scalar(rd,"SELECT state='terminal' FROM launch_dispatches")==1 && scalar(rd,"SELECT state='released' FROM generation_leases")==1);
     CHECK(scalar(ud,"SELECT state='exited' AND readiness='unknown' FROM launches")==1);
     CHECK(scalar(rd,"SELECT count(*) FROM run_interruption_steps")==2 && scalar(ud,"SELECT count(*) FROM run_interruption_steps")==2);
+    inventory_state(t.root,AE_RECOVERY_INTERRUPTION,p->launch,NULL);
+    inventory_state(t.user,AE_RECOVERY_INTERRUPTION,p->launch,NULL);
     if (strstr(scenario,"after-release")) {
         id(t.binding.boot,130); id(t.binding.root_runtime,131); id(t.binding.user_runtime,132);
         CHECK(ae_catalogue_begin_runtime(t.root,t.binding.boot,t.binding.root_runtime)==0 && ae_catalogue_begin_runtime(t.user,t.binding.boot,t.binding.user_runtime)==0);
         memcpy(t.context.boot,t.binding.boot,16); memcpy(t.context.system_runtime,t.binding.root_runtime,16); memcpy(t.context.broker_runtime,t.binding.user_runtime,16);
         CHECK(interruption_stage(&t,0,1,&out)==0 && interruption_stage(&t,1,2,&out)==0);
         for (int k=2;k<6;++k) CHECK(interruption_stage(&t,k,0,&out)==0 && out.revision==t.receipts[k-2].revision && out.unix_ms==t.receipts[k-2].unix_ms);
+        inventory_state(t.root,AE_RECOVERY_INTERRUPTION,p->launch,NULL);
+        inventory_state(t.user,AE_RECOVERY_INTERRUPTION,p->launch,NULL);
     }
     original_start_digest(rd,after); CHECK(memcmp(root_start,after,32)==0); original_start_digest(ud,after); CHECK(memcmp(user_start,after,32)==0);
 finish:

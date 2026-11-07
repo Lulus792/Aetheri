@@ -1,5 +1,18 @@
 # Decisions
 
+## Inventory unresolved owner metadata before recovery selection — 7 November 2026
+
+Use one bounded read transaction on the original retained catalogue connection
+for a typed startup inventory. Keep code/access leases, launches and later
+closure/handoff/interruption journals independent of completed operation results.
+Return complete owned records or an error; never silently truncate or roll back
+a caller's existing transaction. Use the API before protocol publication in the
+authority source, without advertising lifecycle readiness or changing installed
+profiles. A count or empty list cannot authorize replay, drain, gate reopening,
+removal or old-volume/actor adoption. Exact protocols and independently current
+holder/future-effect evidence remain prerequisites. See the
+[inventory record](journal/2026-11-07-recovery-inventory.md).
+
 ## Select and copy original reading content — 7 November 2026
 
 Use Shift with the existing reading moves for inclusive whole-row selection in

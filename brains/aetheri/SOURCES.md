@@ -4,6 +4,21 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Read-only recovery inventory — 7 November 2026
+
+- [SQLite transactions](https://www.sqlite.org/lang_transaction.html), sections
+  2.1-2.3 and 3, and [autocommit](https://www.sqlite.org/c3ref/get_autocommit.html),
+  read 7 November: a read transaction retains its snapshot; BEGIN does not nest;
+  error cleanup must inspect the actual transaction state. These are source
+  semantics, not proof of Aetheri actor admission or production recovery.
+- Original [inventory API](../../src/catalogue/recovery.h) and
+  [implementation](../../src/catalogue/store.c): copied typed metadata over the
+  existing owner connection, with complete-or-error bounds and no mutation.
+  The [independent reference/fault harness](../../tools/test_recovery_inventory.py)
+  and existing [native lifecycle cases](../../tests/test_launch.c) check separate
+  metadata boundaries. Exact executed results and limitations are in the
+  [inventory record](journal/2026-11-07-recovery-inventory.md).
+
 ## Terminal reading selection and clipboard — 7 November 2026
 
 - Original [model selection/export](../../src/terminal/model.c),

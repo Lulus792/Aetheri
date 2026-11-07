@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — original Terminal reading selection and native clipboard.
+7 November 2026 — read-only startup recovery inventory verified.
 
 ## Coordination
 
@@ -14,6 +14,40 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Native `catalogue/recovery.h` now copies a bounded, typed owner snapshot in one
+read transaction, including unresolved operations/steps, cause-bearing gates,
+held leases/launches/grants/access and later lifecycle journals. Complete start
+results do not hide a live code lease. Errors publish no partial result; the API
+never migrates, replays, settles or adopts anything. Source startup scans after
+begin_runtime and before protocol publication; no installed bootstrap or public
+capability changes. See the
+[inventory record](journal/2026-11-07-recovery-inventory.md).
+
+All ten selected catalogue groups pass without skips in Release (617.43s) and
+ASan/UBSan (723.70s); both complete native builds pass. The strengthened inventory
+test separately passes Release (6.97s) and ASan/UBSan (11.62s), comparing 40
+owner/schema/failure cases per profile with actual populated metadata. The 50
+host contract/migration tests and 24 Linux runtime-vector tests also pass.
+Expanded native lifecycle checks exposed a historical-retry test assumption;
+the query correctly omitted terminal interruption metadata. A parallel process
+group also reached its unchanged 240s limit. Originals are retained; the failed
+campaign was explicitly stopped, then the corrected affected groups passed
+serially under their original limits. This does not establish the cause of the
+earlier timeout or a production recovery fix. Audit: 398 source inputs, 135
+verified evidence exports, unchanged 19 protected hashes/28 frozen contracts/
+SDK 0.1.18/SDL 04/exact CLOSED DRM history, no protected sidecars, build actors,
+Aetheri services or seat0 session. The four foreign files are preserved. Evidence:
+`local/recovery-inventory-2026-11-07`.
+
+Next: connect independently admitted current-owner/continuity and holder/future-
+effect recovery coordination; this inventory only identifies metadata to inspect.
+Source startup integration is built, not installed/accepted in the normal
+protected v2 bootstrap. Git history records publication. The old quarantine
+must not be replayed/adopted/settled. The full OS/apps/image/installer/update/
+hardware/experiment-desktop goal remains active and incomplete.
+
+## Prior Terminal reading-selection checkpoint
 
 Reading Shift moves now select whole original rows across viewport/history
 boundaries, retaining/reversing/contracting a valid anchor. Ctrl+Shift+C prefers

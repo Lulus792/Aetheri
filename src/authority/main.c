@@ -1,4 +1,5 @@
 #include "catalogue/store.h"
+#include "catalogue/recovery.h"
 #include "linux/peer.h"
 #include "linux/process.h"
 #include "authority/broker.h"
@@ -1103,6 +1104,13 @@ int main(int argc, char **argv)
     if (result == 0 && (!uuid4(authority.runtime.bytes) || !uuid4(authority.events.bytes) ||
                        memcmp(authority.runtime.bytes, authority.events.bytes, AE_ID_BYTES) == 0)) result = -EIO;
     if (result == 0) result = ae_catalogue_begin_runtime(authority.catalogue, authority.boot.bytes, authority.runtime.bytes);
+    if(result==0) {
+        struct ae_recovery_inventory *inventory=NULL;
+        result=ae_catalogue_recovery_inventory(authority.catalogue,AE_RECOVERY_MAX_RECORDS,&inventory);
+        if(result==0) printf("RECOVERY_INVENTORY schema=%u revision=%lld records=%zu metadata_only=1\n",
+            inventory->schema_version,(long long)inventory->context.revision,inventory->count);
+        ae_recovery_inventory_free(&inventory);
+    }
     if (result==0 && admit) result=ae_authority_fixture_admit(AE_FIXTURE_ORIGINAL,authority.catalogue,authority.boot.bytes,authority.runtime.bytes);
     sd_bus *bus = NULL;
     sd_event *event = NULL;
