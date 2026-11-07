@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — read-only startup recovery inventory verified.
+7 November 2026 — current authority ELF selection verified and installed in P0.
 
 ## Coordination
 
@@ -14,6 +14,44 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Normal Root/User now select their independently provisioned role ELF before
+catalogue access and recheck their current own program at context queries and
+User delegation. Source replacement, including identical bytes in a different
+object, cannot adopt a new program. Failures latch until process restart. The
+self-only API also works for capability-empty UID/GID0; the remote peer UID0
+rejection is unchanged. No new library, permission, capability or SQL/XML.
+See the [image record](journal/2026-11-07-authority-image.md).
+
+Complete Release/Debug builds pass; five affected groups each pass without skips
+in Release (1.61s) and ASan/UBSan (3.32s). Ten native self-image cases/profile
+exercise real UID/GID0 and 1000, repeated calls, invalid credentials/digests,
+identical-content foreign objects, FD cleanup and actual EMFILE. An initial
+private-home fixture failure is retained. Actual-domain shadow tests distinguish
+the previous missing guard from the candidate's pre-catalogue ESTALE rejection;
+their empty read-only registries cannot adopt normal catalogue state.
+
+The stopped normal v2 bootstrap was updated through update-owned. Enforcing
+discovery/denials, User replacement and Root restart with User retained passed.
+The preceding inventory scan is now observed at actual Root/User startup.
+Normal owner/epochs, stable lock inodes, non-runtime tables and policy hash stay
+unchanged; all 51 files were compared with explicit update/runtime exceptions.
+Both one-task services have zero CPU/context-switch deltas in the five-second
+idle sample and are stopped. Selected authority SHA-256:
+`329c9ff42b127b43c9b71564a953db7ecd874716d301264af13a54f28afa81a3`.
+Final audit verifies 401 source inputs and 90 exported evidence files, unchanged
+28 frozen contracts/19 protected old-runtime hashes/four foreign files, exact
+CLOSED DRM history and SDK/SDL pins. No native actors, Aetheri services, protected
+sidecars or seat0 session; Enforcing/tty1. All 24 runtime-vector tests also pass.
+Evidence: `local/authority-image-2026-11-07`; Git history records publication.
+No old isolated execution-fixture recovery or release follows.
+
+Next: complete current-counterpart/continuity and holder/future-effect recovery
+coordination. Own ELF checks are prerequisites, not remote actor admission or
+global recovery. Preserve the old quarantine. The full OS/apps/image/installer/
+update/hardware/experiment-desktop goal remains active and incomplete.
+
+## Prior recovery-inventory checkpoint
 
 Native `catalogue/recovery.h` now copies a bounded, typed owner snapshot in one
 read transaction, including unresolved operations/steps, cause-bearing gates,

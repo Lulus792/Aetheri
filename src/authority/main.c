@@ -2,6 +2,8 @@
 #include "catalogue/recovery.h"
 #include "linux/peer.h"
 #include "linux/process.h"
+#include "linux/image.h"
+#include "core/digest.h"
 #include "authority/broker.h"
 #include "core/allocation.h"
 #include "core/fixture.h"
@@ -44,6 +46,8 @@ struct authority {
     sd_id128_t system_runtime;
     int registered;
     struct ae_setup_service setup;
+    struct ae_image image;
+    int image_ready,image_stale,setup_recovery;
 };
 
 static int context_is(const char *context, const char *type)
@@ -107,6 +111,41 @@ static int root_directory(const char *path, const char *type)
 static int uuid4(const uint8_t value[AE_ID_BYTES])
 {
     return (value[6] >> 4) == 4 && (value[8] & 0xc0) == 0x80;
+}
+
+/* Independent protected role selection, never a pathname/digest from proc or a
+ * peer. Root provisioned both immutable images before starting these services.
+ * Reopen the named source on use: replacing it cannot silently adopt new code
+ * while the original authority continues running. Drift requires a new start. */
+static int authority_image(struct authority *authority,int initialize)
+{
+    if (authority->image_stale) return -ESTALE;
+    if (!initialize && !authority->image_ready) return -ENODATA;
+    int system=authority->identity.kind==AE_CATALOGUE_SYSTEM;
+    int r=root_directory(ROOT,"aetheri_root_t");
+    int fd=-1;
+    if (r==0) {
+        const char *path=authority->setup_recovery ? ROOT "/setup-recovery" :
+            system ? ROOT "/system-authority" : ROOT "/user-authority";
+        fd=open_trusted(path,0);
+        if (fd<0) r=fd;
+    }
+    if (r==0) r=labeled(fd,system ? "aetheri_system_exec_t" : "aetheri_user_exec_t");
+    uint8_t digest[32]; struct stat status;
+    if (r==0 && initialize) {
+        if (fstat(fd,&status)!=0) r=-errno;
+        else if (!S_ISREG(status.st_mode) || status.st_uid!=0 || status.st_gid!=0 ||
+                 (status.st_mode&07777)!=0555 || status.st_nlink!=1 || status.st_size<1 || status.st_size>16*1024*1024) r=-EACCES;
+        if (r==0) r=ae_sha256_fd(fd,(uint64_t)status.st_size,digest);
+    } else if (r==0) memcpy(digest,authority->image.digest,32);
+    struct ae_image selected,actual;
+    if (r==0) r=ae_image_verify(fd,digest,&selected);
+    if (r==0 && !initialize && !ae_image_equal(&authority->image,&selected)) r=-ESTALE;
+    if (r==0) r=ae_image_match_self(authority->uid,(gid_t)authority->uid,&selected,&actual);
+    if (fd>=0) close(fd);
+    if (r==0 && initialize) { authority->image=selected; authority->image_ready=1; }
+    if (r!=0) authority->image_stale=1;
+    return r;
 }
 
 /* Root-provisioned fixed P0 bootstrap registry. No path/identity from a client. */
@@ -217,6 +256,7 @@ static int read_id(sd_bus_message *message, uint8_t output[16])
 static int authority_info(struct authority *authority, struct ae_catalogue_info *info)
 {
     int result = enforced_domain(authority->identity.kind == AE_CATALOGUE_SYSTEM ? "aetheri_system_t" : "aetheri_user_t");
+    if (result == 0) result = authority_image(authority,0);
     if (result == 0) result = ae_catalogue_get_info(authority->catalogue, info);
     if (result == 0 && (memcmp(info->boot_id, authority->boot.bytes, 16) != 0 ||
         memcmp(info->runtime_incarnation, authority->runtime.bytes, 16) != 0)) result = -ESTALE;
@@ -308,7 +348,8 @@ static int owner_changed(sd_bus_message *message, void *userdata, sd_bus_error *
 static int register_system(struct authority *authority)
 {
     struct authority system = {.uid = 0, .identity.kind = AE_CATALOGUE_SYSTEM};
-    int result = load_registry(&system, NULL);
+    int result = authority_image(authority,0);
+    if (result == 0) result = load_registry(&system, NULL);
     sd_bus_message *request = NULL, *reply = NULL;
     if (result == 0) result = sd_bus_message_new_method_call(authority->system_bus, &request, "org.aetheri.System1", "/org/aetheri/Broker1", "org.aetheri.Broker1", "Register");
     if (result >= 0) result = sd_bus_message_append_array(request, 'y', system.identity.authority_epoch, 16);
@@ -324,7 +365,8 @@ static int register_system(struct authority *authority)
 
 static int check_system(struct authority *authority)
 {
-    int result = authority->registered ? 0 : register_system(authority);
+    int result = authority_image(authority,0);
+    if (result == 0 && !authority->registered) result = register_system(authority);
     for (unsigned int attempt = 0; result == 0 && attempt < 2; ++attempt) {
         sd_bus_message *request = NULL, *reply = NULL;
         sd_bus_error error = SD_BUS_ERROR_NULL;
@@ -1068,11 +1110,16 @@ int main(int argc, char **argv)
     struct authority authority = {.identity.kind = strcmp(argv[1], "system") == 0 ? AE_CATALOGUE_SYSTEM : AE_CATALOGUE_USER,
                                   .uid = geteuid(), .broker = AE_BROKER_INIT};
     int system = authority.identity.kind == AE_CATALOGUE_SYSTEM;
+    authority.setup_recovery=system && argc==3 && strcmp(option,"--recover-setup")==0;
     if ((system && authority.uid != 0) || (!system && authority.uid == 0)) return 3;
     int result = enforced_domain(system ? "aetheri_system_t" : "aetheri_user_t");
     if (result == 0) result = restricted_process();
     char state_path[256];
     if (result == 0) result = load_registry(&authority, state_path);
+    if (result == 0) {
+        result = authority_image(&authority,1);
+        if (result!=0) fprintf(stderr,"Authority selected image unavailable: %d\n",result);
+    }
     if (result == 0) result = sd_id128_get_boot(&authority.boot);
     if (result == 0) result = initialize ? ae_catalogue_create(state_path, &authority.identity, authority.boot.bytes, &authority.catalogue) :
                                         ae_catalogue_open(state_path, &authority.identity, &authority.catalogue);

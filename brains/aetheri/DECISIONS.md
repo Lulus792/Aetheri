@@ -1,5 +1,21 @@
 # Decisions
 
+## Match each authority's own protected role ELF — 7 November 2026
+
+Use a self-only ProcessFD/image check for each current Root/User, joined to the
+independently provisioned fixed role file. Keep remote UID0 image rejection and
+existing bus-authenticated peer/MainPID/unit/runtime admission. Extending Root's
+cross-UID executable access would add authority for a check the User can perform
+locally; it is not selected. Digest equality alone also misses a different
+executable object, so compare actual immutable object/metadata/content.
+
+Perform initial image selection before catalogue access and recheck the named
+source at context/delegation use. A failure requires a fresh process admission;
+do not silently adopt a later source. The explicit offline no-exec setup recovery
+keeps its separate protected image selection. Loaded dependencies/environment,
+remote counterpart identity, continuity and holder/future-effect fencing remain
+separate. See the [executed record](journal/2026-11-07-authority-image.md).
+
 ## Inventory unresolved owner metadata before recovery selection — 7 November 2026
 
 Use one bounded read transaction on the original retained catalogue connection

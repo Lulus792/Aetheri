@@ -892,3 +892,15 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   not service readiness. Preserve historical uncertain closure rows and separate
   terminal interruption semantics. Source startup scans before protocol
   publication, but the protected installed bootstrap is not updated by that build.
+- linux/image.h now has a self-only image matcher supporting capability-empty
+  UID/GID0. Keep remote peer UID0 rejection; never turn self pins into remote
+  authority credentials. Normal P0 selects the independently protected role ELF
+  before catalogue access and at context/User-delegation use, latching failure.
+  The separate offline setup-recovery image selection remains explicit. Read
+  spec/runtime.md's current-authority-executable section; run linux.image_self
+  and affected execution/peer/process/broker tests. The explicit actual-domain
+  shadow test has no catalogue and cannot adopt normal state. The normal v2
+  bootstrap is now updated/checked enforcing, including the earlier startup
+  inventory. Policy and non-runtime owner tables stay unchanged. This does not
+  prove loaded-dependency/remote-owner/continuity/future-effect/holder admission
+  or settle the old quarantine. Preserve its lost-handle boundary.

@@ -4549,3 +4549,52 @@ handoff and interruption stages in `test_launch.c`. These are isolated metadata
 tests with controlled actor/drain inputs, not production recovery acceptance.
 Execution results and limitations belong in the
 [inventory record](../brains/aetheri/journal/2026-11-07-recovery-inventory.md).
+
+## Current authority executable selection
+
+7 November 2026. `linux/image.h` now adds `ae_image_match_self` for the calling
+process only. Its sole pidfd_open target is getpid(); a supplied PID/connection
+cannot select another process. Mandatory PIDFD_GET_INFO checks cover all
+real/effective/saved/filesystem UIDs/GIDs and bracket the current proc executable
+checks. The implementation reuses the peer path's procfs, raw label, bounded
+ELF/SHA and repeated object/metadata matching. Output remains unchanged on every
+failure, and the local pin is closed without a process/lease effect. The remote
+peer entry point retains its UID0/GID0 rejection. No remote Root-image fallback
+or new serialized observation format is introduced.
+
+The normal P0 authority independently selects the fixed protected source file
+`/var/lib/aetheri-p0/system-authority` or `user-authority` for its role. Root-owned
+0555/single-link/capability-free ELF, parent and role MAC types, metadata and
+content must agree with the actual running program. The source trust comes from
+the independently controlled installed role path, not its own digest or proc's
+path string. The accepted offline --recover-setup action instead selects the
+protected setup-recovery program; no offline action was replayed for this test.
+
+Initial selection precedes catalogue access. `authority_info` and User-side
+registration/check delegation reopen the named source and recheck self. A
+source/object/label/read failure latches unavailability until a new process
+start; matching later is not renewed admission. Expected object metadata is
+process-local, not a volume identity or recovery capability. Normal protocol
+versions/capabilities, SQL/XML and MAC permissions remain unchanged.
+
+This is an ELF/current-context prerequisite. The caller still protects the host
+proc/PID view, executable immutability, single-threaded setup, loaded libraries,
+environment and supervisor configuration. Own-image success cannot authenticate
+a remote owner, establish MainPID role, fence future effects, prove volume/clone
+continuity, drain holders or authorize recovery. Continue the separate original
+peer/unit/invocation/cgroup/runtime checks. Root gains no cross-UID executable,
+SYS_PTRACE or capability permission. See the Linux
+[pidfd_open contract](https://man7.org/linux/man-pages/man2/pidfd_open.2.html) and
+[proc executable access rule](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html).
+
+Native self-image and existing execution/peer/process/broker checks pass Release
+and ASan/UBSan. Explicit actual-domain counterexamples use private read-only
+catalogue-free shadow registries, never normal owner adoption. The previous
+installed program misses the guard; the candidate rejects an identical-content
+different executable object before catalogue access. The stopped normal v2
+bootstrap was then updated through update-owned and passed real discovery,
+denials, User replacement, Root restart and idle checks. Its epochs/owner/locks,
+non-runtime tables and policy remain unchanged; services are stopped. The new
+startup inventory is now observed in both actual services. Exact test/retirement
+boundaries and remaining recovery work are in the
+[executed image record](../brains/aetheri/journal/2026-11-07-authority-image.md).

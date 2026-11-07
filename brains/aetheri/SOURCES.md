@@ -4,6 +4,23 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Current authority ELF selection — 7 November 2026
+
+- Linux man-pages [pidfd_open](https://man7.org/linux/man-pages/man2/pidfd_open.2.html)
+  and [proc executable](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html),
+  read 7 November: process descriptor semantics and ptrace-governed executable
+  access. These do not authorize remote Root inspection or establish service role.
+- Original [image API/implementation](../../src/linux/image.h) and
+  [authority selection](../../src/authority/main.c): self-only UID/GID0 support,
+  fixed protected source selection and pre-catalogue/per-use checks. The existing
+  image codec and remote-peer UID0 restriction remain unchanged.
+- [Native component](../../tools/test_image_self.py),
+  [actual-domain shadow counterexample](../../tools/test_authority_image.py) and
+  reviewed [normal controller](../../tools/p0_services.py): executed differences,
+  actual normal-service update/restarts, idle and preservation checks are in the
+  [image record](journal/2026-11-07-authority-image.md). They do not settle the old
+  executing fixture or prove complete current-owner/holder recovery admission.
+
 ## Read-only recovery inventory — 7 November 2026
 
 - [SQLite transactions](https://www.sqlite.org/lang_transaction.html), sections

@@ -54,6 +54,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [test_contracts.py](../tools/test_contracts.py) | File-backed migration/crash tests, SQL behavior and wire compatibility checks |
 | [runtime.md](runtime.md), [runtime-v1.json](vectors/runtime-v1.json) | P0 fixture/owner/intent byte formats and independent frozen vectors |
 | [image.h](../src/linux/image.h), [image-v1.json](vectors/image-v1.json) | Bounded 112-byte AETHIMG1 executable observation codec; authenticated source and current-process matching are separate obligations |
+| [self-image test](../tools/test_image_self.py), [authority image test](../tools/test_authority_image.py) | Calling-process ELF matching, including capability-empty UID0; explicit protected P0 role selection and enforcing foreign-object counterexamples |
 | [execution.h](../src/catalogue/execution.h), [execution-completion-v1.json](vectors/execution-completion-v1.json) | Canonical 200-byte start-result receipt and separate Root/User completion; no run/lease release or bearer trust |
 | [runtime_contracts.py](../tools/runtime_contracts.py), [test_runtime_contracts.py](../tools/test_runtime_contracts.py) | Development encoding/payload reference and adversarial format checks |
 | [fixture.h](../src/core/fixture.h), [fixture.c](../src/core/fixture.c), [native fixture tests](../tools/test_fixture_native.py) | Canonical C17 metadata decoding and field/bounds checks; no payload hashing, trust or importer |

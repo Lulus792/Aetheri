@@ -11,6 +11,7 @@
 #include <sys/ioctl.h>
 #include <sys/pidfd.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/vfs.h>
 #include <sys/xattr.h>
 #include <unistd.h>
@@ -139,10 +140,8 @@ static int identity(const struct ae_peer *p,gid_t gid,uint64_t *cgroup)
         i.rgid!=(uint32_t)gid || i.egid!=(uint32_t)gid || i.sgid!=(uint32_t)gid || i.fsgid!=(uint32_t)gid || i.cgroupid==0) return -EACCES;
     *cgroup=i.cgroupid; return ae_peer_alive(p);
 }
-int ae_image_match_process(const struct ae_peer *p,gid_t gid,const struct ae_image *expected,struct ae_image *output)
+static int match_process(const struct ae_peer *p,gid_t gid,const struct ae_image *expected,struct ae_image *output)
 {
-    if (p==NULL || expected==NULL || output==NULL || p->pidfd<0 || p->connection_pid<1 || p->connection_uid==0 || gid==0 ||
-        strnlen(p->connection_label,sizeof p->connection_label)==0 || strnlen(p->connection_label,sizeof p->connection_label)>=sizeof p->connection_label) return -EINVAL;
     uint64_t first=0,last=0; int r=identity(p,gid,&first);
     char path[64]; int count=snprintf(path,sizeof path,"/proc/%ld",(long)p->connection_pid);
     if (r==0 && (count<1 || count>=(int)sizeof path)) r=-EOVERFLOW;
@@ -171,4 +170,28 @@ int ae_image_match_process(const struct ae_peer *p,gid_t gid,const struct ae_ima
     int fds[]={process,executable,again}; for (size_t n=0;n<3;++n) if (fds[n]>=0) close(fds[n]);
     if (r==0) *output=actual;
     return r;
+}
+int ae_image_match_process(const struct ae_peer *p,gid_t gid,const struct ae_image *expected,struct ae_image *output)
+{
+    if (p==NULL || expected==NULL || output==NULL || p->pidfd<0 || p->connection_pid<1 || p->connection_uid==0 || gid==0 ||
+        strnlen(p->connection_label,sizeof p->connection_label)==0 || strnlen(p->connection_label,sizeof p->connection_label)>=sizeof p->connection_label) return -EINVAL;
+    return match_process(p,gid,expected,output);
+}
+int ae_image_match_self(uid_t uid,gid_t gid,const struct ae_image *expected,struct ae_image *output)
+{
+    if (uid==(uid_t)-1 || gid==(gid_t)-1 || !expected || !output || !image_shape(expected)) return -EINVAL;
+    struct ae_peer self=AE_PEER_INIT;
+    self.connection_pid=getpid(); self.connection_uid=uid;
+    self.pidfd=(int)syscall(SYS_pidfd_open,self.connection_pid,0);
+    int r=self.pidfd<0 ? -errno : 0;
+    char *label=NULL;
+    if (r==0 && getcon_raw(&label)<0) r=-errno;
+    if (r==0) {
+        size_t n=strnlen(label,sizeof self.connection_label);
+        if (!n || n>=sizeof self.connection_label) r=-EOVERFLOW;
+        else memcpy(self.connection_label,label,n+1);
+    }
+    freecon(label);
+    if (r==0) r=match_process(&self,gid,expected,output);
+    ae_peer_clear(&self); return r;
 }

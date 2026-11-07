@@ -1115,6 +1115,12 @@ if(BUILD_TESTING)
             -Wl,--wrap=sd_pid_notify_with_fds -Wl,--wrap=sd_notify -Wl,--wrap=sd_notify_barrier)
         target_link_libraries(test_launch PRIVATE aetheri_execution_service aetheri_execution_endpoint)
         if(AETHERI_PRIVILEGED_TESTS)
+            add_executable(test_image_self tests/test_image_self.c)
+            target_compile_options(test_image_self PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+            target_link_libraries(test_image_self PRIVATE aetheri_linux)
+            add_test(NAME linux.image_self COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_image_self.py" $<TARGET_FILE:test_image_self> "${CMAKE_CURRENT_BINARY_DIR}")
+            set_tests_properties(linux.image_self PROPERTIES TIMEOUT 90)
             add_test(NAME authority.handoff COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" handoff-bridge)
             set_tests_properties(authority.handoff PROPERTIES TIMEOUT 90)
