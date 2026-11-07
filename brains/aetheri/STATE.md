@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — reciprocal current Root connection verified and installed in P0.
+7 November 2026 — local execution-source fence verified; normal Root shutdown updated.
 
 ## Coordination
 
@@ -14,6 +14,47 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The retained SYSTEM catalogue now owns an explicit one-way local execution latch
+shared by borrowing coordinators and writer/release transport. Fresh native
+stages and new post-commit permits reject once fenced. Entered brackets remain
+separate obligations; close/runtime replacement reject while one is active.
+Historical receipts/diagnostics stay available without replay. Root fences before
+normal event-loop shutdown. No SQL/XML, policy/dependency or public capability
+change. See the [source-fence record](journal/2026-11-07-execution-fence.md).
+
+Both complete builds pass; all twelve affected groups pass without skips in
+Release (390.50s) and ASan/UBSan (357.01s). Nine source and six private-bus fence
+scenarios cover shared prior coordinators, fresh-stage/late-commit boundaries,
+writer publication, entered sends and retained lease/intent/output state.
+Explicit full-output repeats pass R 56.20s/SAN 60.48s and verify every new case;
+the earlier CTest output truncation is retained. A separate pre-commit-permit
+producer is rejected at the intended actual post-commit callback. Its original
+production archive/test ELF remain unchanged. All 50 contract/migration and 24
+runtime-vector tests pass. Initial compile/harness failures are documented.
+
+Normal P0 is updated and checked enforcing, including connection negatives,
+User replacement, Root restart, idle and stop. Root's actual shutdown logs a
+local fenced source with zero brackets. All 52 files are compared; owner/epochs,
+writer locks, non-runtime tables and policy are preserved. Both one-task services
+have zero CPU/context-switch deltas in the 5.032s idle sample and are stopped.
+Authority SHA-256:
+`0cc2e74e6bec4c41e24bdb3d34c549a619219848f2d079a52a9c1f2a44c2072e`.
+
+Final evidence exports: 53 files, 406 source inputs, unchanged 28 frozen contracts/
+19 protected old-runtime hashes/four foreign files/exact CLOSED DRM/SDK 0.1.18/
+SDL04. No own native/build actor, Aetheri service, protected sidecar or seat0
+session; Enforcing/tty1. Evidence: `local/execution-fence-2026-11-07`.
+Git history records publication.
+
+Next: connect this current source barrier to admitted owner/volume continuity,
+other effect families, old/intervening owners, supervisor/transport/exported and
+delegated holders, plus durable per-run recovery. Local active==0 is never global
+drain or permission to release. Preserve the old v6/User v4 quarantine; no new
+live execution fixture bypasses it. Whole OS/apps/image/installer/update/hardware/
+experiment-desktop work remains active/incomplete. No repeated NexaUI handoff.
+
+## Prior reciprocal-connection checkpoint
 
 Normal User now retains and repeatedly authenticates the selected current Root
 connection, joining correlated sent-request replies, original ProcessFD/current

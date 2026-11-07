@@ -1,5 +1,23 @@
 # Decisions
 
+## Fence the current local execution source explicitly — 7 November 2026
+
+Use a one-way latch on the retained SYSTEM catalogue, shared by every borrowing
+execution coordinator and its writer/release reply transport. Count entered
+brackets separately; take permission after fresh intent commit and before the
+external call. Keep historical acknowledgments and diagnostics available without
+reissuing effects. Reject close/runtime replacement while a bracket is active.
+Root's normal shutdown closes this local source before leaving its event loop.
+
+A per-coordinator flag would leave sibling objects and reply transport outside
+the boundary. A recovery-inventory count cannot establish admission or exclude
+future sources. A durable global catalogue flag would require a different restart/
+recovery protocol; this step preserves the accepted frozen SQL and per-run
+journals. The selected latch is explicitly local and cannot replace that future
+protocol, supervisor/holder drain or independent volume/clone continuity.
+See the [source-fence record](journal/2026-11-07-execution-fence.md).
+
+
 ## Bind User to the independently selected current Root — 7 November 2026
 
 Use actual correlated unique-destination replies, the original authenticated

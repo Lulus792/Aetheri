@@ -1,4 +1,5 @@
 #include "authority/execution_wire.h"
+#include "catalogue/effect.h"
 #include "execution-wire.h"
 #include <errno.h>
 #include <limits.h>
@@ -11,6 +12,8 @@ enum { PREPARED_WAIT_USEC=4000000 };
 struct ae_execution_endpoint {
     pid_t owner;
     struct ae_execution_service *service;
+    struct ae_catalogue *catalogue;
+    struct ae_launch_context broker;
     sd_bus *bus;
     sd_event *event;
     sd_bus_slot *slot;
@@ -47,13 +50,17 @@ static int receipt(struct ae_execution_endpoint *e,sd_bus_message *request,const
         d->install_gate_revision!=e->profile.install_gate_revision ||
         (registration ? strcmp(d->state,"reserved")!=0 || d->invocation_present :
             strcmp(d->state,"dispatching")!=0 || !d->invocation_present || (uint64_t)d->revision<=e->bound_revision)) return -ESTALE;
-    sd_bus_message *reply=NULL; int r=sd_bus_message_new_method_return(request,&reply);
+    int r=ae_catalogue_begin_execution_effect(e->catalogue,&e->broker);
+    if (r!=0) return r;
+    sd_bus_message *reply=NULL; r=sd_bus_message_new_method_return(request,&reply);
     const uint8_t *fields[]={e->profile.system_epoch,e->profile.system_runtime,e->profile.boot,e->profile.lease,d->operation,e->digest};
     for (size_t n=0;r>=0 && n<6;++n) r=sd_bus_message_append_array(reply,'y',fields[n],n==5 ? 32U : 16U);
     if (r>=0) r=sd_bus_message_append(reply,"t",(uint64_t)d->revision);
     if (r>=0 && registration) r=sd_bus_message_append(reply,"h",writer);
     if (r>=0) r=sd_bus_send(e->bus,reply,NULL);
-    sd_bus_message_unref(reply); return r<0 ? r : 0;
+    sd_bus_message_unref(reply);
+    int ended=ae_catalogue_end_execution_effect(e->catalogue);
+    return r<0 ? r : ended;
 }
 static int request_effect(void *owner,const struct ae_execution_profile *p,const struct ae_dispatch_snapshot *d)
 { struct ae_execution_endpoint *e=owner; return e->request(e->request_owner,p,d); }
@@ -140,9 +147,10 @@ static const sd_bus_vtable methods[]={SD_BUS_VTABLE_START(0),
 int ae_execution_endpoint_new(struct ae_catalogue *store,sd_bus *bus,sd_event *event,const struct ae_execution_profile *p,
     const struct ae_launch_context *c,ae_execution_effect request,void *request_owner,struct ae_execution_endpoint **output)
 {
-    if (output==NULL || *output!=NULL || request==NULL) return -EINVAL;
+    if (store==NULL || bus==NULL || event==NULL || p==NULL || c==NULL || output==NULL || *output!=NULL || request==NULL) return -EINVAL;
     struct ae_execution_endpoint *e=calloc(1,sizeof *e); if (e==NULL) return -ENOMEM;
     e->owner=getpid(); e->bus=bus; e->event=event; e->request=request; e->request_owner=request_owner;
+    e->catalogue=store; e->broker=*c;
     int r=ae_execution_digest(p,e->digest); if (r==0) e->profile=*p;
     struct ae_execution_effects effects={.owner=e,.request=request_effect,.release=release_effect};
     if (r==0) r=ae_execution_service_new(store,bus,event,p,c,&effects,&e->service);

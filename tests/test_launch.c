@@ -5,6 +5,7 @@
 #include "catalogue/interruption.h"
 #include "catalogue/handoff.h"
 #include "catalogue/recovery.h"
+#include "catalogue/effect.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -22,6 +23,8 @@ static int commit_fault,step_fault,step_number,crash_mode,ddl_fault,ddl_number;
 void ae_test_execution_service(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
 void ae_test_execution_wire(struct ae_catalogue *,const struct ae_execution_profile *,struct ae_launch_context *,const char *,const char *);
 void ae_test_execution_commit_fault(int value) { commit_fault=value; }
+static struct ae_catalogue *fence_after_commit;
+void ae_test_execution_fence_commit(struct ae_catalogue *store) { fence_after_commit=store; }
 #endif
 int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char **),void *,char **);
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
@@ -36,7 +39,15 @@ int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,c
         if (crash_mode) _exit(70+crash_mode);
         return SQLITE_IOERR;
     }
-    return __real_sqlite3_exec(db,sql,callback,context,error);
+    int result=__real_sqlite3_exec(db,sql,callback,context,error);
+#ifdef AETHERI_TEST_EXECUTION_SERVICE
+    if (result==SQLITE_OK && strcmp(sql,"COMMIT")==0 && fence_after_commit) {
+        struct ae_execution_fence_status status;
+        struct ae_catalogue *store=fence_after_commit; fence_after_commit=NULL;
+        CHECK(ae_catalogue_fence_execution(store,&status)==0 && status.fenced);
+    }
+#endif
+    return result;
 }
 int __real_sqlite3_step(sqlite3_stmt *);
 int __wrap_sqlite3_step(sqlite3_stmt *statement)
@@ -1682,6 +1693,12 @@ int main(int argc,char **argv)
         memcpy(rc.broker_runtime,replacement,16);
     }
     if (execution) {
+        if (strstr(argv[4],"fence-")) {
+            struct ae_execution_fence_status fence_marker,fence_state; memset(&fence_marker,0xa5,sizeof fence_marker); fence_state=fence_marker;
+            CHECK(ae_catalogue_fence_execution(user,&fence_state)==-EPERM && memcmp(&fence_state,&fence_marker,sizeof fence_state)==0);
+            CHECK(ae_catalogue_execution_fence_status(user,&fence_state)==-EPERM && memcmp(&fence_state,&fence_marker,sizeof fence_state)==0);
+            CHECK(ae_catalogue_begin_execution_effect(user,&rc)==-EPERM && ae_catalogue_end_execution_effect(user)==-EPERM);
+        }
         if (strncmp(argv[4],"exec-user-observe-",18)==0) {
             user_observe_test(root,&user,&ui,&q,&rc,argv[2],argv[4]);
         } else if (strncmp(argv[4],"exec-user-prepare-",18)==0) {

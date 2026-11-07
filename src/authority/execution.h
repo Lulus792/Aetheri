@@ -1,6 +1,7 @@
 #ifndef AETHERI_AUTHORITY_EXECUTION_H
 #define AETHERI_AUTHORITY_EXECUTION_H
 #include "catalogue/execution.h"
+#include "catalogue/effect.h"
 #include "linux/process.h"
 #include "linux/exec_channel.h"
 #include <systemd/sd-event.h>
@@ -16,6 +17,8 @@ struct ae_execution_service;
 typedef int (*ae_execution_effect)(void *,const struct ae_execution_profile *,const struct ae_dispatch_snapshot *);
 struct ae_execution_effects { void *owner; ae_execution_effect request,release; };
 struct ae_execution_service_status {
+    /* Local callback/transport brackets only, not global effect/holder drain. */
+    struct ae_execution_fence_status effects;
     /* Persisted dispatch is authoritative. Local stage flags describe this
      * coordinator's acknowledgements; a lost commit can advance SQL while a
      * local flag stays false. None is app execution/readiness evidence. */
@@ -27,7 +30,11 @@ struct ae_execution_service_status {
 /* Root UID/GID 0 only. Borrow catalogue/system bus/event for this single-threaded owner's lifetime.
  * Protected profile and authenticated broker context must be independently
  * obtained by the live authority. No wire API, installed policy or service start
- * is implied by these internal native functions. Output must initially be NULL. */
+ * is implied by these internal native functions. Output must initially be NULL.
+ * All coordinators on this store share catalogue/effect.h's one-way local
+ * execution fence. It blocks new intent stages, callbacks and writer issuance;
+ * an already entered adapter can still return unknown. Historical queries and
+ * diagnostics remain available. Caller still settles all external effects. */
 int ae_execution_service_new(struct ae_catalogue *,sd_bus *,sd_event *,
     const struct ae_execution_profile *,const struct ae_launch_context *,const struct ae_execution_effects *,
     struct ae_execution_service **);

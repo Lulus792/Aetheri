@@ -4658,3 +4658,55 @@ namespace-FD ptrace checks; actual cross-UID acceptance is separately exercised
 on the Fedora carrier. See the
 [executed connection record](../brains/aetheri/journal/2026-11-07-system-connection.md)
 for source hashes, actual tests, the reproduced ownership-loss defect and limits.
+
+
+## Local execution-source fence
+
+The internal [`catalogue/effect.h`](../src/catalogue/effect.h) contract adds a
+process-owned one-way execution barrier to each retained SYSTEM catalogue.
+Every coordinator borrowing that catalogue shares it, including already-created
+sibling coordinators. It is explicit owner control; the recovery inventory's
+counts never open or close it. No schema, migration, wire or public capability
+changes are introduced.
+
+`ae_catalogue_fence_execution` latches locally without SQL, filesystem or IPC
+work. Its status reports the latch and number of entered adapter/transport
+brackets. A successful acknowledgment prevents NEW local execution permits;
+already entered work may still finish, deliver a reply or return unknown.
+Neither zero active brackets nor a fence acknowledgment is process/unit/job,
+transport-queue, exported-FD or delegated-holder drain. The status is no bearer
+capability, durable receipt or authority/volume admission.
+
+The compiled execution service takes a current-context permit after a fresh
+REQUEST or ARM commit and immediately before its external adapter. BIND holds
+one across supervisor-reference acquisition, channel setup, native binding and
+writer publication. Execution1 writer/release reply construction and sending
+have their own brackets. Every return path balances the bracket, even when
+fenced or external context has drifted. No transaction spans those callbacks;
+permit acquisition requires SQLite autocommit. Current process, broker, image,
+unit, source, data and policy admission remain separate prerequisites.
+
+Fresh native REQUEST/BIND/PREPARE/ARM stages reject a fenced source. Exact
+historical journal acknowledgments remain read-only and never regain
+`effect_required`. Fencing after a successful native commit but before an adapter
+leaves that original committed intent/lease intact and suppresses the adapter.
+It is not rollback or permission to redispatch. A fence during an entered send
+cannot revoke its bytes; the original unknown/send-attempt obligations remain.
+
+A running bracket makes catalogue close and runtime replacement return EBUSY.
+A fenced handle refuses runtime replacement with ESHUTDOWN. Normal Root handles
+SIGTERM/SIGINT by fencing before event-loop exit, and fences again during cleanup.
+It does not stop an app, close another owner's objects, cancel a PID1 job or
+release a generation lease. The normal installed profile still exposes no
+executing public launch capability.
+
+The fence is bound to this process-owned handle, not persisted in the catalogue.
+After process/handle replacement, a coordinator still needs independent current
+owner/continuity admission, original journal reconciliation and durable per-run
+gate/future-effect/holder coordination. Other effect families, old/intervening
+owners, supervisor activation and exported/delegated sources need their own
+fences. This local barrier cannot authorize the old lost-handle fixture's
+recovery or turn an empty inventory into global readiness.
+
+See the [executed source-fence record](../brains/aetheri/journal/2026-11-07-execution-fence.md)
+for actual tests and the remaining integration boundary.

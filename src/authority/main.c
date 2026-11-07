@@ -1,5 +1,6 @@
 #include "catalogue/store.h"
 #include "catalogue/recovery.h"
+#include "catalogue/effect.h"
 #include "linux/peer.h"
 #include "linux/process.h"
 #include "linux/image.h"
@@ -1097,7 +1098,14 @@ static int app_data_action(struct authority *authority,const char *control,int e
 
 static int stop_signal(sd_event_source *source, const struct signalfd_siginfo *signal_info, void *userdata)
 {
-    (void)signal_info; (void)userdata;
+    (void)signal_info;
+    struct authority *authority=userdata;
+    if (authority->identity.kind==AE_CATALOGUE_SYSTEM && authority->catalogue) {
+        struct ae_execution_fence_status state;
+        int r=ae_catalogue_fence_execution(authority->catalogue,&state);
+        if (r==0) printf("EXECUTION_FENCE fenced=%d active=%u local_only=1\n",state.fenced,state.active);
+        else fprintf(stderr,"Execution fence failed: %d\n",r);
+    }
     return sd_event_exit(sd_event_source_get_event(source), 0);
 }
 
@@ -1179,8 +1187,8 @@ int main(int argc, char **argv)
     if (result == 0 && sigprocmask(SIG_BLOCK, &signals, NULL) != 0) result = -errno;
     if (result == 0) result = sd_event_default(&event);
     if (result >= 0) authority.event = event;
-    if (result >= 0) result = sd_event_add_signal(event, NULL, SIGTERM, stop_signal, NULL);
-    if (result >= 0) result = sd_event_add_signal(event, NULL, SIGINT, stop_signal, NULL);
+    if (result >= 0) result = sd_event_add_signal(event, NULL, SIGTERM, stop_signal, &authority);
+    if (result >= 0) result = sd_event_add_signal(event, NULL, SIGINT, stop_signal, &authority);
     if (result >= 0) result = sd_bus_new(&bus);
     char address[128];
     if (system) snprintf(address, sizeof address, "unix:path=/run/dbus/system_bus_socket");
@@ -1213,6 +1221,10 @@ int main(int argc, char **argv)
     if (result >= 0) result = sd_notify(0, "READY=1\nSTATUS=Protocol endpoint available; lifecycle capabilities not implemented");
     if (result >= 0) result = sd_event_loop(event);
     if (result < 0) fprintf(stderr, "Authority startup/runtime failed: %d\n", result);
+    if (system && authority.catalogue) {
+        struct ae_execution_fence_status state;
+        (void)ae_catalogue_fence_execution(authority.catalogue,&state);
+    }
     ae_setup_service_clear(&authority.setup);
     ae_broker_clear(&authority.broker);
     (void)ae_system_connection_close(&authority.system_connection);

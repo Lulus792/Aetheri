@@ -4,6 +4,25 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Local execution-source fence — 7 November 2026
+
+- Original [internal contract](../../src/catalogue/effect.h) and
+  [store implementation](../../src/catalogue/store.c): process-owned latch,
+  balanced local brackets, fresh-stage suppression and retained historical rows.
+  These memory observations are not durable or global drain/admission evidence.
+- [Execution coordinator](../../src/authority/execution.c),
+  [writer/release transport](../../src/authority/execution_wire.c) and
+  [normal shutdown](../../src/authority/main.c): current-context permits after
+  fresh intent commits, balanced external calls, source fencing on stop.
+- [Native scenarios](../../tests/test_execution_service.c),
+  [commit hook](../../tests/test_launch.c) and
+  [private-bus runner](../../tools/test_launch_native.py): real SQL/ProcessFD/
+  transport with controlled actor/supervisor adapters. The
+  [executed record](journal/2026-11-07-execution-fence.md) bounds these tests,
+  targeted counterexample, complete transcripts and actual normal-service update.
+  No production executing-app/recovery or old-volume provenance is inferred.
+
+
 ## Reciprocal current Root identity — 7 November 2026
 
 - Upstream stable Linux [6.19.10 pidfs implementation](https://raw.githubusercontent.com/gregkh/linux/v6.19.10/fs/pidfs.c),

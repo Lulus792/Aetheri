@@ -1108,7 +1108,7 @@ if(BUILD_TESTING)
         target_include_directories(test_launch PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
         target_compile_definitions(test_launch PRIVATE AETHERI_TEST_EXECUTION_SERVICE)
         target_link_options(test_launch PRIVATE -Wl,--wrap=ae_process_observe_registration -Wl,--wrap=sd_bus_call_method -Wl,--wrap=ae_exec_channel_read
-            -Wl,--wrap=ae_peer_capture -Wl,--wrap=sd_bus_send -Wl,--wrap=clock_gettime)
+            -Wl,--wrap=ae_peer_capture -Wl,--wrap=sd_bus_send -Wl,--wrap=clock_gettime -Wl,--wrap=ae_catalogue_end_execution_effect)
         target_link_options(test_launch PRIVATE -Wl,--wrap=ae_process_observe_self -Wl,--wrap=ae_lifetime_export
             -Wl,--wrap=ae_lifetime_restore -Wl,--wrap=ae_lifetime_close -Wl,--wrap=ae_catalogue_handoff)
         target_link_options(test_launch PRIVATE -Wl,--wrap=sd_bus_get_property_string -Wl,--wrap=sd_bus_get_property_trivial
@@ -1130,6 +1130,12 @@ if(BUILD_TESTING)
             add_test(NAME authority.execution_service COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" service)
             set_tests_properties(authority.execution_service PROPERTIES TIMEOUT 180)
+            add_test(NAME authority.execution_fence COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" fence)
+            set_tests_properties(authority.execution_fence PROPERTIES TIMEOUT 180)
+            add_test(NAME authority.execution_fence_wire COMMAND sudo -n "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" fence-wire)
+            set_tests_properties(authority.execution_fence_wire PROPERTIES TIMEOUT 180)
             add_test(NAME authority.execution_endpoint COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" wire)
             set_tests_properties(authority.execution_endpoint PROPERTIES TIMEOUT 180)

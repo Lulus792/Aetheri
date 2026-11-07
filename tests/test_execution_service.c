@@ -1,5 +1,6 @@
 #include "authority/execution.h"
 #include "authority/execution_wire.h"
+#include "catalogue/effect.h"
 #include "execution-wire.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -17,6 +18,7 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"execution service line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 void ae_test_execution_commit_fault(int);
+void ae_test_execution_fence_commit(struct ae_catalogue *);
 struct test_state {
     struct ae_catalogue *store;
     const struct ae_execution_profile *profile;
@@ -34,6 +36,22 @@ struct test_state {
     char unique[256],notices[8];
 };
 static struct test_state *active;
+static void fence(struct test_state *s,unsigned int expected)
+{
+    struct ae_execution_fence_status state;
+    CHECK(ae_catalogue_fence_execution(s->store,&state)==0 && state.fenced && state.active==expected);
+    CHECK(ae_catalogue_fence_execution(s->store,&state)==0 && state.fenced && state.active==expected);
+    CHECK(ae_catalogue_begin_execution_effect(s->store,s->context)==-ESHUTDOWN);
+}
+static void callback_permit(struct test_state *s)
+{
+    struct ae_execution_fence_status state;
+    CHECK(ae_catalogue_execution_fence_status(s->store,&state)==0 && state.active>=1);
+    struct ae_catalogue *same=s->store;
+    CHECK(ae_catalogue_close(&same)==-EBUSY && same==s->store);
+    uint8_t replacement[16]; memcpy(replacement,s->profile->system_runtime,16); replacement[15]++;
+    CHECK(ae_catalogue_begin_runtime(s->store,s->profile->boot,replacement)==-EBUSY);
+}
 int __real_ae_peer_capture(sd_bus_message *,struct ae_peer *);
 int __wrap_ae_peer_capture(sd_bus_message *m,struct ae_peer *peer)
 {
@@ -74,6 +92,18 @@ static int64_t scalar(const struct test_state *s,const char *sql)
     int64_t value=sqlite3_column_int64(statement,0);
     CHECK(sqlite3_finalize(statement)==SQLITE_OK && sqlite3_close(db)==SQLITE_OK); return value;
 }
+int __real_ae_catalogue_end_execution_effect(struct ae_catalogue *);
+int __wrap_ae_catalogue_end_execution_effect(struct ae_catalogue *store)
+{
+    int r=__real_ae_catalogue_end_execution_effect(store);
+    struct test_state *s=active;
+    if (r==0 && s && s->wire_mode && getpid()==s->host && strstr(s->scenario,"fence-register-reply")) {
+        struct ae_execution_fence_status state;
+        CHECK(ae_catalogue_execution_fence_status(store,&state)==0);
+        if (!state.fenced && !state.active && scalar(s,"SELECT count(*) FROM operation_steps WHERE step_no=2")==1) fence(s,0);
+    }
+    return r;
+}
 int __real_sd_bus_send(sd_bus *,sd_bus_message *,uint64_t *);
 int __wrap_sd_bus_send(sd_bus *bus,sd_bus_message *m,uint64_t *cookie)
 {
@@ -85,11 +115,17 @@ int __wrap_sd_bus_send(sd_bus *bus,sd_bus_message *m,uint64_t *cookie)
             int stage=sd_bus_message_has_signature(m,AE_EXECUTION_REGISTER_OUTPUT) ? 1 :
                 sd_bus_message_has_signature(m,AE_EXECUTION_PREPARED_OUTPUT) ? 2 : 0;
             CHECK(stage!=0);
+            callback_permit(s);
             struct ae_dispatch_snapshot d; CHECK(ae_catalogue_get_dispatch(s->store,s->profile->lease,s->context,&d)==0);
             CHECK(scalar(s,stage==1 ? "SELECT count(*) FROM operation_steps WHERE step_no=2 AND state='executing'" :
                 "SELECT count(*) FROM operation_steps WHERE step_no=3 AND state='executing'")==1);
             CHECK(strcmp(d.state,stage==1 ? "reserved" : "dispatching")==0 && d.invocation_present==(stage==2));
             if (stage==1) ++s->registration_sends; else ++s->releases;
+            if (strstr(s->scenario,stage==1 ? "fence-register-send" : "fence-release-send")) {
+                struct ae_execution_fence_status state;
+                CHECK(ae_catalogue_execution_fence_status(s->store,&state)==0 && state.active>0);
+                fence(s,state.active); /* An already entered send can still deliver. */
+            }
             if (s->send_fault && stage==s->send_stage) {
                 int fault=s->send_fault; s->send_fault=0;
                 if (fault==2) CHECK(__real_sd_bus_send(bus,m,cookie)>=0);
@@ -122,12 +158,18 @@ int __wrap_sd_bus_call_method(sd_bus *bus,const char *destination,const char *pa
     CHECK(s && bus==s->bus && strcmp(destination,"org.freedesktop.systemd1")==0 && strcmp(path,"/org/freedesktop/systemd1")==0 &&
         strcmp(interface,"org.freedesktop.systemd1.Manager")==0 && strcmp(signature,"s")==0);
     va_list args; va_start(args,signature); const char *unit=va_arg(args,const char *); va_end(args); CHECK(strcmp(unit,s->unit)==0);
-    if (strcmp(method,"RefUnit")==0) { ++s->refs; return 1; }
+    if (strcmp(method,"RefUnit")==0) {
+        ++s->refs; callback_permit(s);
+        if (strstr(s->scenario,"fence-bind-ref")) fence(s,1);
+        return 1;
+    }
     CHECK(strcmp(method,"UnrefUnit")==0); --s->refs; CHECK(s->refs==0); return 1;
 }
 static int request(void *owner,const struct ae_execution_profile *p,const struct ae_dispatch_snapshot *d)
 {
     struct test_state *s=owner; ++s->requests; CHECK(s->requests==1 && p!=s->profile); /* profile is an owned copy */
+    callback_permit(s);
+    if (strstr(s->scenario,"fence-request-active")) fence(s,1);
     CHECK(ae_execution_service_close(s->service)==-EBUSY && *s->service);
     CHECK(memcmp(p->launch,s->profile->launch,16)==0 && strcmp(d->state,"reserved")==0);
     struct ae_dispatch_snapshot observed;
@@ -143,6 +185,8 @@ static int request(void *owner,const struct ae_execution_profile *p,const struct
 static int release(void *owner,const struct ae_execution_profile *p,const struct ae_dispatch_snapshot *d)
 {
     struct test_state *s=owner; ++s->releases; CHECK(s->releases==1 && strcmp(d->state,"dispatching")==0 && d->invocation_present);
+    callback_permit(s);
+    if (strstr(s->scenario,"fence-release-active")) fence(s,1);
     CHECK(ae_execution_service_close(s->service)==-EBUSY && *s->service);
     struct ae_dispatch_snapshot observed;
     CHECK(ae_catalogue_get_dispatch(s->store,p->lease,s->context,&observed)==0 && observed.invocation_present);
@@ -169,8 +213,11 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
     struct test_state s={.store=store,.profile=p,.context=context,.directory=directory,.scenario=scenario,.writer=-1,.control=-1,.pidfd=-1}; active=&s;
     sd_event *event=NULL; CHECK(sd_event_new(&event)>=0 && sd_bus_new(&s.bus)>=0);
     struct ae_execution_effects effects={.owner=&s,.request=request,.release=release};
-    struct ae_execution_service *service=NULL;
+    struct ae_execution_service *service=NULL,*sibling=NULL;
     s.service=&service;
+    struct ae_execution_fence_status initial;
+    CHECK(ae_catalogue_execution_fence_status(store,&initial)==0 && !initial.fenced && !initial.active);
+    CHECK(ae_catalogue_end_execution_effect(store)==-EINVAL);
     struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
     CHECK(ae_execution_service_new(store,s.bus,event,p,context,&effects,&service)==0);
     CHECK(ae_execution_service_new(store,s.bus,event,p,context,&effects,&service)==-EINVAL);
@@ -179,6 +226,9 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
         if (probe==0) {
             struct ae_execution_service_status status; struct ae_execution_service *inherited=service,*fresh=NULL;
             CHECK(ae_execution_service_status(service,context,&status)==-ECHILD && ae_execution_service_close(&inherited)==-ECHILD && inherited==service);
+            struct ae_execution_fence_status untouched,copy; memset(&copy,0xa5,sizeof copy); untouched=copy;
+            CHECK(ae_catalogue_fence_execution(store,&untouched)==-ECHILD && memcmp(&untouched,&copy,sizeof copy)==0);
+            CHECK(ae_catalogue_begin_execution_effect(store,context)==-ECHILD && ae_catalogue_end_execution_effect(store)==-ECHILD);
             CHECK(setgroups(0,NULL)==0 && setresgid(1000,1000,1000)==0 && setresuid(1000,1000,1000)==0);
             CHECK(ae_execution_service_new(store,s.bus,event,p,context,&effects,&fresh)==-EPERM && fresh==NULL); _exit(0);
         }
@@ -187,8 +237,26 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
     struct ae_launch_context foreign=*context; foreign.broker_runtime[15]++;
     CHECK(ae_execution_service_request(service,&foreign,&result)==-ESTALE && memcmp(&result,&marker,sizeof result)==0);
     struct ae_dispatch_snapshot snapshot; CHECK(ae_catalogue_get_dispatch(store,p->lease,context,&snapshot)==0); strcpy(s.unit,snapshot.unit);
+    if (strstr(scenario,"fence-request-before")) {
+        CHECK(ae_execution_service_new(store,s.bus,event,p,context,&effects,&sibling)==0);
+        fence(&s,0);
+    }
+    if (strstr(scenario,"fence-request-commit")) ae_test_execution_fence_commit(store);
     if (strstr(scenario,"request-commit-lost")) ae_test_execution_commit_fault(2);
     int r=ae_execution_service_request(service,context,&result);
+    if (strstr(scenario,"fence-request-before") || strstr(scenario,"fence-request-commit")) {
+        CHECK(r==-ESHUTDOWN && !s.requests && memcmp(&result,&marker,sizeof result)==0);
+        if (sibling) {
+            CHECK(ae_execution_service_request(sibling,context,&result)==-ESHUTDOWN && !s.requests);
+            CHECK(ae_execution_service_close(&sibling)==0 && !sibling);
+        }
+        CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=1")==(strstr(scenario,"fence-request-commit") ? 1 : 0));
+        CHECK(ae_catalogue_execution(store,p,context,AE_EXECUTION_REQUEST,NULL,&result)==(strstr(scenario,"fence-request-commit") ? 0 : -ESHUTDOWN));
+        if (strstr(scenario,"fence-request-commit")) CHECK(!result.effect_required);
+        struct ae_execution_service *another=NULL;
+        CHECK(ae_execution_service_new(store,s.bus,event,p,context,&effects,&another)==-ESHUTDOWN && !another);
+        goto done;
+    }
     int request_lost=strstr(scenario,"request-commit-lost")!=NULL,request_timeout=strstr(scenario,"request-timeout")!=NULL;
     CHECK(r==(request_lost ? -EIO : request_timeout ? -ETIMEDOUT : 0));
     if (r<0) CHECK(memcmp(&result,&marker,sizeof result)==0);
@@ -200,6 +268,11 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
     }
     struct ae_peer peer=AE_PEER_INIT; peer.pidfd=s.pidfd; peer.connection_pid=s.child; peer.connection_uid=0;
     memset(peer.bus_id,0x11,16); strcpy(peer.unique_name,":1.117"); strcpy(peer.connection_label,"system_u:system_r:aetheri_starter_t:s0");
+    if (strstr(scenario,"fence-request-active")) {
+        int writer=-777; result=marker;
+        CHECK(ae_execution_service_bind(service,&peer,&writer,&result)==-ESHUTDOWN && writer==-777 && !s.refs && memcmp(&result,&marker,sizeof result)==0);
+        goto done;
+    }
     for (int bad=0;bad<6;++bad) {
         struct ae_peer rejected=peer;
         if (bad==0) rejected.connection_uid=1000;
@@ -210,7 +283,13 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
     }
     s.context_bad=0;
     if (strstr(scenario,"bind-commit-lost")) ae_test_execution_commit_fault(2);
+    if (strstr(scenario,"fence-bind-commit")) ae_test_execution_fence_commit(store);
     int writer=-777; result=marker; r=ae_execution_service_bind(service,&peer,&writer,&result);
+    if (strstr(scenario,"fence-bind-")) {
+        CHECK(r==-ESHUTDOWN && writer==-777 && s.refs==1 && memcmp(&result,&marker,sizeof result)==0);
+        CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=2")==(strstr(scenario,"fence-bind-commit") ? 1 : 0));
+        goto done;
+    }
     int bind_lost=strstr(scenario,"bind-commit-lost")!=NULL;
     CHECK(r==(bind_lost ? -EIO : 0) && s.refs==1);
     if (bind_lost) {
@@ -229,7 +308,22 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
         ae_test_execution_commit_fault(2); result=marker;
         CHECK(ae_execution_service_prepared(service,&peer,&result)==-EIO && memcmp(&result,&marker,sizeof result)==0);
     }
+    if (strstr(scenario,"fence-prepare-before")) {
+        fence(&s,0); result=marker;
+        CHECK(ae_execution_service_prepared(service,&peer,&result)==-ESHUTDOWN && memcmp(&result,&marker,sizeof result)==0);
+        CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no IN (1,2) AND state='applied'")==0);
+        goto done;
+    }
     CHECK(ae_execution_service_prepared(service,&peer,&result)==0);
+    if (strstr(scenario,"fence-arm-before") || strstr(scenario,"fence-arm-commit")) {
+        if (strstr(scenario,"fence-arm-before")) fence(&s,0);
+        else ae_test_execution_fence_commit(store);
+        result=marker;
+        CHECK(ae_execution_service_arm(service,context,&result)==-ESHUTDOWN && !s.releases && memcmp(&result,&marker,sizeof result)==0);
+        CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=3")==(strstr(scenario,"fence-arm-commit") ? 1 : 0));
+        CHECK(scalar(&s,"SELECT state='running' FROM generation_leases")==(strstr(scenario,"fence-arm-commit") ? 1 : 0));
+        goto done;
+    }
     if (strstr(scenario,"context-drift")) {
         s.drift=1; result=marker;
         CHECK(ae_execution_service_arm(service,context,&result)==-ESTALE && memcmp(&result,&marker,sizeof result)==0);
@@ -289,6 +383,14 @@ void ae_test_execution_service(struct ae_catalogue *store,const struct ae_execut
         strstr(scenario,"malformed") ? "SELECT reason_code='exec_channel_malformed' FROM operations" :
         "SELECT reason_code='exec_failure_p8_e1' FROM operations")==1);
 done:
+    {
+        struct ae_execution_fence_status state;
+        CHECK(ae_catalogue_execution_fence_status(store,&state)==0 && !state.active);
+        if (strstr(scenario,"fence-")) {
+            CHECK(state.fenced); uint8_t replacement[16]; memcpy(replacement,p->system_runtime,16); replacement[15]++;
+            CHECK(ae_catalogue_begin_runtime(store,p->boot,replacement)==-ESHUTDOWN);
+        }
+    }
     if (s.writer>=0) CHECK(close(s.writer)==0);
     int64_t revision=scalar(&s,"SELECT catalogue_revision FROM authority_meta");
     CHECK(ae_execution_service_close(&service)==0 && service==NULL && !s.refs);
@@ -387,20 +489,21 @@ void ae_test_execution_wire(struct ae_catalogue *store,const struct ae_execution
     CHECK(ae_execution_endpoint_request(endpoint,context,&result)==-EALREADY && s.requests==1);
     sd_event_source *notice=NULL; CHECK(sd_event_add_io(event,&notice,s.notice_fd,EPOLLIN|EPOLLHUP,wire_notice_event,&s)>=0);
     if (strstr(scenario,"bind-commit-lost")) ae_test_execution_commit_fault(2);
-    if (strstr(scenario,"register-send")) { s.send_stage=1; s.send_fault=strstr(scenario,"lost") ? 2 : 1; }
+    if (strstr(scenario,"fence-register-commit")) ae_test_execution_fence_commit(store);
+    if (strstr(scenario,"register-send") && !strstr(scenario,"fence-")) { s.send_stage=1; s.send_fault=strstr(scenario,"lost") ? 2 : 1; }
     wire_wait(event,&s,1);
     if (s.notices[0]!='B') {
         struct ae_execution_endpoint_status diagnostic; CHECK(ae_execution_endpoint_status(endpoint,context,&diagnostic)==0);
         fprintf(stderr,"wire %s first=%c requested=%d bound=%d bind_error=%d reply_attempt=%d reply_error=%d refs=%d\n",scenario,s.notices[0],diagnostic.execution.requested,
             diagnostic.execution.bound,diagnostic.execution.bind_error,diagnostic.registration_reply_attempted,diagnostic.registration_reply_error,s.refs);
     }
-    if (strstr(scenario,"wrong-peer") || strstr(scenario,"wrong-tuple") || strstr(scenario,"bind-commit-lost") || strstr(scenario,"register-send-before")) {
+    if (strstr(scenario,"wrong-peer") || strstr(scenario,"wrong-tuple") || strstr(scenario,"bind-commit-lost") || strstr(scenario,"register-send-before") || strstr(scenario,"fence-register-commit") || strstr(scenario,"fence-register-reply")) {
         CHECK(s.notices[0]=='F' && !s.releases);
         CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=3")==0);
         goto done_wire;
     }
     CHECK(s.notices[0]=='B');
-    if (strstr(scenario,"prepare-commit-lost") || strstr(scenario,"register-send-lost")) {
+    if (strstr(scenario,"prepare-commit-lost") || strstr(scenario,"register-send-lost") || strstr(scenario,"fence-register-send")) {
         wire_wait(event,&s,2); CHECK(s.notices[1]=='E' && !s.releases);
         CHECK(scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=3")==0); goto done_wire;
     }
@@ -418,17 +521,19 @@ void ae_test_execution_wire(struct ae_catalogue *store,const struct ae_execution
         CHECK(ae_execution_endpoint_arm(endpoint,context,&result)==-ETIMEDOUT); success=0;
     } else {
         if (strstr(scenario,"deadline-direct") || strstr(scenario,"release-deadline")) { s.time_jump=1; s.time_skip=strstr(scenario,"release-deadline") ? 1 : 0; }
-        if (strstr(scenario,"release-send")) { s.send_stage=2; s.send_fault=strstr(scenario,"lost") ? 2 : 1; }
+        if (strstr(scenario,"release-send") && !strstr(scenario,"fence-")) { s.send_stage=2; s.send_fault=strstr(scenario,"lost") ? 2 : 1; }
         if (strstr(scenario,"arm-commit-lost")) ae_test_execution_commit_fault(2);
+        if (strstr(scenario,"fence-arm-before")) fence(&s,0);
+        if (strstr(scenario,"fence-arm-commit")) ae_test_execution_fence_commit(store);
         if (strstr(scenario,"context-drift")) s.drift=1;
         struct ae_launch_context broker=*context;
         if (strstr(scenario,"broker-replacement")) broker.broker_runtime[15]++;
         if (strstr(scenario,"root-restart")) { uint8_t id[16]; memcpy(id,p->system_runtime,16); id[15]++; CHECK(ae_catalogue_begin_runtime(store,p->boot,id)==0); }
         result=marker; int r=ae_execution_endpoint_arm(endpoint,&broker,&result);
-        int rejected=strstr(scenario,"deadline") || strstr(scenario,"release-send") || strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement") || strstr(scenario,"root-restart");
+        int rejected=strstr(scenario,"deadline") || (strstr(scenario,"release-send") && !strstr(scenario,"fence-")) || strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement") || strstr(scenario,"root-restart") || strstr(scenario,"fence-arm-");
         CHECK(rejected ? r<0 && memcmp(&result,&marker,sizeof result)==0 : r==0);
         armed=scalar(&s,"SELECT count(*) FROM operation_steps WHERE step_no=3")==1;
-        if (strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement") || strstr(scenario,"root-restart")) {
+        if (strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement") || strstr(scenario,"root-restart") || strstr(scenario,"fence-arm-")) {
             s.drift=0; s.time_jump=1; s.time_skip=0;
             CHECK(ae_execution_endpoint_arm(endpoint,context,&result)==-ETIMEDOUT);
         } else CHECK(ae_execution_endpoint_arm(endpoint,context,&result)<0);
@@ -437,10 +542,10 @@ void ae_test_execution_wire(struct ae_catalogue *store,const struct ae_execution
     }
     CHECK(s.notices[1]==(success ? 'P' : 'E'));
     CHECK(scalar(&s,armed ? "SELECT state='running' FROM generation_leases" : "SELECT state='reserved' FROM generation_leases")==1);
-    CHECK(s.releases==(success || strstr(scenario,"release-send-before") ? 1 : 0));
+    CHECK(s.releases==(success || (strstr(scenario,"release-send-before") && !strstr(scenario,"fence-")) ? 1 : 0));
     if (!strstr(scenario,"root-restart")) {
         CHECK(ae_execution_endpoint_status(endpoint,context,&status)==0 && !status.prepared_pending);
-        int expired=strstr(scenario,"deadline") || strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement");
+        int expired=strstr(scenario,"deadline") || strstr(scenario,"arm-commit-lost") || strstr(scenario,"context-drift") || strstr(scenario,"broker-replacement") || strstr(scenario,"fence-arm-");
         CHECK(status.prepared_expired==expired);
     }
 done_wire:

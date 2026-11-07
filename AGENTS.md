@@ -920,3 +920,17 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   capability change. Interrupted controller probe/update needs manual review.
   Continuity, prior-owner/future-effect/holder recovery remain separate work;
   preserve the old lost-handle quarantine and all unsettled owner journals.
+
+- catalogue/effect.h now supplies a process-owned, one-way local execution latch
+  shared by coordinators on the retained SYSTEM store. Read spec/runtime.md's
+  local-execution-source-fence section; run authority.execution_fence and
+  authority.execution_fence_wire plus affected execution/catalogue tests. Fresh
+  stages and post-commit adapter/transport permits reject when fenced; historical
+  acknowledgments never regain effect_required. Balance all entered brackets;
+  close/runtime replacement is EBUSY while active. Actual Root shutdown fences
+  before event-loop exit. This is memory-local, not a durable/restart/volume or
+  global holder fence. Entered calls/sends may still finish or return unknown;
+  active==0 never proves external drain or lease release. Other effect families,
+  supervisor/old-owner/export/delegated sources require separate coordination.
+  No SQL/XML/policy/public capability change. Keep the old lost-handle quarantine
+  untouched; no normal executing launch or complete recovery follows.

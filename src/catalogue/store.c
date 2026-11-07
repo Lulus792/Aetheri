@@ -10,6 +10,7 @@
 #include "catalogue/interruption.h"
 #include "catalogue/handoff.h"
 #include "catalogue/recovery.h"
+#include "catalogue/effect.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -36,6 +37,8 @@ struct ae_catalogue {
     struct stat root_stat, database_stat, lock_stat;
     struct ae_root_identity root_identity;
     char directory[PATH_MAX], path[PATH_MAX];
+    unsigned int execution_effects;
+    int execution_fenced;
 };
 
 static int nonzero(const uint8_t *id)
@@ -501,6 +504,8 @@ int ae_catalogue_begin_runtime(struct ae_catalogue *store, const uint8_t boot_id
 {
     if (boot_id == NULL || incarnation == NULL || !nonzero(boot_id) || !nonzero(incarnation)) return -EINVAL;
     int result = still_named(store);
+    if (result==0 && store->execution_effects) return -EBUSY;
+    if (result==0 && store->execution_fenced) return -ESHUTDOWN;
     if (result == 0) result = exec_sql(store->db, "BEGIN IMMEDIATE");
     struct ae_catalogue_info info;
     if (result == 0) result = read_info(store, &info);
@@ -1461,6 +1466,51 @@ static int reservation_context(struct ae_catalogue *store,const struct ae_launch
     int64_t revision;
     if (result==0) result=account_row(store,context->account,context->uid,&revision);
     return result;
+}
+static int execution_effect_owner(struct ae_catalogue *store)
+{
+    if (!store) return -EINVAL;
+    if (store->process!=getpid()) return -ECHILD;
+    return store->identity.kind==AE_CATALOGUE_SYSTEM ? 0 : -EPERM;
+}
+int ae_catalogue_execution_fence_status(struct ae_catalogue *store,struct ae_execution_fence_status *output)
+{
+    if (!output) return -EINVAL;
+    int r=execution_effect_owner(store);
+    if (r==0) *output=(struct ae_execution_fence_status){.active=store->execution_effects,.fenced=store->execution_fenced};
+    return r;
+}
+int ae_catalogue_fence_execution(struct ae_catalogue *store,struct ae_execution_fence_status *output)
+{
+    if (!output) return -EINVAL;
+    int r=execution_effect_owner(store);
+    if (r==0) { store->execution_fenced=1; r=ae_catalogue_execution_fence_status(store,output); }
+    return r;
+}
+int ae_catalogue_check_execution_effect(struct ae_catalogue *store,const struct ae_launch_context *context)
+{
+    int r=execution_effect_owner(store);
+    if (r==0 && store->execution_fenced) r=-ESHUTDOWN;
+    if (r==0) r=reservation_context(store,context);
+    /* The context read may call out through fault/IO adapters. A fence cannot
+     * be lost merely because it arrived during that observation. */
+    if (r==0 && store->execution_fenced) r=-ESHUTDOWN;
+    return r;
+}
+int ae_catalogue_begin_execution_effect(struct ae_catalogue *store,const struct ae_launch_context *context)
+{
+    int r=ae_catalogue_check_execution_effect(store,context);
+    if (r==0 && !sqlite3_get_autocommit(store->db)) r=-EBUSY;
+    if (r==0 && store->execution_effects==UINT_MAX) r=-EOVERFLOW;
+    if (r==0) ++store->execution_effects;
+    return r;
+}
+int ae_catalogue_end_execution_effect(struct ae_catalogue *store)
+{
+    int r=execution_effect_owner(store);
+    if (r==0 && !store->execution_effects) r=-EINVAL;
+    if (r==0) --store->execution_effects;
+    return r;
 }
 static int reservation_bind(sqlite3_stmt *statement,const char *name,const void *bytes,int size)
 {
@@ -2552,6 +2602,7 @@ int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_
     }
     int mutation=result==0 && ((stage==AE_EXECUTION_REQUEST && !one) || (stage==AE_EXECUTION_BIND && !two) ||
         (stage==AE_EXECUTION_PREPARE && prepared!=2) || (stage==AE_EXECUTION_ARM && !three));
+    if (result==0 && mutation && store->execution_fenced) result=-ESHUTDOWN;
     if (result==0 && mutation) {
         result=EQ("SELECT count(*) " EXEC_TUPLE "WHERE d.state='reserved' AND l.state='reserved' AND d.invocation_ref IS NULL AND d.ready_data_gate_revision IS NULL",&match);
         if (result==0 && match!=1) result=-EAGAIN;
@@ -3731,6 +3782,7 @@ int ae_catalogue_close(struct ae_catalogue **output)
     struct ae_catalogue *store = *output;
     if (store == NULL) return 0;
     if (store->process != getpid()) return -ECHILD;
+    if (store->execution_effects) return -EBUSY;
     int result = failure(sqlite3_close(store->db));
     if (result != 0) return result;
     store->db = NULL;

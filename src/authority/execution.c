@@ -1,4 +1,5 @@
 #include "authority/execution.h"
+#include "catalogue/effect.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -119,6 +120,7 @@ int ae_execution_service_new(struct ae_catalogue *store,sd_bus *bus,sd_event *ev
     if (r==0 && (memcmp(d.operation,p->root_operation,16)!=0 || memcmp(d.launch,p->launch,16)!=0 || d.install_gate_revision!=p->install_gate_revision ||
         strcmp(d.state,"reserved")!=0 || d.invocation_present)) r=-ESTALE;
     if (r==0) memcpy(s->unit,d.unit,sizeof s->unit);
+    if (r==0) r=ae_catalogue_check_execution_effect(store,c);
     if (r!=0) { free(s); return r; }
     *output=s; return 0;
 }
@@ -131,12 +133,15 @@ int ae_execution_service_request(struct ae_execution_service *s,const struct ae_
     s->request_attempted=1; struct ae_execution_result result;
     r=ae_catalogue_execution(s->catalogue,&s->profile,c,AE_EXECUTION_REQUEST,NULL,&result);
     if (r==0 && !result.effect_required) r=-EALREADY;
+    if (r==0) r=ae_catalogue_begin_execution_effect(s->catalogue,c);
     if (r==0) {
         s->requested=1;
         s->effect_active=1;
         r=s->effects.request(s->effects.owner,&s->profile,&result.dispatch);
         s->effect_active=0;
         if (r>0) r=-EIO;
+        int ended=ae_catalogue_end_execution_effect(s->catalogue);
+        if (r==0) r=ended;
     }
     s->request_error=r;
     if (r==0) *output=result;
@@ -147,8 +152,11 @@ int ae_execution_service_bind(struct ae_execution_service *s,const struct ae_pee
     int r=owner(s); if (r==0 && (writer==NULL || *writer>=0 || output==NULL)) r=-EINVAL;
     if (r==0 && (!s->requested || s->bind_attempted)) r=-EALREADY;
     struct ae_process_context c; if (r==0) r=starter_context(s,peer,&c);
+    if (r==0) r=ae_catalogue_begin_execution_effect(s->catalogue,&s->broker);
     if (r!=0) return r;
-    int pin=fcntl(peer->pidfd,F_DUPFD_CLOEXEC,3); if (pin<0) return -errno;
+    int pin=fcntl(peer->pidfd,F_DUPFD_CLOEXEC,3);
+    if (pin<0) { int error=-errno; (void)ae_catalogue_end_execution_effect(s->catalogue); return error; }
+    s->effect_active=1;
     s->bind_attempted=1; s->peer=*peer; s->peer.pidfd=pin; s->context=c;
     r=sd_bus_call_method(s->bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","RefUnit",NULL,NULL,"s",s->unit);
     if (r>=0) { s->pinned=1; r=same_starter(s,peer); }
@@ -158,6 +166,10 @@ int ae_execution_service_bind(struct ae_execution_service *s,const struct ae_pee
     if (r==0) r=sd_event_add_io(s->event,&s->watch,ae_exec_channel_fd(s->channel),EPOLLIN|EPOLLHUP|EPOLLERR,observe_channel,s);
     struct ae_execution_result result;
     if (r>=0) r=ae_catalogue_execution(s->catalogue,&s->profile,&s->broker,AE_EXECUTION_BIND,&s->evidence,&result);
+    if (r==0) r=ae_catalogue_check_execution_effect(s->catalogue,&s->broker);
+    s->effect_active=0;
+    int ended=ae_catalogue_end_execution_effect(s->catalogue);
+    if (r==0) r=ended;
     if (r==0) { s->bound=1; *writer=endpoint; *output=result; }
     else if (endpoint>=0) close(endpoint);
     s->bind_error=r;
@@ -185,12 +197,15 @@ int ae_execution_service_arm(struct ae_execution_service *s,const struct ae_laun
     s->arm_attempted=1; struct ae_execution_result result;
     r=ae_catalogue_execution(s->catalogue,&s->profile,c,AE_EXECUTION_ARM,&s->evidence,&result);
     if (r==0 && !result.effect_required) r=-EALREADY;
+    if (r==0) r=ae_catalogue_begin_execution_effect(s->catalogue,c);
     if (r==0) {
         s->armed=1;
         s->effect_active=1;
         r=s->effects.release(s->effects.owner,&s->profile,&result.dispatch);
         s->effect_active=0;
         if (r>0) r=-EIO;
+        int ended=ae_catalogue_end_execution_effect(s->catalogue);
+        if (r==0) r=ended;
     }
     s->release_error=r;
     if (r==0) *output=result;
@@ -202,6 +217,7 @@ int ae_execution_service_status(struct ae_execution_service *s,const struct ae_l
     if (r==0) r=same_broker(s,c);
     struct ae_execution_service_status result={0};
     if (r==0) r=ae_catalogue_get_dispatch(s->catalogue,s->profile.lease,c,&result.dispatch);
+    if (r==0) r=ae_catalogue_execution_fence_status(s->catalogue,&result.effects);
     if (r==0) {
         result.channel=s->report; result.request_error=s->request_error; result.bind_error=s->bind_error; result.release_error=s->release_error; result.channel_error=s->channel_error;
         result.context_error=s->context_error;
