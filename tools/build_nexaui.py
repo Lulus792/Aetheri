@@ -82,9 +82,19 @@ def main():
             if member.size > 16 * 1024**2:
                 raise ValueError("unexpected member size")
             names.add(member.name)
-        if len(members) != 1051 or sum(m.isfile() for m in members) != 945 or sum(m.size for m in members) > 64 * 1024**2:
+        inventory = config["archive"]
+        if (len(members) != inventory["members"] or sum(m.isfile() for m in members) != inventory["files"]
+                or sum(m.size for m in members) != inventory["unpacked_size"]
+                or len(members) > 4096 or sum(m.size for m in members) > 64 * 1024**2):
             raise ValueError("unexpected source inventory")
-        stream.extractall(source, filter="data")
+        # Git commit times can be ahead of the carrier clock. Source timestamps
+        # are not identity; keep their checked bytes and use a fixed build epoch
+        # so Ninja does not endlessly regenerate a manifest older than its input.
+        if config["archive"]["extraction_mtime"] != 0:
+            raise ValueError("unexpected source extraction epoch")
+        for member in members:
+            member.mtime = 0
+        stream.extractall(source, members=members, filter="data")
     if digest(source / config["license"]["path"]) != config["license"]["sha256"]:
         raise ValueError("source license mismatch")
     models = {}
@@ -112,8 +122,20 @@ def main():
              "-DNEXAUI_SOURCE_REVISION=" + config["revision"]])
         run(["cmake", "--build", str(build), "-j2"])
         run(["cmake", "--install", str(build)])
+        # Keep upstream source bytes intact. Its Settings view directly uses
+        # libm; a shared SDK's private link does not provide that consumer link.
+        adapter = work / "consumer-source"
+        adapter.mkdir(mode=0o700)
+        (adapter / "CMakeLists.txt").write_text(
+            "cmake_minimum_required(VERSION 3.21)\n"
+            "project(AetheriNexaUIConsumer LANGUAGES C)\n"
+            "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"${CMAKE_BINARY_DIR}\")\n"
+            "add_subdirectory(\"${NEXAUI_UPSTREAM_CONSUMER}\" upstream)\n"
+            "target_link_libraries(aetheri_view PUBLIC m)\n")
         consumer = work / "consumer-build"
-        run(["cmake", "-S", str(source / config["consumer"]), "-B", str(consumer), *common,
+        run(["cmake", "-S", str(adapter), "-B", str(consumer), *common,
+             "-DNEXAUI_UPSTREAM_CONSUMER=" + str(source / config["consumer"]),
+             "-DNexaUI_DIR=" + str(prefix / "lib/cmake/NexaUI"),
              "-DCMAKE_PREFIX_PATH=" + str(prefix), "-DAETHERI_SOURCE_DIR=" + str(snapshot)])
         run(["cmake", "--build", str(consumer), "-j2"])
     if "NEXAUI_HAVE_DBUS_SDK=1" not in (build / "compile_commands.json").read_text():

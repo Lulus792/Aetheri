@@ -22,6 +22,18 @@ Do not append the old overview, implementation request or a request to paste it.
 Context summaries should retain the closed handoff status and the actual current
 Aetheri task; the historical request must not become the next task after resuming.
 
+## Consumer upgrade — 7 November 2026
+
+The old 0.1.18/e71ee30 pin was the last tested Aetheri consumer selection.
+A controlled upgrade now selects 0.1.23/97a4264 in the manifest, with unchanged
+Wayland/software/AT-SPI dependency profile and retained old artifacts. Private
+Release checks pass all 73 cases across the main run and six corrected owner
+regressions; the full73-group ASan/UBSan run passes without skips. Shared normal
+source/build promotion and final app/hardware acceptance remain separate.
+Read the [executed record](../journal/2026-11-07-nexaui-upgrade.md).
+The catalogue's existing W07/P04 rows now reflect the delivered fullscreen API
+and observed quota-backed buffer failure; no new handoff/message is required.
+
 ## Current decision — 4 November 2026
 
 6 November original-session multiplex update: the own Terminal composes multiple

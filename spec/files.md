@@ -83,7 +83,7 @@ filter, inline file/folder naming, rename, move review, action menu and read-onl
 information view. It uses the same controller and filesystem operations as the
 SDL app. Build with the existing reviewed `AETHERI_NEXAUI_PREFIX` profile in
 [NexaUI integration](nexaui.md), plus Files and Settings. It currently selects
-exactly SDK 0.1.18. Run the command above with `aetheri-files-nexaui` in place of
+the exact SDK version/revision in `nexaui-inputs.json` (currently 0.1.23/97a4264). Run the command above with `aetheri-files-nexaui` in place of
 `aetheri-files`; its arguments and separately owned Terminal/editor are unchanged.
 The development dock/search owner defaults to SDL Files. A new explicit
 `start --desktop --files-ui nexaui-owned` selects this executable; see the
@@ -98,9 +98,9 @@ The original scaffold's MIT notice remains in `src/settings/NEXAUI-NOTICE.txt`.
 The first view implements an opaque dark/high-contrast material, English/German
 and 100/125/150/200-percent text. Below 640×420 it retains Close and a resize hint
 while refusing new editing commands. Native title/edge input supports move and
-resize; Zoom means work-area maximize/restore. SDK 0.1.18 has no public fullscreen
-entry request: F11 explicitly reports unavailable in this opt-in view. The SDL
-view retains fullscreen. Full glass and final visual/hardware acceptance remain.
+resize; Zoom means work-area maximize/restore. NexaUI 0.1.23 adds a public fullscreen
+entry request, but this Files view has not adopted that interaction: F11 still
+explicitly reports unavailable. The SDL view retains fullscreen. Full glass and final visual/hardware acceptance remain.
 
 An original primary title press becomes a native move only after four logical
 pixels of movement. Double-clicking within 450 milliseconds/six pixels requests

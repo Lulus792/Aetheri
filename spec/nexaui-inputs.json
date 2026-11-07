@@ -1,15 +1,19 @@
 {
   "format": 1,
-  "purpose": "Opt-in original-model Settings integration probe; no default toolkit replacement",
-  "reviewed": "2026-11-05",
+  "purpose": "Reviewed SDK for opt-in original Aetheri UI; upstream Settings consumer retained; no default toolkit replacement",
+  "reviewed": "2026-11-07",
   "repository": "https://github.com/Lulus792/NexaUI.git",
-  "revision": "e71ee304f1e6c23fa562d9e4b11f7e8e12152079",
-  "version": "0.1.18",
+  "revision": "97a42647480bb05167cee5e4ae08cedd9147d80d",
+  "version": "0.1.23",
   "archive": {
-    "name": "nexaui-e71ee304f1e6c23fa562d9e4b11f7e8e12152079.tar",
-    "generation": "git -c core.autocrlf=false archive --format=tar e71ee304f1e6c23fa562d9e4b11f7e8e12152079",
-    "size": 37877760,
-    "sha256": "15fc2fbd41223af85612c45e7b490985e92bed481075594b7edb866f2d75027a"
+    "name": "nexaui-97a42647480bb05167cee5e4ae08cedd9147d80d.tar",
+    "generation": "git -c core.autocrlf=false archive --format=tar 97a42647480bb05167cee5e4ae08cedd9147d80d",
+    "size": 39761920,
+    "sha256": "fd07f1c4fbb9f074fa0f630cb491a9f4df2b0e7d50ad1096ced8ba44fb7340ba",
+    "members": 1226,
+    "files": 1106,
+    "unpacked_size": 38834620,
+    "extraction_mtime": 0
   },
   "license": {
     "path": "LICENSE",
@@ -22,8 +26,8 @@
   ],
   "consumer": "examples/21_aetheri_model",
   "development_builds": {
-    "release": "/home/aetheri/deps/nexaui-settings-release-02",
-    "debug": "/home/aetheri/deps/nexaui-settings-debug-01"
+    "release": "/home/aetheri/deps/nexaui-settings-release-05",
+    "debug": "/home/aetheri/deps/nexaui-settings-debug-02"
   },
   "dbus_sdk": {
     "name": "dbus-devel-1.16.2-1.fc44.x86_64.rpm",

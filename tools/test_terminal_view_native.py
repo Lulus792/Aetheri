@@ -31,7 +31,9 @@ def main():
     assert data['result']=='passed'
     terminal=Path(arguments[2] if mode=='files' else arguments[1]).resolve()
     assert terminal.name=='aetheri-terminal-nexaui' and data['binaries'][str(terminal)]==hashlib.sha256(terminal.read_bytes()).hexdigest()
-    logs=[p for p in native.glob('*.log') if p.name!='original-driver.log' and 'PRESENTATION nexaui 0.1.18 sdl-host rgba8' in p.read_text(errors='replace')]
+    sdk=json.loads((root/'spec/nexaui-inputs.json').read_text())
+    signature='PRESENTATION nexaui '+sdk['version']+' sdl-host rgba8'
+    logs=[p for p in native.glob('*.log') if p.name!='original-driver.log' and signature in p.read_text(errors='replace')]
     assert logs and all(re.search(r'^NEXAUI_FRAME \d+ width=\d+ height=\d+ stride=\d+$',p.read_text(errors='replace'),re.M) for p in logs)
     symbols=subprocess.check_output(['nm','--defined-only',str(terminal)],text=True)
     assert 'ae_terminal_view_grid' in symbols and 'ae_terminal_session_enqueue' in symbols
@@ -39,7 +41,6 @@ def main():
     build=Path(arguments[-2] if mode=='files' else arguments[-1]).resolve()
     cache=(build/'CMakeCache.txt').read_text()
     prefix=Path(re.search(r'^AETHERI_NEXAUI_PREFIX:PATH=(.+)$',cache,re.M)[1])
-    sdk=json.loads((root/'spec/nexaui-inputs.json').read_text())
     config=prefix/'lib/cmake/NexaUI/NexaUIConfig.cmake'
     assert 'set(NexaUI_SOURCE_REVISION "'+sdk['revision']+'")' in config.read_text()
     libraries={p.resolve() for p in (prefix/'lib').glob('libnexaui.so*')};assert len(libraries)==1

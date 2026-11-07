@@ -33,6 +33,7 @@ def main():
         raise RuntimeError("explicit disposable carrier account required")
     source = Path(__file__).resolve().parents[1]
     profile = "debug" if "AETHERI_SANITIZERS:BOOL=ON" in (build / "CMakeCache.txt").read_text() else "release"
+    session.build_for = lambda selected_profile: build
     selected = session.settings_selection(profile, ui)
     # Leave space for the fixed runtime/socket suffix within sockaddr_un.
     root = Path(tempfile.mkdtemp(prefix="nx-own-" if ui == "nexaui-owned" else "nexaui-owner-", dir=build))

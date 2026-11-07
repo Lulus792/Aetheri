@@ -47,7 +47,7 @@ def main():
         for name, value in assets["files"].items():
             assert digest(fixture / name.lstrip("/")) == value, name
         # Reuse verified private headers/runtime, never overwrite the earlier peer.
-        sdk = Path("/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk")
+        sdk = Path(json.loads((ROOT / "spec/nexaui-inputs.json").read_text())["development_builds"]["release"]) / "dbus-sdk"
         command = ["cc", "-std=c17", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-O2",
                    str(ROOT / "tests/settings_view_atspi.c"), "-o", str(client_binary)]
         command += ["-I" + str(fixture / p) for p in ("usr/include/at-spi-2.0", "usr/include/glib-2.0", "usr/lib64/glib-2.0/include")]
@@ -174,13 +174,14 @@ def main():
         outputs = re.findall(r"^OUTPUT (\d+) (\d+) (\d+) (\d+) (\d+) (\d+)$", log(), re.M)
         assert {(int(row[1]), int(row[2])) for row in outputs} == {(1920, 1080), (2560, 1440), (3840, 2160)}
         maps = Path(f"/proc/{app.pid}/maps").read_text()
-        assert "/nexaui-settings-release-02/prefix/lib/libnexaui.so" in maps or "/nexaui-settings-debug-01/prefix/lib/libnexaui.so" in maps
         assert "libdbus-1.so.3" in maps
         loaded = {Path(line.split()[-1]).resolve() for line in maps.splitlines() if "/libnexaui.so" in line}
         assert len(loaded) == 1
         library = loaded.pop()
         candidate = library.parents[2]
         pin = json.loads((ROOT / "spec/nexaui-inputs.json").read_text())
+        assert str(candidate) in pin["development_builds"].values()
+        assert library.name == "libnexaui.so." + pin["version"]
         metadata = json.loads((candidate / "build.json").read_text())
         assert metadata["revision"] == pin["revision"] and metadata["version"] == pin["version"] and metadata["atspi_compiled"]
         assert digest(library) == metadata["artifacts"][library.relative_to(candidate).as_posix()]

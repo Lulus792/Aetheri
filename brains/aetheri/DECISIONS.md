@@ -1,5 +1,17 @@
 # Decisions
 
+## Review an exact NexaUI update across original consumers — 7 November 2026
+
+The user asked why the SDK remained 0.1.18. Keep explicit immutable versions for
+reproducible behavior, and review upgrades when evidence justifies them. Select
+0.1.23/97a4264 after the scoped private Release/ASan original-app checks; do not
+use a floating main branch or silently switch current sessions. Version/exported
+revision, actual loaded artifact hashes and owner lifetime bindings remain
+separate checks, not publisher or production admission proof. Keep SDL defaults
+and old artifacts/history. Normal shared-source/build promotion and native DRM
+acceptance are a subsequent engineering boundary. See the
+[executed record](journal/2026-11-07-nexaui-upgrade.md).
+
 ## Original issuer evidence belongs to the Root owner journal — 7 November 2026
 
 Persist the original connection/process/image observation in the existing

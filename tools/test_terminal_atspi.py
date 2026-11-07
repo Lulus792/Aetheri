@@ -18,6 +18,8 @@ ROOT=Path(__file__).resolve().parents[1]
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def main():
+    nexaui_pin=json.loads((ROOT/'spec/nexaui-inputs.json').read_text())
+    nexaui_library='libnexaui.so.'+nexaui_pin['version']
     assert len(sys.argv) in (7,8,9)
     server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
     query_concurrent=len(sys.argv)==8 and sys.argv[7]=='--query-concurrent'
@@ -35,7 +37,7 @@ def main():
         assert digest(Path(f['path']))==f['sha256'] and digest(Path(f['license_path']))==f['license_sha256']
     root=Path(tempfile.mkdtemp(prefix='terminal-reading-atspi-' if reading_task else 'terminal-panes-atspi-' if pane_task else 'terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
     for n in ('runtime','cache','captures'):(root/n).mkdir(mode=0o700)
-    client=root/'client';sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
+    client=root/'client';sdk=Path(nexaui_pin['development_builds']['release'])/'dbus-sdk'
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
     command+=['-I'+str(fixture/p) for p in ('usr/include/at-spi-2.0','usr/include/glib-2.0','usr/lib64/glib-2.0/include')]
     command+=['-I'+str(sdk/p) for p in ('include/dbus-1.0','lib64/dbus-1.0/include')]
@@ -221,7 +223,7 @@ def main():
                 peer(app.pid,'pane-focus',f'Shell {first}|pane-updated','scaled-selected-pane-reading-focus')
                 wait(lambda:f'DRAWN {workspace()["frame"]}\n' in log(),'presented native pane result')
                 capture('independent native pane activation, exact text and stale row after hide/restore')
-                maps=Path(f'/proc/{app.pid}/maps').read_text();assert 'libnexaui.so.0.1.18' in maps and 'ui-gles-release-04/prefix/lib/libSDL3.so' in maps
+                maps=Path(f'/proc/{app.pid}/maps').read_text();assert nexaui_library in maps and 'ui-gles-release-04/prefix/lib/libSDL3.so' in maps
                 (root/'app-maps.txt').write_text(maps)
                 key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
                 assert all(select.select([s['pin']],[],[],0)[0] for s in sessions.values())
@@ -288,7 +290,7 @@ def main():
         peer(app.pid,'focused','row-é中','read')
         before=accepted();peer(app.pid,'focus','row-é中','native-read-focus')
         wait(lambda:reading()>0,'actual native reading focus');assert accepted()==before
-        maps=Path(f'/proc/{app.pid}/maps').read_text();assert 'libnexaui.so.0.1.18' in maps and 'libSDL3.so' in maps
+        maps=Path(f'/proc/{app.pid}/maps').read_text();assert nexaui_library in maps and 'libSDL3.so' in maps
         if candidate:assert str(candidate) in maps and digest(candidate)==os.environ['AETHERI_TEST_SDL_SHA256']
         (root/'app-maps.txt').write_text(maps)
         shell_pid=int(re.search(r'^READY .*shell=(\d+)',log(),re.M)[1]);shell_pin=os.pidfd_open(shell_pid);pins.append(shell_pin)

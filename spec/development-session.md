@@ -4,6 +4,17 @@
 dedicated Fedora carrier. It is a development workflow, not the finished desktop,
 an Aetheri system image, normal app admission or the resettable experiment product.
 
+## SDK upgrade checkpoint — 7 November 2026
+
+The source manifest now selects NexaUI 0.1.23/97a4264. Its checked private app
+builds are `/home/aetheri/build/u23r` and `/home/aetheri/build/u23d`; these do not
+replace the controller's fixed `session-release`/`session-debug` builds or shared
+`/home/aetheri/source`. SDK preparation, application rebuilding and controlled
+shared-source promotion remain separate operations. Existing CLOSED records and
+old 0.1.18 artifacts remain historical. See the
+[consumer upgrade record](../brains/aetheri/journal/2026-11-07-nexaui-upgrade.md)
+for exact executed tests and remaining promotion/resource boundaries.
+
 ## Use it
 
 For automated native keyboard probes, `tools/run_vm.py` provides

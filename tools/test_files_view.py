@@ -39,7 +39,7 @@ def main():
     if fixture:
         assets=json.loads((fixture/'inputs.json').read_text())
         for name,value in assets['files'].items():assert digest(fixture/name.lstrip('/'))==value,name
-        sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
+        sdk=Path(json.loads((ROOT/'spec/nexaui-inputs.json').read_text())['development_builds']['release'])/'dbus-sdk'
         command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/files_view_atspi.c'),'-o',str(client)]
         command += ['-I'+str(fixture/p) for p in ('usr/include/at-spi-2.0','usr/include/glib-2.0','usr/lib64/glib-2.0/include')]
         command += ['-I'+str(sdk/p) for p in ('include/dbus-1.0','lib64/dbus-1.0/include')]
@@ -175,10 +175,11 @@ def main():
         wait(lambda:"READY " in log("server"),"server")
         app=start(app_bin,"app","--root",folder,"--font",font,"--terminal",terminal,"--editor",editor,"--terminal-font",mono,"--cache",cache,"--diagnostics")
         wait(lambda:state(count=2,depth=0),"initial native view")
-        maps=Path(f"/proc/{app.pid}/maps").read_text();assert "libnexaui.so.0.1.18" in maps and not any(s in maps for s in ("libSDL","libvulkan","libEGL","libX11"))
+        maps=Path(f"/proc/{app.pid}/maps").read_text();assert not any(s in maps for s in ("libSDL","libvulkan","libEGL","libX11"))
         loaded={Path(line.split()[-1]).resolve() for line in maps.splitlines() if "/libnexaui.so" in line};assert len(loaded)==1
         library=loaded.pop();candidate=library.parents[2];metadata=json.loads((candidate/"build.json").read_text())
         pin=json.loads((ROOT/"spec/nexaui-inputs.json").read_text())
+        assert str(candidate) in pin["development_builds"].values() and library.name=="libnexaui.so."+pin["version"]
         assert metadata["revision"]==pin["revision"] and metadata["version"]==pin["version"] and metadata["atspi_compiled"]
         assert digest(library)==metadata["artifacts"][library.relative_to(candidate).as_posix()]
         (root/"maps.txt").write_text(maps);capture("initial list")

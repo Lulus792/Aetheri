@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — original issuer identity and durable connection custody.
+7 November 2026 — checked NexaUI consumer upgrade; original issuer identity retained.
 
 ## Coordination
 
@@ -12,6 +12,30 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Current UI checkpoint
+
+NexaUI now selects the exact 0.1.23/97a4264 source pin. Both private SDK/app builds
+pass; all 73 app groups have successful Release evidence (67 plus six corrected
+owner checks), and the complete 73-group ASan/UBSan run passes without skips.
+The final two peer-header adapters also pass actual native AT-SPI in both profiles;
+all 27 Linux development-owner tests and two real CMake pin negatives pass.
+
+The export contains 2,530 files / 49,513,350 bytes. Selected native images were reviewed;
+final design/hardware/human assistive acceptance remain open. A quota-exhaustion
+SIGBUS path is recorded under the catalogue's existing P04; private test tmpfs
+avoids the exhausted shared quota, without claiming to fix SDK failure handling.
+The final audit verifies 444 source inputs, 31 frozen SQL/XML, 19 old quarantine hashes,
+52 normal files/controller, original CLOSED/old SDK/SDL04, local links and no live
+upgrade actor. Foreign planning/design edits remain excluded.
+
+Read the [executed record](journal/2026-11-07-nexaui-upgrade.md). Shared normal
+source/builds were not promoted: private u23r/u23d evidence does not switch the
+fixed development controller or an existing session. Retain old 0.1.18/CLOSED
+inputs and the old executing quarantine. Next UI work is controlled source/build
+promotion and native development-session acceptance with enough private temporary
+space; avoid overwriting concurrent SDK-owner work. The full OS goal stays active
+and incomplete. No new NexaUI handoff/chat message is pending.
 
 ## Current update
 

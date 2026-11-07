@@ -1,5 +1,14 @@
 # NexaUI Settings integration probe
 
+## Current SDK selection
+
+7 November 2026. The selected source pin is now 0.1.23/97a4264, after the
+[controlled consumer review](../brains/aetheri/journal/2026-11-07-nexaui-upgrade.md).
+The previous 0.1.18 pin represented tested consumer behavior, not an intentional
+version lag. Both versions' private artifacts remain distinct. No floating branch
+or automatic dependency update is used. Shared normal development source/build
+promotion is separate; private tests do not switch an existing session.
+
 ## Aetheri-owned Settings presentation
 
 6 November 2026. `src/settings/nexaui_view.c` now provides an opt-in Aetheri
@@ -31,17 +40,18 @@ minimize stays disabled. Diagnostics distinguish a changed model from `SETTLED`
 frames so a new choice is not mistaken for already painted pixels. These are
 private developer diagnostics, not installed authority receipts.
 
-Build against the existing reviewed private prefix; no SDK upgrade is needed:
+Build against the exact reviewed private prefix from `nexaui-inputs.json`:
 
 ```sh
 cmake -S . -B /path/to/aetheri-build \
-  -DAETHERI_NEXAUI_PREFIX=/home/aetheri/deps/nexaui-settings-release-02/prefix
+  -DAETHERI_NEXAUI_PREFIX=/home/aetheri/deps/nexaui-settings-release-05/prefix
 cmake --build /path/to/aetheri-build --target aetheri-settings-nexaui test_settings_view
 ctest --test-dir /path/to/aetheri-build -R '^settings.view' --output-on-failure
 ```
 
 This extends an already configured Settings/compositor development build with its
-reviewed font. CMake requires the exact installed 0.1.18 package. Use the separate
+reviewed font. CMake requires the exact manifest-selected package version and
+exported source revision (currently 0.1.23/97a4264). Use the separate
 Debug prefix for sanitizer builds. The development owner now exposes the distinct
 `start --desktop --settings-ui nexaui-owned` profile, binding the own executable,
 model, presentation sources, CMake configuration and SDK library before effects
@@ -93,11 +103,11 @@ old pixels. The app model is retained and returns when the window grows again;
 ordinary border resizing remains available. This fallback does not change the
 desktop's supported output modes.
 
-The reviewed SDK supports observed fullscreen and restore, but has no public
-fullscreen-entry request. The third control therefore names and requests
-Maximize/Restore honestly. Fullscreen entry is recorded under W07 in the existing
-[NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md), without a toolkit upgrade or
-private platform workaround.
+The selected 0.1.23 SDK also has a public fullscreen-entry request/capability.
+The Aetheri control still requests work-area Maximize/Restore; entry into fullscreen
+is a separate product interaction and is not enabled by changing a dependency.
+The earlier W07 absence applies to the original 0.1.18 candidate. Preserve that
+historical evidence in the [NexaUI catalogue](D:/NexaUI/NEXT_AETHERI_UI.md).
 
 The native test observes actual Wayland move/resize requests, configured sizes
 and compositor pixels. It covers all eight edges, pending and native Escape
@@ -117,8 +127,9 @@ per-view replacement, not a completed migration or the accepted visual design.
 
 ## Selected boundary
 
-[nexaui-inputs.json](nexaui-inputs.json) selects NexaUI 0.1.18 at immutable commit
-`e71ee304f1e6c23fa562d9e4b11f7e8e12152079`. This candidate already has an external
+[nexaui-inputs.json](nexaui-inputs.json) selects NexaUI 0.1.23 at immutable commit
+`97a42647480bb05167cee5e4ae08cedd9147d80d`. The earlier 0.1.18/e71ee30
+consumer evidence below remains attributed to its original version. This candidate already has an external
 C17 consumer for our actual `src/settings/model.c/.h`, with window-output
 observations, software presentation, keyboard focus and narrow-layout tests.
 The builder copies those two original model files into a retained snapshot;
@@ -151,14 +162,14 @@ stream; do not use a text pipeline. Command-local `core.autocrlf=false` is requi
 to retain the pinned raw source bytes without changing repository configuration:
 
 ```text
-git -c core.autocrlf=false archive --format=tar e71ee304f1e6c23fa562d9e4b11f7e8e12152079
+git -c core.autocrlf=false archive --format=tar 97a42647480bb05167cee5e4ae08cedd9147d80d
 ```
 
 Copy that archive and the exact pinned RPM to the disposable carrier. In a fresh
 unprivileged Linux directory:
 
 ```sh
-python3 tools/build_nexaui.py /path/to/nexaui-e71ee304f1e6c23fa562d9e4b11f7e8e12152079.tar \
+python3 tools/build_nexaui.py /path/to/nexaui-97a42647480bb05167cee5e4ae08cedd9147d80d.tar \
   /path/to/new-private-build --dbus-rpm /path/to/dbus-devel-1.16.2-1.fc44.x86_64.rpm
 ```
 

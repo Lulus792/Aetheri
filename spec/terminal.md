@@ -210,7 +210,8 @@ For the existing carrier:
 The bold default is that same reviewed carrier path. Both faces are from the
 existing `liberation-mono-fonts-2.1.5-15.fc44.noarch` package, with file/license
 pins in [ui-inputs.json](ui-inputs.json). This introduces no new library family.
-The SDK remains 0.1.18/e71ee30. This is an explicit development executable.
+The original checkpoint used SDK 0.1.18/e71ee30; the current pin is in
+[nexaui-inputs.json](nexaui-inputs.json). This is an explicit development executable.
 The [development owner](development-session.md) now accepts a separate
 `start --desktop --terminal-ui nexaui-owned` choice for normal Terminal and
 Files' direct-editor windows. Omitting it retains the original terminal.

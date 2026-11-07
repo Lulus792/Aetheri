@@ -32,6 +32,7 @@ def main():
     assert os.getuid()==1000
     source=Path(__file__).resolve().parents[1]
     profile='debug' if 'AETHERI_SANITIZERS:BOOL=ON' in (build/'CMakeCache.txt').read_text() else 'release'
+    session.build_for=lambda selected_profile: build
     selected=session.files_selection(profile,files_ui)
     terminal_profile=session.terminal_selection(profile,terminal_ui)
     terminal=Path(terminal_profile['presentation']['binary']) if terminal_profile else build/'aetheri-terminal'

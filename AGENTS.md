@@ -1069,3 +1069,10 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   never settles native obligations. No bus-loss/owner/volume/clone recovery,
   external holder settlement or durable issuer/custody retirement is implied.
   Preserve the old executing quarantine, normal inputs and SDK/UI defaults.
+
+- The NexaUI consumer pin now selects 0.1.23/97a4264 through
+  spec/nexaui-inputs.json. Read the 2026-11-07 NexaUI upgrade journal and STATE:
+  private Release/ASan app evidence is separate from shared-source/build
+  promotion. Preserve old 0.1.18/CLOSED inputs and normal P0/quarantine. Never
+  weaken owner/artifact checks for test permissions, or remove foreign /tmp
+  data to resolve quota failures. The delivered chat handoff remains closed.

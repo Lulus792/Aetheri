@@ -1386,7 +1386,11 @@ int main(int argc,char **argv) {
     if (!a.view_font || !a.view_bold || !ae_terminal_view_create(a.view_font,regular_size,a.view_bold,bold_size,&a.view)) {error(&a,"NexaUI fonts/view");goto cleanup;}
     a.accessibility_lock=SDL_CreateMutex();
     if (!a.accessibility_lock || nx_linux_accessibility_host_create(&a.accessibility)!=NX_OK) {error(&a,"accessibility host setup");goto cleanup;}
-    if (a.diagnostics) puts("PRESENTATION nexaui 0.1.18 sdl-host rgba8");
+    if (a.diagnostics) {
+        nx_version linked;
+        if (nx_get_version(&linked)!=NX_OK) {error(&a,"NexaUI version observation");goto cleanup;}
+        printf("PRESENTATION nexaui %u.%u.%u sdl-host rgba8\n",(unsigned int)linked.major,(unsigned int)linked.minor,(unsigned int)linked.patch);
+    }
 #endif
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);
     struct wl_surface *surface=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,NULL);
