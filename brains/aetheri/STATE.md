@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — original asynchronous supervisor request and job observer tested.
+7 November 2026 — protected unit inputs and exclusive reference custody tested.
 
 ## Coordination
 
@@ -14,6 +14,45 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The new internal unit owner now moves an exclusive PID1 client connection,
+retains its original pin and duplicates independently witnessed fragment/drop-in
+inputs. Loaded objects, graph and bounded service/ExecStartEx behavior must match.
+Subscribe/Ref/Unref/Unsubscribe are one-shot; unknown replies preserve original
+obligations. Job completion keeps reference custody alive. Admitted original end/
+holder evidence is required for retirement; abandon closes without queue flush,
+process control or SQL/lease settlement. See the
+[executed unit-custody record](journal/2026-11-07-unit-custody.md).
+
+Both complete builds pass. All 24 actual-PID1 cases plus the existing inert-target
+case pass without skips in Release (6.96s) and ASan/UBSan (8.79s). Administrative
+true starts, exact source/loaded graph checks and real references are exercised;
+lost returns are controlled. Four separately compiled defective producers fail
+the intended unchanged checks with original positive controls. Their deliberate
+target submission is suppressed; owned administrative files are retired. Earlier
+variant-framing and implicit journald-edge failures remain attributed and retained.
+The vendor drop-in is pinned and unchanged; no dependency check is relaxed.
+
+Final audit verifies 417 source inputs, unchanged 28 frozen SQL/XML contracts,
+19 protected old-runtime hashes, all 52 normal-P0 files/controller and four foreign
+files. Exact CLOSED DRM/SDK 0.1.18/SDL04 and the vendor drop-in are preserved.
+No owned unit files, private broker or native test actor remains. Normal services
+stay stopped with the previous authority binary; no update/restart is claimed.
+
+277 verified exports are in `local/unit-custody-2026-11-07`. No installed profile,
+policy, capability, schema/wire, SDK pin or UI default is changed. The old lost-
+handle execution quarantine remains separate. This bounded P0 family is not a
+normal app launch or production end/holder/volume admission.
+
+Next: register independently protected unit profiles against the original
+AETHEXE1 and join the Root coordinator to this entire custody lifetime, rather
+than its older job-only hold. Then continue remaining owner/volume and external/
+delegated-holder recovery. Do not lend this connection to independent legacy
+Ref/Subscribe/Start owners or create an executing fixture to bypass old quarantine.
+The complete OS/apps/image/installer/update/hardware/experiment-desktop goal stays
+active/incomplete; no NexaUI handoff.
+
+## Prior supervisor request checkpoint
 
 The internal Linux start observer and Root request adapter now submit exactly
 one StartUnit/fail after the existing coordinator's fresh REQUEST commit. Original

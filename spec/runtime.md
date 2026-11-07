@@ -4862,3 +4862,75 @@ disposable enforcing carrier. The latter independently admits actual PID1 and
 an exact process-free target with no dependency graph; it is not a new app
 execution fixture. Normal installed profiles/APIs/capabilities remain unchanged.
 See the [executed supervisor record](../brains/aetheri/journal/2026-11-07-supervisor-start.md).
+
+## Protected unit configuration and connection custody
+
+The internal [unit owner](../src/linux/unit.h) now owns one exclusively supplied
+host-system-bus connection, its original PID1 ProcessFD and a copied bounded
+configuration profile. The caller independently admits that connection, boot,
+original unused unit allocation, protected parents/volume/MAC and global
+configuration/mutation exclusion. It is not a configuration registry, installer
+or a way to authorize a candidate from its own name/content. Constructor success
+moves the connection and duplicates source FDs; failure leaves the input bus owned
+by the caller. Drive the borrowed bus through the event loop only: do not issue
+independent RefUnit, Subscribe or StartUnit calls on it, or lend it to the older
+start adapter. Reference/subscription ownership belongs to this object alone.
+
+Profiles contain at most eight nodes, four witnessed drop-ins per owned node and
+eight bounded arguments/environment entries. There is at most one executable
+service, at node zero; other owned nodes are non-executing targets/slices. Only
+PID1's named perpetual root/system slices can omit a source file. Their effectful
+forward dependencies are checked, while dynamic reverse Before edges may include
+unrelated system units. Owned nodes also check incoming dependencies and ordering
+against the declared graph. Autonomous OnSuccess/OnFailure, trigger and uphold
+paths are prohibited. This is a bounded P0 starter family, not a general admission
+policy for arbitrary distribution units or all future service configurations.
+
+Each source has an independently authorized original file observation and digest,
+held read-only FD, protected held/named parent and exact raw systemd-unit-file MAC
+context. Read checks join named and held mount/inode/metadata/content observations,
+including every declared drop-in. These are current-boot object observations,
+never native-layout persistence or volume/clone authentication. Root-only file
+modes alone do not establish immutability; the caller must exclude mutation by
+the target and coordinate privileged configuration, manager-default and reload
+changes. The file-capture helper is not permission to adopt a candidate.
+
+Acquisition attempts Subscribe and each RefUnit at most once, authenticating
+original correlated replies. A negative/lost acknowledgement keeps the original
+attempt and object; querying matching names or Refs cannot reauthorize a retry.
+The caller journals custody intent before acquisition. Confirmed references bind
+the original loaded object paths. Fresh checks verify exact fragment/aliases/
+drop-ins, no reload requirement, full declared forward graph and owned reverse
+edges, no prior invocation/job, and the selected service envelope: exec type,
+root identities, explicit label without ignore-failure, capabilities, environment,
+null standard streams, no FD store/extra commands/forced restart, and exact loaded
+ExecStartEx path/arguments with no privilege flags. A loaded command is not later
+target exec/image/argument provenance. Image/private-data/current-caller admission
+and actual process registration remain separate requirements.
+
+Start uses the existing one-shot original job observer. Compiled owner/source
+admission brackets its checks, then sources and connection state are checked after
+the final callout before submission. Source drift permanently fences fresh use;
+already admitted cleanup can still run. Callback-time operations reject reentry,
+including when a job callback occurs inside an outer retirement guard.
+
+A completed job never retires references or releases a lease. Retirement requires
+independently admitted original-run/end/holder evidence from the compiled caller,
+then rechecks original object/ref ownership and terminal/no-job state before
+attempting each UnrefUnit and Unsubscribe once. Inactive state or MainPID zero
+cannot substitute for that evidence. Partial/unknown release stays unsettled.
+Ordinary close rejects outstanding custody. Explicit abandon removes local watches,
+FDs and the connection without flushing its send queue. Delivered/queued work
+can still be unknown; disconnect is neither rollback nor process/holder drain.
+Nothing here stops a process, cancels a job or settles SQL/generation ownership.
+
+Run explicit `linux.unit_custody` in the enforcing disposable carrier. It uses
+actual PID1, original source/drop-in witnesses and two administrative `/usr/bin/true`
+starts, plus controlled lost-RPC returns. Its end guard is scoped to those inert
+administrative fixtures, not production executing-app drain. The older PID1
+process-free target case remains separate. See the
+[executed unit-custody record](../brains/aetheri/journal/2026-11-07-unit-custody.md).
+No normal installed unit/profile/API/policy/capability or schema changes follow.
+The live Root adapter still needs protected profile registration, whole-lifetime
+catalogue custody and admitted end/recovery integration; do not equate its older
+job-only hold with this longer reference lifetime.

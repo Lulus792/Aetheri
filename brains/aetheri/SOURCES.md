@@ -4,6 +4,29 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Unit configuration and connection custody — 7 November 2026
+
+- systemd v259 [Manager implementation](https://github.com/systemd/systemd/blob/v259/src/core/dbus-manager.c)
+  and [Unit implementation](https://github.com/systemd/systemd/blob/v259/src/core/dbus-unit.c),
+  read 7 November: Subscribe tracks the sender, RefUnit loads/holds the unit and
+  Unit.Refs exposes referring client names. This underlies exclusive ownership;
+  it is not an application run/end proof.
+- v259 [property helper](https://github.com/systemd/systemd/blob/v259/src/libsystemd/sd-bus/bus-convenience.c):
+  sd_bus_get_property returns inside the outer variant. Native checks now finish
+  that variant and the whole reply explicitly, without weakening value checks.
+- v259 [service interface](https://github.com/systemd/systemd/blob/v259/src/core/dbus-service.c)
+  and [service contract](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html):
+  service configuration includes implicit dependencies and extended command flags.
+  The real carrier exposes an implicit journald ordering edge for journal streams.
+- Carrier systemd 259.10-1.fc44 global `service.d/10-timeout-abort.conf`, 596 bytes,
+  SHA-256 `ae6b234f92bc22f1201a7572b59b454c9809f33c80d13f361b9674e1801acc37`.
+  The actual independent vendor-file pin is part of the tests, never ignored or
+  modified to obtain a pass. Original [native owner](../../src/linux/unit.c),
+  [actual PID1 cases](../../tests/test_unit.c) and
+  [retaining runner](../../tools/test_unit_native.py) provide local evidence.
+  The [executed record](journal/2026-11-07-unit-custody.md) separates runtime facts,
+  controlled lost returns, administrative fixtures and pending live admission.
+
 ## Original supervisor start and job observation — 7 November 2026
 
 - systemd's [259 Manager API](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.systemd1.html)

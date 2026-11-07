@@ -986,3 +986,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   bus; the second uses actual PID1 with an owned process-free target, not a new
   executing app fixture. No installed source/profile/capability or SQL/XML change.
   Keep the old quarantine; normal provisioning/restart/volume/holder recovery remains.
+
+- linux/unit now owns an exclusive moved bus, original PID1 pin, witnessed source/
+  drop-in FDs and one-shot Subscribe/RefUnit/UnrefUnit custody. Read runtime.md's
+  protected-unit section. Its bounded P0 graph has one executable starter and
+  non-executing infrastructure; only literal perpetual root/system slices can
+  omit files. Current file observations are not durable volume/allocation trust.
+  Caller still supplies independent original allocation/global mutation admission
+  and journals custody intent. Drive its borrowed bus only; never mix independent
+  Ref/Subscribe/Start owners or the older job-only adapter on that connection.
+  Fresh config checks fence on source drift; original end/holder admission is
+  mandatory before retirement. Unknown acknowledgements never retry. Ordinary
+  close rejects unsettled custody; abandon closes without flushing and cannot
+  cancel work, prove drain or free a lease. Run explicit linux.unit_custody and
+  linux.start_pid1. Actual PID1/admin true starts and controlled lost replies do
+  not establish normal aetheri_system_t provisioning, app target readiness or
+  executing drain/recovery. Preserve all old fixtures/quarantine and installed
+  inputs; live registry/coordinator/end integration is still pending.

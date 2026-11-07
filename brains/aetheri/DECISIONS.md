@@ -1,5 +1,21 @@
 # Decisions
 
+## Own unit configuration and subscription lifetime — 7 November 2026
+
+Use a separate internal owner for the exclusive PID1 client, original references
+and bounded source/drop-in profile. Check loaded service behavior and complete
+declared dependencies against independently witnessed inputs; matching names or
+current inactive state do not authorize adoption/reuse. Keep the P0 starter family
+to one executable with explicit null streams and non-executing infrastructure;
+its programmatic Root error channel is separate. This makes implicit logging
+connections visible as an unsupported profile instead of silently adding holders.
+This is not a global product logging decision or a retrofit of old fixtures.
+Retire references only after admitted original end/holder evidence. Never flush
+queued effects during explicit local abandon, infer rollback from disconnect or
+equate a completed job with reference/lease settlement. Live Root wiring must
+retain its catalogue for this full custody lifetime. See the
+[runtime contract](../../spec/runtime.md#protected-unit-configuration-and-connection-custody).
+
 ## Retain the original supervisor request and exact job — 7 November 2026
 
 Submit StartUnit/fail once after the confirmed fresh native execution REQUEST.
