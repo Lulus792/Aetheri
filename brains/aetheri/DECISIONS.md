@@ -1,5 +1,20 @@
 # Decisions
 
+## Journal unit connection effects under the owner lock — 7 November 2026
+
+Use explicit Root v10 connection origins and per-node intent/acknowledgement rows
+in the existing catalogue. A separate sidecar would require another cross-file
+commit/recovery protocol. Inject compiled hooks into the Linux owner to preserve
+dependency direction. Only confirmed fresh intent commits permit a new RPC;
+uncertain intent/reply/acknowledgement never permits replay. Start acknowledgements
+are job replies, not execution or drain evidence. Keep complete sequences visible
+until a separately proved retirement protocol exists. Original process/volume/
+owner-replacement evidence remains required. See the
+[executed record](journal/2026-11-07-unit-custody-journal.md).
+The first unit quarantine also fences fresh Root effects under guarded callbacks:
+a separate coordinator must not continue bind/arm effects after an asynchronous
+unit/journal failure. Historical metadata and original cleanup remain separate.
+
 ## Journal original unit allocation before publication — 7 November 2026
 
 Use an explicit Root v9 table under the existing owner lock, instead of a second

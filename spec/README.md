@@ -1,5 +1,11 @@
 # Versioned catalogue and API contracts
 
+Root v10 adds the separate [connection-custody journal](unit-profiles.md#root-v10-connection-custody-journal)
+and explicit `ae_catalogue_upgrade_unit_custody` / development
+`migrate_unit_custody` v9-to-v10 migration. Normal create remains v2; open accepts
+exact prior versions plus Root v10 without migrating. No User v9/v10, old-row
+backfill, installed API, capability or owner/lease reconciliation is implied.
+
 4 November 2026. P0 contract implementation. These files define SQLite structure,
 migration behavior and D-Bus messages; they do not implement the Linux authorities,
 SELinux policy, document transport or process supervision.

@@ -27,8 +27,10 @@ static struct {
     unsigned int links;
     int create_fault;
     struct ae_unit_file created;
+    unsigned int rpc_seen[5][8];
 } s;
 void ae_test_root_unit_commit_fault(int);
+void ae_test_root_unit_custody_fault(int,int);
 void ae_test_root_unit_close_gate(const char *);
 int __real_linkat(int,const char *,int,const char *,int);
 int __wrap_linkat(int fd,const char *old,int parent,const char *name,int flags)
@@ -45,8 +47,28 @@ int __wrap_linkat(int fd,const char *old,int parent,const char *name,int flags)
     return r;
 }
 int __real_sd_bus_call(sd_bus *,sd_bus_message *,uint64_t,sd_bus_error *,sd_bus_message **);
+static void journal_before_rpc(sd_bus *bus,sd_bus_message *q)
+{
+    if (!s.root) return;
+    const char *methods[]={"Subscribe","RefUnit","StartUnit","UnrefUnit","Unsubscribe"};
+    unsigned int effect=0;
+    while (effect<5 && !sd_bus_message_is_method_call(q,MANAGER ".Manager",methods[effect])) ++effect;
+    if (effect==5) return;
+    struct ae_effect_owner original;
+    memcpy(original.epoch,s.profile->system_epoch,16); memcpy(original.runtime,s.profile->system_runtime,16); memcpy(original.boot,s.profile->boot,16);
+    struct ae_unit_custody_snapshot custody; CHECK(!ae_catalogue_get_unit_custody(s.store,s.profile,&original,&custody) && custody.count);
+    const struct ae_unit_custody_step *last=&custody.steps[custody.count-1];
+    CHECK((unsigned int)last->effect==effect+1 && !last->confirmed);
+    const char *issuer=NULL; sd_id128_t bus_id;
+    CHECK(sd_bus_get_unique_name(bus,&issuer)>=0 && sd_bus_get_bus_id(bus,&bus_id)>=0);
+    CHECK(!strcmp(issuer,custody.origin.issuer) && !memcmp(bus_id.bytes,custody.origin.bus,16) &&
+        !strcmp(sd_bus_message_get_destination(q),custody.origin.manager));
+    CHECK(last->node<3); /* Never seal/read/rewind a not-yet-sent method body. */
+    CHECK(!s.rpc_seen[effect][last->node]++);
+}
 int __wrap_sd_bus_call(sd_bus *bus,sd_bus_message *q,uint64_t timeout,sd_bus_error *error,sd_bus_message **out)
 {
+    journal_before_rpc(bus,q);
     int chosen=s.fault_enabled && s.fault && sd_bus_message_is_method_call(q,MANAGER ".Manager",s.fault);
     if (chosen) { ++s.faults; if (!s.after) return -EIO; }
     int r=__real_sd_bus_call(bus,q,timeout,error,out);
@@ -55,7 +77,7 @@ int __wrap_sd_bus_call(sd_bus *bus,sd_bus_message *q,uint64_t timeout,sd_bus_err
 int __real_sd_bus_call_async(sd_bus *,sd_bus_slot **,sd_bus_message *,sd_bus_message_handler_t,void *,uint64_t);
 int __wrap_sd_bus_call_async(sd_bus *bus,sd_bus_slot **slot,sd_bus_message *q,sd_bus_message_handler_t fn,void *data,uint64_t timeout)
 {
-    if (sd_bus_message_is_method_call(q,MANAGER ".Manager","StartUnit")) ++s.effects;
+    if (sd_bus_message_is_method_call(q,MANAGER ".Manager","StartUnit")) { journal_before_rpc(bus,q); ++s.effects; }
     return __real_sd_bus_call_async(bus,slot,q,fn,data,timeout);
 }
 static int fds(void)
@@ -84,7 +106,15 @@ static int admit(void *data,const struct ae_execution_profile *p)
     (void)data; CHECK(p==s.profile || !memcmp(p,s.profile,sizeof *p)); ++s.guards; reentry();
     if (!strcmp(s.mode,"guard-image")) CHECK(!fchmod(s.source->image_fd,0755));
     if (!strcmp(s.mode,"late-fence")) { struct ae_execution_fence_status status; CHECK(!ae_catalogue_fence_execution(s.store,&status)); }
-    if (!strcmp(s.mode,"last-gate") && s.guards==12) ae_test_root_unit_close_gate(s.directory);
+    if (!strcmp(s.mode,"last-gate")) {
+        struct ae_effect_owner original;
+        memcpy(original.epoch,p->system_epoch,16); memcpy(original.runtime,p->system_runtime,16); memcpy(original.boot,p->boot,16);
+        struct ae_unit_custody_snapshot custody;
+        int got=ae_catalogue_get_unit_custody(s.store,p,&original,&custody);
+        if (!got && custody.count && custody.steps[custody.count-1].effect==AE_UNIT_START)
+            ae_test_root_unit_close_gate(s.directory);
+        else CHECK(got==0 || got==-ENOENT);
+    }
     return !strcmp(s.mode,"guard-deny") ? -EPERM : 0;
 }
 static int create_admit(void *data,const struct ae_execution_profile *p)
@@ -195,7 +225,7 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     CHECK(!ae_sha256_fd(image.image_fd,(uint64_t)st.st_size,p->starter_digest) && !ae_image_verify(image.image_fd,p->starter_digest,&image.image));
     struct ae_user_execution_result prepared; CHECK(!ae_catalogue_prepare_user_execution(user,p,&prepared) && prepared.submit_required);
     CHECK(!ae_catalogue_upgrade_lifetimes(store) && !ae_catalogue_upgrade_processes(store) && !ae_catalogue_upgrade_handoffs(store) &&
-        !ae_catalogue_upgrade_recovery(store) && !ae_catalogue_upgrade_owner_recovery(store) && !ae_catalogue_upgrade_interruptions(store) && !ae_catalogue_upgrade_units(store));
+        !ae_catalogue_upgrade_recovery(store) && !ae_catalogue_upgrade_owner_recovery(store) && !ae_catalogue_upgrade_interruptions(store) && !ae_catalogue_upgrade_units(store) && !ae_catalogue_upgrade_unit_custody(store));
     struct ae_unit_profile *selection=calloc(1,sizeof *selection); CHECK(selection); selection->count=3;
     struct ae_unit_node *n=&selection->nodes[0]; n->kind=AE_UNIT_SERVICE;
     struct ae_dispatch_snapshot dispatch; CHECK(!ae_catalogue_get_dispatch(store,p->lease,broker,&dispatch)); strcpy(n->name,dispatch.unit);
@@ -294,21 +324,44 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
         int lost=!strcmp(mode,"commit-lost");
         int blocked_start=!strcmp(mode,"last-gate");
         struct ae_execution_result result,marker; memset(&marker,0xa5,sizeof marker); result=marker;
+        int journal_fault=!strncmp(mode,"journal-",8);
+        if (journal_fault) ae_test_root_unit_custody_fault(strstr(mode,"origin") ? 1 : strstr(mode,"intent") ? 2 : 3,strstr(mode,"lost")!=NULL);
         int r=ae_execution_service_request(service,broker,&result);
+        if (journal_fault) {
+            CHECK(r==-EIO && !memcmp(&result,&marker,sizeof result) && !s.effects);
+            CHECK(ae_execution_service_request(service,broker,&result)==-EALREADY && !s.effects);
+            struct ae_root_unit_status status; CHECK(!ae_root_unit_status(s.root,&status));
+            int ack=strstr(mode,"ack")!=NULL;
+            CHECK(status.unit.subscribe_attempted==ack && status.held==ack && !status.unit.ref_attempted);
+            if (!strstr(mode,"origin")) CHECK(ae_catalogue_begin_execution_effect(store,broker)==-ESHUTDOWN);
+            struct ae_effect_owner original;
+            memcpy(original.epoch,p->system_epoch,16); memcpy(original.runtime,p->system_runtime,16); memcpy(original.boot,p->boot,16);
+            struct ae_unit_custody_snapshot custody;
+            CHECK(!ae_catalogue_get_unit_custody(store,p,&original,&custody));
+            int has_step=ack || strstr(mode,"intent-lost")!=NULL;
+            CHECK(custody.count==(unsigned int)has_step);
+            if (has_step) CHECK(custody.steps[0].effect==AE_UNIT_SUBSCRIBE && custody.steps[0].confirmed==(strstr(mode,"ack-lost")!=NULL));
+            if (ack) { CHECK(ae_root_unit_close(&s.root)==-EBUSY); CHECK(!ae_root_unit_abandon(&s.root)); }
+            else CHECK(!ae_root_unit_close(&s.root));
+            CHECK(!ae_execution_service_close(&service)); sd_event_unref(event);
+            goto retained_history;
+        }
         CHECK(r==(lost || s.fault_enabled ? -EIO : !strcmp(mode,"guard-deny") ? -EPERM : !strcmp(mode,"late-fence") ? -ESHUTDOWN : blocked_start ? -ESTALE : denied ? -EACCES : 0));
         if (r) CHECK(!memcmp(&result,&marker,sizeof result));
         CHECK(ae_execution_service_request(service,broker,&result)==-EALREADY);
         s.fault_enabled=0;
+        int start_ack_lost=!strcmp(mode,"start-ack-lost");
+        if (start_ack_lost) ae_test_root_unit_custody_fault(3,1);
         struct ae_root_unit_status status; CHECK(!ae_root_unit_status(s.root,&status));
         int acquired=!denied && !lost;
         CHECK(status.held==acquired && s.effects==(acquired && !acquisition_fault && !blocked_start ? 1U : 0U));
-        if (blocked_start) CHECK(s.guards==12 && status.unit.referenced==7 && !status.unit.start.attempted);
+        if (blocked_start) CHECK(status.unit.referenced==7 && !status.unit.start.attempted);
         struct ae_execution_fence_status fence; CHECK(!ae_catalogue_execution_fence_status(store,&fence) && fence.active==(acquired ? 1U : 0U));
         if (lost) { struct ae_root_unit *other=NULL; struct ae_unit *again=NULL; connect_bus(&bus); manager(bus,&pid1);
             CHECK(!ae_unit_new(&bus,&pid1,p->boot,selection,&again)); ae_peer_clear(&pid1);
             CHECK(ae_root_unit_new(store,&again,selection,&image,p,broker,admit,NULL,&other)==-EALREADY && !other && again);
             CHECK(!ae_unit_close(&again)); }
-        if (acquired && !acquisition_fault) {
+        if (acquired && !acquisition_fault && !blocked_start) {
             for (unsigned int i=0;!blocked_start && i<500;++i) { CHECK(sd_bus_process(ae_root_unit_bus(s.root),NULL)>=0 && !ae_root_unit_status(s.root,&status));
                 if (status.unit.start.job_removed) break;
                 CHECK(sd_bus_wait(ae_root_unit_bus(s.root),10000)>=0); }
@@ -321,18 +374,29 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
                 int code; CHECK(waitpid(child,&code,0)==child && WIFEXITED(code) && !WEXITSTATUS(code)); }
             if (!strcmp(mode,"fenced")) CHECK(!ae_catalogue_fence_execution(store,&fence));
             if (!strcmp(mode,"end-deny")) CHECK(ae_root_unit_retire(s.root,deny,NULL)==-EPERM && s.root);
+            if (start_ack_lost) {
+                CHECK(status.unit.quarantined && status.unit.error==-EIO && status.held);
+                CHECK(ae_catalogue_begin_execution_effect(store,broker)==-ESHUTDOWN);
+                CHECK(ae_root_unit_retire(s.root,ending,NULL)==-EAGAIN);
+                struct ae_effect_owner original;
+                memcpy(original.epoch,p->system_epoch,16); memcpy(original.runtime,p->system_runtime,16); memcpy(original.boot,p->boot,16);
+                struct ae_unit_custody_snapshot custody;
+                CHECK(!ae_catalogue_get_unit_custody(store,p,&original,&custody) && custody.count==5 && custody.steps[4].effect==AE_UNIT_START && custody.steps[4].confirmed);
+            } else {
             s.fault_enabled=release_fault;
             CHECK(ae_root_unit_retire(s.root,ending,NULL)==(release_fault ? -EIO : 0));
             s.fault_enabled=0;
             CHECK(!ae_root_unit_status(s.root,&status) && status.held==release_fault);
             if (release_fault) { unsigned int count=s.faults; CHECK(ae_root_unit_retire(s.root,ending,NULL)==-EAGAIN && s.faults==count); }
             else CHECK(status.unit.retired && !status.held);
+            }
         }
-        if (acquired && s.fault) { CHECK(ae_root_unit_close(&s.root)==-EBUSY); CHECK(!ae_root_unit_abandon(&s.root)); }
+        if (acquired && (s.fault || blocked_start || start_ack_lost)) { CHECK(ae_root_unit_close(&s.root)==-EBUSY); CHECK(!ae_root_unit_abandon(&s.root)); }
         else CHECK(!ae_root_unit_close(&s.root));
         CHECK(!ae_catalogue_execution_fence_status(store,&fence) && !fence.active);
         CHECK(!ae_execution_service_close(&service)); sd_event_unref(event);
     }
+retained_history:
     CHECK(!s.root);
     struct ae_dispatch_snapshot final; CHECK(!ae_catalogue_get_dispatch(store,p->lease,broker,&final) && !strcmp(final.state,"reserved") && !final.invocation_present);
     /* Inspect exact owned administrative source objects before retirement. This

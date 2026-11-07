@@ -1,6 +1,7 @@
 """Behavioral SQLite/migration and frozen-wire tests; synthetic metadata only."""
 from pathlib import Path
 import hashlib
+import json
 import itertools
 import os
 import re
@@ -208,6 +209,57 @@ raise RuntimeError('checkpoint missed')
             db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE unexpected_extension(value)'); db.commit(); before=rows(db)
             with self.assertRaises(cc.ContractError): cc.migrate_owner_recovery(db,kind)
             self.assertEqual(rows(db),before)
+
+    def custody_source(self,name):
+        db=self.pair_source(name,'system'); cc.migrate_owner_recovery(db,'system'); cc.migrate_v7_to_v8(db,'system'); cc.migrate_units(db,'system')
+        return db
+
+    def test_v10_custody_migration_all_boundaries(self):
+        db=self.custody_source('custody10'); before=rows(db); signature=cc.signature(db)
+        for phase in ['locked']+['statement_'+str(n) for n in range(len(cc.extension_v10('system')))]+['version_set','validated']:
+            def fault(where):
+                if where==phase: raise RuntimeError(where)
+            with self.assertRaisesRegex(RuntimeError,phase): cc.migrate_unit_custody(db,'system',checkpoint=fault)
+            cc.validate(db,'system',9); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+        def lost(where):
+            if where=='committed': raise RuntimeError('unknown acknowledgement')
+        with self.assertRaisesRegex(RuntimeError,'unknown'): cc.migrate_unit_custody(db,'system',checkpoint=lost)
+        cc.validate(db,'system',10); self.assert_preserved(db,before)
+        self.assertFalse(cc.migrate_unit_custody(db,'system'))
+        self.assertEqual(db.execute('SELECT count(*) FROM unit_custodies').fetchone()[0],0)
+        self.assertEqual(db.execute('SELECT count(*) FROM unit_custody_steps').fetchone()[0],0)
+        fresh=self.connect('fresh10'); cc.bootstrap(fresh,'system',10); self.assertEqual(cc.signature(db),cc.signature(fresh))
+        with self.assertRaises(cc.ContractError): cc.source('user',10)
+
+    def test_v10_custody_process_exit_disk_and_foreign_source(self):
+        code="""import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def fault(phase):
+    if phase==sys.argv[2]: os._exit(75)
+cc.migrate_unit_custody(db,'system',checkpoint=fault)
+raise RuntimeError('checkpoint missed')
+"""
+        for phase in ('statement_0','version_set','committed'):
+            name='custody-exit-'+phase; db=self.custody_source(name); before=rows(db)
+            path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+            self.assertEqual(subprocess.run([sys.executable,'-c',code,path,phase],cwd=ROOT/'tools',timeout=20).returncode,75)
+            db=self.connect(name); cc.validate(db,'system',10 if phase=='committed' else 9); self.assert_preserved(db,before)
+            self.assertEqual(cc.migrate_unit_custody(db,'system'),phase!='committed')
+        db=self.custody_source('custody-full'); db.execute('VACUUM'); before=rows(db)
+        db.execute('PRAGMA max_page_count='+str(db.execute('PRAGMA page_count').fetchone()[0]))
+        with self.assertRaises(sqlite3.OperationalError): cc.migrate_unit_custody(db,'system')
+        cc.validate(db,'system',9); self.assertEqual(rows(db),before)
+        db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE foreign_custody(value)'); db.commit(); before=rows(db)
+        with self.assertRaises(cc.ContractError): cc.migrate_unit_custody(db,'system')
+        self.assertEqual(rows(db),before)
+
+    def test_v10_origin_frozen_bytes(self):
+        vector=json.loads((ROOT/'spec/vectors/unit-origin-v1.json').read_text())
+        raw=b'AETHUBS1'+bytes.fromhex('00000000000040008000000000000003')+bytes([0x93])*16
+        for text,size in ((':1.234',256),(':1.0',256),('system_u:system_r:init_t:s0',512)):
+            raw+=text.encode()+bytes(size-len(text))
+        self.assertEqual(len(raw),1064); self.assertEqual(raw.hex(),vector['hex']); self.assertEqual(hashlib.sha256(raw).hexdigest(),vector['sha256'])
 
     def test_v9_units_migration_boundaries_and_original_rows(self):
         db=self.pair_source('units9','system'); cc.migrate_owner_recovery(db,'system'); cc.migrate_v7_to_v8(db,'system')

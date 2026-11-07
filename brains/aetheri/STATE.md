@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — durable unit allocation and witnessed selection before REQUEST.
+7 November 2026 — durable connection/RPC custody and asynchronous Root fencing.
 
 ## Coordination
 
@@ -14,6 +14,45 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Root v10 now binds the original exclusive system-bus connection and ordered
+per-node Subscribe/Ref/Start/Unref/Unsubscribe intent/acknowledgement history to
+the witnessed allocation. Compiled Linux hooks require confirmed fresh intents
+and repeat admission before sends. First quarantine propagates under callback
+busy guards to the Root execution fence, including asynchronous Start/journal
+failures; a different coordinator cannot bypass that local exclusion.
+Start acknowledgement is only the authenticated job reply. AETHUBS1 origins are
+connection metadata, never issuer process/supervisor/image/volume proof.
+Complete sequences remain visible and immutable, with no unit/run/lease release.
+See [the contract](../../spec/unit-profiles.md#root-v10-connection-custody-journal)
+and [executed record](journal/2026-11-07-unit-custody-journal.md).
+
+Final source-v5 has 430 inputs; both complete isolated core/IPC builds and the
+32 native/11 catalogue cases pass Release and ASan/UBSan (330.573s/367.794s).
+All nine affected regression groups also pass, without skips: 350.932s
+Release and 396.772s ASan/UBSan. The checked export has 250 files /
+907,882 bytes. The final audit verifies 430 source inputs, 29 unchanged
+published SQL/XML, 19 protected quarantine hashes, all 52 normal files/controller,
+exact CLOSED/SDK0.1.18/SDL04 and vendor drop-in. No own actor or unit/image from
+190 recorded administrative fixtures remains; both owner histories/leases stay
+retained. Three foreign planning files match the initial checkpoint; the parallel
+UI-note update is preserved and excluded.
+Host contracts pass55/55 and frozen runtime tests25/25. Prior candidate failures
+and v3/v4 results remain attributed; v5 separately fixes quarantine propagation.
+Unprivileged snapshot space ran out; 144,928,096 bytes of own inactive compiler
+objects were reclaimed without removing sources/programs/libraries/histories.
+V5 uses the existing administrative build boundary and explicit free-space guard;
+disk size/reservation settings and foreign active work remain unchanged.
+
+Explicit quiesced Root9->10 migration adds no old origins/history, gate/runtime/
+revision changes or admission. Normal create/installed owners stayv2, User9/10
+unsupported, published v1-v9 SQL/XML frozen. Keep the old executing quarantine.
+Next: independently bound original issuer process/unit/image, connection-loss
+reconciliation and durable custody retirement; then owner/volume continuity and
+external/delegated holders. The full OS/apps/image/installer/update/hardware/
+experiment-desktop goal stays active and incomplete; no new NexaUI handoff.
+
+## Prior durable unit-allocation checkpoint
 
 Root v9 now journals the separate unit allocation before filesystem effects.
 Fragment recipe and original directory/parent placement are immutable. Fresh

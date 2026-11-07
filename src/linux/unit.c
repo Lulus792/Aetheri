@@ -32,13 +32,19 @@ struct ae_unit {
     ae_start_changed changed;
     void *observer;
     char check[64];
+    struct ae_unit_journal journal;
+    int start_intended,start_confirmed;
 };
 static int owner(struct ae_unit *u) { return !u ? -EINVAL : u->owner==getpid() ? 0 : -ECHILD; }
 static int builtin(const struct ae_unit_node *n) { return n->kind==AE_UNIT_SYSTEM_SLICE || n->kind==AE_UNIT_ROOT_SLICE; }
 static void fail(struct ae_unit *u,int r,int quarantine)
 {
+    int notify=quarantine && !u->status.quarantined;
     if (!u->status.error) { u->status.error=r; strcpy(u->status.attribute,u->check); }
     if (quarantine) u->status.quarantined=1; else u->status.fenced=1; u->status.ready=0;
+    if (notify && u->journal.failed) {
+        int previous=u->busy; u->busy=1; u->journal.failed(u->journal.data,r); u->busy=previous;
+    }
 }
 static int file_stat(int fd,struct statx *s)
 {
@@ -143,12 +149,22 @@ static int guarded(struct ae_unit *u,ae_start_guard guard,void *data)
     if (!r && sd_bus_is_ready(u->bus)!=1) { r=-ENOTCONN; u->manager_bad=1; strcpy(u->check,"connection"); fail(u,r,1); }
     return r;
 }
-static int call(struct ae_unit *u,const char *method,const char *argument,int *attempted,ae_start_guard guard,void *data)
+static int journal(struct ae_unit *u,int confirmed,enum ae_unit_effect effect,unsigned int node)
+{
+    if (!u->journal.before) return 0;
+    int r=confirmed ? u->journal.confirmed(u->journal.data,effect,node) : u->journal.before(u->journal.data,effect,node);
+    if (r>0) r=-EIO;
+    if (r) { strcpy(u->check,confirmed ? "journal-confirmed" : "journal-intent"); fail(u,r,1); }
+    return r;
+}
+static int call(struct ae_unit *u,const char *method,const char *argument,int *attempted,ae_start_guard guard,void *data,
+    enum ae_unit_effect effect,unsigned int node)
 {
     int r=guarded(u,guard,data); sd_bus_message *q=NULL,*reply=NULL;
     if (!r) r=sd_bus_message_new_method_call(u->bus,&q,u->manager.unique_name,PATH,MANAGER ".Manager",method);
     if (r>=0 && argument) r=sd_bus_message_append(q,"s",argument);
     if (r>=0) r=guarded(u,guard,data);
+    if (!r && u->journal.before) { r=journal(u,0,effect,node); if (!r) r=guarded(u,guard,data); }
     if (!r) { strcpy(u->check,method); *attempted=1; r=sd_bus_call(u->bus,q,UINT64_C(2000000),NULL,&reply); }
     struct ae_peer peer=AE_PEER_INIT;
     if (r>=0) r=ae_peer_capture_reply(reply,q,&peer);
@@ -156,6 +172,7 @@ static int call(struct ae_unit *u,const char *method,const char *argument,int *a
         strcmp(peer.unique_name,u->manager.unique_name) || strcmp(peer.connection_label,u->manager.connection_label) ||
         !sd_bus_message_has_signature(reply,"") || sd_bus_message_at_end(reply,1)!=1)) r=-ESTALE;
     if (!r) r=current(u);
+    if (!r) r=journal(u,1,effect,node);
     ae_peer_clear(&peer); sd_bus_message_unref(reply); sd_bus_message_unref(q);
     if (r<0 && *attempted) fail(u,r,1);
     return r<0 ? r : 0;
@@ -541,16 +558,40 @@ int ae_unit_acquire(struct ae_unit *u,ae_start_guard guard,void *data)
     if (!r && u->status.used) r=-EALREADY;
     if (r) return r;
     u->busy=1; u->status.used=1; r=sources(u);
-    if (!r) r=call(u,"Subscribe",NULL,&u->status.subscribe_attempted,guard,data);
+    if (!r) r=call(u,"Subscribe",NULL,&u->status.subscribe_attempted,guard,data,AE_UNIT_SUBSCRIBE,0);
     if (!r) u->status.subscribed=1;
     for (unsigned int i=0;!r && i<u->profile.count;++i) {
-        int attempted=0; r=call(u,"RefUnit",u->profile.nodes[i].name,&attempted,guard,data);
+        int attempted=0; r=call(u,"RefUnit",u->profile.nodes[i].name,&attempted,guard,data,AE_UNIT_REF,i);
         if (attempted) u->status.ref_attempted|=(uint8_t)(1U<<i);
         if (!r) { u->status.referenced|=(uint8_t)(1U<<i); r=lookup(u,i,1); }
     }
     if (!r) r=check(u);
     if (!r) u->status.ready=1; else if (!u->status.quarantined) fail(u,r,0);
     u->busy=0; return r;
+}
+int ae_unit_origin(struct ae_unit *u,struct ae_unit_origin *out)
+{
+    int r=owner(u); if (!r && !out) r=-EINVAL; if (!r && u->busy) r=-EBUSY;
+    if (r) return r;
+    u->busy=1; r=current(u); const char *name=NULL;
+    if (!r) r=sd_bus_get_unique_name(u->bus,&name);
+    struct ae_unit_origin value={0}; uint8_t raw[AE_UNIT_ORIGIN_BYTES];
+    if (r>=0 && (!name || strnlen(name,sizeof value.issuer)==sizeof value.issuer)) r=-EBADMSG;
+    if (r>=0) {
+        memcpy(value.boot,u->boot,16); memcpy(value.bus,u->manager.bus_id,16);
+        strcpy(value.issuer,name); strcpy(value.manager,u->manager.unique_name); strcpy(value.manager_label,u->manager.connection_label);
+        r=ae_unit_origin_encode(&value,raw);
+    }
+    if (!r) *out=value;
+    u->busy=0; return r<0 ? r : 0;
+}
+int ae_unit_set_journal(struct ae_unit *u,const struct ae_unit_journal *hooks)
+{
+    int r=owner(u); if (!r && (!hooks || !hooks->before || !hooks->confirmed)) r=-EINVAL;
+    if (!r && u->busy) r=-EBUSY;
+    if (!r && (u->journal.before || u->status.used || u->status.start_used || u->status.retire_used)) r=-EALREADY;
+    if (!r) u->journal=*hooks;
+    return r;
 }
 int ae_unit_check_fresh(struct ae_unit *u)
 {
@@ -566,6 +607,11 @@ static int before_start(void *data)
     int r=guarded(u,g->guard,g->data); if (!r) r=check(u);
     if (!r) r=guarded(u,g->guard,g->data);
     if (!r) r=sources(u);
+    if (!r && u->journal.before && !u->start_intended) {
+        u->start_intended=1; r=journal(u,0,AE_UNIT_START,0);
+        if (!r) r=guarded(u,g->guard,g->data);
+        if (!r) r=sources(u);
+    }
     if (r && !u->status.quarantined) fail(u,r,0);
     return r;
 }
@@ -573,6 +619,11 @@ static void start_changed(void *data,const struct ae_start_status *status)
 {
     struct ae_unit *u=data; if (owner(u)) return;
     u->status.start=*status;
+    if (status->quarantined) { strcpy(u->check,"start-observation"); fail(u,status->error ? status->error : -EIO,1); }
+    if (status->reply_confirmed && !u->start_confirmed) {
+        int previous=u->busy; u->busy=1; u->start_confirmed=1;
+        (void)journal(u,1,AE_UNIT_START,0); u->busy=previous;
+    }
     if (u->changed) { int previous=u->busy; u->busy=1; u->changed(u->observer,status); u->busy=previous; }
 }
 int ae_unit_start(struct ae_unit *u,ae_start_guard guard,void *data,ae_start_changed changed,void *observer)
@@ -604,11 +655,11 @@ int ae_unit_retire(struct ae_unit *u,ae_start_guard guard,void *data)
     if (!r) {
         u->status.retire_used=1; u->status.ready=0;
         for (unsigned int j=u->profile.count;!r && j>0;--j) {
-            unsigned int i=j-1; int attempted=0; r=call(u,"UnrefUnit",u->profile.nodes[i].name,&attempted,guard,data);
+            unsigned int i=j-1; int attempted=0; r=call(u,"UnrefUnit",u->profile.nodes[i].name,&attempted,guard,data,AE_UNIT_UNREF,i);
             if (attempted) u->status.unref_attempted|=(uint8_t)(1U<<i);
             if (!r) u->status.referenced&=(uint8_t)~(1U<<i);
         }
-        if (!r) r=call(u,"Unsubscribe",NULL,&u->status.unsubscribe_attempted,guard,data);
+        if (!r) r=call(u,"Unsubscribe",NULL,&u->status.unsubscribe_attempted,guard,data,AE_UNIT_UNSUBSCRIBE,0);
         if (!r) { u->status.retired=1; u->status.subscribed=0; u->status.ready=0; u->names=sd_bus_slot_unref(u->names); }
     }
     u->busy=0; return r;

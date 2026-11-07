@@ -1,5 +1,9 @@
 # P0 runtime contracts
 
+The [Root v10 connection-custody journal](unit-profiles.md#root-v10-connection-custody-journal)
+now records original unit connection/RPC intent and acknowledgements. It does not
+settle process/holder obligations or reconstruct vanished owner handles.
+
 26 October 2026. Byte formats below are implemented by the development reference
 [runtime_contracts.py](../tools/runtime_contracts.py) and checked against
 [frozen vectors](vectors/runtime-v1.json). They add no SQL tables or D-Bus methods.

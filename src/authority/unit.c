@@ -11,6 +11,7 @@
 #include <sys/xattr.h>
 #include <selinux/selinux.h>
 #include <unistd.h>
+#include <time.h>
 
 struct ae_root_unit {
     pid_t owner;
@@ -24,6 +25,7 @@ struct ae_root_unit {
     char name[80];
     ae_root_unit_admit admit;
     void *admission;
+    unsigned int node_count;
 };
 static int owner(struct ae_root_unit *s) { return !s ? -EINVAL : s->owner==getpid() ? 0 : -ECHILD; }
 int ae_root_unit_placement_digest(const char *directory,const struct ae_root_identity *parent,uint8_t out[32])
@@ -180,6 +182,35 @@ static int fresh(void *data)
     if (!r) r=ae_catalogue_check_execution_effect(s->catalogue,&s->broker);
     return r;
 }
+static int timestamp(int64_t *out)
+{
+    struct timespec now;
+    if (clock_gettime(CLOCK_REALTIME,&now)) return -errno;
+    if (now.tv_sec<0 || (uint64_t)now.tv_sec>(uint64_t)(INT64_MAX-999)/1000U) return -EOVERFLOW;
+    *out=(int64_t)now.tv_sec*1000+now.tv_nsec/1000000; return 0;
+}
+static int unit_journal(struct ae_root_unit *s,enum ae_unit_effect effect,unsigned int node,int confirmed)
+{
+    int r=owner(s); if (r) return r;
+    int previous=s->busy; s->busy=1; int64_t now=0; r=timestamp(&now);
+    struct ae_effect_owner original=context(s); int required=0;
+    if (!r) r=confirmed ? ae_catalogue_confirm_unit_effect(s->catalogue,&s->profile,&original,effect,node,now) :
+        ae_catalogue_intend_unit_effect(s->catalogue,&s->profile,&original,effect,node,now,&required);
+    if (!r && !confirmed && !required) r=-EALREADY;
+    if (r && !s->error) s->error=r;
+    s->busy=previous; return r;
+}
+static int intend(void *data,enum ae_unit_effect effect,unsigned int node) { return unit_journal(data,effect,node,0); }
+static int confirmed(void *data,enum ae_unit_effect effect,unsigned int node) { return unit_journal(data,effect,node,1); }
+static void failed(void *data,int error)
+{
+    struct ae_root_unit *s=data; if (owner(s)) return;
+    int previous=s->busy; s->busy=1;
+    if (!s->error) s->error=error;
+    struct ae_execution_fence_status status;
+    (void)ae_catalogue_fence_execution(s->catalogue,&status);
+    s->busy=previous;
+}
 int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const struct ae_unit_profile *selected,
     const struct ae_root_unit_image *source,const struct ae_execution_profile *p,const struct ae_launch_context *broker,
     ae_root_unit_admit admit,void *data,struct ae_root_unit **out)
@@ -225,12 +256,16 @@ int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const stru
     if (!r) { s->source.directory_fd=fcntl(source->directory_fd,F_DUPFD_CLOEXEC,3); if (s->source.directory_fd<0) r=-errno; }
     if (!r) { s->source.image_fd=fcntl(source->image_fd,F_DUPFD_CLOEXEC,3); if (s->source.image_fd<0) r=-errno; }
     if (!r) r=image(s);
+    struct ae_unit_custody_snapshot custody;
+    if (!r) { int found=ae_catalogue_get_unit_custody(store,p,&original,&custody); if (found!=-ENOENT) r=found ? found : -EALREADY; }
+    struct ae_unit_journal hooks={.before=intend,.confirmed=confirmed,.failed=failed,.data=s};
+    if (!r) r=ae_unit_set_journal(*unit,&hooks);
     if (r) {
         if (s->source.directory_fd>=0) close(s->source.directory_fd);
         if (s->source.image_fd>=0) close(s->source.image_fd);
         free(s); return r;
     }
-    s->unit=*unit; *unit=NULL; *out=s; return 0;
+    s->node_count=selected->count; s->unit=*unit; *unit=NULL; *out=s; return 0;
 }
 int ae_root_unit_request(void *data,const struct ae_execution_profile *p,const struct ae_dispatch_snapshot *d)
 {
@@ -247,6 +282,12 @@ int ae_root_unit_request(void *data,const struct ae_execution_profile *p,const s
     int frame=!r; struct ae_effect_owner original=context(s);
     if (!r) r=ae_catalogue_begin_owner_cleanup(s->catalogue,&original);
     if (!r) s->held=1;
+    if (!r) r=fresh(s);
+    struct ae_unit_origin origin; int64_t now=0; int required=0;
+    if (!r) r=ae_unit_origin(s->unit,&origin);
+    if (!r) r=timestamp(&now);
+    if (!r) r=ae_catalogue_prepare_unit_custody(s->catalogue,&s->profile,&s->broker,&origin,s->node_count,now,&required);
+    if (!r && !required) r=-EALREADY;
     if (!r) r=ae_unit_acquire(s->unit,fresh,s);
     if (!r) r=ae_unit_start(s->unit,fresh,s,NULL,NULL);
     struct ae_unit_status state;

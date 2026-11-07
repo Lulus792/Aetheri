@@ -2,6 +2,7 @@
 from pathlib import Path
 from contextlib import contextmanager, nullcontext
 import hashlib
+import json
 import os
 import signal
 import socket
@@ -81,6 +82,12 @@ def main():
                 'owner-loss','guard-deny','late-fence','submit-before','submit-after','fenced-pending','fork','missing-job','failed-job','guard-owner-loss'))
         if len(sys.argv)==4 and sys.argv[3]=='units':
             scenarios=tuple('exec-unit-'+mode for mode in ('fresh','migration','crash-before','crash-after','lost-prepare','lost-witness','fence','replacement'))
+        if len(sys.argv)==4 and sys.argv[3]=='unit-custody':
+            scenarios=tuple('exec-custody-'+mode for mode in ('fresh','migration','crash-before','crash-after','lost-origin','lost-intent','lost-ack','fence','replacement','no-start','max'))
+            vector=json.loads((Path(__file__).resolve().parents[1]/'spec/vectors/unit-origin-v1.json').read_text())
+            encoded=Path(temporary)/'unit-origin.bin'
+            encoded.write_bytes(bytes.fromhex(vector['hex']))
+            subprocess.run([executable,'unit-origin-codec',encoded],check=True,timeout=15)
         if len(sys.argv)==4 and sys.argv[3]=="fence":
             scenarios=tuple("exec-service-fence-"+case for case in (
                 "request-before","request-commit","request-active","bind-ref","bind-commit",

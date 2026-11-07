@@ -7,7 +7,7 @@ enum ae_recovery_record_kind {
     AE_RECOVERY_OPERATION=1,AE_RECOVERY_GATE,AE_RECOVERY_INSTALL,AE_RECOVERY_GENERATION,
     AE_RECOVERY_CODE_LEASE,AE_RECOVERY_DISPATCH,AE_RECOVERY_LAUNCH,AE_RECOVERY_GRANT,
     AE_RECOVERY_ACCESS,AE_RECOVERY_RESOURCE,AE_RECOVERY_DATA,AE_RECOVERY_CLOSURE,
-    AE_RECOVERY_HANDOFF,AE_RECOVERY_INTERRUPTION,AE_RECOVERY_UNIT_ALLOCATION,AE_RECOVERY_KIND_COUNT
+    AE_RECOVERY_HANDOFF,AE_RECOVERY_INTERRUPTION,AE_RECOVERY_UNIT_ALLOCATION,AE_RECOVERY_UNIT_CUSTODY,AE_RECOVERY_KIND_COUNT
 };
 enum { AE_RECOVERY_MAX_RECORDS=65536 };
 struct ae_recovery_record {
@@ -26,7 +26,7 @@ struct ae_recovery_inventory {
 };
 /* Read-only owner metadata from ONE SQLite read transaction; sorted by kind/ID.
  * Existing original lock/DB/mount and single-threaded store contract still apply.
- * Supports explicit v2-v8 owners and Root v9 as open; never starts a runtime,
+ * Supports explicit v2-v8 owners and Root v9/v10 as open; never starts a runtime,
  * migrates, dispatches, closes a gate or settles a holder/lease. max_records is
  * 1..65536; E2BIG (record/text bound) is an error, never successful truncation. *output
  * must be NULL; all errors preserve it. Result owns its records until free.
@@ -38,6 +38,8 @@ struct ae_recovery_inventory {
  * remain historical/uncertain after a separate terminal interruption.
  * Root v9 unit allocations remain visible, including witnessed selections:
  * witnessing is not custody retirement and no unit-retirement protocol exists.
+ * Root v10 includes connection custody even after every RPC is acknowledged.
+ * Acknowledgement history is not independent end/holder or retirement evidence.
  *
  * This is neither current process/FD-store evidence nor a global readiness gate.
  * Empty/closed SQL never proves external holder drain, future-effect exclusion,

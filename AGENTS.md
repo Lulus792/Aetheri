@@ -1029,3 +1029,22 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   not establish normal aetheri_system_t provisioning, app target readiness or
   executing drain/recovery. Preserve all old fixtures/quarantine and installed
   inputs; live registry/coordinator/end integration is still pending.
+
+- Root v10 now journals original unit connection origins and ordered per-node
+  Subscribe/Ref/Start/Unref/Unsubscribe intent/acknowledgement history. Read
+  spec/unit-profiles.md#root-v10-connection-custody-journal. The Root adapter
+  requires v10 and compiled hooks; isolated Linux owners can omit them only for
+  their explicit tests. Only fresh confirmed intent permits an RPC; unknown
+  replies/acknowledgements quarantine use. Start confirmation is an authenticated
+  job reply, never target exec or drain. AETHUBS1 is connection metadata, not
+  issuer process/supervisor/image or volume proof. Full sequences stay visible
+  and immutable; there is no custody retirement/recovery transaction yet.
+  Explicit upgrade_unit_custody migrates only quiesced Root9->10; normal create/
+  installed owners stayv2, User9/10 unsupported, published v1-v9 SQL/wire frozen.
+  Run catalogue.unit_custody and explicit authority.unit_custody. Preserve the
+  old executing quarantine and all original histories; no replay/adoption/lease
+  release follows from this journal or local connection closure.
+  First-quarantine notification also fences fresh Root execution effects; this
+  does not settle metadata or prohibit independently admitted historical cleanup.
+  Once published, keep v10 SQL and unit-origin-v1 unchanged; future schema changes
+  need a new explicit version, never an edit to a published development contract.

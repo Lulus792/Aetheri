@@ -108,3 +108,56 @@ These are current-boot input fingerprints, never publisher trust, durable
 volume/clone authentication, process/loaded-image evidence or bearer capabilities.
 The complete independent selection and filesystem admission remain prerequisites.
 Recovery must not authorize a candidate from its own matching header/content.
+
+## Root v10 connection-custody journal
+
+`unit_custodies` binds a witnessed original allocation to the exclusive trusted
+system-bus connection and the ordered profile's node count. Preparation follows
+the original durable REQUEST and precedes Subscribe. Only a confirmed fresh
+commit permits the local owner to proceed. A lost preparation acknowledgement
+does not permit another connection, adoption or another effect attempt.
+
+`unit_custody_steps` records each Subscribe, RefUnit (ascending node order),
+StartUnit, UnrefUnit (descending node order) and Unsubscribe intent before the
+corresponding call. Confirmations are separate immutable transitions, written
+only after authentication of the actual original PID1 reply. Start confirmation
+means a job reply, not target execution, successful job completion or readiness.
+The sequence has at most 19 entries for eight nodes. Releases can omit Start
+only when it was never intended. An unacknowledged intent prevents further steps.
+
+The native Linux owner takes compiled before/confirmed hooks; it does not depend
+on the catalogue or interpret SQL. Root requires these hooks and its v10 owner
+catalogue. The before hook returns success only for a fresh confirmed intent;
+the Linux owner rechecks its original manager and compiled current admission
+after that commit, before a possible bus call. Hook or reply uncertainty
+quarantines fresh use. Asynchronous Start confirmation is recorded at most once.
+The first quarantine notifies the compiled Root owner under callback busy guards.
+Root immediately fences further fresh catalogue execution effects, including other
+coordinators' bind/arm paths. An asynchronous job/reply or acknowledgement error
+must not remain visible only inside the unit owner. The fence is local exclusion;
+durable unresolved rows still govern later owner-replacement work.
+An unknown confirmation commit can be read/acknowledged through metadata APIs,
+but cannot cause another RPC. A local close/abandon never changes these rows.
+
+`AETHUBS1` is exactly 1,064 bytes: eight-byte tag, 16-byte original boot, 16-byte
+bus ID, 256-byte issuer unique name, 256-byte manager unique name and 512-byte
+manager raw label. Strings contain a NUL and zero-filled remaining bytes;
+noncanonical padding is rejected. Fields come from the retained trusted bus and
+original admitted PID1 peer, not an app. See the independent
+[frozen vector](vectors/unit-origin-v1.json). These bytes are connection
+observations, not an original issuer process identity, supervisor/image proof,
+current connection liveness or volume authentication. No vanished connection or
+held handle can be reconstructed/adopted from them.
+
+Native/Python v9-to-v10 migration is explicit and quiesced under the retained
+writer lock. It adds no old origins or step rows and changes no old rows, runtime,
+gates or revisions. Opening never migrates; normal creation/installed owners
+remain v2. User v9/v10 is unsupported. Published v1-v9 SQL and wire stay frozen.
+Unknown commits require reopen/inspection, never a restored backup.
+
+The recovery inventory always retains these custody obligations, including fully
+acknowledged sequences. This portion does not retire them: original issuer
+process/unit/image evidence, owner replacement, bus-disconnect observation,
+independent end/holder admission and durable retirement/reconciliation still need
+separate connected implementation and tests. Never infer app drain, rollback,
+allocation removal or generation-lease release from this journal.

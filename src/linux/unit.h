@@ -2,6 +2,7 @@
 #define AETHERI_LINUX_UNIT_H
 #include "linux/start.h"
 #include "core/root.h"
+#include "core/unit_custody.h"
 #include <linux/stat.h>
 
 enum { AE_UNIT_MAX=8,AE_UNIT_ARGS=8,AE_UNIT_TEXT=256,AE_UNIT_FILE_MAX=16384,AE_UNIT_DROPINS=4 };
@@ -65,6 +66,23 @@ int ae_unit_new(sd_bus **exclusive_bus,const struct ae_peer *pid1,const uint8_t 
  * every meaningful graph/service field. Read-only historical equality, not
  * fresh source/loaded-state or allocation/volume admission. */
 int ae_unit_match_profile(struct ae_unit *,const uint8_t boot[16],const struct ae_unit_profile *);
+/* Install compiled durable before/confirmed hooks only on an unused owner.
+ * before must return zero ONLY after a fresh confirmed durable intent commit;
+ * it must refuse retries/lost acknowledgements. Hook failure quarantines the
+ * connection owner. Every effect is guarded again after before returns. Start
+ * confirmation means only the authenticated job reply, never target execution.
+ * Hooks are optional for isolated Linux tests; the Root adapter requires them.
+ * Original observation below is local read-only, not actor/process admission. */
+struct ae_unit_journal {
+    int (*before)(void *,enum ae_unit_effect,unsigned int);
+    int (*confirmed)(void *,enum ae_unit_effect,unsigned int);
+    /* Called once on first quarantine, under the unit's callback busy guard.
+     * Must fence the compiled owner, never close/retry/control a process here. */
+    void (*failed)(void *,int);
+    void *data;
+};
+int ae_unit_origin(struct ae_unit *,struct ae_unit_origin *);
+int ae_unit_set_journal(struct ae_unit *,const struct ae_unit_journal *);
 /* Caller journals custody intent before entry. Each subscription/reference is
  * attempted at most once and authenticates the original reply. Unknown results
  * retain the object; never retry/adopt from matching names or Refs observations.

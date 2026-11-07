@@ -4,6 +4,20 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Durable unit connection history — 7 November 2026
+
+- Upstream systemd v259 [Manager](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-manager.c)
+  and [Unit](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-unit.c)
+  source, read 7 November: RefUnit loads before adding the sender's reference;
+  UnrefUnit removes that sender's reference without requiring a load. These base
+  source facts are separate from actual Fedora 259.10 fixture observations.
+  The freedesktop latest-manual fetch timed out; no result relies on it.
+- [Root v10](../../spec/schema/system-v10.sql), [native contract](../../src/catalogue/unit.h),
+  [Linux hooks](../../src/linux/unit.c), [Root adapter](../../src/authority/unit.c)
+  and [frozen origin](../../spec/vectors/unit-origin-v1.json) implement the scoped
+  journal. The [executed record](journal/2026-11-07-unit-custody-journal.md)
+  distinguishes durable RPC observations from remaining process/holder recovery.
+
 ## Durable unit allocation — 7 November 2026
 
 - Linux man-pages [open/O_TMPFILE](https://man7.org/linux/man-pages/man2/open.2.html)

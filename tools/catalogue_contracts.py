@@ -31,8 +31,10 @@ def statements(text):
 
 
 def source(kind, version):
-    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5, 6, 7, 8, 9) or (version in (5,6,9) and kind!='system'):
+    if kind not in APPLICATION_IDS or version not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10) or (version in (5,6,9,10) and kind!='system'):
         raise ContractError("unsupported catalogue kind/version")
+    if version==10:
+        return source(kind,9)+extension_v10(kind)
     if version==9:
         return source(kind,8)+extension_v9(kind)
     if version==8:
@@ -165,6 +167,29 @@ def migrate_units(db,kind,*,checkpoint=None):
         raise
     return True
 
+
+
+def extension_v10(kind):
+    if kind!='system': raise ContractError('unit custody extension is system-only')
+    return list(statements((ROOT/'spec/schema/system-v10.sql').read_text(encoding='utf-8')))
+
+def migrate_unit_custody(db,kind,*,checkpoint=None):
+    if kind!='system' or db.in_transaction: raise ContractError('idle Root connection required')
+    if db.execute('PRAGMA user_version').fetchone()[0]==10:
+        validate(db,kind,10); return False
+    configure(db)
+    def mark(phase):
+        if checkpoint: checkpoint(phase)
+    try:
+        db.execute('BEGIN EXCLUSIVE'); validate(db,kind,9); mark('locked')
+        for n,statement in enumerate(extension_v10(kind)):
+            db.execute(statement); mark('statement_'+str(n))
+        db.execute('PRAGMA user_version=10'); mark('version_set'); validate(db,kind,10); mark('validated')
+        db.commit(); mark('committed')
+    except BaseException:
+        if db.in_transaction: db.rollback()
+        raise
+    return True
 
 def configure(db):
     if db.in_transaction:

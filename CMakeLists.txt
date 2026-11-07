@@ -50,7 +50,7 @@ find_package(OpenSSL 3.5.9 REQUIRED COMPONENTS Crypto)
 if(NOT OPENSSL_VERSION VERSION_LESS "3.6.0")
     message(FATAL_ERROR "Review a new OpenSSL release family before adoption; supported family is 3.5 LTS.")
 endif()
-add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c src/core/digest.c src/core/import.c src/core/publish.c)
+add_library(aetheri_core STATIC src/core/owner.c src/core/storage.c src/core/fixture.c src/core/root.c src/core/allocation.c src/core/digest.c src/core/import.c src/core/publish.c src/core/unit_custody.c)
 target_include_directories(aetheri_core PUBLIC src)
 target_link_libraries(aetheri_core PUBLIC OpenSSL::Crypto)
 target_compile_definitions(aetheri_core PRIVATE _GNU_SOURCE)
@@ -75,7 +75,7 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
             spec/schema/system-v5.sql spec/schema/system-v6.sql
             spec/schema/common-v7.sql spec/schema/system-v7.sql spec/schema/user-v7.sql
             spec/schema/common-v8.sql spec/schema/system-v8.sql spec/schema/user-v8.sql
-            spec/schema/system-v9.sql
+            spec/schema/system-v9.sql spec/schema/system-v10.sql
     VERBATIM)
 add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c src/catalogue/interruption.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
@@ -968,6 +968,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.units COMMAND Python3::Interpreter
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" units)
     set_tests_properties(catalogue.units PROPERTIES TIMEOUT 180)
+    add_test(NAME catalogue.unit_custody COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" unit-custody)
+    set_tests_properties(catalogue.unit_custody PROPERTIES TIMEOUT 240)
     add_test(NAME catalogue.user_readiness COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" user-readiness)
     set_tests_properties(catalogue.user_readiness PROPERTIES TIMEOUT 180)
@@ -1207,7 +1210,7 @@ if(BUILD_TESTING)
             target_link_libraries(test_root_unit PRIVATE aetheri_supervisor_start)
             add_test(NAME authority.unit_custody COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_root_unit_native.py" $<TARGET_FILE:test_root_unit> "${CMAKE_CURRENT_BINARY_DIR}")
-            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 300)
+            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 420)
         endif()
         add_executable(test_reservation_wire tests/test_reservation_wire.c src/authority/reservation.c)
         target_compile_definitions(test_reservation_wire PRIVATE _GNU_SOURCE)

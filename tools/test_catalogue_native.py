@@ -29,10 +29,10 @@ def main():
                 cc.migrate_v1_to_v2(db, kind, backup=backup)
                 expected = rows(db)
             os.chmod(path, 0o600)
-            for version in ((2,3,4,5,6,7,8,9) if kind == 'system' else (2,3,4,7,8)):
+            for version in ((2,3,4,5,6,7,8,9,10) if kind == 'system' else (2,3,4,7,8)):
                 if version > 2:
                     with closing(sqlite3.connect(path)) as db:
-                        (cc.migrate_units if version==9 else cc.migrate_owner_recovery if version==7 else getattr(cc,f'migrate_v{version-1}_to_v{version}'))(db,kind)
+                        (cc.migrate_unit_custody if version==10 else cc.migrate_units if version==9 else cc.migrate_owner_recovery if version==7 else getattr(cc,f'migrate_v{version-1}_to_v{version}'))(db,kind)
                         actual=rows(db)
                         if any(actual[name]!=value for name,value in expected.items()):
                             raise AssertionError('additive migration changed original rows')

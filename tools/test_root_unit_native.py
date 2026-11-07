@@ -30,7 +30,8 @@ def main():
     reports = []
     for mode in ('create-before','create-after','create-lost','create-fence','create-recipe','create-placement','normal', 'copy', 'fork', 'fenced', 'end-deny', 'precommit', 'commit-lost', 'last-gate', 'image', 'guard-image',
                  'guard-deny', 'late-fence', 'subscribe-before', 'subscribe-after', 'ref-before', 'ref-after',
-                 'unref-before', 'unref-after', 'unsubscribe-before', 'unsubscribe-after'):
+                 'unref-before', 'unref-after', 'unsubscribe-before', 'unsubscribe-after',
+                 'journal-origin-lost','journal-intent-before','journal-intent-lost','journal-ack-before','journal-ack-lost','start-ack-lost'):
         case = root/mode
         case.mkdir(mode=0o700)
         system, user = case/'system', case/'user'

@@ -23,6 +23,8 @@ static int commit_fault,step_fault,step_number,crash_mode,ddl_fault,ddl_number;
 #ifdef AETHERI_TEST_ROOT_UNIT
 #include <systemd/sd-id128.h>
 void ae_test_root_unit_commit_fault(int value) { commit_fault=value; }
+static int custody_fault,custody_commit;
+void ae_test_root_unit_custody_fault(int phase,int after) { custody_fault=phase; custody_commit=after ? 2 : 1; }
 #endif
 #ifdef AETHERI_TEST_SETUP_SERVICE
 void ae_test_setup_commit_fault(int value) { commit_fault=value; }
@@ -38,7 +40,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strcmp(sql,"PRAGMA user_version=7")==0 || strcmp(sql,"PRAGMA user_version=8")==0 || strcmp(sql,"PRAGMA user_version=9")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strcmp(sql,"PRAGMA user_version=7")==0 || strcmp(sql,"PRAGMA user_version=8")==0 || strcmp(sql,"PRAGMA user_version=9")==0 || strcmp(sql,"PRAGMA user_version=10")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -63,7 +65,17 @@ int __wrap_sqlite3_step(sqlite3_stmt *statement)
     if (step_fault && sqlite3_stmt_readonly(statement)==0 && ++step_number==step_fault) {
         step_fault=0; return SQLITE_IOERR;
     }
-    return __real_sqlite3_step(statement);
+    int result=__real_sqlite3_step(statement);
+#ifdef AETHERI_TEST_ROOT_UNIT
+    const char *sql=sqlite3_sql(statement);
+    if (result==SQLITE_DONE && custody_fault && sql &&
+        ((custody_fault==1 && strstr(sql,"INSERT INTO unit_custodies ")==sql) ||
+         (custody_fault==2 && strstr(sql,"INSERT INTO unit_custody_steps(")==sql) ||
+         (custody_fault==3 && strstr(sql,"UPDATE unit_custody_steps SET confirmed_unix_ms=")==sql))) {
+        commit_fault=custody_commit; custody_fault=0;
+    }
+#endif
+    return result;
 }
 static void id(uint8_t bytes[16],uint8_t last) { memset(bytes,0,16); bytes[6]=0x40; bytes[8]=0x80; bytes[15]=last; }
 static sqlite3 *database(const char *directory)
@@ -1571,8 +1583,121 @@ static void unit_allocation_test(struct ae_catalogue **slot,struct ae_catalogue 
     }
     puts("unit allocation: original binding, immutable retries, migration and retained history passed");
 }
+static void unit_custody_test(struct ae_catalogue **slot,struct ae_catalogue *user,const struct ae_execution_profile *p,
+    struct ae_launch_context *c,const char *directory,const char *mode)
+{
+    unit_allocation_test(slot,user,p,c,directory,"fresh");
+    struct ae_catalogue *s=*slot; struct ae_catalogue_info before,after;
+    CHECK(!ae_catalogue_get_info(s,&before));
+    CHECK(ae_catalogue_upgrade_unit_custody(user)==-EPROTONOSUPPORT);
+    if (!strcmp(mode,"migration")) {
+        for (int n=1;n<=9;++n) {
+            ddl_fault=n; ddl_number=0;
+            CHECK(ae_catalogue_upgrade_unit_custody(s)==-EIO && !ddl_fault && scalar(directory,"PRAGMA user_version")==9);
+        }
+        commit_fault=1; CHECK(ae_catalogue_upgrade_unit_custody(s)==-EIO && scalar(directory,"PRAGMA user_version")==9);
+        commit_fault=2; CHECK(ae_catalogue_upgrade_unit_custody(s)==-EIO && scalar(directory,"PRAGMA user_version")==10);
+    } else if (!strncmp(mode,"crash-",6)) {
+        struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_SYSTEM}; memcpy(identity.authority_epoch,p->system_epoch,16);
+        CHECK(!ae_catalogue_close(slot)); pid_t child=fork(); CHECK(child>=0);
+        int crash=!strcmp(mode,"crash-before") ? 1 : 2;
+        if (!child) { struct ae_catalogue *own=NULL; CHECK(!ae_catalogue_open(directory,&identity,&own)); crash_mode=crash; (void)ae_catalogue_upgrade_unit_custody(own); _exit(90); }
+        int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==70+crash);
+        CHECK(!ae_catalogue_open(directory,&identity,slot)); s=*slot;
+        CHECK(scalar(directory,"PRAGMA user_version")== (crash==1 ? 9 : 10));
+    }
+    struct ae_effect_owner owner; memcpy(owner.epoch,p->system_epoch,16); memcpy(owner.runtime,p->system_runtime,16); memcpy(owner.boot,p->boot,16);
+    CHECK(!ae_catalogue_begin_owner_cleanup(s,&owner)); CHECK(ae_catalogue_upgrade_unit_custody(s)==-EBUSY); CHECK(!ae_catalogue_end_execution_effect(s));
+    CHECK(!ae_catalogue_upgrade_unit_custody(s) && !ae_catalogue_upgrade_unit_custody(s));
+    CHECK(!ae_catalogue_get_info(s,&after) && !memcmp(&before,&after,sizeof before));
+    struct ae_unit_origin origin={0}; memcpy(origin.boot,p->boot,16); memset(origin.bus,0x93,16);
+    strcpy(origin.issuer,":1.234"); strcpy(origin.manager,":1.0"); strcpy(origin.manager_label,"system_u:system_r:init_t:s0");
+    unsigned int node_count=!strcmp(mode,"max") ? 8U : 3U;
+    struct ae_unit_custody_snapshot row,marker; memset(&marker,0xa5,sizeof marker); row=marker;
+    CHECK(ae_catalogue_get_unit_custody(s,p,&owner,&row)==-ENOENT && !memcmp(&row,&marker,sizeof row));
+    int fresh=-77;
+    if (!strcmp(mode,"lost-origin")) { commit_fault=2; CHECK(ae_catalogue_prepare_unit_custody(s,p,c,&origin,node_count,123600,&fresh)==-EIO && fresh==-77); }
+    CHECK(!ae_catalogue_prepare_unit_custody(s,p,c,&origin,node_count,123600,&fresh) && fresh==(strcmp(mode,"lost-origin")!=0));
+    CHECK(!ae_catalogue_prepare_unit_custody(s,p,c,&origin,node_count,123601,&fresh) && !fresh);
+    struct ae_unit_origin changed=origin; strcpy(changed.issuer,":1.235"); fresh=-77;
+    CHECK(ae_catalogue_prepare_unit_custody(s,p,c,&changed,node_count,123601,&fresh)==-EEXIST && fresh==-77);
+    CHECK(ae_catalogue_prepare_unit_custody(s,p,c,&origin,node_count==8 ? 1U : 4U,123601,&fresh)==-EEXIST);
+    CHECK(!ae_catalogue_get_unit_custody(s,p,&owner,&row) && !row.count && row.prepared_unix_ms==123600);
+    struct ae_unit_allocation_snapshot allocation; CHECK(!ae_catalogue_get_unit(s,p,&owner,&allocation));
+    inventory_state(s,AE_RECOVERY_UNIT_CUSTODY,allocation.allocation.id,"unsettled");
+    CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,AE_UNIT_REF,0,123610,&fresh)<0);
+    CHECK(ae_catalogue_confirm_unit_effect(s,p,&owner,AE_UNIT_SUBSCRIBE,0,123610)==-ENOENT);
+    if (!strcmp(mode,"fence")) {
+        struct ae_execution_fence_status fence; CHECK(!ae_catalogue_fence_execution(s,&fence));
+        CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,AE_UNIT_SUBSCRIBE,0,123610,&fresh)==-ESHUTDOWN);
+        CHECK(!ae_catalogue_get_unit_custody(s,p,&owner,&row) && !row.count); return;
+    }
+    if (!strcmp(mode,"replacement")) {
+        ++owner.runtime[15]; CHECK(!ae_catalogue_begin_runtime(s,owner.boot,owner.runtime));
+        CHECK(!ae_catalogue_get_unit_custody(s,p,&owner,&row));
+        CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,AE_UNIT_SUBSCRIBE,0,123610,&fresh)==-ESTALE); return;
+    }
+    enum ae_unit_effect effects[AE_UNIT_EFFECTS_MAX]; unsigned int nodes[AE_UNIT_EFFECTS_MAX],count=0;
+    effects[count]=AE_UNIT_SUBSCRIBE; nodes[count++]=0;
+    for (unsigned int n=0;n<node_count;++n) { effects[count]=AE_UNIT_REF; nodes[count++]=n; }
+    effects[count]=AE_UNIT_START; nodes[count++]=0;
+    for (unsigned int n=node_count;n>0;--n) { effects[count]=AE_UNIT_UNREF; nodes[count++]=n-1; }
+    effects[count]=AE_UNIT_UNSUBSCRIBE; nodes[count++]=0;
+    unsigned int applied=0;
+    for (unsigned int n=0;n<count;++n) {
+        if (n==node_count+1 && !strcmp(mode,"no-start")) continue;
+        int64_t stamp=123610+(int64_t)n*10;
+        uint8_t prior[32],later[32]; database_digest(directory,prior);
+        for (int write=1;write<=2;++write) {
+            step_fault=write; step_number=0; fresh=-77;
+            CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,effects[n],nodes[n],stamp,&fresh)==-EIO && !step_fault && fresh==-77);
+            database_digest(directory,later); CHECK(!memcmp(prior,later,32));
+        }
+        if (n==0 && !strcmp(mode,"lost-intent")) { commit_fault=2; fresh=-77;
+            CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,effects[n],nodes[n],stamp,&fresh)==-EIO && fresh==-77); }
+        CHECK(!ae_catalogue_intend_unit_effect(s,p,&owner,effects[n],nodes[n],stamp,&fresh) && fresh==(n!=0 || strcmp(mode,"lost-intent")!=0));
+        CHECK(!ae_catalogue_intend_unit_effect(s,p,&owner,effects[n],nodes[n],stamp+1,&fresh) && !fresh);
+        if (n+1<count) CHECK(ae_catalogue_intend_unit_effect(s,p,&owner,effects[n+1],nodes[n+1],stamp+1,&fresh)<0);
+        for (int write=1;write<=2;++write) {
+            step_fault=write; step_number=0;
+            CHECK(ae_catalogue_confirm_unit_effect(s,p,&owner,effects[n],nodes[n],stamp+2)==-EIO && !step_fault);
+        }
+        if (n==0 && !strcmp(mode,"lost-ack")) { commit_fault=2;
+            CHECK(ae_catalogue_confirm_unit_effect(s,p,&owner,effects[n],nodes[n],stamp+2)==-EIO); }
+        CHECK(!ae_catalogue_confirm_unit_effect(s,p,&owner,effects[n],nodes[n],stamp+2));
+        CHECK(!ae_catalogue_confirm_unit_effect(s,p,&owner,effects[n],nodes[n],stamp+3));
+        ++applied; CHECK(!ae_catalogue_get_unit_custody(s,p,&owner,&row) && row.count==applied);
+        CHECK(row.steps[applied-1].confirmed && row.steps[applied-1].confirmed_unix_ms==stamp+2);
+    }
+    const char *denied[]={"UPDATE unit_custodies SET node_count=1","DELETE FROM unit_custodies",
+        "DELETE FROM unit_custody_steps","UPDATE unit_custody_steps SET intended_unix_ms=0",
+        "UPDATE unit_custody_steps SET confirmed_unix_ms=confirmed_unix_ms+1"};
+    for (size_t n=0;n<sizeof denied/sizeof denied[0];++n) {
+        sqlite3 *db=database(directory); CHECK((sqlite3_exec(db,denied[n],NULL,NULL,NULL)&0xff)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
+    }
+    CHECK(scalar(directory,"SELECT state='reserved' FROM generation_leases")==1);
+    CHECK(scalar(directory,"SELECT state='reserved' FROM launch_dispatches")==1);
+    inventory_state(s,AE_RECOVERY_UNIT_CUSTODY,allocation.allocation.id,"unsettled");
+    puts("unit custody: immutable origin, ordered one-shot intents/acknowledgements, faults and retained lease passed");
+}
 int main(int argc,char **argv)
 {
+    if (argc==3 && !strcmp(argv[1],"unit-origin-codec")) {
+        uint8_t input[AE_UNIT_ORIGIN_BYTES],raw[AE_UNIT_ORIGIN_BYTES]; FILE *f=fopen(argv[2],"rb");
+        CHECK(f && fread(input,1,sizeof input,f)==sizeof input && fgetc(f)==EOF && !fclose(f));
+        struct ae_unit_origin v,marker; memset(&marker,0xa5,sizeof marker);
+        CHECK(!ae_unit_origin_decode(input,sizeof input,&v));
+        CHECK(!strcmp(v.issuer,":1.234") && !strcmp(v.manager,":1.0") && !strcmp(v.manager_label,"system_u:system_r:init_t:s0"));
+        CHECK(!ae_unit_origin_encode(&v,raw) && !memcmp(raw,input,sizeof raw));
+        for (size_t n=0;n<sizeof input;++n) { v=marker; CHECK(ae_unit_origin_decode(input,n,&v)==-EINVAL && !memcmp(&v,&marker,sizeof v)); }
+        for (size_t n=0;n<3;++n) {
+            memcpy(raw,input,sizeof raw); raw[n==0 ? 0 : n==1 ? 47 : 1063]=255;
+            v=marker; CHECK(ae_unit_origin_decode(raw,sizeof raw,&v)==-EINVAL && !memcmp(&v,&marker,sizeof v));
+        }
+        CHECK(!ae_unit_origin_decode(input,sizeof input,&v)); memset(v.issuer,'x',sizeof v.issuer); memset(raw,0xa5,sizeof raw);
+        CHECK(ae_unit_origin_encode(&v,raw)==-EINVAL); for (size_t n=0;n<sizeof raw;++n) CHECK(raw[n]==0xa5);
+        puts("unit origin: independent frozen vector, canonical padding and bounded outputs passed"); return 0;
+    }
 #ifdef AETHERI_TEST_ROOT_UNIT
     if (argc==3 && !strcmp(argv[1],"unit-codec")) {
         void ae_test_unit_codec(const char *); ae_test_unit_codec(argv[2]); return 0;
@@ -1793,6 +1918,11 @@ int main(int argc,char **argv)
         memcpy(rc.broker_runtime,replacement,16);
     }
     if (execution) {
+        if (strncmp(argv[4],"exec-custody-",13)==0) {
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            unit_custody_test(&root,user,&p,&rc,argv[1],argv[4]+13);
+            CHECK(!ae_catalogue_close(&root) && !ae_catalogue_close(&user)); return 0;
+        }
         if (strncmp(argv[4],"exec-unit-",10)==0) {
             struct ae_execution_profile p; execution_profile(&p,&q,&rc);
             unit_allocation_test(&root,user,&p,&rc,argv[1],argv[4]+10);
