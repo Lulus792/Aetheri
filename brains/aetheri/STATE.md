@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — native Editor background saving tested; loading/scanning remain synchronous.
+7 November 2026 — first diskless UEFI/systemd boot proof; laptop image remains work.
 
 ## Coordination
 
@@ -12,6 +12,35 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Own initramfs boot proof — 7 November 2026
+
+The first original initramfs now boots with the independently pinned existing
+Linux kernel under UEFI in a separate diskless QEMU. systemd is PID1 and starts
+the native C17 diagnostic, which verifies its original nonce/profile, kernel,
+UEFI, RAM root, API mounts and cgroup-v2 service context. It emits PASS and the
+image-only unit powers the VM off. This is direct firmware-assisted kernel/
+initramfs boot, not a standalone USB/disk artifact or a desktop/session test.
+Read the [contract](../../spec/boot-probe.md) and
+[record](journal/2026-11-07-boot-probe.md).
+
+The ordinary-user builder verifies 38 pinned payload/licence files and produces
+byte-identical boot inputs in two new directories on the same toolchain. Actual
+UEFI cold boot passes twice with distinct kernel boot IDs; an actual mismatched
+nonce rejects. Required dlopen mount closure and systemd executor are explicit;
+initial failed attempts remain retained. Five independent host archive/
+no-overwrite tests pass. Original QEMU/firmware/DLL hashes are verified, each run
+has private NVRAM, no system/data disks, networking or QMP. No carrier disk,
+normal authority/session, policy, old quarantine or foreign work is changed.
+Final LF-normalized source binds five inputs and 106 verified evidence members;
+both builds reproduce the exact already cold-booted kernel/initramfs/cmdline bytes.
+The final read-only audit preserves 445 normal source inputs, 31 frozen SQL/XML,
+19 quarantine hashes, 52 normal P0 files and the original closed DRM history.
+
+Next produce a standalone removable-media UEFI artifact and prove its normal
+firmware boot path, then system root and session integration. Production security,
+updates/rollback, full apps, installer, laptop hardware/suspend and the complete
+resettable experiment desktop remain required. The full goal stays active.
 
 ## Native Editor original background saving — 7 November 2026
 

@@ -22,8 +22,10 @@ Normal app launch, document access and the desktop remain in progress. The first
 information and supports keyboard input, per-window themes, text size and DE/EN.
 An opt-in [NexaUI Settings presentation](spec/nexaui.md#aetheri-owned-settings-presentation)
 now provides separate display, appearance and language pages with an opaque fallback.
-An original Aetheri image, installer and admitted daily-use applications remain
-work. The [current state](brains/aetheri/STATE.md) records exact implementation
+The first [diskless boot proof](spec/boot-probe.md) now starts a selected kernel
+and original initramfs under UEFI with systemd and a native diagnostic. A standalone
+laptop image, installer and admitted daily-use applications remain work.
+The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 
 The first [original command shell](spec/shell.md) now runs noninteractive commands

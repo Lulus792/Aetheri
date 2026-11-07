@@ -1164,3 +1164,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   TSan compiler probe fails because its runtime is absent; do not claim TSan or
   change global packages/policy. Loading/scanning and full OS acceptance remain
   work; preserve normal inputs, protected history and foreign planning/design.
+
+- tools/build_boot_probe.py now builds a separate ordinary-user diskless
+  initramfs from spec/boot-probe-inputs.json. Read spec/boot-probe.md and the
+  2026-11-07 boot journal/STATE. systemd remains PID1; the native probe has no
+  reboot or installation effect. Its generated image-only unit requests immediate
+  poweroff, never suitable for the normal host/user shutdown path. Preserve vendor
+  licence files; these development pins are not a production security/base or
+  source-distribution approval. tools/test_boot_image_contract.py checks actual
+  archive metadata and no-overwrite; tools/test_boot_probe.py uses separate
+  diskless/no-network/no-QMP q35/TCG with original extracted tool hashes and fresh
+  private NVRAM. Retain original handles/attempt logs; exit0 alone is not PASS.
+  Two positive cold boots and a real wrong-nonce rejection pass. Do not call this
+  a USB/disk image, Secure Boot, production policy, desktop or hardware acceptance.
+  Next test normal removable-media firmware boot, then root/session integration.
+  Never attach/format host or carrier disks to make that proof easier.

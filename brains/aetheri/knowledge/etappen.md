@@ -3,6 +3,13 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
+7 November checkpoint: graphical development workflows already run on the
+carrier, and the first [own initramfs boot proof](../../../spec/boot-probe.md)
+now passes under UEFI/systemd in a separate diskless QEMU. This is a partial
+build/boot milestone: a standalone removable-media image, system root and laptop
+acceptance remain pending. Next prioritize those integration boundaries; complete
+app polish and the browser need not precede the first laptop test alpha.
+
 | Milestone | Deliverable | Acceptance |
 | --- | --- | --- |
 | 0: Foundations | Agreed C17/Rust/tool/glibc/library policy and MIT, recorded workflows and hardware | Foundations and B/wlroots/systemd/SQLite selected; exact releases and integration still open |

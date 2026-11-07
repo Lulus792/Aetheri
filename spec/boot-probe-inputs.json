@@ -1,0 +1,274 @@
+{
+  "format": 1,
+  "purpose": "Own initramfs boot proof only; existing carrier inputs, not a production base or security review",
+  "architecture": "x86_64",
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "files": [
+    {
+      "source": "/lib/modules/6.19.10-300.fc44.x86_64/vmlinuz",
+      "canonical": "/usr/lib/modules/6.19.10-300.fc44.x86_64/vmlinuz",
+      "sha256": "4b37e4e542a62c580c751787848be6c99e6f908f6712c8c6da85516b8d541de2",
+      "size": 18479464,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/lib/modules/6.19.10-300.fc44.x86_64/config",
+      "canonical": "/usr/lib/modules/6.19.10-300.fc44.x86_64/config",
+      "sha256": "1c0d2e478cdc33747fb3bdd9e332677c517b5791c8cbed0454d22e6e430042d5",
+      "size": 297755,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/systemd/systemd",
+      "canonical": "/usr/lib/systemd/systemd",
+      "sha256": "090f264a99504c3d14f2f684610f09604064fdded7a6aa7034f9e357e3dd3f9d",
+      "size": 147848,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/systemd/libsystemd-core-259.10-1.fc44.so",
+      "canonical": "/usr/lib64/systemd/libsystemd-core-259.10-1.fc44.so",
+      "sha256": "5cf11e4adecc44c2a1f610b8ba2fed2b32d3e312c21e2893225df3b9fcbdfc30",
+      "size": 2747080,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/systemd/libsystemd-shared-259.10-1.fc44.so",
+      "canonical": "/usr/lib64/systemd/libsystemd-shared-259.10-1.fc44.so",
+      "sha256": "f27147fe2f67694acd9b643e1687faa1a09fc0e2348a99a1f610e0504a4e07fb",
+      "size": 5689728,
+      "package": "systemd-shared-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libgcc_s.so.1",
+      "canonical": "/usr/lib64/libgcc_s-16-20260819.so.1",
+      "sha256": "c71a62b5ef442ab8cf4470874dee6f2383d73a744f0006b6d287412f131c2e09",
+      "size": 186512,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libc.so.6",
+      "canonical": "/usr/lib64/libc.so.6",
+      "sha256": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8",
+      "size": 2482096,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libm.so.6",
+      "canonical": "/usr/lib64/libm.so.6",
+      "sha256": "16a03ce6d24c8a46742206d4a9c1d35bb6577ae2384f153dc6ef4a4b62b5357f",
+      "size": 1153848,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libcrypt.so.2",
+      "canonical": "/usr/lib64/libcrypt.so.2.0.0",
+      "sha256": "d599ca6de2ff06d1189c47945616fde24cd7816bcafb1c587ca1a51cb0c584e3",
+      "size": 221624,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libcrypto.so.3",
+      "canonical": "/usr/lib64/libcrypto.so.3.5.9",
+      "sha256": "695648ac8dc5e6a2b70e5e72399940de0f84bf24fddb7dd18949ba40bc575c72",
+      "size": 5783496,
+      "package": "openssl-libs-1:3.5.9-1.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/ld-linux-x86-64.so.2",
+      "canonical": "/usr/lib64/ld-linux-x86-64.so.2",
+      "sha256": "4e5d39355699e90fa29313d3100e82af4a23290028c58c364d6a249ef6a78e5e",
+      "size": 1002600,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libz.so.1",
+      "canonical": "/usr/lib64/libz.so.1.3.1.zlib-ng",
+      "sha256": "bbde8faec092a7c67b8bd76bbba4a826e61b05c171b97004ce6b308c5a090351",
+      "size": 169544,
+      "package": "zlib-ng-compat-2.3.3-3.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libmount.so.1",
+      "canonical": "/usr/lib64/libmount.so.1.1.0",
+      "sha256": "bae9062f215fe51448fd69dd0b28713c5aa9cc46c776804d0d3e3e1d859ec3e4",
+      "size": 371304,
+      "package": "libmount-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libblkid.so.1",
+      "canonical": "/usr/lib64/libblkid.so.1.1.0",
+      "sha256": "5189894b541c68251f3a4c79d922290c1750fe003f799e84df0029b0d769089a",
+      "size": 254280,
+      "package": "libblkid-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libselinux.so.1",
+      "canonical": "/usr/lib64/libselinux.so.1",
+      "sha256": "cc9f8b1691e4f8cc807b2d8fe4a1ce2e0bdb96386285fdc7769849ffab0aaa7e",
+      "size": 209040,
+      "package": "libselinux-3.11-2.fc44.x86_64"
+    },
+    {
+      "source": "/lib64/libpcre2-8.so.0",
+      "canonical": "/usr/lib64/libpcre2-8.so.0.15.0",
+      "sha256": "473aeb0704abc871886650c553b43bb300395d73fe4088620329459b5ddbf4be",
+      "size": 724280,
+      "package": "pcre2-10.47-1.fc44.1.x86_64"
+    },
+    {
+      "source": "/usr/lib/systemd/systemd-executor",
+      "canonical": "/usr/lib/systemd/systemd-executor",
+      "sha256": "d1509ff67fd76c7367250ea32f767ac888341db2ca2edf703b0dcbe819ca339d",
+      "size": 1493536,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "canonical": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "size": 26419,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYING.LIB",
+      "canonical": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "size": 26419,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYINGv2",
+      "canonical": "/usr/share/licenses/glibc/COPYINGv2",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "size": 17984,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYINGv3",
+      "canonical": "/usr/share/licenses/glibc/COPYINGv3",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "size": 35149,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/LICENSES",
+      "canonical": "/usr/share/licenses/glibc/LICENSES",
+      "sha256": "b22a69aa3f80a5201818c66cb0df0f25f9fa13cf5861b0093a058dbd12d50dce",
+      "size": 19665,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/kernel-core/COPYING-6.19.10-300.fc44",
+      "canonical": "/usr/share/licenses/kernel-core/COPYING-6.19.10-300.fc44",
+      "sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0",
+      "size": 496,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later",
+      "canonical": "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "package": "libblkid-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING",
+      "canonical": "/usr/share/licenses/libgcc/COPYING",
+      "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c",
+      "size": 18002,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "canonical": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "size": 26440,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "canonical": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+      "size": 3324,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING3",
+      "canonical": "/usr/share/licenses/libgcc/COPYING3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "size": 35147,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "canonical": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+      "size": 7639,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later",
+      "canonical": "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "package": "libmount-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libselinux/LICENSE",
+      "canonical": "/usr/share/licenses/libselinux/LICENSE",
+      "sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364",
+      "size": 1034,
+      "package": "libselinux-3.11-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/AUTHORS",
+      "canonical": "/usr/share/licenses/libxcrypt/AUTHORS",
+      "sha256": "6d1e45c055b6d9e9bf4e9521419eb3dee4ca42a02dd4d824beaaad476dacfdca",
+      "size": 1850,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/COPYING.LIB",
+      "canonical": "/usr/share/licenses/libxcrypt/COPYING.LIB",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/LICENSING",
+      "canonical": "/usr/share/licenses/libxcrypt/LICENSING",
+      "sha256": "ee26dd8a96fbf600623760499ea1ddddd5703186226b08ba72c39134fff5b758",
+      "size": 6148,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/openssl-libs/LICENSE.txt",
+      "canonical": "/usr/share/licenses/openssl-libs/LICENSE.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "size": 10175,
+      "package": "openssl-libs-1:3.5.9-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/LICENSE.GPL2",
+      "canonical": "/usr/share/licenses/systemd/LICENSE.GPL2",
+      "sha256": "ac4985facb553559981f507982444d779115e3e3a4c8b7847ae956198490c1b3",
+      "size": 17977,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/MIT.txt",
+      "canonical": "/usr/share/licenses/systemd/MIT.txt",
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+      "size": 1078,
+      "package": "systemd-259.10-1.fc44.x86_64; systemd-shared-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+      "canonical": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+      "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+      "size": 26518,
+      "package": "systemd-libs-259.10-1.fc44.x86_64; systemd-shared-259.10-1.fc44.x86_64"
+    }
+  ]
+}

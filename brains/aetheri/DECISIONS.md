@@ -1,5 +1,18 @@
 # Decisions
 
+## Prove own boot assembly before laptop-alpha integration — 7 November 2026
+
+Prioritize a separate original initramfs and actual UEFI/systemd boot over further
+app polish on the development carrier. Reuse explicitly pinned existing kernel/
+runtime payloads, with their licence files, to test the assembly boundary without
+cloning the carrier or introducing a new PID1. This reversible engineering step
+does not select a production base, boot/update format or final device layout.
+The first proof has RAM root and no system/data disks, network or public managed
+app admission. Immediate poweroff belongs only to that disposable image's unit.
+Next require standalone firmware/removable-media boot, then root/session and
+hardware acceptance. See the [contract](../../spec/boot-probe.md) and
+[executed evidence](journal/2026-11-07-boot-probe.md).
+
 ## Keep original Editor documents and explicit close/save decisions — 7 November 2026
 
 The native graphical-editor workspace owns bounded documents and their original
