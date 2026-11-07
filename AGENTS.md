@@ -1179,3 +1179,21 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   a USB/disk image, Secure Boot, production policy, desktop or hardware acceptance.
   Next test normal removable-media firmware boot, then root/session integration.
   Never attach/format host or carrier disks to make that proof easier.
+
+- tools/build_uefi_probe.py now makes the standalone GPT/FAT32 probe with a
+  pinned systemd259.10 stub/ukify and build-only pefile. Read spec/uefi-probe.md
+  and the 2026-11-07 UEFI journal/STATE. Verify exact RPM signatures/payloads and
+  preserve licences; do not install these private extracted tools globally.
+  Formatting accepts only the newly created regular boot.raw under a new output,
+  never a device. UKIs reproduce byte for byte; FAT directory timestamps do not.
+  tools/uefi_probe_image.py independently checks GPT/FAT/PE; run the seven media
+  contracts and five older boot-image contracts. tools/test_uefi_probe.py boots
+  only the read-only USB artifact plus fresh NVRAM, no direct kernel/initrd/append,
+  system/data disks, network, QMP or shared directory. The shared original-child
+  observer now requires exact native result, service outcome and kernel poweroff.
+  Two final positive cold boots and an actual wrong embedded nonce rejection pass.
+  Valid RPM signatures are not an EFI signature; no Secure Boot/production policy
+  or hardware acceptance follows. This is still the immediate-poweroff diagnostic
+  image, never a normal user desktop. Next independently assemble a read-only
+  system root and integrate the existing session/desktop, without adopting old
+  quarantined runtime state or treating image GUIDs as durable volume proof.

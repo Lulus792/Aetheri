@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "purpose": "Development-only unsigned UEFI boot probe, not a production Secure Boot chain",
+  "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+  "packages": [
+    {
+      "name": "python3-pefile-2024.8.26-7.fc44.noarch.rpm",
+      "sha256": "5e002bd55d02f8d7bc2aac43a623009375c0101dca44ab2bbff3c5ade80fe68f",
+      "size": 181792,
+      "metadata": "python3-pefile 0:2024.8.26-7.fc44.noarch MIT",
+      "requires": "python(abi) = 3.14\nrpmlib(CompressedFileNames) <= 3.0.4-1\nrpmlib(FileDigests) <= 4.6.0-1\nrpmlib(PartialHardlinkSets) <= 4.0.4-1\nrpmlib(PayloadFilesHavePrefix) <= 4.0-1\nrpmlib(PayloadIsZstd) <= 5.4.18-1\n",
+      "payloads": {
+        "usr/lib/python3.14/site-packages/ordlookup/__init__.py": {
+          "sha256": "fe7e3869702abb571846d74bc34ea4966e8f75a6603530fe3f9e03c982d736a7",
+          "size": 786
+        },
+        "usr/lib/python3.14/site-packages/ordlookup/oleaut32.py": {
+          "sha256": "d3199a7ea2f1ef42a93cb8b20acc752de67789671cb4248584e2b43f441e5aaf",
+          "size": 11759
+        },
+        "usr/lib/python3.14/site-packages/ordlookup/ws2_32.py": {
+          "sha256": "0879ce2fee63d738838f61332e69a149d463c177649c78935295d7f335604810",
+          "size": 6003
+        },
+        "usr/lib/python3.14/site-packages/ordlookup/wsock32.py": {
+          "sha256": "f029bc58669eae582a7087c630fd8be8f9f5aa2df6f7cecaa13f8f1e1199ed17",
+          "size": 2034
+        },
+        "usr/lib/python3.14/site-packages/pefile.py": {
+          "sha256": "bdbc8f7de15c0a07c974a20408382e12531c9953e6675ce79002b2004079d8ec",
+          "size": 301749
+        },
+        "usr/lib/python3.14/site-packages/peutils.py": {
+          "sha256": "09c314f4b955575d7c0cd3d86bd555ffadbd931112b1e2a922c6eac5f5fb4d54",
+          "size": 18367
+        },
+        "usr/share/licenses/python3-pefile/LICENSE": {
+          "sha256": "b44409c067c6da52bfb54bb6624fb11a7b52157c3a13ae1400232f8196e86ad3",
+          "size": 1083
+        }
+      },
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/python3-pefile-2024.8.26-7.fc44.noarch.rpm"
+    },
+    {
+      "name": "systemd-boot-unsigned-259.10-1.fc44.x86_64.rpm",
+      "sha256": "ef6e716e8ab4cc71b4174b6b4be4ef4643db669bfc4bb43c225825be2fede792",
+      "size": 119952,
+      "metadata": "systemd-boot-unsigned 0:259.10-1.fc44.x86_64 LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later",
+      "requires": "rpmlib(CompressedFileNames) <= 3.0.4-1\nrpmlib(FileDigests) <= 4.6.0-1\nrpmlib(PayloadFilesHavePrefix) <= 4.0-1\nrpmlib(PayloadIsZstd) <= 5.4.18-1\n",
+      "payloads": {
+        "usr/lib/systemd/boot/efi/linuxx64.efi.stub": {
+          "sha256": "3f2de3fa007c4f0d887285094eb9a85cf2157bfed4770b9d596e7bc8dcd5b122",
+          "size": 112128
+        }
+      },
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/s/systemd-boot-unsigned-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "name": "systemd-ukify-259.10-1.fc44.noarch.rpm",
+      "sha256": "b53242ea5e0cd441f87f54555d6db6dfb1585086dc2d7ba699d129233429862e",
+      "size": 38753,
+      "metadata": "systemd-ukify 0:259.10-1.fc44.noarch LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later",
+      "requires": "(systemd-boot if (filesystem(x86-32) or filesystem(x86-64) or filesystem(aarch64) or filesystem(riscv64)))\n/usr/bin/python3\npython3dist(cryptography)\npython3dist(pefile)\npython3dist(zstandard)\nrpmlib(CompressedFileNames) <= 3.0.4-1\nrpmlib(FileDigests) <= 4.6.0-1\nrpmlib(PayloadFilesHavePrefix) <= 4.0-1\nrpmlib(PayloadIsZstd) <= 5.4.18-1\nrpmlib(RichDependencies) <= 4.12.0-1\nsystemd = 259.10-1.fc44\n",
+      "payloads": {
+        "usr/bin/ukify": {
+          "sha256": "06e0e74736f31a6b6c6ebe1323f864c9d8304923128f1461ff483c5907739c9c",
+          "size": 94325
+        }
+      },
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/s/systemd-ukify-259.10-1.fc44.noarch.rpm"
+    }
+  ]
+}

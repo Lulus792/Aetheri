@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — first diskless UEFI/systemd boot proof; laptop image remains work.
+7 November 2026 — standalone UEFI removable-media boot; system root/desktop remain work.
 
 ## Coordination
 
@@ -13,7 +13,35 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Own initramfs boot proof — 7 November 2026
+## Standalone UEFI boot medium — 7 November 2026
+
+The original boot proof now has a real 128MiB GPT/FAT32 medium. Firmware finds
+EFI/BOOT/BOOTX64.EFI on a read-only emulated removable USB device; no separate
+QEMU kernel/initramfs/command-line boot arguments are supplied. The UKI contains
+the exact original kernel/initramfs and selected embedded parameters. Native
+systemd/diagnostic cold boot passes twice with distinct boot IDs; an independently
+built wrong-nonce image passes its rejection checks. Read the
+[contract](../../spec/uefi-probe.md)
+and [record](journal/2026-11-07-uefi-media.md).
+
+The ordinary-user builder verifies signed, pinned systemd259.10 stub/ukify and
+build-only pefile packages in a private prefix. It neither installs packages nor
+formats a device. Two UKIs are byte-identical; FAT directory timestamps remain
+variable and full raw-image reproducibility is not claimed. An independent reader
+checks actual GPT/FAT/PE structures and embedded bytes. Seven media contracts plus
+the five prior boot-image contracts pass on Windows and Linux; native changed-RPM
+and old-output attempts reject before effects. Final build exports 203 verified
+members before exact original private namespace retirement. EFI is unsigned;
+valid RPM signatures do not imply Secure Boot or production security acceptance.
+
+The carrier/protected-state audit preserves all 445 normal sources, 31 frozen
+SQL/XML, 19 quarantine hashes, 52 normal P0 files and original CLOSED history.
+Normal installed APIs/capabilities, developer disk and foreign work are unchanged.
+Next independently assemble the read-only system root and integrate the existing
+desktop/session. Laptop drivers/suspend, writable data, installer, updates/rollback,
+normal app/document lifecycle and the full experiment desktop remain required.
+
+## Prior direct initramfs boot proof — 7 November 2026
 
 The first original initramfs now boots with the independently pinned existing
 Linux kernel under UEFI in a separate diskless QEMU. systemd is PID1 and starts

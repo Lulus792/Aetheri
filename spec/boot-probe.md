@@ -101,9 +101,9 @@ kernel boot ID. No production app lifetime is settled by these tests.
 
 ## Next delivery boundary
 
-Package the selected kernel/initramfs into a real UEFI boot artifact and test it
-through firmware's normal removable-media path, without `-kernel`/`-initrd`.
-Then add an independently built read-only system root, selected system services,
+The [standalone UEFI medium](uefi-probe.md) now packages these exact boot inputs
+and has actual removable-media firmware boot evidence, without `-kernel`/`-initrd`.
+Next add an independently built read-only system root, selected system services,
 normal session/desktop integration and controlled writable data. Review exact
 boot/update formats, dependency security and redistribution/source requirements
 before a public binary release. Retaining licence texts alone does not complete

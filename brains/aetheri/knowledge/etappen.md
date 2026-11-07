@@ -5,9 +5,10 @@ remain a proposal.
 
 7 November checkpoint: graphical development workflows already run on the
 carrier, and the first [own initramfs boot proof](../../../spec/boot-probe.md)
-now passes under UEFI/systemd in a separate diskless QEMU. This is a partial
-build/boot milestone: a standalone removable-media image, system root and laptop
-acceptance remain pending. Next prioritize those integration boundaries; complete
+now passes under UEFI/systemd in a separate QEMU. A real GPT/FAT32
+[removable-media image](../../../spec/uefi-probe.md) also boots through firmware's
+fallback path. This is a partial build/boot milestone: system root, desktop-image
+integration and laptop acceptance remain pending. Prioritize those boundaries; complete
 app polish and the browser need not precede the first laptop test alpha.
 
 | Milestone | Deliverable | Acceptance |

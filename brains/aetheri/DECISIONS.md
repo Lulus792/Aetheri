@@ -1,5 +1,18 @@
 # Decisions
 
+## Use the selected systemd stub and official UKI builder for the boot medium — 7 November 2026
+
+Package the original boot inputs as an AMD64 UKI using the exact same-family
+systemd259.10 stub and official ukify, with build-only pefile in a private prefix.
+Prefer its maintained PE layout/alignment over a new assembler. Verify signed
+RPMs and selected payloads; never execute package installation scripts. The real
+GPT/FAT32 proof boots through UEFI's removable fallback path with no direct QEMU
+payload injection. This selects the next reversible development-image format;
+it does not settle a production boot menu, Secure Boot keys, update/rollback or
+final storage layout. Record FAT timestamp variability and preserve licence texts.
+See the [contract](../../spec/uefi-probe.md) and
+[evidence](journal/2026-11-07-uefi-media.md).
+
 ## Prove own boot assembly before laptop-alpha integration — 7 November 2026
 
 Prioritize a separate original initramfs and actual UEFI/systemd boot over further

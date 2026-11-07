@@ -109,7 +109,24 @@ def run(image, output, expect_failure=False, timeout=120):
         replacement = ("0" if manifest["nonce"][0] != "0" else "1") + manifest["nonce"][1:]
         commandline = commandline.replace(manifest["nonce"], replacement)
     command = [str(TOOLS / "qemu-system-x86_64.exe"), "-name", "aetheri-diskless-boot-proof", "-machine", "pc-q35-11.1,accel=tcg", "-cpu", "max", "-smp", "2", "-m", "768M", "-no-user-config", "-nodefaults", "-display", "none", "-monitor", "none", "-nic", "none", "-no-reboot", "-drive", "if=pflash,format=raw,readonly=on,file=" + str(TOOLS / "share/edk2-x86_64-code.fd"), "-drive", "if=pflash,format=raw,file=" + str(nvram), "-kernel", str(image / "vmlinuz"), "-initrd", str(image / "initramfs.cpio.gz"), "-append", commandline, "-serial", "file:" + str(output / "serial.log")]
-    state = dict(state="starting", command=command, manifest_sha256=sha(image / "manifest.json"), host_tools=hashes, expected_failure=expect_failure)
+    observe(output, command, manifest, hashes, sha(image / "manifest.json"), expect_failure, timeout)
+
+
+def evaluate(serial, manifest, exit_code, timed_out=False, expect_failure=False):
+    positive = re.findall(r"^AETHERI_BOOT_PASS nonce=" + manifest["nonce"] + r" kernel=" + re.escape(manifest["kernel_release"]) + r" arch=x86_64 pid1=systemd uefi=1 ram_root=1 cgroup2=1 boot=([0-9a-f-]{36})\s*$", serial, re.MULTILINE)
+    all_positive = re.findall(r"^AETHERI_BOOT_PASS .*?$", serial, re.MULTILINE)
+    failures = re.findall(r"^AETHERI_BOOT_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
+    powered_off = "reboot: Power down" in serial
+    if expect_failure:
+        result = not all_positive and failures == ["nonce"] and "aetheri-boot.service: Failed with result 'exit-code'." in serial
+    else:
+        result = len(positive) == len(all_positive) == 1 and not failures and "aetheri-boot.service: Deactivated successfully." in serial
+    return bool(exit_code == 0 and not timed_out and powered_off and result), positive, failures
+
+
+def observe(output, command, manifest, hashes, manifest_digest, expect_failure=False, timeout=120):
+    """Observe one original owned test child; callers supply admitted fixed inputs."""
+    state = dict(state="starting", command=command, manifest_sha256=manifest_digest, host_tools=hashes, expected_failure=expect_failure, observer_sha256=sha(Path(__file__)))
 
     def record():
         (output / "attempt.json").write_text(json.dumps(state, indent=2) + "\n")
@@ -120,7 +137,7 @@ def run(image, output, expect_failure=False, timeout=120):
         process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         state.update(state="running", pid=process.pid)
         record()
-        print(json.dumps({"pid": process.pid, "attempt": str(output), "diskless": True}), flush=True)
+        print(json.dumps({"pid": process.pid, "attempt": str(output), "system_data_disks": 0}), flush=True)
         try:
             while process.poll() is None:
                 if time.monotonic()-started >= timeout:
@@ -133,9 +150,7 @@ def run(image, output, expect_failure=False, timeout=120):
             state.update(state="terminal" if process.poll() is not None else "unresolved", exit=process.poll(), seconds=time.monotonic()-started)
             record()
     serial = (output / "serial.log").read_text(errors="replace")
-    positive = re.findall(r"^AETHERI_BOOT_PASS nonce=" + manifest["nonce"] + r" kernel=" + re.escape(manifest["kernel_release"]) + r" arch=x86_64 pid1=systemd uefi=1 ram_root=1 cgroup2=1 boot=([0-9a-f-]{36})\s*$", serial, re.MULTILINE)
-    failures = re.findall(r"^AETHERI_BOOT_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
-    accepted = state["exit"] == 0 and not state.get("timeout") and ((not positive and failures == ["nonce"]) if expect_failure else (len(positive) == 1 and not failures))
+    accepted, positive, failures = evaluate(serial, manifest, state["exit"], state.get("timeout", False), expect_failure)
     state.update(accepted=accepted, serial_sha256=sha(output / "serial.log"), boot_ids=positive, failures=failures)
     record()
     print(json.dumps({k: state[k] for k in ("state", "exit", "seconds", "accepted", "boot_ids", "failures")}), flush=True)
