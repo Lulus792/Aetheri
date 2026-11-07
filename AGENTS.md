@@ -1,6 +1,19 @@
 # Working on Aetheri
 
-authority/unit.h now joins fresh native execution REQUEST to exclusive unit
+Root v9 now adds immutable unit_allocations: native prepare precedes filesystem
+effects; only fresh confirmed prepare permits one O_TMPFILE/create-only-link
+primary fragment. Recipe AND original directory/parent placement bind before
+creation. Unknown commit/link/flush preserves pending intent and possible files,
+never auto-recreates/adopts/cleans up. Complete selection is witnessed once before
+REQUEST/ARM. The Root adapter requires that original witnessed selection/placement.
+Read spec/unit-profiles.md; run catalogue.units, authority.unit_custody and the
+cross-language/contract tests. Explicit quiesced upgrade_units is Root v8->v9 only;
+ordinary create stays v2 and User v9 is unsupported. Preserve frozen v1-v8 SQL/XML.
+Recovery inventory includes preparing AND witnessed unit obligations; no custody
+retirement/purge or general volume/clone/owner-replacement admission exists.
+The old quarantined executing fixture and normal installed v2 inputs stay closed.
+
+authority/unit.h joins fresh native execution REQUEST to exclusive unit
 custody. Read spec/runtime.md's Root request section. Constructor moves only an
 unused unit against independent source/graph/service and starter-ELF witnesses;
 read-only REQUEST-state queries never grant replay. Keep the Root catalogue hold
@@ -10,7 +23,7 @@ source fencing does not require renewed broker start delegation. Abandon drops
 only local observation/hold. Keep its bus separate from the coordinator's bus,
 and the adapter alive through callbacks. Run explicit authority.unit_custody in
 the enforcing carrier. This is inert UID0 administrative/native-journal evidence,
-not persistent registry/provisioning, production end/volume/recovery admission,
+not a normal installed registry/provisioner, production end/volume/recovery admission,
 normal launch or lease settlement. Preserve the old execution quarantine.
 
 Local Files creation now uses files/create.h: an immutable literal name/held

@@ -1,4 +1,5 @@
 #include "linux/unit.h"
+#include "linux/unit_bytes.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -75,6 +76,8 @@ int ae_unit_file_capture(int fd,const uint8_t expected[32],struct ae_unit_file *
     if (!r) *out=value;
     return r;
 }
+int ae_unit_file_equal(const struct ae_unit_file *a,const struct ae_unit_file *b)
+{ return a && b && same_stat(&a->object,&b->object) && !memcmp(a->digest,b->digest,32); }
 static int source(int directory_fd,const char *directory,const char *leaf,int file_fd,
     const struct ae_root_identity *parent,const struct ae_unit_file *file)
 {
@@ -411,6 +414,48 @@ static int shape(const struct ae_unit_profile *p)
         for (unsigned int j=0;j<n->envc;++j) if (!valid_text(n->environment[j],sizeof n->environment[j])) return -EINVAL;
     }
     return 0;
+}
+static void file_bytes(struct ae_unit_bytes *b,const struct ae_unit_file *file)
+{
+    const struct statx *s=&file->object;
+    unsigned int required=STATX_BASIC_STATS|STATX_MNT_ID_UNIQUE|STATX_BTIME;
+    if ((s->stx_mask&required)!=required || !s->stx_mnt_id || !s->stx_ino || !S_ISREG(s->stx_mode) || s->stx_uid || s->stx_gid ||
+        (s->stx_mode!=(S_IFREG|0444) && s->stx_mode!=(S_IFREG|0644)) || s->stx_nlink!=1 || !s->stx_size || s->stx_size>AE_UNIT_FILE_MAX ||
+        s->stx_btime.tv_sec<0 || s->stx_btime.tv_nsec>=1000000000U || s->stx_mtime.tv_nsec>=1000000000U || s->stx_ctime.tv_nsec>=1000000000U) { b->error=-EINVAL; return; }
+    ae_ub_number(b,s->stx_mnt_id,8); ae_ub_number(b,s->stx_ino,8);
+    const uint32_t values[]={s->stx_dev_major,s->stx_dev_minor,s->stx_mode,s->stx_uid,s->stx_gid,s->stx_nlink};
+    for (unsigned int i=0;i<6;++i) ae_ub_number(b,values[i],4);
+    ae_ub_number(b,s->stx_size,8);
+    const struct statx_timestamp *times[]={&s->stx_mtime,&s->stx_ctime,&s->stx_btime};
+    for (unsigned int i=0;i<3;++i) { ae_ub_number(b,(uint64_t)times[i]->tv_sec,8); ae_ub_number(b,times[i]->tv_nsec,4); }
+    ae_ub_bytes(b,file->digest,32);
+}
+int ae_unit_profile_digest(const uint8_t boot[16],const struct ae_unit_profile *p,uint8_t out[32])
+{
+    if (!boot || !out) return -EINVAL;
+    int r=shape(p); if (r) return r;
+    /* Even all eight nodes/four drop-ins/maximum paths fit this bounded frame. */
+    uint8_t *data=malloc(262144); if (!data) return -ENOMEM;
+    struct ae_unit_bytes b={.data=data,.capacity=262144};
+    ae_ub_bytes(&b,"AETHUNP1",8); ae_ub_bytes(&b,boot,16); ae_ub_number(&b,p->count,4);
+    for (unsigned int i=0;i<p->count && !b.error;++i) {
+        const struct ae_unit_node *n=&p->nodes[i];
+        ae_ub_number(&b,(unsigned int)n->kind,4); ae_ub_text(&b,n->name); ae_ub_bytes(&b,n->edges,AE_UNIT_EDGE_COUNT);
+        if (builtin(n)) continue;
+        ae_ub_text(&b,n->directory); ae_ub_root(&b,&n->parent); file_bytes(&b,&n->file); ae_ub_number(&b,n->dropin_count,4);
+        for (unsigned int j=0;j<n->dropin_count;++j) {
+            const struct ae_unit_dropin *d=&n->dropins[j];
+            ae_ub_text(&b,d->directory); ae_ub_text(&b,d->leaf); ae_ub_root(&b,&d->parent); file_bytes(&b,&d->file);
+        }
+        if (n->kind!=AE_UNIT_SERVICE) continue;
+        ae_ub_text(&b,n->executable); ae_ub_number(&b,n->argc,4);
+        for (unsigned int j=0;j<n->argc;++j) ae_ub_text(&b,n->argv[j]);
+        ae_ub_number(&b,n->envc,4); for (unsigned int j=0;j<n->envc;++j) ae_ub_text(&b,n->environment[j]);
+        ae_ub_text(&b,n->label); ae_ub_number(&b,n->capabilities,8); ae_ub_number(&b,n->ambient,8);
+        const unsigned int flags[]={(unsigned int)n->no_new_privileges,(unsigned int)n->private_mounts,(unsigned int)n->private_network,(unsigned int)n->private_devices,n->umask};
+        for (unsigned int j=0;j<5;++j) ae_ub_number(&b,flags[j],4);
+    }
+    r=b.error ? b.error : ae_sha256_bytes(data,b.used,out); free(data); return r;
 }
 static int dispose(struct ae_unit **out,int abandon)
 {

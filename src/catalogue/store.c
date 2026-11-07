@@ -11,6 +11,7 @@
 #include "catalogue/handoff.h"
 #include "catalogue/recovery.h"
 #include "catalogue/effect.h"
+#include "catalogue/unit.h"
 #include "core/root.h"
 #include "core/fixture.h"
 #include "core/digest.h"
@@ -178,6 +179,10 @@ static int build_schema(sqlite3 *db, enum ae_catalogue_kind kind,int version)
         for (size_t n=0;result==0 && extension[n];++n) result=exec_sql(db,extension[n]);
         if (result==0) result=exec_sql(db,"PRAGMA user_version=8");
     }
+    if (result==0 && version>=9 && kind==AE_CATALOGUE_SYSTEM) {
+        for (size_t n=0;result==0 && ae_schema_system_v9[n];++n) result=exec_sql(db,ae_schema_system_v9[n]);
+        if (result==0) result=exec_sql(db,"PRAGMA user_version=9");
+    }
     return result;
 }
 
@@ -318,7 +323,7 @@ static int validate(struct ae_catalogue *store)
     int result = scalar_int(store->db, "PRAGMA application_id", &value);
     if (result == 0 && value != application_id(store->identity.kind)) result = -ESTALE;
     if (result == 0) result = scalar_int(store->db, "PRAGMA user_version", &value);
-    if (result == 0 && value != 2 && value != 3 && value != 4 && value != 7 && value != 8 && !((value==5 || value==6) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
+    if (result == 0 && value != 2 && value != 3 && value != 4 && value != 7 && value != 8 && !((value==5 || value==6 || value==9) && store->identity.kind==AE_CATALOGUE_SYSTEM)) result = -EPROTONOSUPPORT;
     if (result == 0) result = compare_schema(store->db, store->identity.kind,(int)value);
     sqlite3_stmt *check = NULL;
     if (result == 0) result = failure(sqlite3_prepare_v2(store->db, "PRAGMA foreign_key_check", -1, &check, NULL));
@@ -2474,8 +2479,8 @@ static int require_execution_process(struct ae_catalogue *s,const struct ae_exec
     (void)hash;
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
     struct ae_execution_process_snapshot snapshot;
-    if (r==0 && version!=2 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
-    if (r==0 && (version==4 || version==5 || version==6 || version==7 || version==8)) {
+    if (r==0 && version!=2 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6 || version==9) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && (version==4 || version==5 || version==6 || version==7 || version==8 || version==9)) {
         r=process_catalogue_row(s,p,(enum ae_execution_process_role)role,&snapshot);
         if (r==0) r=ae_execution_process_match(p,e,&snapshot.process);
     }
@@ -2678,6 +2683,12 @@ int ae_catalogue_execution(struct ae_catalogue *store,const struct ae_execution_
         if (result==0) result=EQ("SELECT max(o.revision,d.revision,l.revision) " EXEC_TUPLE,&match);
         if (result==0 && match==INT64_MAX) result=-EOVERFLOW;
         if (result==0 && stage==AE_EXECUTION_ARM) result=require_execution_process(store,p,hash,e,1);
+        sqlite3_int64 unit_version_value=0;
+        if (result==0 && (stage==AE_EXECUTION_REQUEST || stage==AE_EXECUTION_ARM)) result=scalar_int(store->db,"PRAGMA user_version",&unit_version_value);
+        if (result==0 && unit_version_value==9) {
+            result=EQ("SELECT count(*) FROM unit_allocations u,p WHERE u.operation_id=p.op AND u.lease_id=p.lease AND u.profile_digest=p.hash AND u.selection_digest IS NOT NULL",&match);
+            if (result==0 && match!=1) result=-EAGAIN;
+        }
         if (result==0 && stage==AE_EXECUTION_REQUEST) result=EQ("INSERT INTO operation_steps SELECT op,1,'stage','generation',g,'executing',hash FROM p",NULL);
         if (result==0 && stage==AE_EXECUTION_BIND) result=EQ("INSERT INTO operation_steps SELECT op,2,'verify','integration',inv,'executing',evidence FROM p",NULL);
         if (result==0 && stage==AE_EXECUTION_PREPARE) {
@@ -2910,7 +2921,7 @@ static int process_catalogue_begin(struct ae_catalogue *s,const struct ae_execut
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6 || version==9) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info;
     if (r==0) r=read_info(s,&info);
     int system=s->identity.kind==AE_CATALOGUE_SYSTEM;
@@ -3029,7 +3040,7 @@ static int handoff_begin(struct ae_catalogue *s,const struct ae_execution_profil
     if (!s || s->identity.kind!=AE_CATALOGUE_SYSTEM) return -EPERM;
     int r=process_catalogue_begin(s,p,write); if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=5 && version!=6 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=5 && version!=6 && version!=7 && version!=8 && version!=9) r=-EPROTONOSUPPORT;
     return r==0 ? 0 : fixture_commit(s,r);
 }
 static int handoff_row(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_handoff_snapshot *output)
@@ -3267,7 +3278,7 @@ static int run_begin(struct ae_catalogue *s,const struct ae_execution_profile *p
     if (r==0) r=exec_sql(s->db,write ? "BEGIN IMMEDIATE" : "BEGIN");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=3 && version!=4 && version!=7 && version!=8 && !((version==5 || version==6 || version==9) && s->identity.kind==AE_CATALOGUE_SYSTEM)) r=-EPROTONOSUPPORT;
     if (r!=0) return fixture_commit(s,r);
     return 0;
 }
@@ -3320,7 +3331,7 @@ static int run_recovery_current(struct ae_catalogue *s,const struct ae_execution
     const struct ae_execution_evidence *e,struct run_values *v)
 {
     sqlite3_int64 version=0; int r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=6 && version!=7 && version!=8) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=6 && version!=7 && version!=8 && version!=9) r=-EPROTONOSUPPORT;
     if (r==0) r=run_recovery_context(s,p,c);
     struct ae_handoff_snapshot h;
     if (r==0) r=handoff_row(s,p,&h);
@@ -3692,7 +3703,7 @@ static int interruption_begin(struct ae_catalogue *s,const struct ae_execution_p
     if (r==0) r=exec_sql(s->db,"BEGIN IMMEDIATE");
     if (r!=0) return r;
     sqlite3_int64 version=0; r=scalar_int(s->db,"PRAGMA user_version",&version);
-    if (r==0 && version!=8) r=-EPROTONOSUPPORT;
+    if (r==0 && version!=8 && version!=9) r=-EPROTONOSUPPORT;
     struct ae_catalogue_info info; if (r==0) r=read_info(s,&info);
     int root=s->identity.kind==AE_CATALOGUE_SYSTEM;
     if (r==0 && (memcmp(info.boot_id,b->boot,16)!=0 || memcmp(info.runtime_incarnation,root ? b->root_runtime : b->user_runtime,16)!=0 ||
@@ -3903,7 +3914,7 @@ int ae_catalogue_recovery_inventory(struct ae_catalogue *s,size_t limit,struct a
     if(result==0) {v=calloc(1,sizeof(*v));if(!v) result=-ENOMEM;}
     if(result==0) {v->identity=s->identity;result=read_info(s,&v->context);}
     if(result==0) result=scalar_int(s->db,"PRAGMA user_version",&version);
-    if(result==0 && (version<2 || version>8 || (s->identity.kind==AE_CATALOGUE_USER && (version==5 || version==6)))) result=-EPROTONOSUPPORT;
+    if(result==0 && (version<2 || version>9 || (s->identity.kind==AE_CATALOGUE_USER && (version==5 || version==6 || version==9)))) result=-EPROTONOSUPPORT;
     if(result==0) v->schema_version=(unsigned)version;
     const struct {enum ae_recovery_record_kind kind;unsigned owner,min_version;const char *sql;} queries[]={
         {AE_RECOVERY_OPERATION,3,2,"SELECT o.operation_id,coalesce(p.install_ref,p.data_epoch_ref),o.revision,o.state,p.kind,o.phase,o.reason_code,"
@@ -3922,7 +3933,8 @@ int ae_catalogue_recovery_inventory(struct ae_catalogue *s,size_t limit,struct a
         {AE_RECOVERY_CLOSURE,3,3,"SELECT launch_id,start_operation_id,revision,state,'','','',0 FROM run_closures WHERE state<>'released' ORDER BY launch_id"},
         {AE_RECOVERY_HANDOFF,1,5,"SELECT launch_id,NULL,revision,state,'','','',0 FROM execution_handoffs WHERE state<>'retired' ORDER BY launch_id"},
         {AE_RECOVERY_INTERRUPTION,1,8,"SELECT launch_id,start_operation_id,revision,'begin','','','',0 FROM run_interruption_steps s WHERE kind=1 AND NOT EXISTS(SELECT 1 FROM run_interruption_steps t WHERE t.launch_id=s.launch_id AND t.kind=3) ORDER BY launch_id"},
-        {AE_RECOVERY_INTERRUPTION,2,8,"SELECT launch_id,start_operation_id,revision,'quiet','','','',0 FROM run_interruption_steps s WHERE kind=2 AND NOT EXISTS(SELECT 1 FROM run_interruption_steps t WHERE t.launch_id=s.launch_id AND t.kind=4) ORDER BY launch_id"}
+        {AE_RECOVERY_INTERRUPTION,2,8,"SELECT launch_id,start_operation_id,revision,'quiet','','','',0 FROM run_interruption_steps s WHERE kind=2 AND NOT EXISTS(SELECT 1 FROM run_interruption_steps t WHERE t.launch_id=s.launch_id AND t.kind=4) ORDER BY launch_id"},
+        {AE_RECOVERY_UNIT_ALLOCATION,1,9,"SELECT allocation_id,operation_id,CASE WHEN selection_digest IS NULL THEN 1 ELSE 2 END,CASE WHEN selection_digest IS NULL THEN 'preparing' ELSE 'witnessed' END,'unit','allocation','unit_custody_unsettled',CASE WHEN selection_digest IS NULL THEN 1 ELSE 0 END FROM unit_allocations ORDER BY allocation_id"}
     };
     for(size_t i=0;result==0 && i<sizeof(queries)/sizeof(queries[0]);++i)
         if((queries[i].owner&(unsigned)s->identity.kind) && version>=queries[i].min_version)
@@ -3935,3 +3947,135 @@ int ae_catalogue_recovery_inventory(struct ae_catalogue *s,size_t limit,struct a
     }
     *output=v;return 0;
 }
+
+#define UNIT_B(value,length) ((struct fixture_value){.bytes=(value),.size=(length)})
+#define UNIT_I(value) ((struct fixture_value){.size=-1,.number=(value)})
+int ae_catalogue_upgrade_units(struct ae_catalogue *s)
+{
+    int r=still_named(s);
+    if (!r && s->identity.kind!=AE_CATALOGUE_SYSTEM) r=-EPROTONOSUPPORT;
+    if (!r && s->execution_effects) r=-EBUSY;
+    if (!r) r=exec_sql(s->db,"BEGIN EXCLUSIVE");
+    if (r) return r;
+    r=validate(s); sqlite3_int64 version=0;
+    if (!r) r=scalar_int(s->db,"PRAGMA user_version",&version);
+    if (!r && version!=8 && version!=9) r=-EPROTONOSUPPORT;
+    if (!r && version==8) {
+        for (size_t n=0;!r && ae_schema_system_v9[n];++n) r=exec_sql(s->db,ae_schema_system_v9[n]);
+        if (!r) r=exec_sql(s->db,"PRAGMA user_version=9");
+    }
+    if (!r) r=validate(s);
+    return fixture_commit(s,r);
+}
+static int unit_version(struct ae_catalogue *s)
+{
+    int r=still_named(s); sqlite3_int64 version=0;
+    if (!r && s->identity.kind!=AE_CATALOGUE_SYSTEM) r=-EPERM;
+    if (!r) r=scalar_int(s->db,"PRAGMA user_version",&version);
+    return !r && version!=9 ? -EPROTONOSUPPORT : r;
+}
+static int unit_query(struct ae_catalogue *s,const char *sql,const struct fixture_value *values,size_t count,sqlite3_stmt **out)
+{
+    sqlite3_stmt *q=NULL; int r=failure(sqlite3_prepare_v2(s->db,sql,-1,&q,NULL));
+    for (size_t n=0;!r && n<count;++n) r=failure(values[n].size<0 ? sqlite3_bind_int64(q,(int)n+1,values[n].number) :
+        sqlite3_bind_blob(q,(int)n+1,values[n].bytes,values[n].size,SQLITE_TRANSIENT));
+    if (r) sqlite3_finalize(q); else *out=q;
+    return r;
+}
+static int unit_blob(sqlite3_stmt *q,int column,void *out,int bytes)
+{
+    if (sqlite3_column_type(q,column)!=SQLITE_BLOB || sqlite3_column_bytes(q,column)!=bytes) return -EUCLEAN;
+    memcpy(out,sqlite3_column_blob(q,column),(size_t)bytes); return 0;
+}
+static int unit_row(struct ae_catalogue *s,const struct ae_execution_profile *p,struct ae_unit_allocation_snapshot *out)
+{
+    uint8_t raw[384],hash[32],stored[384],digest[32]; int r=ae_execution_encode(p,raw);
+    if (!r) r=ae_execution_digest(p,hash);
+    struct fixture_value key=UNIT_B(p->root_operation,16); sqlite3_stmt *q=NULL;
+    if (!r) r=unit_query(s,"SELECT allocation_id,profile,profile_digest,recipe_digest,placement_digest,selection_digest,prepared_unix_ms,witnessed_unix_ms FROM unit_allocations WHERE operation_id=?1",&key,1,&q);
+    struct ae_unit_allocation_snapshot value={0};
+    if (!r) { int code=sqlite3_step(q); if (code!=SQLITE_ROW) r=code==SQLITE_DONE ? -ENOENT : failure(code); }
+    if (!r) r=unit_blob(q,0,value.allocation.id,16);
+    if (!r) r=unit_blob(q,1,stored,384);
+    if (!r) r=unit_blob(q,2,digest,32);
+    if (!r && (memcmp(raw,stored,384) || memcmp(hash,digest,32))) r=-EEXIST;
+    if (!r) r=unit_blob(q,3,value.allocation.recipe,32);
+    if (!r) r=unit_blob(q,4,value.allocation.placement,32);
+    if (!r) {
+        value.witnessed=sqlite3_column_type(q,5)!=SQLITE_NULL;
+        if (value.witnessed) r=unit_blob(q,5,value.selection,32);
+    }
+    if (!r && (sqlite3_column_type(q,6)!=SQLITE_INTEGER || sqlite3_column_int64(q,6)<0)) r=-EUCLEAN;
+    if (!r) value.allocation.prepared_unix_ms=sqlite3_column_int64(q,6);
+    if (!r && value.witnessed) {
+        if (sqlite3_column_type(q,7)!=SQLITE_INTEGER || sqlite3_column_int64(q,7)<value.allocation.prepared_unix_ms) r=-EUCLEAN;
+        else value.witnessed_unix_ms=sqlite3_column_int64(q,7);
+    } else if (!r && sqlite3_column_type(q,7)!=SQLITE_NULL) r=-EUCLEAN;
+    if (!r && sqlite3_step(q)!=SQLITE_DONE) r=-EUCLEAN;
+    int ended=failure(sqlite3_finalize(q)); if (!r) r=ended;
+    if (!r) *out=value;
+    return r;
+}
+int ae_catalogue_get_unit(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_effect_owner *current,
+    struct ae_unit_allocation_snapshot *out)
+{
+    if (!p || !out) return -EINVAL;
+    int r=effect_owner_context(s,current);
+    if (!r && memcmp(p->system_epoch,current->epoch,16)) r=-ESTALE;
+    if (!r) r=unit_version(s);
+    return r ? r : unit_row(s,p,out);
+}
+static int unit_change(struct ae_catalogue *s,const char *sql,const struct fixture_value *values,size_t count)
+{
+    sqlite3_stmt *q=NULL; int r=unit_query(s,sql,values,count,&q);
+    if (!r) { int code=sqlite3_step(q); r=code==SQLITE_DONE ? 0 : (code==SQLITE_CONSTRAINT_UNIQUE || code==SQLITE_CONSTRAINT_PRIMARYKEY) ? -EEXIST : failure(code); }
+    if (!r && sqlite3_changes(s->db)!=1) r=-EUCLEAN;
+    int ended=failure(sqlite3_finalize(q)); return r ? r : ended;
+}
+static int unit_record(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_unit_allocation *a,const uint8_t *selection,int64_t stamp,int *fresh)
+{
+    if (!p || !c || !a || !projection_id(a->id) || a->prepared_unix_ms<0 || (selection && stamp<a->prepared_unix_ms)) return -EINVAL;
+    int r=unit_version(s); uint8_t raw[384],hash[32];
+    if (!r) r=ae_execution_encode(p,raw);
+    if (!r) r=ae_execution_digest(p,hash);
+    if (!r) r=reservation_context(s,c);
+    if (!r && (memcmp(p->system_epoch,s->identity.authority_epoch,16) || memcmp(p->system_runtime,c->system_runtime,16) ||
+        memcmp(p->boot,c->boot,16) || memcmp(p->account,c->account,16) || memcmp(p->broker_epoch,c->broker_epoch,16) || memcmp(p->broker_runtime,c->broker_runtime,16))) r=-ESTALE;
+    if (!r) r=exec_sql(s->db,"BEGIN IMMEDIATE");
+    if (r) return r;
+    struct ae_unit_allocation_snapshot row; int found=unit_row(s,p,&row),mutation=0;
+    if (found && found!=-ENOENT) r=found;
+    if (!r && !found && (memcmp(a->id,row.allocation.id,16) || memcmp(a->recipe,row.allocation.recipe,32) ||
+        memcmp(a->placement,row.allocation.placement,32) || a->prepared_unix_ms!=row.allocation.prepared_unix_ms)) r=-EEXIST;
+    if (!r && selection && found==-ENOENT) r=-ENOENT;
+    if (!r && selection && !found && row.witnessed && memcmp(selection,row.selection,32)) r=-EEXIST;
+    mutation=!r && (found==-ENOENT || (selection && !row.witnessed));
+    int present=0;
+    if (mutation) {
+        r=ae_catalogue_check_execution_effect(s,c);
+        if (!r) r=ae_catalogue_execution_request_state(s,p,c,&present);
+        if (!r && present) r=-EALREADY;
+        struct ae_catalogue_info info; if (!r) r=read_info(s,&info);
+        if (!r && info.revision==INT64_MAX) r=-EOVERFLOW;
+        if (!r && found==-ENOENT) {
+            struct fixture_value v[]={UNIT_B(a->id,16),UNIT_B(p->root_operation,16),UNIT_B(p->lease,16),UNIT_B(raw,384),UNIT_B(hash,32),UNIT_B(a->recipe,32),UNIT_B(a->placement,32),UNIT_I(a->prepared_unix_ms)};
+            r=unit_change(s,"INSERT INTO unit_allocations(allocation_id,operation_id,lease_id,profile,profile_digest,recipe_digest,placement_digest,prepared_unix_ms) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",v,8);
+        } else if (!r) {
+            struct fixture_value v[]={UNIT_B(selection,32),UNIT_I(stamp),UNIT_B(a->id,16)};
+            r=unit_change(s,"UPDATE unit_allocations SET selection_digest=?1,witnessed_unix_ms=?2 WHERE allocation_id=?3 AND selection_digest IS NULL",v,3);
+        }
+        if (!r) r=exec_sql(s->db,"UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1");
+    }
+    r=fixture_commit(s,r);
+    if (!r && fresh) *fresh=mutation ? 1 : 0;
+    return r;
+}
+int ae_catalogue_prepare_unit(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_unit_allocation *a,int *fresh)
+{ return fresh ? unit_record(s,p,c,a,NULL,0,fresh) : -EINVAL; }
+int ae_catalogue_witness_unit(struct ae_catalogue *s,const struct ae_execution_profile *p,const struct ae_launch_context *c,
+    const struct ae_unit_allocation *a,const uint8_t selection[32],int64_t stamp)
+{ return selection ? unit_record(s,p,c,a,selection,stamp,NULL) : -EINVAL; }
+#undef UNIT_B
+#undef UNIT_I

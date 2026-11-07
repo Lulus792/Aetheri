@@ -1,5 +1,17 @@
 # Decisions
 
+## Journal original unit allocation before publication — 7 November 2026
+
+Use an explicit Root v9 table under the existing owner lock, instead of a second
+loosely coupled sidecar journal. Freeze original profile/operation/lease, separate
+unit-allocation ID, fragment recipe AND parent/directory placement before file
+creation. Only fresh confirmed preparation permits one native O_TMPFILE/link
+publication; witness the original complete source/image selection once before
+REQUEST/ARM. Never retry effects or adopt candidates after lost acknowledgements.
+Keep unresolved units visible even after witnessing. Ordinary v2 installation,
+production policy/volume admission and custody retirement/recovery are separate.
+See [unit profiles](../../spec/unit-profiles.md).
+
 ## Keep Root ownership through unit custody — 7 November 2026
 
 Compose the existing execution REQUEST coordinator with the exclusive unit owner

@@ -24,9 +24,26 @@ static struct {
     struct ae_execution_profile *profile;
     struct ae_launch_context *broker;
     struct ae_root_unit_image *source;
+    unsigned int links;
+    int create_fault;
+    struct ae_unit_file created;
 } s;
 void ae_test_root_unit_commit_fault(int);
 void ae_test_root_unit_close_gate(const char *);
+int __real_linkat(int,const char *,int,const char *,int);
+int __wrap_linkat(int fd,const char *old,int parent,const char *name,int flags)
+{
+    if (!s.create_fault) return __real_linkat(fd,old,parent,name,flags);
+    ++s.links;
+    if (s.create_fault==1) { errno=EIO; return -1; }
+    int r=__real_linkat(fd,old,parent,name,flags);
+    if (!r) {
+        CHECK(!statx(fd,"",AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW,STATX_BASIC_STATS|STATX_MNT_ID_UNIQUE|STATX_BTIME,&s.created.object));
+        CHECK(!ae_sha256_fd(fd,s.created.object.stx_size,s.created.digest));
+        errno=EIO; return -1;
+    }
+    return r;
+}
 int __real_sd_bus_call(sd_bus *,sd_bus_message *,uint64_t,sd_bus_error *,sd_bus_message **);
 int __wrap_sd_bus_call(sd_bus *bus,sd_bus_message *q,uint64_t timeout,sd_bus_error *error,sd_bus_message **out)
 {
@@ -70,6 +87,21 @@ static int admit(void *data,const struct ae_execution_profile *p)
     if (!strcmp(s.mode,"last-gate") && s.guards==12) ae_test_root_unit_close_gate(s.directory);
     return !strcmp(s.mode,"guard-deny") ? -EPERM : 0;
 }
+static int create_admit(void *data,const struct ae_execution_profile *p)
+{
+    (void)data; CHECK(!memcmp(p,s.profile,sizeof *p));
+    struct ae_catalogue *same=s.store; CHECK(ae_catalogue_close(&same)==-EBUSY && same==s.store);
+    if (!strcmp(s.mode,"create-fence")) { struct ae_execution_fence_status status; CHECK(!ae_catalogue_fence_execution(s.store,&status)); }
+    return 0;
+}
+static void retire_image(struct ae_root_unit_image *image,const uint8_t expected[32])
+{
+    struct stat st; uint8_t hash[32];
+    CHECK(!fstatat(image->directory_fd,image->leaf,&st,AT_SYMLINK_NOFOLLOW) && (uint64_t)st.st_ino==image->image.inode);
+    CHECK(!ae_sha256_fd(image->image_fd,image->image.size,hash) && !memcmp(hash,expected,32));
+    CHECK(!unlinkat(image->directory_fd,image->leaf,0) && !fsync(image->directory_fd));
+    close(image->image_fd); close(image->directory_fd); CHECK(!rmdir(image->directory));
+}
 static int ending(void *data)
 {
     (void)data; ++s.ends; reentry();
@@ -83,6 +115,52 @@ static void decode(const char *text,uint8_t out[32])
 {
     const char digits[]="0123456789abcdef";
     for (unsigned int i=0;i<32;++i) { const char *a=strchr(digits,text[2*i]),*b=strchr(digits,text[2*i+1]); CHECK(a && b); out[i]=(uint8_t)((a-digits)*16+(b-digits)); }
+}
+void ae_test_unit_codec(const char *path)
+{
+    s.mode="codec"; uint8_t bytes[480],digest[32],marker[32]; memset(marker,0xa5,32);
+    FILE *file=fopen(path,"rb"); CHECK(file && fread(bytes,1,sizeof bytes,file)==sizeof bytes && fgetc(file)==EOF && !fclose(file));
+    struct ae_execution_profile execution; CHECK(!ae_execution_decode(bytes,384,&execution));
+    struct ae_unit_profile *p=calloc(1,sizeof *p); CHECK(p); p->count=3;
+    struct ae_unit_node *n=&p->nodes[0]; n->kind=AE_UNIT_SERVICE;
+    char launch[33]; static const char hex[]="0123456789abcdef";
+    for (unsigned int i=0;i<16;++i) { launch[2*i]=hex[execution.launch[i]>>4]; launch[2*i+1]=hex[execution.launch[i]&15]; } launch[32]=0;
+    CHECK(snprintf(n->name,sizeof n->name,"aetheri-app-%s.service",launch)>0);
+    strcpy(n->directory,"/run/systemd/system"); n->directory_fd=42; n->file_fd=43;
+    n->parent=(struct ae_root_identity){.mount_id=101,.inode=201,.device_major=8,.device_minor=1,.mode=S_IFDIR|0700,
+        .filesystem_type=0xef53,.birth_present=1,.birth_seconds=1000,.birth_nanoseconds=23};
+    for (unsigned int i=0;i<8;++i) n->parent.filesystem_id[i]=(uint8_t)(i+1);
+    n->file.object=(struct statx){.stx_mask=STATX_BASIC_STATS|STATX_MNT_ID_UNIQUE|STATX_BTIME,.stx_mnt_id=101,.stx_ino=301,
+        .stx_dev_major=8,.stx_dev_minor=1,.stx_mode=S_IFREG|0444,.stx_nlink=1,.stx_size=1234,
+        .stx_mtime={.tv_sec=2000,.tv_nsec=5},.stx_ctime={.tv_sec=2001,.tv_nsec=6},.stx_btime={.tv_sec=1001,.tv_nsec=7}};
+    memset(n->file.digest,0x31,32); n->dropin_count=1;
+    struct ae_unit_dropin *d=&n->dropins[0]; strcpy(d->directory,"/usr/lib/systemd/system/service.d"); strcpy(d->leaf,"10-test.conf");
+    d->directory_fd=44; d->file_fd=45; d->parent=n->parent; d->parent.inode=202; d->parent.mount_id=102;
+    d->file=n->file; d->file.object.stx_ino=401; d->file.object.stx_mnt_id=102; memset(d->file.digest,0x32,32);
+    strcpy(n->executable,"/unit/image/starter"); strcpy(n->argv[0],n->executable); strcpy(n->argv[1],"--fixed"); n->argc=2;
+    n->envc=1; strcpy(n->environment[0],"ONE=1"); strcpy(n->label,"system_u:system_r:test_starter_t:s0"); n->capabilities=0x1234; n->no_new_privileges=1; n->umask=0077;
+    n->edges[AE_UNIT_REQUIRES]=n->edges[AE_UNIT_AFTER]=2;
+    p->nodes[1].kind=AE_UNIT_SYSTEM_SLICE; strcpy(p->nodes[1].name,"system.slice"); p->nodes[1].edges[AE_UNIT_REQUIRES]=p->nodes[1].edges[AE_UNIT_AFTER]=4;
+    p->nodes[2].kind=AE_UNIT_ROOT_SLICE; strcpy(p->nodes[2].name,"-.slice");
+    struct ae_root_unit_image source={.directory_fd=46,.image_fd=47,.parent=n->parent,
+        .image={.inode=501,.size=4096,.device_major=8,.device_minor=1,.mode=S_IFREG|0555,.birth_seconds=1002,.birth_ns=3,
+                .mtime_seconds=2002,.mtime_ns=4,.ctime_seconds=2003,.ctime_ns=5}};
+    source.parent.inode=203; source.parent.mount_id=103;
+    strcpy(source.directory,"/unit/image"); strcpy(source.leaf,"starter"); strcpy(source.label,"system_u:object_r:bin_t:s0"); memcpy(source.image.digest,execution.starter_digest,32);
+    CHECK(!ae_unit_profile_digest(execution.boot,p,digest) && !memcmp(digest,bytes+384,32));
+    CHECK(!ae_root_unit_selection_digest(&execution,p,&source,digest) && !memcmp(digest,bytes+416,32));
+    CHECK(!ae_root_unit_placement_digest(n->directory,&n->parent,digest) && !memcmp(digest,bytes+448,32));
+    n->file_fd=100; n->directory_fd=101; source.image_fd=102; source.directory_fd=103;
+    CHECK(!ae_root_unit_selection_digest(&execution,p,&source,digest) && !memcmp(digest,bytes+416,32));
+    ++n->file.object.stx_btime.tv_nsec;
+    CHECK(!ae_root_unit_selection_digest(&execution,p,&source,digest) && memcmp(digest,bytes+416,32)); --n->file.object.stx_btime.tv_nsec;
+    n->file.object.stx_mask&=~STATX_BTIME; memcpy(digest,marker,32);
+    CHECK(ae_root_unit_selection_digest(&execution,p,&source,digest)==-EINVAL && !memcmp(digest,marker,32)); n->file.object.stx_mask|=STATX_BTIME;
+    source.parent.birth_present=0;
+    CHECK(ae_root_unit_selection_digest(&execution,p,&source,digest)==-EINVAL && !memcmp(digest,marker,32)); source.parent.birth_present=1;
+    ++source.image.digest[0]; CHECK(ae_root_unit_selection_digest(&execution,p,&source,digest)==-ESTALE && !memcmp(digest,marker,32)); --source.image.digest[0];
+    p->count=AE_UNIT_MAX+1; CHECK(ae_root_unit_selection_digest(&execution,p,&source,digest)==-EINVAL && !memcmp(digest,marker,32));
+    free(p); puts("unit selection codec: independent frozen bytes, FD independence, birth/drift and error outputs passed");
 }
 static int terminal(sd_bus *bus,const char *name)
 {
@@ -116,6 +194,8 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     struct stat st; CHECK(!fstat(image.image_fd,&st) && st.st_size>0);
     CHECK(!ae_sha256_fd(image.image_fd,(uint64_t)st.st_size,p->starter_digest) && !ae_image_verify(image.image_fd,p->starter_digest,&image.image));
     struct ae_user_execution_result prepared; CHECK(!ae_catalogue_prepare_user_execution(user,p,&prepared) && prepared.submit_required);
+    CHECK(!ae_catalogue_upgrade_lifetimes(store) && !ae_catalogue_upgrade_processes(store) && !ae_catalogue_upgrade_handoffs(store) &&
+        !ae_catalogue_upgrade_recovery(store) && !ae_catalogue_upgrade_owner_recovery(store) && !ae_catalogue_upgrade_interruptions(store) && !ae_catalogue_upgrade_units(store));
     struct ae_unit_profile *selection=calloc(1,sizeof *selection); CHECK(selection); selection->count=3;
     struct ae_unit_node *n=&selection->nodes[0]; n->kind=AE_UNIT_SERVICE;
     struct ae_dispatch_snapshot dispatch; CHECK(!ae_catalogue_get_dispatch(store,p->lease,broker,&dispatch)); strcpy(n->name,dispatch.unit);
@@ -130,10 +210,46 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
         "SELinuxContext=system_u:system_r:unconfined_service_t:s0\nNoNewPrivileges=yes\nPrivateMounts=no\nPrivateNetwork=no\nPrivateDevices=no\n"
         "FileDescriptorStoreMax=0\nFileDescriptorStorePreserve=no\nStandardInput=null\nStandardOutput=null\nStandardError=null\nCapabilityBoundingSet=\nAmbientCapabilities=\nUMask=0077\nExecStart=%s\n",n->executable);
     CHECK(size>0 && size<(int)sizeof text);
-    output=openat(n->directory_fd,n->name,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600); CHECK(output>=0);
-    CHECK(!fsetfilecon_raw(output,"system_u:object_r:systemd_unit_file_t:s0") && write(output,text,(size_t)size)==size && !fchmod(output,0444) && !fsync(output) && !close(output) && !fsync(n->directory_fd));
-    n->file_fd=openat(n->directory_fd,n->name,O_RDONLY|O_NOFOLLOW|O_CLOEXEC); CHECK(n->file_fd>=0);
-    uint8_t hash[32]; CHECK(!ae_sha256_bytes((const uint8_t *)text,(size_t)size,hash) && !ae_unit_file_capture(n->file_fd,hash,&n->file));
+    struct ae_unit_allocation allocation={.prepared_unix_ms=123500}; sd_id128_t token; CHECK(sd_id128_randomize(&token)>=0);
+    memcpy(allocation.id,token.bytes,16); allocation.id[6]=(uint8_t)((allocation.id[6]&15U)|64U); allocation.id[8]=(uint8_t)((allocation.id[8]&63U)|128U);
+    CHECK(!ae_sha256_bytes((const uint8_t *)text,(size_t)size,allocation.recipe));
+    CHECK(!ae_root_unit_placement_digest(n->directory,&n->parent,allocation.placement));
+    struct ae_root_unit_create creation={.directory_fd=n->directory_fd,.directory=n->directory,.parent=n->parent,.bytes=(const uint8_t *)text,.size=(size_t)size};
+    n->file_fd=-1;
+    int factory=!strncmp(mode,"create-",7);
+    if (!strcmp(mode,"create-before")) s.create_fault=1;
+    if (!strcmp(mode,"create-after")) s.create_fault=2;
+    if (!strcmp(mode,"create-lost")) ae_test_root_unit_commit_fault(2);
+    if (!strcmp(mode,"create-recipe")) ++allocation.recipe[0];
+    if (!strcmp(mode,"create-placement")) ++allocation.placement[0];
+    struct ae_unit_file factory_marker; memset(&factory_marker,0xa5,sizeof factory_marker); n->file=factory_marker;
+    int created=ae_root_unit_create(store,p,broker,&allocation,&creation,create_admit,NULL,&n->file_fd,&n->file);
+    if (factory) {
+        CHECK(created==(!strcmp(mode,"create-recipe") ? -EBADMSG : !strcmp(mode,"create-placement") ? -ESTALE : !strcmp(mode,"create-fence") ? -ESHUTDOWN : -EIO));
+        CHECK(n->file_fd==-1 && !memcmp(&n->file,&factory_marker,sizeof factory_marker));
+        struct ae_unit_allocation_snapshot snap; struct ae_effect_owner own;
+        memcpy(own.epoch,p->system_epoch,16); memcpy(own.runtime,p->system_runtime,16); memcpy(own.boot,p->boot,16);
+        int got=ae_catalogue_get_unit(store,p,&own,&snap);
+        CHECK((!strcmp(mode,"create-recipe") || !strcmp(mode,"create-placement")) ? got==-ENOENT : !got && !snap.witnessed);
+        unsigned int original_links=s.links;
+        CHECK(ae_root_unit_create(store,p,broker,&allocation,&creation,create_admit,NULL,&n->file_fd,&n->file)==
+            (!strcmp(mode,"create-recipe") ? -EBADMSG : !strcmp(mode,"create-placement") ? -ESTALE : !strcmp(mode,"create-fence") ? -ESHUTDOWN : -EALREADY));
+        CHECK(s.links==original_links && !s.effects);
+        s.create_fault=0;
+        if (!strcmp(mode,"create-after")) {
+            int held=openat(n->directory_fd,n->name,O_RDONLY|O_NOFOLLOW|O_CLOEXEC); CHECK(held>=0);
+            struct ae_unit_file actual; CHECK(!ae_unit_file_capture(held,allocation.recipe,&actual) && ae_unit_file_equal(&actual,&s.created));
+            CHECK(!unlinkat(n->directory_fd,n->name,0) && !fsync(n->directory_fd)); close(held);
+        } else { struct stat absent; CHECK(fstatat(n->directory_fd,n->name,&absent,AT_SYMLINK_NOFOLLOW)<0 && errno==ENOENT); }
+        char path[4096]; CHECK(snprintf(path,sizeof path,"%s/factory-receipt.txt",directory)>0); FILE *receipt=fopen(path,"wx"); CHECK(receipt);
+        CHECK(fprintf(receipt,"unit=%s\nimage=%s/%s\nlinks=%u\nno_target_submission=1\n",n->name,image.directory,image.leaf,s.links)>0 && !fflush(receipt) && !fsync(fileno(receipt)) && !fclose(receipt));
+        retire_image(&image,p->starter_digest); close(n->directory_fd); free(selection); CHECK(fds()==baseline);
+        printf("Root unit %s: original allocation intent retained, no retry/adoption/start after uncertainty\n",mode); return;
+    }
+    CHECK(!created && n->file_fd>=0);
+    int rejected=-1; struct ae_unit_file file_marker=n->file;
+    CHECK(ae_root_unit_create(store,p,broker,&allocation,&creation,create_admit,NULL,&rejected,&file_marker)==-EALREADY && rejected==-1 && ae_unit_file_equal(&file_marker,&n->file));
+    uint8_t hash[32]; memcpy(hash,allocation.recipe,32);
     CHECK(snprintf(text,sizeof text,"%s/admin-receipt.txt",directory)>0); f=fopen(text,"wx"); CHECK(f);
     CHECK(fprintf(f,"unit=%s\nunit_inode=%llu\nunit_mount=%llu\nimage=%s\nimage_inode=%llu\nimage_sha256=",n->name,
         (unsigned long long)n->file.object.stx_ino,(unsigned long long)n->file.object.stx_mnt_id,n->executable,(unsigned long long)image.image.inode)>0);
@@ -152,6 +268,9 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     struct ae_unit *unit=NULL; CHECK(!ae_unit_new(&bus,&pid1,p->boot,selection,&unit) && !bus); ae_peer_clear(&pid1);
     n->ambient=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); n->ambient=0;
     image.image.digest[0]^=1; CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root); image.image.digest[0]^=1;
+    CHECK(ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root)==-ESTALE && unit && !s.root);
+    uint8_t selected[32]; CHECK(!ae_root_unit_selection_digest(p,selection,&image,selected));
+    CHECK(!ae_catalogue_witness_unit(store,p,broker,&allocation,selected,123501));
     CHECK(!ae_root_unit_new(store,&unit,selection,&image,p,broker,admit,NULL,&s.root) && !unit);
     if (!strcmp(mode,"copy")) { strcpy(n->argv[0],"changed"); strcpy(image.label,"changed"); }
     if (!strcmp(mode,"precommit")) {
@@ -221,10 +340,7 @@ void ae_test_root_unit(struct ae_catalogue *store,struct ae_catalogue *user,stru
     struct ae_unit_file file; CHECK(!ae_unit_file_capture(n->file_fd,n->file.digest,&file) && file.object.stx_ino==n->file.object.stx_ino);
     CHECK(!fstatat(n->directory_fd,n->name,&st,AT_SYMLINK_NOFOLLOW) && (uint64_t)st.st_ino==n->file.object.stx_ino);
     CHECK(!unlinkat(n->directory_fd,n->name,0) && !fsync(n->directory_fd));
-    CHECK(!fstatat(image.directory_fd,image.leaf,&st,AT_SYMLINK_NOFOLLOW) && (uint64_t)st.st_ino==image.image.inode);
-    CHECK(!ae_sha256_fd(image.image_fd,image.image.size,hash) && !memcmp(hash,p->starter_digest,32));
-    CHECK(!unlinkat(image.directory_fd,image.leaf,0) && !fsync(image.directory_fd));
-    close(image.image_fd); close(image.directory_fd); CHECK(!rmdir(image.directory));
+    retire_image(&image,p->starter_digest);
     close(drop->file_fd); close(drop->directory_fd); close(n->file_fd); close(n->directory_fd); free(selection);
     sd_bus_flush_close_unref(control); CHECK(fds()==baseline);
     printf("Root unit %s: original REQUEST/custody held through job, one-shot effects and unchanged reserved lease\n",mode);

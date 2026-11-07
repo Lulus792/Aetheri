@@ -23,8 +23,12 @@ def main():
     root = Path(tempfile.mkdtemp(prefix='root-unit-', dir=build))
     expected = root/'expected'
     expected.write_bytes(hashlib.sha256(reference.intent(plan)).digest())
+    vector=reference.load_json((Path(__file__).resolve().parents[1]/'spec/vectors/unit-selection-v1.json').read_bytes())
+    codec=root/'codec.bin'
+    codec.write_bytes(bytes.fromhex(vector['profile_hex']+vector['unit_sha256']+vector['selection_sha256']+vector['placement_sha256']))
+    subprocess.run([executable,'unit-codec',codec],check=True,timeout=15)
     reports = []
-    for mode in ('normal', 'copy', 'fork', 'fenced', 'end-deny', 'precommit', 'commit-lost', 'last-gate', 'image', 'guard-image',
+    for mode in ('create-before','create-after','create-lost','create-fence','create-recipe','create-placement','normal', 'copy', 'fork', 'fenced', 'end-deny', 'precommit', 'commit-lost', 'last-gate', 'image', 'guard-image',
                  'guard-deny', 'late-fence', 'subscribe-before', 'subscribe-after', 'ref-before', 'ref-after',
                  'unref-before', 'unref-after', 'unsubscribe-before', 'unsubscribe-after'):
         case = root/mode

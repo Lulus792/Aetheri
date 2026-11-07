@@ -6,6 +6,7 @@
 #include "catalogue/handoff.h"
 #include "catalogue/recovery.h"
 #include "catalogue/effect.h"
+#include "catalogue/unit.h"
 #include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -37,7 +38,7 @@ int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char *
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (ddl_fault && sqlite3_db_filename(db,"main") && sqlite3_db_filename(db,"main")[0] &&
-        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strcmp(sql,"PRAGMA user_version=7")==0 || strcmp(sql,"PRAGMA user_version=8")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
+        (strncmp(sql,"CREATE ",7)==0 || strcmp(sql,"PRAGMA user_version=3")==0 || strcmp(sql,"PRAGMA user_version=4")==0 || strcmp(sql,"PRAGMA user_version=5")==0 || strcmp(sql,"PRAGMA user_version=6")==0 || strcmp(sql,"PRAGMA user_version=7")==0 || strcmp(sql,"PRAGMA user_version=8")==0 || strcmp(sql,"PRAGMA user_version=9")==0 || strncmp(sql,"DROP TRIGGER ",13)==0) && ++ddl_number==ddl_fault) {
         ddl_fault=0; return SQLITE_IOERR;
     }
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
@@ -1500,8 +1501,83 @@ static void execution_test(struct ae_catalogue **root,struct ae_catalogue **user
         CHECK(scalar(directory,"SELECT reason_code LIKE 'exec_%' FROM operations")==1 && scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no=4 AND state='applied'")==1);
     }
 }
+static void unit_allocation_test(struct ae_catalogue **slot,struct ae_catalogue *user,const struct ae_execution_profile *p,
+    struct ae_launch_context *c,const char *directory,const char *mode)
+{
+    struct ae_catalogue *s=*slot; struct ae_catalogue_info before,after;
+    CHECK(!ae_catalogue_upgrade_lifetimes(s) && !ae_catalogue_upgrade_processes(s) && !ae_catalogue_upgrade_handoffs(s) &&
+        !ae_catalogue_upgrade_recovery(s) && !ae_catalogue_upgrade_owner_recovery(s) && !ae_catalogue_upgrade_interruptions(s));
+    CHECK(ae_catalogue_upgrade_units(user)==-EPROTONOSUPPORT);
+    CHECK(!ae_catalogue_get_info(s,&before));
+    if (!strcmp(mode,"migration")) {
+        for (int n=1;n<=6;++n) {
+            ddl_fault=n; ddl_number=0;
+            CHECK(ae_catalogue_upgrade_units(s)==-EIO && !ddl_fault && scalar(directory,"PRAGMA user_version")==8);
+        }
+        commit_fault=1; CHECK(ae_catalogue_upgrade_units(s)==-EIO && scalar(directory,"PRAGMA user_version")==8);
+        commit_fault=2; CHECK(ae_catalogue_upgrade_units(s)==-EIO && scalar(directory,"PRAGMA user_version")==9);
+    } else if (!strncmp(mode,"crash-",6)) {
+        struct ae_catalogue_identity identity={.kind=AE_CATALOGUE_SYSTEM}; memcpy(identity.authority_epoch,p->system_epoch,16);
+        CHECK(!ae_catalogue_close(slot)); pid_t child=fork(); CHECK(child>=0);
+        int crash=!strcmp(mode,"crash-before") ? 1 : 2;
+        if (!child) { struct ae_catalogue *own=NULL; CHECK(!ae_catalogue_open(directory,&identity,&own)); crash_mode=crash; (void)ae_catalogue_upgrade_units(own); _exit(90); }
+        int status; CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==(crash==1 ? 71 : 72));
+        CHECK(!ae_catalogue_open(directory,&identity,slot)); s=*slot;
+        CHECK(scalar(directory,"PRAGMA user_version")== (crash==1 ? 8 : 9));
+    }
+    struct ae_effect_owner owner; memcpy(owner.epoch,p->system_epoch,16); memcpy(owner.runtime,p->system_runtime,16); memcpy(owner.boot,p->boot,16);
+    CHECK(!ae_catalogue_begin_owner_cleanup(s,&owner)); CHECK(ae_catalogue_upgrade_units(s)==-EBUSY); CHECK(!ae_catalogue_end_execution_effect(s));
+    CHECK(!ae_catalogue_upgrade_units(s) && !ae_catalogue_upgrade_units(s));
+    CHECK(!ae_catalogue_get_info(s,&after) && !memcmp(&before,&after,sizeof before));
+    struct ae_unit_allocation a={.prepared_unix_ms=123500}; id(a.id,90); memset(a.recipe,0x91,32); memset(a.placement,0x93,32);
+    struct ae_unit_allocation_snapshot snap,marker; memset(&marker,0xa5,sizeof marker); snap=marker;
+    CHECK(ae_catalogue_get_unit(s,p,&owner,&snap)==-ENOENT && !memcmp(&snap,&marker,sizeof snap));
+    struct ae_execution_result result; CHECK(ae_catalogue_execution(s,p,c,AE_EXECUTION_REQUEST,NULL,&result)==-EAGAIN);
+    int fresh=-77;
+    if (!strcmp(mode,"lost-prepare")) { commit_fault=2; CHECK(ae_catalogue_prepare_unit(s,p,c,&a,&fresh)==-EIO && fresh==-77); }
+    CHECK(!ae_catalogue_prepare_unit(s,p,c,&a,&fresh) && fresh==(strcmp(mode,"lost-prepare")!=0));
+    fresh=-77; CHECK(!ae_catalogue_prepare_unit(s,p,c,&a,&fresh) && !fresh);
+    CHECK(!ae_catalogue_get_unit(s,p,&owner,&snap) && !snap.witnessed && !memcmp(snap.allocation.id,a.id,16));
+    inventory_state(s,AE_RECOVERY_UNIT_ALLOCATION,a.id,"preparing");
+    struct ae_unit_allocation changed=a; ++changed.recipe[0]; fresh=-77;
+    CHECK(ae_catalogue_prepare_unit(s,p,c,&changed,&fresh)==-EEXIST && fresh==-77);
+    changed=a; ++changed.placement[0]; CHECK(ae_catalogue_prepare_unit(s,p,c,&changed,&fresh)==-EEXIST && fresh==-77);
+    struct ae_execution_profile wrong=*p; ++wrong.starter_digest[0];
+    CHECK(ae_catalogue_get_unit(s,&wrong,&owner,&snap)==-EEXIST);
+    CHECK(ae_catalogue_execution(s,p,c,AE_EXECUTION_REQUEST,NULL,&result)==-EAGAIN);
+    uint8_t selected[32]; memset(selected,0x92,32);
+    if (!strcmp(mode,"fence")) {
+        struct ae_execution_fence_status fence; CHECK(!ae_catalogue_fence_execution(s,&fence));
+        CHECK(ae_catalogue_witness_unit(s,p,c,&a,selected,123501)==-ESHUTDOWN);
+        CHECK(!ae_catalogue_prepare_unit(s,p,c,&a,&fresh) && !fresh); return;
+    }
+    if (!strcmp(mode,"lost-witness")) { commit_fault=2; CHECK(ae_catalogue_witness_unit(s,p,c,&a,selected,123501)==-EIO); }
+    CHECK(!ae_catalogue_witness_unit(s,p,c,&a,selected,123501));
+    CHECK(!ae_catalogue_get_unit(s,p,&owner,&snap) && snap.witnessed && !memcmp(snap.selection,selected,32) && snap.witnessed_unix_ms==123501);
+    inventory_state(s,AE_RECOVERY_UNIT_ALLOCATION,a.id,"witnessed");
+    const char *denied[]={"UPDATE unit_allocations SET recipe_digest=zeroblob(32)","UPDATE unit_allocations SET selection_digest=zeroblob(32)","DELETE FROM unit_allocations"};
+    for (size_t n=0;n<3;++n) {
+        sqlite3 *db=database(directory); CHECK((sqlite3_exec(db,denied[n],NULL,NULL,NULL)&0xff)==SQLITE_CONSTRAINT && sqlite3_close(db)==SQLITE_OK);
+    }
+    ++selected[0]; CHECK(ae_catalogue_witness_unit(s,p,c,&a,selected,123502)==-EEXIST); --selected[0];
+    CHECK(!ae_catalogue_witness_unit(s,p,c,&a,selected,123999));
+    CHECK(!ae_catalogue_execution(s,p,c,AE_EXECUTION_REQUEST,NULL,&result) && result.effect_required);
+    CHECK(!ae_catalogue_witness_unit(s,p,c,&a,selected,124000));
+    CHECK(!ae_catalogue_prepare_unit(s,p,c,&a,&fresh) && !fresh);
+    if (!strcmp(mode,"replacement")) {
+        ++owner.runtime[15]; CHECK(!ae_catalogue_begin_runtime(s,owner.boot,owner.runtime));
+        CHECK(!ae_catalogue_get_unit(s,p,&owner,&snap) && snap.witnessed);
+        fresh=-77; CHECK(ae_catalogue_prepare_unit(s,p,c,&a,&fresh)==-ESTALE && fresh==-77);
+    }
+    puts("unit allocation: original binding, immutable retries, migration and retained history passed");
+}
 int main(int argc,char **argv)
 {
+#ifdef AETHERI_TEST_ROOT_UNIT
+    if (argc==3 && !strcmp(argv[1],"unit-codec")) {
+        void ae_test_unit_codec(const char *); ae_test_unit_codec(argv[2]); return 0;
+    }
+#endif
     if (argc==3 && strcmp(argv[1],"interruption-codec")==0) {
         uint8_t data[2200],raw[353],hash[32]; FILE *f=fopen(argv[2],"rb");
         CHECK(f && fread(data,1,sizeof data,f)==sizeof data && fgetc(f)==EOF && fclose(f)==0);
@@ -1717,6 +1793,11 @@ int main(int argc,char **argv)
         memcpy(rc.broker_runtime,replacement,16);
     }
     if (execution) {
+        if (strncmp(argv[4],"exec-unit-",10)==0) {
+            struct ae_execution_profile p; execution_profile(&p,&q,&rc);
+            unit_allocation_test(&root,user,&p,&rc,argv[1],argv[4]+10);
+            CHECK(!ae_catalogue_close(&root) && !ae_catalogue_close(&user)); return 0;
+        }
         if (strstr(argv[4],"fence-")) {
             struct ae_execution_fence_status fence_marker,fence_state; memset(&fence_marker,0xa5,sizeof fence_marker); fence_state=fence_marker;
             CHECK(ae_catalogue_fence_execution(user,&fence_state)==-EPERM && memcmp(&fence_state,&fence_marker,sizeof fence_state)==0);

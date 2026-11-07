@@ -79,6 +79,8 @@ def main():
             scenarios=tuple('exec-start-'+case for case in (
                 'normal','early','foreign-job','wrong-sender','lost-reply','bad-path','conflict','overflow','late-owner-loss',
                 'owner-loss','guard-deny','late-fence','submit-before','submit-after','fenced-pending','fork','missing-job','failed-job','guard-owner-loss'))
+        if len(sys.argv)==4 and sys.argv[3]=='units':
+            scenarios=tuple('exec-unit-'+mode for mode in ('fresh','migration','crash-before','crash-after','lost-prepare','lost-witness','fence','replacement'))
         if len(sys.argv)==4 and sys.argv[3]=="fence":
             scenarios=tuple("exec-service-fence-"+case for case in (
                 "request-before","request-commit","request-active","bind-ref","bind-commit",

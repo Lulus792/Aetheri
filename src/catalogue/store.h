@@ -63,6 +63,10 @@ int ae_catalogue_upgrade_owner_recovery(struct ae_catalogue *);
  * rows, runtime/gate changes or process admission. Unknown commits inspect the
  * same retained database; exact v8 retry validates without rewriting history. */
 int ae_catalogue_upgrade_interruptions(struct ae_catalogue *);
+/* Explicit quiesced Root-only v8 -> v9 unit allocation journal. No existing
+ * rows/runtime/gates or source fence change. Requires no local effect holds;
+ * caller quiesces external dispatch. Unknown commit inspects the same DB. */
+int ae_catalogue_upgrade_units(struct ae_catalogue *);
 /* Commit fresh runtime + boot. Existing open gates close; closing gates keep
  * their durable cause. Triggers mark recovery obligations. This does not settle
  * holders, reopen gates or establish a global service-readiness gate. Reusing

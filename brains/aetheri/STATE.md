@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — Root REQUEST joined to full unit-reference custody.
+7 November 2026 — durable unit allocation and witnessed selection before REQUEST.
 
 ## Coordination
 
@@ -14,6 +14,42 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+Root v9 now journals the separate unit allocation before filesystem effects.
+Fragment recipe and original directory/parent placement are immutable. Fresh
+confirmed preparation permits one native O_TMPFILE/create-only-link publication;
+complete selection is witnessed once before executing REQUEST/ARM. The Root
+adapter matches that record and original placement instead of relying on a
+process-local selection alone. Canonical digests exclude FDs/padding and require
+source/parent birth observations. See [unit profiles](../../spec/unit-profiles.md)
+and the [executed record](journal/2026-11-07-unit-registry.md).
+
+Preparing and witnessed unit obligations remain visible in recovery inventory.
+Explicit quiesced Root v8->v9 migration adds no old rows, runtime/gate/revision
+changes or admission; ordinary creation and installed owners stay v2. The old
+executing quarantine is not opened/migrated/adopted. User v9 is unsupported and
+frozen v1-v8 SQL/XML remain unchanged. Real production policy/volume/owner
+admission, custody retirement and recovery remain separate work.
+
+Both complete isolated core/IPC builds pass. The final 26 native cases, eight
+catalogue cases and independent codec pass Release/ASan without skips (259.92s /
+227.81s). Eight affected regressions also pass (286.79s / 328.02s), including
+Python/native populated v9 validation. Host contracts pass 52/52; frozen runtime
+tests 25/25. The export has 161 files / 443,115 bytes. Final audit checks 426
+sources, 28 unchanged frozen SQL/XML, 19 quarantine hashes and all 52 normal files/
+controller, exact CLOSED/SDK 0.1.18/SDL04 and vendor drop-in. No own actor or unit/
+image from 102 exercised fixtures remains; histories/leases stay retained.
+Three foreign files match the prior checkpoint; the current parallel UI-note
+revision is preserved and excluded from this work.
+
+Next: record and reconcile the original per-unit reference/subscription lifetime
+without replay, then original owner/volume continuity and external/delegated
+holder settlement. Never infer unit or lease retirement from a stored selection,
+completed PID1 job, closed connection or an empty metadata projection. The full
+OS/apps/image/installer/update/hardware/experiment-desktop goal stays active and
+incomplete; no new NexaUI handoff.
+
+## Prior Root REQUEST and full-custody checkpoint
 
 The internal Root adapter now binds an unused exclusive unit owner, independently
 selected source/graph/service profile and original held/named starter ELF to the

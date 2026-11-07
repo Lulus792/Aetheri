@@ -14,6 +14,7 @@ enum ae_unit_edge { AE_UNIT_REQUIRES,AE_UNIT_WANTS,AE_UNIT_REQUISITE,AE_UNIT_BIN
  * and flush of the original protected allocation, against an independent digest. */
 struct ae_unit_file { struct statx object; uint8_t digest[32]; };
 int ae_unit_file_capture(int fd,const uint8_t expected_sha256[32],struct ae_unit_file *);
+int ae_unit_file_equal(const struct ae_unit_file *,const struct ae_unit_file *);
 struct ae_unit_dropin {
     char directory[4096],leaf[AE_UNIT_TEXT];
     int directory_fd,file_fd;
@@ -37,6 +38,11 @@ struct ae_unit_node {
     uint32_t umask;
 };
 struct ae_unit_profile { unsigned int count; struct ae_unit_node nodes[AE_UNIT_MAX]; };
+/* Canonical AETHUNP1 digest of meaningful profile fields, excluding FDs/padding.
+ * Requires birth observations on every source/parent. Current-boot metadata,
+ * never durable volume trust or permission to adopt a candidate. Output unchanged
+ * on error; profile/boot immutable during the synchronous bounded encoding. */
+int ae_unit_profile_digest(const uint8_t boot[16],const struct ae_unit_profile *,uint8_t output[32]);
 struct ae_unit;
 struct ae_unit_status {
     int used,subscribe_attempted,subscribed,ready,fenced,quarantined,error;

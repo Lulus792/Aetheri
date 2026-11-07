@@ -4940,8 +4940,9 @@ registry/provisioning and general admitted end/recovery integration remain work.
 The internal [Root unit adapter](../src/authority/unit.h) now joins the existing
 execution coordinator's fresh REQUEST callback to the unit owner above. Before
 REQUEST, move an unused unit owner into this adapter against an independently
-authorized unit selection and protected starter-image selection. This is a
-process-local selection binding, not persistent profile-registry enrollment.
+authorized unit selection and protected starter-image selection. The binding
+now also requires the original witnessed Root v9 allocation record described in
+[durable unit profiles](unit-profiles.md); it is not a normal installed registry.
 The unit name must derive from the original launch; its selected executable must
 name the original held/named root-owned ELF, whose object/digest/raw MAC and
 protected parent match the independent witness and AETHEXE1 starter digest.
@@ -4988,3 +4989,11 @@ proof. See the [executed record](../brains/aetheri/journal/2026-11-07-root-unit.
 Keep both synthetic owner catalogues and unknown journals; the old quarantined
 execution fixture is neither opened nor settled by these tests. No frozen schema,
 wire, installed policy/profile/capability, SDK pin or UI default changes.
+
+The later [unit allocation record](../brains/aetheri/journal/2026-11-07-unit-registry.md)
+adds explicit Root v9 migration, fresh-only native primary-fragment creation and
+immutable selection enrollment. Earlier unit-custody evidence remains attributed
+to its original process-local revision. The current Root constructor cannot use
+an unrecorded or merely preparing selection. Normal installed catalogues stay v2;
+actual production unit/volume/owner admission, custody recovery and retirement
+remain work. No old execution quarantine is migrated or adopted.

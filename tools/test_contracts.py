@@ -209,6 +209,48 @@ raise RuntimeError('checkpoint missed')
             with self.assertRaises(cc.ContractError): cc.migrate_owner_recovery(db,kind)
             self.assertEqual(rows(db),before)
 
+    def test_v9_units_migration_boundaries_and_original_rows(self):
+        db=self.pair_source('units9','system'); cc.migrate_owner_recovery(db,'system'); cc.migrate_v7_to_v8(db,'system')
+        before=rows(db); signature=cc.signature(db)
+        for phase in ['locked']+['statement_'+str(n) for n in range(len(cc.extension_v9('system')))]+['version_set','validated']:
+            def fail(where):
+                if where==phase: raise RuntimeError(where)
+            with self.assertRaisesRegex(RuntimeError,phase): cc.migrate_units(db,'system',checkpoint=fail)
+            cc.validate(db,'system',8); self.assertEqual(rows(db),before); self.assertEqual(cc.signature(db),signature)
+        def lost(where):
+            if where=='committed': raise RuntimeError('unknown acknowledgement')
+        with self.assertRaisesRegex(RuntimeError,'unknown'): cc.migrate_units(db,'system',checkpoint=lost)
+        cc.validate(db,'system',9); self.assert_preserved(db,before)
+        self.assertEqual(db.execute('SELECT count(*) FROM unit_allocations').fetchone()[0],0)
+        self.assertFalse(cc.migrate_units(db,'system'))
+        fresh=self.connect('fresh9'); cc.bootstrap(fresh,'system',9); self.assertEqual(cc.signature(db),cc.signature(fresh))
+        user=self.pair_source('units-user','user')
+        with self.assertRaises(cc.ContractError): cc.migrate_units(user,'user')
+        with self.assertRaises(cc.ContractError): cc.source('user',9)
+
+    def test_v9_units_migration_crash_disk_and_foreign_schema(self):
+        code='''import os,sqlite3,sys
+import catalogue_contracts as cc
+db=sqlite3.connect(sys.argv[1]); cc.configure(db)
+def checkpoint(phase):
+    if phase==sys.argv[2]: os._exit(75)
+cc.migrate_units(db,'system',checkpoint=checkpoint)
+raise RuntimeError('checkpoint missed')
+'''
+        for phase in ('statement_0','version_set','committed'):
+            name='units-exit-'+phase; db=self.pair_source(name,'system'); cc.migrate_owner_recovery(db,'system'); cc.migrate_v7_to_v8(db,'system')
+            before=rows(db); path=db.execute('PRAGMA database_list').fetchone()[2]; db.close(); self.connections.remove(db)
+            self.assertEqual(subprocess.run([sys.executable,'-c',code,path,phase],cwd=ROOT/'tools',timeout=20).returncode,75)
+            db=self.connect(name); cc.validate(db,'system',9 if phase=='committed' else 8); self.assert_preserved(db,before)
+            self.assertEqual(cc.migrate_units(db,'system'),phase!='committed')
+        db=self.pair_source('units-full','system'); cc.migrate_owner_recovery(db,'system'); cc.migrate_v7_to_v8(db,'system'); db.execute('VACUUM'); before=rows(db)
+        db.execute('PRAGMA max_page_count='+str(db.execute('PRAGMA page_count').fetchone()[0]))
+        with self.assertRaises(sqlite3.OperationalError): cc.migrate_units(db,'system')
+        cc.validate(db,'system',8); self.assertEqual(rows(db),before)
+        db.execute('PRAGMA max_page_count=2147483646'); db.execute('CREATE TABLE foreign_unit(value)'); db.commit(); before=rows(db)
+        with self.assertRaises(cc.ContractError): cc.migrate_units(db,'system')
+        self.assertEqual(rows(db),before)
+
     def test_v8_interruption_migrations_all_boundaries(self):
         for kind in ('system','user'):
             db=self.pair_source('interrupt-'+kind,kind); cc.migrate_owner_recovery(db,kind)

@@ -1,4 +1,6 @@
 #include "authority/unit.h"
+#include "linux/unit_bytes.h"
+#include "core/digest.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/openat2.h>
@@ -7,6 +9,7 @@
 #include <string.h>
 #include <sys/syscall.h>
 #include <sys/xattr.h>
+#include <selinux/selinux.h>
 #include <unistd.h>
 
 struct ae_root_unit {
@@ -17,12 +20,107 @@ struct ae_root_unit {
     struct ae_execution_profile profile;
     struct ae_launch_context broker;
     struct ae_root_unit_image source;
-    uint8_t digest[32];
+    uint8_t digest[32],selection[32];
     char name[80];
     ae_root_unit_admit admit;
     void *admission;
 };
 static int owner(struct ae_root_unit *s) { return !s ? -EINVAL : s->owner==getpid() ? 0 : -ECHILD; }
+int ae_root_unit_placement_digest(const char *directory,const struct ae_root_identity *parent,uint8_t out[32])
+{
+    if (!directory || directory[0]!='/' || strnlen(directory,4096)==4096 || !parent || !out) return -EINVAL;
+    uint8_t raw[8192]; struct ae_unit_bytes b={.data=raw,.capacity=sizeof raw};
+    ae_ub_bytes(&b,"AETHUPL1",8); ae_ub_text(&b,directory); ae_ub_root(&b,parent);
+    return b.error ? b.error : ae_sha256_bytes(raw,b.used,out);
+}
+int ae_root_unit_selection_digest(const struct ae_execution_profile *p,const struct ae_unit_profile *units,
+    const struct ae_root_unit_image *source,uint8_t out[32])
+{
+    if (!p || !source || !out || !memchr(source->directory,0,sizeof source->directory) || source->directory[0]!='/' ||
+        !memchr(source->leaf,0,sizeof source->leaf) || !source->leaf[0] || strchr(source->leaf,'/') ||
+        !strcmp(source->leaf,".") || !strcmp(source->leaf,"..") || !memchr(source->label,0,sizeof source->label) || !source->label[0]) return -EINVAL;
+    uint8_t raw[8192],execution[32],unit[32],image_raw[112],image_digest[32],selection[104];
+    int r=ae_execution_digest(p,execution);
+    if (!r) r=ae_unit_profile_digest(p->boot,units,unit);
+    if (!r) r=ae_image_encode(&source->image,image_raw);
+    if (!r && memcmp(p->starter_digest,source->image.digest,32)) r=-ESTALE;
+    struct ae_unit_bytes b={.data=raw,.capacity=sizeof raw};
+    if (!r) {
+        ae_ub_bytes(&b,"AETHUIM1",8); ae_ub_text(&b,source->directory); ae_ub_text(&b,source->leaf); ae_ub_text(&b,source->label);
+        ae_ub_root(&b,&source->parent); ae_ub_bytes(&b,image_raw,112);
+        r=b.error ? b.error : ae_sha256_bytes(raw,b.used,image_digest);
+    }
+    if (!r) {
+        memcpy(selection,"AETHUNT1",8); memcpy(selection+8,execution,32); memcpy(selection+40,unit,32); memcpy(selection+72,image_digest,32);
+        r=ae_sha256_bytes(selection,sizeof selection,out);
+    }
+    return r;
+}
+int ae_root_unit_create(struct ae_catalogue *store,const struct ae_execution_profile *profile,const struct ae_launch_context *broker,
+    const struct ae_unit_allocation *allocation,const struct ae_root_unit_create *input,ae_root_unit_admit admit,void *data,
+    int *output,struct ae_unit_file *witness)
+{
+    if (!store || !profile || !broker || !allocation || !input || !admit || !output || *output>=0 || !witness ||
+        input->directory_fd<0 || !input->directory || input->directory[0]!='/' || strnlen(input->directory,4096)==4096 ||
+        !input->bytes || !input->size || input->size>AE_UNIT_FILE_MAX || memchr(input->bytes,0,input->size)) return -EINVAL;
+    if (getuid() || geteuid() || getgid() || getegid()) return -EPERM;
+    const struct ae_execution_profile p=*profile; const struct ae_launch_context c=*broker;
+    const struct ae_unit_allocation a=*allocation; const struct ae_root_identity parent=input->parent;
+    char directory[4096]; strcpy(directory,input->directory);
+    uint8_t bytes[AE_UNIT_FILE_MAX],hash[32]; size_t size=input->size; memcpy(bytes,input->bytes,size);
+    int r=ae_sha256_bytes(bytes,size,hash);
+    if (!r && memcmp(hash,a.recipe,32)) r=-EBADMSG;
+    if (!r) r=ae_root_unit_placement_digest(directory,&parent,hash);
+    if (!r && memcmp(hash,a.placement,32)) r=-ESTALE;
+    int dir=-1,writer=-1,reader=-1;
+    if (!r) { dir=fcntl(input->directory_fd,F_DUPFD_CLOEXEC,3); if (dir<0) r=-errno; }
+    if (!r) r=ae_root_check_path(dir,directory,&parent);
+    if (!r) r=ae_catalogue_begin_execution_effect(store,&c);
+    int frame=!r,create=0;
+    if (!r) r=ae_catalogue_prepare_unit(store,&p,&c,&a,&create);
+    if (!r && !create) r=-EALREADY;
+    if (!r) r=admit(data,&p);
+    if (r>0) r=-EIO;
+    if (!r) r=ae_catalogue_check_execution_effect(store,&c);
+    int present=0;
+    if (!r) r=ae_catalogue_execution_request_state(store,&p,&c,&present);
+    if (!r && present) r=-EALREADY;
+    if (!r) r=ae_root_check_path(dir,directory,&parent);
+    struct ae_dispatch_snapshot d;
+    if (!r) r=ae_catalogue_get_dispatch(store,p.lease,&c,&d);
+    if (!r) { writer=openat(dir,".",O_TMPFILE|O_RDWR|O_CLOEXEC,0600); if (writer<0) r=-errno; }
+    if (!r && fsetfilecon_raw(writer,"system_u:object_r:systemd_unit_file_t:s0")) r=-errno;
+    size_t offset=0;
+    while (!r && offset<size) {
+        ssize_t amount=pwrite(writer,bytes+offset,size-offset,(off_t)offset);
+        if (amount<0) { if (errno==EINTR) continue; r=-errno; }
+        else if (!amount) r=-EIO;
+        else offset+=(size_t)amount;
+    }
+    if (!r && fchmod(writer,0444)) r=-errno;
+    if (!r && fsync(writer)) r=-errno;
+    if (!r && linkat(writer,"",dir,d.unit,AT_EMPTY_PATH)) r=-errno;
+    if (!r && fsync(writer)) r=-errno;
+    if (!r && fsync(dir)) r=-errno;
+    if (!r) r=ae_root_check_path(dir,directory,&parent);
+    if (!r) {
+        struct open_how how={.flags=O_RDONLY|O_CLOEXEC|O_NOFOLLOW,.resolve=RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS|RESOLVE_NO_XDEV};
+        reader=(int)syscall(SYS_openat2,dir,d.unit,&how,sizeof how); if (reader<0) r=-errno;
+    }
+    struct ae_unit_file value,original;
+    if (!r) r=ae_unit_file_capture(reader,a.recipe,&value);
+    if (!r && statx(writer,"",AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW,STATX_BASIC_STATS|STATX_BTIME|STATX_MNT_ID_UNIQUE,&original.object)) r=-errno;
+    unsigned int required=STATX_BASIC_STATS|STATX_BTIME|STATX_MNT_ID_UNIQUE;
+    if (!r && (original.object.stx_mask&required)!=required) r=-ENOTSUP;
+    if (!r) r=ae_sha256_fd(writer,size,original.digest);
+    if (!r && !ae_unit_file_equal(&original,&value)) r=-ESTALE;
+    if (!r) r=ae_catalogue_check_execution_effect(store,&c);
+    if (frame) { int ended=ae_catalogue_end_execution_effect(store); if (!r) r=ended; }
+    if (writer>=0) close(writer);
+    if (dir>=0) close(dir);
+    if (r) { if (reader>=0) close(reader); return r; }
+    *output=reader; *witness=value; return 0;
+}
 static struct ae_effect_owner context(struct ae_root_unit *s)
 {
     struct ae_effect_owner value;
@@ -70,6 +168,9 @@ static int fresh(void *data)
     int present=0;
     if (!r) r=ae_catalogue_execution_request_state(s->catalogue,&s->profile,&s->broker,&present);
     if (!r && !present) r=-ESTALE;
+    struct ae_unit_allocation_snapshot allocation; struct ae_effect_owner original=context(s);
+    if (!r) r=ae_catalogue_get_unit(s->catalogue,&s->profile,&original,&allocation);
+    if (!r && (!allocation.witnessed || memcmp(allocation.selection,s->selection,32))) r=-ESTALE;
     if (!r) r=image(s);
     if (!r) r=s->admit(s->admission,&s->profile);
     if (r>0) r=-EIO;
@@ -104,6 +205,13 @@ int ae_root_unit_new(struct ae_catalogue *store,struct ae_unit **unit,const stru
     if (!r) r=ae_catalogue_check_execution_effect(store,broker);
     if (!r) r=ae_catalogue_execution_request_state(store,p,broker,&present);
     if (!r && present) r=-EALREADY;
+    if (!r) r=ae_root_unit_selection_digest(p,selected,source,s->selection);
+    struct ae_unit_allocation_snapshot allocation; struct ae_effect_owner original=context(s);
+    if (!r) r=ae_catalogue_get_unit(store,p,&original,&allocation);
+    if (!r && (!allocation.witnessed || memcmp(allocation.selection,s->selection,32) || memcmp(allocation.allocation.recipe,selected->nodes[0].file.digest,32))) r=-ESTALE;
+    uint8_t placement[32];
+    if (!r) r=ae_root_unit_placement_digest(selected->nodes[0].directory,&selected->nodes[0].parent,placement);
+    if (!r && memcmp(placement,allocation.allocation.placement,32)) r=-ESTALE;
     if (!r) r=ae_catalogue_get_dispatch(store,p->lease,broker,&dispatch);
     if (!r) {
         static const char hex[]="0123456789abcdef"; memcpy(s->name,"aetheri-app-",12);

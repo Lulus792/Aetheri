@@ -33,6 +33,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [system-v6](schema/system-v6.sql) | Explicit Root recovery-owner records and guarded closure admission after frozen v5 |
 | [common-v7](schema/common-v7.sql), [system-v7](schema/system-v7.sql), [user-v7](schema/user-v7.sql) | Explicit paired-owner close-only recovery after Root v6/User v4; immutable original evidence and current pair binding |
 | [common-v8](schema/common-v8.sql), [system-v8](schema/system-v8.sql), [user-v8](schema/user-v8.sql), [interruption.h](../src/catalogue/interruption.h), [vector](vectors/run-interruption-v1.json) | Separate cross-boot interruption bindings/stages after v7; preserve original successful start, no installed continuity/actor/fencing admission |
+| [system-v9](schema/system-v9.sql), [unit.h](../src/catalogue/unit.h), [unit profiles](unit-profiles.md) | Root-only allocation intent and immutable unit selection before executing REQUEST/ARM; no automatic upgrade, adoption or custody retirement |
 | [run-recovery-pair-v1.json](vectors/run-recovery-pair-v1.json) | Independent 232-byte AETHRCP1 vector; no actor authentication or process-drain proof |
 | [lifetime.h](../src/catalogue/lifetime.h), [receipt codecs](../src/catalogue/lifetime.c) | Separate durable run closure and authenticated cross-owner receipt chain |
 | [management-v1.xml](api/management-v1.xml) | Unchanged 14-method management core |
@@ -47,7 +48,7 @@ start results. General owner-restart recovery, holders and removal remain work.
 | [launch.h](../src/catalogue/launch.h), [launch tests](../tests/test_launch.c) | Durable user acceptance before RPC, actual root receipt binding and pre-dispatch withdrawal after broker replacement |
 | [view.h](../src/linux/view.h), [view tests](../tests/test_view.c) | Native private mount views from exact held code/data roots; connected to setup-only supervision, without target execution |
 | [catalogue_contracts.py](../tools/catalogue_contracts.py) | Development bootstrap, validation and atomic migration harness |
-| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v8/User v2–v4,v7–v8 opening and explicit upgrades under the retained owner lock |
+| [store.h](../src/catalogue/store.h), [store.c](../src/catalogue/store.c) | Native v2 creation, exact Root v2–v9/User v2–v4,v7–v8 opening and explicit upgrades under the retained owner lock |
 | [recovery.h](../src/catalogue/recovery.h), [inventory tests](../tools/test_recovery_inventory.py) | One bounded read-only owner snapshot of unresolved lifecycle metadata; no automatic recovery, holder drain or replay |
 | [embed_schema.py](../tools/embed_schema.py) | Build-time embedding of frozen v2 and versioned additions; no runtime SQL-file loading |
 | [native catalogue tests](../tests/test_catalogue.c), [migration interop](../tools/test_catalogue_native.py) | Native lifecycle/failure checks and opening populated development migrations |
@@ -288,7 +289,7 @@ Backup restoration remains an explicit new-authority-epoch recovery procedure.
 
 ## Native catalogue boundary
 
-The C17 store implements v2 creation, exact Root v2–v8/User v2–v4,v7–v8 validation and startup-context writes.
+The C17 store implements v2 creation, exact Root v2–v9/User v2–v4,v7–v8 validation and startup-context writes.
 The v1-to-v2 migration itself remains the Python development implementation above;
 native opening rejects v1/unknown versions rather than recreating or migrating them.
 The later explicit v3/v4 upgrades add independent run/process evidence; published

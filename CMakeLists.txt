@@ -75,6 +75,7 @@ add_custom_command(OUTPUT "${AETHERI_SCHEMA_SOURCE}"
             spec/schema/system-v5.sql spec/schema/system-v6.sql
             spec/schema/common-v7.sql spec/schema/system-v7.sql spec/schema/user-v7.sql
             spec/schema/common-v8.sql spec/schema/system-v8.sql spec/schema/user-v8.sql
+            spec/schema/system-v9.sql
     VERBATIM)
 add_library(aetheri_catalogue STATIC src/catalogue/store.c src/catalogue/data.c src/catalogue/setup.c src/catalogue/execution.c src/catalogue/handoff.c src/catalogue/lifetime.c src/catalogue/interruption.c "${AETHERI_SCHEMA_SOURCE}")
 target_include_directories(aetheri_catalogue PUBLIC src)
@@ -964,6 +965,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.user_execution COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" user-execution)
     set_tests_properties(catalogue.user_execution PROPERTIES TIMEOUT 180)
+    add_test(NAME catalogue.units COMMAND Python3::Interpreter
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" units)
+    set_tests_properties(catalogue.units PROPERTIES TIMEOUT 180)
     add_test(NAME catalogue.user_readiness COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_launch_native.py" $<TARGET_FILE:test_launch> "${CMAKE_CURRENT_BINARY_DIR}" user-readiness)
     set_tests_properties(catalogue.user_readiness PROPERTIES TIMEOUT 180)
@@ -1199,11 +1203,11 @@ if(BUILD_TESTING)
             target_compile_definitions(test_root_unit PRIVATE _GNU_SOURCE AETHERI_TEST_ROOT_UNIT)
             target_compile_options(test_root_unit PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
             target_link_options(test_root_unit PRIVATE -Wl,--wrap=sqlite3_exec -Wl,--wrap=sqlite3_step
-                -Wl,--wrap=sd_bus_call -Wl,--wrap=sd_bus_call_async)
+                -Wl,--wrap=sd_bus_call -Wl,--wrap=sd_bus_call_async -Wl,--wrap=linkat)
             target_link_libraries(test_root_unit PRIVATE aetheri_supervisor_start)
             add_test(NAME authority.unit_custody COMMAND sudo -n "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_root_unit_native.py" $<TARGET_FILE:test_root_unit> "${CMAKE_CURRENT_BINARY_DIR}")
-            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 180)
+            set_tests_properties(authority.unit_custody PROPERTIES TIMEOUT 300)
         endif()
         add_executable(test_reservation_wire tests/test_reservation_wire.c src/authority/reservation.c)
         target_compile_definitions(test_reservation_wire PRIVATE _GNU_SOURCE)

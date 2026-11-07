@@ -1,6 +1,7 @@
 """Independent frozen byte vectors and adversarial P0-format input tests."""
 from copy import deepcopy
 from pathlib import Path
+import hashlib
 import unittest
 
 import runtime_contracts as rc
@@ -11,6 +12,17 @@ VECTORS = rc.load_json((ROOT / "spec/vectors/runtime-v1.json").read_bytes())
 
 
 class RuntimeContracts(unittest.TestCase):
+    def test_unit_selection_frozen_bytes(self):
+        from unit_contracts import fixture
+        vector=rc.load_json((ROOT/'spec/vectors/unit-selection-v1.json').read_bytes())
+        self.assertEqual(fixture(),vector)
+        self.assertEqual(vector['selection_sha256'],'0b6d847aa55aafa70b78e82c515ac9569c11c0b228e3af0d3a3688db8ae1d053')
+        raw=bytes.fromhex(vector['selection_hex'])
+        self.assertEqual(len(raw),104)
+        for index in (0,8,39,40,71,72,103):
+            changed=bytearray(raw); changed[index]^=1
+            self.assertNotEqual(hashlib.sha256(changed).hexdigest(),vector['selection_sha256'])
+
     def test_interruption_vectors_and_invalid_bindings(self):
         vector=rc.load_json((ROOT/'spec/vectors/run-interruption-v1.json').read_bytes())
         profile=bytes.fromhex(vector['profile_hex'])

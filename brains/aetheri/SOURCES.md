@@ -4,6 +4,20 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Durable unit allocation — 7 November 2026
+
+- Linux man-pages [open/O_TMPFILE](https://man7.org/linux/man-pages/man2/open.2.html)
+  and [fsync](https://man7.org/linux/man-pages/man2/fsync.2.html), read 7 November:
+  an unlinked temporary inode can be completed before create-only link; file
+  synchronization alone does not synchronize its directory entry. Native code
+  checks real carrier behavior and repeats file/parent flushes. This is not a
+  hardware power-loss test or a promise that `/run` survives reboot.
+- [Root v9 SQL](../../spec/schema/system-v9.sql), [native owner](../../src/catalogue/unit.h),
+  [creator/selection binding](../../src/authority/unit.c) and
+  [independent bytes](../../tools/unit_contracts.py) implement the scoped contract.
+  [Executed record](journal/2026-11-07-unit-registry.md) attributes source revisions,
+  controlled failures, actual native filesystem/PID1 and remaining boundaries.
+
 ## Root request and full unit custody — 7 November 2026
 
 - The original [Root composition](../../src/authority/unit.c),

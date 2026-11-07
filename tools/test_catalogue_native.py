@@ -29,10 +29,10 @@ def main():
                 cc.migrate_v1_to_v2(db, kind, backup=backup)
                 expected = rows(db)
             os.chmod(path, 0o600)
-            for version in ((2,3,4,5,6,7,8) if kind == 'system' else (2,3,4,7,8)):
+            for version in ((2,3,4,5,6,7,8,9) if kind == 'system' else (2,3,4,7,8)):
                 if version > 2:
                     with closing(sqlite3.connect(path)) as db:
-                        (cc.migrate_owner_recovery if version==7 else getattr(cc,f'migrate_v{version-1}_to_v{version}'))(db,kind)
+                        (cc.migrate_units if version==9 else cc.migrate_owner_recovery if version==7 else getattr(cc,f'migrate_v{version-1}_to_v{version}'))(db,kind)
                         actual=rows(db)
                         if any(actual[name]!=value for name,value in expected.items()):
                             raise AssertionError('additive migration changed original rows')
@@ -47,7 +47,7 @@ def main():
                     cc.validate(reopened, kind,version)
                     if rows(reopened) != expected:
                         raise AssertionError("populated migration rows changed after native opening")
-    print("Populated Root v2–v7/User v2–v4,v7 accepted by native C17; all rows and file bytes preserved.")
+    print("Populated Root v2–v9/User v2–v4,v7–v8 accepted by native C17; all rows and file bytes preserved.")
 
 
 if __name__ == "__main__":
