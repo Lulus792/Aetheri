@@ -62,6 +62,10 @@ static void independent_tabs_and_input(int dir,int other) {
     CHECK(ae_direct_paste(ae_editor_workspace_input(w),&input,"wrong",5)==AE_DOCUMENT_INVALID);
     int alias=dup(dir);CHECK(alias>=0 && ae_editor_workspace_open(w,alias,"notes",&reused)==OK && close(alias)==0);
     CHECK(reused==first && ae_editor_workspace_count(w)==2 && ae_editor_workspace_active(w)==first);content(w,first,"new old");
+    int selected=openat(dir,"notes",O_PATH|O_CLOEXEC),wrong=openat(other,"notes",O_PATH|O_CLOEXEC);CHECK(selected>=0 && wrong>=0);
+    reused=999;CHECK(ae_editor_workspace_open_selected(w,dir,"notes",wrong,&reused)==AE_EDITOR_WORKSPACE_CONFLICT && reused==999);
+    CHECK(ae_editor_workspace_open_selected(w,dir,"notes",selected,&reused)==OK && reused==first);
+    CHECK(close(selected)==0 && close(wrong)==0);
     CHECK(ae_direct_paste(ae_editor_workspace_input(w),&input,"wrong",5)==AE_DOCUMENT_INVALID);
     CHECK(ae_editor_workspace_select(w,second)==OK);put(dir,"notes","external");reused=123;
     CHECK(ae_editor_workspace_open(w,dir,"notes",&reused)==AE_EDITOR_WORKSPACE_CONFLICT && reused==123);

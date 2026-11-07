@@ -51,6 +51,9 @@ bool ae_editor_workspace_get(const struct ae_editor_workspace *w,uint64_t id,str
 bool ae_editor_workspace_at(const struct ae_editor_workspace *w,unsigned index,struct ae_editor_tab *out) {
     return w && index<w->count && ae_editor_workspace_get(w,w->tabs[index].id,out);
 }
+bool ae_editor_workspace_selection(const struct ae_editor_workspace *w,uint64_t id,struct ae_direct_selection *out) {
+    struct tab *tab=find(w,id);return tab && ae_direct_selection(tab->input,out);
+}
 struct ae_direct *ae_editor_workspace_input(struct ae_editor_workspace *w) {
     struct tab *tab=w && !w->review.id ? find(w,w->active) : NULL;return tab ? tab->input : NULL;
 }
@@ -77,19 +80,27 @@ enum ae_editor_workspace_result ae_editor_workspace_select(struct ae_editor_work
     if (!cancel_pair(w,tab)) return AE_EDITOR_WORKSPACE_LIMIT;
     w->active=id;return AE_EDITOR_WORKSPACE_OK;
 }
-enum ae_editor_workspace_result ae_editor_workspace_open(struct ae_editor_workspace *w,int directory,const char *leaf,uint64_t *id) {
+static enum ae_editor_workspace_result open_document(struct ae_editor_workspace *w,int directory,const char *leaf,int witness,uint64_t *id) {
     if (!w || !id) return AE_EDITOR_WORKSPACE_INVALID;
     if (w->review.id) return AE_EDITOR_WORKSPACE_BUSY;
     for (unsigned i=0;i<w->count;++i) if (w->tabs[i].file) {
-        bool match=false;enum ae_editor_file_result result=ae_editor_file_matches(w->tabs[i].file,directory,leaf,&match);
+        bool match=false;enum ae_editor_file_result result=witness>=0 ? ae_editor_file_matches_selected(w->tabs[i].file,directory,leaf,witness,&match) :
+            ae_editor_file_matches(w->tabs[i].file,directory,leaf,&match);
         if (result!=AE_EDITOR_FILE_OK) return mapped(result);
         if (match) { enum ae_editor_workspace_result r=ae_editor_workspace_select(w,w->tabs[i].id);if (r==AE_EDITOR_WORKSPACE_OK) *id=w->tabs[i].id;return r; }
     }
     if (w->count==AE_EDITOR_TABS) return AE_EDITOR_WORKSPACE_LIMIT;
     struct ae_editor_file *file=NULL;struct ae_document *document=NULL;
-    enum ae_editor_file_result result=ae_editor_file_open(directory,leaf,&file,&document);if (result!=AE_EDITOR_FILE_OK) return mapped(result);
+    enum ae_editor_file_result result=witness>=0 ? ae_editor_file_open_selected(directory,leaf,witness,&file,&document) :
+        ae_editor_file_open(directory,leaf,&file,&document);if (result!=AE_EDITOR_FILE_OK) return mapped(result);
     enum ae_editor_workspace_result r=add(w,document,file,leaf,id);
     if (r!=AE_EDITOR_WORKSPACE_OK) { ae_editor_file_close(file);ae_document_destroy(document); }return r;
+}
+enum ae_editor_workspace_result ae_editor_workspace_open(struct ae_editor_workspace *w,int directory,const char *leaf,uint64_t *id) {
+    return open_document(w,directory,leaf,-1,id);
+}
+enum ae_editor_workspace_result ae_editor_workspace_open_selected(struct ae_editor_workspace *w,int directory,const char *leaf,int witness,uint64_t *id) {
+    return witness<0 ? AE_EDITOR_WORKSPACE_INVALID : open_document(w,directory,leaf,witness,id);
 }
 static enum ae_editor_workspace_result save_admission(struct ae_editor_workspace *w,struct tab *tab) {
     if (!tab) return AE_EDITOR_WORKSPACE_INVALID;

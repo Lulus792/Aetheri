@@ -26,6 +26,7 @@ unsigned ae_editor_workspace_count(const struct ae_editor_workspace *);
 uint64_t ae_editor_workspace_active(const struct ae_editor_workspace *);
 bool ae_editor_workspace_at(const struct ae_editor_workspace *,unsigned index,struct ae_editor_tab *);
 bool ae_editor_workspace_get(const struct ae_editor_workspace *,uint64_t id,struct ae_editor_tab *);
+bool ae_editor_workspace_selection(const struct ae_editor_workspace *,uint64_t id,struct ae_direct_selection *);
 /* Borrowed only until the next workspace operation; never retain in callbacks.
    NULL while a close review blocks editing or when no tab is active. Use normal
    direct-controller methods, not document casts. Tab IDs are the non-reused
@@ -36,6 +37,9 @@ enum ae_editor_workspace_result ae_editor_workspace_new(struct ae_editor_workspa
    edits. A changed/replaced source conflicts instead of silently reloading it.
    Capacity/failed reads never discard another tab. Output unchanged on error. */
 enum ae_editor_workspace_result ae_editor_workspace_open(struct ae_editor_workspace *,int directory,const char *leaf,uint64_t *id);
+/* Local picker handoff; original held regular-file witness is required both
+   for a new read and reuse of an existing original tab. FDs are borrowed. */
+enum ae_editor_workspace_result ae_editor_workspace_open_selected(struct ae_editor_workspace *,int directory,const char *leaf,int witness,uint64_t *id);
 enum ae_editor_workspace_result ae_editor_workspace_select(struct ae_editor_workspace *,uint64_t id);
 enum ae_editor_workspace_result ae_editor_workspace_save(struct ae_editor_workspace *,uint64_t id);
 /* Snapshot the original active untitled document before requesting a picker.

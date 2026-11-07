@@ -9,8 +9,8 @@ See the [accepted design reference](../brains/aetheri/knowledge/ui-design.md).
 ## Implemented: direct editing controller
 
 `src/editor/direct.h` and `direct.c` provide toolkit-independent C17 editing over
-our existing document model. There is **no graphical Editor window yet**. The
-new `aetheri_direct` library is not connected to the desktop or modal editor.
+our existing document model. The opt-in native window below uses this controller;
+the normal desktop launch path and modal editor are unchanged.
 
 Unlike the modal controller, it always accepts direct text entry and allows the
 caret at the end of a line or file. It supports:
@@ -97,8 +97,8 @@ and the active input handle are borrowed only until the next workspace operation
 Review blocks new input handles; callers must not keep an old handle across it.
 Normal UI shutdown must resolve all tabs first. Destruction only releases local
 memory/FDs, never approves user close or removes file/recovery artifacts. The
-eventual responsive I/O host, file picker/grant admission, complete Save As/export
-and native UI still need integration.
+responsive I/O host, normal file-grant admission and complete Save As/export
+still need integration. The private local picker below does not confer a grant.
 
 `editor.workspace` passes eight native file/tab/close workflows, including real
 saves, no-replace conflicts, external changes, allocation/ENOSPC failures,
@@ -106,10 +106,98 @@ post-rename uncertainty, delayed picker rejection and stale decisions. All nine
 editor groups pass in Release and ASan/UBSan without skips; see the
 [workspace execution record](../brains/aetheri/journal/2026-11-07-editor-workspace.md).
 
-Next connect these controllers to the native graphical Editor: render the actual
-tabs, original file picker and approved unsaved-change review, then obtain native
-window/input/rendering and accessibility evidence. Closing the last tab must
-leave the approved empty Editor view. Do not replace the modal Terminal editor
-or its fixed development launch path to simulate that integration. Search UI,
-file pickers, extensions, normal grants and production admission/recovery remain
-unfinished.
+## Opt-in native window
+
+`aetheri-text-editor` now renders original document tabs, a workspace list,
+line-number gutter, caret and selection through the pinned NexaUI 0.1.23 C API.
+It uses the software renderer and an opaque theme. These are real document/file
+effects, not the separate design studio's example data. The accepted compact
+glass design, icons and remaining interactions still need faithful implementation.
+
+The local picker borrows an admitted development root, navigates held folders and
+hands the selected original regular-file FD witness to the workspace for both
+new reads and duplicate-tab reuse. First saves remain create-only. Named saves
+retain original-file conflict checks. File I/O and folder enumeration currently
+run synchronously; responsive operation ownership is the next host work.
+
+The document-first close review defaults to Cancel. Save keeps the original review
+while asking for a first destination, then closes only after actual success.
+Discard closes the in-memory tab without deleting its file. Closing the last tab
+leaves a real empty window. Window close reviews all remaining documents.
+Uncertain saves remain blocked; no new recovery/export implementation is implied.
+
+Native events pass through the app one at a time, with a frame between them.
+Do not route an unexamined remainder directly to the toolkit: direct document
+input would bypass its controller and earlier focus changes. Rendering uses
+read-only workspace selection even while close review blocks an input handle.
+The loop blocks when idle and redraws on logical size or raster-density changes.
+
+| Input | Action |
+| --- | --- |
+| Ctrl+N / Ctrl+O / Ctrl+S | New / local Open / Save |
+| Ctrl+W / Ctrl+Q | Close current document / review window close |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous original tab |
+| Arrows, Home/End, Ctrl+Home/End | Move; Shift extends the selection |
+| Ctrl+A / Ctrl+Z / Ctrl+Y | Select All / Undo / Redo |
+| F6 | Move between document and toolbar focus |
+| Escape | Cancel picker/review or clear document selection |
+
+The host includes local copy/cut/paste adapters, but native clipboard transfer,
+queued focus loss and cancellation still need asynchronous integration and their
+own tests. The current synchronous paste path is provisional. It is not the
+Terminal's already tested asynchronous transport. External IME/direct-editor
+composition, search UI, plugins, scroll/drag refinements and page navigation
+remain work.
+
+Buttons expose names/roles/state; document text is a bounded read-only accessibility
+snapshot, not a complete native editable-text interface. The native filename
+field has a visible label. Full screenreader editing and human assistive acceptance
+remain open. Text sizes 100/150/200 and dark/light/high-contrast CLI choices exist;
+the tests below cover selected combinations, not the whole accessibility matrix.
+Native title move/edge resize, minimization, minimum-window reflow and live theme
+switching still need implementation/acceptance. Zoom is only a native request.
+
+The pinned SDK exposes a sticky native `should_close` flag. This host latches its
+first observation so Cancel cannot repeatedly reopen review. Repeated native
+compositor-close and subsequent window-management behavior need a consumable SDK
+request/cancellation contract; see catalogue W01. App-owned close controls remain
+separate. Display/process failure still has no durable unsaved-document recovery.
+
+## Build and native test boundary
+
+On Linux, configure `AETHERI_GRAPHICAL_EDITOR=ON` with `AETHERI_NEXAUI_PREFIX`
+pointing to the exact reviewed profile's installed SDK. Build `aetheri-text-editor`.
+This consumer can build without selecting Settings or SDL. Existing SDK version
+and source-revision guards still apply. Under an admitted private Wayland seat:
+
+```sh
+build/aetheri-text-editor UI_FONT --mono-font MONO_FONT --directory DOCUMENT_ROOT
+```
+
+Optional `--german`, `--light`, `--contrast`, `--text-percent 100|150|200` and
+`--diagnostics` select development presentation. Trailing literal file names are
+opened relative to that original root. This is ordinary developer access, not
+installed app admission or brokered documents.
+
+The explicit disposable-carrier test takes original test-server/app/font paths:
+
+```sh
+python3 tools/test_editor_graphical.py TEST_COMPOSITOR APP UI_FONT MONO_FONT BUILD_DIR
+```
+
+Build the test compositor from the same source with `AETHERI_COMPOSITOR=ON` and
+reviewed graphics prefixes. Its private input-driver `Z output 100|200` command
+commits integer density for the actual 4K test; it is absent from installed
+compositor input and does not implement fractional scaling. Run with bounded
+private temporary backing: pinned NexaUI allocates sparse Wayland buffers in
+`/tmp`; known foreign UID quota exhaustion can otherwise SIGBUS. Never reclaim
+foreign files or treat private tmpfs as the SDK allocation-failure fix.
+
+Release and ASan/UBSan native workflows pass alongside all nine editor groups.
+The selected cases cover real typed/saved bytes, replacement/history, tabs,
+Save/Discard/Cancel, last-tab empty view, held-file open, external-change conflict,
+F6, German 200% high contrast and light 150% on an actual reported 2x virtual
+output. Idle CPU is measured, and native images are reviewed. See the
+[execution record](../brains/aetheri/journal/2026-11-07-editor-window.md).
+This is not normal desktop provisioning, complete native accessibility, physical
+monitor/laptop acceptance or a bootable Aetheri image.

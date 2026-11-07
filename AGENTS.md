@@ -1101,8 +1101,8 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   spec/graphical-editor.md; run editor.direct with existing editor regressions.
   Input tokens are process-local correlations, not native clipboard/grant proof.
   Host focus/tab/file changes must cancel original input without losing selection.
-  The native tab/save/close coordinator below is separate from its still-pending
-  graphical window; preserve the modal Terminal editor and normal launch paths.
+  The native tab/save/close coordinator and opt-in window below preserve the
+  separate modal Terminal editor and normal launch paths.
 
 - editor/workspace.h now owns bounded graphical-editor documents/direct inputs/
   local file adapters and original close/destination correlations. Read the
@@ -1110,5 +1110,23 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   editor.workspace and affected editor regressions. First saves are create-only;
   UNKNOWN retains the original adapter/name and blocks save/discard completion,
   even for clean text. Normal UI shutdown must resolve tabs before destruction.
-  Tabs/close/picker are native backend state only; the graphical window, complete
-  Save As/export/recovery, responsive I/O and normal grants remain unfinished.
+  The opt-in native window below uses that backend; complete Save As/export/
+  recovery, responsive I/O and normal grants remain unfinished.
+
+- The opt-in aetheri-text-editor now has a native NexaUI0.1.23 window; read
+  spec/graphical-editor.md and the 2026-11-07 editor-window journal/STATE.
+  Selected private Wayland workflows and nine editor groups pass Release/ASan.
+  Each original native event passes through the direct controller/focus frame;
+  never route the unexamined remainder directly to the toolkit. The local picker
+  passes the original held file witness for both new reads and duplicate reuse.
+  Rendering may query selection while original close review blocks input handles.
+  Current synchronous I/O/paste is provisional: next add responsive ownership and
+  asynchronous clipboard/focus cancellation. Text snapshots are read-only, not a
+  complete accessible editor. Search, IME, native chrome/reflow/design, Save As/
+  recovery and normal app admission remain work. Sticky SDK native close is
+  latched once; repeated native-close/management acceptance is unproven (W01).
+  tests/compositor_input_driver.c's Z command commits test-only integer output
+  density, absent from installed compositor input; no fractional-scale claim.
+  Preserve normal sources/builds/authority/quarantine, protected VM and foreign
+  work. Use private /tmp backing for native tests; never remove foreign quota data
+  or treat tmpfs as the known SDK sparse-mmap failure fix. Goal remains incomplete.

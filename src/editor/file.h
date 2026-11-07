@@ -39,6 +39,8 @@ bool ae_editor_file_uncertain(const struct ae_editor_file *file);
    Output unchanged on error. No path, grant or volume authentication. */
 enum ae_editor_file_result ae_editor_file_matches(struct ae_editor_file *file,
     int directory,const char *leaf,bool *matches);
+enum ae_editor_file_result ae_editor_file_matches_selected(struct ae_editor_file *file,
+    int directory,const char *leaf,int witness,bool *matches);
 /* Borrowed literal leaf of an owned/potential recovery artifact, or NULL.
    Do not concatenate it into shell commands or delete a name merely on this basis.
    Close frees memory/FDs; it never deletes an uncertain artifact. */

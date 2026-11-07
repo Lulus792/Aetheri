@@ -55,6 +55,13 @@ editor register now support copy, cut, change and paste. Block/mouse selection,
 richer search, plugins,
 split document views, accessible document integration and ordinary brokered access remain work.
 
+The separate [graphical Editor](spec/graphical-editor.md) now has an opt-in native
+NexaUI window with direct input, document tabs, a local file picker and explicit
+Save/Discard/Cancel review. Real Wayland tests cover saved bytes, undo/redo,
+external-change conflicts, English/German, themes and a 2x virtual output.
+Responsive file I/O, complete text accessibility, final design and normal desktop
+admission remain work; the modal Terminal editor keeps its existing role.
+
 The opt-in [Files app](spec/files.md) now provides list/card views, a held-location
 sidebar, optional information, keyboard selection and filtering. It supports
 inline create-only empty files/folders and renaming, plus

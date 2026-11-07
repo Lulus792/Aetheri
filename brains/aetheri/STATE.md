@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — graphical-editor document workspace tested; native window pending.
+7 November 2026 — opt-in native graphical Editor tested; normal integration pending.
 
 ## Coordination
 
@@ -13,7 +13,32 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Graphical-editor document workspace — 7 November 2026
+## Native graphical Editor window — 7 November 2026
+
+The opt-in `aetheri-text-editor` now renders real direct input, document tabs,
+workspace/gutter/selection, held-file picker and document-first close review.
+Native Save/Discard/Cancel, unnamed close-save, empty last-tab view and external
+change conflicts are tested against actual files. The modal Terminal editor and
+normal dock/admission paths are unchanged. Read the
+[contract](../../spec/graphical-editor.md) and
+[executed record](journal/2026-11-07-editor-window.md).
+
+Both native workflows pass Release/ASan (8.493 s/22.157 s), as do all nine editor
+groups without skips (3.053 s/18.832 s). Selected dark/light/contrast, DE200%, F6
+and actual2x virtual-output cases have native captures; idle uses zero CPU ticks
+and no redraw over1.2 seconds. All297 evidence files are host-verified before
+exact original namespace retirement. Normal guest sources/builds/protected state
+remain unchanged; no reboot or foreign work retirement occurs.
+
+This is a functional opaque development view, not final design or installed
+admission. Next integrate responsive file I/O and asynchronous clipboard/focus
+cancellation; current synchronous paste is provisional. Full native editable
+accessibility/IME, search, chrome/resize/reflow, Save As/export/UNKNOWN and abnormal
+display-loss recovery remain open. SDK native close is sticky; latch prevents
+reopened Cancel but repeated native-close/management acceptance needs W01 work.
+Keep the full OS/apps/image/installer/hardware/experiment objective active.
+
+## Prior graphical-editor document workspace checkpoint — 7 November 2026
 
 `aetheri_editor_workspace` now joins eight original document tabs, direct input,
 local file saving and correlated close review. Existing unchanged sources reuse

@@ -94,6 +94,20 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     else if (sscanf(text,"I %u%n",&code,&used)==1 && used==length) { if (!ae_test_text_input_command(d->ime,code)) goto invalid; }
     else if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
+    else if (sscanf(text,"Z %u %u%n",&output_index,&width,&used)==2 && used==length &&
+            output_index<d->server->output_count && (width==100 || width==200)) {
+        /* Test-only integer output density. This is not a production display
+           configuration API or fractional-scale protocol implementation. */
+        struct wlr_output *output=d->server->outputs[output_index].output;
+        if(!output) goto invalid;
+        struct wlr_output_state requested;wlr_output_state_init(&requested);
+        wlr_output_state_set_scale(&requested,(float)width/100.0f);
+        struct wlr_output_event_request_state event={.output=output,.state=&requested};
+        wl_signal_emit_mutable(&output->events.request_state,&event);
+        wlr_output_state_finish(&requested);
+        if(output->scale!=(float)width/100.0f) goto invalid;
+        printf("OUTPUT_SCALE %u %.2f\n",output_index,(double)output->scale);
+    }
     else if (sscanf(text, "O %u %u %u%n", &output_index, &width, &height, &used) == 3 && used == length &&
             output_index < d->server->output_count && width >= 128 && width <= 3840 && height >= 96 && height <= 2160) {
         struct wlr_output_state requested; wlr_output_state_init(&requested);
