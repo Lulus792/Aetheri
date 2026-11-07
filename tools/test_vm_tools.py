@@ -338,8 +338,10 @@ class VmTools(unittest.TestCase):
         record = {"token": "00000000-0000-4000-8000-000000000001", "owner": "00000000000040008000000000000002",
                   "epochs": {"system": "00000000000040008000000000000003", "user": "00000000000040008000000000000004"},
                   "pending": None, "units": []}
-        with patch.object(services,"save"), patch.object(services,"run",return_value="") as command:
+        with patch.object(services,"save"), patch.object(services,"run",return_value="") as command, \
+                patch.object(services,"publish_system_slot") as slot:
             unit=services.start_unit(record,"system",admit=True)
+            slot.assert_called_once_with(record,unit)
             self.assertIn("--service-type=notify",command.call_args.args)
             self.assertNotIn("--wait",command.call_args.args)
             self.assertEqual(command.call_args.args[-2:],("system","--admit-fixture"))
@@ -573,6 +575,16 @@ class VmTools(unittest.TestCase):
         with patch.object(vm, "qmp", return_value={"UUID": "ffffffff-ffff-4fff-8fff-ffffffffffff"}):
             with self.assertRaises(ValueError):
                 vm.running()
+
+    def test_live_launch_lock_stays_exclusive_but_new_disk_has_separate_lock(self):
+        with vm.launch_guard():
+            original=(self.guest/'launch.lock').stat().st_ino
+            with self.assertRaises(OSError):
+                with vm.launch_guard(): self.fail('concurrent launch admitted')
+            with vm.file_guard(self.guest/'development-storage.lock'):
+                self.assertEqual((self.guest/'launch.lock').stat().st_ino,original)
+        with vm.launch_guard():
+            self.assertEqual((self.guest/'launch.lock').stat().st_ino,original)
 
     def test_correct_qmp_identity_and_observation_timeout(self):
         with patch.object(vm, "qmp", return_value={"UUID": self.registration["uuid"]}):

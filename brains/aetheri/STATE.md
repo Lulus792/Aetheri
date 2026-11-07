@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — checked NexaUI consumer upgrade; original issuer identity retained.
+7 November 2026 — developer work disk prepared; actual carrier enrollment pending.
 
 ## Coordination
 
@@ -12,6 +12,27 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Developer storage prepared; live attachment deferred — 7 November 2026
+
+The separate 8 GiB developer image and original-object registration now exist on
+the host. Future normal VM boots include that exact image; installer boots refuse
+it. A separate stopped-CPU QEMU probe verifies actual cold attachment and block/
+serial observations. Fourteen storage host tests, 52 VM-tools regressions and two
+explicit enforcing guest loop cases pass. The loop workflow formats/mounts once,
+builds/runs as UID1000 with private TMPDIR, preserves bytes on remount and rejects
+wrong identities, unknown format state and the actual carrier root. Read the
+[executed record](journal/2026-11-07-development-storage.md) and
+[commands/boundary](../../spec/development-storage.md).
+
+The actual fixed image is still unattached and unformatted. The current carrier
+has a live foreign NexaUI helper, and q35 has no usable hotplug connection; do not
+reboot/terminate that work. No current root capacity has been added yet. Next
+storage step is a genuinely coordinated idle boundary, ordinary cold boot,
+explicit guest enrollment and actual virtio/storage acceptance. Do not repeat
+image creation, initialize an unknown format attempt or move old build/history
+paths. Other OS work can proceed independently. Production lifecycle, bootable
+image/installer, apps, hardware and experiment environment remain incomplete.
 
 ## Normal development promotion — 7 November 2026
 

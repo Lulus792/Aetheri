@@ -1,5 +1,16 @@
 # Decisions
 
+## Keep developer work capacity on a separately registered disk — 7 November 2026
+
+Use a fixed 8 GiB sparse developer image for future builds/captures. Bind the
+original host object and VM independently of its filesystem contents; journal a
+single format attempt and refuse uncertain creation/format replay. Do not resize
+the protected carrier root, remove another project's temporary data or weaken
+quotas/policy. Keep the VM lifetime lock and image-creation lock separate. A live
+foreign helper defers cold attachment; loop tests do not prove actual virtio
+enrollment. See the [contract](../../spec/development-storage.md) and
+[executed record](journal/2026-11-07-development-storage.md).
+
 ## Separate developer temporary storage from shared carrier quotas — 7 November 2026
 
 Use an explicitly bounded per-session tmpfs with actual backing preflight and

@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Separate developer storage — 7 November 2026
+
+- QEMU's [image utility manual](https://www.qemu.org/docs/master/tools/qemu-img.html)
+  describes create/info/check/map and the limits of inspecting an in-use image.
+  Only the new unattached image was inspected/created; no force-share flag or
+  in-use image modification was used. Actual installed QEMU11.1.0 probes are
+  separate evidence from this rolling manual.
+- QEMU11.1.0 [IDE bus](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hw/ide/ide-bus.c),
+  [IDE device](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hw/ide/ide-dev.c)
+  and [AHCI source](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hw/ide/ahci.c)
+  were inspected; the separate actual same-version stopped-CPU probe supplies
+  the concrete hotplug rejection evidence. No running-carrier hotplug was tried.
+- The [mke2fs manual](https://man7.org/linux/man-pages/man8/mke2fs.8.html)
+  identifies explicit UUID, reserve and eager initialization options. The carrier
+  uses existing e2fsprogs1.47.3-4; the actual loop test proves only the scoped
+  development format/mount path, not production power-loss or volume identity.
+- [Implementation/test record](journal/2026-11-07-development-storage.md) and
+  [contract](../../spec/development-storage.md) separate prepared host capacity,
+  guest loop evidence and still-pending actual carrier enrollment.
+
 ## Original issuer observation — 7 November 2026
 
 - Upstream systemd v259 [bus-control.c](https://raw.githubusercontent.com/systemd/systemd/v259/src/libsystemd/sd-bus/bus-control.c),

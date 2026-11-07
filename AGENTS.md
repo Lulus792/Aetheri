@@ -1086,3 +1086,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   canonical UID1000/mode0700 artifact root, with binary bindings unchanged. Export
   private tmpfs evidence before retiring it. Carrier root capacity is limited;
   do not delete foreign caches/data or protected lifecycle fixtures to make room.
+
+- A separate 8 GiB developer qcow2 and original-object registration are prepared
+  on the host. Read spec/development-storage.md and the 2026-11-07 journal/STATE.
+  Future normal cold boots attach it; installer boots refuse it. Host QEMU probes
+  and enforcing guest loop tests pass, but actual fixed-disk guest enrollment is
+  pending. A live foreign NexaUI helper defers reboot; never terminate that work.
+  Host create/guest format have distinct pending records and no automatic replay.
+  initialize-guest requires the actual original QMP block/image/serial; mount-guest
+  never formats. Keep old build paths, root reserve, policies and protected state.

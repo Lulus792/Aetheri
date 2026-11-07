@@ -33,6 +33,11 @@ bound to the explicitly passed build. Keep a private temporary filesystem alive
 until its evidence has been exported and independently verified; fixtures remain
 disposable-carrier tests, not public application options.
 
+The [separate developer work disk](development-storage.md) is prepared on the
+host for a later coordinated VM boot. It is not available in the current carrier
+yet. Keep normal build paths/history unchanged; do not start another capture-heavy
+matrix on the almost-full root filesystem.
+
 ## Use it
 
 For automated native keyboard probes, `tools/run_vm.py` provides

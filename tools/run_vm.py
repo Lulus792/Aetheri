@@ -36,9 +36,9 @@ def owned(path):
 
 
 @contextmanager
-def launch_guard():
-    owned(VM).mkdir(parents=True, exist_ok=True)
-    with owned(VM / "launch.lock").open("a+b") as lock:
+def file_guard(path):
+    """Stable nonblocking host lock; callers choose their resource boundary."""
+    with owned(path).open("a+b") as lock:
         if lock.seek(0, os.SEEK_END) == 0:
             lock.write(b"\0")
             lock.flush()
@@ -57,6 +57,13 @@ def launch_guard():
                 msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
             else:
                 fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def launch_guard():
+    owned(VM).mkdir(parents=True, exist_ok=True)
+    with file_guard(VM / "launch.lock"):
+        yield
 
 
 def write_state(path, value):
@@ -261,6 +268,8 @@ def command(install, offline=False, console=False):
             "sdl,gl=off,window-close=off" if console else "none",
             "-serial", f"file:{VM / ('install-serial.log' if install else 'serial.log')}",
             "-qmp", f"unix:{VM / 'qmp.sock'},server=on,wait=off", "-no-reboot"]
+    import development_storage
+    args += development_storage.boot_arguments(sys.modules[__name__], install)
     if install:
         kernel = VM / "installer/images/pxeboot/vmlinuz"
         if not kernel.exists():
