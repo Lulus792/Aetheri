@@ -4,6 +4,23 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Persistent document image — 8 November 2026
+
+- systemd259 [mount](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.mount.xml)
+  specifies block-device dependencies and fixed mount names. Its
+  [execution contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.exec.xml)
+  covers automatic path dependencies and volatile RuntimeDirectory ownership.
+  The actual image tests separately establish the selected daemon/rule/mount flow.
+- Linux6.19 [virtio block driver](https://raw.githubusercontent.com/torvalds/linux/v6.19/drivers/block/virtio_blk.c)
+  exposes serial on the disk device and performs bounded GET_ID. The selected
+  QEMU11.1 [header](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/include/standard-headers/linux/virtio_blk.h)
+  defines its 20-byte limit. First25/second21-byte fixture serials were rejected;
+  the exact20-byte final profile passes. These identifiers do not authenticate clones.
+- The [pinned 13 payloads](../../spec/data-probe-inputs.json),
+  [contract](../../spec/data-probe.md) and [executed record](journal/2026-11-08-data-probe.md)
+  bind runtime/licences, native format checks, actual two-boot persistence,
+  wrong-volume rejection and independent read-only filesystem inspection.
+
 ## Separate developer storage — 7 November 2026
 
 - QEMU's [image utility manual](https://www.qemu.org/docs/master/tools/qemu-img.html)

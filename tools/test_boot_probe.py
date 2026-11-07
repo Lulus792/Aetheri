@@ -78,7 +78,7 @@ def inspect(image):
             files[name] = {"symlink": target}
         elif kind != 0o040000:
             raise ValueError("unexpected archive object")
-    root_profile = manifest.get("proof") == "readonly-root"
+    root_profile = manifest.get("proof") in ("readonly-root", "writable-data")
     valid_init = "init" not in seen if root_profile else files.get("init") == {"symlink": "usr/lib/systemd/systemd"}
     if files != manifest["root"] or not valid_init:
         raise ValueError("archive does not match original root manifest")
@@ -115,20 +115,41 @@ def run(image, output, expect_failure=False, timeout=120):
 
 
 def evaluate(serial, manifest, exit_code, timed_out=False, expect_failure=False):
+    if manifest.get("proof") == "writable-data":
+        return evaluate_data(serial, manifest, exit_code, timed_out, expect_failure)
     is_root = manifest.get("proof") == "readonly-root"
     prefix = "AETHERI_ROOT" if is_root else "AETHERI_BOOT"
     service = "aetheri-root.service" if is_root else "aetheri-boot.service"
     filesystem = "ext4_ro=1 write_erofs=1" if is_root else "ram_root=1"
     positive = re.findall(r"^"+prefix+r"_PASS nonce=" + manifest["nonce"] + r" kernel=" + re.escape(manifest["kernel_release"]) + r" arch=x86_64 pid1=systemd uefi=1 "+filesystem+r" cgroup2=1 boot=([0-9a-f-]{36})\s*$", serial, re.MULTILINE)
-    all_positive = re.findall(r"^AETHERI_(?:BOOT|ROOT)_PASS .*?$", serial, re.MULTILINE)
+    all_positive = re.findall(r"^AETHERI_(?:BOOT|ROOT|DATA)_PASS .*?$", serial, re.MULTILINE)
     failures = re.findall(r"^"+prefix+r"_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
-    all_failures = re.findall(r"^AETHERI_(?:BOOT|ROOT)_FAIL reason=\S+\s*$", serial, re.MULTILINE)
+    all_failures = re.findall(r"^AETHERI_(?:BOOT|ROOT|DATA)_FAIL reason=\S+\s*$", serial, re.MULTILINE)
     powered_off = "reboot: Power down" in serial
     if expect_failure:
         result = not all_positive and len(all_failures) == 1 and failures == ["nonce"] and service+": Failed with result 'exit-code'." in serial
     else:
         result = len(positive) == len(all_positive) == 1 and not all_failures and service+": Deactivated successfully." in serial
     return bool(exit_code == 0 and not timed_out and powered_off and result), positive, failures
+
+
+def evaluate_data(serial, manifest, exit_code, timed_out=False, expect_failure=False):
+    """A root preflight alone cannot satisfy a persistent user-data boot."""
+    nonce = re.escape(manifest['nonce'])
+    identifier = r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+    roots = re.findall(r"^AETHERI_ROOT_PASS nonce="+nonce+r" kernel="+re.escape(manifest['kernel_release'])+r" arch=x86_64 pid1=systemd uefi=1 ext4_ro=1 write_erofs=1 cgroup2=1 boot="+identifier+r"\s*$", serial, re.MULTILINE)
+    users = re.findall(r"^AETHERI_DATA_USER nonce="+nonce+r" counter=([1-9][0-9]{0,5}) user=1000 cap_zero=1 tmp=1 runtime=1 boot="+identifier+r"\s*$", serial, re.MULTILINE)
+    results = re.findall(r"^AETHERI_DATA_PASS nonce="+nonce+r" counter=([1-9][0-9]{0,5}) user=1000 cap_zero=1 persisted=1 unmounted=1 boot="+identifier+r"\s*$", serial, re.MULTILINE)
+    checks = re.findall(r"^AETHERI_DATA_CHECK nonce="+nonce+r"\s*$", serial, re.MULTILINE)
+    positives = re.findall(r"^AETHERI_\w+_PASS .*?$", serial, re.MULTILINE)
+    failures = re.findall(r"^AETHERI_\w+_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
+    all_users = re.findall(r"^AETHERI_DATA_USER .*?$", serial, re.MULTILINE)
+    if expect_failure:
+        result = expect_failure == 'volume-context' and len(roots) == len(positives) == 1 and not checks and not all_users and failures == ['volume-context'] and "AETHERI_DATA_FAIL reason=volume-context" in serial and "aetheri-data-check.service: Failed with result 'exit-code'." in serial
+    else:
+        result = len(roots) == len(users) == len(results) == len(checks) == len(all_users) == 1 and len(positives) == 2 and not failures and users == results and roots[0] == results[0][1] and 'aetheri-data-finish.service: Deactivated successfully.' in serial and 'aetheri-data-user.service: Deactivated successfully.' in serial
+    accepted = exit_code == 0 and not timed_out and 'reboot: Power down' in serial and result
+    return bool(accepted), roots, failures
 
 
 def observe(output, command, manifest, hashes, manifest_digest, expect_failure=False, timeout=120):
@@ -144,7 +165,7 @@ def observe(output, command, manifest, hashes, manifest_digest, expect_failure=F
         process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         state.update(state="running", pid=process.pid)
         record()
-        print(json.dumps({"pid": process.pid, "attempt": str(output), "system_data_disks": 0}), flush=True)
+        print(json.dumps({"pid": process.pid, "attempt": str(output)}), flush=True)
         try:
             while process.poll() is None:
                 if time.monotonic()-started >= timeout:
@@ -163,6 +184,7 @@ def observe(output, command, manifest, hashes, manifest_digest, expect_failure=F
     print(json.dumps({k: state[k] for k in ("state", "exit", "seconds", "accepted", "boot_ids", "failures")}), flush=True)
     if not accepted:
         raise RuntimeError("boot proof failed; inspect the original preserved attempt")
+    return state
 
 
 if __name__ == "__main__":

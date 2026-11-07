@@ -10,6 +10,9 @@ This first system-base assembly contains selected runtime files and one
 diagnostic. It does not yet include the Aetheri desktop, a writable user-data
 volume, normal app admission, production SELinux policy or an installer.
 
+A separate [persistent user-data profile](data-probe.md) now extends this builder.
+The original readonly-root diagnostic and its retained evidence remain distinct.
+
 ## Boot profile
 
 The exact already selected kernel configuration has ext4, virtio PCI/block and

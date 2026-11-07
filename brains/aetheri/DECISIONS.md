@@ -1,5 +1,17 @@
 # Decisions
 
+## Separate persistent user data from the read-only image — 8 November 2026
+
+Extend the existing root builder through an explicit development profile, using
+the selected systemd-udev/mount tools and existing ext4 toolchain. One new bounded
+volume backs `/var` and its home bind; temporary/runtime state stays volatile.
+Prove actual unprivileged writes, clean unmount and a second cold boot before
+desktop integration. Keep a separate independently configured UUID/20-byte virtio
+serial and retain the original host file handle through the test sequence. These
+facts are not durable volume/clone/account admission. Preserve failed/unknown
+attempts and never replay them automatically. Root/normal installed APIs and
+the protected development carrier stay unchanged. See [scope](../../spec/data-probe.md).
+
 ## Use the selected builtin kernel root path for the first ext4 base — 7 November 2026
 
 The actual pinned configuration builds ext4, virtio PCI/block and devtmpfs into

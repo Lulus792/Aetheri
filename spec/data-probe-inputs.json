@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "purpose": "Existing selected-family udev/mount payloads for isolated writable data boot proof",
+  "files": [
+    {
+      "source": "/usr/bin/udevadm",
+      "sha256": "53a2fad133d93e8d494a86700771e23bfae8d8f8e028af026a6433a31f851185",
+      "size": 781240,
+      "package": "systemd-udev-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/mount",
+      "sha256": "f54cd89d5ff5ed93325fd190376539ea11eb5a9730c4e3d8cde1330383e65529",
+      "size": 48744,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/umount",
+      "sha256": "ef1114ffec73b7d8f9090dc6aca1d7a7de3dc6e50085a660a5f1eeb83231edf9",
+      "size": 36360,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-2-Clause",
+      "sha256": "527f738966ca396cd5a68c1509390de2a780c6b614d9ee57f7544a6161938ed1",
+      "size": 1245,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-3-Clause",
+      "sha256": "9b718a9460fed5952466421235bc79eb49d4e9eacc920d7a9dd6285ab8fd6c6d",
+      "size": 1391,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-4-Clause-UC",
+      "sha256": "ba7640f00d93e72e92b94b9d71f25ec53bac2f1682f5c4adcccb0018359f60f8",
+      "size": 1824,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.EUPL-1.2",
+      "sha256": "6fc9e709ccbfe0d77fbffa2427a983282be2eb88e47b1cdb49f21a83b4d1e665",
+      "size": 13827,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-only",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-or-later",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-3.0-or-later",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "size": 35149,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.ISC",
+      "sha256": "e53348ce276358e9997014071c5294b36a18c4b34f32f00ee57b9acce0aafd63",
+      "size": 697,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.MIT",
+      "sha256": "8555341619542abb48c102afd954e42d4478e5be16ad3d5af7b0ff71009e7348",
+      "size": 1054,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    }
+  ]
+}

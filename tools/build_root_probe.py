@@ -44,7 +44,7 @@ def archive_entries(data):
         yield name, mode, body
 
 
-def build(base, packages, output, wrong_nonce=False):
+def build(base, packages, output, wrong_nonce=False, prepare=None):
     if sys.platform != "linux" or os.uname().machine != "x86_64" or os.geteuid() == 0:
         raise ValueError("use an ordinary x86-64 Linux build user")
     original = boot.inspect(base)
@@ -108,6 +108,9 @@ def build(base, packages, output, wrong_nonce=False):
     (tree/"etc/systemd/system/default.target").symlink_to("aetheri-root.target")
     (tree/"etc/systemd/system/aetheri-root.target").write_text("[Unit]\nDescription=Aetheri readonly system root proof\nDefaultDependencies=no\nRequires=aetheri-root.service\nAfter=aetheri-root.service\n")
     (tree/"etc/systemd/system/aetheri-root.service").write_text("[Unit]\nDescription=Aetheri root observations\nDefaultDependencies=no\nSuccessAction=poweroff-immediate\nFailureAction=poweroff-immediate\n[Service]\nType=oneshot\nExecStart=/usr/libexec/aetheri-root-probe\nStandardOutput=tty\nStandardError=tty\nTTYPath=/dev/console\nTimeoutStartSec=20\n")
+    addition = prepare(tree, nonce) if prepare else {}
+    target = addition.get("target", "aetheri-root.target")
+    proof = addition.get("proof", "readonly-root")
     root_image = output/"root.ext4"
     with root_image.open("xb") as stream:
         stream.truncate(ROOT_SECTORS*512)
@@ -140,9 +143,9 @@ def build(base, packages, output, wrong_nonce=False):
     raw = subprocess.check_output(["/usr/bin/cpio", "--quiet", "--null", "--create", "--format=newc", "--owner=0:0", "--reproducible"], input=b"dev\0.aetheri-kernel-root\0", cwd=marker)
     (thin/"initramfs.cpio.gz").write_bytes(gzip.compress(raw, mtime=0))
     shutil.copyfile(base/"vmlinuz", thin/"vmlinuz")
-    cmdline = f"console=ttyS0,115200n8 panic=-1 root=PARTUUID={root_guid} rootwait=20 ro rootfstype=ext4 rootflags=noload init=/usr/lib/systemd/systemd systemd.unit=aetheri-root.target systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n"
+    cmdline = f"console=ttyS0,115200n8 panic=-1 root=PARTUUID={root_guid} rootwait=20 ro rootfstype=ext4 rootflags=noload init=/usr/lib/systemd/systemd systemd.unit={target} systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n"
     (thin/"cmdline.txt").write_text(cmdline)
-    thin_manifest = dict(format=1, proof="readonly-root", nonce=nonce, kernel_release=original["kernel_release"], outputs={n:boot.sha(thin/n) for n in ("vmlinuz", "initramfs.cpio.gz", "cmdline.txt")}, root={".aetheri-kernel-root":{"sha256":digest(text),"mode":"0o644"}})
+    thin_manifest = dict(format=1, proof=proof, nonce=nonce, kernel_release=original["kernel_release"], outputs={n:boot.sha(thin/n) for n in ("vmlinuz", "initramfs.cpio.gz", "cmdline.txt")}, root={".aetheri-kernel-root":{"sha256":digest(text),"mode":"0o644"}})
     (thin/"manifest.json").write_text(json.dumps(thin_manifest, indent=2)+"\n")
     uefi.build(thin, packages, output/"efi")
     manifest = json.loads((output/"efi/manifest.json").read_text())
@@ -189,6 +192,7 @@ def build(base, packages, output, wrong_nonce=False):
         root_inventory={p.relative_to(tree).as_posix(): ({"symlink":os.readlink(p)} if p.is_symlink() else {"sha256":boot.sha(p)}) for p in tree.rglob("*") if p.is_symlink() or p.is_file()},
         outputs={"boot.raw":boot.sha(final),"BOOTX64.EFI":boot.sha(output/"BOOTX64.EFI")},
     )
+    manifest.update(addition)
     (output/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
     print(json.dumps(dict(output=str(output),root_inodes=len(paths),disk_bytes=DISK_BYTES)))
 

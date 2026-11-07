@@ -73,6 +73,8 @@ class RootContract(unittest.TestCase):
             self.assertFalse(boot.evaluate(line+end,m,0)[0])
         self.assertFalse(boot.evaluate(good+end+good,m,0)[0])
         self.assertFalse(boot.evaluate(good+end+'AETHERI_BOOT_FAIL reason=nonce\n',m,0)[0])
+        self.assertFalse(boot.evaluate(good+end+'AETHERI_DATA_PASS foreign\n',m,0)[0])
+        self.assertFalse(boot.evaluate(good+end+'AETHERI_DATA_FAIL reason=record\n',m,0)[0])
         negative = "AETHERI_ROOT_FAIL reason=nonce\naetheri-root.service: Failed with result 'exit-code'.\nreboot: Power down\n"
         self.assertTrue(boot.evaluate(negative,m,0,expect_failure=True)[0])
 

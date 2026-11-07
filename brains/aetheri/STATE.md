@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — readonly ext4 system-root boot proven; desktop/data integration remains work.
+8 November 2026 — persistent user documents proven across own-image cold boots; desktop integration remains work.
 
 ## Coordination
 
@@ -13,7 +13,46 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Read-only system root — 7 November 2026
+## Persistent document volume — 8 November 2026
+
+The separate own-image proof now mounts a new ext4 data fixture at `/var`, binds
+its home tree at `/home`, and supplies bounded volatile `/tmp` and a private
+systemd RuntimeDirectory. The actual UID/GID1000 service has zero effective
+capabilities. Its document survives two complete cold boots, advancing counter1
+to2 with distinct kernel boot IDs. Both runs verify readonly-root/EROFS behavior,
+flush and unmount the writable filesystems before diagnostic poweroff. Read the
+[contract](../../spec/data-probe.md) and
+[executed record](journal/2026-11-08-data-probe.md).
+
+A separately copied wrong-UUID volume is rejected before mounting and remains
+byte-identical. Independent ordinary-user debugfs/e2fsck inspection confirms the
+final counter2 bytes, UID/GID1000, mode0600, one link and a clean filesystem,
+without changing it. Native record adversaries pass Release and ASan/UBSan; six
+controller/result contracts pass on Linux and Windows. Five old boot, five root
+and seven UEFI cases remain passing in their recorded scopes. Broader mixed-DATA
+rejection was subsequently added to old result classification; all six retained
+root/data boot logs pass its explicit read-only re-evaluation, not a claimed new
+boot. Final source/fixture and original observer bindings remain recorded.
+
+The fixed 20-byte virtio GET_ID limit is now checked before image construction;
+two earlier oversized-serial attempts remain preserved. No failed output is
+reused. Controller pending fences stop an uncertain sequence rather than replay
+it. Final build/export and independent filesystem-check namespaces are retired
+only after every evidence member is checked. The normal 445 source inputs,
+31 frozen SQL/XML, 19 quarantine hashes, 52 P0 files, authority and original CLOSED
+DRM history remain unchanged. No physical disk or installed service is changed.
+
+This is one trusted development writer and a fixed test account, not a normal
+login, production volume/AccountId/MAC admission, app DataEpoch or sandbox.
+The image's minimal udev setup still lacks module-loading and full hardware rules;
+it logs the absent libkmod/journal facilities. General shutdown, power-loss and
+concurrent-writer recovery remain work. Next integrate the existing graphical
+desktop/session into this base, then complete laptop early-boot/module/firmware
+and physical display/input tests. Full app lifecycle/removal, browser/other apps,
+installer/LUKS, updates/rollback, suspend and experiment desktop remain required.
+NexaUI handoff remains closed; no new catalogue request is needed.
+
+## Prior read-only system root — 7 November 2026
 
 A 512MiB combined GPT image now boots systemd and the original diagnostic from
 a separate 256MiB ext4 root. The kernel's builtin virtio/ext4 path selects its

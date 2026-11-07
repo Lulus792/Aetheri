@@ -1214,3 +1214,19 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   old quarantine/CLOSED records, unattached developer disk and foreign work.
   Next writable runtime/data and existing desktop/session integration; full goal
   remains active and incomplete.
+
+- tools/build_data_probe.py now adds a separate persistent-document image profile;
+  read spec/data-probe.md and the 2026-11-08 journal/STATE. Native UID1000 writes
+  survive two cold boots with a readonly root; root syncs and unmounts the data
+  before diagnostic poweroff. Six controller contracts and native record
+  Release/ASan/UBSan adversaries pass. UUID/20-byte virtio serial and a retained
+  host file handle are bounded fixture observations, never volume/clone/account
+  admission. The original data source is immutable; every sequence owns a NEW
+  copy and NVRAM. Pending/unknown attempts preserve files and forbid replay.
+  Normal app DataEpochs, catalogues and quarantined attempts are unrelated. The
+  image has no production MAC policy/login/hardware or power-loss acceptance.
+  Minimal udev rules lack full module/device integration; fixed test-account
+  paths are not the final account/session design. Independent read-only fsck/
+  debugfs verifies actual bytes and ownership after unmount. Next integrate the
+  existing desktop/session in this base; full OS/apps/installer/hardware and
+  experiment goals remain active. Preserve the original carrier and foreign work.

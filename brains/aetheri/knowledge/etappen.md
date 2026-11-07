@@ -3,6 +3,12 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
+8 November checkpoint: the separate own-image [persistent document proof](../../../spec/data-probe.md)
+now advances an actual UID1000 document across two cold boots while keeping the
+system image read-only. A wrong volume rejects before mounting; independent
+filesystem inspection verifies the retained bytes. Next join the existing
+desktop/session to this base. This is not a login, laptop or app-sandbox acceptance.
+
 7 November checkpoint: graphical development workflows already run on the
 carrier, and the first [own initramfs boot proof](../../../spec/boot-probe.md)
 now passes under UEFI/systemd in a separate QEMU. A real GPT/FAT32
