@@ -22,16 +22,17 @@ def main():
     server_bin,terminal,shell,font,build,fixture=map(lambda x:Path(x).resolve(),sys.argv[1:7])
     query_concurrent=len(sys.argv)==8 and sys.argv[7]=='--query-concurrent'
     query_stress=query_concurrent or (len(sys.argv)==8 and sys.argv[7]=='--query-stress')
+    reading_task=len(sys.argv)==8 and sys.argv[7]=='--reading'
     pane_task=len(sys.argv)==9 and sys.argv[8]=='--panes'
     assert len(sys.argv)!=9 or pane_task
-    starter=Path(sys.argv[7]).resolve() if len(sys.argv)>=8 and not query_stress else None
+    starter=Path(sys.argv[7]).resolve() if len(sys.argv)>=8 and not query_stress and not reading_task else None
     assert os.getuid()==1000
     assets=json.loads((fixture/'inputs.json').read_text())
     for n,h in assets['files'].items():assert digest(fixture/n.lstrip('/'))==h,n
     pin=json.loads((ROOT/'spec/ui-inputs.json').read_text())['terminal_font']
     for f in (pin,pin['bold']):
         assert digest(Path(f['path']))==f['sha256'] and digest(Path(f['license_path']))==f['license_sha256']
-    root=Path(tempfile.mkdtemp(prefix='terminal-panes-atspi-' if pane_task else 'terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
+    root=Path(tempfile.mkdtemp(prefix='terminal-reading-atspi-' if reading_task else 'terminal-panes-atspi-' if pane_task else 'terminal-query-stress-' if query_stress else 'terminal-tabs-atspi-' if starter else 'terminal-atspi-',dir=build))
     for n in ('runtime','cache','captures'):(root/n).mkdir(mode=0o700)
     client=root/'client';sdk=Path('/home/aetheri/deps/nexaui-settings-release-02/dbus-sdk')
     command=['cc','-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-O2',str(ROOT/'tests/terminal_view_atspi.c'),'-o',str(client)]
@@ -165,6 +166,9 @@ def main():
                 wait(lambda:workspace()['active']==0,'native action selected first original pane')
                 peer(app.pid,'pane-focus',f'Shell {first}|pane-first','read-focus-first-pane')
                 wait(lambda:reading()>0,'first original row has reading focus');assert accepted()==before
+                key(103);peer(app.pid,'pane-reading',f"Shell {first}|aetheri> printf 'pane-first",'keyboard-read-first-pane-command')
+                key(108);peer(app.pid,'pane-reading',f'Shell {first}|pane-first','keyboard-read-first-pane-output')
+                assert accepted()==before and workspace()['active']==0
                 key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'clear first reading focus');assert accepted()==before
                 pane_command('printf first > native-proof\n',2)
                 assert (root/'first-work/native-proof').read_bytes()==b'first' and not (root/'second-work/native-proof').exists()
@@ -173,6 +177,9 @@ def main():
                 wait(lambda:workspace()['active']==1,'native action selected second original pane')
                 peer(app.pid,'pane-focus',f'Shell {second}|pane-second','read-focus-second-pane')
                 wait(lambda:reading()>0,'second original row has reading focus');assert accepted()==before
+                key(103);peer(app.pid,'pane-reading',f"Shell {second}|aetheri> printf 'pane-second",'keyboard-read-second-pane-command')
+                key(108);peer(app.pid,'pane-reading',f'Shell {second}|pane-second','keyboard-read-second-pane-output')
+                assert accepted()==before and workspace()['active']==1
                 key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'clear second reading focus')
                 pane_command('printf second > native-proof\n',2)
                 assert (root/'second-work/native-proof').read_bytes()==b'second' and (root/'first-work/native-proof').read_bytes()==b'first'
@@ -288,6 +295,47 @@ def main():
         actors.append({'pid':app.pid,'exe':str(terminal),'sha256':digest(Path(f'/proc/{app.pid}/exe')),'shell':shell_pid})
         if candidate:actors[-1]['sdl_candidate']={'path':str(candidate),'sha256':digest(candidate)}
         capture('independent Unicode text queries on actual native terminal')
+        if reading_task:
+            # Real shell output, not a second accessibility document. Numbered
+            # rows make every native focus target independently identifiable.
+            command="printf '"+''.join(f'read-{i:02d}\\n' for i in range(60))+"'\n"
+            expected=accepted()+len(command.encode());typing(command)
+            def viewport():
+                rows=re.findall(r'^VIEW (.+)$',log(),re.M)
+                return {k:int(v) for k,v in re.findall(r'(\w+)=(\d+)(?= |$)',rows[-1])} if rows else {}
+            wait(lambda:accepted()==expected and viewport().get('x')==9 and viewport().get('history',0)>30,'numbered scrollback and returned original prompt')
+            before=accepted();key(19,ctrl=True,shift=True);wait(lambda:reading()>0,'enter original prompt reading focus')
+            peer(app.pid,'focused-row','aetheri>  ','reading-original-prompt')
+            key(103);peer(app.pid,'reading-row','read-59','read-previous-output')
+            key(103);peer(app.pid,'reading-row','read-58','read-next-previous-output')
+            key(108);peer(app.pid,'reading-row','read-59','read-down-output')
+            page=viewport()['rows']-1
+            key(104);peer(app.pid,'reading-row',f'read-{59-page:02d}','read-page-older')
+            key(109);peer(app.pid,'reading-row','read-59','read-page-newer')
+            # Home/End cover the current viewport; Control extends to the full
+            # retained history. Left/Right cannot edit a whole-row reading view.
+            key(102);peer(app.pid,'reading-row',f'read-{60-page:02d}','read-first-visible')
+            key(107);peer(app.pid,'focused-row','aetheri>  ','read-last-visible')
+            key(102,ctrl=True);wait(lambda:viewport()['view']==viewport()['history'],'read-oldest-history')
+            key(107,ctrl=True);peer(app.pid,'focused-row','aetheri>  ','read-latest-history')
+            key(105);key(106);assert accepted()==before and reading()>0
+            key(1);wait(lambda:reading()==0,'Escape exits reading without shell input');assert accepted()==before
+            typing('printf intact > reading-proof\n')
+            wait(lambda:(root/'reading-proof').exists() and (root/'reading-proof').read_bytes()==b'intact' and position()[0]==9,'same original shell after reading')
+            key(64);key(65);key(66)
+            wait(lambda:viewport().get('german')==1 and viewport().get('contrast')==1 and viewport().get('points')==20,'localized large high-contrast reading')
+            key(19,ctrl=True,shift=True);wait(lambda:reading()>0,'scaled prompt reading focus')
+            key(103);peer(app.pid,'reading-row','aetheri> printf intact > reading-proof','scaled-read-previous-command')
+            capture('keyboard row and history reading on original shell, German high contrast and larger text')
+            key(19,ctrl=True,shift=True);wait(lambda:reading()==0,'explicit reading shortcut exits')
+            key(16,ctrl=True,shift=True);assert app.wait(timeout=8)==0;children.remove(app)
+            assert select.select([shell_pin],[],[],0)[0]
+            retire(server,0);retire(reg,-signal.SIGTERM);retire(bus,0)
+            assert all(select.select([p],[],[],0)[0] for p in pins)
+            for path in root.glob('*.log'):assert not re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',path.read_text(errors='replace')),path
+            result={'result':'passed','images':images,'peers':peers,'actors':actors,'client_sha256':digest(client),
+                    'scope':'original-shell keyboard row/page/visible/full-history focus, no navigation PTY bytes; not human screenreader acceptance'}
+            (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'result':'passed','artifacts':str(root)}));return
         if query_stress:
             # A bounded transition workload, not retries of a failed query. Any
             # failed native operation stops the original task and is retained.

@@ -1,5 +1,17 @@
 # Decisions
 
+## Read original Terminal rows without shell navigation — 7 November 2026
+
+Keep one content-bound deferred reading target on the existing owner thread.
+The host applies only the bounded viewport delta to its original model; the
+presenter checks original source/target content, pane/model, dimensions, screen,
+viewport and current source focus before publishing the target and its outline
+in one frame. Compose queued navigation without another terminal document,
+timer or process. Changed/missing content cancels instead of selecting replacement
+text by position. Ordinary accepted shell input and new composition leave
+reading. Preserve modified selection/clipboard/workspace owners and the pinned
+SDK. See the [reading record](journal/2026-11-07-terminal-reading.md).
+
 ## Describe original pane selection independently of window focus — 7 November 2026
 
 Use the existing NexaUI semantic Description for localized selected/other pane

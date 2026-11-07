@@ -501,7 +501,7 @@ static void draw(struct app *a) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     if(!a->message && a->workspace_fallback) status=tr(a,"Focused pane · enlarge window to show all","Aktiver Bereich · größeres Fenster zeigt alle");
     if (!a->message && !a->session->pty.ended && ae_terminal_view_reading(a->view) && !a->session->closing && !a->composition.size && !(a->paste.size && a->paste.review))
-        status=tr(a,"Reading output · Ctrl+Shift+R clears focus","Lesefokus · Strg+Umschalt+R löst ihn");
+        status=tr(a,"Reading · Up/Down · PgUp/PgDn · Esc exits","Lesen · ↑/↓ · Bild↑/↓ · Esc beendet");
 #endif
     label(a,status,16,(float)h-a->footer_height,0xb2c0d6);
     draw_paste(a,w,h);
@@ -558,6 +558,9 @@ static bool enqueue(struct app *a,const void *bytes,size_t size) {
         if (errno==ENOBUFS) { a->message="Input queue full; new input was not sent";a->dirty=true; }
         return false;
     }
+#ifdef AETHERI_TERMINAL_NEXAUI
+    if(size && ae_terminal_view_reading(a->view)) {ae_terminal_view_clear_reading(a->view);a->dirty=true;}
+#endif
     if (selected) { a->selecting=false;a->dirty=true; }
     if (scrolled) a->dirty=true;
     a->message=NULL;flush_input(a);
@@ -740,7 +743,7 @@ static bool workspace_focus(struct app *a,unsigned slot) {
         paste_cancel(a,NULL);composition_cancel(a,false);a->selecting=false;
         if(!SDL_StopTextInput(a->window)) {error(a,"pane input reset");return false;}
         a->session=&a->sessions[slot];a->message=NULL;a->text_after=SDL_GetTicksNS();a->input_area=(SDL_Rect){-1,-1,0,0};
-        if(nx_focus_set(ae_terminal_view_context(a->view),0)!=NX_OK) {error(a,"pane reading focus reset");return false;}
+        ae_terminal_view_clear_reading(a->view);
         text_input_sync(a);
     }
     a->menu_open=false;a->workspace_pressed=0;a->split_drag=0;a->dirty=true;
@@ -1136,6 +1139,9 @@ static bool text_event_allowed(struct app *a,uint32_t window,uint64_t timestamp)
 }
 static void composition_edit(struct app *a,const SDL_TextEditingEvent *e) {
     if (!text_event_allowed(a,e->windowID,e->timestamp)) return;
+#ifdef AETHERI_TERMINAL_NEXAUI
+    ae_terminal_view_clear_reading(a->view);
+#endif
     if (a->composition.size && !composition_context(a)) { composition_cancel(a,true);return; }
     if (!a->composition.size) { a->composition_group=tcgetpgrp(a->session->pty.master);a->composition_alt=a->session->model->alt; }
     if (a->composition_group<=0 || !composition_context(a)) return;
@@ -1217,7 +1223,7 @@ static void event(struct app *a,const SDL_Event *e) {
         else if ((mod&SDL_KMOD_CTRL) && (mod&SDL_KMOD_SHIFT) && !(mod&(SDL_KMOD_ALT|SDL_KMOD_GUI)) && key==SDLK_R) {
             if (a->session->closing) { /* Closing admits no new reading target. */ }
             else if (ae_terminal_view_reading(a->view)) {
-                if (nx_focus_set(ae_terminal_view_context(a->view),0)!=NX_OK) error(a,"clear reading focus");
+                ae_terminal_view_clear_reading(a->view);
             } else {
                 unsigned row=a->session->model->view?0:a->session->model->y;
                 bool focused=a->spawner.helper>=0?ae_terminal_view_focus_pane_row(a->view,a->session_cookie[ae_terminal_workspace_focused(&a->workspace)],row):ae_terminal_view_focus_row(a->view,row);
@@ -1239,6 +1245,24 @@ static void event(struct app *a,const SDL_Event *e) {
             (void)ae_terminal_select_step(a->session->model,key==SDLK_LEFT ? -1 : key==SDLK_RIGHT ? 1 : 0,key==SDLK_UP ? -1 : key==SDLK_DOWN ? 1 : 0);
             a->selecting=false;a->dirty=true;
         }
+#ifdef AETHERI_TERMINAL_NEXAUI
+        else if(ae_terminal_view_reading(a->view) && !(mod&(SDL_KMOD_SHIFT|SDL_KMOD_ALT|SDL_KMOD_GUI)) &&
+            (key==SDLK_UP || key==SDLK_DOWN || key==SDLK_LEFT || key==SDLK_RIGHT || key==SDLK_PAGEUP || key==SDLK_PAGEDOWN ||
+             key==SDLK_HOME || key==SDLK_END || key==SDLK_ESCAPE)) {
+            if(key==SDLK_ESCAPE) ae_terminal_view_clear_reading(a->view);
+            else if(key!=SDLK_LEFT && key!=SDLK_RIGHT) {
+                enum ae_terminal_read_move move=key==SDLK_UP?AE_TERM_READ_UP:key==SDLK_DOWN?AE_TERM_READ_DOWN:
+                    key==SDLK_PAGEUP?AE_TERM_READ_PAGE_UP:key==SDLK_PAGEDOWN?AE_TERM_READ_PAGE_DOWN:
+                    key==SDLK_HOME?((mod&SDL_KMOD_CTRL)?AE_TERM_READ_OLDEST:AE_TERM_READ_FIRST):
+                    ((mod&SDL_KMOD_CTRL)?AE_TERM_READ_LATEST:AE_TERM_READ_LAST);
+                uint64_t pane=a->spawner.helper>=0?a->session_cookie[ae_terminal_workspace_focused(&a->workspace)]:0;
+                int scroll=0;
+                if(ae_terminal_view_read_move(a->view,a->session->model,pane,move,&scroll) && scroll)
+                    ae_terminal_scroll(a->session->model,scroll);
+            }
+            a->dirty=true;
+        }
+#endif
         else if (key==SDLK_ESCAPE && a->session->model->selection.count) { if (!a->failed) a->message=NULL;ae_terminal_select_clear(a->session->model);a->selecting=false;a->dirty=true; }
         else if ((mod&SDL_KMOD_SHIFT) && (key==SDLK_PAGEUP || key==SDLK_PAGEDOWN)) { ae_terminal_scroll(a->session->model,key==SDLK_PAGEUP ? (int)a->session->model->rows/2 : -(int)a->session->model->rows/2);a->dirty=true; }
         else if (key==SDLK_F6) { a->german=!a->german;a->dirty=true; }

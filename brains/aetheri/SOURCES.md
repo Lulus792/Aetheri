@@ -4,6 +4,22 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Terminal keyboard reading — 7 November 2026
+
+- Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079`
+  [focus implementation](https://github.com/Lulus792/NexaUI/blob/e71ee304f1e6c23fa562d9e4b11f7e8e12152079/src/nexaui.c),
+  read from the exact local Git object: `nx_focus_set` admits current/previous
+  focusable regions and checks disabled/inactive/overlay state. The presenter
+  sets the checked target after registering rows and before drawing its outline;
+  native tests separately verify the published focus. No SDK patch is selected.
+- Original [cell/history model](../../src/terminal/model.c), bounded scroll and
+  incarnation tokens, plus the [reading contract](../../spec/terminal.md#output-reading-focus).
+  Tokens and semantic focus are local content/UI observations, never process,
+  document-grant or authority evidence.
+- The [executed record](journal/2026-11-07-terminal-reading.md) distinguishes the
+  actual old-producer negative, original-shell native tasks and sanitizer/core
+  tests from full screenreader/physical acceptance. No new external dependency.
+
 ## Native Terminal pane descriptions — 7 November 2026
 
 - Pinned NexaUI `e71ee304f1e6c23fa562d9e4b11f7e8e12152079` public

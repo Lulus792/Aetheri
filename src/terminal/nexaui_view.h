@@ -48,6 +48,18 @@ bool ae_terminal_view_focus_row(struct ae_terminal_view *,unsigned row);
 bool ae_terminal_view_pane(struct ae_terminal_view *,const struct ae_terminal_pane_view *);
 bool ae_terminal_view_focus_pane_row(struct ae_terminal_view *,uint64_t pane,unsigned row);
 bool ae_terminal_view_reading(const struct ae_terminal_view *);
+enum ae_terminal_read_move {
+    AE_TERM_READ_UP,AE_TERM_READ_DOWN,AE_TERM_READ_FIRST,AE_TERM_READ_LAST,
+    AE_TERM_READ_PAGE_UP,AE_TERM_READ_PAGE_DOWN,AE_TERM_READ_OLDEST,AE_TERM_READ_LATEST
+};
+/* Between frames. pane=0 selects legacy mode. Returns a bounded scroll delta
+   for the host to apply immediately to this original model. Focus is published
+   in the next frame only if the original source and target content still exist,
+   dimensions/screen/view agree, and the current focus still names the source.
+   Repeated calls before that frame compose; the view never edits the model. */
+bool ae_terminal_view_read_move(struct ae_terminal_view *,const struct ae_terminal *,uint64_t pane,
+    enum ae_terminal_read_move,int *scroll);
+void ae_terminal_view_clear_reading(struct ae_terminal_view *);
 /* Complete-frame RGBA8, borrowed until the next finish/destroy. At most 64 MiB;
    the SDL host uploads it once and remains the sole native window dispatcher. */
 bool ae_terminal_view_finish(struct ae_terminal_view *,unsigned width,unsigned height,

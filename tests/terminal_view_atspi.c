@@ -201,6 +201,7 @@ int main(int argc,char **argv) {
         }
         CHECK(row && text && state(row,ATSPI_STATE_READ_ONLY));
         CHECK(!atspi_accessible_get_editable_text_iface(row));
+        if(!strcmp(argv[2],"pane-reading")) CHECK(await_state(row,ATSPI_STATE_FOCUSED,1));
         if(!strcmp(argv[2],"pane-focus") || !strcmp(argv[2],"pane-no-focus") || !strcmp(argv[2],"pane-retire") || !strcmp(argv[2],"pane-unfocused")) {
             AtspiComponent *component=atspi_accessible_get_component_iface(row);CHECK(component);
             int accepted=atspi_component_grab_focus(component,&e);
@@ -309,7 +310,7 @@ int main(int argc,char **argv) {
         }
     } else {
         CHECK(!strcmp(argv[2],"focused") || !strcmp(argv[2],"active-wire-stream") || !strcmp(argv[2],"focused-now") || !strcmp(argv[2],"unfocused") || !strcmp(argv[2],"focus") ||
-            !strcmp(argv[2],"focused-row") || !strcmp(argv[2],"no-row-focus") || !strcmp(argv[2],"reject-focus") || !strcmp(argv[2],"retire-row"));
+            !strcmp(argv[2],"focused-row") || !strcmp(argv[2],"reading-row") || !strcmp(argv[2],"no-row-focus") || !strcmp(argv[2],"reject-focus") || !strcmp(argv[2],"retire-row"));
         int active=strcmp(argv[2],"unfocused") && strcmp(argv[2],"reject-focus");double limit=now()+3;
         while(strcmp(argv[2],"focused-now") && state(frame,ATSPI_STATE_ACTIVE)!=active && now()<limit) {
             /* Reconnect may retire an object after registry discovery. Only an
@@ -357,6 +358,9 @@ int main(int argc,char **argv) {
             int accepted=atspi_component_grab_focus(c,&e);g_object_unref(c);
             if(!strcmp(argv[2],"focus")) {CHECK(accepted && !e && await_state(row,ATSPI_STATE_FOCUSED,1));}
             else {CHECK(!accepted && !state(row,ATSPI_STATE_FOCUSED));if(e) {g_error_free(e);e=NULL;}}
+        } else if(!strcmp(argv[2],"reading-row")) {
+            CHECK(await_state(row,ATSPI_STATE_FOCUSED,1));
+            int caret=atspi_text_get_caret_offset(text,&e);CHECK(!e && caret==-1);
         } else if(!strcmp(argv[2],"focused-row")) {
             CHECK(await_state(row,ATSPI_STATE_FOCUSED,1));
             int caret=atspi_text_get_caret_offset(text,&e);CHECK(!e && caret==9);

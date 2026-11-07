@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — native Terminal pane descriptions and original-shell tasks.
+7 November 2026 — original Terminal keyboard row/history reading.
 
 ## Coordination
 
@@ -14,6 +14,41 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The original Terminal now reads rows, pages, visible ends and complete retained
+history by keyboard without sending navigation bytes to its shell. Escape leaves
+reading; normal accepted input and new composition return to their original
+owners. One deferred content-bound target composes batched keys and checks the
+original pane/model, source/target, dimensions/screen/current focus and viewport
+before same-frame focus/outline publication. Live output can move original rows
+at the current offset or preserve their content as the history offset grows.
+Changed/evicted content and unrelated/disabled/hidden projections cancel.
+
+Final 32 affected groups pass each Release and ASan/UBSan without skips:
+7 focused R 22.24s/SAN 30.60s plus 25 other R 150.07s/SAN 211.55s. Independent native
+clients verify numbered original-shell output, both original split panes, exact
+focus and unchanged PTY input; the same shell writes its proof afterward. A core
+case exposed offset-only focus loss; the first content-top-only correction then
+failed live row movement. The joined implementation passes both, preserving
+unrelated-scroll refusal. Actual old-producer and live-offset negatives, earlier
+positive profiles and the initial stopped archive-hash harness are retained.
+See the [executed record](journal/2026-11-07-terminal-reading.md). This is not a
+claim of a complete new 83-group app/UI suite.
+
+Audit: 395 source inputs, 617 exports/228 verified native images, unchanged nineteen
+protected hashes/28 frozen contracts/SDK 0.1.18/SDL 04/exact CLOSED DRM history and
+no sidecars. Eight-shell idle samples have zero frames and 0/1 CPU ticks over 2s.
+Enforcing tty1; no own build/native/private-registry actors, Aetheri service or
+seat0 session. Quarantined old runtime unchanged. Local evidence is under
+`local/terminal-reading-2026-11-07`; Git history records publication.
+
+Next: selection/copy tasks tied to the reading row, then remaining accepted
+desktop/apps and production lifecycle. Human/full screenreader, physical/final
+design and persistence remain open. The full OS/apps/image/installer/update/
+hardware/experiment-desktop goal stays active and incomplete. No SDK pin upgrade
+or repeated NexaUI handoff is implied.
+
+## Prior native pane checkpoint
 
 The original multipane Terminal now supplies localized selected/other-pane
 descriptions through the existing NexaUI 0.1.18 semantics. Its bounded optional

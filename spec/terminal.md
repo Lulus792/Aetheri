@@ -62,6 +62,10 @@ the existing hangup path. This is an internal development handoff, not an app SD
 | Drag in the cell grid | Select visible text using cell boundaries; scrolling retains unchanged selected rows |
 | Ctrl+Shift+arrows / Ctrl+Shift+A | Extend selection with the keyboard / select retained text, excluding unused trailing rows |
 | Ctrl+Shift+R in the NexaUI view | Toggle output reading focus without sending PTY input |
+| Up/Down while reading | Read the previous/next original output row, scrolling at the visible edge |
+| PgUp/PgDn while reading | Move by a viewport with one overlapping row |
+| Home/End while reading | Read the first/last visible row; Ctrl extends to the entire retained history |
+| Escape while reading | Leave reading focus without sending Escape to the shell |
 | Ctrl+Shift+M in the NexaUI view | Request work-area zoom/restore; observed native state selects the next action |
 | Escape with a selection | Clear selection without forwarding Escape to the shell |
 | Escape while composing | Cancel the draft and reset native text input; no Escape byte enters the PTY |
@@ -299,8 +303,15 @@ transport merely by linking it. See the
 
 In `aetheri-terminal-nexaui`, Ctrl+Shift+R clears reading focus or selects the
 visible input row; in scrollback it selects the first visible row. Ordinary
-typing still belongs to the original shell/editor. Reading focus adds a blue
-row outline and a short footer. It neither sends shortcut bytes to the PTY nor
+typing still belongs to the original shell/editor and clears reading focus when
+successfully queued. Up/Down traverse the retained original rows, scrolling at
+the visible edge. PgUp/PgDn move by one viewport with one overlapping row;
+Home/End select the first/last visible row, and Ctrl+Home/End select the oldest/
+latest retained row. These keys never send shell navigation bytes while reading.
+Left/Right are consumed because this is whole-row reading, not a second editable
+caret. Escape or Ctrl+Shift+R leaves reading. Existing modified selection,
+clipboard and workspace shortcuts retain their original owners.
+Reading focus adds a blue row outline and a short footer. It neither sends shortcut bytes to the PTY nor
 changes the terminal cursor/selection. Native Component focus can select another
 visible read-only row while the window is already active. The pinned SDK refuses
 that request from an inactive Wayland window; it cannot manufacture activation.
@@ -314,6 +325,20 @@ retire the old target; focus is not transferred to different content at the same
 screen position. A queued stale target cannot focus the replacement. One original
 model lifetime belongs to a view. Tokens remain local content observations,
 not account/run/file authority. Identity exhaustion fails without wrapping.
+
+The host applies a bounded scroll delta to the original model. The view retains
+one content-bound focus request, not a copy of the terminal document. Multiple
+keys before a frame compose at that pending target. The next projection checks
+the original model/pane, source ID and source/target tokens, dimensions and screen
+before publishing focus and drawing its outline in the same frame. The viewport
+must retain either its requested offset or its original top-row token: live
+output may move unchanged rows at the live offset, or increase the history
+offset while preserving the same visible contents. The exact target must still
+be visible in either case. An edited/evicted source or target, a different
+current focus owner, disabled/hidden pane, changed dimensions/screen or a viewport
+matching neither observation cancels the request. A screen switch also retires
+projected IDs. New text composition cancels reading before its own input handling;
+pane changes and successful shell input discard pending reading explicitly.
 
 Preedit, paste review and closing disable new reading targets. Native text/caret/
 selection writes remain refused. Logical focus can be retained through ordinary

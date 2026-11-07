@@ -11,14 +11,19 @@ struct shape {
 struct label { char text[LABEL_BYTES+1];nx_text_layout *layout;uint64_t age;float points; };
 struct projection {
     uint64_t key,group,tokens[AE_TERM_ROWS],ids[AE_TERM_ROWS];
-    const struct ae_terminal *model;unsigned rows,cols;bool seen;
+    const struct ae_terminal *model;unsigned rows,cols;bool seen,alt;
+};
+struct reading_request {
+    const struct ae_terminal *model;uint64_t pane,source_id,source_token,target,top;
+    unsigned rows,cols,view;bool alt;
 };
 struct ae_terminal_view {
     nx_context *ui;nx_font *regular,*bold;nx_font_collection *fonts[2];
     nx_cell_view *cells;struct shape shapes[SHAPES];struct label labels[LABELS];
     unsigned char *pixels;size_t capacity;float width,height,scale,points,cw,ch,baseline;
     uint64_t age;bool frame,clip;
-    uint64_t row_ids[AE_TERM_ROWS],id_offset,highest_id;unsigned row_count,model_rows,model_cols;
+    uint64_t row_ids[AE_TERM_ROWS],row_tokens[AE_TERM_ROWS],id_offset,highest_id;unsigned row_count,model_rows,model_cols;
+    const struct ae_terminal *model;bool model_alt;struct reading_request reading;
     struct projection panes[16];uint64_t named_serial;unsigned named_calls;bool named_mode,legacy_mode;
 };
 static nx_color rgb(uint32_t c) { return (nx_color){(float)((c>>16)&255u)/255,(float)((c>>8)&255u)/255,(float)(c&255u)/255,1}; }
@@ -53,7 +58,12 @@ void ae_terminal_view_destroy(struct ae_terminal_view *v) {
 }
 nx_context *ae_terminal_view_context(struct ae_terminal_view *v) {return v?v->ui:NULL;}
 bool ae_terminal_view_focus_row(struct ae_terminal_view *v,unsigned row) {
-    return v && !v->frame && row<v->row_count && nx_focus_set(v->ui,v->row_ids[row])==NX_OK;
+    if(!v || v->frame || row>=v->row_count) return false;
+    v->reading=(struct reading_request){0};return nx_focus_set(v->ui,v->row_ids[row])==NX_OK;
+}
+void ae_terminal_view_clear_reading(struct ae_terminal_view *v) {
+    if(!v) return;
+    v->reading=(struct reading_request){0};(void)nx_focus_set(v->ui,0);
 }
 bool ae_terminal_view_reading(const struct ae_terminal_view *v) {
     if (!v) return false;
@@ -65,9 +75,83 @@ bool ae_terminal_view_reading(const struct ae_terminal_view *v) {
 }
 bool ae_terminal_view_focus_pane_row(struct ae_terminal_view *v,uint64_t pane,unsigned row) {
     if(!v || v->frame || !v->named_mode) return false;
-    for(unsigned p=0;p<16;++p) if(v->panes[p].key==pane && v->panes[p].seen && row<v->panes[p].rows)
-        return nx_focus_set(v->ui,v->panes[p].ids[row])==NX_OK;
+    for(unsigned p=0;p<16;++p) if(v->panes[p].key==pane && v->panes[p].seen && row<v->panes[p].rows) {
+        v->reading=(struct reading_request){0};return nx_focus_set(v->ui,v->panes[p].ids[row])==NX_OK;
+    }
     return false;
+}
+static bool readable_model(const struct ae_terminal *m) {
+    return m && m->rows>=2 && m->rows<=AE_TERM_ROWS && m->cols>=2 && m->cols<=AE_TERM_COLS &&
+        m->history_count<=AE_TERM_HISTORY && m->history_head<AE_TERM_HISTORY && m->view<=m->history_count;
+}
+static uint64_t line_token(const struct ae_terminal *m,unsigned line) {
+    unsigned history=m->alt?0:m->history_count;
+    return line<history?m->history_rows[(m->history_head+line)%AE_TERM_HISTORY].token:m->screen_rows[line-history].token;
+}
+static unsigned token_line(const struct ae_terminal *m,uint64_t token) {
+    unsigned count=(m->alt?0:m->history_count)+m->rows;
+    if(token) for(unsigned i=0;i<count;++i) if(line_token(m,i)==token) return i;
+    return count;
+}
+bool ae_terminal_view_read_move(struct ae_terminal_view *v,const struct ae_terminal *m,uint64_t pane,
+    enum ae_terminal_read_move move,int *scroll) {
+    if(!scroll) return false;
+    *scroll=0;
+    if(!v || v->frame || !readable_model(m) || move<AE_TERM_READ_UP || move>AE_TERM_READ_LATEST) return false;
+    uint64_t focus=nx_focus_id(v->ui);if(!focus) return false;
+    struct reading_request request=v->reading;
+    if(request.model && request.source_id!=focus) {v->reading=(struct reading_request){0};return false;}
+    if(!request.model) {
+        const uint64_t *ids=NULL,*tokens=NULL;unsigned rows=0,cols=0;bool alt=false;
+        if(!pane && v->legacy_mode && v->model==m) {
+            ids=v->row_ids;tokens=v->row_tokens;rows=v->row_count;cols=v->model_cols;alt=v->model_alt;
+        } else if(pane && v->named_mode) for(unsigned i=0;i<16;++i) {
+            const struct projection *p=&v->panes[i];
+            if(p->key==pane && p->seen && p->model==m) {ids=p->ids;tokens=p->tokens;rows=p->rows;cols=p->cols;alt=p->alt;break;}
+        }
+        for(unsigned i=0;i<rows;++i) if(ids[i]==focus) {
+            request=(struct reading_request){.model=m,.pane=pane,.source_id=focus,.source_token=tokens[i],.target=tokens[i],
+                .rows=rows,.cols=cols,.view=m->view,.top=line_token(m,(m->alt?0:m->history_count-m->view)),.alt=alt};break;
+        }
+    }
+    if(!request.model) return false;
+    unsigned history=m->alt?0:m->history_count,count=history+m->rows,start=history-(m->alt?0:m->view);
+    unsigned at=token_line(m,request.target);
+    if(request.model!=m || request.pane!=pane || request.source_id!=focus || request.rows!=m->rows || request.cols!=m->cols ||
+        request.alt!=m->alt || (request.view!=m->view && request.top!=line_token(m,start)) ||
+        token_line(m,request.source_token)==count || at<start || at>=start+m->rows) {
+        ae_terminal_view_clear_reading(v);return false;
+    }
+    unsigned next=at,top=start,page=m->rows-1;
+    switch(move) {
+    case AE_TERM_READ_UP: if(next) --next;break;
+    case AE_TERM_READ_DOWN: if(next+1<count) ++next;break;
+    case AE_TERM_READ_FIRST: next=start;break;
+    case AE_TERM_READ_LAST: next=start+m->rows-1;break;
+    case AE_TERM_READ_PAGE_UP: next=page>next?0:next-page;top=page>top?0:top-page;break;
+    case AE_TERM_READ_PAGE_DOWN: next=page>count-1-next?count-1:next+page;top=page>history-top?history:top+page;break;
+    case AE_TERM_READ_OLDEST: next=0;top=0;break;
+    case AE_TERM_READ_LATEST: next=count-1;top=history;break;
+    }
+    if(next<top) top=next;
+    else if(next>=top+m->rows) top=next-m->rows+1;
+    request.target=line_token(m,next);request.top=line_token(m,top);request.view=m->alt?m->view:history-top;v->reading=request;
+    *scroll=(int)start-(int)top;return true;
+}
+static void apply_reading(struct ae_terminal_view *v,const struct ae_terminal *m,const struct projection *pane,bool enabled) {
+    struct reading_request request=v->reading;
+    if(!request.model || request.pane!=(pane?pane->key:0)) return;
+    v->reading=(struct reading_request){0};
+    if(nx_focus_id(v->ui)!=request.source_id) return;
+    if(enabled && request.model==m && request.rows==m->rows && request.cols==m->cols && request.alt==m->alt &&
+        (request.view==m->view || request.top==line_token(m,m->alt?0:m->history_count-m->view)) &&
+        token_line(m,request.source_token)<(m->alt?0:m->history_count)+m->rows) {
+        for(unsigned y=0;y<m->rows;++y) if((pane?pane->tokens[y]:v->row_tokens[y])==request.target) {
+            if(nx_focus_set(v->ui,pane?pane->ids[y]:v->row_ids[y])==NX_OK) return;
+            break;
+        }
+    }
+    (void)nx_focus_set(v->ui,0);
 }
 bool ae_terminal_view_begin(struct ae_terminal_view *v,float w,float h,float scale,float points,float cw,float ch,float baseline) {
     if (!v || v->frame || !isfinite(w) || !isfinite(h) || w<1 || h<1 ||
@@ -238,7 +322,7 @@ static bool row_text(struct ae_terminal_view *v,const struct ae_terminal *m,unsi
         if(!id) id=next_named(v);
         if(!id) return false;
         pane->tokens[y]=token;pane->ids[y]=id;
-    } else {id=token+v->id_offset;if (id>v->highest_id) v->highest_id=id;v->row_ids[y]=id;v->row_count=y+1;}
+    } else {id=token+v->id_offset;if (id>v->highest_id) v->highest_id=id;v->row_ids[y]=id;v->row_tokens[y]=token;v->row_count=y+1;}
     nx_semantic_desc sem={.id=id,.parent_id=pane?pane->group:2,.role=NX_ROLE_TEXT,
         .bounds={bounds.x,bounds.y+(float)y*v->ch,bounds.width,v->ch},.name=span("Terminal output row"),
         .value={text,used},.state=NX_SEM_READONLY|(enabled?0u:NX_SEM_DISABLED),.actions=focusable?NX_ACTION_FOCUS:0u};
@@ -256,17 +340,18 @@ static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect 
     /* Resize changes the projected row, even when the original cell model keeps
        its content token. Never reuse an earlier projection's semantic IDs when
        dimensions change back. Ordinary movement keeps the current epoch. */
-    if (!pane && v->model_rows && (v->model_rows!=m->rows || v->model_cols!=m->cols)) {
+    if (!pane && v->model_rows && (v->model_rows!=m->rows || v->model_cols!=m->cols || v->model_alt!=m->alt)) {
         if (v->highest_id==UINT64_MAX) return false;
         v->id_offset=v->highest_id+1;
     }
     uint64_t old_tokens[AE_TERM_ROWS]={0},old_ids[AE_TERM_ROWS]={0};
     if(pane) {
-        if(pane->rows==m->rows && pane->cols==m->cols) {memcpy(old_tokens,pane->tokens,sizeof(old_tokens));memcpy(old_ids,pane->ids,sizeof(old_ids));}
-        memset(pane->tokens,0,sizeof(pane->tokens));memset(pane->ids,0,sizeof(pane->ids));pane->rows=m->rows;pane->cols=m->cols;
+        if(pane->rows==m->rows && pane->cols==m->cols && pane->alt==m->alt) {memcpy(old_tokens,pane->tokens,sizeof(old_tokens));memcpy(old_ids,pane->ids,sizeof(old_ids));}
+        memset(pane->tokens,0,sizeof(pane->tokens));memset(pane->ids,0,sizeof(pane->ids));pane->rows=m->rows;pane->cols=m->cols;pane->alt=m->alt;
     } else {
         if (!v->id_offset) v->id_offset=UINT64_C(1000);
-        v->model_rows=m->rows;v->model_cols=m->cols;v->row_count=0;
+        if(v->model && v->model!=m) return false;
+        v->model=m;v->model_rows=m->rows;v->model_cols=m->cols;v->model_alt=m->alt;v->row_count=0;
     }
     nx_semantic_desc group={.id=pane?pane->group:2,.parent_id=1,.role=NX_ROLE_GROUP,.bounds=bounds,.name=span(name),
         .description=span(description?description:"")};
@@ -286,6 +371,7 @@ static bool grid(struct ae_terminal_view *v,const struct ae_terminal *m,nx_rect 
         }
         if (!row_text(v,m,y,bounds,live_caret,read_focus,enabled,pane,old_tokens,old_ids)) return false;
     }
+    apply_reading(v,m,pane,read_focus);
     nx_cell_grid_desc grid={.bounds=bounds,.cell_width=v->cw,.cell_height=v->ch,.baseline=v->baseline,.pixels_per_em=v->points,
         .cells=v->cells,.rows=m->rows,.columns=m->cols,.row_stride=m->cols,.cell_capacity=(size_t)m->rows*m->cols,
         .glyph_cache_bytes=1024u*1024u,.mask_budget_bytes=NX_CELL_GRID_MAX_MASK_BYTES};
@@ -311,6 +397,7 @@ bool ae_terminal_view_pane(struct ae_terminal_view *v,const struct ae_terminal_p
 bool ae_terminal_view_finish(struct ae_terminal_view *v,unsigned w,unsigned h,const unsigned char **pixels,size_t *stride) {
     if (!v || !v->frame || !pixels || !stride || !w || !h || w>8192 || h>8192 ||
         (size_t)w*h>PIXEL_BUDGET/4 || fabs((double)w/v->width-(double)h/v->height)>.01) return false;
+    if(v->reading.model) ae_terminal_view_clear_reading(v);
     if (!ae_terminal_view_clip(v,NULL) || nx_end_frame(v->ui)!=NX_OK) return false;
     v->frame=false;
     for(unsigned i=0;i<16;++i) if(!v->panes[i].seen) v->panes[i]=(struct projection){0};
