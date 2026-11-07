@@ -1724,6 +1724,7 @@ int ae_catalogue_reserve_launch(struct ae_catalogue *store,const struct ae_launc
         }
         final=failure(sqlite3_finalize(statement)); if (result==0) result=final;
     }
+    if (result==0 && !exists && store->execution_fenced) result=-ESHUTDOWN;
     if (result==0 && !exists) {
         struct ae_catalogue_info info;
         result=read_info(store,&info);
@@ -1767,6 +1768,7 @@ int ae_catalogue_reserve_launch(struct ae_catalogue *store,const struct ae_launc
             RESERVATION_INPUT "INSERT INTO launch_dispatches(launch_id,lease_id,root_operation_id,broker_epoch,broker_incarnation,account_scope_ref,install_ref,generation_ref,data_epoch_ref,boot_id,action_id,session_ref,seat_ref,install_gate_revision,unit_name,state) SELECT launch,lease,op,be,br,account,i,g,d,boot,action,session,seat,gate,unit,'reserved' FROM r",
             RESERVATION_INPUT "UPDATE authority_meta SET catalogue_revision=catalogue_revision+1 WHERE singleton=1"
         };
+        if (result==0 && store->execution_fenced) result=-ESHUTDOWN;
         for (size_t n=0;result==0 && n<sizeof sql/sizeof sql[0];++n) result=reservation_execute(store,&p,sql[n]);
     }
     struct ae_dispatch_snapshot snapshot;
@@ -1923,6 +1925,7 @@ int ae_catalogue_admit_install(struct ae_catalogue *store,const uint8_t install[
         }
     }
     int final=failure(sqlite3_finalize(statement)); if (result==0) result=final;
+    if (result==0 && !existing && store->execution_fenced) result=-ESHUTDOWN;
     if (result==0 && !existing && (gate_revision==INT64_MAX || info.revision==INT64_MAX)) result=-EOVERFLOW;
     if (result==0 && !existing) {
         statement=NULL;
@@ -2358,6 +2361,7 @@ static int setup_action(struct ae_catalogue *store,const struct ae_setup_profile
             if (result==0 && action==3) result=SQ("SELECT max(d.revision,l.revision) " SETUP_TUPLE,&match);
             if (result==0 && action==3 && match==INT64_MAX) result=-EOVERFLOW;
         }
+        if (result==0 && mutation && action==0 && store->execution_fenced) result=-ESHUTDOWN;
         if (result==0 && mutation && action==0) result=SQ("INSERT INTO operation_steps SELECT op,1,'stage','launch',launch,'executing',hash FROM p",NULL);
         if (result==0 && mutation && action==1) result=SQ("INSERT INTO operation_steps SELECT op,2,'verify','integration',inv,'executing',evidence FROM p",NULL);
         if (result==0 && mutation && action>=2) result=SQ("UPDATE operation_steps SET state='applied' WHERE operation_id=(SELECT op FROM p) AND step_no=1",NULL);

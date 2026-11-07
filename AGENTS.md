@@ -948,3 +948,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   use real SQL/local FDs with controlled lifetime/PID1 adapters, not joined live
   app/supervisor acceptance. No installed public launch/recovery or old-volume
   provenance follows; preserve the existing quarantine and frozen contracts.
+
+- The same retained SYSTEM latch now rejects fresh install reservation-gate
+  opening, new reservation intent/lease/dispatch and first no-exec setup intent.
+  Check after admission reads and before mutation. Preserve exact historical
+  acknowledgments and existing independently admitted observation/withdrawal;
+  none authorizes a new unit/start/helper reply. Read spec/runtime.md's fresh-
+  reservation-and-no-exec-intent section; run catalogue.admission_fence and
+  affected reservation/launch/source-fence tests. The new twelve cases use real
+  native metadata with synthetic caller evidence, not live supervisor/drain
+  admission. Keep all original cleanup proofs and frozen SQL/XML; the latch
+  remains local and does not resolve old-owner/volume/holder continuity.

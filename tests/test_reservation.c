@@ -1,4 +1,6 @@
 #include "catalogue/reservation.h"
+#include "catalogue/setup.h"
+#include "catalogue/effect.h"
 #include <errno.h>
 #include <sqlite3.h>
 #include <stdio.h>
@@ -9,12 +11,23 @@
 
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"reservation line %d: %s\n",__LINE__,#x); exit(1); } } while (0)
 static int commit_fault,step_fault,step_number,crash_mode,cancel_fault;
+static struct ae_catalogue *fence_store;
+static const char *fence_query;
+static int fence_commit;
+static void fence(void)
+{
+    struct ae_execution_fence_status status;
+    CHECK(fence_store && ae_catalogue_fence_execution(fence_store,&status)==0 && status.fenced && !status.active);
+}
 int __real_sqlite3_exec(sqlite3 *,const char *,int (*)(void *,int,char **,char **),void *,char **);
 int __wrap_sqlite3_exec(sqlite3 *db,const char *sql,int (*callback)(void *,int,char **,char **),void *context,char **error)
 {
     if (strcmp(sql,"COMMIT")==0 && (commit_fault || crash_mode)) {
         int mode=commit_fault; commit_fault=0;
-        if (mode==2 || crash_mode==2) CHECK(__real_sqlite3_exec(db,sql,callback,context,error)==SQLITE_OK);
+        if (mode==2 || crash_mode==2) {
+            CHECK(__real_sqlite3_exec(db,sql,callback,context,error)==SQLITE_OK);
+            if (fence_commit) { fence_commit=0; fence(); }
+        }
         if (crash_mode) _exit(70+crash_mode);
         return SQLITE_IOERR;
     }
@@ -30,7 +43,11 @@ int __wrap_sqlite3_step(sqlite3_stmt *statement)
     if (step_fault && sqlite3_stmt_readonly(statement)==0 && strncmp(sql,"WITH r(se,lease",15)==0 && ++step_number==step_fault) {
         step_fault=0; return SQLITE_IOERR;
     }
-    return __real_sqlite3_step(statement);
+    int r=__real_sqlite3_step(statement);
+    if (fence_query && sqlite3_stmt_readonly(statement) && r==SQLITE_ROW && strstr(sql,fence_query)) {
+        fence_query=NULL; fence();
+    }
+    return r;
 }
 static void id(uint8_t bytes[16],uint8_t last) { memset(bytes,0,16); bytes[6]=0x40; bytes[8]=0x80; bytes[15]=last; }
 static sqlite3 *database(const char *directory)
@@ -49,6 +66,114 @@ static int64_t scalar(const char *directory,const char *sql)
     CHECK(sqlite3_prepare_v2(db,sql,-1,&statement,NULL)==SQLITE_OK && sqlite3_step(statement)==SQLITE_ROW);
     int64_t value=sqlite3_column_int64(statement,0);
     CHECK(sqlite3_finalize(statement)==SQLITE_OK && sqlite3_close(db)==SQLITE_OK); return value;
+}
+static void admission_fence(struct ae_catalogue *store,const struct ae_launch_request *request,
+    const struct ae_launch_context *context,const struct ae_reservation_ids *ids,const char *directory,const char *mode)
+{
+    fence_store=store;
+    struct ae_dispatch_snapshot out,marker; memset(&marker,0xa5,sizeof marker); out=marker;
+    struct ae_catalogue_info before,after;
+    int64_t gate=-777;
+    if (strcmp(mode,"gate-before")==0 || strcmp(mode,"gate-observe")==0) {
+        CHECK(ae_catalogue_get_info(store,&before)==0);
+        if (strcmp(mode,"gate-before")==0) fence(); else fence_query="SELECT f.state,f.revision FROM installs";
+        CHECK(ae_catalogue_admit_install(store,request->install,request->generation,2,2,request->boot,context->system_runtime,&gate)==-ESHUTDOWN && gate==-777 && !fence_query);
+        CHECK(scalar(directory,"SELECT state='closed' AND revision=2 FROM admission_gates")==1);
+        CHECK(ae_catalogue_get_info(store,&after)==0 && after.revision==before.revision);
+        CHECK(scalar(directory,"SELECT count(*) FROM generation_leases")==0);
+        goto done;
+    }
+    int gate_lost=strcmp(mode,"gate-lost")==0;
+    if (gate_lost) { commit_fault=2; fence_commit=1; }
+    int result=ae_catalogue_admit_install(store,request->install,request->generation,2,2,request->boot,context->system_runtime,&gate);
+    CHECK(gate_lost ? result==-EIO && gate==-777 && !fence_commit : result==0 && gate==3);
+    if (gate_lost || strcmp(mode,"gate-existing")==0) {
+        if (!gate_lost) fence();
+        CHECK(ae_catalogue_get_info(store,&before)==0);
+        CHECK(ae_catalogue_admit_install(store,request->install,request->generation,2,2,request->boot,context->system_runtime,&gate)==0 && gate==3);
+        CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision);
+        CHECK(ae_catalogue_reserve_launch(store,request,context,ids,&out)==-ESHUTDOWN && memcmp(&out,&marker,sizeof out)==0);
+        CHECK(scalar(directory,"SELECT count(*) FROM plans")==0);
+        goto done;
+    }
+    if (strcmp(mode,"reserve-before")==0 || strcmp(mode,"reserve-observe")==0) {
+        CHECK(ae_catalogue_get_info(store,&before)==0);
+        if (strcmp(mode,"reserve-before")==0) fence(); else fence_query="SELECT c.component_id,g.artifact_id,g.revision,f.revision";
+        CHECK(ae_catalogue_reserve_launch(store,request,context,ids,&out)==-ESHUTDOWN && memcmp(&out,&marker,sizeof out)==0 && !fence_query);
+        CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision);
+        const char *tables[]={"plans","plan_reads","plan_effects","operations","operation_steps","generation_leases","launch_dispatches"};
+        for (size_t n=0;n<sizeof tables/sizeof tables[0];++n) { char sql[96]; CHECK(snprintf(sql,sizeof sql,"SELECT count(*) FROM %s",tables[n])>0); CHECK(scalar(directory,sql)==0); }
+        CHECK(scalar(directory,"SELECT state='open' AND revision=3 FROM admission_gates")==1);
+        goto done;
+    }
+    int reserve_lost=strcmp(mode,"reserve-lost")==0;
+    if (reserve_lost) { commit_fault=2; fence_commit=1; }
+    result=ae_catalogue_reserve_launch(store,request,context,ids,&out);
+    CHECK(reserve_lost ? result==-EIO && memcmp(&out,&marker,sizeof out)==0 && !fence_commit : result==0);
+    if (reserve_lost || strcmp(mode,"reserve-existing")==0) {
+        if (!reserve_lost) fence();
+        CHECK(ae_catalogue_get_info(store,&before)==0);
+        struct ae_reservation_ids unused=*ids; id(unused.plan,44); id(unused.operation,45); unused.accepted_unix_ms=999; unused.expires_boottime_ns=0;
+        CHECK(ae_catalogue_reserve_launch(store,request,context,&unused,&out)==0 && out.operation[15]==41 && out.revision==1);
+        CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision);
+        CHECK(scalar(directory,"SELECT accepted_unix_ms=123456 AND state='running' FROM operations")==1);
+        struct ae_launch_request changed=*request; strcpy(changed.session,"changed"); out=marker;
+        CHECK(ae_catalogue_reserve_launch(store,&changed,context,&unused,&out)==-EEXIST && memcmp(&out,&marker,sizeof out)==0);
+        changed=*request; id(changed.lease,33); id(changed.launch,34);
+        CHECK(ae_catalogue_reserve_launch(store,&changed,context,&unused,&out)==-ESHUTDOWN && memcmp(&out,&marker,sizeof out)==0);
+        uint8_t cause[16]; id(cause,60);
+        commit_fault=2;
+        CHECK(ae_catalogue_cancel_reservation(store,request->lease,context,request->broker_epoch,cause,1,999,&out)==-EIO && memcmp(&out,&marker,sizeof out)==0);
+        CHECK(ae_catalogue_cancel_reservation(store,request->lease,context,request->broker_epoch,cause,1,1000,&out)==0 && strcmp(out.state,"terminal")==0);
+        struct ae_reservation_receipt receipt;
+        CHECK(ae_catalogue_get_receipt(store,request->lease,context,&receipt)==0 && receipt.withdrawn && receipt.cause[15]==60);
+        CHECK(scalar(directory,"SELECT state='released' FROM generation_leases")==1 && scalar(directory,"SELECT completed_unix_ms=999 FROM operations")==1);
+        CHECK(ae_catalogue_reserve_launch(store,request,context,ids,&out)==-EAGAIN);
+        goto done;
+    }
+    struct ae_setup_profile p={.install_revision=2,.install_gate_revision=3,.data_gate_revision=3};
+    memcpy(p.system_epoch,request->system_epoch,16); memcpy(p.system_runtime,context->system_runtime,16);
+    memcpy(p.broker_epoch,request->broker_epoch,16); memcpy(p.broker_runtime,request->broker_runtime,16);
+    memcpy(p.boot,request->boot,16); memcpy(p.account,request->account,16); memcpy(p.install,request->install,16);
+    memcpy(p.generation,request->generation,16); memcpy(p.data,request->data,16); id(p.storage,13);
+    memcpy(p.launch,request->launch,16); memcpy(p.lease,request->lease,16); memcpy(p.root_operation,ids->operation,16); id(p.user_operation,61);
+    uint8_t hash[32]={1},evidence[32]={2},invocation[16]; id(invocation,66);
+    if (strcmp(mode,"setup-before")==0 || strcmp(mode,"setup-observe")==0) {
+        CHECK(ae_catalogue_get_info(store,&before)==0);
+        if (strcmp(mode,"setup-before")==0) fence(); else fence_query="SELECT count(*) FROM operation_steps,p WHERE operation_id=p.op AND step_no=1";
+        out=marker;
+        CHECK(ae_catalogue_begin_setup(store,&p,hash,context,&out)==-ESHUTDOWN && memcmp(&out,&marker,sizeof out)==0 && !fence_query);
+        CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision);
+        CHECK(scalar(directory,"SELECT count(*) FROM operation_steps WHERE step_no>0")==0 && scalar(directory,"SELECT state='reserved' FROM generation_leases")==1);
+        uint8_t cause[16]; id(cause,61);
+        CHECK(ae_catalogue_cancel_reservation(store,request->lease,context,request->broker_epoch,cause,1,1000,&out)==0);
+        goto done;
+    }
+    CHECK(strcmp(mode,"setup-existing")==0 || strcmp(mode,"setup-lost")==0);
+    int setup_lost=strcmp(mode,"setup-lost")==0;
+    if (setup_lost) { commit_fault=2; fence_commit=1; }
+    out=marker; result=ae_catalogue_begin_setup(store,&p,hash,context,&out);
+    CHECK(setup_lost ? result==-EIO && memcmp(&out,&marker,sizeof out)==0 && !fence_commit : result==0);
+    if (!setup_lost) fence();
+    CHECK(ae_catalogue_get_info(store,&before)==0);
+    CHECK(ae_catalogue_begin_setup(store,&p,hash,context,&out)==0);
+    CHECK(ae_catalogue_get_info(store,&after)==0 && before.revision==after.revision);
+    uint8_t bad[32]; memcpy(bad,hash,32); bad[0]^=1;
+    CHECK(ae_catalogue_begin_setup(store,&p,bad,context,&out)==-EEXIST);
+    /* Synthetic native metadata only: actual peer/no-exec/drain admission remains
+     * the authority's obligation. Fencing cannot fabricate that proof. */
+    CHECK((setup_lost ? ae_catalogue_record_setup_exit(store,&p,hash,invocation,evidence,&out) :
+        ae_catalogue_register_setup(store,&p,hash,invocation,evidence,&out))==0);
+    if (!setup_lost) CHECK(ae_catalogue_prepared_setup(store,&p,hash,invocation,evidence,&out)==0);
+    CHECK(ae_catalogue_withdraw_setup(store,&p,hash,invocation,evidence,context,1000,&out)==0 && strcmp(out.state,"terminal")==0);
+    CHECK(ae_catalogue_withdraw_setup(store,&p,hash,invocation,evidence,context,2000,&out)==0);
+    CHECK(scalar(directory,"SELECT completed_unix_ms=1000 FROM operations")==1 && scalar(directory,"SELECT state='released' FROM generation_leases")==1);
+done:
+    CHECK(!fence_query && !fence_commit);
+    struct ae_execution_fence_status status;
+    CHECK(ae_catalogue_execution_fence_status(store,&status)==0 && status.fenced && !status.active);
+    printf("Admission fence: %s; actual native metadata, immutable history and permitted proven cleanup; no process/supervisor admission.\n",mode);
+    fence_store=NULL;
 }
 int main(int argc,char **argv)
 {
@@ -73,6 +198,10 @@ int main(int argc,char **argv)
     struct ae_dispatch_snapshot output,marker; memset(&marker,0xa5,sizeof marker); output=marker;
     CHECK(ae_catalogue_reserve_launch(store,&r,&context,&proposed,&output)==-ESTALE && memcmp(&output,&marker,sizeof marker)==0);
     CHECK(scalar(argv[1],"SELECT count(*) FROM operations")==0);
+    if (strncmp(argv[3],"fence-",6)==0) {
+        admission_fence(store,&r,&context,&proposed,argv[1],argv[3]+6);
+        CHECK(ae_catalogue_close(&store)==0); return 0;
+    }
     int64_t gate=-777;
     commit_fault=1;
     CHECK(ae_catalogue_admit_install(store,r.install,r.generation,2,2,r.boot,context.system_runtime,&gate)==-EIO && gate==-777);

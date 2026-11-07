@@ -1,5 +1,17 @@
 # Decisions
 
+## Stop fresh reservation admission while preserving history — 7 November 2026
+
+Use the existing retained SYSTEM latch for fresh reservation-gate opening,
+reservation intent/lease/dispatch and the first no-exec setup intent. Check after
+read-only admission and before mutation. Preserve exact historical acknowledgments
+and the original independently admitted observation/withdrawal paths; refusing
+all access after a fence would prevent reconciliation. Do not infer a new effect
+right from those historical replies, or replace a lost-commit identity.
+No durable gate change, schema or new wire API is needed for this local source
+boundary. Supervisor/helper-reply and old-owner/volume/holder coordination remain
+separate. See the [runtime contract](../../spec/runtime.md#fresh-reservation-and-no-exec-intent-admission).
+
 ## Separate custodian exports from admitted cleanup — 7 November 2026
 
 Join the original-observer handoff bridge to the retained SYSTEM source latch.

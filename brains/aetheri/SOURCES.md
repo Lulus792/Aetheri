@@ -4,6 +4,19 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Fresh reservation admission fence — 7 November 2026
+
+- Original [reservation contract](../../src/catalogue/reservation.h),
+  [no-exec contract](../../src/catalogue/setup.h) and
+  [native implementation](../../src/catalogue/store.c): fresh gate/reservation/
+  setup-intent checks before mutation, with original historical and cleanup rules.
+- [Permanent native cases](../../tests/test_reservation.c) and
+  [runner](../../tools/test_reservation_native.py): twelve real-metadata cases
+  with synthetic caller evidence and exact late-read/lost-commit hooks. They do
+  not prove live process/supervisor admission. The
+  [executed record](journal/2026-11-07-admission-fence.md) bounds test, mutation
+  and normal-prototype evidence separately.
+
 ## Custodian export source and retained cleanup — 7 November 2026
 
 - Original [owner permit contract](../../src/catalogue/effect.h),

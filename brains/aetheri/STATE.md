@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — custodian export source fenced; admitted cleanup retained.
+7 November 2026 — fresh reservation admission fenced; history/cleanup retained.
 
 ## Coordination
 
@@ -14,6 +14,44 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Current update
+
+The retained SYSTEM source latch now rejects fresh opening of install
+reservation admission, new canonical reservation/lease/dispatch and the first
+no-exec setup intent. Checks run after source observations and before mutation.
+Exact historical acknowledgments, admitted existing-helper observations and
+proven no-exec withdrawal remain available, preserving original IDs/times/state.
+They confer no new supervisor/start/helper-reply permission. No schema/XML,
+policy/dependency or public capability changes. See the
+[executed admission record](journal/2026-11-07-admission-fence.md).
+
+Both complete builds pass. Twelve new native metadata cases pass without skips
+in Release (37.37s) and ASan/UBSan (35.10s), including late-observation and lost-
+commit source fencing. Synthetic caller evidence is not live supervisor/drain
+admission. Three isolated producers missing gate/late-reservation/setup checks
+fail the intended unchanged tests; original artifacts stay unchanged. Six
+affected regressions pass respectively 258.94s/248.42s, with complete case output.
+All 50 contract/migration and 24 runtime-vector tests pass.
+
+The normal P0 reviewed seven-stage update/check/stop sequence passes enforcing,
+including connection negatives, User replacement, Root restart with User retained
+and idle. Both services are stopped. All 52 files are compared, preserving
+owner/epochs, writer-lock inodes, policy and all non-runtime owner tables.
+Installed authority SHA-256:
+`2b2ff6e6d6d7b1e65d2930db0c8eb79244e58c2f4b49e79c791813faa25a3c25`.
+
+Final audit: 406 source inputs, unchanged 28 frozen contracts/19 protected old-
+runtime hashes/four foreign files/exact CLOSED DRM/SDK 0.1.18/SDL04; no own actor,
+Aetheri service, protected sidecar or seat0 session. Fifty verified exports are
+in `local/admission-fence-2026-11-07`. Git records publication.
+
+Next: no-exec helper reply transport and supervisor activation, preserving
+original helper pins and admitted observation/drain cleanup. Current historical
+metadata alone authorizes neither. Admitted owner/volume continuity, remaining
+effect/old-owner/external/delegated sources and durable per-run recovery remain
+open. Preserve the old v6/User-v4 quarantine. The whole OS/apps/image/installer/
+update/hardware/experiment-desktop goal remains active/incomplete. No NexaUI handoff.
+
+## Prior custodian-export checkpoint
 
 The native original-observer handoff bridge now shares the retained SYSTEM
 catalogue's local source latch. Current Root-custodian permits bind epoch/boot/

@@ -43,6 +43,8 @@ int ae_launch_request_valid(const struct ae_launch_request *request);
  * root IDs/timestamps are used only for a new reservation; exact retries retain
  * the original IDs and bytes. Changed tuple conflicts. Recovery/terminal states
  * never become fresh reservations, even after a lost acknowledgement/restart.
+ * A fenced SYSTEM source rejects fresh reservations; exact historical retries
+ * remain metadata observations, never permission to start/redispatch a process.
  * Output unchanged on error. */
 int ae_catalogue_reserve_launch(struct ae_catalogue *catalogue,const struct ae_launch_request *request,
     const struct ae_launch_context *context,const struct ae_reservation_ids *proposed,struct ae_dispatch_snapshot *output);
@@ -62,7 +64,9 @@ int ae_catalogue_cancel_reservation(struct ae_catalogue *catalogue,const uint8_t
 /* Explicit P0 startup admission after independent current sealed-store validation.
  * Requires current boot/runtime, active exact I/G, closed unowned gate at expected
  * revision, and no outstanding holders/dispatches. This opens metadata reservation
- * admission only; it never grants data readiness or executable mappings. */
+ * admission only; it never grants data readiness or executable mappings. Fresh
+ * opening rejects the local source fence; an exact already-open acknowledgment
+ * does not reopen or otherwise change later state. */
 int ae_catalogue_admit_install(struct ae_catalogue *catalogue,const uint8_t install[16],const uint8_t generation[16],
     int64_t install_revision,int64_t gate_revision,const uint8_t boot[16],const uint8_t runtime[16],int64_t *output);
 

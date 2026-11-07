@@ -14,6 +14,10 @@ struct ae_setup_profile {
 };
 int ae_setup_decode(const uint8_t *bytes,size_t size,struct ae_setup_profile *output);
 int ae_catalogue_authorize_user_setup(struct ae_catalogue *store,const struct ae_setup_profile *profile);
+/* Fresh no-exec intent rejects the retained SYSTEM source fence; historical
+ * acknowledgments do not authorize a new supervisor request or helper reply.
+ * Observation of an existing attempt and independently proven withdrawal remain
+ * available after fencing, with their original caller admission obligations. */
 int ae_catalogue_begin_setup(struct ae_catalogue *store,const struct ae_setup_profile *profile,
     const uint8_t digest[32],const struct ae_launch_context *context,struct ae_dispatch_snapshot *output);
 /* Caller owes actual held ProcessFD + supervisor context for the fixed selected

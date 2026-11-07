@@ -995,6 +995,9 @@ if(BUILD_TESTING)
     add_test(NAME catalogue.reservation COMMAND Python3::Interpreter
              "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_reservation_native.py" $<TARGET_FILE:test_reservation> "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(catalogue.reservation PROPERTIES TIMEOUT 90)
+    add_test(NAME catalogue.admission_fence COMMAND Python3::Interpreter
+             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_reservation_native.py" $<TARGET_FILE:test_reservation> "${CMAKE_CURRENT_BINARY_DIR}" fence)
+    set_tests_properties(catalogue.admission_fence PROPERTIES TIMEOUT 240)
     add_executable(test_data tests/test_data.c)
     target_compile_definitions(test_data PRIVATE _GNU_SOURCE)
     target_compile_options(test_data PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

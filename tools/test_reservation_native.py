@@ -22,7 +22,12 @@ def main():
     expected=hashlib.sha256(reference.intent(plan)).digest()+hashlib.sha256(request).digest()
     with tempfile.TemporaryDirectory(prefix="reservation-",dir=build) as temporary:
         root=Path(temporary); path=root/"expected"; path.write_bytes(expected)
-        for scenario in ("faults","exit-before","exit-after"):
+        scenarios=("faults","exit-before","exit-after")
+        if len(sys.argv)==4 and sys.argv[3]=='fence':
+            scenarios=tuple('fence-'+case for case in ('gate-before','gate-observe','gate-existing','gate-lost',
+                'reserve-before','reserve-observe','reserve-existing','reserve-lost',
+                'setup-before','setup-observe','setup-existing','setup-lost'))
+        for scenario in scenarios:
             catalogue=root/scenario; catalogue.mkdir(mode=0o700)
             subprocess.run([executable,catalogue,path,scenario],check=True,timeout=45)
 

@@ -4747,3 +4747,30 @@ replacement-owner/volume continuity and durable recovery are still separate work
 See the [executed handoff-fence record](../brains/aetheri/journal/2026-11-07-handoff-fence.md)
 for the component tests, deliberately defective producer checks, normal-service
 update and remaining live-integration boundary.
+
+### Fresh reservation and no-exec intent admission
+
+The same retained SYSTEM latch now refuses fresh opening of an install's
+reservation-admission gate, a new reservation's canonical intent/lease/dispatch,
+and the first no-exec setup intent. Check after read-only admission observations
+and before the first mutation, including a reservation recheck after its final
+source observation. Refusal preserves outputs, gate revisions and all journals;
+it does not close an existing durable gate or settle an old lease.
+
+Exact already-open gate acknowledgments, already-reserved tuple observations and
+existing setup-intent acknowledgments keep their original IDs, times and state.
+A lost successful commit remains the original obligation, with no replacement
+identity or repeat effect permission. Conflicting and terminal/uncertain tuples
+keep their existing rejection rules. A historical receipt is never permission
+to start a unit, issue a helper reply or resume dispatch after fencing.
+
+Authenticated observation of an existing no-exec helper, its separately admitted
+early-exit evidence and independently proven no-exec withdrawal remain available
+after fencing. These native calls still require the original peer/supervisor/
+purpose/drain proof; a source latch supplies none of it. Metadata recording is
+distinct from helper reply transport and supervisor activation, which still need
+their own source/holder coordination. Do not use this path for executing starters.
+
+The [admission-fence record](../brains/aetheri/journal/2026-11-07-admission-fence.md)
+identifies the actual native tests, deliberately defective producers, normal P0
+update and remaining integration boundary. No SQL/XML or public capability changed.
