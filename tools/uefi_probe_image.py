@@ -12,6 +12,7 @@ import uuid
 import zlib
 
 DISK_BYTES = 128 * 1024**2
+ROOT_DISK_BYTES = 512 * 1024**2
 ESP_TYPE = uuid.UUID("c12a7328-f81f-11d2-ba4b-00a0c93ec93b")
 
 
@@ -60,7 +61,8 @@ def pe_sections(data):
 
 
 def esp_extent(data, manifest):
-    require(len(data) == DISK_BYTES and data[510:512] == b"\x55\xaa", "invalid image/MBR")
+    root_profile = "root_partition" in manifest
+    require(len(data) == (ROOT_DISK_BYTES if root_profile else DISK_BYTES) and data[510:512] == b"\x55\xaa", "invalid image/MBR")
     last = len(data)//512-1
     require(data[450] == 0xee and struct.unpack_from("<II", data, 454) == (1, last), "invalid protective MBR")
     require(not any(data[462:510]), "unexpected hybrid MBR")
@@ -78,7 +80,7 @@ def esp_extent(data, manifest):
         at, count, size, checksum = struct.unpack_from("<QIII", h, 72)
         require((at, count, size) == (array, 128, 128), "unexpected GPT array")
         entries = data[at*512:at*512+count*size]
-        require(zlib.crc32(entries) == checksum and not any(entries[128:]), "GPT partition array checksum/profile")
+        require(zlib.crc32(entries) == checksum and not any(entries[256 if root_profile else 128:]), "GPT partition array checksum/profile")
         entry_sets.append(entries)
     require(entry_sets[0] == entry_sets[1], "GPT copies disagree")
     entry = bytes(entry_sets[0][:128])
@@ -86,6 +88,16 @@ def esp_extent(data, manifest):
     start, end, attributes = struct.unpack_from("<QQQ", entry, 32)
     require((start, end-start+1, attributes) == (2048, 258048, 0), "unexpected ESP extent")
     require((manifest["esp_start"], manifest["esp_sectors"]) == (start, end-start+1), "ESP manifest mismatch")
+    if root_profile:
+        root = bytes(entry_sets[0][128:256])
+        expected = manifest["root_partition"]
+        require(uuid.UUID(bytes_le=root[:16]) == uuid.UUID("4f68bce3-e8cd-4db1-96e7-fbcaf984b709") and uuid.UUID(bytes_le=root[16:32]) == uuid.UUID(expected["guid"]), "wrong root partition identity")
+        require(struct.unpack_from("<QQQ", root, 32) == (262144, 786431, 1 << 60), "unexpected root extent/flags")
+        require((expected["start"], expected["sectors"]) == (262144, 524288), "root extent manifest mismatch")
+        at = expected["start"]*512
+        superblock = data[at+1024:at+2048]
+        require(superblock[56:58] == b"\x53\xef" and uuid.UUID(bytes=bytes(superblock[104:120])) == uuid.UUID(expected["filesystem_uuid"]), "wrong root filesystem")
+        require(digest(data[at:at+expected["sectors"]*512]) == expected["sha256"], "changed root filesystem")
     return data[start*512:(end+1)*512]
 
 
@@ -151,12 +163,13 @@ def boot_file(volume):
 
 def inspect(directory):
     manifest = json.loads((directory/"manifest.json").read_text())
-    require(manifest["format"] == 1 and manifest["disk_bytes"] == DISK_BYTES, "unsupported media manifest")
+    expected_size = ROOT_DISK_BYTES if "root_partition" in manifest else DISK_BYTES
+    require(manifest["format"] == 1 and manifest["disk_bytes"] == expected_size, "unsupported media manifest")
     require(set(manifest["outputs"]) == {"boot.raw", "BOOTX64.EFI"}, "unexpected media outputs")
     for name, expected in manifest["outputs"].items():
         path = directory/name
         require(not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "media input must be a regular file")
-        require(path.stat().st_size <= DISK_BYTES, "oversized media input")
+        require(path.stat().st_size <= expected_size, "oversized media input")
         require(digest(path.read_bytes()) == expected, "changed media input: "+name)
     data = (directory/"boot.raw").read_bytes()
     efi = boot_file(esp_extent(data, manifest))

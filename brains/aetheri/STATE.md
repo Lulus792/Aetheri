@@ -1,6 +1,6 @@
 # State
 
-7 November 2026 — standalone UEFI removable-media boot; system root/desktop remain work.
+7 November 2026 — readonly ext4 system-root boot proven; desktop/data integration remains work.
 
 ## Coordination
 
@@ -13,7 +13,34 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Standalone UEFI boot medium — 7 November 2026
+## Read-only system root — 7 November 2026
+
+A 512MiB combined GPT image now boots systemd and the original diagnostic from
+a separate 256MiB ext4 root. The kernel's builtin virtio/ext4 path selects its
+explicit PARTUUID and mounts it ro,noload; no initrd userspace handover is claimed.
+Native checks join the mounted root/device to its kernel argument, require ext4
+and ST_RDONLY, and observe an actual create attempt failing with EROFS. Two final
+cold boots pass with distinct boot IDs; a deliberately wrong root profile rejects.
+Read the [contract](../../spec/root-probe.md) and
+[record](journal/2026-11-07-root-probe.md).
+
+The ordinary-user builder populates only selected existing runtime/licence files,
+normalizes/checks 72 root-owned inodes and passes e2fsck before packaging. It records
+tool/configuration hashes and preserves the original RAM diagnostic ELF exactly.
+Five root and five older boot contracts pass natively; Windows root/older UEFI
+regressions also pass. All 273 final evidence members are independently verified
+before exact original namespace retirement. Normal sources, 31 frozen SQL/XML,
+old quarantine, authority and CLOSED history remain unchanged; no physical disk,
+installed service/policy or foreign work is modified.
+
+This uses one read-only virtio image in the VM. Laptop USB-root drivers, LUKS early
+userspace, production MAC/integrity and writable persistent state remain work.
+Only volatile API filesystems/transient machine-id are writable; the immediate
+poweroff diagnostic is not a desktop session. Next define the deliberate writable
+runtime/data layout and integrate the existing desktop/session. Full OS/apps,
+installer, updates/rollback, hardware/suspend and experiment product stay required.
+
+## Prior standalone UEFI boot medium — 7 November 2026
 
 The original boot proof now has a real 128MiB GPT/FAT32 medium. Firmware finds
 EFI/BOOT/BOOTX64.EFI on a read-only emulated removable USB device; no separate

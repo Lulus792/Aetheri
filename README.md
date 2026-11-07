@@ -22,10 +22,10 @@ Normal app launch, document access and the desktop remain in progress. The first
 information and supports keyboard input, per-window themes, text size and DE/EN.
 An opt-in [NexaUI Settings presentation](spec/nexaui.md#aetheri-owned-settings-presentation)
 now provides separate display, appearance and language pages with an opaque fallback.
-The first [standalone UEFI medium](spec/uefi-probe.md) now boots its embedded
-kernel/initramfs from a real GPT/FAT32 image into systemd and a native diagnostic.
-System-root/desktop integration, a usable laptop image, installer and admitted
-daily-use applications remain work.
+The first [read-only system image](spec/root-probe.md) now boots through UEFI into
+systemd and a native diagnostic on its separate ext4 root. An actual write attempt
+confirms the root is read-only. Writable-data/desktop integration, a usable laptop
+image, installer and admitted daily-use applications remain work.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 

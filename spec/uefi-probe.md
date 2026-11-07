@@ -108,8 +108,9 @@ Repeated cold boots use fresh NVRAM and must report different kernel boot IDs.
 
 ## Next
 
-Assemble an independently built read-only system root and integrate the existing
-Aetheri session/desktop into that image. Then test normal writable data, drivers
+The [independent read-only ext4 root](root-probe.md) now has actual kernel/root
+boot evidence in a combined image. Next integrate deliberate writable runtime/data
+and the existing Aetheri session/desktop. Then test normal writable data, drivers
 and device settings on the laptop. Installer, encrypted storage, signed updates,
 rollback, production app/document lifecycle, suspend/resume and the full
 resettable experiment desktop remain separate acceptance work. The boot medium

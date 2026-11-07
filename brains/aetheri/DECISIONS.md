@@ -1,5 +1,17 @@
 # Decisions
 
+## Use the selected builtin kernel root path for the first ext4 base — 7 November 2026
+
+The actual pinned configuration builds ext4, virtio PCI/block and devtmpfs into
+the kernel. Use its existing PARTUUID root mounting with ro,noload to prove the
+independent readonly base, with systemd as PID1. A tiny archive has no /init; this
+does not implement early-userspace switch-root. Avoid selecting a new mount/init
+framework for this bounded proof. USB storage modules, LUKS unlock and production
+early-boot policy remain necessary later. Root-owned inode verification, actual
+EROFS observation, exact original inputs and no host-device formatting are required.
+Do not treat fixture GUIDs or a self-consistent image as volume/publisher trust.
+See the [contract](../../spec/root-probe.md).
+
 ## Use the selected systemd stub and official UKI builder for the boot medium — 7 November 2026
 
 Package the original boot inputs as an AMD64 UKI using the exact same-family

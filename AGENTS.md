@@ -1197,3 +1197,20 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   image, never a normal user desktop. Next independently assemble a read-only
   system root and integrate the existing session/desktop, without adopting old
   quarantined runtime state or treating image GUIDs as durable volume proof.
+
+- tools/build_root_probe.py now adds a readonly ext4 root in the combined 512MiB
+  GPT file. Read spec/root-probe.md and the 2026-11-07 root journal/STATE. It runs
+  only as an ordinary Linux builder, formats only new regular files and never
+  mounts or installs them. Capture the mke2fs configuration/tool hashes; require
+  all 72 selected inode ownership reports and e2fsck acceptance. The C17 root
+  mode confirms actual ext4/ST_RDONLY, mounted device PARTUUID and create EROFS;
+  the normal RAM mode must preserve its original ELF bytes. Run five root tests
+  plus affected old boot/media regressions. Kernel builtin virtio/ext4 performs
+  root mounting with no /init; do not claim initrd userspace handover, laptop USB
+  root, LUKS, production policy, writable data or desktop acceptance. The new image
+  has no production MAC policy; carrier Enforcing evidence is separate. Immediate
+  poweroff units stay image-only. Root GUIDs/UUIDs/nonces are fixture correlations,
+  never clone authentication or catalogue/data admission. Preserve normal sources,
+  old quarantine/CLOSED records, unattached developer disk and foreign work.
+  Next writable runtime/data and existing desktop/session integration; full goal
+  remains active and incomplete.

@@ -78,7 +78,9 @@ def inspect(image):
             files[name] = {"symlink": target}
         elif kind != 0o040000:
             raise ValueError("unexpected archive object")
-    if files != manifest["root"] or files.get("init") != {"symlink": "usr/lib/systemd/systemd"}:
+    root_profile = manifest.get("proof") == "readonly-root"
+    valid_init = "init" not in seen if root_profile else files.get("init") == {"symlink": "usr/lib/systemd/systemd"}
+    if files != manifest["root"] or not valid_init:
         raise ValueError("archive does not match original root manifest")
     return manifest
 
@@ -113,14 +115,19 @@ def run(image, output, expect_failure=False, timeout=120):
 
 
 def evaluate(serial, manifest, exit_code, timed_out=False, expect_failure=False):
-    positive = re.findall(r"^AETHERI_BOOT_PASS nonce=" + manifest["nonce"] + r" kernel=" + re.escape(manifest["kernel_release"]) + r" arch=x86_64 pid1=systemd uefi=1 ram_root=1 cgroup2=1 boot=([0-9a-f-]{36})\s*$", serial, re.MULTILINE)
-    all_positive = re.findall(r"^AETHERI_BOOT_PASS .*?$", serial, re.MULTILINE)
-    failures = re.findall(r"^AETHERI_BOOT_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
+    is_root = manifest.get("proof") == "readonly-root"
+    prefix = "AETHERI_ROOT" if is_root else "AETHERI_BOOT"
+    service = "aetheri-root.service" if is_root else "aetheri-boot.service"
+    filesystem = "ext4_ro=1 write_erofs=1" if is_root else "ram_root=1"
+    positive = re.findall(r"^"+prefix+r"_PASS nonce=" + manifest["nonce"] + r" kernel=" + re.escape(manifest["kernel_release"]) + r" arch=x86_64 pid1=systemd uefi=1 "+filesystem+r" cgroup2=1 boot=([0-9a-f-]{36})\s*$", serial, re.MULTILINE)
+    all_positive = re.findall(r"^AETHERI_(?:BOOT|ROOT)_PASS .*?$", serial, re.MULTILINE)
+    failures = re.findall(r"^"+prefix+r"_FAIL reason=(\S+)\s*$", serial, re.MULTILINE)
+    all_failures = re.findall(r"^AETHERI_(?:BOOT|ROOT)_FAIL reason=\S+\s*$", serial, re.MULTILINE)
     powered_off = "reboot: Power down" in serial
     if expect_failure:
-        result = not all_positive and failures == ["nonce"] and "aetheri-boot.service: Failed with result 'exit-code'." in serial
+        result = not all_positive and len(all_failures) == 1 and failures == ["nonce"] and service+": Failed with result 'exit-code'." in serial
     else:
-        result = len(positive) == len(all_positive) == 1 and not failures and "aetheri-boot.service: Deactivated successfully." in serial
+        result = len(positive) == len(all_positive) == 1 and not all_failures and service+": Deactivated successfully." in serial
     return bool(exit_code == 0 and not timed_out and powered_off and result), positive, failures
 
 

@@ -27,11 +27,13 @@ def run(image, output, expect_failure=False, timeout=120):
         "-display", "none", "-monitor", "none", "-nic", "none", "-no-reboot",
         "-drive", "if=pflash,format=raw,readonly=on,file="+str(boot.TOOLS/"share/edk2-x86_64-code.fd"),
         "-drive", "if=pflash,format=raw,file="+str(nvram),
-        "-device", "qemu-xhci,id=xhci",
-        "-drive", "if=none,id=bootmedia,format=raw,readonly=on,file="+str(image/"boot.raw"),
-        "-device", "usb-storage,bus=xhci.0,drive=bootmedia,removable=on,bootindex=1",
         "-serial", "file:"+str(output/"serial.log"),
     ]
+    command += ["-drive", "if=none,id=bootmedia,format=raw,readonly=on,file="+str(image/"boot.raw")]
+    if "root_partition" in manifest:
+        command += ["-device", "virtio-blk-pci,drive=bootmedia,serial=AETHERI_ROOT_PROBE,bootindex=1"]
+    else:
+        command += ["-device", "qemu-xhci,id=xhci", "-device", "usb-storage,bus=xhci.0,drive=bootmedia,removable=on,bootindex=1"]
     boot.observe(output, command, manifest, hashes, boot.sha(image/"manifest.json"), expect_failure, timeout)
 
 

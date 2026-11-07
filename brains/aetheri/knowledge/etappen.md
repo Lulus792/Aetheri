@@ -7,8 +7,9 @@ remain a proposal.
 carrier, and the first [own initramfs boot proof](../../../spec/boot-probe.md)
 now passes under UEFI/systemd in a separate QEMU. A real GPT/FAT32
 [removable-media image](../../../spec/uefi-probe.md) also boots through firmware's
-fallback path. This is a partial build/boot milestone: system root, desktop-image
-integration and laptop acceptance remain pending. Prioritize those boundaries; complete
+fallback path. The separate [read-only ext4 root](../../../spec/root-probe.md)
+also now boots and rejects an actual write. This is a partial build/boot milestone:
+writable-data/desktop integration and laptop acceptance remain pending. Complete
 app polish and the browser need not precede the first laptop test alpha.
 
 | Milestone | Deliverable | Acceptance |

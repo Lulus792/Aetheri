@@ -79,6 +79,8 @@ def build(image, packages, output):
 
     env["PYTHONPATH"] = str(prefix/"usr/lib/python3.14/site-packages")
     osrel = b'NAME="Aetheri boot proof"\nID=aetheri-boot-probe\nPRETTY_NAME="Aetheri UEFI media proof"\n'
+    if original.get("proof") == "readonly-root":
+        osrel = b'NAME="Aetheri system root proof"\nID=aetheri-root-probe\nPRETTY_NAME="Aetheri readonly system root proof"\n'
     (output/"os-release").write_bytes(osrel)
     uki = output/"BOOTX64.EFI"
     ukify = ["/usr/bin/python3", str(prefix/"usr/bin/ukify"), "--config="+str(output/"empty.conf"), "--efi-arch=x64", "--stub="+str(prefix/"usr/lib/systemd/boot/efi/linuxx64.efi.stub"), "--linux="+str(image/"vmlinuz"), "--initrd="+str(image/"initramfs.cpio.gz"), "--cmdline=@"+str(image/"cmdline.txt"), "--os-release=@"+str(output/"os-release"), "--uname="+original["kernel_release"], "--output="+str(uki), "build"]
@@ -114,6 +116,7 @@ def build(image, packages, output):
         format=1,
         purpose="unsigned standalone UEFI media boot proof, not a production OS image",
         nonce=original["nonce"],
+        proof=original.get("proof", "ram-root"),
         kernel_release=original["kernel_release"],
         boot_manifest_sha256=boot.sha(image/"manifest.json"),
         pins_sha256=sha(pin_bytes),
