@@ -10,7 +10,7 @@
 
 struct ae_audio_control {
     unsigned refs,loading;
-    bool closing,barrier;
+    bool closing,closed,barrier;
     GThread *thread;
     GMainContext *context;
     GCancellable *cancel;
@@ -29,13 +29,22 @@ struct ae_audio_control {
 static void dirty(struct ae_audio_control *);
 static gboolean timeout_command(gpointer);
 static struct ae_audio_control *retain(struct ae_audio_control *c) {++c->refs;return c;}
-static void release(gpointer data) {
+static gboolean finalize_owner(gpointer data) {
     struct ae_audio_control *c=data;
-    if(--c->refs) return;
     g_clear_object(&c->mixer);g_clear_object(&c->defaults);g_clear_object(&c->objects);
     g_clear_object(&c->core);g_clear_object(&c->cancel);g_main_context_unref(c->context);
     if(c->destroy) c->destroy(c->data);
-    free(c);
+    free(c);return G_SOURCE_REMOVE;
+}
+static void release(gpointer data) {
+    struct ae_audio_control *c=data;
+    if(--c->refs) return;
+    if(!c->core) {(void)finalize_owner(c);return;}
+    /* The last sync callback can still be on a dynamically loaded module's
+     * dispatch stack. Keep the core/modules until a later idle turn, after
+     * already-ready GTask callbacks have returned. The caller keeps this
+     * context running until its data-destroy notification, as before. */
+    GSource *source=g_idle_source_new();g_source_set_callback(source,finalize_owner,c,NULL);g_source_attach(source,c->context);g_source_unref(source);
 }
 static bool owner(struct ae_audio_control *c) {return c && !c->closing && c->thread==g_thread_self();}
 static void source_clear(GSource **p) {if(*p) {g_source_destroy(*p);g_source_unref(*p);*p=NULL;}}
@@ -227,6 +236,29 @@ static enum ae_audio_submit submit(struct ae_audio_control *c,uint64_t revision,
 enum ae_audio_submit ae_audio_control_volume(struct ae_audio_control *c,uint64_t rev,struct ae_audio_output_ref ref,double v) {return submit(c,rev,ref,AE_AUDIO_VOLUME,v,false);}
 enum ae_audio_submit ae_audio_control_mute(struct ae_audio_control *c,uint64_t rev,struct ae_audio_output_ref ref,bool mute) {return submit(c,rev,ref,AE_AUDIO_MUTE,0,mute);}
 enum ae_audio_submit ae_audio_control_default(struct ae_audio_control *c,uint64_t rev,struct ae_audio_output_ref ref) {return submit(c,rev,ref,AE_AUDIO_DEFAULT,0,false);}
+static void finish_close(struct ae_audio_control *c) {
+    if(c->closed) return;
+    c->closed=true;source_clear(&c->deadline);wp_core_disconnect(c->core);
+}
+static gboolean close_timeout(gpointer data) {
+    struct ae_audio_control *c=data;GSource *s=c->deadline;c->deadline=NULL;g_source_unref(s);
+    finish_close(c);return G_SOURCE_REMOVE;
+}
+static gboolean close_idle(gpointer data) {
+    struct ae_audio_control *c=data;GSource *s=c->idle;c->idle=NULL;g_source_unref(s);
+    finish_close(c);return G_SOURCE_REMOVE;
+}
+static void queue_close(struct ae_audio_control *c) {
+    if(c->closed || c->idle) return;
+    c->idle=g_idle_source_new();g_source_set_callback(c->idle,close_idle,retain(c),release);g_source_attach(c->idle,c->context);
+}
+static void close_synchronized(GObject *source,GAsyncResult *result,gpointer data) {
+    struct ae_audio_control *c=data;GError *error=NULL;
+    (void)wp_core_sync_finish(WP_CORE(source),result,&error);g_clear_error(&error);
+    /* A sync completion may still be inside protocol-native's on_remote_data.
+     * Disconnecting that remote there invalidates its active read dispatch. */
+    queue_close(c);release(c);
+}
 bool ae_audio_control_close(struct ae_audio_control **slot) {
     if(!slot || !owner(*slot)) return false;
     struct ae_audio_control *c=*slot;*slot=NULL;c->closing=true;
@@ -234,5 +266,17 @@ bool ae_audio_control_close(struct ae_audio_control **slot) {
     g_signal_handlers_disconnect_by_data(c->core,c);g_signal_handlers_disconnect_by_data(c->objects,c);
     if(c->mixer) g_signal_handlers_disconnect_by_data(c->mixer,c);
     if(c->defaults) g_signal_handlers_disconnect_by_data(c->defaults,c);
-    g_cancellable_cancel(c->cancel);wp_core_disconnect(c->core);release(c);return true;
+    g_cancellable_cancel(c->cancel);
+    /* Stop producers of cache-refresh work before the final barrier. This is
+     * local observer retirement, not app/process/device drain or rollback. */
+    if(c->mixer) wp_object_deactivate(WP_OBJECT(c->mixer),WP_PLUGIN_FEATURE_ENABLED);
+    if(c->defaults) wp_object_deactivate(WP_OBJECT(c->defaults),WP_PLUGIN_FEATURE_ENABLED);
+    if(wp_core_get_pw_core(c->core)) {
+        c->deadline=g_timeout_source_new(5000);g_source_set_callback(c->deadline,close_timeout,retain(c),release);g_source_attach(c->deadline,c->context);
+        g_main_context_push_thread_default(c->context);
+        /* Even a false return retains its asynchronous callback obligation. */
+        if(!wp_core_sync(c->core,NULL,close_synchronized,retain(c))) queue_close(c);
+        g_main_context_pop_thread_default(c->context);
+    } else queue_close(c);
+    release(c);return true;
 }

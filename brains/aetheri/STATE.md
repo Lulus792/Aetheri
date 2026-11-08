@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — The original C17 audio-management adapter now lists outputs and controls default selection, volume and mute through libwireplumber. Release/ASan/UBSan tests verify actual metadata, full PCM, safe close, server loss and unknown timed-out commands. Normal audio/Settings, mediated device access and physical hardware remain work. The stick stays unchanged.
+8 November 2026 — Native C17 volume/mute now pass complete host-captured playback on the discovered virtual HDA output. Seven final cold-boot controls and Release/ASan/UBSan callback/paused-server retirement pass. Next: per-user audio supervision/device mediation, then Settings and HP output. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,44 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Native HDA management — 8 November 2026
+
+The [native control fixture](../../spec/audio-control.md#native-controls-on-virtual-hda)
+joins the actual discovered output to the C17 adapter's observed name/ID/serial.
+An ordinary UID/GID1000, cap-zero/NNP client changes volume/mute and closes from
+its callback before playback. The native variant uses no CLI control writes;
+its supervisor independently inspects card/profile, links and kernel controls.
+All seven final cold-boot checks pass: unity, cubic 50%, mute, second unity boot,
+legacy discovered-device/manual controls and no-card rejection. Every non-muted
+capture contains all 96,000 ordered frames with error below 0.5 LSB. Mute has
+185,391 captured frames, every sample zero. See the
+[executed record](journal/2026-11-08-audio-native-hda.md).
+
+The QEMU codec's advertised dB steps disagree with its linear amplifier. A failed
+half-volume capture demonstrates that mismatch. A separate software-mixer rule
+matches only this VM card; the fixture establishes its checked hardware unity
+baseline before ordinary actors and verifies it stays unchanged. This is not
+physical-device policy. Failed captures remain preserved with unchanged limits.
+
+Callback-time close exposes a protocol-dispatch hazard. Cache deactivation, a
+bounded final barrier and idle-turn disconnect/destruction now pass six probe
+graphs and six management graphs in Release/ASan/UBSan, including actual close
+while the original server remains paused. The finite producer fills free buffers
+early on its existing main loop. All four original audio CTest groups, twelve C
+parser controls in both variants and 48 HDA contract cases pass.
+
+The final audit joins 555 current code/pin inputs, 2,078 members across four final
+evidence bundles, twelve controller actor snapshots and all ten acknowledged
+native helper retirements. One earlier export exhausts its private workspace;
+it has no accepted bundle and leaves two inspected empty directories. Preserve
+those separately. Read-only preservation still checks 445 carrier source inputs,
+19 protected hashes, 31 frozen SQL/XML and 52 normal P0 files.
+
+Normal session/device mediation, Settings, HP/Bluetooth output, hotplug, recording,
+suspend and production real-time scheduling remain work. The legacy Lua review/
+update gate still applies before rollout. Original authority/quarantined history,
+normal services, foreign UI work, public capabilities and USB remain unchanged.
 
 ## Native audio management — 8 November 2026
 
@@ -44,7 +82,8 @@ fall back to the valid ambient server.
 
 Selection tests run before creating the diagnostic's DONT_RECONNECT stream;
 moving an existing stream is not accepted. Normal session/device mediation,
-Settings, native HDA control and physical HP/Bluetooth output remain work.
+Settings and physical HP/Bluetooth output remain work. The later native HDA
+milestone above extends this graph-only result.
 Public wire/catalogue capabilities, original authority/carrier and USB remain
 unchanged. The legacy Lua review/update gate still applies before normal rollout.
 

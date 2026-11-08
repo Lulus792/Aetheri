@@ -1,5 +1,25 @@
 # Decisions
 
+## Verify native controls through the discovered HDA path — 8 November 2026
+
+Keep the native management client separate from the original device/manual
+fixtures. Join its observed output identity to independent card/profile
+inspection and full host-captured PCM. Volume/mute writes use the C library;
+the remaining command-line tools are read-only test oracles.
+
+For the fixed QEMU 11.1 codec only, use the maintained software-mixer option:
+its advertised dB steps do not match its linear amplifier implementation. Keep
+the emulated mixer enabled, initialize its checked unity baseline once before
+ordinary actors, then verify it stays unchanged. Do not generalize this test
+rule to physical devices or loosen the full-sample acceptance criteria.
+
+Retire control observers outside protocol dispatch: disable cache work, use a
+bounded final barrier and defer disconnect/destruction to idle turns. Keep the
+finite producer on its existing main loop with early buffer filling, rather
+than moving its non-RT callback to another thread. Real-time scheduling and
+normal session/device admission still need separate work.
+[Evidence](journal/2026-11-08-audio-native-hda.md).
+
 ## Use maintained library controls behind an original adapter — 8 November 2026
 
 Implement the private C17 management backend with libwireplumber's default-node

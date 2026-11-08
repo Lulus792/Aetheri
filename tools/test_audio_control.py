@@ -168,9 +168,11 @@ class Controller:
             c.wait(lambda:c.snapshot['state']==2 and c.snapshot['error']==2)
             assert c.snapshot['command_state']==3 and c.snapshot['count']==0
             uncertain=c.snapshot.copy()
+            # Retirement must also finish while that original server is still
+            # paused: the close barrier's deadline cannot depend on its reply.
+            c.close()
         finally:
             signal.pidfd_send_signal(pin,signal.SIGCONT);os.close(pin)
-        c.close()
         # This explicit replacement is a new observer, not recovery/replay by
         # the library. The old unknown command is never reported cancelled.
         c=Client(self.binary,remote,root/'replacement',env);self.clients.append(c)

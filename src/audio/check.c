@@ -121,7 +121,10 @@ int main(int argc,char **argv) {
     uint8_t bytes[1024];struct spa_pod_builder builder=SPA_POD_BUILDER_INIT(bytes,sizeof(bytes));
     struct spa_audio_info_raw info={.format=SPA_AUDIO_FORMAT_F32_LE,.rate=RATE,.channels=CHANNELS,.position={SPA_AUDIO_CHANNEL_FL,SPA_AUDIO_CHANNEL_FR}};
     const struct spa_pod *params[]={spa_format_audio_raw_build(&builder,SPA_PARAM_EnumFormat,&info)};
-    enum pw_stream_flags flags=PW_STREAM_FLAG_MAP_BUFFERS|PW_STREAM_FLAG_DONT_RECONNECT;
+    /* This main-loop-owned asynchronous client fills free buffers early, as
+     * supported by PipeWire, instead of waiting for the next playback request.
+     * Keep the same clock/quantum and bounded prepared data; no RT-thread work. */
+    enum pw_stream_flags flags=PW_STREAM_FLAG_MAP_BUFFERS|PW_STREAM_FLAG_DONT_RECONNECT|PW_STREAM_FLAG_EARLY_PROCESS;
     if(autoconnect) flags|=PW_STREAM_FLAG_AUTOCONNECT;
     if(c.wait_start) flags|=PW_STREAM_FLAG_INACTIVE;
     if(!params[0] || pw_stream_connect(c.stream,PW_DIRECTION_OUTPUT,PW_ID_ANY,flags,params,1)<0) goto done;

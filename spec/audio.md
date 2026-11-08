@@ -210,8 +210,9 @@ a per-user service, device/profile policy and Settings, then HP jack output and
 Bluetooth. WirePlumber is the recommended policy manager; its exact version and
 profile are not part of this HDA image. The separate
 [policy profile](audio-policy.md) now tests version 0.5.19, automatic links,
-default output and volume/mute in a graph; actual ALSA monitor integration is
-still pending. Recording permissions, physical volume/device switching,
+default output and volume/mute in a graph. The separate
+[device image](audio-device.md) now joins the actual ALSA monitor, and
+[native management](audio-control.md) adds original C17 controls. Recording permissions, physical volume/device switching,
 normal admitted app audio and physical audibility remain untested.
 
 References: [upstream 1.6.11 NEWS](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/NEWS),

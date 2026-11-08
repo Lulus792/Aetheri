@@ -90,8 +90,9 @@ choice. The finite sink stays active through a bounded settling interval so the
 full tail reaches capture; this is not a production device-drain proof.
 
 `wpctl` and `pw-link` are bounded test oracles, not the future Settings protocol.
-Next implement the original C17 management adapter, per-user supervision and
-device mediation, then Settings and HP headphone output. Bluetooth, recording,
+The separate [C17 adapter](audio-control.md) now provides native management and
+its own HDA fixture. Per-user supervision/device mediation, Settings and HP
+headphone output remain work. Bluetooth, recording,
 hotplug and suspend/resume remain separate work. Review/update the legacy Lua
 baseline before normal rollout. No public capability, catalogue contract,
 protected carrier service or USB image changes in this milestone.

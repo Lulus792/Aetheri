@@ -24,7 +24,8 @@ import test_boot_probe as boot
 from test_laptop_no_serial import retire_failed
 
 
-def validate_wav(raw):
+def validate_wav(raw,gain=1.0,muted=False):
+    if not math.isfinite(gain) or not 0<gain<=1:raise ValueError('capture gain bound')
     if not 44 <= len(raw) <= 8*1024**2:
         raise ValueError('WAV size bound')
     if raw[:4] != b'RIFF' or raw[8:12] != b'WAVE' or struct.unpack_from('<I',raw,4)[0] != len(raw)-8:
@@ -35,6 +36,9 @@ def validate_wav(raw):
         count=source.getnframes();pcm=source.readframes(count)
         if len(pcm)!=count*4:raise ValueError('truncated capture')
     samples=list(struct.iter_unpack('<hh',pcm))
+    if muted:
+        if count<96000 or any(v for pair in samples for v in pair):raise ValueError('missing duration or nonzero muted capture')
+        return dict(captured_frames=count,silent=True,sha256=hashlib.sha256(raw).hexdigest())
     first=next((i for i,pair in enumerate(samples) if max(map(abs,pair))>2),None)
     if first is None or first<1:raise ValueError('missing phase-zero signal start')
     start=first-1;frames=96000
@@ -43,11 +47,20 @@ def validate_wav(raw):
     peak=0.0
     for i in range(frames):
         for channel,frequency in enumerate((440,880)):
-            expected=4096*math.sin(2*math.pi*frequency*i/48000)
+            expected=gain*4096*math.sin(2*math.pi*frequency*i/48000)
             peak=max(peak,abs(samples[start+i][channel]-expected))
     if peak>2:raise ValueError('wrong/missing/reordered samples: '+str(peak))
     if any(abs(v)>2 for pair in samples[start+frames:] for v in pair):raise ValueError('unexpected suffix')
     return dict(captured_frames=count,signal_start=start,signal_frames=frames,max_error_lsb=peak,sha256=hashlib.sha256(raw).hexdigest())
+
+
+def control_settings(manifest):
+    if manifest.get('proof')!='audio-control-hda':return 1.0,False
+    cases={'unity':(1.0,False),'half':(.5,False),'muted':(1.0,True)}
+    expected=cases.get(manifest.get('control_case'))
+    if manifest.get('control_mixer')!='qemu-software' or expected is None or type(manifest.get('control_volume')) is not float or type(manifest.get('control_muted')) is not bool or (manifest['control_volume'],manifest['control_muted'])!=expected:
+        raise ValueError('invalid native HDA case')
+    return expected
 
 
 def evaluate(serial,manifest,exit_code,events,missing_device=False):
@@ -58,8 +71,9 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
     if missing_device:
         return not passes and failures==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     expected='AETHERI_AUDIO_PASS nonce='+manifest['nonce']+' frames=96000 rate=48000 channels=2 server_end=1 player_end=1'
-    device=manifest.get('proof')=='audio-device'
-    actors=re.findall(r'^AETHERI_AUDIO_ACTOR role=(server|policy|player) uid=1000 cap_zero=1 nnp=1\s*$',serial,re.MULTILINE)
+    native=manifest.get('proof')=='audio-control-hda'
+    device=native or manifest.get('proof')=='audio-device'
+    actors=re.findall(r'^AETHERI_AUDIO_ACTOR role=(server|policy|control|player) uid=1000 cap_zero=1 nnp=1\s*$',serial,re.MULTILINE)
     policy=(not device or ('Failed to set owner/mode' not in serial and 'Failed to resolve user' not in serial
              and serial.count('AETHERI_AUDIO_UDEV initialized=1 database=1')==1
              and serial.count('AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1')==1
@@ -69,9 +83,28 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
              and 'POLICY_CARD\n' in serial and 'device.api = "alsa"' in serial and 'device.enum.api = "udev"' in serial
              and 'api.alsa.use-acp = "true"' in serial and 'api.alsa.card = "0"' in serial
              and 'POLICY_PROFILE\n' in serial and re.search(r'^\s*\*\s+[0-9]+\s+Analog Stereo Output \[available\]\s+prio=6500\s*$',serial,re.MULTILINE)))
-    return (passes==[expected] and not failures and actors==(['server','policy','player'] if device else ['server','player']) and policy
+    mixer=serial.count('AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1')==1
+    if native:
+        try:volume,muted=control_settings(manifest)
+        except ValueError:return False
+        applied=re.findall(r'^AETHERI_AUDIO_NATIVE_PASS case=(unity|half|muted) node=([A-Za-z0-9._:-]+) id=([0-9]+) serial=([0-9]+) volume=([0-9.]+) muted=([01]) observed=1\s*$',serial,re.MULTILINE)
+        section=serial.split('POLICY_SINK\n',1)[-1].split('POLICY_CARD\n',1)[0]
+        selected=re.search(r'^id ([0-9]+), type PipeWire:Interface:Node\s*$',section,re.MULTILINE)
+        names=re.findall(r'^\s*\*?\s*node.name = "([A-Za-z0-9._:-]+)"\s*$',section,re.MULTILINE)
+        ids=re.findall(r'^\s*\*?\s*object.serial = "([0-9]+)"\s*$',section,re.MULTILINE)
+        policy=policy and len(applied)==1 and selected is not None and len(names)==len(ids)==1
+        if policy:
+            case,node,bound,serial_id,level,mute=applied[0]
+            policy=(case==manifest['control_case'] and node==names[0] and bound==selected.group(1) and serial_id==ids[0] and int(serial_id)>0 and level==f'{volume:.6f}' and int(mute)==int(muted))
+        policy=policy and serial.count('AETHERI_AUDIO_NATIVE_CLOSED retired=1')==1 and serial.count('AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=0')==1 and 'AETHERI_AUDIO_NATIVE_FAIL' not in serial
+        card=serial.split('POLICY_CARD\n',1)[-1].split('POLICY_PROFILE\n',1)[0]
+        policy=policy and len(re.findall(r'^\s*\*?\s*api.alsa.soft-mixer = "true"\s*$',card,re.MULTILINE))==1
+        baseline='AETHERI_AUDIO_NATIVE_BASELINE hardware_unity=1 before_server=1'
+        policy=policy and serial.count(baseline)==1 and serial.index(baseline)<serial.find('AETHERI_AUDIO_ACTOR role=server')
+        mixer=serial.count('AETHERI_AUDIO_MIXER_OBSERVED volume=74 switch=1 channels=2 verified=1')==1
+    return (passes==[expected] and not failures and actors==(['server','policy','control','player'] if native else ['server','policy','player'] if device else ['server','player']) and policy
             and serial.count('AETHERI_AUDIO_DEVICE pci=8086:2668 card=0 playback=1')==1
-            and serial.count('AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1')==1
+            and mixer
             and serial.count('DRAINED frames=96000')==1
             and 'aetheri-audio.service: Deactivated successfully.' in serial)
 
@@ -104,11 +137,14 @@ def run(image,output,missing_device=False,timeout=150):
     if len(str(output/'qmp.sock').encode())>=108 or any(',' in str(p) for p in (image,output,boot.TOOLS)):
         raise ValueError('unsupported QEMU path')
     manifest=boot.inspect(image)
-    if manifest.get('proof') not in ('audio-hda','audio-device'):raise ValueError('not the RAM HDA test image')
+    if manifest.get('proof') not in ('audio-hda','audio-device','audio-control-hda'):raise ValueError('not the RAM HDA test image')
+    volume,muted=control_settings(manifest)
     sources={'hda_inputs_sha256':'spec/audio-hda-inputs.json','audio_inputs_sha256':'spec/audio-inputs.json',
              'builder_sha256':'tools/build_audio_hda.py','owner_sha256':'src/boot/audio.c'}
-    if manifest['proof']=='audio-device':
+    if manifest['proof'] in ('audio-device','audio-control-hda'):
         sources.update(device_builder_sha256='tools/build_audio_device.py',device_inputs_sha256='spec/audio-device-inputs.json',policy_inputs_sha256='spec/audio-policy-inputs.json',policy_preparer_sha256='tools/prepare_audio_policy.py')
+    if manifest['proof']=='audio-control-hda':
+        sources.update(native_builder_sha256='tools/build_audio_control_hda.py',control_inputs_sha256='spec/audio-control-inputs.json',control_preparer_sha256='tools/prepare_audio_control.py',control_source_sha256='src/audio/control.c',control_header_sha256='src/audio/control.h',remote_source_sha256='src/audio/remote.c',remote_header_sha256='src/audio/remote.h',probe_source_sha256='src/audio/control_probe.c',player_source_sha256='src/audio/check.c',cmake_sha256='CMakeLists.txt')
     for key,path in sources.items():
         # Source archives use normalized LF on both build and host.
         if manifest[key]!=hashlib.sha256((boot.ROOT/path).read_bytes().replace(b'\r\n',b'\n')).hexdigest():
@@ -168,7 +204,7 @@ def run(image,output,missing_device=False,timeout=150):
             serial=(output/'serial.log').read_text(errors='replace').replace('\r\n','\n')
             if not evaluate(serial,manifest,process.returncode,state['guest_events'],missing_device):
                 raise ValueError('guest/device/actor/shutdown evidence failed; preserve serial log')
-            if not missing_device:state['pcm']=validate_wav((output/'capture.wav').read_bytes())
+            if not missing_device:state['pcm']=validate_wav((output/'capture.wav').read_bytes(),volume**3,muted)
             if boot.inspect(image)!=manifest:raise ValueError('source image changed')
             state.update(state='passed',exit=process.returncode,elapsed_seconds=time.monotonic()-start);save()
         except BaseException as error:

@@ -1,5 +1,23 @@
 # Sources
 
+## Native HDA management — 8 November 2026
+
+- [Contract](../../spec/audio-control.md#native-controls-on-virtual-hda) and
+  [executed record](journal/2026-11-08-audio-native-hda.md): joined native output
+  identity, ordinary actor credentials, actual device controls and independent
+  complete PCM. Earlier rejected captures/export failures remain separate.
+- QEMU 11.1.0 [codec implementation](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hw/audio/hda-codec.c)
+  and [advertised capabilities](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hw/audio/hda-codec-common.h):
+  74 amplifier steps, dB step-size metadata and integer linear gain conversion.
+  The first half-volume capture agrees with that mismatch. WirePlumber 0.5.19
+  [ALSA configuration](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/alsa.html)
+  documents software mixing; the new rule is confined to this exact VM card.
+- [PipeWire stream API](https://docs.pipewire.org/group__pw__stream.html) and
+  the signed 1.6.11 `stream.h` distinguish early asynchronous filling from
+  real-time callbacks. Existing clock/tolerances remain unchanged. The actual
+  ASan stack in the pinned protocol-native module establishes the close-time
+  dispatch hazard; an earlier unmapped-PC crash alone did not prove module unload.
+
 ## Native audio management — 8 November 2026
 
 - [Exact SDK](../../spec/audio-control-inputs.json),

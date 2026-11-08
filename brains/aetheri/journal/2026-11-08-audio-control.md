@@ -4,6 +4,8 @@ The preceding `7bbe704` milestone joins actual udev/ACP discovery and virtual
 HDA playback. This work adds the original C17 management adapter behind the
 future Settings controls. It does not install normal audio or finish the OS.
 The [contract](../../../spec/audio-control.md) describes ownership and reproduction.
+The later [native HDA record](2026-11-08-audio-native-hda.md) extends the evidence
+below and fixes callback-time close; these results retain their original scope.
 
 ## Implementation and inputs
 

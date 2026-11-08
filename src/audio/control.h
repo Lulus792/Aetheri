@@ -49,6 +49,8 @@ typedef void (*ae_audio_changed)(const struct ae_audio_snapshot *,void *);
  * Volume changes set all channels equally in [0,1], preserving mute. Mute keeps
  * volume. One command at a time; timeout/disconnect yields UNKNOWN, no replay.
  * Closing retires this observer; it cannot undo/cancel a submitted change.
+ * Owned cache subscriptions are disabled before a final same-connection barrier.
+ * That local wait is bounded to five seconds, then the original socket closes.
  */
 struct ae_audio_control *ae_audio_control_open(GMainContext *,const char *,ae_audio_changed,void *,GDestroyNotify);
 bool ae_audio_control_snapshot(struct ae_audio_control *,struct ae_audio_snapshot *);

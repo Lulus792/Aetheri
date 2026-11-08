@@ -85,20 +85,21 @@ static bool capture(int fd,char *out,size_t capacity,size_t *used) {
         return n==0 || errno==EAGAIN;
     }
 }
-static bool command(char *const args[],bool ordinary,char *output,size_t capacity) {
+static bool command_named(char *const args[],bool ordinary,const char *role,char *output,size_t capacity,unsigned turns) {
     int pipes[2]={-1,-1};if(output && pipe2(pipes,O_CLOEXEC|O_NONBLOCK)) return false;
     struct child c={.pid=-1,.pin=-1};
-    if(!spawn(args,ordinary,NULL,pipes[1],&c)) {if(output) {close(pipes[0]);close(pipes[1]);}return false;}
+    if(!spawn(args,ordinary,role,pipes[1],&c)) {if(output) {close(pipes[0]);close(pipes[1]);}return false;}
     if(pipes[1]>=0) close(pipes[1]);
     size_t used=0;bool okay=true;int result=-1;
-    for(unsigned turn=0;turn<500;++turn) {
+    for(unsigned turn=0;turn<turns;++turn) {
         if(output) okay=capture(pipes[0],output,capacity,&used);
         if(!okay || wait_child(&c,10,&result)) break;
     }
-    if(c.pid>=0) {puts("AETHERI_AUDIO_COMMAND_TIMEOUT limit_ms=5000");okay=false;(void)stop(&c);}
+    if(c.pid>=0) {printf("AETHERI_AUDIO_COMMAND_TIMEOUT limit_ms=%u\n",turns*10u);okay=false;(void)stop(&c);}
     if(output) {if(!capture(pipes[0],output,capacity,&used)) okay=false;output[used]=0;close(pipes[0]);}
     return okay && result==0;
 }
+static bool command(char *const args[],bool ordinary,char *output,size_t capacity) {return command_named(args,ordinary,NULL,output,capacity,500);}
 static bool line(const char *text,const char *value) {
     size_t n=strlen(value);
     for(const char *p=text;*p;) {const char *end=strchr(p,'\n');if(!end) return false;if((size_t)(end-p)==n && !memcmp(p,value,n)) return true;p=end+1;}
@@ -111,7 +112,7 @@ static bool device_access(const char *path,bool configure) {
     /* Root still owns the fresh devtmpfs node while changing its mode. */
     return !chmod(path,0600) && !chown(path,1000,1000);
 }
-static bool mixer(bool configure) {
+static bool mixer(bool configure,bool unity) {
     int fd=open("/dev/snd/controlC0",O_RDWR|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return false;
     struct snd_ctl_elem_id ids[16];struct snd_ctl_elem_list list={.space=16,.pids=ids};bool okay=false;
     if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_LIST,&list) || list.count>16 || list.used!=list.count) goto done;
@@ -136,12 +137,16 @@ static bool mixer(bool configure) {
     if(selected!=3) goto done;
     /* Only the independently identified, disposable QEMU card. Validate both
        controls before any write; do not disable the emulated mixer. */
+    long observed[2]={0};
     for(unsigned i=0;i<2;++i) {
         if(configure && ioctl(fd,SNDRV_CTL_IOCTL_ELEM_WRITE,&changes[i])) goto done;
         struct snd_ctl_elem_value actual={.id=changes[i].id};
-        if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_READ,&actual) || actual.value.integer.value[0]!=changes[i].value.integer.value[0] || actual.value.integer.value[1]!=changes[i].value.integer.value[1]) goto done;
+        if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_READ,&actual) || actual.value.integer.value[0]!=actual.value.integer.value[1] || actual.value.integer.value[0]<0 || actual.value.integer.value[0]>(i==0 ? 74 : 1)) goto done;
+        if(unity && actual.value.integer.value[0]!=changes[i].value.integer.value[0]) goto done;
+        observed[i]=actual.value.integer.value[0];
     }
-    puts("AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1");
+    if(unity) puts("AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1");
+    else printf("AETHERI_AUDIO_MIXER_OBSERVED volume=%ld switch=%ld channels=2 verified=1\n",observed[0],observed[1]);
     okay=true;
 done:
     if(close(fd)) okay=false;
@@ -203,9 +208,21 @@ static bool policy_output(char *sink,size_t capacity) {
     char *profile[]={"/usr/bin/wpctl","get-profile",device,NULL};
     if(!command(profile,true,output,sizeof(output))) return false;
     printf("POLICY_PROFILE\n%s",output);
+#ifdef AETHERI_AUDIO_NATIVE_CONTROL
+    char test[16];if(!read_text("/etc/aetheri-audio/native-case",test,sizeof(test))) return false;
+    if(!strcmp(test,"unity\n")) test[5]=0;
+    else if(!strcmp(test,"half\n")) test[4]=0;
+    else if(!strcmp(test,"muted\n")) test[5]=0;
+    else return false;
+    char *native[]={"/usr/libexec/aetheri-audio-control-probe",(char *)remote,sink,test,NULL};
+    bool applied=command_named(native,true,"control",output,sizeof(output),2000);
+    printf("NATIVE_CONTROL\n%s",output);
+    return applied && strstr(output,"AETHERI_AUDIO_NATIVE_PASS ") && line(output,"AETHERI_AUDIO_NATIVE_CLOSED retired=1") && mixer(false,false);
+#else
     char *volume[]={"/usr/bin/wpctl","set-volume","@DEFAULT_AUDIO_SINK@","1.0","--limit","1.0",NULL};
     char *unmute[]={"/usr/bin/wpctl","set-mute","@DEFAULT_AUDIO_SINK@","0",NULL};
-    return command(volume,true,NULL,0) && command(unmute,true,NULL,0) && mixer(false);
+    return command(volume,true,NULL,0) && command(unmute,true,NULL,0) && mixer(false,true);
+#endif
 }
 #endif
 int main(void) {
@@ -225,7 +242,7 @@ int main(void) {
 #ifndef AETHERI_AUDIO_POLICY
     reason="device-access";if(!device_access("/dev/snd/controlC0",true) || !device_access("/dev/snd/pcmC0D0p",true)) goto done;
     if(access("/dev/snd/timer",F_OK)==0 && !device_access("/dev/snd/timer",true)) goto done;
-    reason="mixer-setup";if(!mixer(true)) goto done;
+    reason="mixer-setup";if(!mixer(true,true)) goto done;
 #endif
     if(mkdir("/run/aetheri-audio",0700) || chown("/run/aetheri-audio",1000,1000)) goto done;
 #ifdef AETHERI_AUDIO_POLICY
@@ -233,6 +250,14 @@ int main(void) {
     reason="udev-access";if(!device_access("/dev/snd/controlC0",false) || !device_access("/dev/snd/pcmC0D0p",false)) goto done;
     if(access("/dev/snd/timer",F_OK)==0 && !device_access("/dev/snd/timer",false)) goto done;
     puts("AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1");
+#endif
+#ifdef AETHERI_AUDIO_NATIVE_CONTROL
+    /* The software-mixer fixture leaves this codec's cold-boot hardware
+     * controls untouched. Establish its checked unity baseline once, before
+     * any ordinary server/control actor. All tested changes remain native API
+     * requests; this is not physical-device initialization or normal policy. */
+    reason="native-mixer-baseline";if(!mixer(true,true)) goto done;
+    puts("AETHERI_AUDIO_NATIVE_BASELINE hardware_unity=1 before_server=1");
 #endif
     puts("AETHERI_AUDIO_DEVICE pci=8086:2668 card=0 playback=1");
     char *server_args[]={"/usr/bin/pipewire","-c","server.conf",NULL};

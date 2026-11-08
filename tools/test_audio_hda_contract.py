@@ -60,6 +60,24 @@ class Capture(unittest.TestCase):
         raw=bytearray(wav(self.pairs));raw[4:8]=b'\x00'*4
         with self.assertRaises(ValueError):audio.validate_wav(raw)
 
+    def test_half_cubic_gain(self):
+        pairs=[(0,0)]*1024+[tuple(round(512*math.sin(2*math.pi*f*i/48000)) for f in (440,880)) for i in range(96000)]+[(0,0)]*1024
+        self.assertLess(audio.validate_wav(wav(pairs),gain=.125)['max_error_lsb'],.501)
+        with self.assertRaises(ValueError):audio.validate_wav(wav(pairs))
+
+    def test_unity_cannot_replace_half(self):
+        with self.assertRaises(ValueError):audio.validate_wav(wav(self.pairs),gain=.125)
+
+    def test_muted_complete_zero(self):
+        self.assertTrue(audio.validate_wav(wav([(0,0)]*97024),muted=True)['silent'])
+
+    def test_muted_requires_duration(self):
+        with self.assertRaises(ValueError):audio.validate_wav(wav([(0,0)]*100),muted=True)
+
+    def test_muted_rejects_even_one_nonzero_sample(self):
+        p=[(0,0)]*97024;p[40000]=(1,0)
+        with self.assertRaises(ValueError):audio.validate_wav(wav(p),muted=True)
+
 
 class BootEvidence(unittest.TestCase):
     manifest={'nonce':'0'*32,'kernel_release':'test-kernel'}
@@ -130,6 +148,52 @@ class DeviceEvidence(unittest.TestCase):
 
     def test_unresolved_udev_user_is_not_success(self):
         self.assertFalse(audio.evaluate(self.joined+'Failed to resolve user 1000\n',self.manifest,0,BootEvidence.events))
+
+
+class NativeDeviceEvidence(unittest.TestCase):
+    manifest={**DeviceEvidence.manifest,'proof':'audio-control-hda','control_mixer':'qemu-software','control_case':'unity','control_volume':1.0,'control_muted':False}
+    joined=DeviceEvidence.joined.replace('AETHERI_AUDIO_ACTOR role=server','AETHERI_AUDIO_NATIVE_BASELINE hardware_unity=1 before_server=1\nAETHERI_AUDIO_ACTOR role=server').replace('POLICY_CARD\n','POLICY_CARD\napi.alsa.soft-mixer = "true"\n').replace('POLICY_SINK\n','POLICY_SINK\nid 25, type PipeWire:Interface:Node\nobject.serial = "31"\n').replace('AETHERI_AUDIO_MIXER volume=74 switch=1','AETHERI_AUDIO_MIXER_OBSERVED volume=74 switch=1').replace('AETHERI_AUDIO_ACTOR role=player','AETHERI_AUDIO_ACTOR role=control uid=1000 cap_zero=1 nnp=1\nAETHERI_AUDIO_ACTOR role=player')+(
+        'AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=0\n'
+        'AETHERI_AUDIO_NATIVE_PASS case=unity node=alsa_output.pci-test.analog-stereo id=25 serial=31 volume=1.000000 muted=0 observed=1\n'
+        'AETHERI_AUDIO_NATIVE_CLOSED retired=1\n')
+
+    def test_joined_native(self):self.assertTrue(audio.evaluate(self.joined,self.manifest,0,BootEvidence.events))
+
+    def test_cli_control_cannot_replace_native(self):
+        self.assertFalse(audio.evaluate(DeviceEvidence.joined,self.manifest,0,BootEvidence.events))
+
+    def test_requires_callback_retirement(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('AETHERI_AUDIO_NATIVE_CLOSED retired=1',''),self.manifest,0,BootEvidence.events))
+
+    def test_wrong_node_is_not_the_inspected_sink(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('node=alsa_output.pci-test.analog-stereo','node=alsa_output.foreign'),self.manifest,0,BootEvidence.events))
+
+    def test_wrong_id(self):
+        self.assertFalse(audio.evaluate(self.joined.replace(' id=25 serial=31',' id=26 serial=31'),self.manifest,0,BootEvidence.events))
+
+    def test_wrong_serial(self):
+        self.assertFalse(audio.evaluate(self.joined.replace(' id=25 serial=31',' id=25 serial=32'),self.manifest,0,BootEvidence.events))
+
+    def test_wrong_effective_level(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('volume=1.000000 muted=0','volume=0.500000 muted=0'),self.manifest,0,BootEvidence.events))
+
+    def test_native_failure_cannot_be_hidden_by_a_pass(self):
+        self.assertFalse(audio.evaluate(self.joined+'AETHERI_AUDIO_NATIVE_FAIL reason=readback step=2\n',self.manifest,0,BootEvidence.events))
+
+    def test_case_metadata_types(self):
+        for change in ({'control_mixer':'hardware'},{'control_case':'foreign'},{'control_volume':True},{'control_muted':0},{'control_volume':.5}):
+            self.assertFalse(audio.evaluate(self.joined,{**self.manifest,**change},0,BootEvidence.events))
+
+    def test_requires_live_software_mixer_property(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('api.alsa.soft-mixer = "true"','api.alsa.soft-mixer = "false"'),self.manifest,0,BootEvidence.events))
+
+    def test_requires_unchanged_hardware_level(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('MIXER_OBSERVED volume=74 switch=1','MIXER_OBSERVED volume=56 switch=1'),self.manifest,0,BootEvidence.events))
+
+    def test_requires_baseline_before_server(self):
+        line='AETHERI_AUDIO_NATIVE_BASELINE hardware_unity=1 before_server=1\n'
+        self.assertFalse(audio.evaluate(self.joined.replace(line,''),self.manifest,0,BootEvidence.events))
+        self.assertFalse(audio.evaluate(self.joined.replace(line,'')+line,self.manifest,0,BootEvidence.events))
 
 
 class PoweredOffRetirement(unittest.TestCase):

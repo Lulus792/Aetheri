@@ -25,11 +25,15 @@ there is no periodic device scan. Startup and command observation have five-seco
 deadlines.
 
 The caller owns the returned handle. Callback snapshots are borrowed for the
-callback only; copy them to retain. Close clears the handle, disconnects signals,
-destroys owned sources and cancels asynchronous observation. Pending callbacks
-retain the backend until they finish. Continue running the context until the
-supplied data-destroy callback runs, then pop/release it. Closing cannot undo a
-submitted backend change or prove its cancellation.
+callback only; copy them to retain. Close clears the handle, disconnects user
+signals, cancels observation and disables the owned cache subscriptions. It waits
+for one final same-connection barrier, bounded to five seconds, then disconnects
+on a later idle turn. Disconnection must not happen inside the protocol read
+callback that delivered the barrier. Final object destruction also waits for an
+idle turn after retained callbacks finish. Closing from a change callback is
+supported. Continue running the context until the supplied data-destroy callback
+runs, then pop/release it. This is local observer retirement, not device/app
+drain, cancellation or rollback of a submitted change.
 
 ## Connection and output references
 
@@ -83,9 +87,60 @@ The final native suite covers unity, 50% and mute in Release and ASan/UBSan,
 including six actual paused-server timeouts and original-handle retirement
 after injected cleanup failures. It retains the earlier rejected capture with
 an inserted silent quantum. The finite producer now prepares its bounded signal
-before streaming and copies slices in the callback. The 1024-frame graph clock,
+before streaming and copies slices in the callback. It also uses PipeWire's
+`EARLY_PROCESS` flag to fill available buffers early on its existing main loop;
+it does not move this callback to a real-time thread. The 1024-frame graph clock,
 sample tolerances and exact order requirements remain unchanged. Passing these
 tests is not a guarantee against scheduling stalls or production audio glitches.
+
+## Native controls on virtual HDA
+
+The separate diskless image now runs a finite ordinary-user client of this API
+against the actual udev/ACP-discovered output. The supervisor independently
+inspects the card, output, profile and kernel mixer. It passes the exact selected
+output name to the client; native readback must match that name, bound ID and
+serial. The client observes volume and mute separately, closes from its change
+callback and exits before playback. No control CLI writes volume or mute in this
+variant. The remaining CLI calls only inspect device/profile/link evidence.
+
+The three images select unity, cubic 50% volume or mute. Full host WAV captures
+must contain all 96,000 ordered stereo frames at the expected gain within the
+existing two-LSB tolerance. Mute requires at least 96,000 captured frames with
+every sample zero; it does not claim a detectable signal start.
+
+QEMU 11.1's codec advertises dB steps but applies its amplifier linearly. The
+first hardware-mixer half-volume attempt therefore fails the ideal-gain check,
+despite correct native readback and an actual kernel mixer change. Preserve
+that capture. The native test image has a separate software-mixer rule matching
+only `alsa_card.pci-0000_00_01.0`. The live card property must confirm it; the
+emulated mixer stays enabled. The root fixture initializes its independently
+checked master controls once to 74/unmuted before starting the ordinary server.
+Software mixing alone leaves this cold-boot codec at zero/muted, as a rejected
+intermediate test demonstrates. The supervisor verifies the unchanged hardware
+baseline again after native changes. This is a fixture-specific workaround,
+not a recommendation for every physical card.
+The unchanged nested device/manual images retain hardware-mixer regression.
+
+Build each case into a fresh directory on the ordinary Linux builder:
+
+```sh
+python3 tools/build_audio_control_hda.py /absolute/fresh/output 0123456789abcdef0123456789abcdef \
+  /absolute/audio-prefix /absolute/hda-prefix /absolute/policy-prefix \
+  /absolute/control-prefix --case half
+```
+
+Use `--case unity` and `--case muted` for the other images. On the prepared
+Windows host, run the existing controller with a fresh result directory:
+
+```sh
+python tools/test_audio_hda.py --image /absolute/output/image --output local/native-half
+```
+
+The image retains `device/image` and `device/manual/image` as separate controls.
+All guests have no NIC, disk, shared directory or host-speaker output. Native
+controls on this virtual output do not establish HP/Bluetooth audibility, normal
+session access, hardware hotplug, suspend or Settings integration. Read the
+[executed record](../brains/aetheri/journal/2026-11-08-audio-native-hda.md).
 
 ## Inputs and build
 
