@@ -5,7 +5,8 @@ a real private PipeWire graph. An independent FIFO reader checks the resulting
 float samples, channel order and complete signal. It runs without a sound card,
 microphone, normal session service or network audio backend.
 
-This is the transport foundation for Aetheri audio. It does not yet provide sound
+The separate diskless HDA fixture below also exercises an actual virtual sound
+card with independent host-file sample verification. This does not yet provide sound
 in the USB desktop, Settings controls, headphone switching, Bluetooth, recording
 permissions or normal admitted app playback.
 
@@ -29,8 +30,8 @@ checked library/header release is 1.6.11.
 
 Original Aetheri code is MIT. Preserve all third-party notices and package
 license metadata. The aggregate `pipewire-libs` package includes other licenses;
-do not relabel the whole package as Aetheri MIT code. A later ALSA/WirePlumber/
-Bluetooth integration needs its own exact dependency and license review.
+do not relabel the whole package as Aetheri MIT code. The separate ALSA review is
+recorded below; WirePlumber/Bluetooth still need their own exact input reviews.
 
 | Piece | Purpose in this graph |
 | --- | --- |
@@ -121,13 +122,94 @@ compares actual captured samples rather than treating a drain log as PCM proof.
 Known test processes are retired through their retained pidfds.
 
 The [executed record](../brains/aetheri/journal/2026-11-08-audio.md) contains actual
-Release/ASan/UBSan results and failed controls. Next review and pin the ALSA
-backend, connect a dedicated virtual sound card and verify its host-file output. Then
-integrate a per-user service, device/profile policy and Aetheri Settings controls,
-followed by HP jack output and Bluetooth tests. WirePlumber is the recommended
-policy manager; its version/profile and those integrations are not implemented.
+Release/ASan/UBSan transport results and failed controls. The HDA extension has
+its [own record](../brains/aetheri/journal/2026-11-08-audio-hda.md).
+
+## Diskless HDA fixture
+
+This is a separate RAM-only UEFI/systemd image, not the desktop or an installed
+authority. Its original C17 test owner loads eleven modules of the already
+selected kernel and identifies the fixed QEMU Intel HDA controller `8086:2668`.
+It waits for both PCM and control device nodes before granting its trusted test
+user playback access. The emulated codec's mixer starts muted at volume zero.
+Only the exact independently identified fixture card's two master controls are
+validated, set and read back. The emulated mixer remains enabled.
+
+The server and existing diagnostic run as UID/GID1000 with zero capabilities
+and NoNewPrivileges. Both channel links exist before producer activation. The
+ALSA node stays active for this finite fixture and a 500ms settling interval;
+otherwise idle transition can discard samples still queued at the device after
+the producer exits. This interval is not a production device-drain protocol.
+The independent capture must still contain the entire signal and silent padding.
+Original child pidfds govern signaling/reaping. No permanent daemon is installed.
+
+[audio-hda-inputs.json](audio-hda-inputs.json) selects signed Fedora44
+`alsa-lib-1.2.16.1-1.fc44` and the ALSA SPA plugin from the already reviewed
+PipeWire RPM. The three extra payloads total2,150,128 bytes, including ALSA's
+LGPL-2.1-or-later notice. Preserve that notice and the existing PipeWire notices.
+The profile separately pins kernel modules and existing runtime libraries as
+data. Their installed-object hashes are not a fresh RPM-signature verification.
+The kernel, libc and other base inputs remain those of the existing RAM boot
+proof. This is a development inventory, not the future desktop footprint.
+
+Preparation uses the same sealed-RPM signature/digest/extraction boundary as the
+transport SDK. Use separate fresh prefixes and a new ordinary-user Linux output:
+
+```sh
+python3 tools/prepare_audio_hda.py prepare /absolute/fresh/hda-prefix \
+  --cache /absolute/audio-rpm-cache
+python3 tools/build_audio_hda.py /absolute/fresh/hda-build \
+  c0ddaa2b3576450d857a01597eb9926e /absolute/audio-prefix /absolute/hda-prefix
+```
+
+The builder preserves its base proof and extends only a copy. It compiles the
+test owner with strict C17 warnings and the existing player in Release. The
+copied preflight retains its failure poweroff; only its success poweroff is
+removed so the dependent audio test can run. No modules are loaded by the
+builder, and no host package or policy is installed.
+
+On the reviewed Windows QEMU host:
+
+```sh
+python tools/test_audio_hda_contract.py
+python tools/test_audio_hda.py --image /absolute/hda-build/image \
+  --output F:/Aetheri/local/fresh-hda-attempt
+python tools/test_audio_hda.py --image /absolute/hda-build/image \
+  --output F:/Aetheri/local/fresh-no-hda-attempt --missing-device
+```
+
+The controller rechecks the actual newc archive and original host-tool hashes.
+Each attempt has new firmware variables, a UUID, the original child handle and
+one protected host-local AF_UNIX QMP connection. There is no NIC, shared folder,
+real disk or host speaker/microphone backend. It starts paused, attaches a file
+capture to QEMU's `none` backend, then runs the guest. The guest must independently
+power off; QMP must report `shutdown` before capture stop and explicit host quit.
+The original QEMU process must then exit0. Unknown requests never reconnect or replay.
+
+The pinned QEMU11.1 monitor `wavcapture`/`stopcapture` API is deprecated. It is a
+test adapter, never an Aetheri audio/runtime API. Its exact warning is retained;
+other diagnostics fail. Explicit stop finalizes RIFF. The first direct WAV-backend
+attempt leaves zero length fields even after exit and is rejected; no header is
+rewritten to make it pass. The final verifier checks complete48kHz stereo16-bit
+PCM, ordered440/880Hz channels, all96000 frames, <=2LSB error and silent padding.
+Fifteen local contract cases reject silence, swapped/missing samples, truncation,
+underrun, extra signal, incorrect format and insufficient process/boot evidence.
+The no-card countertest is expected to fail the guest device check; it is never
+accepted as successful playback.
+
+The native build workspace is on an enforcing carrier, but this small diskless
+guest has no loaded production SELinux policy. UID/capability observations and
+VM isolation do not establish production audio sandbox admission. Next integrate
+a per-user service, device/profile policy and Settings, then HP jack output and
+Bluetooth. WirePlumber is the recommended policy manager; its exact version and
+profile are not selected here. Recording permissions, volume/device switching,
+normal admitted app audio and physical audibility remain untested.
 
 References: [upstream 1.6.11 NEWS](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/NEWS),
 [Fedora package](https://packages.fedoraproject.org/pkgs/pipewire/pipewire/fedora-44-updates.html),
 [stream API](https://docs.pipewire.org/group__pw__stream.html),
 [pipe-tunnel fixture](https://docs.pipewire.org/page_module_pipe_tunnel.html).
+HDA references: [ALSA hardware PCM](https://www.alsa-project.org/alsa-doc/alsa-lib/pcm_plugins.html),
+[PipeWire properties](https://docs.pipewire.org/page_man_pipewire-props_7.html),
+[QEMU11.1 capture implementation](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/wavcapture.c)
+and [monitor contract](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hmp-commands.hx).

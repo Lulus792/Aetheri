@@ -1,0 +1,252 @@
+{
+  "format": 1,
+  "purpose": "Separate RAM-only QEMU HDA playback test; not HP device policy or normal audio admission",
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "reviewed": "2026-11-08",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/alsa-lib/1.2.16.1/1.fc44/data/signed/6d9f90a6/x86_64/alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 579276,
+      "sha256": "05d9c51183de8b254df47f09ef1c63419eee3e2caea6452f1b39f10b2a22a9fe",
+      "nevra": "alsa-lib-0:1.2.16.1-1.fc44.x86_64",
+      "license": "LGPL-2.1-or-later",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/alsa-lib/1.2.16.1/1.fc44/src/alsa-lib-1.2.16.1-1.fc44.src.rpm"
+    },
+    {
+      "name": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2779549,
+      "sha256": "42231bc1667a0ccb0e43b9f845382701899fc451aac17c80124ea1aa2d88f7e6"
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/lib64/libasound.so.2.0.0",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1226496,
+      "sha256": "38b129529203cc3dfe9a480d36e2e2c24a349d388c3705f3a1de0690e124bf34",
+      "mode": 493
+    },
+    {
+      "path": "usr/share/licenses/alsa-lib/COPYING",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 26440,
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "mode": 420
+    },
+    {
+      "path": "usr/lib64/spa-0.2/alsa/libspa-alsa.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 897192,
+      "sha256": "cef1899179b70fd3b12889fd7b36434c296ca41016247c01aa9dc84a3483d289",
+      "mode": 493
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libasound.so.2": "libasound.so.2.0.0"
+  },
+  "kernel_modules": [
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/soundcore.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/soundcore.ko.xz",
+      "size": 9440,
+      "sha256": "2237fe14e943a5fe67722bb1caf7b52738d439f57d180c588487e85faf3362a9",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd.ko.xz",
+      "size": 70592,
+      "sha256": "08fca6082371c37a58aae7599d8ff0407a2e0330f4f7629eca18fd6b986f998a",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-timer.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-timer.ko.xz",
+      "size": 32100,
+      "sha256": "b056f40cb424cd3ad14a0cb629cd26389382f5eb201392b966c40ed12222b9fc",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-pcm.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-pcm.ko.xz",
+      "size": 91560,
+      "sha256": "7ae3f811736d4077a53ea2519f852946a6aa3efe390af81bcfc8170086c60cfc",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-hwdep.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/core/snd-hwdep.ko.xz",
+      "size": 16308,
+      "sha256": "0e51be5db0a8c277bf70031a754c89dd59b2a301c423f70cc58b7495a4ef846b",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-intel-sdw-acpi.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-intel-sdw-acpi.ko.xz",
+      "size": 13104,
+      "sha256": "c33612e2560ff5ffc81d3ef385790c567de5f5cb25b4d45bd788d08e424698db",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-intel-dspcfg.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-intel-dspcfg.ko.xz",
+      "size": 21020,
+      "sha256": "01b28817bfefa32b8767a6dac034e6e1d9937ee4b7312b967ff38465334ac894",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-hda-core.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/core/snd-hda-core.ko.xz",
+      "size": 79044,
+      "sha256": "2943405ee3522d726f8f67769e82b42e2c748431677c1059c40a686d7f83960d",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/common/snd-hda-codec.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/common/snd-hda-codec.ko.xz",
+      "size": 109308,
+      "sha256": "076e926f2b9b530b5292cae03e3462cf31359fb298f4a1c8ff9e0807601a95af",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/controllers/snd-hda-intel.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/controllers/snd-hda-intel.ko.xz",
+      "size": 49004,
+      "sha256": "f44e1bfc5f9777ce44b91ff96a62df2f0a568b5da523796e12dcdbfa7abd9e05",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/codecs/snd-hda-codec-generic.ko.xz",
+      "destination": "usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/sound/hda/codecs/snd-hda-codec-generic.ko.xz",
+      "size": 71028,
+      "sha256": "205c80abc1f0d0f721de31f78a9cc3b9f682b258ff287568902878920c704d0e",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    }
+  ],
+  "base_runtime": {
+    "format": 1,
+    "files": [
+      {
+        "source": "/usr/bin/kmod",
+        "destination": "/usr/bin/kmod",
+        "size": 181968,
+        "sha256": "17e03e804df306014f08ae3685f10579e6b0d03e0445b62b6ce63453d5dc81be",
+        "mode": 493,
+        "package": "kmod-34.2-4.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/lib64/libglib-2.0.so.0.8800.0",
+        "destination": "/usr/lib64/libglib-2.0.so.0.8800.0",
+        "size": 1469656,
+        "sha256": "5a83924bca2c3f672d51d4daddb025ce44f5f59bc27efa3139c726a378eb497f",
+        "mode": 493,
+        "package": "glib2-2.88.0-1.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/lib64/libudev.so.1.7.12",
+        "destination": "/usr/lib64/libudev.so.1.7.12",
+        "size": 320144,
+        "sha256": "22513c89165308495bb0d4e93c4885b52b038920d78856c50d709d908952a9a4",
+        "mode": 493,
+        "package": "systemd-libs-259.10-1.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/lib64/libzstd.so.1.5.7",
+        "destination": "/usr/lib64/libzstd.so.1.5.7",
+        "size": 959384,
+        "sha256": "70ec54d150f4052f28fb1e8f8a1c6ca35e1a499e4744c6f6d9d783537618f80b",
+        "mode": 493,
+        "package": "libzstd-1.5.7-5.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/lib64/liblzma.so.5.8.2",
+        "destination": "/usr/lib64/liblzma.so.5.8.2",
+        "size": 219768,
+        "sha256": "18b4994cd29a3e39f35ad719702925740703e76057fb2ce8c0eb7c7ce7a3acef",
+        "mode": 493,
+        "package": "xz-libs-1:5.8.2-2.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+        "destination": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+        "size": 25967,
+        "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+        "mode": 420,
+        "package": "glib2-2.88.0-1.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/share/licenses/libzstd/COPYING",
+        "destination": "/usr/share/licenses/libzstd/COPYING",
+        "size": 18091,
+        "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
+        "mode": 420,
+        "package": "libzstd-1.5.7-5.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/share/licenses/libzstd/LICENSE",
+        "destination": "/usr/share/licenses/libzstd/LICENSE",
+        "size": 1549,
+        "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+        "mode": 420,
+        "package": "libzstd-1.5.7-5.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+        "destination": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+        "size": 26518,
+        "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+        "mode": 420,
+        "package": "systemd-libs-259.10-1.fc44.x86_64",
+        "provenance": null
+      },
+      {
+        "source": "/usr/share/licenses/xz-libs/COPYING",
+        "destination": "/usr/share/licenses/xz-libs/COPYING",
+        "size": 3119,
+        "sha256": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+        "mode": 420,
+        "package": "xz-libs-1:5.8.2-2.fc44.x86_64",
+        "provenance": null
+      }
+    ],
+    "symlinks": {
+      "/usr/lib64/libudev.so.1": "libudev.so.1.7.12",
+      "/usr/lib64/libzstd.so.1": "libzstd.so.1.5.7",
+      "/usr/lib64/liblzma.so.5": "liblzma.so.5.8.2",
+      "/usr/lib64/libglib-2.0.so.0": "libglib-2.0.so.0.8800.0"
+    }
+  }
+}

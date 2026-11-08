@@ -1,5 +1,25 @@
 # Sources
 
+## Virtual HDA playback — 8 November 2026
+
+- [Exact extra inputs](../../spec/audio-hda-inputs.json),
+  [contract](../../spec/audio.md#diskless-hda-fixture) and
+  [executed record](journal/2026-11-08-audio-hda.md): separate signed library
+  extraction, installed same-kernel module hashes, actual UEFI/device/mixer/user
+  observations and independent full PCM verification. No HP audibility or
+  production policy claim.
+- [Fedora44 ALSA metadata](https://packages.fedoraproject.org/pkgs/alsa-lib/alsa-lib/fedora-44-updates.html)
+  and the profile's exact signed RPM:1.2.16.1-1.fc44, LGPL-2.1-or-later; full
+  Fedora44 fingerprint and payload digest actually checked in sealed input.
+- [ALSA hardware PCM](https://www.alsa-project.org/alsa-doc/alsa-lib/pcm_plugins.html)
+  and [PipeWire properties](https://docs.pipewire.org/page_man_pipewire-props_7.html):
+  direct kernel PCM configuration, explicit minimal device node and idle behavior.
+- QEMU11.1 [WAV backend](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/wavaudio.c),
+  [capture](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/wavcapture.c),
+  [monitor](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/hmp-commands.hx)
+  and actual pinned binary help/QMP replies: explicit finalization and deprecated
+  file-capture interface. The failed direct-backend artifact remains unmodified.
+
 ## Private audio transport — 8 November 2026
 
 - [Exact inputs](../../spec/audio-inputs.json), [contract](../../spec/audio.md) and

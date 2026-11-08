@@ -46,8 +46,10 @@ and test limits.
 The opt-in [audio foundation](spec/audio.md) now sends original C17 stereo samples
 through a private PipeWire graph and checks the actual output independently.
 Release and ASan/UBSan tests cover complete/short playback, silence, server loss,
-interruption and timeout. This is not yet sound in the USB desktop: virtual/real
-sound cards, headphone/Bluetooth policy and Settings controls remain work.
+interruption and timeout. A separate diskless guest now verifies complete stereo
+playback through ALSA and a virtual HDA card against a host-file capture.
+This is not yet sound in the USB desktop: physical output, headphone/Bluetooth
+policy and Settings controls remain work.
 
 The first [original command shell](spec/shell.md) now runs noninteractive commands
 and scripts, with its own parser, quoting/variables, pipes, file redirections and

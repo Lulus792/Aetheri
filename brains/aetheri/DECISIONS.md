@@ -1,5 +1,22 @@
 # Decisions
 
+## Keep virtual-device audio separate from normal admission — 8 November 2026
+
+Use the existing PipeWire1.6.11 C diagnostic with signed Fedora44
+ALSA1.2.16.1 and the same-kernel HDA modules in a new diskless RAM guest. Reuse
+the reviewed libraries and UAPI controls rather than another audio tool family.
+Validate and initialize only the fixed QEMU mixer's known master controls;
+retain its emulated mixer. Full host-captured sample comparison remains required
+after local stream drain, including queued tail and channel order.
+
+The pinned QEMU11.1 WAV backend leaves an unfinalized header in the observed
+exit path. Use its explicitly stopped file-capture adapter over a no-host-audio
+backend for this test only. The API is deprecated and not a future Aetheri runtime
+dependency. Observe guest shutdown before closing capture and explicitly quitting
+the original QEMU. Never repair a header or loosen sample acceptance to hide a
+failed attempt. Normal policy, WirePlumber, HP output and recording remain
+separate gates. [Evidence](journal/2026-11-08-audio-hda.md).
+
 ## Select the laptop GPU and remove the UART dependency — 8 November 2026
 
 Reuse the existing wlroots/logind session's primary ordering rather than card0.

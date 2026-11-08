@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — The private audio transport now passes real captured-PCM tests in Release/ASan/UBSan. The HP boot/persistence report and cat/Files source corrections remain recorded below. The stick stays unchanged; actual audio devices, WLAN/Bluetooth and normal integration remain work.
+8 November 2026 — A separate diskless HDA guest now passes complete independently captured stereo playback through PipeWire/ALSA/a virtual sound card. Transport Release/ASan/UBSan and HP cat/Files corrections remain recorded below. The stick stays unchanged; physical audio, WLAN/Bluetooth and normal integration remain work.
 
 ## Coordination
 
@@ -12,6 +12,33 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Virtual HDA playback — 8 November 2026
+
+The [audio HDA extension](../../spec/audio.md#diskless-hda-fixture) now builds and
+cold-boots a separate RAM-only UEFI/systemd image with the same kernel, eleven
+HDA modules, signed ALSA1.2.16.1 and the existing PipeWire1.6.11 diagnostic. The
+actual QEMU controller/mixer and ordinary cap-zero UID1000 actors are checked.
+An independent finalized host WAV contains every96000 stereo frame with maximum
+error below0.5LSB. The no-sound-card countertest stops at the device gate and
+cannot satisfy playback. Fifteen contract cases pass on Windows and native Linux.
+Read the [executed record](journal/2026-11-08-audio-hda.md).
+
+Real failures expose muted initial controls, incomplete direct-backend WAV
+headers, separate devtmpfs publication, a short module-load deadline and truncated
+queued tail after player departure. The final fixture validates/sets/reads back
+only its fixed mixer, waits for both nodes, allows five seconds per command,
+keeps its sink active through a bounded tail interval, and explicitly closes the
+host capture. All96000 samples remain mandatory. The deprecated pinned QEMU
+capture API stays test-only; RIFF headers are never rewritten. Guest poweroff is
+observed before explicit host quit through the same original QMP/process handles.
+
+This small diskless guest has no production SELinux policy, desktop or normal
+audio service/admission. The source build stays in an enforcing private carrier
+workspace. The normal carrier, frozen contracts, authority and USB are unchanged.
+Next select/review the per-user policy manager/profile and mediate device access,
+then connect Settings and HP jack playback. Bluetooth, recording policy,
+physical audibility and production device-drain semantics remain work.
 
 ## Private audio transport — 8 November 2026
 
@@ -37,9 +64,9 @@ protected carrier source/build or USB content changes.
 This proves local test transport, not physical audibility, device drain,
 broker-delegated audio admission or normal app readiness. ALSA/WirePlumber,
 headphone/device switching, Bluetooth, recording permissions and Settings are
-not implemented here. Next pin/review the ALSA backend and connect an actual
-dedicated virtual sound card with independent host-file capture, then per-user
-service/device policy and HP jack output. Full OS scope remains active.
+not implemented in that transport portion. The separate HDA extension above now
+joins the ALSA backend and actual virtual device; per-user service/device policy
+and HP jack output remain next. Full OS scope remains active.
 
 ## Laptop test image — HP retest reported, 8 November 2026
 
