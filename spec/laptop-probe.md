@@ -109,6 +109,42 @@ remain separate work. The already authorized flash requires exact Intenso device
 reidentification and complete write/readback; development continues afterward
 without waiting for the user's later hardware test.
 
+## Root preflight failure diagnostics
+
+`AETHERI_ROOT_FAIL reason=...` identifies the first failed root prerequisite;
+later dependency failures do not identify additional causes. `nonce-count`
+means the kernel command line contains zero or multiple matching
+`aetheri.boot_nonce=` tokens. A different nonce value fails earlier as `nonce`.
+Successful initrd mount/handover alone does not prove preservation of these
+kernel arguments: its independent fixed configuration is a separate check.
+
+The current root-only helper adds failure-only `AETHERI_ROOT_DETAIL` context,
+including the number of nonce/matching-nonce/PARTUUID keys. It never dumps
+arbitrary kernel arguments. Bounded textual observations escape control bytes,
+quotes and backslashes. These are diagnostics, not admission or recovery proof.
+The original single failure marker and nonzero result remain; successful output
+and checks are unchanged. The RAM-only compilation remains byte-identical.
+An explicit `AETHERI_ROOT_DIAGNOSTIC_SECONDS=0..60` compile-time option can repeat
+the blocked-boot reason at five-second intervals; the default is zero. This does
+not add a permanent process or delay success. It is not enabled in the existing
+flashed image. No hardware fix is implied by these source changes.
+
+Native `boot.root_preflight` and `boot.root_failure_display` exercise the actual
+helper with controlled syscall observations, including missing, duplicate and
+incorrect nonces, duplicate roots, failed prerequisites and escaped diagnostics.
+The display test uses a controlled monotonic clock and interrupted absolute wait,
+without sleeping or touching a host filesystem/device. The dated journal records
+actual Release/ASan/UBSan runs and the separate firmware experiments.
+
+The selected [systemd259.10 stub](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/boot/stub.c)
+can replace its embedded command line with nonempty EFI LoadOptions when Secure
+Boot is disabled. Actual direct-UKI experiments reproduce missing/duplicate
+`nonce-count` failures and a successful one-nonce control. This demonstrates the
+mechanism, not the HP's unobserved actual arguments. A separate same-version
+systemd-boot experiment with explicit full entry options passes a standalone
+USB/RAM boot. It is not yet integrated into the full laptop desktop image or
+accepted on physical hardware. Preserve the stick and completed flash receipt.
+
 Primary references: the selected
 [wlroots 0.20.2 session source](https://gitlab.freedesktop.org/wlroots/wlroots/-/raw/0.20.2/backend/session/session.c)
 (also read from the pinned local source),

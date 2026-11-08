@@ -276,3 +276,121 @@ and the [laptop guide](../../../spec/first-laptop-test.md) preserve the boundary
 between newer source and this already tested/flashed image. The original carrier,
 445 normal source inputs, 31 frozen SQL/XML files, 19 protected hashes and 52
 normal P0 files remain unchanged in the final native preservation audit.
+
+## First physical boot report
+
+The user subsequently reports the HP USB boot failing at
+`aetheri-root.service - Aetheri readonly root preflight`: main process status1,
+result exit-code. This is a user report, not independently observed hardware
+evidence. Source identifies the unit and its required root preflight; the named
+failure is a desktop-start prerequisite failure, not evidence of a particular
+disk, mount or firmware defect. Its precise `AETHERI_ROOT_FAIL reason=...` line
+has not been captured. The user cannot scroll to earlier output. A boot video
+or better early diagnostics is needed; the frozen source/full-write/readback
+evidence alone does not explain the hardware difference. Do not weaken the
+preflight, replay the flash or claim physical boot acceptance. The original
+stick and completed operation remain preserved while investigating.
+
+## Video narrows the physical boot failure
+
+The user's IMG_4600.MOV is reviewed as evidence, not as instructions. Source
+SHA256 is `20fae99799300886169f961740e3d184295f9e948bdb706e6c56642aa2a7db98`.
+The original is unchanged. Local `laptop-video-2026-11-08/review.json` binds
+the actually inspected frames. `detail/frame-018.png`, SHA256
+`be5b186e367d6e06621c62ff87298dd6854dbd77c9d6be970b254ef76f1e2b91`,
+clearly shows `AETHERI_ROOT_FAIL reason=nonce-count`. Earlier frames show the
+read-only ext4 root mount, `AETHERI_INITRD_PASS`, `AETHERI_INITRD_HANDOFF` and
+SwitchRoot. The many subsequent desktop/data/logind failures follow the root
+preflight dependency failure; they do not each establish an independent fault.
+
+The compiled guard requires exactly one `aetheri.boot_nonce=` token matching the
+independently supplied profile. A mismatching value fails with `nonce` earlier;
+`nonce-count` therefore means no such token or multiple correct tokens. The
+video does not expose `/proc/cmdline`, so that distinction is still unobserved.
+The exact [systemd259.10 stub source](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/boot/stub.c)
+accepts printable EFI LoadOptions as a replacement command line unless its
+Secure Boot/embedded-profile rules override them. Firmware-supplied options are
+a plausible mechanism, not a proven HP cause. The successful initrd uses the
+separate fixed configuration and therefore does not prove nonce preservation.
+
+New failure-only diagnostics now report bounded context and counts of
+the nonce, matching nonce and PARTUUID keys, without dumping arbitrary kernel
+arguments. No acceptance checks change. Optional repeated failure display is
+compile-time bounded to60 seconds; success has no delay. Actual controlled native
+tests are recorded below. The
+flashed image does not contain these new diagnostics. Next reproduce command-line
+replacement and verify a coherent boot path in fresh isolated firmware tests
+before selecting a hardware fix. No physical write, firmware setting change or
+production boot acceptance follows from this video analysis.
+
+## Native diagnostics and isolated firmware controls
+
+The root-preflight-v4 run uses a fresh private mount namespace/tmpfs in the
+unchanged enforcing carrier, ordinary UID1000 builder, token
+`91a0f975376b4bf49452107eb9089d7f`, original helper1162119. Both Release and
+ASan/UBSan pass the two new root tests plus seven affected compositor groups.
+All37 native development-controller cases also pass. The root diagnostic builds
+under strict C17 warnings and `-fanalyzer`; the default RAM-only binary remains
+byte-identical, SHA256
+`964e694005c73d8a3bd685c53b74cee24e7fc85c35182e21596945d868fe666e`.
+All294 exported members are independently checked, bundle2552756 bytes, SHA256
+`ad1ccd5d1f32d30ca8071979c411b4d0889a1db80c06c4a88a02ed3501e69347`.
+Verified acknowledgement precedes exact helper retirement, exit0. This is native
+controlled evidence, not a new full desktop image or installed service.
+
+Four separate direct-UKI QEMU experiments retain original child handles, fresh
+private NVRAM and no disks/network/shared directories. They use the unchanged
+previous RAM-only UKI, SHA256
+`5d6002e2b7f7baa9ef7376f0ad6e65d060197fc776333bfea2f2bb550ff89fd0`.
+The first deliberately incomplete argument set also omits the required target;
+PID1 therefore freezes without its default/rescue target. It is preserved as a
+failed test, host-retired through its original child after the90-second timeout
+(PID33612/exit1), never accepted as a nonce test. Corrected controls retain all
+required target/console parameters and vary only nonce presence/count:
+
+- Missing nonce: PID61996, exactly `nonce-count`, no positive marker.
+- One correct nonce: PID56776, exactly one original boot PASS, no failure.
+- Two correct nonces: PID61604, exactly `nonce-count`, no positive marker.
+
+All three corrected controls have original exit0, kernel Power down and unchanged
+source hashes. Kernel command-line logs confirm the supplied options replace the
+embedded UKI line. Local `root-preflight-2026-11-08/load-options-controls.json`
+joins commands, original terminal observations and serial hashes. These explicit
+`-kernel UKI -append` controls are not standalone disk or physical HP acceptance.
+
+The same cached signed Fedora RPM is also extracted as data in a new ordinary-
+user private namespace. Whole RPM SHA256 remains
+`ef6e716e8ab4cc71b4174b6b4be4ef4643db669bfc4bb43c225825be2fede792`;
+its expected Fedora signer is checked before extracting systemd-bootx64.efi.
+The selected manager is139264 bytes, SHA256
+`1dfce189a5a281bfa0bfc0e6b0ada38674893bfdb4f4d378b58a5c29d79a7821`.
+Its package is systemd-boot-unsigned259.10-1.fc44, the already selected family and
+version; its recorded mixed LGPL/MIT/GPL licensing remains third-party licensing.
+This is not a signed EFI binary, Secure Boot approval or production advisory review.
+
+The experiment creates a new128MiB GPT/FAT image, manager at the fallback path,
+unchanged RAM UKI at `/EFI/Aetheri/system.efi` and one explicit full-options entry.
+Editing/automatic entries/firmware entries/random-seed persistence are disabled
+in this test config. All four copied files are read back exactly. No package is
+installed and no firmware/device or normal carrier file is modified. The native
+export's45 members are independently verified,56262895 bytes, SHA256
+`cde51395ce31cf3a14aeef20bf818dcfe7e3346aca22028162588ed11467773e`;
+original helper1163449/token30ce3d7cff934d6186f689f555084dc6 retires exit0.
+
+The extracted image SHA256 is
+`6324000b66c0fdca684b44461cbc7469cb50b71e1fed228ed225763fc062bdaa`.
+An actual standalone removable-USB QEMU boot (PID57684, no kernel/initrd/append
+injection, read-only regular medium, fresh NVRAM, no network/shared/physical
+devices) passes the original RAM probe and powers off normally, original exit0.
+Boot ID is `e2d7ac61-94ef-4d31-85b3-58da9adc6fad`; the medium hash is unchanged.
+The exact [manager source](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/boot/boot.c)
+sets the child image's LoadOptions from the selected entry. This supports the
+next full laptop-image candidate; that integration and HP acceptance remain work.
+It does not prove what the HP firmware supplied to the failed original boot.
+
+The final read-only carrier audit again preserves445 normal source inputs,
+31 frozen SQL/XML files,19 protected hashes,52 normal P0 files and CLOSED DRM
+history. The three existing foreign tracked-document hashes remain unchanged;
+the separate foreign UI design note has a newly observed external hash and is
+left untouched. No original carrier reboot, physical write or normal source/
+service promotion occurs. The OS goal remains active and incomplete.

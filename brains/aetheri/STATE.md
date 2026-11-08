@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — the authorized Intenso is fully flashed and verified; native explicit US/DE startup layout tests also pass. The first laptop boot remains to be tested.
+8 November 2026 — Intenso flash/readback passes, but the first HP laptop boot fails at aetheri-root.service. The supplied video confirms nonce-count after successful initrd handover; physical boot is not accepted.
 
 ## Coordination
 
@@ -36,7 +36,26 @@ written and flushed. Full direct readback matches the pristine SHA256 above.
 The original held writer process exits0; handle cleanup and all 242 chained
 journal records are independently checked. Writing takes 1106.64 s and readback
 348.43 s. The [physical record](journal/2026-11-08-laptop-image.md#physical-flash-completed)
-binds the exact evidence. No physical laptop boot is claimed.
+binds the exact evidence. The subsequent physical laptop boot is reported failed:
+`aetheri-root.service - Aetheri readonly root preflight`, main process status1,
+result exit-code. The supplied phone video now independently shows
+`AETHERI_ROOT_FAIL reason=nonce-count`, after read-only ext4 mount,
+`AETHERI_INITRD_PASS`, `AETHERI_INITRD_HANDOFF` and SwitchRoot. The actual kernel
+command line is not visible. This guard means zero or multiple correct nonce
+tokens; it does not yet distinguish missing firmware options from duplication.
+The selected systemd259.10 stub permits nonempty EFI LoadOptions to replace its
+embedded command line when Secure Boot is disabled. That is a source-supported
+hypothesis, not an observed HP firmware cause. Do not bypass the guard or infer
+a hardware/USB fault. See the dated journal for video hashes and next diagnosis.
+Fresh isolated direct-UKI controls now reproduce missing and duplicate
+`nonce-count`, with a successful one-nonce countercheck. A separate signed-RPM-
+verified same-version boot-manager/RAM image passes an actual standalone USB
+VM boot. Neither establishes the HP's actual arguments or full laptop-image
+acceptance. New root failure diagnostics pass Release/ASan/UBSan and preserve all
+original guards. Next integrate/review that explicit boot path in a fresh full
+laptop image before any later hardware action; the existing stick is unchanged.
+Preserve the completed flash evidence and
+existing stick state; no automatic reflash is authorized by this report.
 Never replay this completed attempt or automatically reflash for new features:
 the stick now has writable user state to preserve. The Windows access issue is
 resolved for this completed operation. Continue independent development without
@@ -87,6 +106,13 @@ or persistence. The first USB image is unchanged and still uses US. Next connect
 an explicit user/session selection through reviewed owner provisioning and the
 Settings boundary; physical keyboard acceptance remains work. No new NexaUI
 handoff, installed service, dependency or public app capability is introduced.
+
+Current uncommitted work connects that startup selection to the development
+controller's additive layout/binding fields and original compositor readiness.
+The Windows controller suite passes 37 cases with seven Linux-specific skips;
+native supervision/integration for these new edits is not accepted yet. The
+physical boot failure above takes priority. No normal carrier source/build,
+service, public API, flashed image or old history has been replaced.
 
 ## Single-medium USB desktop — 8 November 2026
 
