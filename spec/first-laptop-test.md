@@ -4,6 +4,11 @@ Use the verified Intenso Speed Line on the spare HP EliteBook 840 G4. This first
 image starts the Aetheri development desktop directly from USB. It has persistent
 documents, Terminal, Files and Settings. It does not install Aetheri on the laptop.
 
+The replacement build uses a same-version boot manager with explicit kernel
+parameters to address the observed boot-nonce failure. The UEFI USB selection
+stays the same. VM tests and filesystem checks pass; the HP still needs its
+physical retest. Root failures now also report bounded diagnostic context.
+
 Wait for the flash result before unplugging the stick. A running write or an
 incomplete readback is not a ready image. Windows may offer to format unfamiliar
 Linux partitions afterward: cancel that offer. Use Windows' safe-removal action

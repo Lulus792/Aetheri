@@ -6,7 +6,7 @@ Original Aetheri code is MIT; it uses the existing Python runtime and Windows AP
 
 ## Inputs and target
 
-The source is the pristine laptop-v2 image, not a VM's modified medium. Its
+The first format1 source is the pristine laptop-v2 image, not a VM's modified medium. Its
 31,457,280,000-byte SHA256 is pinned in usb_flash.py:
 `06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
 The [laptop record](../brains/aetheri/journal/2026-11-08-laptop-image.md) links two
@@ -31,7 +31,11 @@ The volume handle omits the GUID path's final backslash, following
 It retains read/write sharing and requires a successful
 [volume lock](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_lock_volume)
 before dismount; busy/system/page-file volumes cannot be forced through this gate.
-The source approval stays closed until complete-image acceptance. A new format2
+The accepted replacement pin is
+`4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
+It passes two complete no-UART boots, six actual capture reviews and independent
+read-only filesystem/proof inspection; this is not physical HP acceptance.
+A new format2
 intent binds the accepted replacement hash, original source hash and this renewed
 authorization. The old completed format1 attempt must never be replayed.
 

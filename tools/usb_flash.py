@@ -20,8 +20,9 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 MEDIA_BYTES=31457280000
 APPROVED_IMAGE='06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20'
-# Closed until the new complete image has independent VM/filesystem acceptance.
-APPROVED_REPLACEMENT_IMAGE=None
+# Reviewed complete image: two no-UART boots and independent filesystem evidence.
+# This image pin does not authorize replay of a completed/unknown flash attempt.
+APPROVED_REPLACEMENT_IMAGE='4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9'
 BLOCK=1024**2
 SERIAL='212300100050'
 BRIDGE=r'USBSTOR\DISK&VEN_INTENSO&PROD_SPEED_LINE&REV_PMAP\22010500000313&0:'

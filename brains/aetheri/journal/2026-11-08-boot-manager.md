@@ -120,3 +120,34 @@ but never retroactively accepted. Only the untouched original carrier9520 remain
 This is a host review failure, not a demonstrated OS boot failure. A new fresh
 no-uart-v2 sequence starts from the unchanged pristine candidate, never reusing or
 repairing the failed copy. Its complete two-boot/offline proof is still pending.
+
+## Full VM and offline acceptance
+
+The fresh no-uart-v2 sequence passes both complete boots with six actually viewed,
+hash-bound captures. Original QEMU69572/UUIDae35fece-8a23-4979-82f1-dfb97e3ccc50
+and QEMU56852/UUID879682bc-b6ab-4da0-abd0-e8f241983264 both exit0 with genuine
+guest-shutdown events. Controller original exit0 is recorded separately; the
+sequence SHA256 is `185445113ec5f1f132caf255468920f5ed7de8eab0ecce7a2e762de9298c7390`.
+EFI/system/GPT ranges and the pristine source remain unchanged. The visible
+document survives the second boot. No serial/parallel port, network, shared
+directory, direct kernel injection or physical device is used.
+
+Independent ordinary-user e2fsck/debugfs then verifies the clean unchanged data
+image and all11 proof files. Actual boot IDs are
+`4b693f9b-d2c5-4e9f-afd4-038449fa3862` and `245a5c59-64da-42a2-843e-7d71cfc083b1`.
+UID/GID1000, zero capabilities/NoNewPrivileges, ro root, rw/nosuid/nodev data/home,
+tty0-only consoles and all three required data/device units match. The14-byte
+document is exact. Data SHA256 stays
+`917b4975b88aae799cc9a16adf032d1982e0001e5c61e80c8831d8e2da5c88b5`.
+The less-than-one-day future-time warning is retained; no clock acceptance.
+All49 exported members are independently checked,7070 bytes, SHA256
+`17919a61af0652cea1057cebd5315ada18932d3cbf96adcab0f29cac9a260bb3`.
+Original helper1175319/tokene607e48a4b884561a35cffc7af9e6799 receives verified
+acknowledgement and retires exit0. No original carrier reboot or normal update.
+
+Local acceptance-v2.json independently joins original controller exits, captures,
+sequence/source bindings and the read-only inspection. The exact new source is
+now pinned in the replacement writer; all15 actual Windows cases pass again.
+The user's renewed instruction authorizes one fresh physical replacement. Prepare
+the new protected intent and retain its original elevated process; no physical
+write has occurred at this checkpoint. Physical HP acceptance remains unproven.

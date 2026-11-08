@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — Intenso flash/readback passes, but the first HP laptop boot fails at aetheri-root.service. The supplied video confirms nonce-count after successful initrd handover; physical boot is not accepted.
+8 November 2026 — The explicit boot-manager candidate passes two no-UART desktop boots and independent filesystem inspection. The newly authorized replacement flash is being prepared; a successful HP boot is still unproven.
 
 ## Coordination
 
@@ -21,10 +21,16 @@ native Linux and Windows; legacy media checks remain strict. The full base expor
 is verified/retired and the fresh v2 assembly passes all non-ESP and final image
 checks. The first no-UART sequence reaches both desktops, but the second capture
 review times out; its original VM is retired and the failed copy retained. A
-fresh no-uart-v2 sequence is now running. Two complete no-UART boots and offline
-proof inspection remain before the newly authorized reflash. The replacement
-writer's exact three-partition/volume-GUID guards pass15 actual Windows cases;
-its new image approval stays closed. No new physical write yet.
+fresh no-uart-v2 sequence now passes both complete boots, six actual capture
+reviews, original exit0/guest shutdown and document persistence. Independent
+read-only e2fsck/debugfs verifies all11 proof files, two boot IDs, UID/GID1000,
+zero capabilities/NoNewPrivileges, ro root, rw/nosuid/nodev data/home, tty0-only
+console and all three required units. The data hash stays unchanged; the retained
+less-than-one-day future-time warning does not establish clock acceptance.
+The replacement writer's exact layout guards pass15 actual Windows cases. Its
+new source pin is now `4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
+Prepare a fresh protected flash-intenso-v2; never use a VM-modified copy or replay
+the old operation. No new physical write has started at this checkpoint.
 
 The corrected tty0-only image passes two cold boots without any UART on one fresh
 writable USB copy. Six native desktop/Terminal/document captures were actually
