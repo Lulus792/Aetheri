@@ -4,6 +4,28 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Early USB root and initrd handover — 8 November 2026
+
+- systemd259 [boot sequence](https://raw.githubusercontent.com/systemd/systemd/v259/man/bootup.xml),
+  [SwitchRoot implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/switch-root.c)
+  and [local client](https://raw.githubusercontent.com/systemd/systemd/v259/src/systemctl/systemctl-switch-root.c):
+  selected existing PID1/root transition, not a new init framework.
+- Its [unit contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.unit.xml)
+  specifies inactive-state OnSuccess and OnSuccessJobMode=isolate. The actual v3/v4
+  failures and v5 positive sequence independently exercise that distinction.
+- Its [udev rule implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/udev/udev-rules.c)
+  orders ENV match tokens before IMPORT; the directly retrieved source is retained
+  locally. Separate rules are required here. The
+  [blkid builtin](https://raw.githubusercontent.com/systemd/systemd/v259/src/udev/udev-builtin-blkid.c)
+  imports the partition UUID after probing.
+- Linux6.19 [block ioctl implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/block/ioctl.c)
+  returns parent diskseq for a partition. This is a current kernel observation,
+  never durable disk/clone authentication.
+- [Contract](../../spec/usb-root-probe.md), [input pins](../../spec/usb-root-inputs.json)
+  and [executed record](journal/2026-11-08-usb-root.md): two real cold boots, two
+  pre-mount negatives, native Release/sanitizers/analyzer, retained earlier failures
+  and final evaluator review. No physical flash or graphical USB acceptance yet.
+
 ## Graphical own-image integration — 8 November 2026
 
 - systemd259's [PAM contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/pam_systemd.xml)

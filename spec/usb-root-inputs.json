@@ -1,0 +1,503 @@
+{
+  "format": 1,
+  "purpose": "Selected existing USB storage/initrd runtime; no production security or distribution acceptance",
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "files": [
+    {
+      "source": "/usr/bin/kmod",
+      "destination": "/usr/bin/kmod",
+      "sha256": "17e03e804df306014f08ae3685f10579e6b0d03e0445b62b6ce63453d5dc81be",
+      "size": 181968,
+      "mode": 493,
+      "package": "kmod-34.2-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/mount",
+      "destination": "/usr/bin/mount",
+      "sha256": "f54cd89d5ff5ed93325fd190376539ea11eb5a9730c4e3d8cde1330383e65529",
+      "size": 48744,
+      "mode": 493,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/systemctl",
+      "destination": "/usr/bin/systemctl",
+      "sha256": "5c69231f381deb18d92018e8fb84e2da4b8a7d824c6d7ee6206c4a9d92449145",
+      "size": 326488,
+      "mode": 493,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/udevadm",
+      "destination": "/usr/bin/udevadm",
+      "sha256": "53a2fad133d93e8d494a86700771e23bfae8d8f8e028af026a6433a31f851185",
+      "size": 781240,
+      "mode": 493,
+      "package": "systemd-udev-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/umount",
+      "destination": "/usr/bin/umount",
+      "sha256": "ef1114ffec73b7d8f9090dc6aca1d7a7de3dc6e50085a660a5f1eeb83231edf9",
+      "size": 36360,
+      "mode": 493,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/usb/storage/uas.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/usb/storage/uas.ko.xz",
+      "sha256": "cbc6bf1c061a08226f09287040b6fd7094481cc57f17789886cf678d8aa7b971",
+      "size": 27684,
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/usb/storage/usb-storage.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/usb/storage/usb-storage.ko.xz",
+      "sha256": "84b73d9e93def738da6b5f220aae9c91876e04a2cb6f0675ea7fcb54c111e1ef",
+      "size": 47940,
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.builtin",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.builtin",
+      "sha256": "f9da35cfd0214a5e359784293b2cbdc9e5a99db64b75d161f578df96116c8bb0",
+      "size": 11607,
+      "mode": 420,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.builtin.modinfo",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.builtin.modinfo",
+      "sha256": "1b7d8f133c9ffeef9758acd9ea48468f5f2cb93b860785f5d1899e74dae32b16",
+      "size": 206017,
+      "mode": 420,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.order",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/modules.order",
+      "sha256": "248d8e102122b6125d22d5e29a58d5cc9c17f2f8f8d5ba93b71016f2f4a58580",
+      "size": 203286,
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libblkid.so.1.1.0",
+      "destination": "/usr/lib64/libblkid.so.1",
+      "sha256": "5189894b541c68251f3a4c79d922290c1750fe003f799e84df0029b0d769089a",
+      "size": 254280,
+      "mode": 493,
+      "package": "libblkid-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libc.so.6",
+      "destination": "/usr/lib64/libc.so.6",
+      "sha256": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8",
+      "size": 2482096,
+      "mode": 493,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libcrypt.so.2.0.0",
+      "destination": "/usr/lib64/libcrypt.so.2",
+      "sha256": "d599ca6de2ff06d1189c47945616fde24cd7816bcafb1c587ca1a51cb0c584e3",
+      "size": 221624,
+      "mode": 493,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libcrypto.so.3.5.9",
+      "destination": "/usr/lib64/libcrypto.so.3",
+      "sha256": "695648ac8dc5e6a2b70e5e72399940de0f84bf24fddb7dd18949ba40bc575c72",
+      "size": 5783496,
+      "mode": 493,
+      "package": "openssl-libs-1:3.5.9-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libgcc_s-16-20260819.so.1",
+      "destination": "/usr/lib64/libgcc_s.so.1",
+      "sha256": "c71a62b5ef442ab8cf4470874dee6f2383d73a744f0006b6d287412f131c2e09",
+      "size": 186512,
+      "mode": 493,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libkmod.so.2.5.1",
+      "destination": "/usr/lib64/libkmod.so.2",
+      "sha256": "b999c2d20851f1c0d9b802cd25dda019c7d68215223103141e228a19782c4c65",
+      "size": 115840,
+      "mode": 493,
+      "package": "kmod-libs-34.2-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/liblzma.so.5.8.2",
+      "destination": "/usr/lib64/liblzma.so.5",
+      "sha256": "18b4994cd29a3e39f35ad719702925740703e76057fb2ce8c0eb7c7ce7a3acef",
+      "size": 219768,
+      "mode": 493,
+      "package": "xz-libs-1:5.8.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libm.so.6",
+      "destination": "/usr/lib64/libm.so.6",
+      "sha256": "16a03ce6d24c8a46742206d4a9c1d35bb6577ae2384f153dc6ef4a4b62b5357f",
+      "size": 1153848,
+      "mode": 493,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libmount.so.1.1.0",
+      "destination": "/usr/lib64/libmount.so.1",
+      "sha256": "bae9062f215fe51448fd69dd0b28713c5aa9cc46c776804d0d3e3e1d859ec3e4",
+      "size": 371304,
+      "mode": 493,
+      "package": "libmount-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libpcre2-8.so.0.15.0",
+      "destination": "/usr/lib64/libpcre2-8.so.0",
+      "sha256": "473aeb0704abc871886650c553b43bb300395d73fe4088620329459b5ddbf4be",
+      "size": 724280,
+      "mode": 493,
+      "package": "pcre2-10.47-1.fc44.1.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libselinux.so.1",
+      "destination": "/usr/lib64/libselinux.so.1",
+      "sha256": "cc9f8b1691e4f8cc807b2d8fe4a1ce2e0bdb96386285fdc7769849ffab0aaa7e",
+      "size": 209040,
+      "mode": 493,
+      "package": "libselinux-3.11-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libz.so.1.3.1.zlib-ng",
+      "destination": "/usr/lib64/libz.so.1",
+      "sha256": "bbde8faec092a7c67b8bd76bbba4a826e61b05c171b97004ce6b308c5a090351",
+      "size": 169544,
+      "mode": 493,
+      "package": "zlib-ng-compat-2.3.3-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libzstd.so.1.5.7",
+      "destination": "/usr/lib64/libzstd.so.1",
+      "sha256": "70ec54d150f4052f28fb1e8f8a1c6ca35e1a499e4744c6f6d9d783537618f80b",
+      "size": 959384,
+      "mode": 493,
+      "package": "libzstd-1.5.7-5.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/systemd/libsystemd-shared-259.10-1.fc44.so",
+      "destination": "/usr/lib64/systemd/libsystemd-shared-259.10-1.fc44.so",
+      "sha256": "f27147fe2f67694acd9b643e1687faa1a09fc0e2348a99a1f610e0504a4e07fb",
+      "size": 5689728,
+      "mode": 493,
+      "package": "systemd-shared-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "destination": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "size": 26419,
+      "mode": 420,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "destination": "/usr/share/licenses/glibc/COPYING.LIB",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "size": 26419,
+      "mode": 420,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYINGv2",
+      "destination": "/usr/share/licenses/glibc/COPYINGv2",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "size": 17984,
+      "mode": 420,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/COPYINGv3",
+      "destination": "/usr/share/licenses/glibc/COPYINGv3",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "size": 35149,
+      "mode": 420,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/glibc/LICENSES",
+      "destination": "/usr/share/licenses/glibc/LICENSES",
+      "sha256": "b22a69aa3f80a5201818c66cb0df0f25f9fa13cf5861b0093a058dbd12d50dce",
+      "size": 19665,
+      "mode": 420,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/kernel-core/COPYING-6.19.10-300.fc44",
+      "destination": "/usr/share/licenses/kernel-core/COPYING-6.19.10-300.fc44",
+      "sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0",
+      "size": 496,
+      "mode": 420,
+      "package": "kernel-core-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/kmod-libs/COPYING",
+      "destination": "/usr/share/licenses/kmod-libs/COPYING",
+      "sha256": "6095e9ffa777dd22839f7801aa845b31c9ed07f3d6bf8a26dc5d2dec8ccc0ef3",
+      "size": 26432,
+      "mode": 420,
+      "package": "kmod-libs-34.2-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later",
+      "destination": "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "mode": 420,
+      "package": "libblkid-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING",
+      "destination": "/usr/share/licenses/libgcc/COPYING",
+      "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c",
+      "size": 18002,
+      "mode": 420,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "size": 26440,
+      "mode": 420,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "destination": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+      "size": 3324,
+      "mode": 420,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING3",
+      "destination": "/usr/share/licenses/libgcc/COPYING3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "size": 35147,
+      "mode": 420,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+      "size": 7639,
+      "mode": 420,
+      "package": "libgcc-16.2.1-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later",
+      "destination": "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "mode": 420,
+      "package": "libmount-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libselinux/LICENSE",
+      "destination": "/usr/share/licenses/libselinux/LICENSE",
+      "sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364",
+      "size": 1034,
+      "mode": 420,
+      "package": "libselinux-3.11-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/AUTHORS",
+      "destination": "/usr/share/licenses/libxcrypt/AUTHORS",
+      "sha256": "6d1e45c055b6d9e9bf4e9521419eb3dee4ca42a02dd4d824beaaad476dacfdca",
+      "size": 1850,
+      "mode": 420,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/COPYING.LIB",
+      "destination": "/usr/share/licenses/libxcrypt/COPYING.LIB",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "mode": 420,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libxcrypt/LICENSING",
+      "destination": "/usr/share/licenses/libxcrypt/LICENSING",
+      "sha256": "ee26dd8a96fbf600623760499ea1ddddd5703186226b08ba72c39134fff5b758",
+      "size": 6148,
+      "mode": 420,
+      "package": "libxcrypt-4.5.2-3.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libzstd/COPYING",
+      "destination": "/usr/share/licenses/libzstd/COPYING",
+      "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
+      "size": 18091,
+      "mode": 420,
+      "package": "libzstd-1.5.7-5.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libzstd/LICENSE",
+      "destination": "/usr/share/licenses/libzstd/LICENSE",
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "size": 1549,
+      "mode": 420,
+      "package": "libzstd-1.5.7-5.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/openssl-libs/LICENSE.txt",
+      "destination": "/usr/share/licenses/openssl-libs/LICENSE.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "size": 10175,
+      "mode": 420,
+      "package": "openssl-libs-1:3.5.9-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/LICENSE.GPL2",
+      "destination": "/usr/share/licenses/systemd/LICENSE.GPL2",
+      "sha256": "ac4985facb553559981f507982444d779115e3e3a4c8b7847ae956198490c1b3",
+      "size": 17977,
+      "mode": 420,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+      "destination": "/usr/share/licenses/systemd/LICENSE.LGPL2.1",
+      "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+      "size": 26518,
+      "mode": 420,
+      "package": "systemd-libs-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/systemd/MIT.txt",
+      "destination": "/usr/share/licenses/systemd/MIT.txt",
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+      "size": 1078,
+      "mode": 420,
+      "package": "systemd-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-2-Clause",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.BSD-2-Clause",
+      "sha256": "527f738966ca396cd5a68c1509390de2a780c6b614d9ee57f7544a6161938ed1",
+      "size": 1245,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-3-Clause",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.BSD-3-Clause",
+      "sha256": "9b718a9460fed5952466421235bc79eb49d4e9eacc920d7a9dd6285ab8fd6c6d",
+      "size": 1391,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.BSD-4-Clause-UC",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.BSD-4-Clause-UC",
+      "sha256": "ba7640f00d93e72e92b94b9d71f25ec53bac2f1682f5c4adcccb0018359f60f8",
+      "size": 1824,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.EUPL-1.2",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.EUPL-1.2",
+      "sha256": "6fc9e709ccbfe0d77fbffa2427a983282be2eb88e47b1cdb49f21a83b4d1e665",
+      "size": 13827,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-only",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-only",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-or-later",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.GPL-2.0-or-later",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "size": 18092,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.GPL-3.0-or-later",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.GPL-3.0-or-later",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "size": 35149,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.ISC",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.ISC",
+      "sha256": "e53348ce276358e9997014071c5294b36a18c4b34f32f00ee57b9acce0aafd63",
+      "size": 697,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.LGPL-2.1-or-later",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.LGPL-2.1-or-later",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "size": 26530,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/util-linux-core/COPYING.MIT",
+      "destination": "/usr/share/licenses/util-linux-core/COPYING.MIT",
+      "sha256": "8555341619542abb48c102afd954e42d4478e5be16ad3d5af7b0ff71009e7348",
+      "size": 1054,
+      "mode": 420,
+      "package": "util-linux-core-2.41.3-12.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/xz-libs/COPYING",
+      "destination": "/usr/share/licenses/xz-libs/COPYING",
+      "sha256": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+      "size": 3119,
+      "mode": 420,
+      "package": "xz-libs-1:5.8.2-2.fc44.x86_64"
+    }
+  ],
+  "packages": [
+    "glibc-2.43-9.fc44.x86_64",
+    "kernel-core-6.19.10-300.fc44.x86_64",
+    "kernel-modules-core-6.19.10-300.fc44.x86_64",
+    "kmod-34.2-4.fc44.x86_64",
+    "kmod-libs-34.2-4.fc44.x86_64",
+    "libblkid-2.41.3-12.fc44.x86_64",
+    "libgcc-16.2.1-2.fc44.x86_64",
+    "libmount-2.41.3-12.fc44.x86_64",
+    "libselinux-3.11-2.fc44.x86_64",
+    "libxcrypt-4.5.2-3.fc44.x86_64",
+    "libzstd-1.5.7-5.fc44.x86_64",
+    "openssl-libs-1:3.5.9-1.fc44.x86_64",
+    "pcre2-10.47-1.fc44.1.x86_64",
+    "systemd-259.10-1.fc44.x86_64",
+    "systemd-libs-259.10-1.fc44.x86_64",
+    "systemd-shared-259.10-1.fc44.x86_64",
+    "systemd-udev-259.10-1.fc44.x86_64",
+    "util-linux-core-2.41.3-12.fc44.x86_64",
+    "xz-libs-1:5.8.2-2.fc44.x86_64",
+    "zlib-ng-compat-2.3.3-3.fc44.x86_64"
+  ],
+  "root_source_manifest_sha256": "770afd038e4ea98d99f080e28fb115e75c028d83ed8588c4616068ee2537a547",
+  "boot_source_manifest_sha256": "2c6745bf673a1aacf2d9d50ee62e5965e77ac955b98b103b3328797fa874ca34"
+}

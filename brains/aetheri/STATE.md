@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — the own image now boots the graphical desktop and apps, preserves a document and shuts down normally; laptop USB integration remains work.
+8 November 2026 — early USB storage, read-only root checks and initrd handover now pass; joining that path to the desktop and laptop hardware remains work.
 
 ## Coordination
 
@@ -13,7 +13,36 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Graphical own-image integration — 8 November 2026
+## USB root and initrd handover — 8 November 2026
+
+The separate USB-root proof now boots through UEFI, loads the selected USB storage
+modules, checks the expected removable partition before mounting it read-only,
+stops initrd udev and uses standard systemd SwitchRoot into the original ext4
+root. Two actual cold boots pass with distinct boot IDs. Actual virtio-only and
+wrong-filesystem negatives reject before mounting. Native C adversaries pass
+Release/ASan/UBSan and strict analyzer compilation; six USB and affected older
+boot/media contracts pass. Read the [scope](../../spec/usb-root-probe.md) and
+[executed record](journal/2026-11-08-usb-root.md).
+
+This is a fixed512MiB diagnostic, not the authorized physical stick's desktop
+image. The next integration must join the graphical root and writable data on
+one medium, check their same-device relationship and actual stick geometry, and
+include laptop DRM/input/firmware. Test that removable profile before flashing.
+The user already authorizes the identified Intenso G: when ready; reidentify it,
+do not ask again and continue development after flashing. No USB write yet.
+
+The runtime audit also found that the prior graphical image lacks libbpf and
+explicitly logs disabled cgroup BPF features. Its VT unit's configured device
+allowlist is therefore not accepted as enforced. Add the reviewed runtime and
+an actual allowed/denied device-open test before the USB desktop is accepted.
+The separate measured cap-zero/NoNewPrivileges and PrivateDevices evidence remains
+scoped to those mechanisms. No production MAC policy or full OS acceptance follows.
+Original carrier/normal sources/frozen contracts/quarantine/P0/CLOSED records and
+foreign work remain protected. Full OS/apps/browser, normal lifecycle/removal,
+installer/LUKS, updates/rollback, hardware/suspend and experiment desktop remain
+required. NexaUI handoff stays closed.
+
+## Prior graphical own-image integration — 8 November 2026
 
 The separate 768MiB UEFI/read-only-root image now starts the existing wlroots
 compositor, SDL desktop and NexaUI Settings/Files/Terminal under the fixed

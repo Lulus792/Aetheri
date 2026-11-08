@@ -152,9 +152,11 @@ def evaluate_data(serial, manifest, exit_code, timed_out=False, expect_failure=F
     return bool(accepted), roots, failures
 
 
-def observe(output, command, manifest, hashes, manifest_digest, expect_failure=False, timeout=120):
+def observe(output, command, manifest, hashes, manifest_digest, expect_failure=False, timeout=120, *, evaluator=None):
     """Observe one original owned test child; callers supply admitted fixed inputs."""
     state = dict(state="starting", command=command, manifest_sha256=manifest_digest, host_tools=hashes, expected_failure=expect_failure, observer_sha256=sha(Path(__file__)))
+    if evaluator is not None:
+        state['evaluator_sha256'] = sha(Path(evaluator.__code__.co_filename))
 
     def record():
         (output / "attempt.json").write_text(json.dumps(state, indent=2) + "\n")
@@ -178,7 +180,8 @@ def observe(output, command, manifest, hashes, manifest_digest, expect_failure=F
             state.update(state="terminal" if process.poll() is not None else "unresolved", exit=process.poll(), seconds=time.monotonic()-started)
             record()
     serial = (output / "serial.log").read_text(errors="replace")
-    accepted, positive, failures = evaluate(serial, manifest, state["exit"], state.get("timeout", False), expect_failure)
+    classify = evaluator or evaluate
+    accepted, positive, failures = classify(serial, manifest, state["exit"], state.get("timeout", False), expect_failure)
     state.update(accepted=accepted, serial_sha256=sha(output / "serial.log"), boot_ids=positive, failures=failures)
     record()
     print(json.dumps({k: state[k] for k in ("state", "exit", "seconds", "accepted", "boot_ids", "failures")}), flush=True)

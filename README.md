@@ -26,7 +26,10 @@ The separate [graphical development image](spec/desktop-image.md) now boots
 through UEFI into the original desktop, Terminal, Files and Settings. Its system
 root stays read-only; an ordinary document survives cold boots on a separate data
 volume. Real virtual-keyboard input and normal unmount/poweroff are tested.
-Laptop USB drivers/layout, normal login, the installer and admitted daily-use
+A separate [USB-root proof](spec/usb-root-probe.md) now loads USB storage modules
+and hands over from the initrd to the checked read-only root. Two cold boots and
+wrong-transport/filesystem rejection tests pass. Joining this path to the desktop,
+laptop drivers/layout, normal login, the installer and admitted daily-use
 applications remain work.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.

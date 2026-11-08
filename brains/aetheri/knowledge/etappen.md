@@ -3,6 +3,12 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
+8 November USB checkpoint: the [early USB-root profile](../../../spec/usb-root-probe.md)
+now passes two actual cold boots and rejects wrong transport/filesystem before
+mounting. Next close the graphical image's missing-libbpf/device-filter evidence,
+then join graphical root/data on one removable medium with actual stick geometry
+and laptop drivers. This fixed diagnostic is not ready for physical flashing.
+
 8 November graphical checkpoint: the [own desktop image](../../../spec/desktop-image.md)
 now opens/closes the fixed apps through real virtual input, retains an ordinary
 document across cold boots and completes normal poweroff. The next laptop-alpha

@@ -79,7 +79,7 @@ def build(image, packages, output):
 
     env["PYTHONPATH"] = str(prefix/"usr/lib/python3.14/site-packages")
     osrel = b'NAME="Aetheri boot proof"\nID=aetheri-boot-probe\nPRETTY_NAME="Aetheri UEFI media proof"\n'
-    if original.get("proof") in ("readonly-root", "writable-data", "desktop-image"):
+    if original.get("proof") in ("readonly-root", "writable-data", "desktop-image", "usb-root"):
         osrel = b'NAME="Aetheri system root proof"\nID=aetheri-root-probe\nPRETTY_NAME="Aetheri readonly system root proof"\n'
     (output/"os-release").write_bytes(osrel)
     uki = output/"BOOTX64.EFI"

@@ -5,6 +5,15 @@ now runs in the independently assembled image, with persistent user documents
 and normal shutdown. No subagents or CUA were used. The C/build/Linux and
 dependency skills were applied. The NexaUI handoff stays closed.
 
+Subsequent USB-runtime audit: this image's serial log explicitly reports missing
+libbpf and disabled cgroup BPF features. The VT unit's configured DevicePolicy
+is not evidence of an enforced device filter. Its capability configuration and
+the actual GUI cap-zero/NNP evidence are separate. The USB desktop must add the
+reviewed dynamic backend and a real device-access negative before acceptance.
+See the [USB-root record](2026-11-08-usb-root.md). Earlier console-output failure
+does not independently prove cgroup-device denial; the journal-output correction
+only proves that the fixed service can start with those settings.
+
 ## Result and boundary
 
 The [graphical profile](../../../spec/desktop-image.md) builds nine existing app

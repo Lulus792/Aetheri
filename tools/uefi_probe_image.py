@@ -27,7 +27,7 @@ def require(condition, reason):
 
 def root_geometry(manifest):
     """Only the explicitly selected fixed development layouts are accepted."""
-    if manifest.get('proof') in ('readonly-root', 'writable-data'):
+    if manifest.get('proof') in ('readonly-root', 'writable-data', 'usb-root'):
         return ROOT_DISK_BYTES, 524288
     if manifest.get('proof') == 'desktop-image':
         return 768*1024**2, 1048576

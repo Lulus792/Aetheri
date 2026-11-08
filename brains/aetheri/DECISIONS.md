@@ -1,5 +1,24 @@
 # Decisions
 
+## Reuse systemd initrd handover for early USB root — 8 November 2026
+
+Keep the selected PID1, kmod/udev/mount tools and pinned kernel. Add only its
+required usb_storage/uas modules, explicit initrd units and a bounded C17
+read-only preflight; do not introduce a second init framework. Require matching
+partition/filesystem/geometry, unique current partition, USB ancestry/removable
+status and consistent boot/diskseq observations before and after mounting.
+Use PID1 OnSuccessJobMode=isolate after the oneshot becomes inactive, stop udev,
+recheck and call standard SwitchRoot. Actual two-boot/rejection evidence is in
+the [journal](journal/2026-11-08-usb-root.md). These are runtime correlations,
+not durable volume, clone or publisher authentication. Keep the fixed diagnostic
+separate until desktop/data/physical geometry integration passes.
+
+An explicit missing-libbpf warning invalidates an assumed cgroup device-filter
+acceptance. Add that dependency only after review and prove actual permitted and
+denied device opens; configured DevicePolicy alone is insufficient. This is
+required before accepting the next USB desktop, without reopening the agreed
+architecture or weakening the broker's separate PrivateDevices boundary.
+
 ## Integrate the existing desktop into a bounded own image — 8 November 2026
 
 Reuse the already selected compositor, SDL/text/NexaUI runtime and ordinary

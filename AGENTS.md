@@ -1251,3 +1251,22 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   the physical device before writing but do not ask again or wait for their later
   hardware test. Internal disks are not authorized. No USB write yet. Full goal
   remains active; preserve foreign work and the closed NexaUI handoff.
+
+- tools/build_usb_root_probe.py and src/boot/initrd.c now prove early USB root
+  and standard systemd initrd handover. Read spec/usb-root-probe.md, STATE and
+  the2026-11-08 USB-root journal. Two actual cold boots and wrong-transport/UUID
+  pre-mount negatives pass. The fixed512MiB diagnostic is not the physical stick
+  desktop. Keep original root bytes and independent input-manifest pins; selected
+  libkmod is a udev dlopen dependency, not covered by kmod CLI ldd. Import block
+  properties in a rule before matching them. OnSuccess requires an inactive
+  oneshot; PID1 OnSuccessJobMode=isolate stops udev before checked SwitchRoot.
+  Current boot/devnums/sysfs/diskseq facts are not durable volume/clone trust.
+  The prior graphical image lacks libbpf and explicitly disables cgroup BPF;
+  its configured DevicePolicy is not accepted as enforced. Add reviewed runtime
+  and actual allowed/denied device-open evidence before USB desktop acceptance.
+  Next join graphical root/data on one removable medium with independently
+  checked common parent/actual stick geometry and laptop DRM/input/firmware.
+  VM-test that profile before the already authorized flash. Reidentify Intenso G:
+  without asking again; continue work after flashing, never write internal disks.
+  Preserve all failed attempts, original carrier/normal inputs/quarantine/CLOSED
+  and foreign files. Full goal remains active; NexaUI handoff stays closed.
