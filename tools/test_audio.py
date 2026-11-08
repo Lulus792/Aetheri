@@ -47,7 +47,7 @@ def validate_pcm(raw, frames, silent=False, gain=1.0):
     return {"captured_frames": len(samples), "signal_start": start, "signal_frames": frames, "max_error": peak_error}
 
 
-def run_case(binary, prefix, root, frames, silent=False, failure=None, policy=None, volume=1.0, muted=False, manager=True):
+def run_case(binary, prefix, root, frames, silent=False, failure=None, policy=None, volume=1.0, muted=False, manager=True, controller=None):
     root.mkdir(mode=0o700)
     runtime, conf, home = [root / n for n in ('run', 'conf', 'home')]
     for p in (runtime, conf, home):
@@ -143,6 +143,9 @@ context.objects = [ { factory = spa-node-factory args = {
         client_conf=(conf/'client.conf').read_text().replace(' { name = libpipewire-module-client-node }',' { name = libpipewire-module-metadata }\n { name = libpipewire-module-client-node }',1)
         (conf/'client.conf').write_text(client_conf)
     children, streams, captured = [], [], bytearray()
+    if controller:
+        if not policy or failure:raise ValueError('native controller needs a managed positive graph')
+        controller.configure(conf,env)
 
     def start(name, args):
         stream = (root / (name + '.log')).open('xb');streams.append(stream)
@@ -193,6 +196,11 @@ context.objects = [ { factory = spa-node-factory args = {
         wait(lambda: remote.exists(), 'private server socket')
         s = remote.lstat();assert stat.S_ISSOCK(s.st_mode) and s.st_uid == os.getuid() and stat.S_IMODE(s.st_mode) == 0o600
         policy_process=start('policy',[policy/'usr/bin/wireplumber','-p','aetheri-policy-test']) if policy and manager else None
+        # Selection is tested before creating this deliberately DONT_RECONNECT
+        # producer. Its retained-route diagnostic is not a stream-move API.
+        if controller:
+            controller.test_owners=children
+            controller.exercise(root,env,remote,server,graph,volume,muted)
         # The private path is fixture routing, not process/production admission.
         client = start('client', [binary, '--remote', remote, '--frames', frames, '--wait-for-start', *(['--silent'] if silent else []), *(['--autoconnect'] if policy else [])])
         wait(lambda: b'CONNECTED node=' in (root / 'client.log').read_bytes(), 'original client connected')
@@ -257,7 +265,7 @@ context.objects = [ { factory = spa-node-factory args = {
             nonlocal ports
             if objects is None:objects=graph()
             nodes = {o['id']: o.get('info', {}).get('props', {}).get('node.name') for o in objects if o['type'] == 'PipeWire:Interface:Node'}
-            assert set(nodes.values()) <= {'aetheri.audio.check', 'aetheri.test.sink', 'Test-Driver'}, nodes
+            assert set(nodes.values()) <= {'aetheri.audio.check', 'aetheri.test.sink', 'Test-Driver'}|set(controller.extra_nodes if controller else ()), nodes
             ports = {}
             for o in objects:
                 if o['type'] != 'PipeWire:Interface:Port':
@@ -289,8 +297,11 @@ context.objects = [ { factory = spa-node-factory args = {
                 return found==expected
             wait(automatic_links,'policy creates both exact stereo links')
             control('default-sink',['inspect','@DEFAULT_AUDIO_SINK@'])
-            control('set-volume',['set-volume','@DEFAULT_AUDIO_SINK@',str(volume),'--limit','1.0'])
-            control('set-mute',['set-mute','@DEFAULT_AUDIO_SINK@','1' if muted else '0'])
+            if controller:
+                wait(automatic_links,'both exact stereo links after native control')
+            else:
+                control('set-volume',['set-volume','@DEFAULT_AUDIO_SINK@',str(volume),'--limit','1.0'])
+                control('set-mute',['set-mute','@DEFAULT_AUDIO_SINK@','1' if muted else '0'])
             actual=control('get-volume',['get-volume','@DEFAULT_AUDIO_SINK@']).decode()
             assert 'Volume: '+format(volume,'.2f') in actual and ('[MUTED]' in actual)==muted,actual
             policy_pin=next(pin for p,pin in children if p is policy_process)
@@ -326,6 +337,7 @@ context.objects = [ { factory = spa-node-factory args = {
         pin = next(pin for p, pin in children if p is server)
         signal.pidfd_send_signal(pin, signal.SIGTERM)
         assert server.wait(timeout=5) == 0
+        if controller:controller.server_stopped()
         pump()
         st = fifo.lstat();assert (st.st_dev, st.st_ino) == (fifo_identity.st_dev, fifo_identity.st_ino)
         result = validate_pcm(captured, frames, silent or muted,volume**3 if policy else 1.0)
@@ -335,6 +347,10 @@ context.objects = [ { factory = spa-node-factory args = {
         (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
         return result
     finally:
+        cleanup_error=None
+        if controller:
+            try:controller.close()
+            except BaseException as error:cleanup_error=error
         for p, pin in reversed(children):
             if p.poll() is None:
                 signal.pidfd_send_signal(pin, signal.SIGTERM)
@@ -349,6 +365,7 @@ context.objects = [ { factory = spa-node-factory args = {
         os.close(reader)
         if not (root / 'capture.f32le').exists():
             (root / 'capture.f32le').write_bytes(captured)
+        if cleanup_error:raise cleanup_error
 
 
 def main():

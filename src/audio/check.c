@@ -1,5 +1,6 @@
 /* Finite private-session playback diagnostic, not an installed audio SDK. */
 #define _GNU_SOURCE
+#include "audio/remote.h"
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 #include <errno.h>
@@ -20,6 +21,7 @@ _Static_assert(sizeof(float)==4 && FLT_RADIX==2 && FLT_MANT_DIG==24,"F32 audio p
 struct check {
     struct pw_main_loop *loop;struct pw_context *context;struct pw_core *core;struct pw_stream *stream;
     struct spa_hook core_listener,stream_listener;struct spa_source *timer;
+    float *prepared; /* Immutable finite signal; owned until stream teardown. */
     uint32_t total,sent;bool silent,formatted,draining,done,announced,failed,wait_start,started;
 };
 static void fail(struct check *c,const char *reason) {
@@ -67,12 +69,7 @@ static void process(void *data) {
     if(buffer->requested && buffer->requested<frames) frames=(uint32_t)buffer->requested;
     if(frames>c->total-c->sent) frames=c->total-c->sent;
     if(!frames) {fail(c,"empty output turn");return;}
-    float *samples=d->data;
-    for(uint32_t i=0;i<frames;++i) {
-        double phase=(double)(c->sent+i)*6.2831853071795864769/(double)RATE;
-        samples[2u*i]=c->silent ? 0.0f : (float)(0.125*sin(440.0*phase));
-        samples[2u*i+1u]=c->silent ? 0.0f : (float)(0.125*sin(880.0*phase));
-    }
+    memcpy(d->data,c->prepared+(size_t)c->sent*CHANNELS,(size_t)frames*STRIDE);
     d->chunk->offset=0;d->chunk->stride=STRIDE;d->chunk->size=frames*STRIDE;d->chunk->flags=0;
     buffer->size=frames;
     if(pw_stream_queue_buffer(c->stream,buffer)<0) {fail(c,"queue rejected");return;}
@@ -98,12 +95,23 @@ int main(int argc,char **argv) {
     if(prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0)) return 1;
     setvbuf(stdout,NULL,_IOLBF,0);pw_init(NULL,NULL);
     if(strcmp(pw_get_library_version(),"1.6.11") || strcmp(pw_get_headers_version(),"1.6.11")) {fputs("audio-check: unreviewed library/header version\n",stderr);pw_deinit();return 1;}
-    int result=1;c.loop=pw_main_loop_new(NULL);if(!c.loop) goto done;
+    int result=1;
+    /* Keep synthesis/allocation outside streaming. The validated finite bound
+     * is at most 768,000 bytes; process only copies its bounded next slice. */
+    c.prepared=malloc((size_t)c.total*STRIDE);if(!c.prepared) goto done;
+    for(uint32_t i=0;i<c.total;++i) {
+        double phase=(double)i*6.2831853071795864769/(double)RATE;
+        c.prepared[2u*i]=c.silent ? 0.0f : (float)(0.125*sin(440.0*phase));
+        c.prepared[2u*i+1u]=c.silent ? 0.0f : (float)(0.125*sin(880.0*phase));
+    }
+    c.loop=pw_main_loop_new(NULL);if(!c.loop) goto done;
     struct pw_loop *loop=pw_main_loop_get_loop(c.loop);
     c.context=pw_context_new(loop,NULL,0);if(!c.context) goto done;
     struct pw_properties *properties=pw_properties_new(PW_KEY_REMOTE_NAME,remote,NULL);
     if(!properties) goto done; /* Never turn failed explicit routing into default routing. */
-    c.core=pw_context_connect(c.context,properties,0);if(!c.core) goto done;
+    int fd=ae_audio_remote_connect(remote);
+    if(fd<0) {pw_properties_free(properties);goto done;}
+    c.core=pw_context_connect_fd(c.context,fd,properties,0);if(!c.core) goto done;
     pw_core_add_listener(c.core,&c.core_listener,&core_events,&c);
     properties=pw_properties_new(PW_KEY_MEDIA_TYPE,"Audio",PW_KEY_MEDIA_CATEGORY,"Playback",PW_KEY_MEDIA_ROLE,"Test",PW_KEY_NODE_NAME,"aetheri.audio.check","adapter.auto-port-config","{ mode = dsp position = preserve }",NULL);
     if(!properties) goto done;
@@ -128,5 +136,6 @@ done:
     if(c.core) {spa_hook_remove(&c.core_listener);pw_core_disconnect(c.core);}
     if(c.context) pw_context_destroy(c.context);
     if(c.loop) pw_main_loop_destroy(c.loop);
+    free(c.prepared);
     pw_deinit();return result;
 }

@@ -1,0 +1,2859 @@
+{
+  "format": 1,
+  "wireplumber_version": "0.5.19",
+  "glib_version": "2.88.0",
+  "reviewed": "2026-11-08",
+  "purpose": "Private control SDK headers plus copied exact existing GLib; no new runtime family",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 103284,
+      "sha256": "fd93ee792bfec34f9e5136195aa412cc4ab9998cd16e70e025868d05becaf7af",
+      "metadata": [
+        "wireplumber-devel-0.5.19-1.fc44.x86_64",
+        "MIT",
+        "wireplumber-0.5.19-1.fc44.src.rpm"
+      ],
+      "url": "https://kojipkgs.fedoraproject.org/packages/wireplumber/0.5.19/1.fc44/data/signed/6d9f90a6/x86_64/wireplumber-devel-0.5.19-1.fc44.x86_64.rpm"
+    },
+    {
+      "name": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1577142,
+      "sha256": "01b81ced14cb4415389043c99e5d9487b47ed6ac68e1afdd55de5e7735c79248",
+      "metadata": [
+        "glib2-devel-2.88.0-1.fc44.x86_64",
+        "LGPL-2.1-or-later",
+        "glib2-2.88.0-1.fc44.src.rpm"
+      ],
+      "url": "https://kojipkgs.fedoraproject.org/packages/glib2/2.88.0/1.fc44/data/signed/6d9f90a6/x86_64/glib2-devel-2.88.0-1.fc44.x86_64.rpm"
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/include/wireplumber-0.5/wp/base-dirs.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3107,
+      "sha256": "7e664d45b143a97b627f90cf5c01f57b43d226aff950d8c42470e58b90c97459",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/client.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1097,
+      "sha256": "276d464a9f2aaa8d636b5585fb49f98d775af849f5f9e9ae66f567044abb4e5a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/component-loader.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1404,
+      "sha256": "ccbb8a12daccf7d891e5b592fe28362971022094b3ca8ccf7960b635733940ea",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/conf.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1160,
+      "sha256": "cf60b954ee90098a6a5931f8eb474bce7a83ea7c0066f20284595336ba48a7ac",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/core.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3573,
+      "sha256": "935f6a6a6e1d50d855119a00ae5b4aa8218c250a49bb2ebae4fc0093ff2b1fce",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/defs.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 821,
+      "sha256": "8d2f040c33d66a2a22ecbf9656f3c7d50c12d48b08b49818ed2a472c8d1fabe1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/device.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2004,
+      "sha256": "4fe3bbb2a57c75a3c9da2b742d5fd378dd0e88c98e299c7c6a2d5a3a4224a923",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/dynamic-rules.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2360,
+      "sha256": "273008b647a97e2e8246341c0f811c5a7455a695fba0affd6d466db07e997bda",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/error.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1039,
+      "sha256": "c46683e337b19474342b1be68f86d36946d5427122b6ce9da3c5a0547bb9a40d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/event-dispatcher.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1414,
+      "sha256": "2e12210839fe712f7be964f0d0c9a26f31fa61e482a4fbcd2b103e3b2ce7f49a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/event-hook.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3582,
+      "sha256": "8590944eba35bd61c62d2e24eccd6fa2cd96b1779c6614d516eb1cca30658eee",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/event.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1727,
+      "sha256": "0b1bc0552f47e7ec3e6ba6ae73b81f2f1b5cd4c795104ca73c90900c65003c2b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/factory.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 496,
+      "sha256": "f1fdf13332d5983c0ce77f2a98d76ddfcd3458f041886e0a619edee79f002632",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/global-proxy.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 956,
+      "sha256": "f0bef693ae75ebd3ce29a721fd660434a0b86d81cb81725518cb582b20e9e867",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/iterator.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2545,
+      "sha256": "92e6238457393bbb66efc09559c50b158f03fa36259f6072e661ab33d3b68cd7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/json-utils.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1211,
+      "sha256": "928d1d99ffface984ea059d7ca60ddfa2f2040509f7a2ad42ac70fae7ad6481d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/link.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1358,
+      "sha256": "86d2cd306ee2116b8065bac78017b1f00adfaa5bc42c3efabc092cb88a3f3eeb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/log.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6593,
+      "sha256": "fad429cb196e1b53b85f5020ecb91e3efafe14736386c7173bffea6739a82adf",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/metadata.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2349,
+      "sha256": "0be4452981a816519e1963666ad1c8353138e821d8e15e408c0dea2d428f6fde",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/module.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 778,
+      "sha256": "ce5ddd006238aaea85b56cff4e583c34ffef849677aae5f05f71fa55b8dad967",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/node.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2645,
+      "sha256": "8e94af3b91e71090ea5ce9933cb2b373f1fbe05f89ad88b22b3fec03003bcedb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/object-interest.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4367,
+      "sha256": "a177cf6de700a44b5813a421655aadcea909bcb3119ff63c69c21fb2cadd6006",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/object-manager.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2203,
+      "sha256": "1b9a5fd63e09a27ea5bfa1d43edafc6b166cc10b5f1fcaa4a8274e5ebfdae266",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/object.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3527,
+      "sha256": "9fdfd5cfe99ccb01cab36475642432a8bb1f1b5c81acbe91ba6f6bfbedd4f400",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/permission-manager.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2474,
+      "sha256": "2d2028436401413dba3df60849e820fbd92de80165b87243b83394d91c5f3dcf",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/plugin.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1017,
+      "sha256": "314741bec57feb1d8a14f6c0dc95f22952e95e01b7c6ffcefe543604e309910a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/port.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 731,
+      "sha256": "eeee9266838c69f94f7242484c9f6987fbb0aa39b2d30548141e96486a98645f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/proc-utils.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1040,
+      "sha256": "3818c96aa6bc93ece72a91a32ad5b1c2e1ad1fdc65873c2211c343e337210605",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/properties.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4714,
+      "sha256": "55f7364af6e9efad19a86a80b82210294cd926603363655b4c3aa5650e11f86d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/proxy-interfaces.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2419,
+      "sha256": "02b51e21296926edcdbbc1df808ad3a8a28cf6206570b466e86e2cb8cc7b968d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/proxy.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2850,
+      "sha256": "4af31baa976046920eee3c4e85bd67d12dfd4f02503b611b8e262ba2d52b5ba5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/session-item.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2854,
+      "sha256": "5c788d6fd75dac3a3fc94fa160c15e98b81c0f9584beca03efa7ecd5bc74e853",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/settings.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4447,
+      "sha256": "a06a8f25698940686165921eddaf778a5e8e78ef26b81334c9cd9bf3f214182e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/si-factory.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1111,
+      "sha256": "51cd500e0196cf47fe204702298b9582cdba1a930e98ea8d74326f19d7d4e954",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/si-interfaces.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4459,
+      "sha256": "04bb713c227fc48bb58ead37d6140af0f226c46f6a55f450dceb922f6a4bcd09",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/spa-json.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6559,
+      "sha256": "9a736ad7c115b6a1a74a068ab15c99b1ad06aed09c91725775240d67c497cc47",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/spa-pod.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 11041,
+      "sha256": "ce2d98ca85fd4e1dfea42e52313e03dad9abc392ff71005171191c85fb708f81",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/spa-type.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3086,
+      "sha256": "3de56a719218520f8128b330a5d7ef293b6ca9f4c8a86a7b9251850b90493232",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/state.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1902,
+      "sha256": "e235cbfb26affa56f1146a462e968b7a3c471f7ae1ec426a309dc5420e44f4b2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/transition.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2452,
+      "sha256": "8d22015865bb45a4f917b25477e612c300963025c0648664f246936a682a9f0d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/wp.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1856,
+      "sha256": "83da5c2a7d474a562c398fc8c96b31ef89af7d328214a2fc5464c0bca12a3849",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/wpenums.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4033,
+      "sha256": "50eca42a7e0328fe7a883358fe53a8882d5569f302a12a713d46d70ff94252f4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/wireplumber-0.5/wp/wpversion.h",
+      "package": "wireplumber-devel-0.5.19-1.fc44.x86_64.rpm",
+      "size": 75,
+      "sha256": "d90d577e1053f4d702873471404a708d1b8a6aef106999b3b02401a476ac8c4f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gdesktopappinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8710,
+      "sha256": "e288d62564d3707ee3b98d50785fb171e767c34583b7badb8427ee554bc721da",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gfiledescriptorbased.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2239,
+      "sha256": "a602e27f1900faf284e6efbe605a70293fab05c888c812ccd51542d74d010aa6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gunixfdmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3810,
+      "sha256": "d7e69ce5fe5a8b949b2d0edf09f99bc17e1651004a51388cbc26649240168393",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gunixinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2951,
+      "sha256": "80bdce3d8b9ccb68f556dd51ec8ce861a6289738beb24da875555da0453a62b9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gunixmounts.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11810,
+      "sha256": "c0c79f890ccd25d2c807eb33cc0e197485519b52a45d5fc18acdc3dba8f25e0d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/gio-unix-2.0/gio/gunixoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2980,
+      "sha256": "ff18b7eea1dc182a9a127897a91e4fb7221bffbf62f4a2c448b0026ce4202548",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gaction.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4647,
+      "sha256": "004ed10e93454b50d2fd8664aebe2bcd9a3eb0e43e6d21fc75baa4b5e804ee1d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gactiongroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9227,
+      "sha256": "656359eb184a1198ee7231afdcb577002e771b11fb5b91ffcb010b6830130a3a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gactiongroupexporter.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1815,
+      "sha256": "a61b252d4d9ad93201d575b0f1bb945f4217ed5a76acc9d276817c7f87417e6c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gactionmap.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4374,
+      "sha256": "7e1cb78599ad96df3fd92ffebf453e4f6fefca64dced9d242fc764b5a5327e87",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gappinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 20588,
+      "sha256": "9019435ba85ebc1015cca63bc0bfc47730a4d547e9ffe8612a8b09d71c98a586",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gapplication.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 15105,
+      "sha256": "3531fdbd8619f84d485f9fe5cef0b190e70736d517206a1bd2d8cd7026994fe9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gapplicationcommandline.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6903,
+      "sha256": "6587f5294e9cf48144a186bd2210026f6f4056bf5ebd2a2645ffb31d631a17db",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gasyncinitable.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4361,
+      "sha256": "1769a20822c20490b5ab16a14b3d6b78ecc555c81af44873aff293af8c326b99",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gasyncresult.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2716,
+      "sha256": "3a25e938c9c3400cb114fabf1cc29ee52e2ea69d5db75699266b3dc9cd432a2c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gbufferedinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5168,
+      "sha256": "a7d09f0c1a42444e2cc8b72d1874124971f9970307fd929440477a75b6d2abb0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gbufferedoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3272,
+      "sha256": "6acd6eaf2bfd70916f0402ea3dd9ecf8d69b648a69243b939dd80e7259a59b5d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gbytesicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1613,
+      "sha256": "38dad10e54a2c68054072bd672a4ca68ab2c4532ee9e6d01b0251e09ea6bd6d1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gcancellable.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4029,
+      "sha256": "d35dc0ced42f2288fbd77f53aa59fa8b8e839733e03e3b328b16f3d2ba2e243a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gcharsetconverter.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2562,
+      "sha256": "13cfa41651a697e50da4ae279420871b0763af9d6c3bd93d1940ee14a753102c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gcontenttype.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3004,
+      "sha256": "19ab1f0fe0bcdda93529f4417f79495a22aff5d65c7e13f1a2d226dc6f363834",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gconverter.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3065,
+      "sha256": "9c5b8582d431d108a5ec2e40b17af4a2360c90357299c35af68c18bda306ad48",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gconverterinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2947,
+      "sha256": "e5d2b8c08e99f184c4f9c52e5648523fea808a17b5879c223a58039f741c938a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gconverteroutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2984,
+      "sha256": "ffd94915bfaf8fcbd84d6df8668ee8c3171d660a5ee9643ed285b88e120cc58f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gcredentials.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3449,
+      "sha256": "2a06b076b8352a2139527fba9a5fc87cc6c6891448f89e4d5bc8a5940e32712f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdatagrambased.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6594,
+      "sha256": "4e6506865d125c27d8f1d7933d5f71f40534c0f0d57b64428deee33d624de682",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdatainputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10989,
+      "sha256": "3d234636be802ca490abee5e578c3233166e4fdbcee372c0c420a64ea5dcfde5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdataoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4782,
+      "sha256": "eaf608d1c4ac2c4358575b36de19ff1464c84e2e5b17627c45076201014bf6b0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusactiongroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2786,
+      "sha256": "b46017b82913b16d5e49e1355359cc38ca9900a64fee2e7e7068e335c134704b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2712,
+      "sha256": "6c32b74649dac773077522aed4de55cfc3bece1a0d762abe97f21f0f68d5fc3d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusauthobserver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2175,
+      "sha256": "8b40cfdb1c1107a9408b1bf08084beee251ba6623fa3ace0bccf550403dcf47d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 42417,
+      "sha256": "fa71e9e3c04f92c833b8104dbc1ccd45d07e8f1bd1b55f2e9ce6005d40e86d69",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbuserror.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4402,
+      "sha256": "cfb880a2419d35bc172c10e2dfe75a9c0dca0c33869f2cb20ffd74f6cd9af967",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusinterface.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3029,
+      "sha256": "18975d0761339355ccfc12b39b0285155c31be44b3153b4a8f7e61e2cbaf7975",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusinterfaceskeleton.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6444,
+      "sha256": "ed11884e907777008b838bf18f826e87d8b7ba15c0d4690f9182217ba4c120e7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusintrospection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 12522,
+      "sha256": "08e97050c38d21283a4050b537e5cf7aec56216fb09c4bb81c5a41b5363ee03f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusmenumodel.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1777,
+      "sha256": "5f56f84a39f91e2d10c9ff7fd0fa7cb59c1e575c5a985f178b8dba2d12ac473d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11543,
+      "sha256": "d5519b25351752ba4b631cc286cb12a80180af9ce2adc77bba8f4f5ce8c712a3",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusmethodinvocation.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6954,
+      "sha256": "8547fdf7a53a009d4c48f00e8f7f32292d19294fd43db06723f0828f4da0aca8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusnameowning.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4939,
+      "sha256": "46a2bd65edb6f3787816dbc7b24a7796aa2b86c8b06730327598d45d3ee1b3c1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusnamewatching.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4565,
+      "sha256": "92edf2a7992a22a66b40247ce3d68ad95ebaf5aaffa8c89d902dfc017883c475",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobject.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2986,
+      "sha256": "e7b2466bd684cd2713e18ba6a9585b5352f8502873c35596f8b90dc1ed7afbd3",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobjectmanager.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4518,
+      "sha256": "8a447a2b4694c3ef9ce3385494b4c624a8518602726dd4d11d216db797c96897",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobjectmanagerclient.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9659,
+      "sha256": "3bcba9c4f4819ef8df627100bde9faf12c1cd727e35e78a40a0e58b9031df4cc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobjectmanagerserver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3983,
+      "sha256": "92a76a0dc2ebfeee9cfe00473df51a5e7c3e634ac7f1cc10c1d0aa4aee0372a8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobjectproxy.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2519,
+      "sha256": "5742ac61919440b74a6b891c7bf549f8a2c6c5d2915b3567c74c85c85796b033",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusobjectskeleton.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3831,
+      "sha256": "9fb5ac3f6c9496551b99e912943efb744f518c780fa201d8b984ac42f8a4531e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusproxy.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11992,
+      "sha256": "618bc6f5352720ba4e1be6cfafb5e29b8cb23ac835d5ffa996d066fbfe1a1312",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusserver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2575,
+      "sha256": "2501555143739e9947d8a0e3fcb9508a9adac8b20d50b9b99a571ea404f29447",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdbusutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2133,
+      "sha256": "be1d35960e57d92e26c8afcaa8eee2f4a33110be1d154d50261917162c815775",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdebugcontroller.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2514,
+      "sha256": "655a198630bb6c1628ed8f8acad0aafccaff588d31d91dc65240b887959e07f3",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdebugcontrollerdbus.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2073,
+      "sha256": "e7873cd66e9a2d800e95f3e653aac1f0a305481ba6c15403586883f9d30593c8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdrive.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14521,
+      "sha256": "a31e0ca649ed992e1cb097d5d1c1d41bbbcce76e7fd04baf1b24a97eb2ed708b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdtlsclientconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3239,
+      "sha256": "d3b58923c0fcd49bdeff4e93e6333ee4e48c30bdf459ed4061cb32e9652f1634",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdtlsconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 12607,
+      "sha256": "535c9f82b18ee300530b9b3ff23c0693f0cbfa936bf97e455e3f3b65d10e8ae4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gdtlsserverconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2341,
+      "sha256": "338cbae684be5e3c3588ddf2419fcbf8e7b91057445104522b6909d7d89d69e4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gemblem.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2151,
+      "sha256": "6c810f29b6a92a2a0cef734b2d985a63bad63137d2cebafa6a1f495197002e1d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gemblemedicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2746,
+      "sha256": "6c12d49467274d40407e7c984d83b01d3078206a78954cde47cfa8e9b0ea636f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfile.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 86274,
+      "sha256": "b567747143a40567c10d580fef499d429564de4a9574c0119010d5886514e5a6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileattribute.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2930,
+      "sha256": "5dc549e8b8e1a66846f258e539034888b9a41825dff67b38919727d129d89cd6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileenumerator.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6365,
+      "sha256": "c67e6e6320ab0ecd4d56dd2f1a0006816f37c8ffef32a46940629f591f82f063",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1922,
+      "sha256": "6751af2ca0e57539408421d5a4012c1c81a7d91736e19281893ac4f983149968",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 53580,
+      "sha256": "2a47a84506bf4ad96b1a76647cdde2d20a30d92e703aa0aebf53bfcdfd82dbba",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4516,
+      "sha256": "d38fef0c1bb84274c349713a609086b253f806ee5b6f4c24c620e12211d449ec",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileiostream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4895,
+      "sha256": "9e0d1cf63be2ee52b7cd0fe762508a30e878787bfe0e2b7903323b30421cb28c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfilemonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3261,
+      "sha256": "135536960cd7c1cc0722c452be1cd4613282a1e2e0e5c22e028b5d9942be734e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfilenamecompleter.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3026,
+      "sha256": "eb55681f43be864e36e645475fcf01aea492a38286c0f987193019e9ffc447f9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfileoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5180,
+      "sha256": "ea569709fab85eb4d6ce0f50bbe57cfdb2b818a393478cef7172da1ebe57832c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfilterinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2769,
+      "sha256": "02f747a593f840e61280ef210b6cb18152cbe8c741a6a4cdf893e1ea6ab9870d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gfilteroutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2810,
+      "sha256": "c1db9a30bc2fc446c2cea5a6f5aed32105241a94d8b1771000fcace0342aaa8a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4303,
+      "sha256": "b1212ee0bb7eb862acae08792ac12b887b95ec70843a12d7e5d9009dc4aaab3c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/ginetaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5176,
+      "sha256": "1b98264c9dbe45828cd9b7ec7aed3ec44cc4be3be2fdc3e36ad92c9cc9eca9a6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/ginetaddressmask.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3158,
+      "sha256": "4415387534c47d114cb2328f356930aad2dec5cd4b2e06549abae160614cc392",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/ginetsocketaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3153,
+      "sha256": "bf3151a631773fe1b2bc78c4912991a106bd0e3f08615f1cc78212f155e022fb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/ginitable.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2936,
+      "sha256": "8f9ab53e98f45203fc72bf72374b876a7ff211fe44c93bc3b5f987ca7631e7ce",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/ginputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9142,
+      "sha256": "a0ff697e5b83ab10ebba625fec13118ae625a281b4a3a65a6ea7c0fda3a4d87a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gio-autocleanups.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9099,
+      "sha256": "e6c28e6a09975df7ce1febdf85caffb9a0e428dc9051f5d735437c62dfa7f333",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gio-visibility.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 50236,
+      "sha256": "d5efaef078926649ca3dead950dcf61be06f8a6be662ad6cc67cf6320dfbf0f6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gio.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6010,
+      "sha256": "e7ec9668f05b559f0beb0419a6a615a0d0b84c6dbf1ebd2bff5a76cdb46df246",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gioenums.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 86295,
+      "sha256": "6bbb6d0841cbc15792a0df42bd4255802b3882c58a5539cbfb8cb53843db5bcb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gioenumtypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 13849,
+      "sha256": "34fe280aa39a802454074341b2554ee455f828231971ce24b73b84cac1983d8e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gioerror.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1720,
+      "sha256": "189e41832ccf2dfd7755ca1c46b3d596376274221982112aed212c302874f408",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/giomodule.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8205,
+      "sha256": "55abb9a79a9d355f99feac21489a0ccdb123399fac3b78d74e22b5cc07be5444",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gioscheduler.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2044,
+      "sha256": "546e1c36e8429c403cb720b16fcc17a99b6422ee2e7c2f57c03809fab42195e5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/giostream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4835,
+      "sha256": "3e283828f3a39821be3d9ab4da701f45011b35dba4ca7f1271a3ac311dbac6d5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/giotypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 23245,
+      "sha256": "c1276e0b8c1a06a907f01dff9f8f708fc00618ca9683e4d0c04207b2a4fe21ad",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/giptosmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1487,
+      "sha256": "22c6853b288f44bea7e1ec34179e4232d46fe51a19af193441a951a6a8c34c21",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gipv6tclassmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1552,
+      "sha256": "cca5f82b97988218dbb15d90f2e38879d3b0ad0e49a0a32dd3e5a5669524e4eb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/glistmodel.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2619,
+      "sha256": "f4b2429391b96ddd080cbf0b4917386c45eb21174d4a17728a447f7b94afaad0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gliststore.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4731,
+      "sha256": "7f8a5cf6c5b3de554cb128d8b720e1941b36b243821087e0a8245dd73b880411",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gloadableicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3612,
+      "sha256": "3d0b21d023261faa4c8b95be0876c982fe45e4f48b007e55c71839bd6515267f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmemoryinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3385,
+      "sha256": "c1ecbf351c7872383290cdaf96ca02d4f3f7755184587f89a8cbe00f0ac2ebf2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmemorymonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2201,
+      "sha256": "2580d34f703841311587388ab0535d22ce2724cff717f9c2ce77697183b0a000",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmemoryoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3880,
+      "sha256": "bb29b3a62180abcf37510958628dc8c6cdaae3cdae0e0484aee23d4e034fbeca",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmenu.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8954,
+      "sha256": "253727be92d7c0eff150dd1db174de5ad79115e190255a5a45d96d4f1ab437dd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmenuexporter.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1980,
+      "sha256": "fa3f15ebcc2ed9f5d4ff16c3ce887aa3d48b24d504b8a6c8fde42e2496281b40",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmenumodel.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14364,
+      "sha256": "a44ef200e9703117a84c56fb4fd3c28ee4cbdbc33f77d5af50900237cc56c2d1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmount.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 15812,
+      "sha256": "8705819650b9e69d182b0f92c941c1b16bcede397a3f0da1eeb9f76b932f46d2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gmountoperation.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6621,
+      "sha256": "79b1fb7fbe5a80a2344947ee7be4122fb3e3ab23804bd79d5cadb8bee713cb7d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnativesocketaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2583,
+      "sha256": "ec8e9aa5811258b03116018504152d379a7f4afff293a8a3153a60edec735a95",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnativevolumemonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2318,
+      "sha256": "ffc0ed48c4638fb1aa4ecfa54048b107a2ffa2604b0592b3bc7de1133c988310",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnetworkaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2997,
+      "sha256": "b824416be0d67c790091935975832ef9e0f6d07ece60495fddf8e6c0149f0149",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnetworking.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2092,
+      "sha256": "e47d7097edfc8615b3bb7f23e55617abc20b1d5a50d6bce329b29a2219da6a1f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnetworkmonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4294,
+      "sha256": "330456f6574ec148ef9f919230c84f82249aef0174fbab6230b37fcb4da01db0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnetworkservice.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2797,
+      "sha256": "109971af42259b1413e338da962af1c1903f886858945c6df06cc25764d8e28d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gnotification.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5158,
+      "sha256": "cdb3e86c732fbb5cb16168f4996cd78284311ff5e66c7e7a3f83018b1138aa2e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/goutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 15543,
+      "sha256": "ddf93e92941a97455dd4564459a75233acfe5f8ed1ada80ab7eb161f655d255e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpermission.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5900,
+      "sha256": "5b63d643fc265fe7ebd3824b0eb38304445b663bae645ddcbc77f7cf1f7b19d0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpollableinputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3746,
+      "sha256": "6d1160f21f9be04d1cbf6d88632593e7880b9a02ae3e499b0811c4d955da6262",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpollableoutputstream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4832,
+      "sha256": "0ce87e5ce4d73aa99f0a58985b4ac56045f3b263a5a4b8a497c117247f5b4b0a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpollableutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2178,
+      "sha256": "b48f91cfffaf99a22ff9968dc893599575817f43557baa8607b98b7484851856",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpowerprofilemonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2362,
+      "sha256": "56dae2dc2b93d071cee0c7a05326c8972e59dab87f56420e0926ad655e393bfa",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gpropertyaction.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2041,
+      "sha256": "94d2af3438ebee6715306a53fb7e2120ce73c81f8c0d777c7be1856420869c76",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gproxy.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4028,
+      "sha256": "580f8414ecce450ed40dc11f214d5e6f025f5bf7a3366ad8864fee8d881d2852",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gproxyaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3206,
+      "sha256": "ad54b376369c0bbee13b942312ffdb2e1721b4595dde5da0498614ae92a975a5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gproxyaddressenumerator.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2766,
+      "sha256": "324ca794f09176cbf20ce6fb646d52ef9e78881ac9227da54e6eed6b1f266bf5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gproxyresolver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3450,
+      "sha256": "e59b8ac9125a4481e04f7ffb51eecad2396b3578c527712b985fb847b721c5f7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gremoteactiongroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3681,
+      "sha256": "d49e953825b9be43c33b08fb8cc5b2dc2d468e92605e4020488a26f8a9a3728d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gresolver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 17213,
+      "sha256": "0cf7b0aa16fd9679dcf232f8239ba2e8e58ae5f4f29118b094127746130e0824",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gresource.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4957,
+      "sha256": "a814491c14462318c1ffb8452d0ed622172f68dc17f92c2d3c571ba82980c0ef",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gseekable.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3256,
+      "sha256": "29dc3eb817d68128b1c62499b918cc2030af5320341bcd184a70a976c4584c3b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsettings.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 21822,
+      "sha256": "b6ae53bb7dfed06c04f07138bfdcb1b43b25bc4bb846a219d0354e9fed0f72d3",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsettingsbackend.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8457,
+      "sha256": "a0bf894876875440e58091298e5bf81afb5596560164878406c5325e03b48bfd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsettingsschema.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5988,
+      "sha256": "239655a6e97b005a4e8867a5db3925ca0d42e9d8eb2a7df3566caa6ee54bb8d8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimpleaction.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2958,
+      "sha256": "c29d67509cd3a7f6ead523f509d2e628f4a91c5cf96660a322bcfbebf2e43ec8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimpleactiongroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4235,
+      "sha256": "e0de68adae33d306c171b54a27df556680f0b4f2caba4c0ceea7d30d5619a79e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimpleasyncresult.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7752,
+      "sha256": "0b06f84a32763b8b5438797216f7b02abc99bde50b7a86532be0f95480aab0e1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimpleiostream.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1769,
+      "sha256": "9c83d39ce2e2c65b734afe1342136b00f696d227dde08e6ad13ee854fb65632d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimplepermission.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1733,
+      "sha256": "ce15e953a8675f946f9cec19b8216729e1db38352a9c947f7ce57a3896927ccc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsimpleproxyresolver.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3468,
+      "sha256": "b0f106f6fbd376f107acae2e5c32e707f53cc9e71eb72fbd0e171382c8c13b3f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocket.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 17221,
+      "sha256": "fe6ecac3fceaeecb01bd922516d8b80e08bd48d4f80f0ceca8b2e6be2a971352",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3130,
+      "sha256": "6f058f3afc56bb301e5c8101173f33a5741c73410601f8725011665567d9b72b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketaddressenumerator.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3816,
+      "sha256": "c2108ae9d6167b28b08e731d6b20ce2f98474b34d40c56334696e0e273c53b82",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketclient.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11229,
+      "sha256": "614fa37d5c4b4e5317ed18700fb131d2981a0ff6cbac6c57d1e60861adecef63",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketconnectable.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2828,
+      "sha256": "47426827badc4c5d01244ced7ce2350521c581beeb1cc6fddbb3fd626724390b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5094,
+      "sha256": "8797c845444d49479bb488c3543086cee6450377ba06365b48c43e2f40d17938",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketcontrolmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5000,
+      "sha256": "40fc26a5f53551d224676af80c693f0ddce089e4d1b0cd00b60c5449ddb084f2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketlistener.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7715,
+      "sha256": "8fc9ded34f402fed38e2312f86fed1b35e029a51a4aadc9fdcad3b12a0006523",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsocketservice.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3663,
+      "sha256": "337ea8f69b00a24760651b0322d9d4bfbdb46a10a6620329b9d894758dcd6b18",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsrvtarget.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1975,
+      "sha256": "b9dc8dce56abb188cbc0981486fdbb2c10178e692cff6156edf657a967aa94f1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsubprocess.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8628,
+      "sha256": "85658f5e6fe27176d060a75631e78fe6207f16c1086dc11113c622be37d8b054",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gsubprocesslauncher.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6559,
+      "sha256": "ab91da2357f8df1072a1802135ef4080324608197fcaf0db92785efff5c93f51",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtask.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9994,
+      "sha256": "67877d4c48bb7c31017b95621d39c2d5da5d1929e89740913d78b4bb61006f1d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtcpconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3003,
+      "sha256": "409c3d0f79bc047a273cbc93d59048ca1ee8e91d8c1fdcb3672d5ca9b3934386",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtcpwrapperconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3019,
+      "sha256": "104f6807c8d9d7774c1487e61f8b70e804a42ffd3de390b4a07590d41a1cf9fa",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtestdbus.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2343,
+      "sha256": "73a7766c8e436698399db467df96e2998403fe83ca299c865203d6c7be6b2056",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gthemedicon.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2608,
+      "sha256": "aabb0cc5123bff103c027700cb6a324b698d67eef0f46c813febf44001b4f4e0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gthreadedsocketservice.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3712,
+      "sha256": "ccee3e97d693826356b92b5efc8c0cf067e3d06765ec32be2018f047a3d31e00",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsbackend.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4638,
+      "sha256": "8f5d388b55e1120c120067864537376fd98eb0e3656d002c13504281779e0149",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlscertificate.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5206,
+      "sha256": "3bbbfc8197c010f4e7c7ee52bc61bc01c020e62eabd65c71680cd5bfed3e4b0a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsclientconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3726,
+      "sha256": "5b97d2e4a16bffad48c52328a1f7d649a9f6d7e1652a8151360123cb727c6804",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8626,
+      "sha256": "c82f158b28ffa1c4f41e6856fe080709931433a76b5abbf83d5fd4019e7902cd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsdatabase.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 17306,
+      "sha256": "b7f61da13dadb4fd9a32d21a339c94a97f1cb38ecd8c9c3d3803f54f23928f0a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsfiledatabase.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1956,
+      "sha256": "d967e52001067542ea57c47967ab8ddbfe68eab7ce4c152cdcc0dfe653caed5c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsinteraction.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8373,
+      "sha256": "8b6d39fe8d55c5eb3c0cf44cfd00b457c64b01a576ed84340dcb7b70f5d0421a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlspassword.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4856,
+      "sha256": "8bb784f374556d2a8628a7d8270335ef1240c4466fb0938d2d07db76a5b02765",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gtlsserverconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2246,
+      "sha256": "8646d23f89edf6d61e40ce47f6e5f58fa1361baee9527dad5977c4afec058dad",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gunixconnection.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5801,
+      "sha256": "07f6415b4db556067f7d0275f8d8eee6fb81c83cc496ed0d39dddf905a77e5a9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gunixcredentialsmessage.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3060,
+      "sha256": "3867e0a0ba622f837fe1ddff2d7bae784d65875bc19af858d5de775a976fe3a7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gunixfdlist.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4286,
+      "sha256": "a135d205037163c04dedcbd5b88b393b0083c0160c5ae8acf3697cc90c8cb9cd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gunixsocketaddress.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3464,
+      "sha256": "e0cc0bba4243928847c9dc3f2d4671b69374d4df60e5bb4334908b240422cb18",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gvfs.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6648,
+      "sha256": "7c9f338a2770477a9be998a85cfd1cbe2d8a67a5474538d1399579eeae1b1b75",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gvolume.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11768,
+      "sha256": "6d14cccd1f1b1229fa9265ecc34b60f816ea2b0c4c7f2a531561603ddccc48fb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gvolumemonitor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5970,
+      "sha256": "b6d97415ec7e63b078f3698299c7e2f98463c0fca3323ec2dd393f4950221e1d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gzlibcompressor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2671,
+      "sha256": "2159cb6d2ac9b3d7d70007ab803b0b5d7ac9c623ee8b67e4d4ebb00a2c59a368",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gio/gzlibdecompressor.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2258,
+      "sha256": "57b37b1d44de8ee9a440e639c197471532cb2d331f4e74ff7870382bc1597d29",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gi-visibility.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 49180,
+      "sha256": "fcec73b2ad86b61205345c32190727b3f5cc5df4162c21ba5b0d2af589d45983",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giarginfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3320,
+      "sha256": "bc207328ce16ed6d8b21c9e3827a1ce1d21972175b261b50cc148735c09a9a1a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gibaseinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4090,
+      "sha256": "487a1a1b66121b09b1e28069e18529a22bfd0e2b644ecf5ac2fe502e15f46b99",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gicallableinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5076,
+      "sha256": "6a49b60d1bec13aeade9fd367d78e9ab75833cb7c61c1fd46f01140cb4300783",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gicallbackinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1904,
+      "sha256": "4cca7abbf8f5e776959a4d01a4f2f0c7b4f20190fda5278884537b66a4cf4e86",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giconstantinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2332,
+      "sha256": "a83fb89777034f503cfedcd39b7915481f80f53f313fff1dafd73b88cfa7021d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gienuminfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2563,
+      "sha256": "6184022a05495c6344396cca0ebebbb1a7b100dd9cfe29da181a636d756665ca",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gifieldinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2801,
+      "sha256": "f7cfe1bdcfc3919634103f94985b7413bb67b7957d63d28251257192756bd3aa",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giflagsinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1871,
+      "sha256": "13abeaa84e3df8813312c76697f5e098b536b0bb43cc13860ccc813dc14f1e88",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gifunctioninfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3797,
+      "sha256": "9d35f0fde965fdc9ca4c3316a62cd2e56c01dc96cb3336aa0bf42b3d7ad653c1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giinterfaceinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4267,
+      "sha256": "dec8933d66bb361122a01041b4a594a50448f5da404212c619388610c4ca65c9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giobjectinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7413,
+      "sha256": "3d3ab3fcef93933fcf041e6b25d4d41469f192ac9ab482eab4c21f0d7814867d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gipropertyinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2393,
+      "sha256": "f0d18060d7b44f041cfb39f1f7ac8516b3ccf5aea9dcccec685f29e1b1ea25ba",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giregisteredtypeinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2514,
+      "sha256": "a51786ccd6d67fd5a0ac21a942373c0bd657cd9f097782b1992609f49b948569",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/girepository-autocleanups.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2655,
+      "sha256": "19201a6c5e9b00eb909fa301757a8139c0baee751cb007ea6ace48e84ecec25e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/girepository.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 9774,
+      "sha256": "d8a9dfd2bb04477bcd152678a43e02e25fc305213bf5fe1a3a17f14e414483c7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/girffi.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4825,
+      "sha256": "7d616e7c28cbc12267ee1bbd3fab411c4f01effe9f6fe90c2f4716782357342f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gisignalinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2213,
+      "sha256": "06a153efbec70fd8695775c36bc581343e3736df517a067ee8e46e4c40540643",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gistructinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3294,
+      "sha256": "6b80d27d0dc3b5b9b1a3a9a584fe01b161d29e4a36045f7a38d89c9bda21525d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gitypeinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4850,
+      "sha256": "82cf62e9f4e03e731bdf8d2a4e97ecb9b28e8649567402641778d5ad4366b13b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gitypelib.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2050,
+      "sha256": "9d4862ac4075bf614eb6825e525f7c5a7440ebf698364770e4d481f2e44db840",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/gitypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 13410,
+      "sha256": "170b20c212d6d09838d82a2038e0435b52327a27794afd3ec7540e29472a1348",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giunioninfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3556,
+      "sha256": "51eb3b8fbd470ff285dd6ce3c92f3d8169dbf5c580e932f25adb295fedabcb19",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/giunresolvedinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1928,
+      "sha256": "386a17df6e4e67fb23096dee7f1623435be972340aa2eb2e849549c1a99cf798",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/givalueinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2008,
+      "sha256": "3b23b6966565b047ce3ed4e0af2171c0ec0abe01e044d1fe94f792dc2a29b067",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/girepository/givfuncinfo.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3097,
+      "sha256": "ab706ac8f5dd7e32d4da74ee82acec294f5d63c55ebd57a7c017a82f7862c8f8",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib-object.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1580,
+      "sha256": "060b79399c3828720d2265c22053e36f5ae30315fd1c0bd0a470901c90c0ee12",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib-unix.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11615,
+      "sha256": "211963296a0660f357c8791a85ca3f6b859d64be70580eeaac26d9636d6c84a0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3513,
+      "sha256": "39e27b80c444380f44063a3b24822c70416325c951b33b52a80e8d57d6fe6ca1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/gallocator.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3256,
+      "sha256": "5fcfeedce2b1c72df6a9840534a32a57d9e13fd311d9020f6f58c91be5f5fee4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/gcache.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3036,
+      "sha256": "4355a64befcf717950d4beac8c3b8642b1c884ccc8c8ec05c24b2b353cfc9a8f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/gcompletion.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2976,
+      "sha256": "9b13a5a037e882a118de2a4009a8b5624ade22e2fa344a4d0f947c27169280ff",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/gmain.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4442,
+      "sha256": "72322bcbf1fc6336dba37cbc00431b172918a1aa1e97b9d6b15036463f287729",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/grel.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2976,
+      "sha256": "b3a1dce40f90d4d5dc05b5a1e7063dac70460d0768a835b87c9e914ec459364a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/deprecated/gthread.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11277,
+      "sha256": "606c6e20791fce6054e22f8c2c55f90b9133b1ef327667560bb5224faae2d783",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/galloca.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5435,
+      "sha256": "37761621cf111e8eba5f81554dd35bdf2c728bb5142fb74764d86d7bc78160f7",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/garray.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 13839,
+      "sha256": "62ac3d19ee7bfdac23931dbb3c856d28575a35c77804f5d57e926454418bf943",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gasyncqueue.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5775,
+      "sha256": "894f1f1e9cba6f0c27393d51a5c7a954293c7849e27b50f6aa46cf14314d4466",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gatomic.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 36616,
+      "sha256": "9c82ff6cae1c16d1b4182505ddc5ac6d8dd825ea95a40d0bac1194af0baa7793",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gbacktrace.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2842,
+      "sha256": "f587bc7568a1e41b5398e7e54606f4e9835c20fcd5f06c97cefe3e9314dd65b2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gbase64.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2372,
+      "sha256": "ebf27f7cb916e7ec0b28f59269a3f16d8c569589a002d7a9bcb3f4ffda04f40c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gbitlock.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4726,
+      "sha256": "32d68e1452516db8696fd02d0a2b3ca1907b9295a46736ad80c7421711c33362",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gbookmarkfile.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14871,
+      "sha256": "45783cbdef5c96199650211420d92810169fdb0831c65f8f9e55a6421b895bfd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gbytes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3710,
+      "sha256": "23d00e6de7aca933045281f3063d89eb18989d2a5a2f2eefce24da5eb9e67359",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gcharset.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1627,
+      "sha256": "18f78ad2c6050ce1d9359de906435d9e0d5436956cd59100454055b52eba75be",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gchecksum.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3709,
+      "sha256": "f49a60c4832fa960ae349f8054c2efe1ded7400132eef2a558fd14397622e37e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gconvert.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5972,
+      "sha256": "37e3abdc61f2c59acacb1035631ef6f49e1e09de87de627844db3ce9cae9be38",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gdataset.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6522,
+      "sha256": "51f3d2ccd8f78b6fb91a154d1d620c4ff39b065e639ba233c42d4f8fd775f160",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gdate.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 12508,
+      "sha256": "ef0cf1215c506494feb0d6e2d788b1c1bdf5f256324b2d5a714f1f0cd87b841f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gdatetime.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14446,
+      "sha256": "2af1278500be3b0b11b3c25e189e20211a236cbc20f8d0ae085ed8d02bef834a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gdir.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1871,
+      "sha256": "3b400d2f61a6bb1576620bc2ca075fc69b192bcbe1e21473718c99240117dfa4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/genviron.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2413,
+      "sha256": "8d874f2aa016f31df0743abaa5dd80f6856a87f7012234afb7da4dfb1e837ec4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gerror.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11406,
+      "sha256": "a27053cfbbfdf574dc84d0bb1a9e5388f8ea4447b226e2e0478fc56ab0a2cfb4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gfileutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7937,
+      "sha256": "2ea9d5d88271f4d4824236303025f35743879c685496e460721d9db04c111320",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/ggettext.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2473,
+      "sha256": "3d27f62cef97f1849fa75d8938b3b320a7c56a06e4c02c2d751bc5c6dc63caf6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/ghash.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8613,
+      "sha256": "a42530b22c661438bdf1259b4d79453629bb4d5cc29f8ac7d0ef6784208eadcc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/ghmac.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3341,
+      "sha256": "1c5c3fc77d6b8910853b82adbc877b694323b3ceb963c88a42030b77bb9356a6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/ghook.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6532,
+      "sha256": "e4b7989b8722a8ee4270d2642dd9cb73c85b8e8cb48f9faa284b5c6ae75dbec6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/ghostutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1505,
+      "sha256": "999217d1fa5d839fe925414b18d243aa76be4b23a46fb09b258358bd14e87cbb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gi18n-lib.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1419,
+      "sha256": "fe39a999b3476fd3410d3aa5a4e700077afd1f64ffa2ddda7a94343145f7d418",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gi18n.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1216,
+      "sha256": "a7f9e6845c9d47db1a37fc4fa302e93d7ce21f8121caa6da8af161c5a7968b34",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/giochannel.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14078,
+      "sha256": "b38b3544dcefb1a7f44edbae890846f6f494e4bc802422327872c04efdfba7f0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gkeyfile.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14979,
+      "sha256": "5a4ff3dc19cdaddc42dab35929dd0f5b8c050ab80799560578760f6afdd9b022",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/glib-autocleanups.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5125,
+      "sha256": "682c7fc5d0e823e2b12edd8fe33716b7a5384b795c25a032704b5b48eced7534",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/glib-typeof.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1706,
+      "sha256": "787e0a7c1e19382c15d7a871be704218ca4348183cd245227034a3541a3bf8dd",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/glib-visibility.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 51292,
+      "sha256": "5df780f0882527300d3a67de45787134b56730ef39a2f79961d86d2119b8c886",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/glist.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6979,
+      "sha256": "452c9630d10791f6275127bbc4b62d9b88d9c1ad692b8270e3e959a4a8ecca84",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmacros.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 53982,
+      "sha256": "bfe14a66b3b886008a9a082468872b412f2bd0ea0b2a9c1514ba503d075a783e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmain.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 37019,
+      "sha256": "39861c0b59cc7ab42bdb710a44a02a138509a7bd8d5f065b765a2d2457365b4b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmappedfile.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2035,
+      "sha256": "9a81686c79212be22d95ea3571dff300db823af436379b3cc9b596d6d790b7d6",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmarkup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11793,
+      "sha256": "77e55bc494d88ccea78b8bfd4f70c102b412a545b5cafcc0d3da5afae5c8b7b5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmem.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 16035,
+      "sha256": "3f4860183081e3bbe7ff064cd6cf059303ccf9c68e8b07edd8d8ef7ba7db345c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gmessages.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 28090,
+      "sha256": "f287ee42ecc7d4d7dadecbd51fa361045d99a822d2d96497c86322d11ef8604c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gnode.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8766,
+      "sha256": "b3be538a4d34ef7ed14dc47fa4561c10edf891cc6a817e1a9b0d33659cd775cc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/goption.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 17004,
+      "sha256": "b8105be2fcca64a48229a6f095b67b720ff49170e1eabcb624a0bae0d58d09d2",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gpathbuf.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2467,
+      "sha256": "7f607c0d3787efbcda518be3c7fcf354cfd79d158d662dd84e468d26ad812deb",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gpattern.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2359,
+      "sha256": "f95f0521ea27f51749ba2efae6eb664009eae937c35cafc9031de4148af7fd9b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gpoll.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4174,
+      "sha256": "c48074f7b7ab6d13572f1ec445d5fdf84579bd62b9d016eefffff4e52dc5308b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gprimes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1743,
+      "sha256": "38736c190298d71c831c6087790873152ed610ff393f69d6450278a726c48d88",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gprintf.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2033,
+      "sha256": "d0bde603f7734da145f7807f8494305f61472a0d89fe66de47b0f237db17fd01",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gqsort.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1836,
+      "sha256": "3e8ada455d7defd180df5cf28e9fbae2b730a6fe629211bae447fff89decf78c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gquark.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2737,
+      "sha256": "542a0572b58bc983b7868291713945b6884cb4679e33b2e02c0179b5d8f4f48f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gqueue.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7815,
+      "sha256": "fda6ce559dbf04ee496611828694019b914e9c2dcb3a9e72fd94728ff1edee5c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/grand.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3230,
+      "sha256": "9b447f5ecae63a8e3c73f96f5918ada4cab9f28a29d83643f7734c3588c3ca63",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/grcbox.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3856,
+      "sha256": "97ff37002f38583b5d0ebb00daa35993d8fb39ef8e694c31dbc88d77920b090e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/grefcount.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5196,
+      "sha256": "19e1010dcaa1bf2ca349f5e32fba870427b6141ed2ee92770d0e4d7f98ccf24c",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/grefstring.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2036,
+      "sha256": "e5bd77e88b72c3a097a8525b9f33b395d5a80d01589433b78fd5ae2948ebc977",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gregex.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 28772,
+      "sha256": "740dcf84cb2f78e564f5fccbd22b9bb4a9c8398ac60249d03e44596c8eaae876",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gscanner.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8910,
+      "sha256": "881f46d946f58014f31ba2a16d6b4b9b042d399715a9d9081c5d578e529c5b96",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gsequence.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8860,
+      "sha256": "36f1d599a2db918aeae2842bb4a32505f010ccc7b2aeffe534d3dcfbdc3aacbc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gshell.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1801,
+      "sha256": "7b64a16225e137aa024537d4f789f0b109d003b4e2c3f3899f25b0cd50fc4e8f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gslice.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5020,
+      "sha256": "26cf92df0696430d4aa0e49acdccb8d331504db1ae69604a1a36720fe3eaaf02",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gslist.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6600,
+      "sha256": "b0a77cf06286d8ed9b77d18e39e22615b8f587c6b7fa2bb45f9a2e324fef4f26",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gspawn.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14267,
+      "sha256": "a2a8d73ff6c9a2f62bb6dc4736796af2368d181d5555a7ef76e8dfac8f3a7fc9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gstdio.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 8216,
+      "sha256": "1fe92b1feeec81617b70d968eac6269b9dec239b3945d419bc15bed62a791d33",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gstrfuncs.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 19204,
+      "sha256": "95bce09587bfe32869e8ae1b6ab0a4df143ddd2cc58219d8d87c8d06e6ec07ba",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gstring.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11820,
+      "sha256": "b0866c45e1e6dad237583dee128482f2ff651b7d6166cf7e07964e3bb4535678",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gstringchunk.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2179,
+      "sha256": "06e1d69ba1c1d47feff1c8b8f20609b012aee58815b4c49e6b6c31abad3dd671",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gstrvbuilder.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2007,
+      "sha256": "a275c675242a9175ce85aee271c1defa2fce33257363c182c015618209e19d5b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtestutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 41679,
+      "sha256": "8426eee6cb1a5d815e1c8f498590775450f7354e20e76f453cf00a77618c7e9b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gthread.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 26520,
+      "sha256": "767bcecf9b93e82b8fb68f4d2cc627591a73cdf811930f44161bf4514c5c0542",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gthreadpool.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4357,
+      "sha256": "cce4bd554a3207d75ff91670b9e2eacb61c2534d5c5ab23048caa3fcb26a6f9f",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtimer.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2708,
+      "sha256": "fba4e2d11890dd372b922da3d9f318758330a2553491b08ea7002439fb97e0ee",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtimezone.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3954,
+      "sha256": "55f1656503344425eb48e578048397f570001b07ec591170727bbc57011ae9ea",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtrashstack.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1955,
+      "sha256": "b44a7c735e2aa51eb63b0f6c0cf401c5126f6818d14e3bd5ce1c01be65217d38",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtree.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6588,
+      "sha256": "ac7bf3599faeace791615e39653a08e33eb3055874d4d295f57e51f546d7854b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gtypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 21677,
+      "sha256": "abc3f5bcb1de0b1548e698667db5bbc43218833df930be040b5a6067147f2384",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gunicode.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 45096,
+      "sha256": "91a8ed56fc69d653ccd333db7a50ad004c36c75c6db7083bfa4167bc9bf72494",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/guri.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 16546,
+      "sha256": "3b74d47a67faa00c1b1ace4789e59e579f417f03a3794f677929a27962b59dce",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gutils.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14262,
+      "sha256": "0c8619f4db73877f8c8431afb7cee613e8d8beb5b6ee51e8b571462184644397",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/guuid.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1291,
+      "sha256": "356fd3f2381a68933ba4c19e22d2e6162a7940c7e73a9f3e2f9ba2d7e64eb726",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gvariant.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 32014,
+      "sha256": "54fce32ac0112e4bc0cb6a36ccda8f49e4cc3c9b0b00cc79b56f7346718f94fa",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gvarianttype.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 13763,
+      "sha256": "1c54df3aca5dd1c4b07ea5cd13718682882714441b4ac4ac9c639a99e2ba520a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gversion.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 2030,
+      "sha256": "554d6eb15172eb55a0133c8023b1e0a5fd68c0c9454a50a917fd18fa472d97fa",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/glib/gversionmacros.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 14324,
+      "sha256": "d9b0683fa21688c9f3434a4197972dda30bd6a55d13251b7d76593c4b887de84",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gmodule.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5329,
+      "sha256": "9e8dd22a52233212862bb7a31f56282d0e0e53eeadb74f6326ffb586640d634e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gmodule/gmodule-visibility.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 54460,
+      "sha256": "41ce656691404103695b0af1a3c3bf73468f9ff9cf3ec4fcd5735c50e1c03894",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gbinding.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6575,
+      "sha256": "d3a0dc848d48e03b3d1ebad7fccd3468f9986de39fad2412977d8d9b670cd957",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gbindinggroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3934,
+      "sha256": "0ffcccb3bd8cebec08f08d2a2ffc0a459819c5f26b14e21d73cd48c63ce0666e",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gboxed.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4047,
+      "sha256": "9b27a09669ab10c979e6dde4ae97b92b7cc5378c331350f29b2549ef29ffd522",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gclosure.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10853,
+      "sha256": "6ee435f316e50f73f39ecb1c4bb93df0dcfe8c2ab13d96d1a2b3bea342c5b7a5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/genums.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 11707,
+      "sha256": "1d8717feff02f43687eccc94aac3889ffa607354ed96141607d17f0508a143c9",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/glib-enumtypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1007,
+      "sha256": "ec00fdfe5cd18300aafab9c2594198a90f143c77e0df40099520299c3bde8bb4",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/glib-types.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10601,
+      "sha256": "d95feb580eca41442f5ccd03b92fc5205947b21bb6c13798b3f3aa368bf50798",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gmarshal.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 21973,
+      "sha256": "a0bf6b50af3703586f22f4f69bf7a32f6672e384bf64d391c77597de44a76833",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gobject-autocleanups.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1484,
+      "sha256": "0d84932dc1daf529b28ed12cd7e05d157e09cdea63acb14ccd70a794a340978a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gobject-visibility.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 54460,
+      "sha256": "8564f27eca9702fd69c635fa086de660eb6780b99f258f0653be4a71570dd2b5",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gobject.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 34857,
+      "sha256": "e08684ff9dcf967ca821ea34f966cc0e5da6a6e806d20e451876da062b2f5c73",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gobjectnotifyqueue.c",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 5595,
+      "sha256": "7d41807e35ac05d14a275c07e19826a73dc8c3d88d019bf7af4caa76baf8fe4d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gparam.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 17141,
+      "sha256": "9b89516be741e6b9c23e85e3f0f03d512bdf27a26cc6a6ee850e8ffcd8c30ef1",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gparamspecs.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 34179,
+      "sha256": "15e677d389e094d547932f33f03f4ad01392f77e242d8bcf9ab30a1d65d5c4ac",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gsignal.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 27322,
+      "sha256": "832973e148d5aa717a11648316d2d94d2d7fcab19942924bb15c7d48a18e52e0",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gsignalgroup.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4297,
+      "sha256": "e5f52140800dab3a8a40aae6bbb7deab4b892a674956939b27ef64654621b79a",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gsourceclosure.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1330,
+      "sha256": "b3fddf72cafbff985b1c47736e13ae8de81864b865931de7d354a2115114cfcc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gtype.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 103882,
+      "sha256": "1c5ebc23e8940fc10b9f81eb1405faf4fd47fc0178754d69ba26248770edad2b",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gtypemodule.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10797,
+      "sha256": "3d266d329aecb84a39e48a9277df030cab578bbea5a370e541b56924f3938450",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gtypeplugin.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 4893,
+      "sha256": "7d7837c2c040513cf7258226552cbf0ffe3e5914d0e1cda6fff3324581cbffdf",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gvalue.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 7715,
+      "sha256": "5aed70494f3d44ce3bf910c50185282823dfc86318ae90b946325b59f4356a0d",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gvaluearray.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 3136,
+      "sha256": "6d0b96a983c97ae16784eece034f846df4adf5ec4193290247a48fa77fb7d3f3",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gvaluecollector.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10338,
+      "sha256": "0827092f333aa9e75bde25c008a129961ac844bb099d3457de798d3357555fbc",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/include/glib-2.0/gobject/gvaluetypes.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 10509,
+      "sha256": "e1372518a01940c93b89846fa975e67d2da6b1c7b1614d4d959646cb50d99757",
+      "mode": 420,
+      "role": "header"
+    },
+    {
+      "path": "usr/lib64/glib-2.0/include/glibconfig.h",
+      "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 6008,
+      "sha256": "86d1e52a3a2bfd245c14c9d6b621a6083f364d13f4679f7214fe3d9cb7ecc87c",
+      "mode": 420,
+      "role": "header"
+    }
+  ],
+  "existing_runtime": {
+    "format": 1,
+    "files": [
+      {
+        "source": "/usr/lib64/libglib-2.0.so.0.8800.0",
+        "destination": "/usr/lib64/libglib-2.0.so.0.8800.0",
+        "size": 1469656,
+        "sha256": "5a83924bca2c3f672d51d4daddb025ce44f5f59bc27efa3139c726a378eb497f",
+        "mode": 493,
+        "package": "glib2-2.88.0-1.fc44.x86_64",
+        "provenance": null
+      }
+    ],
+    "symlinks": {
+      "/usr/lib64/libglib-2.0.so.0": "libglib-2.0.so.0.8800.0"
+    }
+  }
+}

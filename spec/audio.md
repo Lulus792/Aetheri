@@ -86,12 +86,14 @@ remote; default manual routing remains unchanged. See the separate
 [policy profile](audio-policy.md) for actual automatic-link and control tests.
 
 The diagnostic uses ordinary matching user/group identities and NoNewPrivileges.
-It connects to the explicit path; a failed properties allocation cannot choose
-the default remote. This private path is fixture routing, not a production
+It opens the explicit Unix socket itself and transfers that connected FD to
+PipeWire. Ambient remote-name configuration cannot replace it; a missing target
+fails without fallback. This private path is fixture routing, not a production
 broker-delegated connection or process admission protocol.
 
-One main loop owns stream, callbacks and cleanup. Each process turn fills at
-most 8192 frames in a checked single mapped buffer. No per-turn allocation or
+One main loop owns stream, callbacks and cleanup. The finite signal is prepared
+before streaming in at most 768,000 owned bytes. Each process turn copies at
+most 8192 frames into a checked single mapped buffer. No per-turn synthesis, allocation or
 logging is needed. Conversion/rate/channel drift fails rather than choosing a
 different format. The callback does not request real-time scheduling.
 

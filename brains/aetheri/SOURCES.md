@@ -1,5 +1,25 @@
 # Sources
 
+## Native audio management — 8 November 2026
+
+- [Exact SDK](../../spec/audio-control-inputs.json),
+  [contract](../../spec/audio-control.md) and
+  [executed record](journal/2026-11-08-audio-control.md): two signed development
+  packages, direct C17 controls, actual metadata/PCM and original-handle lifetime
+  tests. Headers match the existing runtime; installed GLib hashes are distinct
+  evidence from new header-package signatures.
+- Exact WirePlumber 0.5.19 [control source](https://github.com/PipeWire/wireplumber/blob/0.5.19/src/tools/wpctl.c),
+  [mixer](https://github.com/PipeWire/wireplumber/blob/0.5.19/modules/module-mixer-api.c),
+  [default-node module](https://github.com/PipeWire/wireplumber/blob/0.5.19/modules/module-default-nodes-api.c),
+  [component loader](https://github.com/PipeWire/wireplumber/blob/0.5.19/lib/wp/component-loader.c)
+  and [core](https://github.com/PipeWire/wireplumber/blob/0.5.19/lib/wp/core.c):
+  actual ownership, cubic scale, activation, unescaped name interpolation,
+  connect_fd ownership and asynchronous sync completion, including error returns.
+- [GLib thread-default context](https://docs.gtk.org/glib/method.MainContext.push_thread_default.html):
+  stable context rule since 2.22; the current documentation does not imply adoption
+  of its newer library release. Actual 2.88.0 headers/runtime and private-context
+  negative/positive execution bound this selection.
+
 ## Discovered-device audio — 8 November 2026
 
 - [Additional input hashes](../../spec/audio-device-inputs.json),

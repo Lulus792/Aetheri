@@ -1,5 +1,22 @@
 # Decisions
 
+## Use maintained library controls behind an original adapter — 8 November 2026
+
+Implement the private C17 management backend with libwireplumber's default-node
+and mixer modules. Reuse device-route behavior; keep Aetheri's bounded snapshots,
+references, validation and observation contract original. `wpctl` remains only
+an independent test oracle. The extra SDK matches existing runtime versions;
+do not add a toolkit, helper daemon or normal service to obtain these controls.
+
+Require the caller's thread-default context for the entire asynchronous lifetime,
+exact revision/reference validation and no replay of submitted commands. Use an
+explicit connected Unix FD instead of remote-name properties: actual negative
+evidence shows environment routing can replace those properties. This correction
+also applies to the finite producer. A barrier plus matching readback is an
+effective-state observation, not durable authority, causality or audibility.
+Keep the unsafe-name JSON guard and distinguish new-stream selection from
+existing-stream migration. [Evidence](journal/2026-11-08-audio-control.md).
+
 ## Join device discovery and audio policy before desktop rollout — 8 November 2026
 
 Extend the independent diskless HDA fixture with actual udev enumeration and

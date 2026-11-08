@@ -52,6 +52,9 @@ The separate [policy profile](spec/audio-policy.md) now tests automatic stream
 links, a default output, volume and mute against real captured samples.
 The [discovered-device test](spec/audio-device.md) joins udev, ALSA/ACP profile
 selection and automatic HDA playback in two diskless cold boots.
+An opt-in [C17 management adapter](spec/audio-control.md) now lists outputs and
+controls default selection, volume and mute through the library, with native
+readback, timeout and independent sample tests.
 This is not yet sound in the USB desktop: physical output, headphone/Bluetooth
 policy and Settings controls remain work.
 

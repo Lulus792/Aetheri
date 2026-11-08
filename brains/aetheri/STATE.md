@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — A separate diskless guest now joins actual udev enumeration, WirePlumber ALSA/ACP profile selection and automatic HDA playback. Two cold boots and the manual regression deliver all 96,000 stereo frames; the no-card control stops before actors start. Normal audio/Settings and physical hardware remain work. The stick stays unchanged.
+8 November 2026 — The original C17 audio-management adapter now lists outputs and controls default selection, volume and mute through libwireplumber. Release/ASan/UBSan tests verify actual metadata, full PCM, safe close, server loss and unknown timed-out commands. Normal audio/Settings, mediated device access and physical hardware remain work. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,41 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Native audio management — 8 November 2026
+
+The [C17 adapter](../../spec/audio-control.md) now uses the maintained default/
+mixer APIs directly; it does not launch or parse a control command. Its copied
+output snapshots have connection/serial/ID references, revision checks and one
+pending command. Readback after a barrier distinguishes submitted from observed;
+timeout/disconnect never implies cancellation or replay. Six actual private
+graphs pass in Release/ASan/UBSan, with three observed outputs, default switching,
+unsafe-name/stale/invalid-input rejection, mute preservation, immediate close,
+server loss and a paused-server timeout. Fresh explicit observers do not adopt
+old unknown command history. Complete PCM independently verifies unity/cubic 50%
+gain, while muted capture is actually zero. The original four audio CTest groups
+also pass in both variants. See the [executed record](journal/2026-11-08-audio-control.md).
+
+Both final HDA cold boots, the manual control and no-card rejection also pass
+after rebuilding the finite producer. Its full signal is prepared before
+streaming; a rejected earlier silent-quantum capture remains preserved and
+tolerances stay unchanged. The final audit joins 552 code/pin inputs, 1,121
+export members, twelve controller actor snapshots and all twelve retired native
+helpers. Two injected cleanup faults retire all four original fixture actors.
+
+The exact header SDK adds 351 signed-package headers and one copied existing
+GLib runtime, with the policy prefix's notices retained. It introduces no new
+runtime family. The caller must keep its private GLib context thread-default
+through asynchronous retirement. A real negative test exposes ambient
+PIPEWIRE_REMOTE overriding explicit properties; both adapter and finite producer
+now pass their own connected Unix FD instead. Missing explicit targets cannot
+fall back to the valid ambient server.
+
+Selection tests run before creating the diagnostic's DONT_RECONNECT stream;
+moving an existing stream is not accepted. Normal session/device mediation,
+Settings, native HDA control and physical HP/Bluetooth output remain work.
+Public wire/catalogue capabilities, original authority/carrier and USB remain
+unchanged. The legacy Lua review/update gate still applies before normal rollout.
 
 ## Discovered-device audio — 8 November 2026
 
