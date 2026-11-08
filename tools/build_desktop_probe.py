@@ -12,9 +12,11 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import uuid
 
 import build_data_probe as data_image
 import desktop_payload
+import device_filter_image
 import test_boot_probe as boot
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -44,6 +46,7 @@ def build(base,packages,output):
         baseline={('/usr'+p['source'] if p['source'].startswith('/lib64/') else p['source']):p['sha256'] for p in pins['files']}
         normalized=desktop_payload.normalize_base(tree,manifest,baseline)
         inventory=desktop_payload.install(tree,manifest)
+        device_runtime=device_filter_image.install(tree,packages,output,run)
         (output/'desktop-runtime.json').write_bytes(raw)
         (output/'desktop-copy.json').write_text(json.dumps(dict(inventory=inventory,normalized_flat_base=normalized),indent=2)+'\n')
         units=tree/'etc/systemd/system'
@@ -90,6 +93,19 @@ def build(base,packages,output):
         put('etc/systemd/system/aetheri-udev.service.d/aetheri-image.conf','[Service]\nFileDescriptorStoreMax=512\n')
         put('etc/systemd/system/aetheri-graphics-modules.service','[Unit]\nDefaultDependencies=no\nRequires=aetheri-data-check.service\nAfter=aetheri-data-check.service\nBefore=systemd-logind.service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/lib/systemd/systemd-modules-load\n'+console)
         put('etc/systemd/system/aetheri-graphics-vt.service','[Unit]\nDescription=Select the fixed development image console\nRequires=aetheri-graphics-modules.service systemd-logind.service\nAfter=aetheri-graphics-modules.service systemd-logind.service\nBefore=aetheri-graphics.service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nNoNewPrivileges=yes\nCapabilityBoundingSet=CAP_SYS_TTY_CONFIG\nDevicePolicy=closed\nDeviceAllow=/dev/tty0 rw\nExecStart=/usr/bin/chvt 8\nStandardOutput=journal\nStandardError=journal\n')
+        root_partition=str(uuid.uuid5(uuid.UUID('e64786b8-e09e-496c-8175-731a1debcf8f'),nonce+'/root-partition'))
+        put('etc/aetheri-device-proof',nonce+'\n'+root_partition+'\n')
+        # The earlier data profile tags block devices but does not publish UUID
+        # aliases. Import first, then match in the following rule as in initrd.
+        put('etc/udev/rules.d/98-aetheri-root-identity.rules','ACTION!="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", IMPORT{builtin}="blkid"\nACTION!="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_PART_ENTRY_UUID}=="'+root_partition+'", SYMLINK+="disk/by-partuuid/$env{ID_PART_ENTRY_UUID}"\n')
+        run('device-probe',['/usr/bin/gcc','-std=c17','-D_GNU_SOURCE','-O2','-g0','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror','-fanalyzer',str(ROOT/'src/boot/device_filter.c'),'-o',str(tree/'usr/libexec/aetheri-device-check')])
+        for mode in ('baseline','denied'):
+            unit='aetheri-device-'+mode+'.service'
+            after='var.mount tmp.mount systemd-journald.service'+(' aetheri-device-baseline.service' if mode=='denied' else '')
+            body='[Unit]\nDescription=Check actual development device policy\nRequires='+after+'\nAfter='+after+'\n[Service]\nType=oneshot\nRemainAfterExit=yes\nUser=root\nGroup=root\nNoNewPrivileges=yes\nCapabilityBoundingSet=\nAmbientCapabilities=\nDevicePolicy='+('auto' if mode=='baseline' else 'closed')+'\n'
+            if mode=='denied':body+='DeviceAllow=/dev/null rw\n'
+            put('etc/systemd/system/'+unit,body+'ExecStart=/usr/libexec/aetheri-device-check --'+mode+'\nStandardOutput=journal\nStandardError=journal\n')
+        put('etc/systemd/system/aetheri-graphics-vt.service.d/aetheri-device-check.conf','[Unit]\nRequires=aetheri-device-denied.service\nAfter=aetheri-device-denied.service\n')
         put('etc/systemd/system/aetheri-graphics.service','[Unit]\nDescription=Aetheri development desktop\nRequires=aetheri-data-user.service systemd-logind.service systemd-user-sessions.service aetheri-graphics-modules.service\nAfter=aetheri-data-user.service systemd-logind.service systemd-user-sessions.service aetheri-graphics-modules.service\n[Service]\nType=notify\nUser=aetheri\nGroup=aetheri\nPAMName=aetheri-graphics\nTTYPath=/dev/tty8\nStandardInput=tty\nStandardOutput=tty\nStandardError=tty\nTTYReset=yes\nUMask=0077\nNoNewPrivileges=yes\nCapabilityBoundingSet=\nAmbientCapabilities=\nRestart=no\nTimeoutStartSec=90\nTimeoutStopSec=infinity\nEnvironment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_SEAT=seat0 XDG_VTNR=8\nEnvironment=LD_LIBRARY_PATH=/usr/lib/aetheri/runtime DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus\nWorkingDirectory=/home/aetheri/Documents\nExecStart=/usr/libexec/aetheri-desktop-owner\n')
         graphics=tree/'etc/systemd/system/aetheri-graphics.service'
         graphics.write_text(graphics.read_text().replace('aetheri-data-user.service','home.mount var.mount tmp.mount aetheri-graphics-vt.service').replace('StandardOutput=tty\nStandardError=tty\n','StandardOutput=file:/dev/ttyS0\nStandardError=file:/dev/ttyS0\n'))
@@ -108,7 +124,7 @@ def build(base,packages,output):
         put('usr/share/licenses/aetheri/COMPOSE-LICENSE.txt',Path('/usr/share/doc/libX11-common/COPYING').read_text())
         flags=['/usr/bin/gcc','-std=c17','-D_GNU_SOURCE','-O2','-g0','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror','-fanalyzer',str(ROOT/'src/boot/desktop.c'),'-lsystemd','-o',str(tree/'usr/libexec/aetheri-desktop-owner')]
         run('owner',flags)
-        return dict(proof='desktop-image',target='aetheri-desktop.target',desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),desktop_builder_sha256=boot.sha(Path(__file__)),desktop_owner_sha256=boot.sha(ROOT/'src/boot/desktop.c'),desktop_runtime=inventory,applications={n:boot.sha(app_root/n) for n in APPS})
+        return dict(proof='desktop-image',target='aetheri-desktop.target',desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),desktop_builder_sha256=boot.sha(Path(__file__)),desktop_owner_sha256=boot.sha(ROOT/'src/boot/desktop.c'),desktop_runtime=inventory,device_filter=dict(runtime=device_runtime,source_sha256=boot.sha(ROOT/'src/boot/device_filter.c')),applications={n:boot.sha(app_root/n) for n in APPS})
 
     data_image.build(base,packages,output,prepare=prepare,geometry='desktop-v1')
 

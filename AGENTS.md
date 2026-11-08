@@ -1270,3 +1270,22 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   without asking again; continue work after flashing, never write internal disks.
   Preserve all failed attempts, original carrier/normal inputs/quarantine/CLOSED
   and foreign files. Full goal remains active; NexaUI handoff stays closed.
+
+- tools/device_filter_image.py now adds signed Fedora44 libbpf2:1.6.3-2 and its
+  pinned matching BSD licence as data to new graphical images. Read
+  spec/device-filter.md and the2026-11-08 device-filter journal/STATE. Carrier
+  library stays unchanged; known object-parser reports are not claimed cleared.
+  This is trusted PID1-generated instructions, not caller ELF/BPF loading.
+  src/boot/device_filter.c checks baseline read-only root block open versus EPERM
+  under DevicePolicy=closed, with actual null access in both cap-zero/NNP probes.
+  Both oneshots gate VT/desktop startup. The root PARTUUID alias needs a separate
+  blkid-import then match rule; old data rules only tag. Two cold boots also pass
+  GUI/document/normal unmount-poweroff. This proves fixed probe policy, not all
+  app/MAC/device policy or retroactive old-image acceptance. Keep PrivateDevices
+  and original runtime pins. Controller requires exact ordered same-boot results
+  and rejects mixed/failed/disabled-backend output. Independent ordinary-user
+  fsck/debugfs verifies14 document bytes, ownership/mode/link and unchanged hash.
+  Preserve failed/unknown attempts, original carrier and foreign work. Next
+  single-medium USB root/data, independently checked parent/physical geometry and
+  laptop DRM/input/firmware; repeat relevant tests before the authorized G: flash.
+  Continue development afterward without waiting for hardware tests. No flash yet.

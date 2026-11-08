@@ -3,6 +3,12 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
+8 November device-filter checkpoint: the [graphical image](../../../spec/device-filter.md)
+now includes the reviewed dynamic backend and proves actual baseline/denied block
+opens in two cold boots, while preserving GUI/document/shutdown behavior. Next
+join this root/data with the proven USB initrd and laptop drivers on one medium.
+The old missing-libbpf image is not retroactively accepted.
+
 8 November USB checkpoint: the [early USB-root profile](../../../spec/usb-root-probe.md)
 now passes two actual cold boots and rejects wrong transport/filesystem before
 mounting. Next close the graphical image's missing-libbpf/device-filter evidence,

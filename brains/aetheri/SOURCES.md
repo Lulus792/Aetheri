@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Actual graphical-image device filter — 8 November 2026
+
+- systemd259 [device controller](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/bpf-devices.c),
+  [instruction loader](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/bpf-program.c)
+  and [dynamic backend](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/bpf-dlopen.c):
+  direct source confirms the trusted instruction path and dlopen dependency.
+- [Fedora44 packaging source](https://src.fedoraproject.org/rpms/libbpf/raw/f44/f/libbpf.spec)
+  and signed1.6.3-2 RPM/header/payload inspection; [pins](../../spec/device-filter-inputs.json)
+  retain exact archive/DSO/signer/matching upstream BSD licence. The patch is
+  declaration compatibility, not a claimed security fix.
+- [Upstream releases](https://github.com/libbpf/libbpf/releases),
+  [advisories](https://github.com/libbpf/libbpf/security/advisories) and open reports
+  [898](https://github.com/libbpf/libbpf/issues/898)/[960](https://github.com/libbpf/libbpf/issues/960):
+  scoped limitations, no exact CVE-clearance claim. Do not extend this profile to
+  untrusted ELF/BPF loading without fresh review.
+- [Contract](../../spec/device-filter.md), [probe](../../src/boot/device_filter.c)
+  and [executed record](journal/2026-11-08-device-filter.md): baseline/EPERM/null
+  access in two cold boots, GUI/document/poweroff regressions, independent
+  filesystem inspection and preserved failures. No physical-media acceptance.
+
 ## Early USB root and initrd handover — 8 November 2026
 
 - systemd259 [boot sequence](https://raw.githubusercontent.com/systemd/systemd/v259/man/bootup.xml),

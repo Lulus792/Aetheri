@@ -1,5 +1,20 @@
 # Decisions
 
+## Require actual device denial in the development image — 8 November 2026
+
+Add signed Fedora44 libbpf2:1.6.3-2 as systemd's dynamic device-controller backend,
+without replacing carrier libraries. Keep separate RPM/payload/licence pins and
+the original desktop runtime inventory. Use two cap-zero root oneshots to prove
+the same actual block node opens in the baseline and fails with EPERM under
+DevicePolicy=closed; both must still open the real null device. Gate desktop
+startup on those checks, then require ordinary GUI/persistence/shutdown regressions.
+Keep the vendor broker's PrivateDevices namespace. The selected Fedora patch is
+kernel7.0 declaration compatibility, not a claimed CVE fix; newer upstream feature
+releases and known object-parser reports are recorded in the
+[review](../../spec/device-filter.md). This is scoped trusted-instruction use,
+not arbitrary BPF loading or production security clearance. Repeat this evidence
+after USB/laptop integration; no repeat user permission is needed.
+
 ## Reuse systemd initrd handover for early USB root — 8 November 2026
 
 Keep the selected PID1, kmod/udev/mount tools and pinned kernel. Add only its

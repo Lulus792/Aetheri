@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — early USB storage, read-only root checks and initrd handover now pass; joining that path to the desktop and laptop hardware remains work.
+8 November 2026 — early USB handover and actual development-image device denial now pass; joining the desktop/data/USB/laptop paths remains work.
 
 ## Coordination
 
@@ -13,7 +13,29 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## USB root and initrd handover — 8 November 2026
+## Actual device filtering in the graphical image — 8 November 2026
+
+The separate graphical build now includes signed Fedora44 libbpf2:1.6.3-2 and
+its separately pinned matching BSD licence. No carrier package/library changes
+occur. Two cap-zero/NoNewPrivileges root oneshots compare actual read-only root
+block opens: the baseline succeeds, DevicePolicy=closed rejects with EPERM, and
+the null device stays accessible in both. The existing VT service then starts.
+Two actual cold boots pass that sequence, app input, document persistence and
+normal unmount/poweroff. See [scope/review](../../spec/device-filter.md) and
+[evidence](journal/2026-11-08-device-filter.md).
+
+This closes the discovered missing-backend gap for these fixed development units;
+it does not certify all app/device/MAC policy or retroactively accept old images.
+Known upstream object-parser reports remain a review limit; this device controller
+uses trusted PID1-generated instructions, not caller BPF/ELF objects. Broader
+production security review remains work. Next join the graphical root/data with
+the proven initrd on one removable medium, independently check common parent and
+physical geometry, and add laptop DRM/input/firmware. Repeat relevant tests there
+before the already authorized flash. No USB write yet; keep developing after it
+without waiting for the user's later test. Full OS goal stays active/incomplete;
+NexaUI handoff stays closed.
+
+## Prior USB root and initrd handover — 8 November 2026
 
 The separate USB-root proof now boots through UEFI, loads the selected USB storage
 modules, checks the expected removable partition before mounting it read-only,

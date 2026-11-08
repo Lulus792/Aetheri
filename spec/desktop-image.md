@@ -35,12 +35,15 @@ roles. The system broker retains its vendor device sandbox and writes to the
 journal instead of trying to open a console inside its private `/dev`.
 
 A fixed root oneshot selects VT8 with CAP_SYS_TTY_CONFIG in its capability bound.
-Its unit configures a `/dev/tty0` device allowlist. The subsequent USB-runtime
-audit found that this first image lacks libbpf and logs disabled cgroup BPF
-features: that configured device filter is **not accepted as enforced**. Add the
-reviewed backend and an actual allowed/denied device-access probe before the
-USB desktop profile. The GUI capability/NNP and session evidence below remains
-separate. The graphical service starts through its explicit development
+Its unit configures a `/dev/tty0` device allowlist. The first image lacked libbpf
+and logged disabled cgroup BPF features; its earlier configured filter has no
+retroactive enforcement acceptance. The subsequent
+[device-filter profile](device-filter.md) includes the reviewed backend and
+tests actual baseline/denied block opens in separate cap-zero oneshots before
+the VT service. Two new cold boots exercise that path; see the
+[record](../brains/aetheri/journal/2026-11-08-device-filter.md). The USB desktop
+must retain and repeat it. GUI capability/NNP and session evidence remain separate.
+The graphical service starts through its explicit development
 PAM profile on that console. Its UID/GID1000 process requires NoNewPrivileges,
 zero effective capabilities and an active local seat0 Wayland session. Dedicated
 PAM files configure these root-selected units only; the fallback PAM profile

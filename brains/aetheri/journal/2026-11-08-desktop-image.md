@@ -13,6 +13,8 @@ reviewed dynamic backend and a real device-access negative before acceptance.
 See the [USB-root record](2026-11-08-usb-root.md). Earlier console-output failure
 does not independently prove cgroup-device denial; the journal-output correction
 only proves that the fixed service can start with those settings.
+The later [device-filter checkpoint](2026-11-08-device-filter.md) now supplies
+that backend and separate actual baseline/denial evidence in new cold boots.
 
 ## Result and boundary
 

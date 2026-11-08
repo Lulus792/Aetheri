@@ -35,6 +35,21 @@ def validate_volume(manifest):
     return volume
 
 
+def check_device_filter(serial,manifest,boot_id):
+    nonce=re.escape(manifest['nonce']);identifier=re.escape(boot_id)
+    lines=[]
+    for mode,read in [('baseline',1),('denied',0)]:
+        # ForwardToConsole adds the journal timestamp/identifier before messages.
+        line=r'\bAETHERI_DEVICE_PASS nonce='+nonce+' mode='+mode+' block_read='+str(read)+r' null_rw=1 cap_zero=1 nnp=1 boot='+identifier+r'\s*$'
+        matches=list(re.finditer(line,serial,re.MULTILINE))
+        if len(matches)!=1:raise ValueError('missing/duplicate device-policy observation')
+        lines.append(matches[0].start())
+    all_results=re.findall(r'\bAETHERI_DEVICE_.*$',serial,re.MULTILINE)
+    if len(all_results)!=2 or lines[0]>=lines[1] or 'cgroup BPF features disabled' in serial:
+        raise ValueError('unproven device-filter sequence')
+    return True
+
+
 def query(path,expected_uuid,process,command,arguments=None):
     if process.poll() is not None:raise RuntimeError('original VM is terminal')
     with vm.qmp_socket_at(path) as sock:
@@ -118,7 +133,7 @@ def run(image,output,timeout=180):
                         body=serial()
                         if value in body:return body
                         if process.poll() is not None:raise RuntimeError('VM ended before '+value)
-                        if 'AETHERI_DESKTOP_FAIL' in body or 'AETHERI_DESKTOP_END status=failed' in body:raise RuntimeError('native desktop rejected startup/use')
+                        if 'AETHERI_DEVICE_FAIL' in body or 'AETHERI_DESKTOP_FAIL' in body or 'AETHERI_DESKTOP_END status=failed' in body:raise RuntimeError('native desktop/device check rejected startup/use')
                         time.sleep(.2)
                     raise TimeoutError('not observed: '+value)
                 def action(name,qmp,args=None):
@@ -150,6 +165,7 @@ def run(image,output,timeout=180):
                     body=wait_for('AETHERI_DESKTOP_READY uid=1000 cap_zero=1 seat=seat0')
                     root=re.findall(r'^AETHERI_ROOT_PASS nonce='+manifest['nonce']+r' .*ext4_ro=1 write_erofs=1 cgroup2=1 boot=([0-9a-f-]{36})\s*$',body,re.MULTILINE)
                     if len(root)!=1 or (number==2 and root==state['attempts'][0].get('boot_ids')):raise RuntimeError('missing/distorted root or cold-boot context')
+                    check_device_filter(body,manifest,root[0])
                     current['boot_ids']=root;capture('desktop')
                     launch('terminal')
                     text("printf 'aetheri-image\\n' > image-note.txt" if number==1 else 'cat image-note.txt');chord('ret');time.sleep(1);capture('terminal-document')
@@ -163,6 +179,7 @@ def run(image,output,timeout=180):
                     body=serial()
                     if process.returncode!=0 or 'reboot: Power down' not in body or 'EXT4-fs (vdb): unmounting filesystem' not in body or 'Failed unmounting' in body:
                         raise RuntimeError('clean graphical shutdown not proven')
+                    check_device_filter(body,manifest,root[0])
                     data_test.check_held(held,data,expected)
                     current.update(state='accepted',exit=process.returncode,seconds=time.monotonic()-started,serial_sha256=boot.sha(attempt/'serial.log'),data_sha256=boot.sha(data))
                     state.update(state='boot_accepted',pending=None);record();print(json.dumps(dict(event='accepted',number=number,boot_ids=root)),flush=True)

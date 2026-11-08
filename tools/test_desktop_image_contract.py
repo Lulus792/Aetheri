@@ -68,5 +68,13 @@ class DesktopController(unittest.TestCase):
         for bad in ('-kernel','-initrd','-append','-netdev','-fsdev','-virtfs'):self.assertNotIn(bad,args)
         self.assertFalse(any('tcp:' in x for x in args))
 
+    def test_actual_device_evidence_requires_baseline_denial_and_same_boot(self):
+        lines=[f'AETHERI_DEVICE_PASS nonce={self.manifest["nonce"]} mode={mode} block_read={read} null_rw=1 cap_zero=1 nnp=1 boot={self.identifier}\n' for mode,read in [('baseline',1),('denied',0)]]
+        good=''.join(lines)
+        self.assertTrue(desktop.check_device_filter(good,self.manifest,self.identifier))
+        self.assertTrue(desktop.check_device_filter(''.join('[    1.234567] aetheri-device-check[120]: '+line for line in lines),self.manifest,self.identifier))
+        for bad in (lines[0],lines[1],good+lines[0],''.join(reversed(lines)),good.replace('block_read=0','block_read=1'),good.replace('null_rw=1','null_rw=0'),good.replace('boot='+self.identifier,'boot='+36*'a',1),good+'AETHERI_DEVICE_FAIL reason=unexpected-block-open\n',good+'cgroup BPF features disabled'):
+            with self.assertRaises(ValueError):desktop.check_device_filter(bad,self.manifest,self.identifier)
+
 
 if __name__=='__main__':unittest.main(verbosity=2)
