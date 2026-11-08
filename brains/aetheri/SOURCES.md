@@ -51,6 +51,26 @@ current security status, complete license compliance or runtime acceptance.
   Windows cases. Physical lock/write/readback requires separate execution and
   original-process exit evidence; no physical write is implied by these tests.
 
+## Startup keyboard profile and first-test guide — 8 November 2026
+
+- The pinned wlroots 0.20.2 keyboard/shm implementation and existing xkbcommon
+  1.13.1 interface are read locally. Native separate-client tests exercise actual
+  delivered characters and replacement maps, with seven affected groups passing
+  Release/ASan/UBSan. The [record](journal/2026-11-08-keyboard-layout.md) retains
+  shared-memory and socket-path failures and the exact final export evidence.
+  This is not normal Settings integration or a change to the first USB image.
+- HP's [business-PC UEFI reference](https://h10032.www1.hp.com/ctg/Manual/c03857419.pdf),
+  read 8 November 2026, supports the family's F9 and Secure Boot guidance. It is
+  an older family document, not a verified EliteBook840G4 firmware-screen map.
+  The newer HP support page returns403; it is not treated as read evidence.
+  The [test guide](../../spec/first-laptop-test.md) separately derives its command
+  examples and current limitations from actual Aetheri code and image inputs.
+- Microsoft [Start-Process](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/start-process)
+  and [ShellExecute runas](https://learn.microsoft.com/en-us/windows/win32/shell/launch),
+  read 8 November 2026: native elevation/consent or administrator credentials,
+  retained process and hidden-window launch. Actual writer/exit/readback evidence
+  remains separate; a launch request alone cannot prove successful flashing.
+
 ## Single-medium USB desktop — 8 November 2026
 
 - systemd259 [SwitchRoot implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/switch-root.c)

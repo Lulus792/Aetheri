@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — two no-UART laptop-profile boots and independent data inspection pass; the authorized physical flash is prepared and requires Windows elevation.
+8 November 2026 — the authorized Intenso is fully flashed and verified; native explicit US/DE startup layout tests also pass. The first laptop boot remains to be tested.
 
 ## Coordination
 
@@ -27,15 +27,22 @@ future-time warning is retained; clock behaviour is not accepted.
 
 The pristine source is image-laptop-v2/boot.raw, SHA256
 `06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
-No physical write yet. The [flash procedure](../../spec/usb-flash.md) now has a
-fixed-target helper,13 Windows tests (including actual unbuffered regular-file
-I/O) and metadata-only identification of the real Intenso. Windows elevation is
-needed for actual volume locking and raw writing. The user's authorization is
-already sufficient; do not ask again to erase the selected stick. Finish the
-prepared administrator launch, retain its original process handle and verify
-complete readback/cleanup/exit before reporting a flashed stick. Never replay an
-existing or uncertain attempt. Continue independent development after flashing
-without waiting for the user's later physical test.
+The [flash procedure](../../spec/usb-flash.md) has 13 actual Windows tests,
+including aligned unbuffered regular-file I/O, and the native applicable review.
+The authorized elevated original writer has completed: protected flash-intenso-v1,
+intent SHA256 `4e9bf85705cb2ea81903dd3d8e9197f5bc29644772c365a61ac05736fc564999`.
+The exact Intenso is reidentified and G: locked/dismounted; all bytes have been
+written and flushed. Full direct readback matches the pristine SHA256 above.
+The original held writer process exits0; handle cleanup and all 242 chained
+journal records are independently checked. Writing takes 1106.64 s and readback
+348.43 s. The [physical record](journal/2026-11-08-laptop-image.md#physical-flash-completed)
+binds the exact evidence. No physical laptop boot is claimed.
+Never replay this completed attempt or automatically reflash for new features:
+the stick now has writable user state to preserve. The Windows access issue is
+resolved for this completed operation. Continue independent development without
+waiting for the later physical hardware test.
+The [first laptop guide](../../spec/first-laptop-test.md) covers the actual USB
+profile's startup, US mapping, persistence, shutdown and local report commands.
 
 Automatic session GPU selection, same-kernel Intel/input modules and exact DMC/
 licence are included. Native DRM/FD/heap tests pass Release and ASan/UBSan.
@@ -63,6 +70,23 @@ unattributed protected/system use remain unexplained. No broad cleanup occurred.
 The older wrong-parent and first-laptop corrupted-data-UUID negatives pass with
 unchanged medium/source bytes; their unchanged initrd guards are not fresh
 negative boots of the corrected tty0-only artifact. Full OS goal remains active.
+
+## Explicit keyboard startup selection — 8 November 2026
+
+The original compositor now accepts `--keyboard-layout us|de` for headless/DRM
+startup. The exact literal applies to each new keyboard; failure does not choose
+another map. Default/backend and nested behavior remain unchanged. Seven native
+groups pass Release and ASan/UBSan, including real Wayland client observations of
+Y/Z, umlauts, punctuation, Shift/AltGr and replacement devices. The separate
+private test fixes use a fresh graphics-shm mount and a short socket path; no
+original carrier data is cleaned. All 279 export members are verified before
+exact helper retirement. Read the [contract](../../spec/graphics.md) and
+[record](journal/2026-11-08-keyboard-layout.md).
+This is a startup foundation, not the normal Settings selector, runtime switching
+or persistence. The first USB image is unchanged and still uses US. Next connect
+an explicit user/session selection through reviewed owner provisioning and the
+Settings boundary; physical keyboard acceptance remains work. No new NexaUI
+handoff, installed service, dependency or public app capability is introduced.
 
 ## Single-medium USB desktop — 8 November 2026
 

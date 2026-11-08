@@ -1000,6 +1000,11 @@ if(AETHERI_COMPOSITOR)
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
             "${CMAKE_CURRENT_BINARY_DIR}")
         set_tests_properties(compositor.input PROPERTIES TIMEOUT 45)
+        add_test(NAME compositor.keyboard_layout COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_keyboard_layout.py"
+            $<TARGET_FILE:aetheri-compositor> $<TARGET_FILE:test_compositor_server>
+            $<TARGET_FILE:test_compositor_client> "${CMAKE_CURRENT_BINARY_DIR}")
+        set_tests_properties(compositor.keyboard_layout PROPERTIES TIMEOUT 45)
         add_test(NAME compositor.clipboard COMMAND Python3::Interpreter
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor_clipboard.py"
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>

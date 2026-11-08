@@ -33,7 +33,10 @@ pass. Independent filesystem inspection also passes. A separate
 [laptop profile](spec/laptop-probe.md) adds Intel/input drivers and automatic
 display-device selection. Two cold boots without a serial port and independent
 data inspection now pass; physical hardware acceptance remains work. Normal login,
-the installer and admitted daily-use applications remain work; no physical flash yet.
+the installer and admitted daily-use applications remain work. The first authorized
+Intenso USB write and complete readback now pass; its laptop boot remains untested.
+The [first laptop test guide](spec/first-laptop-test.md) explains USB startup,
+the current controls, persistence and a useful hardware report.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 

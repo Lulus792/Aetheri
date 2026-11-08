@@ -1332,3 +1332,14 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   exact Intenso/source binding, full zero writes/direct readback and original
   process exit0. No physical write yet. Windows elevation is required, not a new
   erase authorization. Never replay uncertain attempts or weaken volume locks.
+
+- The first Intenso flash is now complete and independently verified: full
+  31,457,280,000-byte direct write/readback, expected image SHA256, cleanup and
+  original held process exit0. Read current STATE and spec/first-laptop-test.md;
+  do not repeat the completed attempt or automatically replace later user data.
+  Physical laptop boot remains untested; keep developing without waiting for it.
+  The subsequent compositor --keyboard-layout us|de startup option passes seven
+  native groups in Release/ASan/UBSan, but is not in this first USB image or a
+  normal Settings/runtime/persistent layout selector. The image still uses US.
+  Preserve the original carrier/quarantine and foreign work; NexaUI handoff stays
+  closed. Full OS, hardware, lifecycle, installer and experiment goals remain work.

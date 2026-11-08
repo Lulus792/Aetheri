@@ -235,3 +235,44 @@ capability changes. Windows elevation is the remaining physical access boundary;
 credentials belong only in its native dialog. The user's erase authorization is
 already recorded. Continue independent development after the flash without
 waiting for the later laptop test.
+
+## Physical flash completed
+
+8 November 2026. The existing Windows Python executable has a valid OpenAI
+Authenticode signature. Native RunAs elevation succeeds; the parent retains the
+original returned process object/handle for writer PID63692 until terminal exit0.
+The protected intent SHA256 is
+`4e9bf85705cb2ea81903dd3d8e9197f5bc29644772c365a61ac05736fc564999`.
+An early parent-script syntax error occurs before any launch-request file or
+RunAs call; inspection proves no launch before that draft is corrected. The
+actual elevation and physical attempt occur once.
+
+The elevated writer rehashes its held pristine source, reidentifies Intenso Speed
+Line/serial212300100050/USB/31,457,280,000 bytes and joins the held disk and original
+G: extent. Neither boot nor system disk is admitted. It locks and dismounts the
+volume, repeats context checks, then writes every byte, including zero regions.
+Complete writing and flush take 1106.644 s. Complete direct physical readback and
+repeated context checks take 348.433 s. The full hash matches
+`06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
+All owned handles close before the complete record; the original process exits0
+and the parent independently verifies the journal before publishing acceptance.
+
+An additional read verifies all 242 complete chained records, exact phase counts,
+original PID/intent/exit bindings, source-reader/writer hashes, actual locked
+descriptor/extent, complete byte count/hash and cleanup. There is no failed or
+cleanup_failed record. The final journal SHA256 is
+`32533689b714abc883976e66874d4dc818e521b1bdf96623ca5809e9078c1efc`;
+acceptance.json SHA256 is
+`fafff2cf629d20bcfca5aa1d1fb93bdc09fc1ef47e99966300cf0cb6039fde5c`.
+Local physical-flash-verified.json joins those observations. No physical laptop
+boot, hardware/cache power-loss guarantee, secure erase or daily-use acceptance
+is inferred. A completed receipt is historical; it does not authorize reflashing
+later user data. The first image remains the original US-layout build.
+
+Independent work continues during the physical transfer: the new explicit US/DE
+compositor startup option passes Release and ASan/UBSan native input/rendering
+groups in a separate private namespace. Its [record](2026-11-08-keyboard-layout.md)
+and the [laptop guide](../../../spec/first-laptop-test.md) preserve the boundary
+between newer source and this already tested/flashed image. The original carrier,
+445 normal source inputs, 31 frozen SQL/XML files, 19 protected hashes and 52
+normal P0 files remain unchanged in the final native preservation audit.

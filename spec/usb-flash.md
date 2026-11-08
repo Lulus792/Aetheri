@@ -78,6 +78,13 @@ non-administrator guard. No unit test opens/writes a physical device. Applicable
 pure tests also run on Linux; the two Windows-specific cases are explicitly skipped.
 Physical locking/writing/readback remains a separate executed boundary in STATE.
 
+The first authorized physical attempt now passes on 8 November 2026: all
+31,457,280,000 bytes are written and directly reread, the full SHA256 matches the
+pinned source, cleanup succeeds and the originally held process exits0. The
+[executed record](../brains/aetheri/journal/2026-11-08-laptop-image.md#physical-flash-completed)
+retains the exact receipt bindings. This is not a physical laptop boot, secure
+erase or permission to replay the completed operation after user files change.
+
 Primary references: Microsoft [direct disk access](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew),
 [unbuffered I/O](https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering),
 [volume lock](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_lock_volume),

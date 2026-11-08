@@ -54,9 +54,31 @@ The input module owns a wlroots seat/cursor and per-device listeners. Real backe
 pointer/keyboard events use scene hit testing, native keymaps and seat delivery.
 Click selects/raises a window; provisional Alt+Tab cycles mapped windows and
 consumes both the shortcut press and release. Keyboard enter excludes consumed
-keys. Unmapping the focused window selects another mapped window. Backend-provided
-keymaps are retained; the fallback is US. Native tests also exercise German and
-Shift/modifier state. User-facing layout/shortcut settings remain future UI work.
+keys. Unmapping the focused window selects another mapped window. Without an
+explicit startup selection, backend-provided keymaps are retained and the fallback
+is US. Native tests also exercise German and Shift/modifier state. User-facing
+layout/shortcut settings remain future UI work.
+
+Headless and DRM builds accept `--keyboard-layout us` or `--keyboard-layout de`.
+An explicit selection applies to each newly attached keyboard, including a backend
+device with a preexisting map. Only these two literal profiles are accepted;
+arbitrary XKB paths, variants, repeated options and missing values are refused.
+XKB default-layout environment variables do not select a different map. The map
+must compile and install successfully; failure does not fall back to US.
+
+Nested mode refuses this override and keeps the parent's map. This startup option
+does not switch a running layout, persist settings, aggregate simultaneous
+keyboards or add an input-injection API. It is not wired into the fixed image's
+desktop owner: the first Intenso image still uses US.
+
+`compositor.keyboard_layout` uses a separate Wayland client to read actual key
+events for Y/Z, punctuation, umlauts, Shift and AltGr. It repeats input after
+device replacement, including a backend-supplied German map under explicit US.
+Invalid CLI profiles must fail before socket creation. Run native suites in a
+short owned Linux build directory, with adequate private graphics shared memory;
+the [executed record](../brains/aetheri/journal/2026-11-08-keyboard-layout.md)
+retains the initial shared-memory and socket-path failures. Physical input and
+normal Settings/session integration remain separate acceptance.
 
 Client move/resize requires the same seat, the actual focused root surface and a
 current single-button grab serial. Old/released/foreign-window requests cannot

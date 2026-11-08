@@ -473,11 +473,18 @@ int main(int argc, char **argv) {
     struct input_driver *driver = NULL;
 #endif
     int shell_fd = -1;bool compose=false,options_valid=true;
+    const char *keyboard_layout = NULL;
     for (int at=expected_argc;at<argc;++at) {
         if (!strcmp(argv[at],"--shell-fd") && shell_fd<0 && at+1<argc) {
             const char *value=argv[++at];char *end=NULL;errno=0;long parsed=strtol(value,&end,10);
             if (!*value || strspn(value,"0123456789")!=strlen(value) || errno || !end || *end || parsed<3 || parsed>INT32_MAX) { options_valid=false;break; }
             shell_fd=(int)parsed;
+        }
+        else if (!strcmp(argv[at],"--keyboard-layout") && !keyboard_layout && !nested && at+1<argc) {
+            const char *value=argv[++at];
+            if (!strcmp(value,"us")) keyboard_layout="us";
+            else if (!strcmp(value,"de")) keyboard_layout="de";
+            else { options_valid=false;break; }
         }
 #ifdef AETHERI_COMPOSE
         else if (!strcmp(argv[at],"--compose") && !compose) compose=true;
@@ -492,6 +499,7 @@ int main(int argc, char **argv) {
                         "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
                         "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- auto|/dev/dri/cardN\n"
                         "  optional private desktop connection: --shell-fd FD\n"
+                        "  headless/session startup layout: --keyboard-layout us|de\n"
                         "  reviewed Compose build only: --compose\n");
         return 2;
     }
@@ -503,7 +511,8 @@ int main(int argc, char **argv) {
     int runtime = private_directory(getenv("XDG_RUNTIME_DIR"));
     if (runtime < 0) { fprintf(stderr, "private 0700 XDG_RUNTIME_DIR required\n"); return 2; }
     close(runtime);
-    struct server s = {.capture_fd = -1, .output_count = drm ? 0 : OUTPUT_LIMIT, .nested = nested, .drm = drm};
+    struct server s = {.capture_fd = -1, .output_count = drm ? 0 : OUTPUT_LIMIT, .nested = nested, .drm = drm,
+        .keyboard_layout = keyboard_layout};
     wl_list_init(&s.session_active.link);
     wl_list_init(&s.session_destroy.link);
     wl_list_init(&s.new_output.link);

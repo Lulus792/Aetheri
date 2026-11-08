@@ -56,6 +56,9 @@ struct server {
     unsigned output_count, window_count, next_home, capture;
     uint32_t next_window_id;
     int capture_fd;
+    /* Optional explicit startup layout; NULL preserves backend keymaps and uses
+       US only for a keyboard without one. Validated literal, never an XKB path. */
+    const char *keyboard_layout;
     bool failed, nested, drm, shutting_down;
 };
 

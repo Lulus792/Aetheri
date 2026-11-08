@@ -422,9 +422,9 @@ bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
         struct wlr_keyboard *kb = wlr_keyboard_from_input_device(device);
         struct keyboard *k = calloc(1, sizeof(*k));
         if (!k) return false;
-        if (!kb->keymap) {
+        if (!kb->keymap || in->server->keyboard_layout) {
             struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_ENVIRONMENT_NAMES);
-            struct xkb_rule_names names = {.layout = "us"};
+            struct xkb_rule_names names = {.layout = in->server->keyboard_layout ? in->server->keyboard_layout : "us"};
             struct xkb_keymap *map = context ? xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS) : NULL;
             bool ok = map && wlr_keyboard_set_keymap(kb, map);
             xkb_keymap_unref(map); xkb_context_unref(context);
