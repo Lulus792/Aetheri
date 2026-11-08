@@ -4,6 +4,32 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Laptop candidate and sparse host I/O — 8 November 2026
+
+- Reviewed pinned wlroots 0.20.2 session/DRM source, including partial device
+  consumption on constructor failure. The [profile](../../spec/laptop-probe.md)
+  and [executed record](journal/2026-11-08-laptop-image.md) distinguish native
+  tests, actual virtual selection and pending physical Intel acceptance.
+- [Component pins](../../spec/laptop-probe-inputs.json) retain exact same-kernel
+  module and Kaby Lake DMC/licence hashes. Carrier RPMDB matches/header key IDs
+  are recorded as such; they are not fresh downloaded-RPM signature evidence.
+- [Linux console rules](https://www.kernel.org/doc/html/latest/admin-guide/serial-console.html),
+  read 8 November 2026, explain the last console and unavailable-device cases.
+  The first dual-console candidate actually fails without a UART; the new
+  single-console profile still needs actual boot evidence.
+- Microsoft [allocated ranges](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
+  distinguish possible nonzero allocation from known zero holes; network mapping
+  coherence needs separate care. Aetheri restricts this path to fixed local NTFS
+  sparse regular files. [Zero-data control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data)
+  can deallocate sparse ranges without changing file length. Nineteen inactive
+  factory-image maintenance records verify all logical bytes before/after.
+  Neither source explains the observed host ENOSPC cause; it remains unknown.
+- QEMU 11.1 [shutdown reasons](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/qapi/run-state.json)
+  distinguish actual guest shutdown from host/reset/panic causes. The new
+  original-connection QMP reader correlates replies, retains events and forbids
+  further dispatch after uncertainty. Isolated tests are separate from no-UART
+  image acceptance and independent filesystem inspection.
+
 ## Single-medium USB desktop — 8 November 2026
 
 - systemd259 [SwitchRoot implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/switch-root.c)

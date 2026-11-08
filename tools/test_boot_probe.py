@@ -14,14 +14,14 @@ import re
 import shutil
 import subprocess
 import time
+import image_io
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "local/tools/qemu-11.1.0"
 
 
 def sha(path):
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+    return image_io.hash_file(path)
 
 
 def inspect(image):

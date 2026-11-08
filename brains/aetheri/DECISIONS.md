@@ -1,5 +1,25 @@
 # Decisions
 
+## Select the laptop GPU and remove the UART dependency — 8 November 2026
+
+Reuse the existing wlroots/logind session's primary ordering rather than card0.
+Keep one selected GPU, close unselected devices and handle the reviewed partial
+constructor ownership explicitly. Add only the same-kernel Intel/input modules
+and exact DMC/licence; retain software rendering for this first hardware probe.
+Do not claim hybrid graphics, accelerated rendering or physical acceptance.
+
+The first dual-console laptop candidate passes serial-observed boots but fails
+without a UART. Select only tty0 in the next laptop UKI and keep the old serial
+diagnostic separate. Require fresh actual boots, native capture review and
+independent data/proof-file inspection. Keep failures; a compiled change is not
+an accepted fix. [Evidence](journal/2026-11-08-laptop-image.md) records progress.
+
+Use bounded kernel allocation queries for local NTFS sparse regular-image reads,
+including every hole's logical zeros in hashes. Physical flashing still writes
+and reads every byte. Proven all-zero spans of inactive factory images may be
+sparsified only under exclusive writer control with full before/after hashes;
+never extend this maintenance to carrier/data/foreign/physical disks.
+
 ## Bind USB root and data to one development medium — 8 November 2026
 
 Use the authorized stick's full geometry, including a backup GPT at its real end.

@@ -11,6 +11,7 @@ import stat
 import struct
 import uuid
 import zlib
+import image_io
 
 DISK_BYTES = 128 * 1024**2
 ROOT_DISK_BYTES = 512 * 1024**2
@@ -35,16 +36,13 @@ class RegularImage:
     def __getitem__(self,key):
         if isinstance(key,int):
             at=key if key>=0 else self.size+key;require(0<=at<self.size,'image byte outside extent');self.stream.seek(at)
-            value=self.stream.read(1);require(len(value)==1,'truncated image byte');return value[0]
+            value=image_io.read_window(self.stream,at,1);return value[0]
         start,end,step=key.indices(self.size);require(step==1 and end-start<=128*1024**2,'oversized image structure')
         if end<=start:return b''
-        self.stream.seek(start);value=self.stream.read(end-start);require(len(value)==end-start,'truncated image structure');return value
+        return image_io.read_window(self.stream,start,end-start)
     def range_digest(self,start,size):
         require(0<=start<=self.size and 0<=size<=self.size-start,'hash outside image')
-        self.stream.seek(start);left=size;result=hashlib.sha256()
-        while left:
-            block=self.stream.read(min(left,1024**2));require(bool(block),'truncated image hash');result.update(block);left-=len(block)
-        return result.hexdigest()
+        return image_io.stream_range_sha(self.stream,start,size)
 
 
 def extent_digest(data,start,size):
@@ -217,7 +215,7 @@ def inspect(directory):
         path = directory/name
         require(not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "media input must be a regular file")
         require(path.stat().st_size <= expected_size, "oversized media input")
-        with path.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
+        actual=image_io.hash_file(path)
         require(actual == expected, "changed media input: "+name)
     with (directory/'boot.raw').open('rb') as stream:
         efi = boot_file(esp_extent(RegularImage(stream), manifest))

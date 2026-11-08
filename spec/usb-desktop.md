@@ -61,6 +61,14 @@ marking and SetEndOfFile, avoiding large CRT zero-fill operations; allocated-siz
 and zero-read checks run against regular test files. Sparse copying is never a
 physical-media writer: a later flash must write and verify every intended byte.
 
+Local fixed NTFS sparse inputs now use bounded kernel allocation queries.
+All possible data extents are read; holes contribute their complete logical zero
+bytes to hashes/windows/copies. Held identity/size/times are checked across the
+operation. Reparse/network/unsupported sparse inputs fail closed; ordinary and
+Linux files retain ordinary I/O. This is not a snapshot against concurrent
+writers. The observed host ENOSPC behaviour and byte-preserving maintenance are
+recorded in the [laptop journal](../brains/aetheri/journal/2026-11-08-laptop-image.md).
+
 The VM controller owns one fresh writable medium copy and its held file identity,
 fresh NVRAM and the original QEMU handles. QMP stays protected host-local AF_UNIX,
 with UUID admission on each connection. No network/shared folder/physical disk or
@@ -107,3 +115,5 @@ Linux6.19 [block ioctls](https://raw.githubusercontent.com/torvalds/linux/v6.19/
 Microsoft [sparse-file marking](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse),
 [file length](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setendoffile)
 and [actual allocation size](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew).
+See also [allocated-range semantics](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
+and [zero-range deallocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data).

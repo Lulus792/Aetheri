@@ -23,13 +23,13 @@ def evaluate(serial,manifest,exit_code,timed_out=False,expect_failure=False):
            r'AETHERI_ROOT_PASS nonce='+nonce+r' kernel='+re.escape(manifest['kernel_release'])+r' arch=x86_64 pid1=systemd uefi=1 ext4_ro=1 write_erofs=1 cgroup2=1 boot='+identifier]
     observations=[list(re.finditer('^'+form+r'\s*$',serial,re.MULTILINE)) for form in forms]
     failures=re.findall(r'^AETHERI_\w+_FAIL reason=(\S+)\s*$',serial,re.MULTILINE)
-    valid=expect_failure=='data-parent' and failures==['data-parent'] and all(len(found)==1 for found in observations)
+    valid=expect_failure in ('data-parent','filesystem') and failures==[expect_failure] and all(len(found)==1 for found in observations)
     roots=[]
     if valid:
         positions=[found[0].start() for found in observations];roots=[observations[-1][0].group(1)]
         valid=all(found[0].group(1)==roots[0] for found in observations) and positions==sorted(positions)
         stopped=serial.find('aetheri-initrd-udev.service: Deactivated successfully.');switched=serial.find('Switching root.')
-        valid=valid and positions[1]<stopped<positions[2]<switched<positions[3]<serial.find('AETHERI_USB_DATA_FAIL reason=data-parent')
+        valid=valid and positions[1]<stopped<positions[2]<switched<positions[3]<serial.find('AETHERI_USB_DATA_FAIL reason='+expect_failure)
     results=re.findall(r'^AETHERI_.*$',serial,re.MULTILINE)
     status=re.sub(r'\x1b\[[0-9;]*m','',serial)
     valid=valid and len(results)==5 and 'AETHERI_USB_DATA_PASS' not in serial and 'AETHERI_USB_DATA_MOUNTED' not in serial and 'AETHERI_DESKTOP_READY' not in serial and 'Mounting var.mount' not in status and 'Mounted var.mount' not in status and "aetheri-data-check.service: Failed with result 'exit-code'." in status

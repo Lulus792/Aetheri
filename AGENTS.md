@@ -1305,3 +1305,18 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   single-medium USB root/data, independently checked parent/physical geometry and
   laptop DRM/input/firmware; repeat relevant tests before the authorized G: flash.
   Continue development afterward without waiting for hardware tests. No flash yet.
+
+- The single-medium USB desktop now passes actual persistent two-boot and
+  wrong-parent-overlay tests; read current STATE instead of the older next-step
+  paragraphs above. The separate laptop integration adds automatic session GPU
+  selection and same-kernel Intel/input/DMC files. Native DRM tests pass Release/
+  ASan/UBSan. Its first dual-console candidate passes serial boots but FAILS
+  without a UART; never flash that candidate or replay failed media. A new
+  tty0-only build is in progress. Read spec/laptop-probe.md and the dated laptop
+  journal for actual evidence. Native compiled tests are not hardware acceptance.
+  Local NTFS sparse image reads may use proven allocation ranges while hashing
+  every logical zero byte; this is never a physical-device verification shortcut.
+  The authorized Intenso still requires complete physical write/readback.
+  Access-only CreateFile returns WinError5 in this unelevated process; no write
+  occurred. This is OS access, not missing user authorization. Keep developing;
+  preserve the carrier, all failed artifacts, foreign work and closed NexaUI handoff.

@@ -187,7 +187,7 @@ int main(void) {
     int signals=signalfd(-1,&mask,SFD_CLOEXEC|SFD_NONBLOCK),shell[2]={-1,-1},launch[2]={-1,-1};
     if(signals<0 || socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,shell) || socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,launch) || !nonblock(launch[0]))return 1;
     char shell_number[32],launch_number[32];snprintf(shell_number,sizeof(shell_number),"%d",shell[0]);
-    char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","/dev/dri/card0","--shell-fd",shell_number,"--compose",NULL};
+    char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","auto","--shell-fd",shell_number,"--compose",NULL};
     bool failed=!spawn(&children[COMPOSITOR],compositor,&shell[0],1),stopping=failed,notified=false;
     close_fd(&shell[0]);unsigned launches[ROLE_COUNT]={0};double deadline=now()+60;
     while(true){

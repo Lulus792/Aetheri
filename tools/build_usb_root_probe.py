@@ -47,7 +47,14 @@ def device_unit(partition):
     return r'dev-disk-by\x2dpartuuid-'+partition.replace('-',r'\x2d')+'.device'
 
 
-def build(base,system,packages,output,wrong_filesystem=False,*,desktop=None):
+def console_option(virtual_console):
+    # A physical desktop must never select a nonexistent UART for /dev/console.
+    # The serial-only diagnostic remains unchanged for existing controllers.
+    if type(virtual_console) is not bool:raise ValueError('invalid console profile')
+    return 'console=tty0' if virtual_console else 'console=ttyS0,115200n8'
+
+
+def build(base,system,packages,output,wrong_filesystem=False,*,desktop=None,console_fallback=False):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:raise ValueError('use an ordinary x86-64 Linux image builder')
     raw=(ROOT/'spec/usb-root-inputs.json').read_bytes();pins=json.loads(raw)
     if boot.sha(base/'manifest.json')!=pins['boot_source_manifest_sha256'] or (desktop is None and boot.sha(system/'manifest.json')!=pins['root_source_manifest_sha256']):raise ValueError('different independently pinned base manifests')
@@ -121,7 +128,7 @@ def build(base,system,packages,output,wrong_filesystem=False,*,desktop=None):
     packed=run('cpio',['/usr/bin/cpio','--quiet','--null','--create','--format=newc','--owner=0:0','--reproducible'],cwd=tree,data=names)
     inputs=output/'kernel-inputs';inputs.mkdir();(inputs/'initramfs.cpio.gz').write_bytes(gzip.compress(packed,mtime=0));shutil.copyfile(base/'vmlinuz',inputs/'vmlinuz')
     target='aetheri-desktop.target' if desktop else 'aetheri-root.target'
-    command=f'console=ttyS0,115200n8 panic=-1 rdinit=/init root=PARTUUID={partition} ro rootfstype=ext4 rootflags=noload rd.systemd.unit=aetheri-initrd.target systemd.unit={target} systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n'
+    command=console_option(console_fallback)+f' panic=-1 rdinit=/init root=PARTUUID={partition} ro rootfstype=ext4 rootflags=noload rd.systemd.unit=aetheri-initrd.target systemd.unit={target} systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n'
     (inputs/'cmdline.txt').write_bytes(command.encode())
     initrd_manifest=dict(format=1,proof='usb-root',nonce=nonce,kernel_release=original['kernel_release'],outputs={n:boot.sha(inputs/n) for n in ('vmlinuz','initramfs.cpio.gz','cmdline.txt')},root={p.relative_to(tree).as_posix():({'symlink':os.readlink(p)} if p.is_symlink() else dict(sha256=boot.sha(p),mode=oct(p.stat().st_mode&0o7777))) for p in paths if p.is_symlink() or p.is_file()})
     (inputs/'manifest.json').write_bytes((json.dumps(initrd_manifest,indent=2)+'\n').encode());boot.inspect(inputs)
@@ -156,7 +163,7 @@ def build(base,system,packages,output,wrong_filesystem=False,*,desktop=None):
                 at+=len(block)
     shutil.copyfile(output/'efi/BOOTX64.EFI',output/'BOOTX64.EFI')
     result=dict(system_manifest);result.update(efi)
-    result.update(proof='usb-desktop' if desktop else 'usb-root',disk_bytes=desktop['disk_bytes'] if desktop else 512*1024**2,disk_guid=system_manifest['disk_guid'],root_partition=part,usb_source_manifest_sha256=boot.sha(system/'manifest.json'),usb_builder_sha256=boot.sha(Path(__file__)),usb_probe_source_sha256=boot.sha(ROOT/'src/boot/initrd.c'),usb_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_filesystem=wrong_filesystem,outputs={n:boot.sha(output/n) for n in ('boot.raw','BOOTX64.EFI')})
+    result.update(proof='usb-desktop' if desktop else 'usb-root',disk_bytes=desktop['disk_bytes'] if desktop else 512*1024**2,disk_guid=system_manifest['disk_guid'],root_partition=part,usb_source_manifest_sha256=boot.sha(system/'manifest.json'),usb_builder_sha256=boot.sha(Path(__file__)),usb_probe_source_sha256=boot.sha(ROOT/'src/boot/initrd.c'),usb_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_filesystem=wrong_filesystem,usb_console_fallback=console_fallback,outputs={n:boot.sha(output/n) for n in ('boot.raw','BOOTX64.EFI')})
     if desktop:
         end=(result['data_partition']['start']+result['data_partition']['sectors'])*512
         result['immutable_ranges']=[dict(start=0,size=desktop['data_start']*512,sha256=image_io.range_sha(final,0,desktop['data_start']*512)),dict(start=end,size=desktop['disk_bytes']-end,sha256=image_io.range_sha(final,end,desktop['disk_bytes']-end))]

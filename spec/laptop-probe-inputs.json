@@ -1,0 +1,255 @@
+{
+  "format": 1,
+  "purpose": "Additional same-kernel laptop modules and Kaby Lake DMC for an offline development image; not hardware or production acceptance",
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "reviewed": "2026-11-08",
+  "files": [
+    {
+      "source": "/usr/lib/firmware/i915/kbl_dmc_ver1_04.bin.xz",
+      "destination": "/usr/lib/firmware/i915/kbl_dmc_ver1_04.bin.xz",
+      "size": 2380,
+      "sha256": "351a31f357e322686b72b7215d7bcd43587e2af68620fd4904c46798a658ab0b",
+      "mode": 420,
+      "package": "intel-gpu-firmware-20260309-1.fc44.noarch",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/platform_profile.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/platform_profile.ko.xz",
+      "size": 15444,
+      "sha256": "11bc3da0023080ac3a406aed288a06d4f9bc643ff4078d136370ef8db772c945",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/video.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/video.ko.xz",
+      "size": 33988,
+      "sha256": "3b100dbee912cdd0b0e467d72039a1e82e8462dc0c1b6c2ab0a786ab697255a1",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/display/drm_display_helper.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/display/drm_display_helper.ko.xz",
+      "size": 158612,
+      "sha256": "f1e06798ef6c49c9084e9db5d6dbcdb32c8a9542c07b73956aec15154ffccf1e",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/drm_buddy.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/drm_buddy.ko.xz",
+      "size": 18424,
+      "sha256": "fbbd0edf49bc86f97b08b5a89d47f2ffd09d909d65bc4c722aa30ec79efbc2c1",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/i915/i915.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/i915/i915.ko.xz",
+      "size": 1890632,
+      "sha256": "f0d542a7a20ea7f8cf6982f49245f922d6336f44b8f4a8b14ce1a14f0be312f4",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/ttm/ttm.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/ttm/ttm.ko.xz",
+      "size": 65220,
+      "sha256": "63283a3bb44d8e357ca0c7ca7b65b11be931b76c2294d626b7a61123d8e65f0e",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/hid-multitouch.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/hid-multitouch.ko.xz",
+      "size": 31472,
+      "sha256": "9ef30f3a8bb47a2cbd191e3da283e4a1d3d81c7199492f1a1bfe119652276af3",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid-acpi.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid-acpi.ko.xz",
+      "size": 15332,
+      "sha256": "b1be93e64819070712d38044e776246d0db58bbb0cf63dd4508f6e392fb0c2d8",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid.ko.xz",
+      "size": 31544,
+      "sha256": "5f63a1a9b231dc0a8bf74b08f5dcc080a1f46ba5add54194f08316461d7da99b",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/algos/i2c-algo-bit.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/algos/i2c-algo-bit.ko.xz",
+      "size": 18716,
+      "sha256": "fbca751f9cd42f9604696f06ae7e39d7faf9cbd3e484eb096f5d9ca93b48a5a8",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/busses/i2c-i801.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/busses/i2c-i801.ko.xz",
+      "size": 27048,
+      "sha256": "f5d1e3645ccd6cdd5505e1369ac86159e06b45e2a289e4fbfea2dc6105062d8c",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/i2c-smbus.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/i2c-smbus.ko.xz",
+      "size": 18160,
+      "sha256": "b433015890b7c856ac7928759531c7f01185d01817f9c9aaa48a1b8e5b66ae36",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/input/sparse-keymap.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/input/sparse-keymap.ko.xz",
+      "size": 11628,
+      "sha256": "85ee69a443c1afba6eb0bb67fe087e9f85072de5aa27a4703eefefc9e8b92845",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/media/cec/core/cec.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/media/cec/core/cec.ko.xz",
+      "size": 61796,
+      "sha256": "4f1abde4decd5f58e0e913704a9720111da1d5af56d610a10134dd2801d21051",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/pinctrl/intel/pinctrl-sunrisepoint.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/pinctrl/intel/pinctrl-sunrisepoint.ko.xz",
+      "size": 13544,
+      "sha256": "6245bd4445b5f3faf71ad65bac36098ecdccc1fd9ca15aa181b0eeb0c2e26df5",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/wmi/wmi.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/wmi/wmi.ko.xz",
+      "size": 20544,
+      "sha256": "1c05ca47790bd267fede5d16f384b4e7a299c0478c6aa600c095a49a2ac54da8",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/x86/hp/hp-wmi.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/x86/hp/hp-wmi.ko.xz",
+      "size": 27028,
+      "sha256": "abb060e23eeb47bbc46b31ee47ac9b8cb33282a0fb89be0f5ee563516e03caab",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/net/rfkill/rfkill.ko.xz",
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/net/rfkill/rfkill.ko.xz",
+      "size": 24536,
+      "sha256": "0576e2162b4d7317f1af3053cbce35ff4ca4e28ecf37fbdfffe0f004c9df9922",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64",
+      "provenance": null
+    },
+    {
+      "source": "/usr/share/licenses/intel-gpu-firmware/LICENSE.i915",
+      "destination": "/usr/share/licenses/intel-gpu-firmware/LICENSE.i915",
+      "size": 2080,
+      "sha256": "8542aeabf2761935122d693561e16766ce1bcc2b0d003204f9040b7d6d929f2e",
+      "mode": 420,
+      "package": "intel-gpu-firmware-20260309-1.fc44.noarch",
+      "provenance": null
+    }
+  ],
+  "symlinks": {},
+  "module_groups": {
+    "i915": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/wmi/wmi.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/video.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/media/cec/core/cec.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/display/drm_display_helper.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/algos/i2c-algo-bit.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/ttm/ttm.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/drm_buddy.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/gpu/drm/i915/i915.ko.xz "
+    ],
+    "i2c_hid_acpi": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/i2c-hid/i2c-hid-acpi.ko.xz "
+    ],
+    "hid_multitouch": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/hid/hid-multitouch.ko.xz "
+    ],
+    "i2c_i801": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/i2c-smbus.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/i2c/busses/i2c-i801.ko.xz "
+    ],
+    "intel_lpss_pci": [
+      "builtin intel_lpss_pci"
+    ],
+    "psmouse": [
+      "builtin psmouse"
+    ],
+    "usbhid": [
+      "builtin usbhid"
+    ],
+    "hp_wmi": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/wmi/wmi.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/net/rfkill/rfkill.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/acpi/platform_profile.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/input/sparse-keymap.ko.xz ",
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/platform/x86/hp/hp-wmi.ko.xz "
+    ],
+    "pinctrl_sunrisepoint": [
+      "insmod /lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/pinctrl/intel/pinctrl-sunrisepoint.ko.xz "
+    ]
+  },
+  "packages": {
+    "kernel-modules-core-6.19.10-300.fc44.x86_64": {
+      "license": "((GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR CDDL-1.0) AND ((GPL-2.0-only WITH Linux-syscall-note) OR Linux-OpenIB) AND ((GPL-2.0-only WITH Linux-syscall-note) OR MIT) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR MIT) AND 0BSD AND BSD-2-Clause AND (BSD-2-Clause OR Apache-2.0) AND BSD-3-Clause AND BSD-3-Clause-Clear AND CC0-1.0 AND GFDL-1.1-no-invariants-or-later AND GPL-1.0-or-later AND (GPL-1.0-or-later OR BSD-3-Clause) AND (GPL-1.0-or-later WITH Linux-syscall-note) AND GPL-2.0-only AND (GPL-2.0-only OR Apache-2.0) AND (GPL-2.0-only OR BSD-2-Clause) AND (GPL-2.0-only OR BSD-3-Clause) AND (GPL-2.0-only OR CDDL-1.0) AND (GPL-2.0-only OR GFDL-1.1-no-invariants-or-later) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-only) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-or-later) AND (GPL-2.0-only WITH Linux-syscall-note) AND GPL-2.0-or-later AND (GPL-2.0-or-later OR BSD-2-Clause) AND (GPL-2.0-or-later OR BSD-3-Clause) AND (GPL-2.0-or-later OR CC-BY-4.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH Linux-syscall-note) AND ISC AND LGPL-2.0-or-later AND (LGPL-2.0-or-later OR BSD-2-Clause) AND (LGPL-2.0-or-later WITH Linux-syscall-note) AND LGPL-2.1-only AND (LGPL-2.1-only OR BSD-2-Clause) AND (LGPL-2.1-only WITH Linux-syscall-note) AND LGPL-2.1-or-later AND (LGPL-2.1-or-later WITH Linux-syscall-note) AND (Linux-OpenIB OR GPL-2.0-only) AND (Linux-OpenIB OR GPL-2.0-only OR BSD-2-Clause) AND Linux-man-pages-copyleft AND MIT AND (MIT OR Apache-2.0) AND (MIT OR GPL-2.0-only) AND (MIT OR GPL-2.0-or-later) AND (MIT OR LGPL-2.1-only) AND (MPL-1.1 OR GPL-2.0-only) AND (X11 OR GPL-2.0-only) AND (X11 OR GPL-2.0-or-later) AND Zlib AND (copyleft-next-0.3.1 OR GPL-2.0-or-later)",
+      "signature": "RSA/SHA256, Thu 26 Mar 2026 03:35:12 AM CET, Key ID dbfcf71c6d9f90a6"
+    },
+    "kernel-modules-6.19.10-300.fc44.x86_64": {
+      "license": "((GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR CDDL-1.0) AND ((GPL-2.0-only WITH Linux-syscall-note) OR Linux-OpenIB) AND ((GPL-2.0-only WITH Linux-syscall-note) OR MIT) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR MIT) AND 0BSD AND BSD-2-Clause AND (BSD-2-Clause OR Apache-2.0) AND BSD-3-Clause AND BSD-3-Clause-Clear AND CC0-1.0 AND GFDL-1.1-no-invariants-or-later AND GPL-1.0-or-later AND (GPL-1.0-or-later OR BSD-3-Clause) AND (GPL-1.0-or-later WITH Linux-syscall-note) AND GPL-2.0-only AND (GPL-2.0-only OR Apache-2.0) AND (GPL-2.0-only OR BSD-2-Clause) AND (GPL-2.0-only OR BSD-3-Clause) AND (GPL-2.0-only OR CDDL-1.0) AND (GPL-2.0-only OR GFDL-1.1-no-invariants-or-later) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-only) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-or-later) AND (GPL-2.0-only WITH Linux-syscall-note) AND GPL-2.0-or-later AND (GPL-2.0-or-later OR BSD-2-Clause) AND (GPL-2.0-or-later OR BSD-3-Clause) AND (GPL-2.0-or-later OR CC-BY-4.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH Linux-syscall-note) AND ISC AND LGPL-2.0-or-later AND (LGPL-2.0-or-later OR BSD-2-Clause) AND (LGPL-2.0-or-later WITH Linux-syscall-note) AND LGPL-2.1-only AND (LGPL-2.1-only OR BSD-2-Clause) AND (LGPL-2.1-only WITH Linux-syscall-note) AND LGPL-2.1-or-later AND (LGPL-2.1-or-later WITH Linux-syscall-note) AND (Linux-OpenIB OR GPL-2.0-only) AND (Linux-OpenIB OR GPL-2.0-only OR BSD-2-Clause) AND Linux-man-pages-copyleft AND MIT AND (MIT OR Apache-2.0) AND (MIT OR GPL-2.0-only) AND (MIT OR GPL-2.0-or-later) AND (MIT OR LGPL-2.1-only) AND (MPL-1.1 OR GPL-2.0-only) AND (X11 OR GPL-2.0-only) AND (X11 OR GPL-2.0-or-later) AND Zlib AND (copyleft-next-0.3.1 OR GPL-2.0-or-later)",
+      "signature": "RSA/SHA256, Thu 26 Mar 2026 03:35:14 AM CET, Key ID dbfcf71c6d9f90a6"
+    },
+    "intel-gpu-firmware-20260309-1.fc44.noarch": {
+      "license": "LicenseRef-Callaway-Redistributable-no-modification-permitted",
+      "signature": "RSA/SHA256, Tue 10 Mar 2026 03:04:14 PM CET, Key ID dbfcf71c6d9f90a6"
+    }
+  },
+  "review": {
+    "scope": "Installed carrier payloads match RPM database digests; recorded RPM header key ID is not a new downloaded-RPM signature verification. No package transaction. Same kernel family and ABI as the checked base.",
+    "firmware": "Only Kaby Lake DMC 1.04; preserve the Intel licence unchanged. Optional GuC/HuC are not enabled or selected.",
+    "limits": "No CVE clearance or production security, acceleration, hardware or suspend acceptance. Revisit the maintained kernel/firmware policy before daily use.",
+    "sources": [
+      "https://packages.fedoraproject.org/pkgs/linux-firmware/intel-gpu-firmware/fedora-44.html",
+      "https://gitlab.com/kernel-firmware/linux-firmware/-/raw/20260309/WHENCE",
+      "https://raw.githubusercontent.com/torvalds/linux/v6.19/drivers/gpu/drm/i915/display/intel_dmc.c"
+    ]
+  }
+}

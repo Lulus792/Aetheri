@@ -28,7 +28,7 @@ def selected_layout():
     return raw,pin,layout
 
 
-def build(base,packages,output,wrong_data_filesystem=False):
+def build(base,packages,output,wrong_data_filesystem=False,*,prepare_extra=None,console_fallback=False):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:raise ValueError('use the ordinary x86-64 Linux image builder')
     raw,pin,layout=selected_layout()
     if boot.sha(base/'manifest.json')!=pin['boot_source_manifest_sha256']:raise ValueError('different independently pinned RAM source')
@@ -61,9 +61,14 @@ def build(base,packages,output,wrong_data_filesystem=False):
         # These are known files just created in this NEW ordinary-user tree,
         # not installed carrier paths or an app-removal implementation.
         (tree/'etc/aetheri-data-proof').unlink();(tree/'usr/libexec/aetheri-data-probe').unlink()
-        return dict(usb_layout=layout,usb_configuration=configuration,usb_desktop_builder_sha256=boot.sha(Path(__file__)),usb_desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_data_filesystem=wrong_data_filesystem,data_partition=dict(guid=data_partition,filesystem_uuid=volume['uuid'],start=layout['data_start'],sectors=layout['data_sectors'],initial_sha256=volume['initial_sha256']))
+        result=dict(usb_layout=layout,usb_configuration=configuration,usb_desktop_builder_sha256=boot.sha(Path(__file__)),usb_desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_data_filesystem=wrong_data_filesystem,data_partition=dict(guid=data_partition,filesystem_uuid=volume['uuid'],start=layout['data_start'],sectors=layout['data_sectors'],initial_sha256=volume['initial_sha256']))
+        if prepare_extra:
+            extra=prepare_extra(tree,nonce,volume)
+            if not isinstance(extra,dict) or set(extra)&set(result):raise ValueError('conflicting additional profile metadata')
+            result.update(extra)
+        return result
     desktop.build(base,packages,output/'system',prepare_extra=prepare,data_bytes=layout['data_sectors']*512)
-    usb.build(base,output/'system',packages,output/'media',desktop=layout)
+    usb.build(base,output/'system',packages,output/'media',desktop=layout,console_fallback=console_fallback)
     (output/'build.json').write_text(json.dumps(dict(format=1,media_manifest_sha256=boot.sha(output/'media/manifest.json'),builder_sha256=boot.sha(Path(__file__)),wrong_data_filesystem=wrong_data_filesystem),indent=2)+'\n')
 
 

@@ -22,6 +22,7 @@
 #include <wlr/backend/libinput.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/session.h>
+#include "drm_selection.h"
 #endif
 #include <wlr/render/allocator.h>
 #include <wlr/render/pixman.h>
@@ -244,10 +245,12 @@ static struct wlr_backend *session_backend(struct server *s, struct wl_event_loo
     wl_signal_add(&s->session->events.active, &s->session_active);
     struct wlr_backend *multi = wlr_multi_backend_create(loop);
     if (!multi) return NULL;
-    struct wlr_device *device = wlr_session_open_file(s->session, card);
+    struct wlr_device *device = ae_drm_select(s->session, card);
+    uintptr_t candidate = (uintptr_t)device;
     struct wlr_backend *drm = device ? wlr_drm_backend_create(s->session, device, NULL) : NULL;
     if (!drm || !wlr_multi_backend_add(multi, drm)) {
         if (drm) wlr_backend_destroy(drm);
+        else if (candidate) ae_drm_close_unclaimed(s->session, candidate);
         wlr_backend_destroy(multi); return NULL;
     }
     struct wlr_backend *input = wlr_libinput_backend_create(s->session);
@@ -487,7 +490,7 @@ int main(int argc, char **argv) {
             argv[2][0] == '\0' || getuid() == 0 || getuid() != geteuid() || getgid() != getegid()) {
         fprintf(stderr, "usage (unprivileged): aetheri-compositor --headless SOCKET CAPTURE_DIR_OR_-\n"
                         "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
-                        "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- /dev/dri/cardN\n"
+                        "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- auto|/dev/dri/cardN\n"
                         "  optional private desktop connection: --shell-fd FD\n"
                         "  reviewed Compose build only: --compose\n");
         return 2;
@@ -495,7 +498,7 @@ int main(int argc, char **argv) {
     if (nested && (getenv("WAYLAND_SOCKET") || strlen(argv[4]) > 48 || !argv[4][0] ||
             strspn(argv[4], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[4]) ||
             !strcmp(argv[2], argv[4]))) return 2;
-    if (drm && (strncmp(argv[4], "/dev/dri/card", 13) || !argv[4][13] ||
+    if (drm && strcmp(argv[4], "auto") && (strncmp(argv[4], "/dev/dri/card", 13) || !argv[4][13] ||
             strlen(argv[4] + 13) > 2 || strspn(argv[4] + 13, "0123456789") != strlen(argv[4] + 13))) return 2;
     int runtime = private_directory(getenv("XDG_RUNTIME_DIR"));
     if (runtime < 0) { fprintf(stderr, "private 0700 XDG_RUNTIME_DIR required\n"); return 2; }
