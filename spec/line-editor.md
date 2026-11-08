@@ -15,6 +15,12 @@ It uses the narrow cursor/erase profile understood by our [terminal](terminal.md
 independently of `TERM`; it does not advertise complete xterm compatibility.
 Plain `-i` retains the earlier canonical kernel editor. Batch modes are unchanged.
 
+Before each new editable prompt, the shell emits a newline on its controlling
+terminal. This preserves foreground output without a final LF instead of erasing
+it during prompt redraw; already terminated output gets a blank separator.
+Redirections and noninteractive output retain their exact bytes. This correction
+is in source and native tests, and has not replaced the current HP USB image.
+
 | Control | Action in our line editor |
 | --- | --- |
 | Left / Right, Ctrl+B / Ctrl+F | Move by one extended grapheme |

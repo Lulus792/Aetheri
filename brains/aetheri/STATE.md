@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — The explicit boot-manager image passes two no-UART boots, independent filesystem inspection and the newly authorized complete Intenso write/readback. The stick is ready for the HP retest; physical boot acceptance remains unproven.
+8 November 2026 — The user reports the renewed image boots on the HP; editing, retained files/contents and interface language work. The matching cat display defect and external Files refresh are corrected in source, with native Release/ASan/UBSan evidence. The stick remains unchanged; WLAN/Bluetooth/audio remain work.
 
 ## Coordination
 
@@ -13,111 +13,57 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Laptop test image — VM acceptance, 8 November 2026
+## Laptop test image — HP retest reported, 8 November 2026
 
-The [explicit boot-manager integration](journal/2026-11-08-boot-manager.md) is now
-under test. Corrected preparation and real-file assembly tests pass8 cases on
-native Linux and Windows; legacy media checks remain strict. The full base export
-is verified/retired and the fresh v2 assembly passes all non-ESP and final image
-checks. The first no-UART sequence reaches both desktops, but the second capture
-review times out; its original VM is retired and the failed copy retained. A
-fresh no-uart-v2 sequence now passes both complete boots, six actual capture
-reviews, original exit0/guest shutdown and document persistence. Independent
-read-only e2fsck/debugfs verifies all11 proof files, two boot IDs, UID/GID1000,
-zero capabilities/NoNewPrivileges, ro root, rw/nosuid/nodev data/home, tty0-only
-console and all three required units. The data hash stays unchanged; the retained
-less-than-one-day future-time warning does not establish clock acceptance.
-The replacement writer's exact layout guards pass15 actual Windows cases. Its
-new source pin is now `4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
-A fresh protected flash-intenso-v2 completes the pristine-source replacement. Intent
-SHA256 `c844e2355c26a37b36d399697cf75ec03e69fafd675d2d30d38ff4b6f21b318a`,
-original elevated writer43696; its native parent retains the original SafeHandle
-until exit0 (host exec19225). Source verification, exact held device/ESP lock,
-full write/flush/readback and repeated context checks pass. All242 chained records
-and writer-handle cleanup are independently joined. Full physical SHA256 matches
-the pinned source above. Logged write/readback times are1077.72/343.12 seconds.
-Never replay this completed attempt or reflash for new features without renewed
-authorization; preserve subsequent user state. Continue development without
-waiting for the user's later HP retest. Hardware/suspend and full OS scope remain.
+The renewed explicit-boot-manager image passes two no-UART cold boots, six native
+capture reviews, document persistence, original QEMU exit0/guest shutdown and
+independent read-only filesystem inspection. The exact new source SHA256 is
+`4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
+The authorized replacement flash completes all31,457,280,000 bytes, flush and
+full direct readback with the same hash. Original held writer43696 exits0;
+all242 chained records and handle cleanup pass. Preserve the protected
+flash-intenso-v2 intent
+`c844e2355c26a37b36d399697cf75ec03e69fafd675d2d30d38ff4b6f21b318a`.
+See the [boot-manager record](journal/2026-11-08-boot-manager.md) for source,
+assembly, failed attempts, independent exports and final physical-write evidence.
 
-The corrected tty0-only image passes two cold boots without any UART on one fresh
-writable USB copy. Six native desktop/Terminal/document captures were actually
-reviewed; the document survives. Both original QEMU processes exit0 with genuine
-guest-shutdown events. System/EFI/GPT ranges and the pristine source stay unchanged.
-An independent ordinary-user e2fsck/debugfs inspection verifies all11 proof files,
-two distinct kernel boot IDs, UID/GID1000, zero capabilities/NoNewPrivileges,
-read-only root, rw/nosuid/nodev data/home, tty0-only consoles and three successful
-data/device-check units. The data hash stays unchanged. The less-than-one-day
-future-time warning is retained; clock behaviour is not accepted.
+The user now reports a completed HP EliteBook840G4 retest: the desktop boots,
+creating/editing and retained files/contents work, and interface language changes
+work. `cat` returns to a prompt without visible output. Files only shows external
+changes after another action triggers refresh. The exact cat command/file bytes
+and hardware logs are not supplied. The [hardware feedback record](journal/2026-11-08-hardware-feedback.md)
+separates this user evidence from automated acceptance and current corrections.
+Do not infer a German keyboard map, suspend or other unreported hardware support.
 
-The pristine source is image-laptop-v2/boot.raw, SHA256
-`06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
-The [flash procedure](../../spec/usb-flash.md) has 13 actual Windows tests,
-including aligned unbuffered regular-file I/O, and the native applicable review.
-The authorized elevated original writer has completed: protected flash-intenso-v1,
-intent SHA256 `4e9bf85705cb2ea81903dd3d8e9197f5bc29644772c365a61ac05736fc564999`.
-The exact Intenso is reidentified and G: locked/dismounted; all bytes have been
-written and flushed. Full direct readback matches the pristine SHA256 above.
-The original held writer process exits0; handle cleanup and all 242 chained
-journal records are independently checked. Writing takes 1106.64 s and readback
-348.43 s. The [physical record](journal/2026-11-08-laptop-image.md#physical-flash-completed)
-binds the exact evidence. The subsequent physical laptop boot is reported failed:
-`aetheri-root.service - Aetheri readonly root preflight`, main process status1,
-result exit-code. The supplied phone video now independently shows
-`AETHERI_ROOT_FAIL reason=nonce-count`, after read-only ext4 mount,
-`AETHERI_INITRD_PASS`, `AETHERI_INITRD_HANDOFF` and SwitchRoot. The actual kernel
-command line is not visible. This guard means zero or multiple correct nonce
-tokens; it does not yet distinguish missing firmware options from duplication.
-The selected systemd259.10 stub permits nonempty EFI LoadOptions to replace its
-embedded command line when Secure Boot is disabled. That is a source-supported
-hypothesis, not an observed HP firmware cause. Do not bypass the guard or infer
-a hardware/USB fault. See the dated journal for video hashes and next diagnosis.
-Fresh isolated direct-UKI controls now reproduce missing and duplicate
-`nonce-count`, with a successful one-nonce countercheck. A separate signed-RPM-
-verified same-version boot-manager/RAM image passes an actual standalone USB
-VM boot. Neither establishes the HP's actual arguments or full laptop-image
-acceptance. New root failure diagnostics pass Release/ASan/UBSan and preserve all
-original guards. Next integrate/review that explicit boot path in a fresh full
-laptop image before any later hardware action; the existing stick is unchanged.
-Preserve the completed flash evidence. The user has now explicitly authorized
-a NEW flash after the remaining tests and reports the stick reconnected to this
-PC. Metadata again observes the exact Intenso/serial/geometry and previous three
-Aetheri partitions. This later instruction permits replacement, including the
-stick's writable contents; it never permits replay of the completed old attempt.
-Require fresh complete-image acceptance, target reidentification, protected new
-intent, original elevated process handle and full write/readback verification.
-Until those gates pass the new replacement-image approval stays closed. The Windows access issue is
-resolved for this completed operation. Continue independent development without
-waiting for the later physical hardware test.
-The [first laptop guide](../../spec/first-laptop-test.md) covers the actual USB
-profile's startup, US mapping, persistence, shutdown and local report commands.
+The editable prompt now preserves unterminated foreground output; a real file,
+shell, PTY and terminal model retain it after the next prompt and further typing.
+One held-directory inotify instance now wakes both Files views on external
+create/rename/delete/write/metadata events. Filter/selected object survive;
+dialogs, presses, workers and uncertain operations defer refresh. SDL reuses its
+existing wake thread; NexaUI uses epoll. No new daemon, library or periodic scan.
+Final private enforcing-carrier tests pass20 groups in Release and20 with
+ASan/UBSan, including actual SDL/NexaUI input and lost-acknowledgement fixtures.
+Old prompt/view controls reproduce both defects. The final test checks original
+PTY drain before its deliberate negative assertion. The matching code is not yet
+in a new image or normal installed carrier service. Next continue the reviewed
+audio/device foundation; WLAN/Bluetooth/suspend and normal integration remain.
 
-Automatic session GPU selection, same-kernel Intel/input modules and exact DMC/
-licence are included. Native DRM/FD/heap tests pass Release and ASan/UBSan.
-Physical Intel/input/multiple displays, audio/WLAN/Bluetooth, suspend, acceleration,
-normal login/MAC/lifecycle/removal, browser, installer/LUKS, updates/rollback and
-the experiment desktop still remain. This is a development test image.
+The old phone video proves `AETHERI_ROOT_FAIL reason=nonce-count` after successful
+initrd handover on the previous direct-UKI image. The firmware's actual command
+line remains unknown. Source review and isolated controls support using the
+same-version systemd-boot with explicit child parameters. The new user-reported
+successful boot establishes practical progress, not the precise HP firmware cause.
+Old flash-intenso-v1 and all failed/retired test histories remain historical only;
+never replay an attempt or rewrite its then-current acceptance fields.
 
-Earlier failed media are preserved: the dual-console source fails without UART;
-the first corrected run suffers a Windows JSON-reader/replacement failure and
-its second VM is administratively retired. Neither failed copy is replayed or
-accepted. The current image_state guard coordinates all live status reads and
-publication. Use image_state.read, keep its stable guard inode and preserve an
-unknown temporary publication. Failed metadata recording cannot skip original-
-handle retirement. Six Windows cases, applicable native cases and an actual
-paused-QEMU fault probe prove the scoped test-tool correction. See the
-[executed record](journal/2026-11-08-laptop-image.md) and
-[profile](../../spec/laptop-probe.md).
-
-Local NTFS allocation-aware reads hash every logical byte without reading proven
-holes; affected Windows/Linux cases pass. Nineteen inactive factory images were
-sparsified with every logical byte/hash preserved. No data/carrier/physical/foreign
-file was changed. Storage inventory observes about84.5GB of Aetheri development
-files, including48.3GB VM and34.6GB local artifacts; capacity fluctuations and
-unattributed protected/system use remain unexplained. No broad cleanup occurred.
-The older wrong-parent and first-laptop corrupted-data-UUID negatives pass with
-unchanged medium/source bytes; their unchanged initrd guards are not fresh
-negative boots of the corrected tty0-only artifact. Full OS goal remains active.
+The stick now contains user test documents. No new flash is authorized merely by
+this test report. Continue development without overwriting it or waiting for
+additional physical feedback. The current image is a development USB desktop,
+not a production installation. It still uses the original US keyboard mapping.
+WLAN/Bluetooth/audio, suspend, multiple physical screens, normal login/MAC/app
+admission and lifecycle/removal, browser, installer/LUKS, updates/rollback and the
+experiment desktop remain work. The [laptop test guide](../../spec/first-laptop-test.md)
+identifies the available workflows and present limitations. Full OS goal remains active.
 
 ## Explicit keyboard startup selection — 8 November 2026
 

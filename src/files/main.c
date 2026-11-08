@@ -23,15 +23,24 @@ struct app {
     struct ae_files_session session;
     SDL_Window *window;SDL_Renderer *renderer;TTF_Font *font;SDL_Thread *worker,*creator;
     float density;SDL_FRect back,hidden,search,new_file,new_folder,name_field,cancel,submit;
-    int wake[2];uint32_t event;atomic_bool active;
+    int wake[2],notifications;uint32_t event;atomic_bool active,external_changed,notification_failed;
     SDL_FRect more,menu_rect,menu_rows[3],list_button,grid_button,details_button,close_button,fullscreen_button,info_close;
     SDL_FRect places[AE_FILES_DEPTH+1],info_rect;
 };
 static volatile sig_atomic_t signal_writer=-1,stopping;
 static void signalled(int number) { stopping=number;int saved=errno;unsigned char b=1;if (signal_writer>=0) (void)write(signal_writer,&b,1);errno=saved; }
 static int wake_worker(void *data) {
-    struct app *a=data;while (atomic_load(&a->active)) { struct pollfd p={a->wake[0],POLLIN,0};int n=poll(&p,1,-1);if (n<0 && errno==EINTR) continue;if (n<0) break;
-        unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {}SDL_Event e={.type=a->event};(void)SDL_PushEvent(&e); }return 0;
+    struct app *a=data;while (atomic_load(&a->active)) {
+        struct pollfd p[2]={{a->wake[0],POLLIN,0},{atomic_load(&a->notification_failed) ? -1 : a->notifications,POLLIN,0}};
+        int n=poll(p,2,-1);if (n<0 && errno==EINTR) continue;if (n<0) break;
+        if (p[0].revents) { unsigned char bytes[64];while (read(a->wake[0],bytes,sizeof(bytes))>0) {} }
+        if (p[1].revents) {
+            int changed=ae_files_notifications_read(a->notifications);
+            if (changed<0 || (p[1].revents&(POLLERR|POLLHUP|POLLNVAL))) atomic_store(&a->notification_failed,true);
+            else if (changed) atomic_store(&a->external_changed,true);
+        }
+        SDL_Event e={.type=a->event};(void)SDL_PushEvent(&e);
+    }return 0;
 }
 
 static void fail(struct app *a,const char *s) { fprintf(stderr,"files: %s: %s\n",s,SDL_GetError());a->session.failed=true;a->session.closing=true;if (!ae_files_session_busy(&a->session) && !ae_files_session_creating(&a->session)) a->session.running=false; }
@@ -468,11 +477,13 @@ int main(int argc,char **argv) {
     if (SDL_GetVersion()!=SDL_VERSION || TTF_Version()!=SDL_TTF_VERSION || fm!=2 || fn!=15 || fp!=0 || hm!=15 || hn!=0 || hp!=0) { a.session.failed=true;fputs("files: unreviewed SDL/text version\n",stderr);goto done; }
     a.window=SDL_CreateWindow("Aetheri Files",1000,680,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);a.font=TTF_OpenFont(font,16);if (a.window) a.renderer=SDL_CreateRenderer(a.window,"opengles2");
     if (!a.window || !a.font || !a.renderer || !SDL_SetWindowMinimumSize(a.window,640,420) || !SDL_SetWindowHitTest(a.window,hit_test,&a) || !SDL_StartTextInput(a.window) || pipe2(a.wake,O_CLOEXEC|O_NONBLOCK)) { a.session.failed=true;goto done; }
-    a.event=SDL_RegisterEvents(1);atomic_init(&a.active,true);signal_writer=a.wake[1];struct sigaction action={.sa_handler=signalled};sigemptyset(&action.sa_mask);
+    a.event=SDL_RegisterEvents(1);atomic_init(&a.active,true);atomic_init(&a.external_changed,false);atomic_init(&a.notification_failed,false);a.notifications=ae_files_notification_fd(a.session.files);signal_writer=a.wake[1];struct sigaction action={.sa_handler=signalled};sigemptyset(&action.sa_mask);
     if (!a.event || sigaction(SIGINT,&action,NULL) || sigaction(SIGTERM,&action,NULL) || !(a.worker=SDL_CreateThread(wake_worker,"files-signal",&a))) { a.session.failed=true;goto done; }
     if (a.session.diagnostics) puts("READY files wayland opengles2");
     while (a.session.running) {
         ae_files_session_create_update(&a.session);ae_files_session_child_update(&a.session);if (stopping) { stopping=0;ae_files_session_request_close(&a.session); }if (!a.session.running) break;
+        if (atomic_load(&a.notification_failed) && !a.session.failed) fail(&a,"folder notifications");
+        ae_files_session_directory_update(&a.session,atomic_exchange(&a.external_changed,false));
         if (a.session.dirty && !a.session.failed) draw(&a);
         if (!a.session.running) break;
         SDL_Event e;bool timed=ae_files_session_busy(&a.session) || ae_files_session_creating(&a.session);bool got=timed ? SDL_WaitEventTimeout(&e,200) : SDL_WaitEvent(&e);if (got) event(&a,&e);else if (!timed) fail(&a,"event wait");

@@ -1,5 +1,16 @@
 # Sources
 
+## HP retest and external Files changes — 8 November 2026
+
+- [Hardware feedback and executed corrections](journal/2026-11-08-hardware-feedback.md):
+  user-reported desktop boot, file persistence/editing and interface language;
+  real old-prompt/old-view counterchecks and native Release/ASan/UBSan evidence
+  are separate from that report. The stick and normal carrier stay unchanged.
+- [Linux inotify manual](https://man7.org/linux/man-pages/man7/inotify.7.html):
+  read directory/object monitoring, nonblocking notification reads, coalescing,
+  overflow, watch lifetime and filesystem/hard-link/mmap limitations. The new
+  local Files adapter uses events only for bounded snapshot invalidation.
+
 Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.

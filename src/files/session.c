@@ -46,6 +46,15 @@ void ae_files_session_move(struct ae_files_session *a,int amount) {
     size_t n=amount<0 ? step>old ? 0 : old-step : step>=count-old ? count-1 : old+step;
     (void)ae_files_select(a->files,n);a->query_focus=false;ae_files_session_reveal(a);a->dirty=true;
 }
+void ae_files_session_directory_update(struct ae_files_session *a,bool changed) {
+    a->external_pending|=changed;
+    bool defer=a->closing || a->dialog || a->menu || a->pressed || ae_files_session_creating(a) || ae_files_session_unresolved(a);
+    if (changed && a->diagnostics) printf("FOLDER invalidated deferred=%d\n",defer);
+    if (!a->external_pending || defer) return;
+    a->external_pending=false;enum ae_files_result r=ae_files_refresh(a->files);
+    if (r!=AE_FILES_OK) { ae_files_session_result(a,r);return; }
+    ae_files_session_reveal(a);a->dirty=true;
+}
 void ae_files_session_clipboard_clear(struct ae_files_session *a) {
     if (a->clip_dir>=0) close(a->clip_dir);
     if (a->clip_witness>=0) close(a->clip_witness);

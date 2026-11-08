@@ -6,6 +6,23 @@ without replacing existing targets. It opens text documents in our
 Navigation and filtering use an original C17 model. The default view uses the
 reviewed SDL/text profile; a separate opt-in NexaUI executable is described below.
 
+External changes now invalidate the opened directory through one nonblocking
+inotify instance. Both native views wake on those events and refresh without a
+click or manual rescan; idle folders are not scanned periodically. Creation,
+deletion, rename, ordinary writes and metadata changes are included. Events
+arriving during a dialog, pointer press, menu or operation are coalesced until
+that interaction ends. Unknown-operation state blocks automatic refresh.
+The filter and an unchanged selected object's exact name/inode/type are retained.
+
+This is a local-filesystem development profile. Event hints do not authorize an
+action, prove installation state or replace selected-object checks. They do not
+recursively follow folders. Network filesystems, mmap changes, writes through
+outside hard links and mounts can escape notification; Ctrl+R remains available.
+This correction is not yet in the already flashed HP test image.
+The Linux model requires inotify and access to its own `/proc/self/fd` directory
+to subscribe to held objects. Watch setup failure retains an existing view or
+refuses initial creation; it does not silently adopt a pathname or disable checks.
+
 This is an ordinary-user development app, now launched from the fixed development
 dock/search owner. It is not yet a document broker, an installed app sandbox or
 the finished file manager. The initial folder

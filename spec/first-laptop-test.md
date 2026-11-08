@@ -6,8 +6,9 @@ documents, Terminal, Files and Settings. It does not install Aetheri on the lapt
 
 The replacement build uses a same-version boot manager with explicit kernel
 parameters to address the observed boot-nonce failure. The UEFI USB selection
-stays the same. VM tests and filesystem checks pass; the HP still needs its
-physical retest. Root failures now also report bounded diagnostic context.
+stays the same. VM tests and filesystem checks pass. On 8 November the user
+reports a successful HP desktop boot and retained files/contents after the
+retest. Root failures also report bounded diagnostic context.
 
 Wait for the flash result before unplugging the stick. A running write or an
 incomplete readback is not a ready image. Windows may offer to format unfamiliar
@@ -53,9 +54,17 @@ printf 'hello from aetheri\n' > laptop-note.txt
 cat laptop-note.txt
 ```
 
+The tested USB version has a reported `cat` display defect: output without a
+final newline can disappear when the next editable prompt erases its line.
+The command above writes a final newline. Inspect other documents in the editor
+until the shell correction reaches a later image. The report and scoped correction are tracked
+in the [hardware feedback record](../brains/aetheri/journal/2026-11-08-hardware-feedback.md).
+
 The starting folder is `/home/aetheri/Documents`. Open Files and check that
 `laptop-note.txt` appears. Opening a text file there uses the separate terminal
 editor. Save or cancel that editor's close prompt before shutting down.
+This USB version requires Ctrl+R in Files to see changes made by another app.
+Automatic external-change refresh is being implemented separately.
 
 Terminal supports Ctrl+Shift+T for a new tab, Ctrl+Shift+D for a right split and
 Ctrl+Shift+E for a split below. Alt+arrows select a nearby pane; Alt+Shift+arrows

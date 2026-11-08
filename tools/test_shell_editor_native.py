@@ -36,6 +36,14 @@ class OwnEditor(unittest.TestCase):
         self.command(b"printf killed\x01\x0b\x19 > yanked")
         self.file('yanked',b'killed')
 
+    def test_unterminated_file_output_has_a_boundary_before_editor_redraw(self):
+        (self.t.root/'no-lf').write_bytes(b'VISIBLE_WITHOUT_NEWLINE')
+        self.t.send(b'cat no-lf\n')
+        self.t.expect(rb'VISIBLE_WITHOUT_NEWLINE\r\n'+PROMPT)
+        self.t.send(b'p');self.t.expect(rb'\r\x1b\[Kaetheri> p')
+        self.t.send(b'\x15');self.t.expect(PROMPT)
+        self.command('cat no-lf > exact-copy');self.file('exact-copy',b'VISIBLE_WITHOUT_NEWLINE')
+
     def test_undo_redo_keeps_text_cursor_and_completed_token_separate(self):
         self.command(b"printf 'ac'\x02\x02b\x1f\x1e\x05 > undone")
         self.file('undone',b'abc')

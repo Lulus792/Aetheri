@@ -6,11 +6,13 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <unistd.h>
 struct snapshot { size_t count;struct ae_files_entry entries[AE_FILES_ENTRIES]; };
 struct ae_files { int directories[AE_FILES_DEPTH+1];char folders[AE_FILES_DEPTH+1][AE_FILES_LABEL+1];unsigned depth;
-    struct snapshot *snapshot;size_t visible[AE_FILES_ENTRIES],count,selected;bool hidden;char query[AE_FILES_QUERY+1];uint64_t revision; };
+    struct snapshot *snapshot;size_t visible[AE_FILES_ENTRIES],count,selected;bool hidden;char query[AE_FILES_QUERY+1];uint64_t revision;int notifications,watch; };
 static enum ae_files_kind kind(mode_t mode) { return S_ISDIR(mode) ? AE_FILES_DIRECTORY : S_ISREG(mode) ? AE_FILES_REGULAR : S_ISLNK(mode) ? AE_FILES_LINK : AE_FILES_OTHER; }
 bool ae_files_format_name(const char *name,size_t size,char out[AE_FILES_LABEL+1]) {
     if (!out || (!name && size) || size>AE_FILES_NAME || (size && memchr(name,0,size))) return false;
@@ -55,19 +57,55 @@ static void filter(struct ae_files *f) {
 }
 static enum ae_files_result replace(struct ae_files *f,int directory) {
     if (f->revision==UINT64_MAX) return AE_FILES_EXHAUSTED;
-    struct snapshot *s=NULL;enum ae_files_result r=scan(directory,&s);if (r!=AE_FILES_OK) return r;
+    /* Subscribe to our held directory BEFORE scanning. Events invalidate only;
+       their pathnames never choose objects or authorize filesystem actions. */
+    char path[64];int length=snprintf(path,sizeof(path),"/proc/self/fd/%d",directory);
+    if (length<0 || (size_t)length>=sizeof(path)) return AE_FILES_IO;
+    int watch=inotify_add_watch(f->notifications,path,IN_ONLYDIR|IN_CREATE|IN_DELETE|IN_MOVED_FROM|IN_MOVED_TO|IN_MODIFY|IN_CLOSE_WRITE|IN_ATTRIB|IN_DELETE_SELF|IN_MOVE_SELF);
+    if (watch<0) return AE_FILES_IO;
+    struct snapshot *s=NULL;enum ae_files_result r=scan(directory,&s);
+    if (r!=AE_FILES_OK) { if (watch!=f->watch) (void)inotify_rm_watch(f->notifications,watch);return r; }
+    if (f->watch>=0 && f->watch!=watch) (void)inotify_rm_watch(f->notifications,f->watch);
+    f->watch=watch;
     free(f->snapshot);f->snapshot=s;++f->revision;f->selected=0;filter(f);return AE_FILES_OK;
 }
 struct ae_files *ae_files_create(int root,enum ae_files_result *result) {
     if (!result) return NULL;
     *result=AE_FILES_INVALID;struct stat st;if (root<0 || fstat(root,&st) || !S_ISDIR(st.st_mode)) return NULL;
     struct ae_files *f=calloc(1,sizeof(*f));if (!f) { *result=AE_FILES_NOMEM;return NULL; }
+    f->notifications=f->watch=-1;
     for (unsigned i=0;i<=AE_FILES_DEPTH;++i) f->directories[i]=-1;
-    f->directories[0]=fcntl(root,F_DUPFD_CLOEXEC,4);if (f->directories[0]<0) { free(f);*result=AE_FILES_IO;return NULL; }
+    f->notifications=inotify_init1(IN_NONBLOCK|IN_CLOEXEC);if (f->notifications<0) { free(f);*result=AE_FILES_IO;return NULL; }
+    f->directories[0]=fcntl(root,F_DUPFD_CLOEXEC,4);if (f->directories[0]<0) { ae_files_destroy(f);*result=AE_FILES_IO;return NULL; }
     memcpy(f->folders[0],"Root",5);*result=replace(f,f->directories[0]);if (*result!=AE_FILES_OK) { ae_files_destroy(f);return NULL; }return f;
 }
-void ae_files_destroy(struct ae_files *f) { if (f) { for (unsigned i=0;i<=f->depth;++i) if (f->directories[i]>=0) close(f->directories[i]);free(f->snapshot);free(f); } }
-enum ae_files_result ae_files_refresh(struct ae_files *f) { return f ? replace(f,f->directories[f->depth]) : AE_FILES_INVALID; }
+void ae_files_destroy(struct ae_files *f) { if (f) { for (unsigned i=0;i<=f->depth;++i) if (f->directories[i]>=0) close(f->directories[i]);if (f->notifications>=0) close(f->notifications);free(f->snapshot);free(f); } }
+enum ae_files_result ae_files_refresh(struct ae_files *f) {
+    if (!f) return AE_FILES_INVALID;
+    const struct ae_files_entry *selected=ae_files_entry(f,f->selected);struct ae_files_entry old={0};bool had=selected!=NULL;size_t index=f->selected;
+    if (had) old=*selected;
+    enum ae_files_result r=replace(f,f->directories[f->depth]);if (r!=AE_FILES_OK) return r;
+    if (had) {
+        f->selected=index<f->count ? index : f->count ? f->count-1 : 0;
+        for (size_t i=0;i<f->count;++i) { const struct ae_files_entry *e=ae_files_entry(f,i);
+            if (e->device==old.device && e->inode==old.inode && e->kind==old.kind && !strcmp(e->name,old.name)) { f->selected=i;break; }
+        }
+    }
+    return r;
+}
+int ae_files_notification_fd(const struct ae_files *f) { return f ? f->notifications : -1; }
+int ae_files_notifications_read(int fd) {
+    /* One reader; bounded consumption, no event-name interpretation. Overflow
+       and retired-watch hints also invalidate. Remaining bytes stay readable. */
+    unsigned char bytes[4096];bool changed=false;
+    for (unsigned i=0;i<4;++i) {
+        ssize_t n=read(fd,bytes,sizeof(bytes));if (n>0) { changed=true;continue; }
+        if (n<0 && errno==EINTR) continue;
+        if (n<0 && (errno==EAGAIN || errno==EWOULDBLOCK)) return changed ? 1 : 0;
+        return -1;
+    }
+    return changed ? 1 : 0;
+}
 const struct ae_files_entry *ae_files_entry(const struct ae_files *f,size_t i) { return f && i<f->count ? &f->snapshot->entries[f->visible[i]] : NULL; }
 static bool identity(const struct ae_files_entry *e,int fd) { struct stat st;return !fstat(fd,&st) && e->device==st.st_dev && e->inode==st.st_ino && e->kind==kind(st.st_mode); }
 enum ae_files_result ae_files_enter(struct ae_files *f) {

@@ -13,11 +13,18 @@ struct ae_files;
    volume/clone identity. Root is independently selected by the caller. Held
    directory stack, no symlink traversal, no parent escape through '..'. Mounts
    and renamed held directories retain ordinary kernel/process rights. No writes,
-   watching daemon, recursion or content reads. Snapshots are bounded observations;
+   watching daemon, recursion or content reads. One inotify instance follows only
+   the current held directory. Snapshots are bounded observations;
    actions recheck selected inode/type. Read-only views expire on refresh/destroy. */
 struct ae_files *ae_files_create(int root,enum ae_files_result *result);
 void ae_files_destroy(struct ae_files *files);
 enum ae_files_result ae_files_refresh(struct ae_files *files);
+/* Borrowed stable NONBLOCK/CLOEXEC invalidation FD, owned until destroy. One
+   reader only; may be a view wake thread joined before destroy. Read consumes
+   at most 16 KiB: 1 invalidation, 0 idle, -1 IO failure. All model/refresh calls
+   remain on the UI owner thread. Event names/cookies are never acted on. */
+int ae_files_notification_fd(const struct ae_files *files);
+int ae_files_notifications_read(int fd);
 enum ae_files_result ae_files_enter(struct ae_files *files);
 enum ae_files_result ae_files_up(struct ae_files *files);
 /* Atomic navigation to an already-held ancestor. Failed scan retains the entire

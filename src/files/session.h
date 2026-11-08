@@ -19,7 +19,7 @@ struct ae_files_session {
     struct ae_files *files;struct ae_files_child child;
     const char *terminal,*editor,*terminal_font,*cache;char message[256];
     float scale;size_t first,rows;
-    bool running,failed,closing,dirty,german,contrast,show_hidden,query_focus,query_bad,diagnostics;
+    bool running,failed,closing,dirty,german,contrast,show_hidden,query_focus,query_bad,diagnostics,external_pending;
     unsigned frames,launches,pressed;size_t pressed_row;
     bool dialog,name_bad;unsigned name_focus,creations;int create_dir;uint64_t dialog_serial;
     enum ae_files_create_kind create_kind;char name[AE_FILES_NAME+1],folder[AE_FILES_LABEL+1],create_message[256];size_t name_size;
@@ -65,6 +65,9 @@ void ae_files_session_rename_update(struct ae_files_session *a);
 void ae_files_session_create_update(struct ae_files_session *a);
 void ae_files_session_activate(struct ae_files_session *a);
 void ae_files_session_child_update(struct ae_files_session *a);
+/* Coalesce invalidations; defer while a pointer press, menu/dialog, worker or
+   uncertain operation owns the visible selection/input. */
+void ae_files_session_directory_update(struct ae_files_session *a,bool changed);
 bool ae_files_session_menu_enabled(const struct ae_files_session *a,unsigned item);
 void ae_files_session_menu_open(struct ae_files_session *a,float x,float y,bool selected);
 void ae_files_session_menu_action(struct ae_files_session *a,unsigned item);

@@ -150,7 +150,12 @@ ssize_t ae_shell_readline(struct ae_shell_terminal *t,struct ae_line_editor *e,c
     if (!e || !out || capacity<AE_LINE_BYTES+1u || ae_shell_jobs_edit_mode(t,true)) return -1;
     ae_line_clear(e);ssize_t result=-1;char seq[32],utf8[4],pending[256];size_t seq_size=0,utf_size=0,utf_need=0,pending_size=0;
     uint64_t deadline=0;bool blocked=false;unsigned burst=0;
-    int shown=draw(t,e,false,false);if (shown) { result=shown==-2 ? -2 : -1;goto done; }
+    /* Redraw starts at column zero. The previous child can leave output without
+       LF. Put the new editable prompt on its own row before any erase. This
+       tty-only separator never changes redirected/noninteractive child bytes. */
+    int shown=ae_shell_jobs_write(t,"\n",1);
+    if (!shown) shown=draw(t,e,false,false);
+    if (shown) { result=shown==-2 ? -2 : -1;goto done; }
     for (;;) {
         int timeout=-1;
         if (seq_size) { uint64_t now=milliseconds();if (!now) goto done;timeout=now>=deadline ? 0 : (int)(deadline-now); }

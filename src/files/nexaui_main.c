@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/epoll.h>
 #include <threads.h>
 #include <time.h>
 #include <unistd.h>
@@ -24,8 +25,8 @@ struct chrome_pointer {
 };
 struct host {
     struct ae_files_session s;struct ae_files_view *view;nx_window *window;nx_software_view *renderer;
-    thrd_t worker;bool worker_live,failed,busy,unavailable,close_seen,escape_release_pending;
-    int wake[2];struct chrome_pointer pointer;float width,height,density;
+    thrd_t worker;bool worker_live,failed,busy,unavailable,close_seen,escape_release_pending,pointer_held;
+    int wake[2],events;struct chrome_pointer pointer;float width,height,density;
 };
 static volatile sig_atomic_t stop_requested,signal_writer=-1;
 static void signal_stop(int n) { (void)n;int saved=errno;stop_requested=1;if(signal_writer>=0) {char b=1;(void)write((int)signal_writer,&b,1);}errno=saved; }
@@ -177,7 +178,7 @@ static bool draw(struct host *h) {
     return true;
 }
 int main(int argc,char **argv) {
-    struct host h={.wake={-1,-1}};ae_files_session_init(&h.s,start_worker,join_worker,&h);
+    struct host h={.wake={-1,-1},.events=-1};ae_files_session_init(&h.s,start_worker,join_worker,&h);
     const char *root=NULL,*font_path=NULL;
     for(int i=1;i<argc;++i) {
         const char **slot=!strcmp(argv[i],"--root")?&root:!strcmp(argv[i],"--font")?&font_path:!strcmp(argv[i],"--cache")?&h.s.cache:
@@ -196,12 +197,19 @@ int main(int argc,char **argv) {
     if(!font || pipe2(h.wake,O_CLOEXEC|O_NONBLOCK) || sigaction(SIGINT,&stop,NULL) || sigaction(SIGTERM,&stop,NULL) || sigaction(SIGCHLD,&child,NULL) ||
        setenv("NEXAUI_PLATFORM","wayland",1)) {h.failed=true;goto done;}
     signal_writer=h.wake[1];
+    h.events=epoll_create1(EPOLL_CLOEXEC);
+    struct epoll_event wake_event={.events=EPOLLIN,.data.fd=h.wake[0]},folder_event={.events=EPOLLIN,.data.fd=ae_files_notification_fd(h.s.files)};
+    if(h.events<0 || epoll_ctl(h.events,EPOLL_CTL_ADD,h.wake[0],&wake_event) || epoll_ctl(h.events,EPOLL_CTL_ADD,folder_event.data.fd,&folder_event)) {h.failed=true;goto done;}
     nx_window_desc desc={"Aetheri Files",1000,680,NX_WINDOW_CLIENT_CHROME|NX_WINDOW_STATE_EVENTS,{0}};
     if(nx_window_create(&desc,&h.window)!=NX_OK || nx_window_set_wayland_app_id(h.window,"org.aetheri.Files")!=NX_OK ||
        !ae_files_view_create(&h.s,font,font_size,&h.view) || nx_software_view_open(h.window,&h.renderer)!=NX_OK) {h.failed=true;goto done;}
     if(h.s.diagnostics) puts("READY files nexaui software");
     while(h.s.running) {
         ae_files_session_create_update(&h.s);ae_files_session_child_update(&h.s);
+        int changed=ae_files_notifications_read(ae_files_notification_fd(h.s.files));
+        h.s.pressed=h.pointer_held ? 1u : 0u;
+        if(changed<0) {h.failed=true;ae_files_session_request_close(&h.s);}
+        else ae_files_session_directory_update(&h.s,changed>0);
         if(stop_requested) {stop_requested=0;ae_files_session_request_close(&h.s);}
         if(!h.s.running) break;
         if(!h.failed && !draw(&h)) {h.failed=true;ae_files_session_request_close(&h.s);}
@@ -209,12 +217,20 @@ int main(int argc,char **argv) {
             struct pollfd p={h.wake[0],POLLIN,0};(void)poll(&p,1,200);char b[64];while(read(h.wake[0],b,sizeof(b))>0) {}continue;
         }
         uint32_t ready=0;unsigned timeout=h.s.dirty?0:h.busy?16:h.s.work_active || ae_files_session_busy(&h.s)?200:h.unavailable?1000:UINT32_MAX;
-        if(nx_window_poll_with_fd(h.window,timeout,h.wake[0],&ready)!=NX_OK || (ready&(NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP))) {h.failed=true;ae_files_session_request_close(&h.s);continue;}
-        if(ready) {char bytes[64];while(read(h.wake[0],bytes,sizeof(bytes))>0) {}}
+        if(nx_window_poll_with_fd(h.window,timeout,h.events,&ready)!=NX_OK || (ready&(NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP))) {h.failed=true;ae_files_session_request_close(&h.s);continue;}
+        if(ready) {
+            struct epoll_event events[2];int count=epoll_wait(h.events,events,2,0);
+            if(count<0 && errno!=EINTR) {h.failed=true;ae_files_session_request_close(&h.s);continue;}
+            char bytes[64];while(read(h.wake[0],bytes,sizeof(bytes))>0) {}
+        }
         nx_event event;int available=0;
         do {
             if(nx_window_next_event(h.window,&event,&available)!=NX_OK) {h.failed=true;break;}
             if(available) {
+                bool was_held=h.pointer_held;
+                if(event.type==NX_EVENT_POINTER_DOWN && event.button==1) h.pointer_held=true;
+                else if((event.type==NX_EVENT_POINTER_UP && event.button==1) || event.type==NX_EVENT_POINTER_CANCEL || (event.type==NX_EVENT_FOCUS && !event.focused)) h.pointer_held=false;
+                if(h.s.diagnostics && h.pointer_held!=was_held) printf("POINTER held=%d\n",h.pointer_held);
                 if(event.type==NX_EVENT_KEY_UP && event.key==NX_KEY_ESCAPE) h.escape_release_pending=true;
                 nx_window_status status;bool handled=false;
                 if(nx_window_get_status(h.window,&status)!=NX_OK || !chrome(&h,&event,&status,&handled) ||
@@ -241,6 +257,7 @@ done:
     if(h.window && h.view && nx_window_publish_semantics(h.window,NULL)!=NX_OK) h.failed=true;
     ae_files_view_destroy(h.view);nx_window_destroy(h.window);
     for(unsigned i=0;i<2;++i) if(h.wake[i]>=0) close(h.wake[i]);
+    if(h.events>=0) close(h.events);
     free(font);ae_files_destroy(h.s.files);
     if(h.s.diagnostics) printf("CLOSED files frames=%u failed=%d\n",h.s.frames,h.failed || h.s.failed);
     return h.failed || h.s.failed?1:0;

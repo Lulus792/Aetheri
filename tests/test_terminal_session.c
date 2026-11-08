@@ -109,11 +109,24 @@ static void original_shell(struct ae_terminal *m,const char *shell) {
     CHECK(ae_terminal_session_enqueue(&s,command,sizeof(command)-1) && !m->selection.count);
     CHECK(ae_terminal_session_flush(&s)==0);receive(&s,"SESSION_NATIVE");
     CHECK(!s.closing && !s.pty.ended && !s.pty.eof);
+    /* A real file with no final LF used to disappear under the next prompt's
+       CR/erase. Wait for that prompt and a second redraw, not transient bytes. */
+    char path[]="/tmp/aetheri-cat-XXXXXX";int file=mkstemp(path);CHECK(file>=0);
+    CHECK(write(file,"UNTERMINATED_VISIBLE",20)==20 && !close(file));
+    char cat[256];int size=snprintf(cat,sizeof(cat),"cat %s\r",path);CHECK(size>0 && (size_t)size<sizeof(cat));
+    CHECK(ae_terminal_session_enqueue(&s,cat,(size_t)size));CHECK(!ae_terminal_session_flush(&s));
+    for(unsigned i=0;i<12;++i) turn(&s);
+    bool unterminated_visible=has_text(m,"UNTERMINATED_VISIBLE"),edited_prompt=has_text(m,"aetheri> ");
+    CHECK(ae_terminal_session_enqueue(&s,"p",1) && !ae_terminal_session_flush(&s));
+    for(unsigned i=0;i<4;++i) turn(&s);
+    bool visible_after_redraw=has_text(m,"UNTERMINATED_VISIBLE") && has_text(m,"aetheri> p");CHECK(!unlink(path));
     CHECK(ae_terminal_session_request_close(&s)==0 && s.closing && s.pty.hangup);
     CHECK(!ae_terminal_session_enqueue(&s,"exit\r",5) && errno==EBUSY);
     CHECK(ae_terminal_session_request_close(&s)==0);
     for (unsigned n=0;n<100 && (!s.pty.ended || !s.pty.eof);++n) turn(&s);
     CHECK(s.pty.ended && s.pty.eof && s.pty.status==129);CHECK(ae_terminal_pty_close(&s.pty)==0);
+    /* Finish original PTY/child obligations even for the old-code countercheck. */
+    CHECK(unterminated_visible && edited_prompt && visible_after_redraw);
 }
 int main(int argc,char **argv) {
     CHECK(argc==2 && getuid()!=0);struct ae_terminal *model=malloc(sizeof(*model));CHECK(model);
