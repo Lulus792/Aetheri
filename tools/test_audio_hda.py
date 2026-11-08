@@ -80,7 +80,7 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
     try:session_case=session_settings(manifest)
     except ValueError:return False
     if missing_device and session:
-        return not passes and not failures and 'AETHERI_AUDIO_SESSION_PASS' not in serial and 'AETHERI_AUDIO_USER_BUS_FAIL' not in serial and re.findall(r'^AETHERI_AUDIO_SESSION_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
+        return not passes and not failures and 'AETHERI_AUDIO_SESSION_PASS' not in serial and 'AETHERI_AUDIO_USER_BUS_FAIL' not in serial and 'AETHERI_AUDIO_NATIVE_PEER' not in serial and 'AETHERI_AUDIO_PLAYER_PEER' not in serial and re.findall(r'^AETHERI_AUDIO_SESSION_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     if missing_device:
         return not passes and failures==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     expected='AETHERI_AUDIO_PASS nonce='+manifest['nonce']+' frames=96000 rate=48000 channels=2 server_end=1 player_end=1'
@@ -118,6 +118,10 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
             policy=(denied[0]<serial.index('AETHERI_AUDIO_LOCAL_SESSION ')<serial.index('AETHERI_AUDIO_SESSION_ACCESS allowed=1')<serial.index('AETHERI_AUDIO_USER_MANAGER ')<serial.index('AETHERI_AUDIO_USER_REFS ')<serial.index('AETHERI_AUDIO_USER_UNIT ')
                     <serial.index('DRAINED frames=96000')<serial.index(ended)<denied[1]<serial.index(access)<serial.index(expected))
         else:policy=False
+        native_peer='AETHERI_AUDIO_NATIVE_PEER original=1';player_peer='AETHERI_AUDIO_PLAYER_PEER original=1'
+        policy=policy and actors==['server','policy','control','player'] and serial.count('AETHERI_AUDIO_NATIVE_PASS ')==1 and serial.count(native_peer)==serial.count(player_peer)==1
+        if policy:
+            policy=serial.index('AETHERI_AUDIO_ACTOR role=control')<serial.index(native_peer)<serial.index('AETHERI_AUDIO_NATIVE_PASS ') and serial.index('AETHERI_AUDIO_ACTOR role=player')<serial.index(player_peer)<serial.index('DRAINED frames=96000')
         if session_case=='playback':policy=policy and 'AETHERI_AUDIO_LOSS_' not in serial and 'AETHERI_AUDIO_SESSION_LOSS ' not in serial
         else:
             observations=re.findall(r'^AETHERI_AUDIO_LOSS_OBSERVED case=(vt-loss|server-loss|policy-loss) mask=([1-7]) latched=1\s*$',serial,re.MULTILINE)

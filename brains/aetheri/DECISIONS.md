@@ -1,5 +1,19 @@
 # Decisions
 
+## Join native audio to the original listener — 9 November 2026
+
+Keep same-UID connection checks as an explicitly unadmitted development profile.
+Use the strict original-pidfd variant for the private user-session control and
+player. Compare kernel socket peer handles to an independently admitted original
+process before protocol; never open/adopt a process from its numeric peer PID.
+Fail closed on missing kernel evidence, mismatch or original exit. Keep current
+image/unit/configuration and delegation/lifetime admission separate.
+
+Current user units create their own listener. A different inherited creator is
+not silently accepted; socket activation needs its own admitted creator/activation
+chain. No additional daemon, third-party dependency family or normal app-FD API
+is introduced. [Evidence](journal/2026-11-09-audio-peer.md).
+
 ## Retain original audio observations across stop — 9 November 2026
 
 Observe session changes and original backend pidfds in the existing caller;

@@ -16,7 +16,7 @@ struct probe {
     struct ae_audio_control *control;
     const char *name,*test;
     double volume;
-    bool mute,retired;
+    bool mute,retired,original,peer_announced;
     unsigned step;
     uint64_t command;
     struct ae_audio_output_ref target;
@@ -35,6 +35,7 @@ static void changed(const struct ae_audio_snapshot *s,void *data) {
         reject(p,"backend");return;
     }
     if(s->state!=AE_AUDIO_READY) return;
+    if(p->original && !p->peer_announced) {p->peer_announced=true;puts("AETHERI_AUDIO_NATIVE_PEER original=1");}
     const struct ae_audio_output *o=NULL;
     for(size_t i=0;i<s->count;++i) if(s->outputs[i].is_default && s->outputs[i].volume_available && !strcmp(s->outputs[i].name,p->name)) {
         if(o) {reject(p,"ambiguous-output");return;}
@@ -71,15 +72,17 @@ static bool ordinary(void) {
         syscall(SYS_capget,&h,d)==0 && !(d[0].effective|d[0].permitted|d[0].inheritable|d[1].effective|d[1].permitted|d[1].inheritable);
 }
 int main(int argc,char **argv) {
-    if(argc!=4 || argv[1][0]!='/' || !*argv[2] || strlen(argv[2])>=256 || strspn(argv[2],"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")!=strlen(argv[2]) || !ordinary()) return 2;
-    struct probe p={.name=argv[2],.test=argv[3],.volume=1,.result=1};
+    bool original=argc==6 && !strcmp(argv[4],"--server-pidfd") && !strcmp(argv[5],"3");
+    if((argc!=4 && !original) || argv[1][0]!='/' || !*argv[2] || strlen(argv[2])>=256 || strspn(argv[2],"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")!=strlen(argv[2]) || !ordinary()) return 2;
+    struct probe p={.name=argv[2],.test=argv[3],.volume=1,.result=1,.original=original};
     if(!strcmp(p.test,"half")) p.volume=.5;
     else if(!strcmp(p.test,"muted")) p.mute=true;
     else if(strcmp(p.test,"unity")) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);
     printf("AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=%d\n",getgroups(0,NULL));
     GMainContext *context=g_main_context_new();g_main_context_push_thread_default(context);p.loop=g_main_loop_new(context,FALSE);
-    p.control=ae_audio_control_open(context,argv[1],changed,&p,retired);
+    p.control=original ? ae_audio_control_open_original(context,argv[1],3,changed,&p,retired) : ae_audio_control_open(context,argv[1],changed,&p,retired);
+    if(original) close(3);
     if(!p.control) {g_main_loop_unref(p.loop);g_main_context_pop_thread_default(context);g_main_context_unref(context);return 1;}
     GSource *guard=g_timeout_source_new(15000);g_source_set_callback(guard,deadline,&p,NULL);g_source_attach(guard,context);
     g_main_loop_run(p.loop);g_source_destroy(guard);g_source_unref(guard);

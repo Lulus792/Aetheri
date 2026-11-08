@@ -16,7 +16,7 @@
  */
 #define AE_AUDIO_OUTPUTS_MAX 64
 enum ae_audio_state {AE_AUDIO_CONNECTING,AE_AUDIO_READY,AE_AUDIO_FAILED,AE_AUDIO_DISCONNECTED};
-enum ae_audio_error {AE_AUDIO_ERROR_NONE,AE_AUDIO_ERROR_PLUGINS,AE_AUDIO_ERROR_DEADLINE,AE_AUDIO_ERROR_ID,AE_AUDIO_ERROR_SERIAL,AE_AUDIO_ERROR_NAME,AE_AUDIO_ERROR_DESCRIPTION,AE_AUDIO_ERROR_VOLUME,AE_AUDIO_ERROR_LIMIT,AE_AUDIO_ERROR_SYNC,AE_AUDIO_ERROR_VERSION};
+enum ae_audio_error {AE_AUDIO_ERROR_NONE,AE_AUDIO_ERROR_PLUGINS,AE_AUDIO_ERROR_DEADLINE,AE_AUDIO_ERROR_ID,AE_AUDIO_ERROR_SERIAL,AE_AUDIO_ERROR_NAME,AE_AUDIO_ERROR_DESCRIPTION,AE_AUDIO_ERROR_VOLUME,AE_AUDIO_ERROR_LIMIT,AE_AUDIO_ERROR_SYNC,AE_AUDIO_ERROR_VERSION,AE_AUDIO_ERROR_ENDPOINT};
 enum ae_audio_command_state {AE_AUDIO_COMMAND_NONE,AE_AUDIO_COMMAND_PENDING,AE_AUDIO_COMMAND_OBSERVED,AE_AUDIO_COMMAND_UNKNOWN};
 enum ae_audio_command_kind {AE_AUDIO_VOLUME,AE_AUDIO_MUTE,AE_AUDIO_DEFAULT};
 enum ae_audio_submit {AE_AUDIO_SUBMITTED,AE_AUDIO_INVALID,AE_AUDIO_STALE,AE_AUDIO_UNAVAILABLE,AE_AUDIO_BUSY};
@@ -53,6 +53,12 @@ typedef void (*ae_audio_changed)(const struct ae_audio_snapshot *,void *);
  * That local wait is bounded to five seconds, then the original socket closes.
  */
 struct ae_audio_control *ae_audio_control_open(GMainContext *,const char *,ae_audio_changed,void *,GDestroyNotify);
+/* Strict original-listener variant; borrowed independently admitted live pidfd
+ * is used synchronously during open, never selected from socket credentials.
+ * See audio/remote.h for the remaining admission/delegation obligations. A
+ * failed join yields DISCONNECTED/ENDPOINT, with no protocol connection or
+ * fallback. Negative original_pidfd is invalid, never the legacy profile. */
+struct ae_audio_control *ae_audio_control_open_original(GMainContext *,const char *,int original_pidfd,ae_audio_changed,void *,GDestroyNotify);
 bool ae_audio_control_snapshot(struct ae_audio_control *,struct ae_audio_snapshot *);
 enum ae_audio_submit ae_audio_control_volume(struct ae_audio_control *,uint64_t,struct ae_audio_output_ref,double);
 enum ae_audio_submit ae_audio_control_mute(struct ae_audio_control *,uint64_t,struct ae_audio_output_ref,bool);

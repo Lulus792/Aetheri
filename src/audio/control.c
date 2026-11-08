@@ -165,7 +165,7 @@ static void connected(WpCore *core,gpointer data) {
     wp_core_load_component(core,"libwireplumber-module-default-nodes-api","module",NULL,NULL,c->cancel,loaded,retain(c));
     wp_core_load_component(core,"libwireplumber-module-mixer-api","module",NULL,NULL,c->cancel,loaded,retain(c));
 }
-struct ae_audio_control *ae_audio_control_open(GMainContext *context,const char *remote,ae_audio_changed callback,void *data,GDestroyNotify destroy) {
+static struct ae_audio_control *open_control(GMainContext *context,const char *remote,int original,ae_audio_changed callback,void *data,GDestroyNotify destroy) {
     if(!context || g_main_context_get_thread_default()!=context || !remote || remote[0]!='/' || strlen(remote)>100 || strchr(remote,'\n') || strchr(remote,'\r')) return NULL;
     struct ae_audio_control *c=calloc(1,sizeof(*c));if(!c) return NULL;
     if(getrandom(&c->connection,sizeof(c->connection),0)!=(ssize_t)sizeof(c->connection) || !c->connection) {free(c);return NULL;}
@@ -182,11 +182,18 @@ struct ae_audio_control *ae_audio_control_open(GMainContext *context,const char 
     g_signal_connect(c->core,"connected",G_CALLBACK(connected),c);
     c->deadline=g_timeout_source_new(5000);g_source_set_callback(c->deadline,timeout_command,retain(c),release);g_source_attach(c->deadline,c->context);
     g_main_context_push_thread_default(context);
-    int fd=ae_audio_remote_connect(remote);
+    int fd=original>=0 ? ae_audio_remote_connect_original(remote,original) : ae_audio_remote_connect(remote);
+    if(fd<0 && original>=0) c->snapshot.error=AE_AUDIO_ERROR_ENDPOINT;
     /* connect_fd consumes the original socket on success and on error. The
      * ambient PIPEWIRE_REMOTE may not override the caller's explicit endpoint. */
     if(fd<0 || !wp_core_connect_fd(c->core,fd)) fail(c,AE_AUDIO_DISCONNECTED);
     g_main_context_pop_thread_default(context);dirty(c);return c;
+}
+struct ae_audio_control *ae_audio_control_open(GMainContext *context,const char *remote,ae_audio_changed callback,void *data,GDestroyNotify destroy) {
+    return open_control(context,remote,-1,callback,data,destroy);
+}
+struct ae_audio_control *ae_audio_control_open_original(GMainContext *context,const char *remote,int original,ae_audio_changed callback,void *data,GDestroyNotify destroy) {
+    return original<0 ? NULL : open_control(context,remote,original,callback,data,destroy);
 }
 bool ae_audio_control_snapshot(struct ae_audio_control *c,struct ae_audio_snapshot *out) {if(!owner(c) || !out) return false;*out=c->snapshot;return true;}
 static gboolean timeout_command(gpointer data) {

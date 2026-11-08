@@ -217,9 +217,10 @@ class SessionEvidence(unittest.TestCase):
         'POLICY_PROFILE\n * 1  Analog Stereo Output [available]  prio=6500\n'
         'AETHERI_AUDIO_ACTOR role=control uid=1000 cap_zero=1 nnp=1\n'
         'AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=1\n'
+        'AETHERI_AUDIO_NATIVE_PEER original=1\n'
         'AETHERI_AUDIO_NATIVE_PASS case=half node=alsa_output.pci-test.analog-stereo id=25 serial=31 volume=0.500000 muted=0 observed=1\n'
         'AETHERI_AUDIO_NATIVE_CLOSED retired=1\nAETHERI_AUDIO_MIXER_OBSERVED volume=74 switch=1 channels=2 verified=1\n'
-        'AETHERI_AUDIO_ACTOR role=player uid=1000 cap_zero=1 nnp=1\nDRAINED frames=96000\n'
+        'AETHERI_AUDIO_ACTOR role=player uid=1000 cap_zero=1 nnp=1\nAETHERI_AUDIO_PLAYER_PEER original=1\nDRAINED frames=96000\n'
         'AETHERI_AUDIO_USER_END originals=2 session_target_stopped=1\n')+denied+(
         'AETHERI_AUDIO_SESSION_NODE phase=after path=/dev/snd/controlC0 uid=0 gid=63 mode=0660\n'
         'AETHERI_AUDIO_SESSION_NODE phase=after path=/dev/snd/pcmC0D0p uid=0 gid=63 mode=0660\n'
@@ -241,9 +242,19 @@ class SessionEvidence(unittest.TestCase):
     def test_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_SESSION_FAIL reason=user-stop\n'))
     def test_bus_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_USER_BUS_FAIL method=StartUnit unit=aetheri-audio.target code=-1 error=failed\n'))
     def test_no_user_owned_device(self):self.assertFalse(self.valid(self.joined.replace('uid=0 gid=63 mode=0660','uid=1000 gid=63 mode=0660')))
+    def test_missing_control_actor_returns_false(self):
+        self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_ACTOR role=control uid=1000 cap_zero=1 nnp=1\n','')))
+    def test_missing_native_result_returns_false(self):
+        trace='\n'.join(l for l in self.joined.split('\n') if not l.startswith('AETHERI_AUDIO_NATIVE_PASS '))
+        self.assertFalse(self.valid(trace))
     def test_missing_completion_returns_false(self):
         trace=self.joined.replace('AETHERI_AUDIO_SESSION_PASS nonce='+'0'*32+' user_end=1 runtime_removed=1 udev_end=1\n','')
         self.assertFalse(self.valid(trace))
+    def test_control_must_join_the_original_peer(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_NATIVE_PEER original=1\n','')))
+    def test_player_must_join_the_original_peer(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_PLAYER_PEER original=1\n','')))
+    def test_peer_proof_cannot_follow_playback(self):
+        line='AETHERI_AUDIO_PLAYER_PEER original=1\n'
+        self.assertFalse(self.valid(self.joined.replace(line,'')+line))
     def test_missing_original_unit_references(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n','')))
     def test_references_cannot_change_manager(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_USER_REFS owner=:1.1','AETHERI_AUDIO_USER_REFS owner=:1.2')))
     def test_references_must_precede_actor_acceptance(self):

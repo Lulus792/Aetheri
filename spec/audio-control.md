@@ -11,6 +11,32 @@ Settings integration are still separate work. The local API is declared in
 The separate [user-session fixture](audio-session.md) now joins this adapter to
 real PAM/logind, user-managed services and dynamic device ACLs in a diskless VM.
 
+## Original listener binding
+
+`ae_audio_control_open_original` uses a borrowed, independently admitted server
+pidfd. Before sending PipeWire protocol bytes it joins the connected socket's
+kernel-provided `SO_PEERPIDFD` to that original process. Mandatory
+`PIDFD_GET_INFO` observations bracket direct 64-bit pidfs inode checks, with
+current UID/GID, cgroup and liveness checks. There is no numeric-PID lookup,
+replacement adoption or fallback to the same-UID-only connector. Failure is
+reported as `DISCONNECTED` with `AE_AUDIO_ERROR_ENDPOINT` and no outputs.
+
+The helper borrows the original only during open; its temporary process FDs
+are closed on every outcome. The caller retains the original lifetime fence.
+An already connected socket is not redirected when its filesystem name changes.
+The original `open` entry remains an explicitly unadmitted development profile.
+The private user-session control and playback clients now receive the parent's
+original pin in one fixed inherited FD slot and use the strict connector.
+
+Socket credentials describe the connection/listener creator, not every later
+holder or message processor. Current image/configuration/unit admission, exec
+drift, listener/accepted-FD delegation, ongoing revocation and production MAC
+remain separate obligations. A listener inherited from a different creator is
+rejected; socket activation needs a separately admitted activation/creator chain.
+This does not authenticate the user manager or make a pidfd a bearer capability.
+See the [peer record](../brains/aetheri/journal/2026-11-09-audio-peer.md) for tests
+and current integration evidence.
+
 ## Event loop and lifetime
 
 The caller creates a GLib main context, pushes it as the creating thread's

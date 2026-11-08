@@ -1,5 +1,19 @@
 # Sources
 
+## Original audio listener binding — 9 November 2026
+
+- [Contract](../../spec/audio-control.md#original-listener-binding) and
+  [peer record](journal/2026-11-09-audio-peer.md): real same-UID takeover, inherited
+  creator, stale pin and no-fallback tests, native adapter rejection, complete
+  private/guest PCM and separate remaining admission gates.
+- [Unix credentials](https://man7.org/linux/man-pages/man7/unix.7.html), Linux 6.19
+  [SO_PEERPIDFD implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/net/core/sock.c)
+  and [pidfd information ABI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h):
+  connection/listener credentials, retained peer handles including possible
+  stale AF_UNIX peers, required returned masks and observation-time limits.
+  Current code brackets pidfs checks and polls original liveness; none of this
+  proves current image, all future holders or authority to run an application.
+
 ## Audio loss observation — 9 November 2026
 
 - [Observer contract](../../spec/audio-session.md#observing-session-or-process-loss)

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 struct fixture {GMainLoop *loop;struct ae_audio_control *control;bool retired;int result;char input[512];size_t used;};
@@ -23,6 +24,12 @@ static void snapshot(const struct ae_audio_snapshot *s,void *data) {
     puts("END");fflush(stdout);
 }
 static void retired(gpointer data) {struct fixture *f=data;f->retired=true;puts("CLOSED");fflush(stdout);g_main_loop_quit(f->loop);}
+static void rejected_snapshot(const struct ae_audio_snapshot *s,void *data) {
+    struct fixture *f=data;if(s->state==AE_AUDIO_CONNECTING) return;
+    f->result=!(s->state==AE_AUDIO_DISCONNECTED && s->error==AE_AUDIO_ERROR_ENDPOINT && !s->count && s->command_state==AE_AUDIO_COMMAND_NONE);
+    (void)ae_audio_control_close(&f->control);
+}
+static gboolean rejected_deadline(gpointer data) {struct fixture *f=data;f->result=1;if(f->control) (void)ae_audio_control_close(&f->control);return G_SOURCE_REMOVE;}
 static gpointer wrong_thread(gpointer data) {
     struct fixture *f=data;struct ae_audio_snapshot s;
     bool okay=!ae_audio_control_snapshot(f->control,&s) && ae_audio_control_volume(f->control,0,(struct ae_audio_output_ref){0},0)==AE_AUDIO_INVALID;
@@ -61,15 +68,22 @@ static gboolean input(gint fd,GIOCondition condition,gpointer data) {
     return G_SOURCE_CONTINUE;
 }
 int main(int argc,char **argv) {
-    if(argc!=2 && !(argc==3 && !strcmp(argv[2],"--close-immediate"))) return 2;
+    bool reject_original=argc==3 && !strcmp(argv[2],"--reject-original");
+    if(argc!=2 && !(argc==3 && (!strcmp(argv[2],"--close-immediate") || reject_original))) return 2;
     GMainContext *context=g_main_context_new();struct fixture f={.loop=g_main_loop_new(context,FALSE)};
     /* Reject a context that is not installed as this thread's default. */
     if(ae_audio_control_open(context,argv[1],snapshot,&f,retired)) return 2;
     g_main_context_push_thread_default(context);
-    f.control=ae_audio_control_open(context,argv[1],snapshot,&f,retired);
+    if(ae_audio_control_open_original(context,argv[1],-1,snapshot,&f,retired)) return 2;
+    int original=reject_original ? (int)syscall(SYS_pidfd_open,getpid(),0) : -1;
+    if(reject_original && original<0) return 2;
+    f.result=reject_original ? 1 : 0;
+    f.control=reject_original ? ae_audio_control_open_original(context,argv[1],original,rejected_snapshot,&f,retired) : ae_audio_control_open(context,argv[1],snapshot,&f,retired);
+    if(original>=0) close(original);
     if(!f.control) {g_main_context_pop_thread_default(context);g_main_loop_unref(f.loop);g_main_context_unref(context);return 2;}
     GSource *source=NULL;
-    if(argc==3) (void)ae_audio_control_close(&f.control);
+    if(reject_original) {source=g_timeout_source_new(5000);g_source_set_callback(source,rejected_deadline,&f,NULL);g_source_attach(source,context);}
+    else if(argc==3) (void)ae_audio_control_close(&f.control);
     else {
         if(fcntl(STDIN_FILENO,F_SETFL,O_NONBLOCK)<0) return 2;
         source=g_unix_fd_source_new(STDIN_FILENO,G_IO_IN|G_IO_HUP|G_IO_ERR);
@@ -78,5 +92,6 @@ int main(int argc,char **argv) {
     if(!f.retired) g_main_loop_run(f.loop);
     if(source) {g_source_destroy(source);g_source_unref(source);}
     if(f.control || !f.retired) f.result=1;
+    if(reject_original && !f.result) puts("ORIGINAL_REJECTED no_protocol_fallback=1");
     g_main_context_pop_thread_default(context);g_main_loop_unref(f.loop);g_main_context_unref(context);return f.result;
 }

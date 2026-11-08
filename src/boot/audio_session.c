@@ -167,9 +167,9 @@ static int user_check(void) {
         unit_debug(bus,"aetheri-session.target");unit_debug(bus,"aetheri-audio.target");unit_debug(bus,"aetheri-pipewire.service");unit_debug(bus,"aetheri-wireplumber.service");goto done;
     }
     reason="session-guard";guard=ae_audio_session_guard_open(1000,"seat0",pins[0],pins[1]);if(!guard) goto done;
-    reason="native-control";if(!policy_output(sink,sizeof(sink))) goto done;
-    char *args[]={"/usr/libexec/aetheri-audio-check","--remote",(char *)remote,"--frames","96000","--wait-for-start","--autoconnect",NULL};
-    reason="player";if(!spawn(args,false,"player",-1,&player)) goto done;
+    reason="native-control";if(!policy_output_original(sink,sizeof(sink),pins[0])) goto done;
+    char *args[]={"/usr/libexec/aetheri-audio-check","--remote",(char *)remote,"--frames","96000","--wait-for-start","--autoconnect","--server-pidfd","3",NULL};
+    reason="player";if(!spawn_with_pin(args,false,"player",-1,pins[0],&player)) goto done;
     char *links[]={"/usr/bin/pw-link","-r",(char *)remote,"-o","-l",NULL};char output[8192];ready=false;
     for(unsigned i=0;i<100;++i) {if(!command(links,false,output,sizeof(output))) goto done;if(automatic_links(output,sink)) {ready=true;break;}pause_ms(25);}
     printf("POLICY_LINKS\n%s",output);reason="playback";

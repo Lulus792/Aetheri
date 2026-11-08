@@ -226,6 +226,25 @@ def retirement_fault(producer,sdk,policy,control,root):
             finally:os.close(pin)
 
 
+class OriginalRejection:
+    extra_nodes=()
+    def __init__(self,binary,headers):self.binary=binary;self.headers=headers
+    def configure(self,conf,env):env['LD_LIBRARY_PATH']=str(self.headers/'usr/lib64')+':'+env['LD_LIBRARY_PATH']
+    def exercise(self,root,env,remote,server,graph,volume,muted):
+        p=subprocess.Popen(['setpriv','--no-new-privs',str(self.binary),str(remote),'--reject-original'],env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        pin=os.pidfd_open(p.pid)
+        try:
+            out,err=p.communicate(timeout=15);(root/'original-rejection.stdout').write_bytes(out);(root/'original-rejection.stderr').write_bytes(err)
+            assert p.returncode==0 and not err and out==b'CLOSED\nORIGINAL_REJECTED no_protocol_fallback=1\n',(p.returncode,out,err)
+            assert select.select([pin],[],[],0)[0]
+        finally:
+            if p.poll() is None:
+                signal.pidfd_send_signal(pin,signal.SIGKILL);p.wait(timeout=5)
+            os.close(pin)
+    def server_stopped(self):pass
+    def close(self):pass
+
+
 def run(binary,producer,sdk,policy,control,work):
     if os.getuid()==0:raise ValueError('ordinary test user required')
     prepare_audio.check(sdk);prepare_audio_policy.check(policy);prepare_audio_control.check(control)
@@ -233,6 +252,7 @@ def run(binary,producer,sdk,policy,control,work):
     for name,volume,muted in [('unity',1.0,False),('half',.5,False),('muted',1.0,True)]:
         results.append(run_case(producer,sdk,root/name,48000,policy=policy,volume=volume,muted=muted,controller=Controller(binary,sdk,policy,control)))
     retirement_fault(producer,sdk,policy,control,root)
+    results.append(run_case(producer,sdk,root/'original-rejection',48000,policy=policy,volume=1.0,muted=False,controller=OriginalRejection(binary,control)))
     (root/'result.json').write_text(json.dumps(dict(passed=True,cases=results),indent=2)+'\n');return root
 
 

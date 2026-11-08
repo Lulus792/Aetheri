@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Actual VT, graph and policy loss now pass original-process/service/runtime retirement, full PCM and logout in the isolated session fixture. Six instruction-clock cold boots pass. Native Release/ASan/UBSan and 78 host review cases pass. Next: original manager/endpoint lifetime and admission before desktop/Settings/HP promotion. The stick stays unchanged.
+9 November 2026 — Native audio clients now join the connected listener to an independently admitted original server pidfd before protocol. Same-UID takeover and inherited/stale-peer counterchecks pass; both user-session clients and full PCM pass six cold boots. Three native groups, fourteen private graphs and 83 host review cases pass. Next: original user-manager admission/lifetime and normal endpoint/holder policy before desktop/Settings/HP promotion. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,39 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Original audio listener binding — 9 November 2026
+
+The [peer record](journal/2026-11-09-audio-peer.md) joins actual socket/process
+tests to the [C adapter contract](../../spec/audio-control.md#original-listener-binding).
+The strict connector uses SO_PEERPIDFD, mandatory PIDFD_GET_INFO, 64-bit pidfs
+objects, current UID/GID/cgroup snapshots and live original handles. No process
+is selected from a socket's numeric PID, and no protocol bytes precede the join.
+Path takeover cannot redirect an existing FD. A different same-UID creator,
+dead original or unsupported peer option is rejected without fallback. Current
+image/configuration/unit admission, exec/delegation exclusion and ongoing
+lifetime remain caller obligations; this is not full endpoint authorization.
+
+The private PAM control/player receive only the parent's original pin through
+fixed FD3; other nonstandard handles close. Six original cold boots pass normal
+playback, VT loss/return, graph and policy exits, the legacy native control and
+no-card rejection. All five captures retain all 96,000 frames below 0.5 LSB.
+Fourteen private graphs, including actual C-adapter wrong-self rejection, also
+pass full PCM in Release/ASan/UBSan. Three native groups, the four existing
+audio CTests, parser controls and actual privileged-group denials pass.
+
+A final host-only review checks missing actor/result evidence before indexing
+the new peer markers. The executed 81-case verifier and six receipts remain
+unchanged; 83 review cases and complete evidence revalidation pass. The audit
+joins 562 unchanged code/pin inputs, two explicit host revisions, 1,470 export
+members and both exact helper retirements. Original carrier/normal files,
+quarantine, frozen contracts, foreign UI work and USB remain unchanged.
+
+Tests use the explicit functional instruction clock; default-clock APIC failure
+and physical/performance gates remain open. The current direct-created listener
+profile does not admit a different socket-activation creator. Next join original
+user-manager admission/lifetime and normal endpoint/holder policy before desktop/
+Settings/HP promotion. No public capability or normal audio service is enabled.
 
 ## Audio loss integration — 9 November 2026
 

@@ -80,7 +80,7 @@ static const struct pw_core_events core_events={.version=PW_VERSION_CORE_EVENTS,
 static const struct pw_stream_events stream_events={.version=PW_VERSION_STREAM_EVENTS,.state_changed=state,.param_changed=format,.process=process,.drained=drained};
 
 int main(int argc,char **argv) {
-    const char *remote=NULL;struct check c={.total=RATE};bool frames_set=false,autoconnect=false;
+    const char *remote=NULL;struct check c={.total=RATE};bool frames_set=false,autoconnect=false;int original=-1;
     for(int i=1;i<argc;++i) {
         if(!strcmp(argv[i],"--remote") && !remote && i+1<argc) remote=argv[++i];
         else if(!strcmp(argv[i],"--frames") && !frames_set && i+1<argc) {
@@ -89,6 +89,7 @@ int main(int argc,char **argv) {
         } else if(!strcmp(argv[i],"--silent") && !c.silent) c.silent=true;
         else if(!strcmp(argv[i],"--wait-for-start") && !c.wait_start) c.wait_start=true;
         else if(!strcmp(argv[i],"--autoconnect") && !autoconnect) autoconnect=true;
+        else if(!strcmp(argv[i],"--server-pidfd") && original<0 && i+1<argc && !strcmp(argv[i+1],"3")) {original=3;++i;}
         else return 2;
     }
     if(!remote || remote[0]!='/' || strlen(remote)>=sizeof(((struct sockaddr_un *)0)->sun_path) || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid()) return 2;
@@ -109,8 +110,10 @@ int main(int argc,char **argv) {
     c.context=pw_context_new(loop,NULL,0);if(!c.context) goto done;
     struct pw_properties *properties=pw_properties_new(PW_KEY_REMOTE_NAME,remote,NULL);
     if(!properties) goto done; /* Never turn failed explicit routing into default routing. */
-    int fd=ae_audio_remote_connect(remote);
+    int fd=original>=0 ? ae_audio_remote_connect_original(remote,original) : ae_audio_remote_connect(remote);
+    bool original_checked=original>=0;if(original_checked) {close(original);original=-1;}
     if(fd<0) {pw_properties_free(properties);goto done;}
+    if(original_checked) puts("AETHERI_AUDIO_PLAYER_PEER original=1");
     c.core=pw_context_connect_fd(c.context,fd,properties,0);if(!c.core) goto done;
     pw_core_add_listener(c.core,&c.core_listener,&core_events,&c);
     properties=pw_properties_new(PW_KEY_MEDIA_TYPE,"Audio",PW_KEY_MEDIA_CATEGORY,"Playback",PW_KEY_MEDIA_ROLE,"Test",PW_KEY_NODE_NAME,"aetheri.audio.check","adapter.auto-port-config","{ mode = dsp position = preserve }",NULL);
@@ -135,6 +138,7 @@ int main(int argc,char **argv) {
     if(pw_loop_update_timer(loop,c.timer,&deadline,NULL,false)<0 || pw_main_loop_run(c.loop)<0) goto done;
     result=c.done && !c.failed && c.sent==c.total ? 0 : 1;
 done:
+    if(original>=0) close(original);
     if(c.stream) {spa_hook_remove(&c.stream_listener);pw_stream_destroy(c.stream);}
     if(c.core) {spa_hook_remove(&c.core_listener);pw_core_disconnect(c.core);}
     if(c.context) pw_context_destroy(c.context);

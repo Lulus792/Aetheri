@@ -53,11 +53,16 @@ static bool zero_caps(void) {
     struct __user_cap_header_struct h={.version=_LINUX_CAPABILITY_VERSION_3,.pid=0};struct __user_cap_data_struct d[2]={{0}};
     return syscall(SYS_capget,&h,d)==0 && !(d[0].effective|d[0].permitted|d[0].inheritable|d[1].effective|d[1].permitted|d[1].inheritable);
 }
-static bool spawn(char *const args[],bool ordinary,const char *role,int output,struct child *out) {
+static bool spawn_with_pin(char *const args[],bool ordinary,const char *role,int output,int inherited_pin,struct child *out) {
+    if(inherited_pin>=0 && inherited_pin<3) return false;
     pid_t pid=fork();if(pid<0) return false;
     if(!pid) {
         if(output>=0 && dup2(output,STDOUT_FILENO)<0) _exit(125);
-        if(syscall(SYS_close_range,3u,~0u,0u)) _exit(125);
+        if(inherited_pin>=0) {
+            if(inherited_pin!=3) {if(dup3(inherited_pin,3,0)<0) _exit(125);}
+            else if(fcntl(3,F_SETFD,0)<0) _exit(125);
+            if(syscall(SYS_close_range,4u,~0u,0u)) _exit(125);
+        } else if(syscall(SYS_close_range,3u,~0u,0u)) _exit(125);
 #ifdef AETHERI_AUDIO_USER_SESSION
         gid_t group=0;int groups=getgroups(1,&group);
         if(ordinary && getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && (groups==0 || (groups==1 && group==1000)) && zero_caps() && prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0)==1) ordinary=false;
@@ -71,6 +76,7 @@ static bool spawn(char *const args[],bool ordinary,const char *role,int output,s
     if(pin<0) {int status;(void)kill(pid,SIGKILL);while(waitpid(pid,&status,0)<0 && errno==EINTR) {}return false;}
     *out=(struct child){pid,pin};return true;
 }
+static bool spawn(char *const args[],bool ordinary,const char *role,int output,struct child *out) {return spawn_with_pin(args,ordinary,role,output,-1,out);}
 static bool wait_child(struct child *c,int ms,int *result) {
     struct pollfd p={c->pin,POLLIN,0};int n;do {n=poll(&p,1,ms);} while(n<0 && errno==EINTR);
     if(n!=1 || !(p.revents&POLLIN)) return false;
@@ -95,10 +101,10 @@ static bool capture(int fd,char *out,size_t capacity,size_t *used) {
         return n==0 || errno==EAGAIN;
     }
 }
-static bool command_named(char *const args[],bool ordinary,const char *role,char *output,size_t capacity,unsigned turns) {
+static bool command_with_pin(char *const args[],bool ordinary,const char *role,int pin,char *output,size_t capacity,unsigned turns) {
     int pipes[2]={-1,-1};if(output && pipe2(pipes,O_CLOEXEC|O_NONBLOCK)) return false;
     struct child c={.pid=-1,.pin=-1};
-    if(!spawn(args,ordinary,role,pipes[1],&c)) {if(output) {close(pipes[0]);close(pipes[1]);}return false;}
+    if(!spawn_with_pin(args,ordinary,role,pipes[1],pin,&c)) {if(output) {close(pipes[0]);close(pipes[1]);}return false;}
     if(pipes[1]>=0) close(pipes[1]);
     size_t used=0;bool okay=true;int result=-1;
     for(unsigned turn=0;turn<turns;++turn) {
@@ -109,6 +115,7 @@ static bool command_named(char *const args[],bool ordinary,const char *role,char
     if(output) {if(!capture(pipes[0],output,capacity,&used)) okay=false;output[used]=0;close(pipes[0]);}
     return okay && result==0;
 }
+static bool command_named(char *const args[],bool ordinary,const char *role,char *output,size_t capacity,unsigned turns) {return command_with_pin(args,ordinary,role,-1,output,capacity,turns);}
 static bool command(char *const args[],bool ordinary,char *output,size_t capacity) {return command_named(args,ordinary,NULL,output,capacity,500);}
 static bool line(const char *text,const char *value) {
     size_t n=strlen(value);
@@ -207,7 +214,7 @@ static bool start_udev(void) {
     if(!line(output,"ID_SOUND=1") || !line(output,"SOUND_INITIALIZED=1")) return false;
     puts("AETHERI_AUDIO_UDEV initialized=1 database=1");return true;
 }
-static bool policy_output(char *sink,size_t capacity) {
+static bool policy_output_original(char *sink,size_t capacity,int original) {
     char output[8192]={0};char *inspect[]={"/usr/bin/wpctl","inspect","@DEFAULT_AUDIO_SINK@",NULL};bool ready=false;
     char *list[]={"/usr/bin/wpctl","list","audio","sinks",NULL};
     for(unsigned i=0;i<100;++i) {
@@ -232,16 +239,18 @@ static bool policy_output(char *sink,size_t capacity) {
     else if(!strcmp(test,"half\n")) test[4]=0;
     else if(!strcmp(test,"muted\n")) test[5]=0;
     else return false;
-    char *native[]={"/usr/libexec/aetheri-audio-control-probe",(char *)remote,sink,test,NULL};
-    bool applied=command_named(native,true,"control",output,sizeof(output),2000);
+    char *native[]={"/usr/libexec/aetheri-audio-control-probe",(char *)remote,sink,test,original>=0 ? "--server-pidfd" : NULL,"3",NULL};
+    bool applied=command_with_pin(native,true,"control",original,output,sizeof(output),2000);
     printf("NATIVE_CONTROL\n%s",output);
     return applied && strstr(output,"AETHERI_AUDIO_NATIVE_PASS ") && line(output,"AETHERI_AUDIO_NATIVE_CLOSED retired=1") && mixer(false,false);
 #else
+    (void)original;
     char *volume[]={"/usr/bin/wpctl","set-volume","@DEFAULT_AUDIO_SINK@","1.0","--limit","1.0",NULL};
     char *unmute[]={"/usr/bin/wpctl","set-mute","@DEFAULT_AUDIO_SINK@","0",NULL};
     return command(volume,true,NULL,0) && command(unmute,true,NULL,0) && mixer(false,true);
 #endif
 }
+static bool policy_output(char *sink,size_t capacity) {return policy_output_original(sink,capacity,-1);}
 #endif
 int main(void) {
     setvbuf(stdout,NULL,_IOLBF,0);const char *reason="setup";int result=1;char profile[128],vendor[32],device[32];

@@ -81,6 +81,13 @@ for actual evidence and current acceptance. These tests do not choose final
 background-music/lock behavior or prove in-flight interruption, manager restart
 identity, endpoint authentication, app MAC or delegated-holder revocation.
 
+Both native user-session clients now use the [original-listener connector](audio-control.md#original-listener-binding).
+Their independently observed server pin crosses only the fixed fixture's
+trusted fork/exec boundary in FD3. Every other nonstandard descriptor closes;
+each child closes its inherited pin after its synchronous connection check.
+The parent retains the lifetime observer. This is not a normal app transport or
+permission grant, and third-party policy tools remain independent test oracles.
+
 The executed private check is:
 
 1. Before login, a cap-zero/NNP UID1000 process cannot open control or playback.
