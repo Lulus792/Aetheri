@@ -37,6 +37,7 @@ PROFILES = ("release", "debug")
 SETTINGS_UIS = ("sdl", "nexaui", "nexaui-owned")
 FILES_UIS = ("sdl", "nexaui-owned")
 TERMINAL_UIS = ("sdl", "nexaui-owned")
+KEYBOARD_LAYOUTS = ("us", "de")
 TERMINAL_BOLD_FONT = Path("/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf")
 # Frozen shape of aetheri-settings-v1; new source sets need a new kind/validator.
 OWN_SETTINGS_SOURCES = ("CMakeLists.txt", "src/settings/nexaui_main.c", "src/settings/nexaui_view.c",
@@ -357,11 +358,29 @@ def development_binaries(build, desktop, settings_profile=None, files_profile=No
     return binaries
 
 
-def compositor_launch(build, shell_server, compose=False):
+def keyboard_fingerprint(layout):
+    if layout is None: return None
+    if type(layout) is not str or layout not in KEYBOARD_LAYOUTS:
+        raise ValueError("unsupported development keyboard layout")
+    return profile_fingerprint(dict(kind="aetheri-keyboard-v1", layout=layout))
+
+
+def compositor_ready(line, keyboard_layout=None):
+    keyboard_fingerprint(keyboard_layout)
+    if keyboard_layout is None: return line.startswith(b"READY ")
+    # Original child diagnostics are development consistency evidence, not app
+    # admission. Never accept another/missing/ambiguous selected layout.
+    expected = rb"READY aetheri-development outputs=[1-3] renderer=pixman keyboard_layout=" + keyboard_layout.encode()
+    return re.fullmatch(expected, line) is not None
+
+
+def compositor_launch(build, shell_server, compose=False, keyboard_layout=None):
+    keyboard_fingerprint(keyboard_layout)
     args = [str(build / "aetheri-compositor"), "--drm", "aetheri-development", "-", "/dev/dri/card0"]
     if shell_server is not None:
         args += ["--shell-fd", str(shell_server.fileno())]
     if compose: args.append("--compose")
+    if keyboard_layout is not None: args += ["--keyboard-layout", keyboard_layout]
     return args, (shell_server.fileno(),) if shell_server is not None else ()
 
 
@@ -437,6 +456,10 @@ def validate(record, carrier):
         raise RuntimeError("invalid development desktop profile")
     if type(record.get("compose", False)) is not bool:
         raise RuntimeError("invalid development Compose profile")
+    if "keyboard_layout" in record or "keyboard_binding" in record:
+        layout = record.get("keyboard_layout")
+        if layout is None or record.get("keyboard_binding") != keyboard_fingerprint(layout):
+            raise RuntimeError("invalid development keyboard binding")
     ui = record.get("settings_ui", "sdl")
     selected = record.get("settings_profile")
     binding = record.get("settings_binding")
@@ -529,7 +552,8 @@ def free_seat():
             raise RuntimeError("tty8 already has a controlling process")
 
 
-def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl", terminal_ui="sdl"):
+def start(record, carrier, profile, desktop=False, compose=False, settings_ui="sdl", files_ui="sdl", terminal_ui="sdl", keyboard_layout=None):
+    keyboard_binding = keyboard_fingerprint(keyboard_layout)
     if record and record["phase"] != "closed":
         raise RuntimeError("an existing development intent must be observed/stopped first")
     if (PROJECT / ".aetheri-promotion.pending").exists():
@@ -577,6 +601,8 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
     record.update(settings_ui=settings_ui, settings_profile=selected, settings_binding=binding)
     record.update(files_ui=files_ui, files_profile=files_profile, files_binding=files_binding)
     record.update(terminal_ui=terminal_ui, terminal_profile=terminal_profile, terminal_binding=terminal_binding)
+    if keyboard_layout is not None:
+        record.update(keyboard_layout=keyboard_layout, keyboard_binding=keyboard_binding)
     save(record)
     if not USER_ROOT.exists(): USER_ROOT.mkdir(mode=0o700); os.chown(USER_ROOT, 1000, 1000)
     owned(USER_ROOT, 1000, 0o700, directory=True)
@@ -599,6 +625,7 @@ def start(record, carrier, profile, desktop=False, compose=False, settings_ui="s
             "--temporary-profile", TEMPORARY_PROFILE]
     if desktop: args.append("--desktop")
     if compose: args.append("--compose")
+    if keyboard_layout is not None: args += ["--keyboard-layout", keyboard_layout, "--keyboard-binding", keyboard_binding]
     if selected is not None: args += ["--settings-ui", settings_ui, "--settings-binding", binding]
     if files_profile is not None: args += ["--files-ui", files_ui, "--files-binding", files_binding]
     if terminal_profile is not None: args += ["--terminal-ui", terminal_ui, "--terminal-binding", terminal_binding]
@@ -716,9 +743,12 @@ def observation(record):
 
 
 def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None,
-              files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None, temporary_profile=None):
+              files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None, temporary_profile=None,
+              keyboard_layout=None, keyboard_binding=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
+    if keyboard_binding != keyboard_fingerprint(keyboard_layout):
+        raise RuntimeError("original keyboard selection changed before supervision")
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     if temporary_profile not in (None, TEMPORARY_PROFILE):
@@ -796,7 +826,7 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
         return True
     deadline = time.monotonic() + 12
     try:
-        compositor_args, compositor_fds = compositor_launch(build, shell_server, compose)
+        compositor_args, compositor_fds = compositor_launch(build, shell_server, compose, keyboard_layout)
         spawn("compositor", compositor_args, compositor_fds)
         if shell_server: shell_server.close()
         while True:
@@ -885,6 +915,8 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                     line, buffers[role] = buffers[role].split(b"\n", 1)
                     emit_child_line(role, line)
                     if line.startswith(b"READY ") and role not in ready:
+                        if role == "compositor" and not compositor_ready(line, keyboard_layout):
+                            raise RuntimeError("original compositor reported a different keyboard layout")
                         ready.add(role)
                         if role == "compositor" and not stopping:
                             if desktop:
@@ -938,6 +970,8 @@ def main():
     parser.add_argument("--token")
     parser.add_argument("--desktop", action="store_true", help="explicit native dock/search development session")
     parser.add_argument("--compose", action="store_true", help="opt-in built-in Compose provider (requires its reviewed build)")
+    parser.add_argument("--keyboard-layout", choices=KEYBOARD_LAYOUTS, help="explicit startup keyboard map; requires a matching compositor build")
+    parser.add_argument("--keyboard-binding", help=argparse.SUPPRESS)
     parser.add_argument("--settings-ui", choices=SETTINGS_UIS, default="sdl", help="explicit development desktop Settings view")
     parser.add_argument("--settings-binding", help=argparse.SUPPRESS)
     parser.add_argument("--files-ui", choices=FILES_UIS, default="sdl", help="explicit development desktop Files view")
@@ -951,6 +985,10 @@ def main():
     args = parser.parse_args()
     if args.compose and args.action != "start" and not args.supervise:
         raise ValueError("--compose selects a new start profile only")
+    if args.keyboard_layout is not None and args.action != "start" and not args.supervise:
+        raise ValueError("--keyboard-layout selects a new start profile only")
+    if args.keyboard_binding is not None and (not args.supervise or args.keyboard_layout is None or re.fullmatch("[0-9a-f]{64}", args.keyboard_binding) is None):
+        raise ValueError("keyboard binding belongs to the original supervisor only")
     if args.settings_ui != "sdl" and (not args.desktop or (args.action != "start" and not args.supervise)):
         raise ValueError("a NexaUI Settings selection requires a new --desktop start")
     if args.settings_binding is not None and (not args.supervise or re.fullmatch("[0-9a-f]{64}", args.settings_binding) is None):
@@ -969,7 +1007,8 @@ def main():
     if args.supervise:
         if args.token is None: raise ValueError("supervision requires its selected development token")
         return supervise(args.profile, args.token, args.desktop, args.compose, args.settings_ui, args.settings_binding,
-                         args.files_ui, args.files_binding, args.terminal_ui, args.terminal_binding, args.temporary_profile)
+                         args.files_ui, args.files_binding, args.terminal_ui, args.terminal_binding, args.temporary_profile,
+                         args.keyboard_layout, args.keyboard_binding)
     if not args.guest:
         import shlex
         import run_vm as vm
@@ -977,6 +1016,7 @@ def main():
         command = ["sudo", "-n", "python3", SOURCE.as_posix(), args.action, "--guest", "--carrier-uuid", vm.config()["uuid"], "--profile", args.profile]
         if args.desktop: command.append("--desktop")
         if args.compose: command.append("--compose")
+        if args.keyboard_layout is not None: command += ["--keyboard-layout", args.keyboard_layout]
         if args.settings_ui != "sdl": command += ["--settings-ui", args.settings_ui]
         if args.files_ui != "sdl": command += ["--files-ui", args.files_ui]
         if args.terminal_ui != "sdl": command += ["--terminal-ui", args.terminal_ui]
@@ -997,7 +1037,7 @@ def main():
     if not CONTROL.exists() and args.action == "status": print(json.dumps(dict(format=1, record=None))); return 0
     with locked(create=args.action == "start"):
         record = load(carrier, args.token)
-        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui, args.files_ui, args.terminal_ui)
+        if args.action == "start": record = start(record, carrier, args.profile, args.desktop, args.compose, args.settings_ui, args.files_ui, args.terminal_ui, args.keyboard_layout)
         elif args.action == "stop":
             if record is None or args.token is None: raise RuntimeError("stop requires an original development token")
             record = stop(record)

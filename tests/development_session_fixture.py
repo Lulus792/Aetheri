@@ -22,16 +22,18 @@ def main():
     session.notify = lambda message: print("FIXTURE_NOTIFY " + message.splitlines()[0], flush=True)
     session.emit_child_line = lambda role, line: print(role + ": " + line.decode(errors="replace"), flush=True)
 
-    def compositor(build, shell_server, compose=False):
+    def compositor(build, shell_server, compose=False, keyboard_layout=None):
         captures = root / ("missing-captures" if len(sys.argv)>5 and sys.argv[5]=="early-error" else "captures")
         return ([str(build / "test_compositor_server"), "--headless", "aetheri-development",
-                 str(captures), str(issuer), "--shell-fd", str(shell_server.fileno()), *(["--compose"] if compose else [])],
+                 str(captures), str(issuer), "--shell-fd", str(shell_server.fileno()), *(["--compose"] if compose else []),
+                 *(["--keyboard-layout", keyboard_layout] if keyboard_layout is not None else [])],
                 (issuer, shell_server.fileno()))
 
     session.compositor_launch = compositor
     ui=os.environ.get("AETHERI_TEST_SETTINGS_UI","sdl")
     files_ui=os.environ.get("AETHERI_TEST_FILES_UI","sdl")
     terminal_ui=os.environ.get("AETHERI_TEST_TERMINAL_UI","sdl")
+    keyboard_layout=os.environ.get("AETHERI_TEST_KEYBOARD_LAYOUT")
     if ui in ("nexaui", "nexaui-owned") and "AETHERI_TEST_SETTINGS_SOURCE" in os.environ:
         session.PROJECT=Path(os.environ["AETHERI_TEST_SETTINGS_SOURCE"])
     if files_ui == "nexaui-owned" and "AETHERI_TEST_FILES_SOURCE" in os.environ:
@@ -46,7 +48,8 @@ def main():
     terminal_profile=session.terminal_selection(profile,terminal_ui)
     terminal_binding=session.profile_fingerprint(terminal_profile) if terminal_profile is not None else None
     return session.supervise(profile, "fixture", desktop=True, compose=len(sys.argv)>5 and sys.argv[5]=="compose",
-                             settings_ui=ui,settings_binding=binding,files_ui=files_ui,files_binding=files_binding,terminal_ui=terminal_ui,terminal_binding=terminal_binding)
+                             settings_ui=ui,settings_binding=binding,files_ui=files_ui,files_binding=files_binding,terminal_ui=terminal_ui,terminal_binding=terminal_binding,
+                             keyboard_layout=keyboard_layout,keyboard_binding=session.keyboard_fingerprint(keyboard_layout))
 
 
 if __name__ == "__main__":

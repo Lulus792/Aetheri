@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — The explicit boot-manager candidate passes two no-UART desktop boots and independent filesystem inspection. The newly authorized replacement flash is being prepared; a successful HP boot is still unproven.
+8 November 2026 — The explicit boot-manager image passes two no-UART boots, independent filesystem inspection and the newly authorized complete Intenso write/readback. The stick is ready for the HP retest; physical boot acceptance remains unproven.
 
 ## Coordination
 
@@ -29,8 +29,16 @@ console and all three required units. The data hash stays unchanged; the retaine
 less-than-one-day future-time warning does not establish clock acceptance.
 The replacement writer's exact layout guards pass15 actual Windows cases. Its
 new source pin is now `4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
-Prepare a fresh protected flash-intenso-v2; never use a VM-modified copy or replay
-the old operation. No new physical write has started at this checkpoint.
+A fresh protected flash-intenso-v2 completes the pristine-source replacement. Intent
+SHA256 `c844e2355c26a37b36d399697cf75ec03e69fafd675d2d30d38ff4b6f21b318a`,
+original elevated writer43696; its native parent retains the original SafeHandle
+until exit0 (host exec19225). Source verification, exact held device/ESP lock,
+full write/flush/readback and repeated context checks pass. All242 chained records
+and writer-handle cleanup are independently joined. Full physical SHA256 matches
+the pinned source above. Logged write/readback times are1077.72/343.12 seconds.
+Never replay this completed attempt or reflash for new features without renewed
+authorization; preserve subsequent user state. Continue development without
+waiting for the user's later HP retest. Hardware/suspend and full OS scope remain.
 
 The corrected tty0-only image passes two cold boots without any UART on one fresh
 writable USB copy. Six native desktop/Terminal/document captures were actually
@@ -128,12 +136,15 @@ an explicit user/session selection through reviewed owner provisioning and the
 Settings boundary; physical keyboard acceptance remains work. No new NexaUI
 handoff, installed service, dependency or public app capability is introduced.
 
-Current uncommitted work connects that startup selection to the development
-controller's additive layout/binding fields and original compositor readiness.
-The Windows controller suite passes 37 cases with seven Linux-specific skips;
-native supervision/integration for these new edits is not accepted yet. The
-physical boot failure above takes priority. No normal carrier source/build,
-service, public API, flashed image or old history has been replaced.
+The controller now connects an explicit startup map through additive layout/
+binding fields and checks the original compositor's exact selected-map READY.
+All37 native controller cases and actual complete owner/app sessions for us/de
+pass; the real PTY/file receives yz or üöäß€ with exact UTF-8. Windows37 passes
+with seven Linux-only skips. The separate [record](journal/2026-11-08-keyboard-layout.md)
+binds native evidence and failed test setups. Matching normal provisioning,
+Settings selection, runtime switching/persistence and physical input remain work.
+No normal carrier source/build/service/public capability or closed history is
+replaced. The freshly flashed image retains its existing US mapping.
 
 ## Single-medium USB desktop — 8 November 2026
 

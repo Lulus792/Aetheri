@@ -95,6 +95,72 @@ class DevelopmentContracts(unittest.TestCase):
             self.assertIn('--drm',args)
             self.assertNotIn('--compose',session.compositor_launch(Path('/selected-build'),sock)[0])
 
+    def test_keyboard_selection_is_additive_and_closed_history_is_immutable(self):
+        self.assertNotIn('keyboard_layout',self.record)
+        self.assertIsNone(session.keyboard_fingerprint(None))
+        for layout in session.KEYBOARD_LAYOUTS:
+            record={**self.record,'keyboard_layout':layout,'keyboard_binding':session.keyboard_fingerprint(layout)}
+            self.assertIs(session.validate(record,self.carrier),record)
+            sock,peer=socket.socketpair()
+            with sock,peer:
+                args,fds=session.compositor_launch(Path('/selected'),sock,True,layout)
+                self.assertEqual(args[-2:],['--keyboard-layout',layout]);self.assertEqual(fds,(sock.fileno(),))
+            record['phase']='closed';before=copy.deepcopy(record)
+            with patch.object(session,'run',side_effect=AssertionError('historical effect')),patch.object(session,'save',side_effect=AssertionError('historical rewrite')):
+                self.assertEqual(session.stop(record),before)
+                self.assertEqual(session.observation(record),{'kind':'historical_closed'})
+        for fields in ({'keyboard_layout':None},{'keyboard_binding':None},{'keyboard_layout':'de'},
+                       {'keyboard_binding':'0'*64},{'keyboard_layout':'us','keyboard_binding':session.keyboard_fingerprint('de')}):
+            with self.subTest(fields=fields),self.assertRaises((ValueError,RuntimeError)):
+                session.validate({**self.record,**fields},self.carrier)
+        for value in (True,1,{},'','de,us','../de','fr'):
+            with self.subTest(value=value),self.assertRaises(ValueError):session.keyboard_fingerprint(value)
+
+    def test_explicit_layout_requires_the_original_compositor_ready_profile(self):
+        good=b'READY aetheri-development outputs=1 renderer=pixman keyboard_layout=de'
+        self.assertTrue(session.compositor_ready(good,'de'))
+        self.assertTrue(session.compositor_ready(b'READY historical'))
+        for bad in (good.replace(b'=de',b'=us'),good.replace(b'outputs=1',b'outputs=0'),
+                    good.replace(b'aetheri-development',b'foreign'),good+b' keyboard_layout=de',
+                    good+b'\0',good+b' ',b'READY historical',b'READY other keyboard_layout=de'):
+            with self.subTest(bad=bad):self.assertFalse(session.compositor_ready(bad,'de'))
+
+    def test_keyboard_binding_rejects_before_any_supervisor_or_start_effect(self):
+        with patch.object(session.os,'getuid',return_value=1000,create=True),patch.object(session.os,'geteuid',return_value=1000,create=True), \
+             patch.object(session,'temporary_area',side_effect=AssertionError('temporary probe')), \
+             patch.object(session,'settings_selection',side_effect=AssertionError('selection')), \
+             patch.object(session.subprocess,'Popen',side_effect=AssertionError('spawn')):
+            with self.assertRaisesRegex(RuntimeError,'original keyboard selection'):
+                session.supervise('release','a'*32,temporary_profile=session.TEMPORARY_PROFILE,keyboard_layout='de',keyboard_binding=session.keyboard_fingerprint('us'))
+        with patch.object(session,'free_seat',side_effect=AssertionError('seat')),patch.object(session,'save',side_effect=AssertionError('save')):
+            with self.assertRaises(ValueError):session.start(None,self.carrier,'release',keyboard_layout='de,us')
+
+    def test_lost_start_acknowledgement_preserves_original_keyboard_intent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);saved=[]
+            with patch.object(session,'PROJECT',root),patch.object(session,'USER_ROOT',root/'sessions'), \
+                 patch.object(session,'free_seat'),patch.object(session,'owned'), \
+                 patch.object(session.os,'chown',create=True),patch.object(session.Path,'read_text',return_value=self.record['boot']), \
+                 patch.object(session,'development_binaries',return_value={'/selected/compositor':'a'*64}), \
+                 patch.object(session,'save',side_effect=lambda r:saved.append(copy.deepcopy(r))), \
+                 patch.object(session,'run',side_effect=TimeoutError('lost original dispatch')) as effect:
+                with self.assertRaises(TimeoutError):session.start(None,self.carrier,'release',keyboard_layout='de')
+                self.assertEqual(len(saved),2)
+                self.assertEqual([r['phase'] for r in saved],['preparing','starting'])
+                for r in saved:self.assertEqual((r['keyboard_layout'],r['keyboard_binding']),('de',session.keyboard_fingerprint('de')))
+                self.assertEqual(effect.call_count,1)
+                args=effect.call_args.args
+                self.assertEqual(args[args.index('--keyboard-layout')+1],'de')
+                self.assertEqual(args[args.index('--keyboard-binding')+1],saved[-1]['keyboard_binding'])
+                with self.assertRaisesRegex(RuntimeError,'existing development intent'):
+                    session.start(saved[-1],self.carrier,'release',keyboard_layout='us')
+                self.assertEqual(effect.call_count,1)
+
+    def test_keyboard_cli_cannot_mutate_status_stop_or_submit_a_host_binding(self):
+        for options in (['status','--keyboard-layout','de'],['stop','--keyboard-layout','us'],
+                        ['start','--keyboard-layout','de','--keyboard-binding','0'*64]):
+            with patch.object(sys,'argv',['development_session.py',*options]),self.assertRaises(ValueError):session.main()
+
     def test_nexaui_binding_is_explicit_and_closed_history_does_not_select_current_inputs(self):
         selected = dict(revision="a"*40, version="0.1.18", build="/home/aetheri/deps/nexaui-settings-release-02",
                         artifacts={"consumer-build/aetheri_model_view":"1"*64,"prefix/lib/libnexaui.so.0.1.18":"2"*64},

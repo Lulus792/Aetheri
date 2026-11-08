@@ -614,7 +614,8 @@ int main(int argc, char **argv) {
     }
     if (wl_display_add_socket(s.display, argv[2]) != 0 || (!nested && !wlr_backend_start(s.backend))) goto done;
     if (s.failed || !s.output_count) goto done;
-    printf("READY %s outputs=%u renderer=pixman\n", argv[2], s.output_count);
+    printf("READY %s outputs=%u renderer=pixman keyboard_layout=%s\n", argv[2], s.output_count,
+        s.keyboard_layout ? s.keyboard_layout : "backend");
     wl_display_run(s.display);
     result = s.failed ? 1 : 0;
 done:

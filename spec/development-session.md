@@ -40,6 +40,23 @@ matrix on the almost-full root filesystem.
 
 ## Use it
 
+The updated source accepts `start --desktop --keyboard-layout us` or `de`.
+This requires a matching updated compositor/controller build: normal carrier
+provisioning is not promoted merely by editing this checkout. Selection is
+startup-only and applies to new keyboards. It is separate from UI labels/Compose,
+the future Settings selector and persistence. Omitting the option retains backend behavior.
+The controller binds the exact literal before dispatch and requires its original
+compositor READY to report that same map. Historical records without the new
+fields stay readable; partial/conflicting fields or a missing/wrong READY fail
+closed. The SHA256 binding is correlation metadata, not an admission capability.
+Status/stop cannot change a map; lost acknowledgements never permit replay.
+
+Native full-owner tests use `AETHERI_TEST_KEYBOARD_LAYOUT=us|de`, the actual test
+compositor, SDL apps and terminal PTY. They verify redirected file bytes, normal
+window reuse/reopen and ordered shutdown. These fixtures neither install services
+nor prove normal PID1/DRM or physical-keyboard acceptance. See the
+[executed record](../brains/aetheri/journal/2026-11-08-keyboard-layout.md).
+
 For automated native keyboard probes, `tools/run_vm.py` provides
 `tap_keys(*qcodes)` on the independently verified disposable VM. It sends explicit
 press/release events for one chord in a single `input-send-event` request, without

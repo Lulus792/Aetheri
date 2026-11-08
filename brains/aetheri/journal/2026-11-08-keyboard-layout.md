@@ -46,3 +46,40 @@ actual USB image, including its US mapping and unsigned EFI executable. Normal
 Settings controls, runtime switching, persistence and physical keyboard/DRM
 acceptance remain work. NexaUI's existing catalogue already covers layout UI;
 there is no new handoff message. The full OS objective remains incomplete.
+
+## Controller and actual owner connection
+
+The additive controller layout/binding is now connected through start intent,
+supervisor arguments and exact original-compositor READY matching. Missing or
+conflicting explicit READY never starts the desktop. Historical records remain
+readable and closed history is unchanged; uncertain start dispatch is not replayed.
+No source hash is treated as app admission or process proof. The main and test
+compositors share the selected-map readiness output.
+
+Final keyboard-owner-v4 builds a fresh Release compositor/SDL app suite in a
+private short-path workspace, runs all37 native controller cases and completes
+the actual owner/Files/editor/Settings/Terminal/shell/shutdown workflow for both
+us and de. An actual cat job receives PTY input into a file: US bytes797a0a,
+SHA256 `a8518f46ee9bbaba613a5b716aedb125b6c1a46c048c7098fb27d645cb6a03a7`;
+DE bytesc3bcc3b6c3a4c39fe282ac0a (üöäß€ plus newline), SHA256
+`26e6a4f257667858847d86f97a8011437eabf79b242fb053dcaf8d7392364a32`.
+The exported file bytes are independently checked again on the host. Existing
+native app reuse, editor distinction, real blocking job/retained output writer
+and ordered shutdown assertions also pass. This is Release full-owner evidence;
+earlier Release/ASan compositor evidence above has its own scope.
+
+All179 export members are independently verified,1417674 bytes, SHA256
+`047203325ff7bda3c9d0466a3a57d96ce7a97fbb695a6c67939d42b39597c085`.
+Original helper1184468/tokenca813cec22934163b9a5f48d769d65a3 retires exit0 after
+verified acknowledgement. Windows37 cases pass with seven Linux-specific skips.
+No normal source/build, service, policy or flashed image is changed by this work.
+
+Failed test setups are retained with verified exports and original exit1: v1
+omits the explicitly required reviewed Settings font; v2 has a117-byte Unix socket
+path and fails before readiness; v3's now93-byte path works, but its new file
+assertion incorrectly looks in Documents while this fixture's shell CWD is the
+fixture root. The real redirected file in that root proves the latter cause.
+The final fixture uses the existing CWD and a short independently chosen private
+path. No product timeout, map check or permission is weakened. Original carrier
+state remains protected. Normal provisioning/Settings/runtime persistence and
+physical keyboard acceptance remain work; no new NexaUI handoff is needed.

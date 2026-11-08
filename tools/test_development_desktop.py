@@ -69,6 +69,8 @@ def main():
     build = Path(sys.argv[1]).resolve()
     if os.getuid() != 1000:
         raise RuntimeError("explicit disposable-carrier integration test requires UID1000")
+    keyboard_layout=os.environ.get('AETHERI_TEST_KEYBOARD_LAYOUT')
+    if keyboard_layout not in (None,'us','de'):raise ValueError('unsupported test keyboard layout')
     source = Path(__file__).resolve().parents[1]
     owner_source=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else source/"tools/development_session.py"
     compose=len(sys.argv)>3 and sys.argv[3]=='--compose'
@@ -126,9 +128,13 @@ def main():
     codes=dict(zip("abcdefghijklmnopqrstuvwxyz",(30,48,46,32,18,33,34,35,23,36,37,38,50,49,24,25,16,19,31,20,22,47,17,45,21,44)))
     codes.update(dict(zip("1234567890",range(2,12))))
     codes.update({" ":57,"-":12,".":52,"\n":28})
+    if keyboard_layout=='de':
+        codes['y'],codes['z']=codes['z'],codes['y'];codes['-']=53
     def typing(text):
         for c in text:
-            if c in (">","_"):key(42,True);tap(52 if c==">" else 12);key(42,False)
+            if c in (">","_"):
+                code=(86 if c=='>' else 53) if keyboard_layout=='de' else (52 if c=='>' else 12)
+                key(42,True);tap(code);key(42,False)
             else:tap(codes[c])
     def shortcut():
         count=log("desktop").count("FOCUS 0\n")
@@ -203,6 +209,19 @@ def main():
         terminal_window=int(re.findall(r"WINDOW id=(\d+) app=org.aetheri.Terminal ",log("desktop"))[-1])
         editor_window=int(re.findall(r"WINDOW id=(\d+) app=org.aetheri.Editor ",log("desktop"))[-1])
         assert editor_window!=terminal_window and live(document_editor_pin)
+        if keyboard_layout is not None:
+            keyboard_file=root/'layout-note.txt'
+            typing('cat > layout-note.txt\n')
+            wait(keyboard_file.is_file,'real shell opened keyboard redirection')
+            if keyboard_layout=='de':
+                for code in (26,39,40,12):tap(code)  # ü ö ä ß
+                key(100,True);tap(18);key(100,False);tap(28)  # AltGr+E, Enter
+                expected='üöäß€\n'.encode()
+            else:
+                typing('yz\n');expected=b'yz\n'
+            key(29,True);tap(32);key(29,False)  # Ctrl+D ends the actual cat job.
+            wait(lambda:keyboard_file.read_bytes()==expected,'selected map produces exact PTY/file UTF-8')
+            cases.append('explicit '+keyboard_layout+' startup map reaches the real supervisor, terminal PTY and file')
         if compose:
             wait(lambda:'COMPOSE active=1' in log('compositor'),'owner enabled real provider')
             def composition_size():
