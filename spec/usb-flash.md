@@ -116,6 +116,12 @@ pinned source, cleanup succeeds and the originally held process exits0. The
 retains the exact receipt bindings. This is not a physical laptop boot, secure
 erase or permission to replay the completed operation after user files change.
 
+The newly authorized format2 replacement also completes on8 November: full write,
+flush and direct readback match the explicit-options image pin above. The original
+writer43696 exits0, all242 chained records and handle cleanup are independently
+verified. See the [replacement record](../brains/aetheri/journal/2026-11-08-boot-manager.md#authorized-replacement-flash-completed).
+It is ready for the later HP retest, not an automatically replayable operation.
+
 Primary references: Microsoft [direct disk access](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew),
 [unbuffered I/O](https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering),
 [volume lock](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_lock_volume),

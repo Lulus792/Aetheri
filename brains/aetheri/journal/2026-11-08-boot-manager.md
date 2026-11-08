@@ -151,3 +151,36 @@ now pinned in the replacement writer; all15 actual Windows cases pass again.
 The user's renewed instruction authorizes one fresh physical replacement. Prepare
 the new protected intent and retain its original elevated process; no physical
 write has occurred at this checkpoint. Physical HP acceptance remains unproven.
+
+## Authorized replacement flash completed
+
+The fresh protected flash-intenso-v2 intent SHA256 is
+`c844e2355c26a37b36d399697cf75ec03e69fafd675d2d30d38ff4b6f21b318a`.
+Native Windows RunAs succeeds using the signed existing Python runtime. Local
+RemoteSigned policy is respected; no execution-policy or firmware change occurs.
+The parent retains the originally returned SafeHandle for writer43696 until
+actual exit0. Its protected native-exit record and the original host exec19225
+terminal result agree. The earlier completed format1 operation is not replayed.
+
+The source is held read-only with write/delete sharing denied and freshly hashed.
+The exact Intenso is reidentified, then its held device and current three-partition
+layout are joined. The only mounted Windows volume is the exact ESP GUID; its
+held disk extent is verified, then it is locked and dismounted before any write.
+Repeated device/partition checks pass. Every31457280000 bytes, including zeros,
+is written with aligned unbuffered WriteThrough I/O and flushed. Complete direct
+readback matches the accepted source SHA256
+`4d8e9b00bf5594ed4037421d645667804eee71d1ea475081731da17b1a172da9`.
+Logged writing takes1077.72 seconds and readback/final context checks343.12 seconds.
+
+Independent post-exit verification joins all242 complete chained records, exact
+phase order/progress/total bytes, original process/intent/source bindings, held
+device/layout and cleanup. No failed or cleanup_failed record exists. All writer
+handles close before complete; original exit0 also confirms final log closure.
+Journal SHA256 is
+`72ad08e179d0b4123afcafca95580b64fe17f6c3ec84184d29efa131eaaa865b`.
+The protected acceptance.json retains the joined physical result. This is full
+write/readback evidence, not secure erase, cache power-loss assurance or successful
+HP boot. The user can safely remove the completed stick and retest the HP; work
+continues without waiting for that test. The image still uses its existing US map.
+Later controller/keyboard changes are independently tested source, not another
+reason to reflash this completed medium or discard subsequent user data.
