@@ -64,7 +64,10 @@ static gboolean deadline(gpointer data) {
 }
 static bool ordinary(void) {
     struct __user_cap_header_struct h={.version=_LINUX_CAPABILITY_VERSION_3,.pid=0};struct __user_cap_data_struct d[2]={{0}};
-    return getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && getgroups(0,NULL)==0 && prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0)==1 &&
+    gid_t group=0;int groups=getgroups(1,&group);
+    /* PID1's normal initgroups retains the primary group. That gives no new
+     * access beyond the already required GID; any other group is rejected. */
+    return getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && (groups==0 || (groups==1 && group==1000)) && prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0)==1 &&
         syscall(SYS_capget,&h,d)==0 && !(d[0].effective|d[0].permitted|d[0].inheritable|d[1].effective|d[1].permitted|d[1].inheritable);
 }
 int main(int argc,char **argv) {
@@ -74,7 +77,7 @@ int main(int argc,char **argv) {
     else if(!strcmp(p.test,"muted")) p.mute=true;
     else if(strcmp(p.test,"unity")) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);
-    puts("AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=0");
+    printf("AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=%d\n",getgroups(0,NULL));
     GMainContext *context=g_main_context_new();g_main_context_push_thread_default(context);p.loop=g_main_loop_new(context,FALSE);
     p.control=ae_audio_control_open(context,argv[1],changed,&p,retired);
     if(!p.control) {g_main_loop_unref(p.loop);g_main_context_pop_thread_default(context);g_main_context_unref(context);return 1;}

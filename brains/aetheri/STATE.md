@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — Native C17 volume/mute now pass complete host-captured playback on the discovered virtual HDA output. Seven final cold-boot controls and Release/ASan/UBSan callback/paused-server retirement pass. Next: per-user audio supervision/device mediation, then Settings and HP output. The stick stays unchanged.
+8 November 2026 — Per-user audio now passes real PAM/logind login, dynamic device ACLs, user-managed graph/policy, native volume, full PCM, target stop and logout in independent diskless cold boots. Original HDA controls and 64 host contract cases pass. Next: active-session/server-loss fencing before normal desktop/Settings and HP output. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,40 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Per-user audio integration — 8 November 2026
+
+The [user-session fixture](../../spec/audio-session.md) uses the existing systemd
+user manager for PipeWire and WirePlumber, without a new permanent Aetheri daemon.
+Standard uaccess replaces direct UID ownership. Both final cold boots prove actual
+device opens denied before login, allowed during an active local Wayland session
+without an audio-group membership, and denied again after logout. The original
+two process pidfds exit and the user runtime disappears. Independent host capture
+retains all 96,000 frames at cubic 50% gain, below 0.5 LSB error. See the
+[executed record](journal/2026-11-08-audio-session.md).
+
+Native/device/manual controls and no-card rejection also pass: six final VM
+attempts, all original exits 0. Six private probe graphs in Release/ASan/UBSan,
+twelve pure C parser controls in both variants, four actual privileged-group
+rejections and 64 host contract cases pass. Final v13 verification repeats all
+six cold boots against unchanged v12 images after tightening two host-only
+verifier inputs. The audit joins 557 unchanged code/pin inputs, both explicit
+host revisions, 940 final export members and all twelve retired build helpers.
+Preservation still checks 445 original sources, 19 protected hashes,
+31 frozen SQL/XML and 52 normal P0 files. Foreign UI/project work stays unchanged.
+
+The actual process gate catches inherited CAP_WAKE_ALARM and an unsupported
+per-child bounding setting. Enforce the boundary at the system-managed test
+user@ parent; keep effective/permitted/inheritable-zero and NNP checks intact.
+Primary-only supplementary GID1000 is accepted; additional groups are rejected.
+Unknown commands are not replayed and the original manager owner is retained.
+
+This is private integration, not normal admission, app MAC, general holder drain
+or physical audio. ACL removal cannot revoke an already exported FD. Next join
+active-session/server-loss handling and endpoint/holder fencing before normal
+desktop promotion, then Settings/HP output. Review/update Lua before rollout.
+Normal services, public capabilities, catalogue inputs, original quarantine and
+USB stay unchanged; preserve rejected attempts and keep the full OS goal active.
 
 ## Native HDA management — 8 November 2026
 

@@ -25,17 +25,23 @@ static struct child server={.pid=-1,.pin=-1},player={.pid=-1,.pin=-1};
 #ifdef AETHERI_AUDIO_POLICY
 static struct child policy={.pid=-1,.pin=-1},udev={.pid=-1,.pin=-1};
 #endif
+#ifdef AETHERI_AUDIO_USER_SESSION
+static const char remote[]="/run/user/1000/aetheri-audio/pw-hda";
+#define AUDIO_RUNTIME "/run/user/1000/aetheri-audio"
+#else
 static const char remote[]="/run/aetheri-audio/pw-hda";
-static char *const environment[]={"PATH=/usr/bin","HOME=/run/aetheri-audio","XDG_RUNTIME_DIR=/run/aetheri-audio",
+#define AUDIO_RUNTIME "/run/aetheri-audio"
+#endif
+static char *const environment[]={"PATH=/usr/bin","HOME=" AUDIO_RUNTIME,"XDG_RUNTIME_DIR=" AUDIO_RUNTIME,
     "PIPEWIRE_CONFIG_DIR=/etc/aetheri-audio","PIPEWIRE_MODULE_DIR=/usr/lib64/pipewire-0.3","SPA_PLUGIN_DIR=/usr/lib64/spa-0.2",
 #ifdef AETHERI_AUDIO_POLICY
     "ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf","WIREPLUMBER_CONFIG_DIR=/etc/aetheri-wireplumber",
     "WIREPLUMBER_DATA_DIR=/usr/share/wireplumber","WIREPLUMBER_MODULE_DIR=/usr/lib64/wireplumber-0.5",
-    "XDG_STATE_HOME=/run/aetheri-audio/state","GIO_MODULE_DIR=/nonexistent","GIO_USE_VFS=local",
+    "XDG_STATE_HOME=" AUDIO_RUNTIME "/state","GIO_MODULE_DIR=/nonexistent","GIO_USE_VFS=local",
 #else
     "ALSA_CONFIG_PATH=/etc/aetheri-audio/alsa.conf",
 #endif
-    "PIPEWIRE_REMOTE=/run/aetheri-audio/pw-hda",NULL};
+    "PIPEWIRE_REMOTE=" AUDIO_RUNTIME "/pw-hda",NULL};
 static void pause_ms(long ms) {struct timespec t={.tv_sec=ms/1000,.tv_nsec=(ms%1000)*1000000};while(nanosleep(&t,&t) && errno==EINTR) {}}
 static bool read_text(const char *path,char *out,size_t capacity) {
     int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return false;
@@ -52,6 +58,10 @@ static bool spawn(char *const args[],bool ordinary,const char *role,int output,s
     if(!pid) {
         if(output>=0 && dup2(output,STDOUT_FILENO)<0) _exit(125);
         if(syscall(SYS_close_range,3u,~0u,0u)) _exit(125);
+#ifdef AETHERI_AUDIO_USER_SESSION
+        gid_t group=0;int groups=getgroups(1,&group);
+        if(ordinary && getuid()==1000 && geteuid()==1000 && getgid()==1000 && getegid()==1000 && (groups==0 || (groups==1 && group==1000)) && zero_caps() && prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0)==1) ordinary=false;
+#endif
         if(ordinary && (setgroups(0,NULL) || setresgid(1000,1000,1000) || setresuid(1000,1000,1000) || prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0) || !zero_caps())) _exit(125);
         if(role) dprintf(STDOUT_FILENO,"AETHERI_AUDIO_ACTOR role=%s uid=%u cap_zero=%d nnp=%d\n",role,(unsigned)getuid(),zero_caps(),prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0));
         execve(args[0],args,environment);_exit(127);
@@ -177,11 +187,19 @@ static bool automatic_links(const char *text,const char *sink) {
     return found[0] && found[1];
 }
 static bool start_udev(void) {
+#ifdef AETHERI_AUDIO_USER_SESSION
+    char *daemon[]={"/usr/bin/systemd-udevd","--resolve-names=early",NULL};
+#else
     char *daemon[]={"/usr/bin/systemd-udevd","--resolve-names=never",NULL};
+#endif
     if(!spawn(daemon,false,"udev",-1,&udev)) return false;
     for(unsigned i=0;i<250 && access("/run/udev/control",F_OK);++i) pause_ms(20);
     struct stat st;if(lstat("/run/udev/control",&st) || !S_ISSOCK(st.st_mode) || st.st_uid) return false;
+#ifdef AETHERI_AUDIO_USER_SESSION
+    char *trigger[]={"/usr/bin/udevadm","trigger","--action=add","--subsystem-match=sound",NULL};
+#else
     char *trigger[]={"/usr/bin/udevadm","trigger","--action=change","--subsystem-match=sound",NULL};
+#endif
     char *settle[]={"/usr/bin/udevadm","settle","--timeout=3",NULL};
     char *info[]={"/usr/bin/udevadm","info","--query=property","--path=/sys/class/sound/card0",NULL};char output[4096];
     if(!command(trigger,false,NULL,0) || !command(settle,false,NULL,0) || !command(info,false,output,sizeof(output))) return false;

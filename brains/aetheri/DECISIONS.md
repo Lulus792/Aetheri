@@ -1,5 +1,22 @@
 # Decisions
 
+## Supervise user audio with the existing manager — 8 November 2026
+
+Use explicit opt-in user units for graph/policy and a coordinated session target.
+Keep the two maintained audio processes, without a new permanent Aetheri daemon.
+Use standard uaccess in the separate PAM/logind fixture instead of fixed user
+ownership or audio-group membership. Require actual opens before/during/after,
+original process exits and complete independent PCM.
+
+Enforce the ordinary capability boundary at the system-managed test user@ parent.
+An unprivileged child cannot apply the requested empty bounding mask, and the
+unmodified PAM manager seeds CAP_WAKE_ALARM into inherited state. Keep live
+effective/permitted/inheritable-zero plus NNP checks; accept only empty or exact
+primary-only supplementary groups. This selects a private test profile, not normal
+account policy. Session targets coordinate; they do not authenticate. Active-seat
+loss, original-holder fencing, app MAC and normal promotion remain separate.
+[Evidence](journal/2026-11-08-audio-session.md).
+
 ## Verify native controls through the discovered HDA path — 8 November 2026
 
 Keep the native management client separate from the original device/manual

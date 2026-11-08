@@ -196,6 +196,61 @@ class NativeDeviceEvidence(unittest.TestCase):
         self.assertFalse(audio.evaluate(self.joined.replace(line,'')+line,self.manifest,0,BootEvidence.events))
 
 
+class SessionEvidence(unittest.TestCase):
+    manifest={**NativeDeviceEvidence.manifest,'proof':'audio-session','control_case':'half','control_volume':.5}
+    denied='AETHERI_AUDIO_SESSION_ACCESS allowed=0 uid=1000 groups=0 cap_zero=1\n'
+    joined=BootEvidence.base+(
+        'AETHERI_AUDIO_UDEV initialized=1 database=1\nAETHERI_AUDIO_ACTOR role=udev uid=0 cap_zero=0 nnp=1\n'
+        'AETHERI_AUDIO_NATIVE_BASELINE hardware_unity=1 before_server=1\n'
+        'AETHERI_AUDIO_DEVICE pci=8086:2668 card=0 playback=1\n'
+        'AETHERI_AUDIO_SESSION_NODE phase=before path=/dev/snd/controlC0 uid=0 gid=63 mode=0660\n'
+        'AETHERI_AUDIO_SESSION_NODE phase=before path=/dev/snd/pcmC0D0p uid=0 gid=63 mode=0660\n')+denied+(
+        'AETHERI_AUDIO_LOCAL_SESSION id=2 uid=1000 seat=seat0 active=1 remote=0 type=wayland class=user\n'
+        'AETHERI_AUDIO_SESSION_ACCESS allowed=1 uid=1000 groups=1 cap_zero=1\n'
+        'AETHERI_AUDIO_ACTOR role=server uid=1000 cap_zero=1 nnp=1\n'
+        'AETHERI_AUDIO_USER_UNIT name=aetheri-pipewire.service pid=100 image=/usr/bin/pipewire\n'
+        'AETHERI_AUDIO_ACTOR role=policy uid=1000 cap_zero=1 nnp=1\n'
+        'AETHERI_AUDIO_USER_UNIT name=aetheri-wireplumber.service pid=101 image=/usr/bin/wireplumber\n'
+        'POLICY_SINK\nid 25, type PipeWire:Interface:Node\nobject.serial = "31"\nnode.name = "alsa_output.pci-test.analog-stereo"\n'
+        'POLICY_CARD\ndevice.api = "alsa"\ndevice.enum.api = "udev"\napi.alsa.use-acp = "true"\napi.alsa.card = "0"\napi.alsa.soft-mixer = "true"\n'
+        'POLICY_PROFILE\n * 1  Analog Stereo Output [available]  prio=6500\n'
+        'AETHERI_AUDIO_ACTOR role=control uid=1000 cap_zero=1 nnp=1\n'
+        'AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=1\n'
+        'AETHERI_AUDIO_NATIVE_PASS case=half node=alsa_output.pci-test.analog-stereo id=25 serial=31 volume=0.500000 muted=0 observed=1\n'
+        'AETHERI_AUDIO_NATIVE_CLOSED retired=1\nAETHERI_AUDIO_MIXER_OBSERVED volume=74 switch=1 channels=2 verified=1\n'
+        'AETHERI_AUDIO_ACTOR role=player uid=1000 cap_zero=1 nnp=1\nDRAINED frames=96000\n'
+        'AETHERI_AUDIO_USER_END originals=2 session_target_stopped=1\n')+denied+(
+        'AETHERI_AUDIO_SESSION_NODE phase=after path=/dev/snd/controlC0 uid=0 gid=63 mode=0660\n'
+        'AETHERI_AUDIO_SESSION_NODE phase=after path=/dev/snd/pcmC0D0p uid=0 gid=63 mode=0660\n'
+        'AETHERI_AUDIO_SESSION_REVOKED before=denied active=allowed after=denied owner=0 group=63 mode=0660\n'
+        'AETHERI_AUDIO_SESSION_PASS nonce='+'0'*32+' user_end=1 runtime_removed=1 udev_end=1\n'
+        'aetheri-audio.service: Deactivated successfully.\n')
+
+    def valid(self,text):return audio.evaluate(text,self.manifest,0,BootEvidence.events)
+    def test_session(self):self.assertTrue(self.valid(self.joined))
+    def test_not_a_login(self):self.assertFalse(self.valid(NativeDeviceEvidence.joined))
+    def test_inactive(self):self.assertFalse(self.valid(self.joined.replace('active=1 remote=0','active=0 remote=0')))
+    def test_remote(self):self.assertFalse(self.valid(self.joined.replace('active=1 remote=0','active=1 remote=1')))
+    def test_audio_group_cannot_replace_dynamic_access(self):self.assertFalse(self.valid(self.joined.replace('allowed=1 uid=1000 groups=1','allowed=1 uid=1000 groups=2')))
+    def test_missing_revocation(self):self.assertFalse(self.valid(self.joined.replace('after=denied owner=0','after=allowed owner=0')))
+    def test_late_access_check(self):self.assertFalse(self.valid(self.joined.replace(self.denied,'',1)+self.denied))
+    def test_same_pid(self):self.assertFalse(self.valid(self.joined.replace('pid=101','pid=100')))
+    def test_wrong_executable(self):self.assertFalse(self.valid(self.joined.replace('image=/usr/bin/wireplumber','image=/usr/bin/pipewire')))
+    def test_unsettled_originals(self):self.assertFalse(self.valid(self.joined.replace('originals=2','originals=1')))
+    def test_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_SESSION_FAIL reason=user-stop\n'))
+    def test_bus_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_USER_BUS_FAIL method=StartUnit unit=aetheri-audio.target code=-1 error=failed\n'))
+    def test_no_user_owned_device(self):self.assertFalse(self.valid(self.joined.replace('uid=0 gid=63 mode=0660','uid=1000 gid=63 mode=0660')))
+    def test_missing_completion_returns_false(self):
+        trace=self.joined.replace('AETHERI_AUDIO_SESSION_PASS nonce='+'0'*32+' user_end=1 runtime_removed=1 udev_end=1\n','')
+        self.assertFalse(self.valid(trace))
+    def test_no_card_failure(self):
+        trace=BootEvidence.base+"AETHERI_AUDIO_SESSION_FAIL reason=device errno=2\naetheri-audio.service: Failed with result 'exit-code'.\n"
+        self.assertTrue(audio.evaluate(trace,self.manifest,0,BootEvidence.events,missing_device=True))
+    def test_no_card_cannot_also_complete(self):
+        trace=BootEvidence.base+"AETHERI_AUDIO_SESSION_FAIL reason=device errno=2\nAETHERI_AUDIO_SESSION_PASS nonce="+'0'*32+" user_end=1 runtime_removed=1 udev_end=1\naetheri-audio.service: Failed with result 'exit-code'.\n"
+        self.assertFalse(audio.evaluate(trace,self.manifest,0,BootEvidence.events,missing_device=True))
+
+
 class PoweredOffRetirement(unittest.TestCase):
     class Monitor:
         def __init__(self,error=None):self.error=error;self.requests=[]

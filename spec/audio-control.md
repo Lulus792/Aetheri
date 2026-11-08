@@ -8,6 +8,8 @@ launch or parse `wpctl`; that tool remains an independent test oracle.
 This is an opt-in development library. Normal session/device mediation and
 Settings integration are still separate work. The local API is declared in
 [`control.h`](../src/audio/control.h), not an installed D-Bus capability.
+The separate [user-session fixture](audio-session.md) now joins this adapter to
+real PAM/logind, user-managed services and dynamic device ACLs in a diskless VM.
 
 ## Event loop and lifetime
 

@@ -1,5 +1,28 @@
 # Sources
 
+## Per-user audio integration — 8 November 2026
+
+- [Contract](../../spec/audio-session.md) and
+  [executed record](journal/2026-11-08-audio-session.md): actual PAM/logind context,
+  per-user services, denied/allowed/denied device opens, original process exits,
+  runtime removal and full PCM across two cold boots. Controlled current-process
+  observations are not complete authority or external-holder admission.
+- systemd 259 [unit dependencies](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.unit.xml)
+  and [execution options](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.exec.xml):
+  start/stop ordering and scope of capability controls. Actual exit 218 and later
+  active services establish the selected platform behavior; source syntax alone
+  is not runtime acceptance.
+- [PAM documentation](https://raw.githubusercontent.com/systemd/systemd/v259/man/pam_systemd.xml)
+  and [selected implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/login/pam_systemd.c):
+  local/user-manager default CAP_WAKE_ALARM, observed as inheritable bit 35 in the
+  actual server. The final system-managed parent removes it before user services.
+- [uaccess rules](https://raw.githubusercontent.com/systemd/systemd/v259/rules.d/70-uaccess.rules.in),
+  [ACL helper](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/acl-util.c)
+  and [seccomp helper](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/seccomp-util.c):
+  sound tagging and required dynamic runtime inputs. Existing desktop pins and
+  notices bound the selected 86-file/ten-alias closure; they are installed-object
+  evidence, not new package signatures or general sandbox clearance.
+
 ## Native HDA management — 8 November 2026
 
 - [Contract](../../spec/audio-control.md#native-controls-on-virtual-hda) and
