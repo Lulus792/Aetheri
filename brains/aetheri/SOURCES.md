@@ -1,5 +1,23 @@
 # Sources
 
+## Discovered-device audio — 8 November 2026
+
+- [Additional input hashes](../../spec/audio-device-inputs.json),
+  [contract](../../spec/audio-device.md) and
+  [executed record](journal/2026-11-08-audio-device.md): actual udev database,
+  permissions, ACP profile, automatic links and full captured HDA output across
+  two cold boots, plus manual/no-card controls. New udev/kmod hashes identify
+  existing objects, not independently signed new packages.
+- [WirePlumber ALSA monitor](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/alsa.html)
+  and [features](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/features.html):
+  device/node creation, ACP/UCM and monitor/policy responsibilities. The pinned
+  shipped configuration and actual guest observations bound this implementation.
+- Actual systemd-udev 259.10 diagnostics expose direct non-system UID/GID device
+  ownership deprecation and the need for FOWNER after chown in this bounded
+  supervisor. Preserve the warning; do not promote the fixture's rule to normal
+  session policy. The QEMU/Windows reset is observed on the original connection,
+  not inferred from another process or a replacement connection.
+
 ## Private audio policy — 8 November 2026
 
 - [Exact inputs](../../spec/audio-policy-inputs.json),

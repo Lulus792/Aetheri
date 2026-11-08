@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "purpose": "Existing same-version udev/kmod objects for separate diskless HDA policy test; hashes are installed-object evidence, not new package signatures",
+  "files": [
+    {
+      "source": "/usr/lib64/libkmod.so.2.5.1",
+      "destination": "/usr/lib64/libkmod.so.2.5.1",
+      "size": 115840,
+      "sha256": "b999c2d20851f1c0d9b802cd25dda019c7d68215223103141e228a19782c4c65",
+      "mode": 493,
+      "package": "kmod-libs-34.2-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/bin/udevadm",
+      "destination": "/usr/bin/udevadm",
+      "size": 781240,
+      "sha256": "53a2fad133d93e8d494a86700771e23bfae8d8f8e028af026a6433a31f851185",
+      "mode": 493,
+      "package": "systemd-udev-259.10-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/kmod-libs/COPYING",
+      "destination": "/usr/share/licenses/kmod-libs/COPYING",
+      "size": 26432,
+      "sha256": "6095e9ffa777dd22839f7801aa845b31c9ed07f3d6bf8a26dc5d2dec8ccc0ef3",
+      "mode": 420,
+      "package": "kmod-libs-34.2-4.fc44.x86_64"
+    }
+  ],
+  "symlinks": {
+    "/usr/lib64/libkmod.so.2": "libkmod.so.2.5.1"
+  }
+}

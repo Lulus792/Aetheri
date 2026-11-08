@@ -102,11 +102,11 @@ retain their pinned package builds; it is not an upstream sanitizer clearance.
 
 ## Remaining integration
 
-The earlier HDA image proves playback through its fixed manually created ALSA
-node. This suite proves policy on a FIFO node. Neither substitutes for a joined
-ALSA-monitor/HDA test. Next join actual udev enumeration, ACP profile/route
-selection and automatic playback in a fresh diskless guest. The manifest's
-device data is prepared for that work, not evidence that it already functions.
+This suite proves policy on a FIFO node. The separate
+[discovered-device test](audio-device.md) now joins actual udev enumeration,
+ACP profile selection and automatic playback through virtual HDA. Its two cold
+boots pass full sample verification. The FIFO suite and original manual HDA
+image remain independent controls; neither alone proves the joined behavior.
 
 Normal login/session supervision, mediated device access, a C17 management
 adapter, Settings controls, HP headphone playback and Bluetooth remain work.

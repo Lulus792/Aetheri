@@ -58,8 +58,18 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
     if missing_device:
         return not passes and failures==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     expected='AETHERI_AUDIO_PASS nonce='+manifest['nonce']+' frames=96000 rate=48000 channels=2 server_end=1 player_end=1'
-    actors=re.findall(r'^AETHERI_AUDIO_ACTOR role=(server|player) uid=1000 cap_zero=1 nnp=1\s*$',serial,re.MULTILINE)
-    return (passes==[expected] and not failures and actors==['server','player']
+    device=manifest.get('proof')=='audio-device'
+    actors=re.findall(r'^AETHERI_AUDIO_ACTOR role=(server|policy|player) uid=1000 cap_zero=1 nnp=1\s*$',serial,re.MULTILINE)
+    policy=(not device or ('Failed to set owner/mode' not in serial and 'Failed to resolve user' not in serial
+             and serial.count('AETHERI_AUDIO_UDEV initialized=1 database=1')==1
+             and serial.count('AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1')==1
+             and serial.count('AETHERI_AUDIO_POLICY alsa_monitor=1 acp=1 autolink=1 policy_end=1 udev_end=1')==1
+             and serial.count('AETHERI_AUDIO_ACTOR role=udev uid=0 cap_zero=0 nnp=1')==1
+             and 'POLICY_SINK\n' in serial and 'node.name = "alsa_output.' in serial
+             and 'POLICY_CARD\n' in serial and 'device.api = "alsa"' in serial and 'device.enum.api = "udev"' in serial
+             and 'api.alsa.use-acp = "true"' in serial and 'api.alsa.card = "0"' in serial
+             and 'POLICY_PROFILE\n' in serial and re.search(r'^\s*\*\s+[0-9]+\s+Analog Stereo Output \[available\]\s+prio=6500\s*$',serial,re.MULTILINE)))
+    return (passes==[expected] and not failures and actors==(['server','policy','player'] if device else ['server','player']) and policy
             and serial.count('AETHERI_AUDIO_DEVICE pci=8086:2668 card=0 playback=1')==1
             and serial.count('AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1')==1
             and serial.count('DRAINED frames=96000')==1
@@ -73,14 +83,32 @@ def capture_reply(reply,command):
     return reply[len(prefix):] if reply.startswith(prefix) else reply
 
 
+def finish_powered_off(monitor,process,state):
+    # QEMU can close its original transport before the quit response reaches
+    # Windows. Never replay quit or fabricate its acknowledgement. The already
+    # observed guest shutdown and original process exit independently retire
+    # this diskless test; an uncertain reply remains in the QMP journal.
+    status=state.get('guest_status',{})
+    if status.get('running') is not False or status.get('status')!='shutdown' or not image_qmp.guest_poweroff(state.get('guest_events',[])):
+        raise ValueError('quit requires original guest poweroff')
+    state['quit_acknowledged']=False
+    try:
+        monitor.execute('quit');state['quit_acknowledged']=True
+    except (EOFError,ConnectionResetError) as error:
+        state['quit_transport_error']=str(error)[:1024]
+    if process.wait(timeout=10)!=0:raise ValueError('original powered-off VM exit failed')
+
+
 def run(image,output,missing_device=False,timeout=150):
     image=Path(image).resolve();output=vm.owned(output)
     if len(str(output/'qmp.sock').encode())>=108 or any(',' in str(p) for p in (image,output,boot.TOOLS)):
         raise ValueError('unsupported QEMU path')
     manifest=boot.inspect(image)
-    if manifest.get('proof')!='audio-hda':raise ValueError('not the RAM HDA test image')
+    if manifest.get('proof') not in ('audio-hda','audio-device'):raise ValueError('not the RAM HDA test image')
     sources={'hda_inputs_sha256':'spec/audio-hda-inputs.json','audio_inputs_sha256':'spec/audio-inputs.json',
              'builder_sha256':'tools/build_audio_hda.py','owner_sha256':'src/boot/audio.c'}
+    if manifest['proof']=='audio-device':
+        sources.update(device_builder_sha256='tools/build_audio_device.py',device_inputs_sha256='spec/audio-device-inputs.json',policy_inputs_sha256='spec/audio-policy-inputs.json',policy_preparer_sha256='tools/prepare_audio_policy.py')
     for key,path in sources.items():
         # Source archives use normalized LF on both build and host.
         if manifest[key]!=hashlib.sha256((boot.ROOT/path).read_bytes().replace(b'\r\n',b'\n')).hexdigest():
@@ -136,7 +164,7 @@ def run(image,output,missing_device=False,timeout=150):
                 reply=monitor.execute('human-monitor-command',{'command-line':'stopcapture 0'})
                 state['capture_stop']=reply;save()
                 if capture_reply(reply,'stopcapture') or monitor.execute('human-monitor-command',{'command-line':'info capture'}):raise ValueError('capture not retired')
-            monitor.execute('quit');process.wait(timeout=10)
+            finish_powered_off(monitor,process,state)
             serial=(output/'serial.log').read_text(errors='replace').replace('\r\n','\n')
             if not evaluate(serial,manifest,process.returncode,state['guest_events'],missing_device):
                 raise ValueError('guest/device/actor/shutdown evidence failed; preserve serial log')

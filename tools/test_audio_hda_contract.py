@@ -95,4 +95,85 @@ class BootEvidence(unittest.TestCase):
         self.assertFalse(audio.evaluate(serial,self.manifest,0,self.events))
 
 
+class DeviceEvidence(unittest.TestCase):
+    manifest={**BootEvidence.manifest,'proof':'audio-device'}
+    extra=('AETHERI_AUDIO_UDEV initialized=1 database=1\n'
+           'AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1\n'
+           'AETHERI_AUDIO_ACTOR role=udev uid=0 cap_zero=0 nnp=1\n'
+           'POLICY_SINK\nnode.name = "alsa_output.pci-test.analog-stereo"\n'
+           'POLICY_CARD\ndevice.api = "alsa"\ndevice.enum.api = "udev"\napi.alsa.use-acp = "true"\napi.alsa.card = "0"\nPOLICY_PROFILE\n * 1  Analog Stereo Output [available]  prio=6500\n'
+           'AETHERI_AUDIO_POLICY alsa_monitor=1 acp=1 autolink=1 policy_end=1 udev_end=1\n')
+    joined=BootEvidence.base+BootEvidence.positive.replace('AETHERI_AUDIO_ACTOR role=player','AETHERI_AUDIO_ACTOR role=policy uid=1000 cap_zero=1 nnp=1\nAETHERI_AUDIO_ACTOR role=player')+extra
+
+    def test_joined(self):self.assertTrue(audio.evaluate(self.joined,self.manifest,0,BootEvidence.events))
+
+    def test_manual_hda_is_not_joined_policy(self):
+        self.assertFalse(audio.evaluate(BootEvidence.base+BootEvidence.positive,self.manifest,0,BootEvidence.events))
+
+    def test_missing_udev_evidence(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('AETHERI_AUDIO_UDEV initialized=1 database=1\n',''),self.manifest,0,BootEvidence.events))
+
+    def test_missing_policy_end(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('policy_end=1','policy_end=0'),self.manifest,0,BootEvidence.events))
+
+    def test_virtual_sink_cannot_replace_discovered_alsa(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('node.name = "alsa_output.','node.name = "aetheri.virtual.'),self.manifest,0,BootEvidence.events))
+
+    def test_udev_grant_is_required(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1\n',''),self.manifest,0,BootEvidence.events))
+
+    def test_off_profile_is_not_playback(self):
+        self.assertFalse(audio.evaluate(self.joined.replace('Analog Stereo Output [available]','Off [available]'),self.manifest,0,BootEvidence.events))
+
+    def test_failed_udev_mode_update_is_not_success(self):
+        self.assertFalse(audio.evaluate(self.joined+'timer: Failed to set owner/mode: Operation not permitted\n',self.manifest,0,BootEvidence.events))
+
+    def test_unresolved_udev_user_is_not_success(self):
+        self.assertFalse(audio.evaluate(self.joined+'Failed to resolve user 1000\n',self.manifest,0,BootEvidence.events))
+
+
+class PoweredOffRetirement(unittest.TestCase):
+    class Monitor:
+        def __init__(self,error=None):self.error=error;self.requests=[]
+        def execute(self,name):
+            self.requests.append(name)
+            if self.error:raise self.error
+
+    class Process:
+        def __init__(self,code=0):self.code=code;self.waits=0
+        def wait(self,timeout):self.waits+=1;return self.code
+
+    def state(self):return dict(guest_status=dict(running=False,status='shutdown'),guest_events=BootEvidence.events.copy())
+
+    def test_acknowledged_quit(self):
+        s=self.state();m=self.Monitor();p=self.Process();audio.finish_powered_off(m,p,s)
+        self.assertTrue(s['quit_acknowledged']);self.assertEqual(m.requests,['quit']);self.assertEqual(p.waits,1)
+
+    def test_reset_keeps_unknown_acknowledgement_without_replay(self):
+        s=self.state();m=self.Monitor(ConnectionResetError('closed'));p=self.Process();audio.finish_powered_off(m,p,s)
+        self.assertFalse(s['quit_acknowledged']);self.assertEqual(s['quit_transport_error'],'closed');self.assertEqual(m.requests,['quit'])
+
+    def test_eof_keeps_unknown_acknowledgement_without_replay(self):
+        s=self.state();m=self.Monitor(EOFError('closed'));p=self.Process();audio.finish_powered_off(m,p,s)
+        self.assertFalse(s['quit_acknowledged']);self.assertEqual(m.requests,['quit'])
+
+    def test_timeout_remains_failed(self):
+        m=self.Monitor(TimeoutError('unknown'));p=self.Process()
+        with self.assertRaises(TimeoutError):audio.finish_powered_off(m,p,self.state())
+        self.assertEqual(m.requests,['quit']);self.assertEqual(p.waits,0)
+
+    def test_nonzero_exit_remains_failed(self):
+        with self.assertRaises(ValueError):audio.finish_powered_off(self.Monitor(EOFError()),self.Process(1),self.state())
+
+    def test_running_guest_cannot_use_terminal_exception(self):
+        s=self.state();s['guest_status']['running']=True;m=self.Monitor();p=self.Process()
+        with self.assertRaises(ValueError):audio.finish_powered_off(m,p,s)
+        self.assertEqual(m.requests,[]);self.assertEqual(p.waits,0)
+
+    def test_host_shutdown_cannot_use_terminal_exception(self):
+        s=self.state();s['guest_events']=[dict(event='SHUTDOWN',data=dict(guest=False,reason='host-qmp-quit'))];m=self.Monitor();p=self.Process()
+        with self.assertRaises(ValueError):audio.finish_powered_off(m,p,s)
+        self.assertEqual(m.requests,[])
+
+
 if __name__=='__main__':unittest.main()

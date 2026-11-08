@@ -22,10 +22,20 @@
 
 struct child {pid_t pid;int pin;};
 static struct child server={.pid=-1,.pin=-1},player={.pid=-1,.pin=-1};
+#ifdef AETHERI_AUDIO_POLICY
+static struct child policy={.pid=-1,.pin=-1},udev={.pid=-1,.pin=-1};
+#endif
 static const char remote[]="/run/aetheri-audio/pw-hda";
 static char *const environment[]={"PATH=/usr/bin","HOME=/run/aetheri-audio","XDG_RUNTIME_DIR=/run/aetheri-audio",
     "PIPEWIRE_CONFIG_DIR=/etc/aetheri-audio","PIPEWIRE_MODULE_DIR=/usr/lib64/pipewire-0.3","SPA_PLUGIN_DIR=/usr/lib64/spa-0.2",
-    "ALSA_CONFIG_PATH=/etc/aetheri-audio/alsa.conf","PIPEWIRE_REMOTE=/run/aetheri-audio/pw-hda",NULL};
+#ifdef AETHERI_AUDIO_POLICY
+    "ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf","WIREPLUMBER_CONFIG_DIR=/etc/aetheri-wireplumber",
+    "WIREPLUMBER_DATA_DIR=/usr/share/wireplumber","WIREPLUMBER_MODULE_DIR=/usr/lib64/wireplumber-0.5",
+    "XDG_STATE_HOME=/run/aetheri-audio/state","GIO_MODULE_DIR=/nonexistent","GIO_USE_VFS=local",
+#else
+    "ALSA_CONFIG_PATH=/etc/aetheri-audio/alsa.conf",
+#endif
+    "PIPEWIRE_REMOTE=/run/aetheri-audio/pw-hda",NULL};
 static void pause_ms(long ms) {struct timespec t={.tv_sec=ms/1000,.tv_nsec=(ms%1000)*1000000};while(nanosleep(&t,&t) && errno==EINTR) {}}
 static bool read_text(const char *path,char *out,size_t capacity) {
     int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return false;
@@ -94,12 +104,14 @@ static bool line(const char *text,const char *value) {
     for(const char *p=text;*p;) {const char *end=strchr(p,'\n');if(!end) return false;if((size_t)(end-p)==n && !memcmp(p,value,n)) return true;p=end+1;}
     return false;
 }
-static bool grant_device(const char *path) {
+static bool device_access(const char *path,bool configure) {
     struct stat st;
+    if(lstat(path,&st) || !S_ISCHR(st.st_mode) || major(st.st_rdev)!=116) return false;
+    if(!configure) return st.st_uid==1000 && st.st_gid==1000 && (st.st_mode&0777)==0600;
     /* Root still owns the fresh devtmpfs node while changing its mode. */
-    return !lstat(path,&st) && S_ISCHR(st.st_mode) && major(st.st_rdev)==116 && !chmod(path,0600) && !chown(path,1000,1000);
+    return !chmod(path,0600) && !chown(path,1000,1000);
 }
-static bool prepare_mixer(void) {
+static bool mixer(bool configure) {
     int fd=open("/dev/snd/controlC0",O_RDWR|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return false;
     struct snd_ctl_elem_id ids[16];struct snd_ctl_elem_list list={.space=16,.pids=ids};bool okay=false;
     if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_LIST,&list) || list.count>16 || list.used!=list.count) goto done;
@@ -125,7 +137,7 @@ static bool prepare_mixer(void) {
     /* Only the independently identified, disposable QEMU card. Validate both
        controls before any write; do not disable the emulated mixer. */
     for(unsigned i=0;i<2;++i) {
-        if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_WRITE,&changes[i])) goto done;
+        if(configure && ioctl(fd,SNDRV_CTL_IOCTL_ELEM_WRITE,&changes[i])) goto done;
         struct snd_ctl_elem_value actual={.id=changes[i].id};
         if(ioctl(fd,SNDRV_CTL_IOCTL_ELEM_READ,&actual) || actual.value.integer.value[0]!=changes[i].value.integer.value[0] || actual.value.integer.value[1]!=changes[i].value.integer.value[1]) goto done;
     }
@@ -135,6 +147,67 @@ done:
     if(close(fd)) okay=false;
     return okay;
 }
+#ifdef AETHERI_AUDIO_POLICY
+static bool property(const char *text,const char *key,char *value,size_t capacity) {
+    const char *at=strstr(text,key);if(!at) return false;at+=strlen(key);
+    const char *end=strchr(at,'"');if(!end || end==at || (size_t)(end-at)>=capacity || strstr(end+1,key)) return false;
+    for(const char *p=at;p<end;++p) if(!((*p>='a' && *p<='z') || (*p>='A' && *p<='Z') || (*p>='0' && *p<='9') || strchr("._:-",*p))) return false;
+    memcpy(value,at,(size_t)(end-at));value[end-at]=0;return true;
+}
+static bool automatic_links(const char *text,const char *sink) {
+    bool found[2]={false,false};int channel=-1;
+    for(const char *p=text;*p;) {
+        const char *end=strchr(p,'\n');if(!end) return false;
+        while(p<end && (*p==' ' || *p=='\t')) ++p;
+        if((size_t)(end-p)==strlen("aetheri.audio.check:output_FL") && !memcmp(p,"aetheri.audio.check:output_FL",(size_t)(end-p))) channel=0;
+        else if((size_t)(end-p)==strlen("aetheri.audio.check:output_FR") && !memcmp(p,"aetheri.audio.check:output_FR",(size_t)(end-p))) channel=1;
+        else if(channel>=0 && (size_t)(end-p)>4 && !memcmp(p,"|-> ",4)) {
+            char expected[512];int n=snprintf(expected,sizeof(expected),"|-> %s:playback_%s",sink,channel==0 ? "FL" : "FR");
+            if(n<0 || (size_t)n>=sizeof(expected)) return false;
+            if((size_t)(end-p)!=(size_t)n || memcmp(p,expected,(size_t)n) || found[channel]) return false;
+            found[channel]=true;
+        } else channel=-1;
+        p=end+1;
+    }
+    return found[0] && found[1];
+}
+static bool start_udev(void) {
+    char *daemon[]={"/usr/bin/systemd-udevd","--resolve-names=never",NULL};
+    if(!spawn(daemon,false,"udev",-1,&udev)) return false;
+    for(unsigned i=0;i<250 && access("/run/udev/control",F_OK);++i) pause_ms(20);
+    struct stat st;if(lstat("/run/udev/control",&st) || !S_ISSOCK(st.st_mode) || st.st_uid) return false;
+    char *trigger[]={"/usr/bin/udevadm","trigger","--action=change","--subsystem-match=sound",NULL};
+    char *settle[]={"/usr/bin/udevadm","settle","--timeout=3",NULL};
+    char *info[]={"/usr/bin/udevadm","info","--query=property","--path=/sys/class/sound/card0",NULL};char output[4096];
+    if(!command(trigger,false,NULL,0) || !command(settle,false,NULL,0) || !command(info,false,output,sizeof(output))) return false;
+    printf("UDEV_PROPERTIES\n%s",output);
+    if(!line(output,"ID_SOUND=1") || !line(output,"SOUND_INITIALIZED=1")) return false;
+    puts("AETHERI_AUDIO_UDEV initialized=1 database=1");return true;
+}
+static bool policy_output(char *sink,size_t capacity) {
+    char output[8192]={0};char *inspect[]={"/usr/bin/wpctl","inspect","@DEFAULT_AUDIO_SINK@",NULL};bool ready=false;
+    char *list[]={"/usr/bin/wpctl","list","audio","sinks",NULL};
+    for(unsigned i=0;i<100;++i) {
+        if(!command(list,true,output,sizeof(output))) return false;
+        if(strstr(output,"alsa_output.") && strchr(output,'*')) {ready=true;break;}
+        pause_ms(25);
+    }
+    if(!ready || !command(inspect,true,output,sizeof(output))) return false;
+    printf("POLICY_SINK\n%s",output);
+    if(!strstr(output,"media.class = \"Audio/Sink\"") || !property(output,"node.name = \"",sink,capacity) || strncmp(sink,"alsa_output.",12)) return false;
+    char device[32];if(!property(output,"device.id = \"",device,sizeof(device)) || strspn(device,"0123456789")!=strlen(device)) return false;
+    char *card[]={"/usr/bin/wpctl","inspect",device,NULL};
+    if(!command(card,true,output,sizeof(output))) return false;
+    printf("POLICY_CARD\n%s",output);
+    if(!strstr(output,"device.api = \"alsa\"")) return false;
+    char *profile[]={"/usr/bin/wpctl","get-profile",device,NULL};
+    if(!command(profile,true,output,sizeof(output))) return false;
+    printf("POLICY_PROFILE\n%s",output);
+    char *volume[]={"/usr/bin/wpctl","set-volume","@DEFAULT_AUDIO_SINK@","1.0","--limit","1.0",NULL};
+    char *unmute[]={"/usr/bin/wpctl","set-mute","@DEFAULT_AUDIO_SINK@","0",NULL};
+    return command(volume,true,NULL,0) && command(unmute,true,NULL,0) && mixer(false);
+}
+#endif
 int main(void) {
     setvbuf(stdout,NULL,_IOLBF,0);const char *reason="setup";int result=1;char profile[128],vendor[32],device[32];
     if(getuid()!=0 || geteuid()!=0 || !read_text("/etc/aetheri-boot-proof",profile,sizeof(profile))) goto done;
@@ -149,17 +222,42 @@ int main(void) {
        before the one-time ownership changes; PCM alone is not readiness. */
     for(unsigned i=0;i<100 && (access("/dev/snd/pcmC0D0p",F_OK) || access("/dev/snd/controlC0",F_OK));++i) pause_ms(20);
     if(!read_text("/sys/class/sound/card0/device/vendor",vendor,sizeof(vendor)) || strcmp(vendor,"0x8086\n") || !read_text("/sys/class/sound/card0/device/device",device,sizeof(device)) || strcmp(device,"0x2668\n")) goto done;
-    reason="device-access";if(!grant_device("/dev/snd/controlC0") || !grant_device("/dev/snd/pcmC0D0p")) goto done;
-    if(access("/dev/snd/timer",F_OK)==0 && !grant_device("/dev/snd/timer")) goto done;
-    reason="mixer-setup";if(!prepare_mixer()) goto done;
+#ifndef AETHERI_AUDIO_POLICY
+    reason="device-access";if(!device_access("/dev/snd/controlC0",true) || !device_access("/dev/snd/pcmC0D0p",true)) goto done;
+    if(access("/dev/snd/timer",F_OK)==0 && !device_access("/dev/snd/timer",true)) goto done;
+    reason="mixer-setup";if(!mixer(true)) goto done;
+#endif
     if(mkdir("/run/aetheri-audio",0700) || chown("/run/aetheri-audio",1000,1000)) goto done;
+#ifdef AETHERI_AUDIO_POLICY
+    reason="udev";if(!start_udev()) goto done;
+    reason="udev-access";if(!device_access("/dev/snd/controlC0",false) || !device_access("/dev/snd/pcmC0D0p",false)) goto done;
+    if(access("/dev/snd/timer",F_OK)==0 && !device_access("/dev/snd/timer",false)) goto done;
+    puts("AETHERI_AUDIO_UDEV_ACCESS uid=1000 gid=1000 mode=0600 verified=1");
+#endif
     puts("AETHERI_AUDIO_DEVICE pci=8086:2668 card=0 playback=1");
     char *server_args[]={"/usr/bin/pipewire","-c","server.conf",NULL};
     reason="server";if(!spawn(server_args,true,"server",-1,&server)) goto done;
     for(unsigned i=0;i<100 && access(remote,F_OK);++i) pause_ms(20);
     struct stat socket_info;if(lstat(remote,&socket_info) || !S_ISSOCK(socket_info.st_mode) || socket_info.st_uid!=1000 || (socket_info.st_mode&0777)!=0600) goto done;
+#ifdef AETHERI_AUDIO_POLICY
+    char *policy_args[]={"/usr/bin/wireplumber","-p","aetheri-hda-test",NULL};char sink[256];
+    reason="policy";if(!spawn(policy_args,true,"policy",-1,&policy)) goto done;
+    reason="policy-output";if(!policy_output(sink,sizeof(sink))) goto done;
+    char *player_args[]={"/usr/libexec/aetheri-audio-check","--remote",(char *)remote,"--frames","96000","--wait-for-start","--autoconnect",NULL};
+#else
     char *player_args[]={"/usr/libexec/aetheri-audio-check","--remote",(char *)remote,"--frames","96000","--wait-for-start",NULL};
+#endif
     reason="player";if(!spawn(player_args,true,"player",-1,&player)) goto done;
+#ifdef AETHERI_AUDIO_POLICY
+    char *links[]={"/usr/bin/pw-link","-r",(char *)remote,"-o","-l",NULL};char linked[8192]={0};bool ready=false;
+    reason="policy-links";
+    for(unsigned i=0;i<100;++i) {
+        if(!command(links,true,linked,sizeof(linked))) goto done;
+        if(automatic_links(linked,sink)) {ready=true;break;}
+        pause_ms(25);
+    }
+    printf("POLICY_LINKS\n%s",linked);if(!ready) goto done;
+#else
     char *inputs[]={"/usr/bin/pw-link","-r",(char *)remote,"-i",NULL};
     char *outputs[]={"/usr/bin/pw-link","-r",(char *)remote,"-o",NULL};char in[4096]={0},out[4096]={0};bool ready=false;
     reason="ports";
@@ -173,16 +271,26 @@ int main(void) {
     char *left[]={"/usr/bin/pw-link","-r",(char *)remote,"aetheri.audio.check:output_FL","aetheri.test.hda:playback_FL",NULL};
     char *right[]={"/usr/bin/pw-link","-r",(char *)remote,"aetheri.audio.check:output_FR","aetheri.test.hda:playback_FR",NULL};
     reason="link";if(!command(left,true,NULL,0) || !command(right,true,NULL,0)) goto done;
+#endif
     reason="activation";if(syscall(SYS_pidfd_send_signal,player.pin,SIGUSR1,NULL,0)) goto done;
     reason="playback";int player_result;if(!wait_child(&player,20000,&player_result) || player_result!=0) goto done;
     /* Fixture settling interval, not a production device-drain proof. The
        independent host capture must still contain the complete signal. */
     pause_ms(500);
+#ifdef AETHERI_AUDIO_POLICY
+    reason="policy-stop";if(!stop(&policy)) goto done;
+    reason="udev-stop";if(!stop(&udev)) goto done;
+    puts("AETHERI_AUDIO_POLICY alsa_monitor=1 acp=1 autolink=1 policy_end=1 udev_end=1");
+#endif
     reason="server-stop";if(!stop(&server)) goto done;
     printf("AETHERI_AUDIO_PASS nonce=%s frames=96000 rate=48000 channels=2 server_end=1 player_end=1\n",profile);result=0;
 done:
     if(result) printf("AETHERI_AUDIO_FAIL reason=%s errno=%d\n",reason,errno);
     bool player_stopped=stop(&player),server_stopped=stop(&server);
     if(!player_stopped || !server_stopped) result=1;
+#ifdef AETHERI_AUDIO_POLICY
+    bool policy_stopped=stop(&policy),udev_stopped=stop(&udev);
+    if(!policy_stopped || !udev_stopped) result=1;
+#endif
     return result;
 }

@@ -64,7 +64,8 @@ The starting folder is `/home/aetheri/Documents`. Open Files and check that
 `laptop-note.txt` appears. Opening a text file there uses the separate terminal
 editor. Save or cancel that editor's close prompt before shutting down.
 This USB version requires Ctrl+R in Files to see changes made by another app.
-Automatic external-change refresh is being implemented separately.
+The development source now refreshes local external changes automatically;
+that correction is not in this USB version. Manual refresh remains a fallback.
 
 Terminal supports Ctrl+Shift+T for a new tab, Ctrl+Shift+D for a right split and
 Ctrl+Shift+E for a split below. Alt+arrows select a nearby pane; Alt+Shift+arrows

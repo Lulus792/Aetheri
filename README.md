@@ -50,6 +50,8 @@ interruption and timeout. A separate diskless guest now verifies complete stereo
 playback through ALSA and a virtual HDA card against a host-file capture.
 The separate [policy profile](spec/audio-policy.md) now tests automatic stream
 links, a default output, volume and mute against real captured samples.
+The [discovered-device test](spec/audio-device.md) joins udev, ALSA/ACP profile
+selection and automatic HDA playback in two diskless cold boots.
 This is not yet sound in the USB desktop: physical output, headphone/Bluetooth
 policy and Settings controls remain work.
 

@@ -1,5 +1,21 @@
 # Decisions
 
+## Join device discovery and audio policy before desktop rollout — 8 November 2026
+
+Extend the independent diskless HDA fixture with actual udev enumeration and
+WirePlumber's ALSA/ACP monitor. Let the monitor create the output and the policy
+select/link it; retain the manual image as a separate regression control. The
+policy variant verifies udev permissions and kernel mixer values without setting
+them itself. Require full independent stereo samples across two cold boots.
+
+Keep the direct UID1000 rule, extra root udev capabilities and CLI readback in
+this disposable test. The rule's upstream deprecation is visible; production
+needs mediated per-user device access and an original C17 management adapter.
+Preserve uncertain QMP quit replies without replay; proven guest poweroff and
+the original process's zero exit independently retire only this diskless VM.
+No normal admission, USB promotion or physical audibility follows.
+[Evidence](journal/2026-11-08-audio-device.md).
+
 ## Select maintained audio policy, keep rollout separate — 8 November 2026
 
 Use signed Fedora 44 WirePlumber 0.5.19 with the existing PipeWire 1.6.11 for

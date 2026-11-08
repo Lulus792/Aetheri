@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — Private WirePlumber policy now passes actual automatic-link, default-output, volume/mute and missing-manager tests in Release/ASan/UBSan. The separate HDA guest proves virtual-device playback. Joining its device monitor to policy, normal audio/Settings and physical hardware remain work. The stick stays unchanged.
+8 November 2026 — A separate diskless guest now joins actual udev enumeration, WirePlumber ALSA/ACP profile selection and automatic HDA playback. Two cold boots and the manual regression deliver all 96,000 stereo frames; the no-card control stops before actors start. Normal audio/Settings and physical hardware remain work. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,32 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Discovered-device audio — 8 November 2026
+
+The [joined device test](../../spec/audio-device.md) now creates its ALSA card
+and output through udev/WirePlumber rather than a static server node. Actual
+ACP selects Analog Stereo Output. udev owns the test device permission changes;
+the supervisor verifies them and reads back the policy-controlled mixer without
+manual grants/writes. Original server/manager/player children are UID1000,
+cap-zero and NoNewPrivileges. Two final cold boots and the manual control each
+preserve all 96,000 frames, with maximum error below 0.5 LSB. The no-card control
+rejects before actor startup. See the [executed record](journal/2026-11-08-audio-device.md).
+
+Thirty-one Python contract controls and twelve C parser controls in both Release
+and ASan/UBSan pass. The independent audit checks 541 current code/pin inputs,
+25 exported members, ten package-signature receipts, 243 policy/extra image
+objects and all three full captures. Three native build helpers retire through
+their original export/acknowledgement protocol. Existing carrier source,
+authority, frozen SQL/XML, services and foreign UI work remain unchanged.
+
+The test-only direct UID ownership rule has an explicit upstream deprecation;
+it is not production device mediation. Actual udev mode-update errors now fail
+acceptance. A Windows QMP quit-reset after proven guest shutdown retains the
+unknown reply and waits for the original zero exit, with no retry. The normal
+SDK/session/policy, public capabilities, catalogue and USB stay unchanged.
+Next implement the C17 management adapter and per-user supervision/device
+mediation, then Settings and HP output. Lua review/update remains a rollout gate.
 
 ## Private audio policy — 8 November 2026
 
@@ -37,9 +63,9 @@ ALSA/ACP data files for the next hardware-monitor work. Eight existing runtime/
 notice objects are copied by hash. The legacy Lua baseline is reviewed only for
 trusted private policy testing; runtime update/review remains a rollout gate.
 No normal service, current SDK, public API, catalogue contract, carrier or USB
-is promoted. Next join actual udev/ALSA monitor and ACP routes to the already
-tested HDA path, then add the C17 management adapter, session/device mediation,
-Settings and HP output. Separate graph and hardware tests are not joined acceptance.
+is promoted. The joined udev/ALSA monitor and ACP/HDA evidence is now recorded
+above; this FIFO suite remains its independent policy control. The C17 management
+adapter, session/device mediation, Settings and HP output remain work.
 
 ## Virtual HDA playback — 8 November 2026
 
