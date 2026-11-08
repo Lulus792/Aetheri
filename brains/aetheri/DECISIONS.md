@@ -2470,3 +2470,21 @@ all retained observations. Build new-User recovery next; do not weaken the v6
 original-User rule, pretend the dead User's UUID is live, clear the store or create
 fresh app/operation IDs for a green test. The current failed image/unit inputs
 stay independently protected until a reviewed same-intent continuation exists.
+
+
+## Select a private PipeWire transport profile — 8 November 2026
+
+Use the exact reviewed PipeWire 1.6.11-1.fc44 packages for the opt-in C17 audio
+transport diagnostic. Its C API fits the existing toolchain, and maintained
+backends support the later device integration. Signed inputs, immutable snapshot
+extraction and the small selected payload are recorded in [audio](../../spec/audio.md).
+Keep unused plugins, package scripts and normal service provisioning outside this
+profile. This does not change SDL's audio-disabled build or the USB image.
+
+Prove complete PCM and channel ordering before treating a stream drain as useful
+audio evidence. Create an inactive stream, connect both original stereo ports,
+then start once. This fixes the actually observed partial-channel startup loss.
+Normal app admission, per-user service, ALSA, device policy, recording permissions
+and physical headphones remain separate work. WirePlumber is the recommended
+policy manager, subject to exact dependency/profile review. The user permits
+these justified engineering choices; no final product/UI decision is inferred.

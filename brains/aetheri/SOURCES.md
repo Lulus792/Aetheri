@@ -1,5 +1,23 @@
 # Sources
 
+## Private audio transport — 8 November 2026
+
+- [Exact inputs](../../spec/audio-inputs.json), [contract](../../spec/audio.md) and
+  [executed evidence](journal/2026-11-08-audio.md): signed Fedora44 PipeWire1.6.11,
+  sealed input snapshots, native C17 linking, real byte comparisons and separate
+  hardware/normal-session boundaries. No global installation or USB change.
+- [Upstream1.6.11 NEWS](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/NEWS):
+  reviewed29October release, draining fixes and Bluetooth-security backports;
+  not a blanket current security clearance. Exact
+  [Fedora package](https://packages.fedoraproject.org/pkgs/pipewire/pipewire/fedora-44-updates.html)
+  and [library package](https://packages.fedoraproject.org/pkgs/pipewire/pipewire-libs/fedora-44-updates.html)
+  metadata are joined to actual verified RPM bytes.
+- [Stream API](https://docs.pipewire.org/group__pw__stream.html),
+  [pipe-tunnel](https://docs.pipewire.org/page_module_pipe_tunnel.html) and
+  [pw-link](https://docs.pipewire.org/page_man_pw-link_1.html): reviewed buffer,
+  inactive/drain, FIFO fixture and explicit original port-link behavior. Neither
+  a drain event nor a graph ID supplies Aetheri app/authority admission.
+
 ## HP retest and external Files changes — 8 November 2026
 
 - [Hardware feedback and executed corrections](journal/2026-11-08-hardware-feedback.md):

@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — The user reports the renewed image boots on the HP; editing, retained files/contents and interface language work. The matching cat display defect and external Files refresh are corrected in source, with native Release/ASan/UBSan evidence. The stick remains unchanged; WLAN/Bluetooth/audio remain work.
+8 November 2026 — The private audio transport now passes real captured-PCM tests in Release/ASan/UBSan. The HP boot/persistence report and cat/Files source corrections remain recorded below. The stick stays unchanged; actual audio devices, WLAN/Bluetooth and normal integration remain work.
 
 ## Coordination
 
@@ -12,6 +12,34 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Private audio transport — 8 November 2026
+
+The [audio development foundation](../../spec/audio.md) now uses an exact signed
+PipeWire1.6.11 SDK and original finite C17 playback diagnostic. Independent FIFO
+captures verify complete440/880Hz stereo signals at48000/96000 frames and a
+257-frame partial quantum. Four CTest groups pass in Release and ASan/UBSan,
+including15 invalid requests, silence, server loss, interruption and an unstarted
+deadline. The initial graph actually loses1024 early right-channel samples when
+links activate sequentially; an inactive producer/both-links/start barrier fixes
+that data loss without loosening verification. See the [executed record](journal/2026-11-08-audio.md).
+
+Final selected SDK payload is252 regular members/3,712,345 bytes, including
+build-only headers/notices/test tools; runtime members are2,471,008 bytes plus
+existing pinned development-base libraries. All selected runtime DSOs are
+actually observed in the private graph; unused candidate libraries are removed.
+This is not the complete footprint of a future Aetheri image. RPM signature and
+extraction share one sealed0600 snapshot. Prefix/content/baseline checks and
+default-OFF/missing/changed SDK configuration gates keep normal builds separate.
+No normal service, SDL audio profile, public capability, SQL/XML contract,
+protected carrier source/build or USB content changes.
+
+This proves local test transport, not physical audibility, device drain,
+broker-delegated audio admission or normal app readiness. ALSA/WirePlumber,
+headphone/device switching, Bluetooth, recording permissions and Settings are
+not implemented here. Next pin/review the ALSA backend and connect an actual
+dedicated virtual sound card with independent host-file capture, then per-user
+service/device policy and HP jack output. Full OS scope remains active.
 
 ## Laptop test image — HP retest reported, 8 November 2026
 
@@ -45,8 +73,8 @@ Final private enforcing-carrier tests pass20 groups in Release and20 with
 ASan/UBSan, including actual SDL/NexaUI input and lost-acknowledgement fixtures.
 Old prompt/view controls reproduce both defects. The final test checks original
 PTY drain before its deliberate negative assertion. The matching code is not yet
-in a new image or normal installed carrier service. Next continue the reviewed
-audio/device foundation; WLAN/Bluetooth/suspend and normal integration remain.
+in a new image or normal installed carrier service. Continue the audio/device
+integration described above; WLAN/Bluetooth/suspend and normal integration remain.
 
 The old phone video proves `AETHERI_ROOT_FAIL reason=nonce-count` after successful
 initrd handover on the previous direct-UKI image. The firmware's actual command

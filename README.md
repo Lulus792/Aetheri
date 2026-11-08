@@ -32,13 +32,22 @@ medium. Two cold boots, document persistence and unchanged system/EFI/GPT ranges
 pass. Independent filesystem inspection also passes. A separate
 [laptop profile](spec/laptop-probe.md) adds Intel/input drivers and automatic
 display-device selection. Two cold boots without a serial port and independent
-data inspection now pass; physical hardware acceptance remains work. Normal login,
+data inspection now pass. The user reports the renewed USB image starts on the HP,
+with working editing, retained file contents and interface language changes. Full
+physical hardware acceptance remains work. Normal login,
 the installer and admitted daily-use applications remain work. The first authorized
-Intenso USB write and complete readback now pass; its laptop boot remains untested.
+Intenso USB write and complete readback pass; the later replacement and HP report
+are recorded separately in the current state.
 The [first laptop test guide](spec/first-laptop-test.md) explains USB startup,
 the current controls, persistence and a useful hardware report.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
+
+The opt-in [audio foundation](spec/audio.md) now sends original C17 stereo samples
+through a private PipeWire graph and checks the actual output independently.
+Release and ASan/UBSan tests cover complete/short playback, silence, server loss,
+interruption and timeout. This is not yet sound in the USB desktop: virtual/real
+sound cards, headphone/Bluetooth policy and Settings controls remain work.
 
 The first [original command shell](spec/shell.md) now runs noninteractive commands
 and scripts, with its own parser, quoting/variables, pipes, file redirections and
@@ -83,6 +92,8 @@ inline create-only empty files/folders and renaming, plus
 cross-folder moves through window-local Cut/Paste. It opens a selected text
 file in an owned Terminal/editor. Its file-operation worker keeps the view responsive;
 unknown outcomes block further creation rather than replaying an operation.
+Both Files views now observe external folder changes without a manual refresh,
+preserving the filter/selected object and deferring changes during active input.
 It checks a held file witness before reading and preserves the editor's dirty-close
 choice. Files is now available in the fixed development dock/search alongside Settings
 and Terminal. This remains an ordinary-user development workflow; normal app

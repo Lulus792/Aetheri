@@ -1,0 +1,2072 @@
+{
+  "format": 1,
+  "reviewed": "2026-11-08",
+  "purpose": "Exact private audio transport development profile; no normal audio/device/sandbox admission",
+  "version": "1.6.11",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "pipewire-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-1.6.11-1.fc44.x86_64.rpm",
+      "size": 144824,
+      "sha256": "eb9d5f9f0921d6c45f9edb59e149c53c9ff960d6d500f6eb2c265aa626e668fb",
+      "nevra": "pipewire-0:1.6.11-1.fc44.x86_64",
+      "license": "MIT"
+    },
+    {
+      "name": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2779549,
+      "sha256": "42231bc1667a0ccb0e43b9f845382701899fc451aac17c80124ea1aa2d88f7e6",
+      "nevra": "pipewire-libs-0:1.6.11-1.fc44.x86_64",
+      "license": "MIT AND GPL-2.0-or-later AND BSD-2-Clause AND LGPL-2.0-or-later"
+    },
+    {
+      "name": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 243846,
+      "sha256": "89cb901b37709b689f88310e5b8c87b29a15e3997d608fb5f78485ac7bc7ca9e",
+      "nevra": "pipewire-devel-0:1.6.11-1.fc44.x86_64",
+      "license": "MIT"
+    },
+    {
+      "name": "pipewire-utils-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-utils-1.6.11-1.fc44.x86_64.rpm",
+      "size": 629961,
+      "sha256": "a3e58a2d3cdc566ca68023ca386b2ae65ffb60c9a5908f7d2963862114de6022",
+      "nevra": "pipewire-utils-0:1.6.11-1.fc44.x86_64",
+      "license": "MIT"
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/bin/pipewire",
+      "package": "pipewire-1.6.11-1.fc44.x86_64.rpm",
+      "size": 15704,
+      "sha256": "93e016808d052f7c73c67355f7acda4bec862eab58c200927c910bfa7f8d7998",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/licenses/pipewire/COPYING",
+      "package": "pipewire-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1218,
+      "sha256": "8909c319a7e27dbb33a15b9035f89ab3b7b2f6a12f8bcddc755206a8db1ada44",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/share/licenses/pipewire/LICENSE",
+      "package": "pipewire-1.6.11-1.fc44.x86_64.rpm",
+      "size": 349,
+      "sha256": "be4be5d77424833edf31f53fc1f1cecb6996b9e2d747d9e6fb8f878362ebc92b",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/lib64/libpipewire-0.3.so.0.1611.0",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 859296,
+      "sha256": "13ea08846cd7ac14e4a11897fe250629a9f705028b99ee22cdcfc1030560f5d2",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-access.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 23984,
+      "sha256": "b5fce025791aa7338edbdfb40e9ccf816348615226ff4e81451407211cacce6e",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-adapter.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 36256,
+      "sha256": "d220414650500f8b14f1c73df9a460391d20ef81d860aead30d536b0183eac40",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-client-node.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 156464,
+      "sha256": "8717677db3bcebe2d9daf266cc55c624be9afc79363dc3ca2a2f41331d966bbd",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-link-factory.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 23896,
+      "sha256": "709654460c191a4d7de74cc3f956c86c2b10e24f3cc2bd9908c9ec28fe5a891b",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-pipe-tunnel.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 89608,
+      "sha256": "eb05db423e8234c63ebd1e3715f2c6cb2fbc11cb5a0220aca0e4b27914ea7607",
+      "mode": 493,
+      "role": "test-tool"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-protocol-native.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 230920,
+      "sha256": "94427694f549562291b81b738be70721c3f8cf55f28f1fbe376d32f9f8cce538",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-spa-node-factory.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 23888,
+      "sha256": "cdb7153f5c6f1aad129f9a2d6bf3609d8d356d27b8112a478f289716e20974d8",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/spa-0.2/audioconvert/libspa-audioconvert.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 914912,
+      "sha256": "6e6096bf87380d4f3d00e40e269c3f8b1e3d5864ff84127d87ab323cef966a23",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/spa-0.2/support/libspa-support.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 185688,
+      "sha256": "8ef68364cb7562e43c4b2b7ced782ca6ceb39797f2549d8e73586156c37a6d41",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/licenses/pipewire-libs/COPYING",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1218,
+      "sha256": "8909c319a7e27dbb33a15b9035f89ab3b7b2f6a12f8bcddc755206a8db1ada44",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/share/licenses/pipewire-libs/LICENSE",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 349,
+      "sha256": "be4be5d77424833edf31f53fc1f1cecb6996b9e2d747d9e6fb8f878362ebc92b",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/array.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4348,
+      "sha256": "49743565e79d7a87eae4e2b68d95945a4be5a8b9fbd07e8726e02f0de25d3b94",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/buffers.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1550,
+      "sha256": "26df3389d62e08196f26281882828225cb4704b49f3eb964445552bcd04750fd",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/capabilities.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1114,
+      "sha256": "7446cff36fdf8f256a031aa187902f238a4bdbade0726b366e65d3d3593bf70c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/client.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6047,
+      "sha256": "bdb89c06d4719d77fe4900f6bac6df7a677bcc19de2cbd91b6bb70c96d14666b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/conf.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1806,
+      "sha256": "b199571ecbb53a9f0cc06e55723d35873386b7e4509265c7ff5eff588ba24d83",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/context.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 8285,
+      "sha256": "81261a4457cae57c9ed089e2d85c3ef7bcc46e710bbfaa5071a52eb78ace5639",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/control.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1408,
+      "sha256": "63660741b369e014067f2d72e6e55bdeca4e67ebeb6e8e556ddf22a3a2de090f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/core.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 21458,
+      "sha256": "d7cccac8eeea5c58b62332668b228d222811d257db9e47175e1f268647797767",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/data-loop.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4170,
+      "sha256": "32b755afad6ba99981f7c0c00d0238a85155e3c977618fb8227fb840c4252a13",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/device.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5562,
+      "sha256": "f8f2f53ae1f85bb28b96d4969865a5428e970cf85798cc8a2ee52fedaeb0e8c3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/client-node.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 10997,
+      "sha256": "bebdd7a6d8667539ef2241e3e1803f5163e5ee01037fef7824a8330267102076",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/metadata.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3488,
+      "sha256": "29c3ef06cb75aa00418cef06000b1852020ff18fe0e8ef27e0cc6b5b67c24ba1",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/profiler.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1784,
+      "sha256": "ab9f3dcd7816c0bbdb09af2a45d6f2c503bf82aa71f4f7c8339fe311981ccf98",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/protocol-native.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2979,
+      "sha256": "76df16179938069aa26531b46af893877ecd3f8f7dda496840731b7445d7560b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/security-context.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3982,
+      "sha256": "d55fe25fca8d1c4e7a73364b00d05d086c34fd826bb1872714f14680775332a0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 636,
+      "sha256": "7fbc5213249c7b38a9bdc6ff7e6155bc8c220c3bbeb93f586654386016f26499",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager/impl-interfaces.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 9339,
+      "sha256": "056903ed62dce94d46bfae0fedf8ce5b89d474c76f20cb3003fbe21f3334422b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager/interfaces.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 14580,
+      "sha256": "af67fca93c7d3c5a0a5b048ca5af5cf95f061ca7c8e033fee8dba98b5b78c7a4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager/introspect-funcs.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 8125,
+      "sha256": "6474a28a63dcdf6bea43a064b4092ce4578e5f2fa427df7fbccccdd95f2be8d0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager/introspect.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4298,
+      "sha256": "694e6d09a6034f0a2469cb6d4c832960c94ddc46d962e72c0f0926890d11660f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/extensions/session-manager/keys.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1938,
+      "sha256": "b352c6181675f15ef8056f5cdda0732967f6915a91079e8ecac5e2d02123f146",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/factory.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2650,
+      "sha256": "7b4a302c6dce7ff0b217ee0a2462bb99298148620228d624ed93b7552d5a5aab",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/filter.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 10962,
+      "sha256": "3de54d29f1a62831c77bbd3f3101fc53a9011b08ac771ae4bb0d416fa2b4ef64",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/global.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4683,
+      "sha256": "674a331427eebbc95842b24fe38b96fd26c288e20321579dcceb4445b3ff16cb",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/i18n.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 666,
+      "sha256": "87649030587fab02ea9584891277e781c37478e2e96155e39b5876250b20e810",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-client.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5719,
+      "sha256": "624371a2a2a051fe9621d35d2d7cddb3c3655051dcff134e5c8068720f3d3b62",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-core.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2099,
+      "sha256": "26023eb1325ae308e31d6cf46a543bfda2fba77f3592aa0ca9e0702784e66748",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-device.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2784,
+      "sha256": "9caad51e7052509db7352595cfb89a3c4bb28bc400f1322959f51b6e0cc08915",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-factory.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3106,
+      "sha256": "9be31d0d07d07b7b0e1fb9f82f26dd7bdd12487987db506cd3f3e6804434e7ca",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-link.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2997,
+      "sha256": "d8d34ec7eb5823ceee1beef52d1b584a69866c484b6de23003ddc140962a3c7d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-metadata.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2566,
+      "sha256": "ecfeb5772d88a1bce1ce07ec6496154de80357717ebcd1470ff5799cf4b5b93a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-module.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2989,
+      "sha256": "2112fc7c572299cbfedeb7fa37d6b86a5fac362c052e40af92db2983d5f66143",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-node.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6869,
+      "sha256": "c106b7b6f37d6ada681bf732831b82bc858eea8053d0b44b2415fb79a10e5616",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl-port.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3710,
+      "sha256": "8bca5d711c399a0741396950ecb75d3120eb3ae0d542335a6e2b0a8a8ca7f518",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/impl.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 872,
+      "sha256": "c4333e4fee840379f449f285eb95ce79f0a70ba8f05f6f01279de15856aa3ae4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/keys.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 23213,
+      "sha256": "f322fbb208e43c8ee9d5118d286eb39f2cc07e3667f0eef477632f8175cb8afe",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/link.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3580,
+      "sha256": "046ba5419b1b6fb276e5e8400e44d1a9b3bf87ba960742fb02e7c011986a58ce",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/log.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5848,
+      "sha256": "87f90d5d40ec26868a70c879a2ae2d2b8a0f59b604ec3d098bef204ae39e9891",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/loop.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5803,
+      "sha256": "e9658173e447a99e822f0b7a8e46832a0aec9acb9d2be2ba800d11d1cbb1dd3f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/main-loop.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1416,
+      "sha256": "d25142d1b9d9fc8e7451b4033abeb0b9039e3a53deb8144e103499cf048a22ab",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/map.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7281,
+      "sha256": "2b0b18d23672cf2cd31024edefc307be2cc6b476adf87b80ee7a91ed2d5819e2",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/mem.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6331,
+      "sha256": "54e12c565a78f287bb69794b4bd845ce2f5ba77ee20e8f65ee79be0d2fe0ea33",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/module.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2702,
+      "sha256": "b4f2238aaaf5eb9824c1c93678fd3aebe4f124290c0147750198681c49ef5de0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/node.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6959,
+      "sha256": "3d24c47b69589d5b665d839c3ca121a3d5c0f71f64a4a6f142a73b9761ada401",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/permission.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2112,
+      "sha256": "c58c51d34d7241e68723f9f5fe0e728dfec1663d9b1d07c1c44b37e21b95ee4b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/pipewire.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2186,
+      "sha256": "50393a1da79c9232e72c25c02171c770820c819420f4728343e33122b527460f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/port.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4914,
+      "sha256": "d8af653d29bf0d0ff52186e4d39a4a1ff53d99599d8edb86f4c946bee70fea12",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/properties.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5634,
+      "sha256": "ccdeb9cd3373ae0770a6eb488944929bc146767c09af75c056b2b7d76ed500ce",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/protocol.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4745,
+      "sha256": "c2e3d2d437f64ffe5f4d7e97e5b604779e986c50ed0765a58aa9db7debb4a49b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/proxy.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6620,
+      "sha256": "e163588ba6df9f287ab162976429102f557166c8559f43164ae85bc32b794494",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/resource.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5019,
+      "sha256": "56bdd1f6c1a78286a3b3a90859fae6854c49f030d0ac5efb7670265f5d5999e5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/stream.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 31087,
+      "sha256": "1ad58710f7487680195f5682f7482070306a8fdbe4621b8f63a4d80493eeb280",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/thread-loop.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5918,
+      "sha256": "4d0a0be3c4a861ae0573e125bdd9029d69744aaa585d0642bc4738cfde6ea5a0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/thread.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1646,
+      "sha256": "79291853a969b590992ec13c7e9d7fe3e7a1a7ffd0dc8992d4e5131c72c3fb8a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/timer-queue.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1029,
+      "sha256": "7f327d49ec91f294822f0d8ece38bd8b9590ea590cd373aefd4053ea26e8b406",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/type.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 781,
+      "sha256": "b86c6a582a34e2e91d3c401bf98e65dc615550202c994ff864e3dad42df69b81",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2486,
+      "sha256": "76cf497a5afe5d3c0dc9f2351248165b389d0d17d6be9474559f1d7247e4a2f1",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/version.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1690,
+      "sha256": "54316d6c1784458a8f9038f6295a6399354464a0afb5e28c6122d87cf553a2ef",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/pipewire-0.3/pipewire/work-queue.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 958,
+      "sha256": "4290b08d77fd060b9c454d2f0c356362db44d3347d13212c8d52812cf2c59acc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/buffer/alloc.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 11159,
+      "sha256": "29f73cd95ed27db4b6fc7b71fbba2398723d3a583bf92cc4df990af49be777a5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/buffer/buffer.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4439,
+      "sha256": "899f11005d1ee6caef20252cb11335d670830c7fa017c45e1c9d38c4e06e388a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/buffer/meta.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7627,
+      "sha256": "1dc52f77913d158feee3abd4ad9b25d87c892a46033328ccc41d1a796657d6de",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/buffer/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4096,
+      "sha256": "2789829fe0ea595e837126aca5ff476bf8cade7c1e4cddfb3aa16a674f27ecb4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/control/control.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 957,
+      "sha256": "cee0ebc665e2a998bd34d326cbd104526f604b68e81b4d5048a47fe48baccf77",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/control/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1105,
+      "sha256": "1aa3b04ad2eb00905a2faba9a1225e036e33185aa8887518455fc3801a856858",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/control/ump-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5819,
+      "sha256": "07c551cad051e58a6b411f58455adf4ffbfd25a7bd73a3b0adbf0c6ca42e06d4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/buffer.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4139,
+      "sha256": "71d922dda23551c0fee7b998969ac96eacf3e7fb0a64893d5eb1a75afba8d32a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/context.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1655,
+      "sha256": "2592383f34aaaa0722b7fab90ef747afddb6777bb8a371f0a2dea242fb7c8295",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/dict.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1046,
+      "sha256": "19df7e42062add6a856e946c58c6917d8663fef6b932c23183240773644aff15",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/file.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1476,
+      "sha256": "fe31219fa88e423a695255fec4f598c9a196aa3cff6e8cd356ea2d9eed526505",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/format.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5702,
+      "sha256": "32938a28282a73b68f4c0e47408ee3e9813b868dc3ddf745786d57f7b8f67fe1",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/log.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2992,
+      "sha256": "8aafd760c721b049891a7e9a709d04dd5e57f02100849164b2f77a4ce45fab16",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/mem.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1130,
+      "sha256": "e4f744c26164e99c7d547819e6d4aa67dcb64379c5c3a0a426900dcf4291d23d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/node.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1342,
+      "sha256": "076c7386581f50957ac25b717553b676df544a797535b0beb546045658dbdb66",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/pod.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7756,
+      "sha256": "d49d8316bf2dd7d6507bb30db932db4418cf27663ebf4a30ab77416e2bc3a37b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/debug/types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2587,
+      "sha256": "c352554d42d2dbe6cce41d45b6153e9a119f4eb73c791c662ac343957d0cfa4e",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/filter-graph/filter-graph.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4135,
+      "sha256": "01fddeb053e24b725d16974dee3ccc8207b7ca303ec3de3f398396007d5c4816",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/graph/graph.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 9716,
+      "sha256": "c1a4741387fa1e35ba177d04b6113f64b5dd10e7cc162b06ddd9621539d21957",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/interfaces/audio/aec.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4591,
+      "sha256": "4e1acd4aaf96f4be7a22e7a931455e06686f4102dc5746132653b42bf9ec69ec",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/monitor/device.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 10603,
+      "sha256": "77c9ea4e4cdf6f92bbe6440d0e74849f1cda103a5f7a79ea90ab190f60ee198d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/monitor/event.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 855,
+      "sha256": "775cc7142c8823b55f26f67fd8a36593c1d10b804bde3a484db3cf5041991abe",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/monitor/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1314,
+      "sha256": "e7265059a67813cabc5d7701b40f7644277cea3971698af1d0132ca8c541c84a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/monitor/utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2559,
+      "sha256": "9ec47e2f4bc4c2f20e24f4aee29a776a41290dfc788427d67e9eb3e299002565",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/command.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1738,
+      "sha256": "6f85bdd798425e780be666b621c33f15aa0c0e568d646de1749786d9dd5f51a4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/event.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1028,
+      "sha256": "572e47d09d9418df364c55ea220371a8488c7d0c4f57ccae59e6d41d7fcc7017",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/io.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 16452,
+      "sha256": "749f5df651c53cff29961ee0a5fe4927580c51cb764e4db4b1a019c6871d50ee",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/keys.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1549,
+      "sha256": "f4ece0e39d5ab56e58b75724108b39d10aa6ac7eb03bd21f3bec9f3778d02178",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/node.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 26265,
+      "sha256": "655ee4459a595aa9b826c9f47f2bf8b99a40382b032140a7a4754d44bf5f9272",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4253,
+      "sha256": "97fcb384386cafbeb4166a98c9aac25d0f01d16f626642eea3d3cc8c62c01206",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/node/utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3942,
+      "sha256": "c21aa7af115aea0ccfd99c6a566a5f528fc797e5ea258f36a0cd842ec3f9bce0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/aac-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1612,
+      "sha256": "0739d630e48deabf2a94232f4544a8bd146274ad1ef770a56e6e7a7110e1fc19",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/aac-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2163,
+      "sha256": "272a3365304d6e1c4d5ba7abfbd7e6947395e5eceb1a2777c8e7806a97bc5388",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/aac.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1472,
+      "sha256": "65789792ac4239f4f1fc9ea306fa07457cf099d6b2c7a4f0372619b867760784",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ac3-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1778,
+      "sha256": "ee9831a8865f5b9d7f9528f0ba9eb7406d7a7aa55854fda6c33a4b74deeb2755",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ac3.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 615,
+      "sha256": "63e72093a02bdde23b00fbabcae959d6b812c1a9b58d0df7a22808246755aaf8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/alac-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1785,
+      "sha256": "eb37e1d7c83c71252be92310b3729c7a489291521ef7b23dd32a604369feed21",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/alac.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 583,
+      "sha256": "06c41ffb0db6544f406e3deadfeee62190f5461769e1d9a7094a66b25c73aa3a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/amr-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 985,
+      "sha256": "5a318104866b19c1a1460074378f19c764e8ef2f08dcfc933267d34967eaec4d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/amr-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1964,
+      "sha256": "2f55a3d335207392b27113bdb6682f7db095747109051e175ea702c4ea7638a2",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/amr.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 745,
+      "sha256": "2401ca5fad4af7b5ea3a07d6335e79985718c99c693206705a73c45386933c66",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ape-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1770,
+      "sha256": "5ed3060e8293ef051d6546f7c57f578b36f9d4aab2d0a69c7cc569050d6a7c47",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ape.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 577,
+      "sha256": "145dafe819658fba862c8be46738e1149bd2783402bac57099541fe6eaefabdb",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/compressed.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 756,
+      "sha256": "9b555e08a54e43f9db148c081ba9ab19311de649c5b2af5630a75a45e452894c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dsd-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2837,
+      "sha256": "18c5bd97b4c196d4e6bf047d3dbd703c4b7c771fccb42893410e58d3db1b0960",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dsd.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1533,
+      "sha256": "ca2ab88333b57ed780b6acfda19ac5459e2d8170ef95cf2b6a19537dcb39b46d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dsp-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1549,
+      "sha256": "a8707bed32539c55b3194c6da8d5a07b21879d30fd827aa6abe0afaecbd41f7c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dsp.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 586,
+      "sha256": "71f937393bcbc907edc366fd2987a49058e71267054d0d43c2e4ae7e261bee0f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dts-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1071,
+      "sha256": "500ff373404085678296d888d9c97bac9589691419802f8fd69adc69eb7dc633",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dts-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1966,
+      "sha256": "1d8dc4cbcaebf21555101121d25b51e286cf0c7f214cf31523e91ceb30f6321a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/dts.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1302,
+      "sha256": "260e26acd17ec38fc119af00eb0cb418ccdfba2bb447e21233716d5ef82a97ba",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/eac3-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1791,
+      "sha256": "c45158f759e853733fe0b5cb8d73aa86308aab740f677aa4baa46a06be6d93c1",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/eac3.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 623,
+      "sha256": "cd41f5c961275c2e06c8a28b2281242e61c5ac4a38c8450df2334bb4a1907db3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/flac-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1784,
+      "sha256": "a318d151b61d4bb4f26584d5e04e31a32299990c0ea40148a31e634c701238cf",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/flac.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 583,
+      "sha256": "e0181e5580c51d8ee800ef3ddb14e6e795bee7e44889a98670d2d6faa784c2c6",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/format-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7597,
+      "sha256": "3b4079b7219ab0df05374bc3b60d18877d567a578d297a513e7cacedacb11bab",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/format.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1844,
+      "sha256": "4759e7abfc560fafc93150f9e3a8b8ec20280b3ccbdcd4967a07bc3dcc1d35bd",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/iec958-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2175,
+      "sha256": "c62d9071f73b2028865ba6dd0fa2a8e024ce197b6ad1723f7e3c4ac235620a11",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/iec958-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1770,
+      "sha256": "ad28ae63753d5d0d9f51219eb434ddc0d3515085af2876c1c4906cf3f334d361",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/iec958.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1100,
+      "sha256": "eb65886c785dcbdf9e5d05cbcb52cf8b46f64aa4f392bba26080e89e05024e61",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/layout-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3653,
+      "sha256": "5456a7b2bb15733a9772e48328adc3a80e35d111ed3f2b3a72ebf6cc930808c4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/layout.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 8723,
+      "sha256": "f23c925d3586946d00e7c513678d9e5e62bb3b30331d2dba1f764a1a9e58c30c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/mp3-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1261,
+      "sha256": "22c7aa5bd8bae3ecec52c82cb2f1c9b92920f5e072acced5e417c9fabf718a5f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/mp3-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1980,
+      "sha256": "90c27b446535218ddb3fb89a15de408e3958aa63b3ec877564e378f64dddb523",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/mp3.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1251,
+      "sha256": "be028499f4a4788b0cda226f821750a1b4767ead95959d29019743ad4b3655bc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/mpegh-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1620,
+      "sha256": "4593342fdaafd92303841dcba6b3014beb4ec1202c1d5e03ecdfd95ffcc324af",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/mpegh.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1424,
+      "sha256": "70bff65641dedc74f2df874150a5e76700cc8e6d3fd71c5c8a2d94dc32907876",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/opus.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 583,
+      "sha256": "d2d72b815ee0fecb36944a5dd7f146bc37f1910b845324daf983b6a8cc92c6c3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ra-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1756,
+      "sha256": "e6a8bb11fb9fa0f0786d6c4e3457f7246bcaac7ee7e5d75da3020f8bc3b2705b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/ra.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 571,
+      "sha256": "01ce231665b54d1d21f99b2834e5f3d13d4486df816cd1ecf6d49fcc0f0aea59",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/raw-json.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5054,
+      "sha256": "1632a3152bf377487c0f06e87929f7439ad7f17e9cf3c0a9ce9d3872a0f2276c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/raw-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 21548,
+      "sha256": "ea0bc207497583d25067878c23ff454fc3aeba83f00f153ca4c9f42e7f608c26",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/raw-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3477,
+      "sha256": "b7563a5d4ea5ef75792757908463623c38a3e8cbfc7802b53fbca72028bfcbaf",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/raw.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 12530,
+      "sha256": "e6973905e13df878567683ddaf37acc8bbef06355d6e9bde3eeb7abb5be8147e",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/truehd-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1817,
+      "sha256": "428c2118e6f845e1b7847b5b4623e4810fc03f34e7a28cb222164f173e34fbd6",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/truehd.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 635,
+      "sha256": "614014f5ab870cfb672c7bc4562152cb1df48cf3cc89a8acb4e227db515afa63",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 523,
+      "sha256": "e9882b19bfe81b9380d72096e2d797b0b280755746cf804c4d0d4af0cdb45674",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/vorbis-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1812,
+      "sha256": "96fe29101a708bc20c65cabb591d087b8df086ea2ed322ba26a9a6f8b622bf91",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/vorbis.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 595,
+      "sha256": "d7ec98b9f79c844ac6b20912f340d501d6b7ea6513a5a600005900b3f3bc725b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/wma-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1512,
+      "sha256": "48da9fe4f6a0b3be18f9b6dd73d740e6638b6368eb10da0dd556487bc52594d7",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/wma-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2332,
+      "sha256": "b49e7b2549a1a9568ba135dc7311f3faedfc51bb27bc1d3ba2be0b6b4b9a3393",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/audio/wma.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1060,
+      "sha256": "d55e4c28fa8b1ed65db82be674caab3d20de7d7dcef5b5bacb7ed986676cbc09",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/bluetooth/audio.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1411,
+      "sha256": "87d1be4185a8d04249bae1e46b692748d4adf45c46e0f15257cfeb739a18678e",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/bluetooth/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3507,
+      "sha256": "fb016a6c151d91ced157aca51e6b9d8e80d0a12097315384cb4af9a84c15a47a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/buffers-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2715,
+      "sha256": "6148cb68d9c169c67e3aa4624ff95026ec6bc94fa7abd49a27db8a9980ebe03f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/buffers.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1597,
+      "sha256": "357ee6ec6ec1155d923d3c2829964a6d675bea195164f2fa86b7e8c79a0f839a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/dict-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 855,
+      "sha256": "1526343a7778e182c066b870b27ec0c321be44e491fe7bd971d9f33f81c9934d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/dict-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3154,
+      "sha256": "4244ef2527b18b307d99d78e8f0831b574899de9322b12deeb873708d8ac1d74",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/dict.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 718,
+      "sha256": "399489691558597756e01999ed63533028c979f912427d93683330de6a080002",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/format-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 11466,
+      "sha256": "6f399c5d71d8b56c2cce70b2f62169f308925e7a5b529a582b9f79dff752f7ee",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/format-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 888,
+      "sha256": "2b9e6bef23b8232ebebf4b560374abc5a48f9dc2fad1089848a6321007366315",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/format.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5893,
+      "sha256": "637ba62f5787b3c730a7b7458ba92e17da827e48206d6a32beed40cc6a84bd12",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/latency-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2208,
+      "sha256": "e10c9b9bcd195566a47ed8e3f5eef9cbc27b4464cc4bba333727368ea358a876",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/latency-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5348,
+      "sha256": "6ba829f4cfc6379df6fcd1e483f68fd364973ba7131415d0742c968b7726c788",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/latency.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2997,
+      "sha256": "0369eba26a15068ceea0c13eb028c22e99377e3e8dce3fe9aab45c8ccbe2d0ed",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/param-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4758,
+      "sha256": "95de0c0918864e6d9028c9d4655e15969a574ddd7fc1494a23f77f77b1440cfc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/param.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3493,
+      "sha256": "760fbfe692ce17cf41061bb02205fdd6ffe35dcd87e0ce88a71d390e65eb603d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/peer-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 844,
+      "sha256": "3f421e8370ced892cf7956396225445a98020df9f50b6b68c5ca0c4f87eb9137",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/peer-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2169,
+      "sha256": "b8ae28cd7cffbddf4a94c81a9703fdec7b7fcbd3b35bf1efed00abbdbc91b511",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/peer.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 652,
+      "sha256": "7fac38bd10913da1691e16b1edf001c500c53db150a1b32e46f925f50643581d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/port-config-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2137,
+      "sha256": "03cc9f7e18771047b64a49ae952e4ab16a4d219bfae39128de27c85e33b0aa5a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/port-config.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1332,
+      "sha256": "2bef81396181b5bb79c086deeda9b8b461209faf923b26214fffcd4042f544c3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/profile-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1567,
+      "sha256": "323869ce007969bcabfaef43e914f7478c0aa4a5a1bf6cd8547d765b7dfc5c60",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/profile.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1438,
+      "sha256": "695de275bd9b6b21741fe5488b80ffc2c665d169638179d69584f6f7d998ee9f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/profiler-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1215,
+      "sha256": "b1c1a2461b5440b2705a3d234d09009423e388a1071d8e8f40af73bca8f44e8e",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/profiler.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2800,
+      "sha256": "efc08c81a4f3c0714e04cabf53836281533d622007ac57a18ab5accb269e850a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/props-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6169,
+      "sha256": "802a4a4ebfff56841f0efcc2ff21eeb9b6b6382e891a7f13affb3a2a00dc87c8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/props.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4049,
+      "sha256": "85e31027b14807a63827ae9c12460e6ed5a5c035db18486e69959b56c7bfd365",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/route-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2078,
+      "sha256": "5f412889f3a393701fb549fac9456367a858c5989a31494ee9235584a8499535",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/route.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1495,
+      "sha256": "8a5dc942459140a0b1631fb593a264f5c9f6b91b9e38fc9a6ae5df86e55006b6",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/tag-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 949,
+      "sha256": "379c331f62ae50681cb58e30295a45519b3d7f8ece34e0740663ab1952acf167",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/tag-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3696,
+      "sha256": "161f1d5c3b33a647844bcca5c996e00d22e0bf865348209fe5104849374c022c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/tag.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 916,
+      "sha256": "30fc2fef0263b36edbcfc5e25d95ee59f5688975a95599c15cc22a21e51ecec5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 649,
+      "sha256": "3eb44d04c9d6bda8c62ee1db224879d6e40170e65c3a1b2f391278bb27621bcb",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/chroma.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1315,
+      "sha256": "4b2d95090bf674d30413e67a1870666eed2f802dbb19ba4057fd16f0877edcc1",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/color-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5689,
+      "sha256": "e40ec955e5e15dd9c453c18e9891661b23f21044b796ca39d6c53d5478561c8a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/color.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4956,
+      "sha256": "54dd01c462cb9c8f26b9bc5ddb8f3c6464bde6fc41350a9e608b99699c4ce976",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/dsp-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2166,
+      "sha256": "ecea93eafd842c6422c6728983153e682459c2354ab5b26e5dd7525e4065a8ba",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/dsp.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 557,
+      "sha256": "bde64c1df6f462ac93f546a12cd8ac54e3098611a97f710d90f693fc42d5fc2d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/encoded.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 279,
+      "sha256": "fb79e7f960781aadf136bd801c002bc96fe1d542a0dd501ed2cea3cfab0690ac",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/format-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2116,
+      "sha256": "6e720f308fba623779a2337ad5539a649eb18ca0879e6fb28aee3920b6d39c18",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/format.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 729,
+      "sha256": "f4714f2b53444a768eea527c890e2954fda1cc64b367bd71234546cc5b235cc7",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/h264-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2370,
+      "sha256": "d56bae3ebe0d0285d91fe65ffdd3ba33ebcb1cba46d42358b9cebe001930f6bc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/h264.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 858,
+      "sha256": "420338fa3601c0a5026c6fd7f8aa5fc81e51b7fabfafe7999e38f7d4cbc837df",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/h265-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2432,
+      "sha256": "ff88d05fb924c6cecb8810cf3c9e4a66e7cc160f7b3ee9488e5672753fc5a62a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/h265.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 921,
+      "sha256": "212f87316577795b6464a994873777e316c7cfb2d96f43a2beb4e1842ceb536d",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/mjpg-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1955,
+      "sha256": "b962cbb27f1d924b4baef3928b4e6f14f963593cf51bb258a7a12f6e04f6ef2a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/mjpg.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 502,
+      "sha256": "d29628dc0dcc3e9aca1566e68ac1c0a91830744877ab7a3d6895a41a809ec463",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/multiview.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4764,
+      "sha256": "cd49f21bcd208aeab45bf6b219982109097c2fb3844e10a1a1a392a8bda5ac85",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/raw-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 10705,
+      "sha256": "7c98d73c8fd027af2e39e1e35fd5b70593079e3055e706fb45e9c708a951b1cc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/raw-utils.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6291,
+      "sha256": "11f5594b20ce8efd5bf88cac3938f14b6a245c08b88b8182ce920ae17ff33f8c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/raw.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6922,
+      "sha256": "44a87441079010a18a9fed63d4235aa2b2040270d5282adf0309bcc6ba6b48e8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/param/video/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 285,
+      "sha256": "1f04a7b168cf7fe7c4f9bce825ec3ad1be3bc324a80172ccd0d6d8ede1bbce43",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/body.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 12755,
+      "sha256": "7a3249d3bd3ef8b1152c28444ff4ad0a418d5581e1b5ae314ef666358fac3304",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/builder.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 22695,
+      "sha256": "497dbf924afeb453246eddeadb23fa4c97f0c4839ffce1c97ad75c9671759063",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/command.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 972,
+      "sha256": "0fb87c225417a34b41c29140996c45d3d61fc923263e31794ba8a51b0dbfa7f4",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/compare.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 6488,
+      "sha256": "947295cd7dd4625ec90a84f4b64f7ed387456adf300a233396dfcb7207651a88",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/dynamic.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2415,
+      "sha256": "db228419eb2f53034214e0b01cc017678c9c402f1d777d2821dd9b1ff08c3f13",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/event.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 914,
+      "sha256": "f2cd930119aaaffdd5777bb633ab64ed3bdbceb22e936f451a4443c9f2b5061b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/filter.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 12424,
+      "sha256": "38afe9dd082643a9a8d1dd344ca32efa2cb7d34714e613d829940ac5edb75ce9",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/iter.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 10418,
+      "sha256": "e7424bf3fa05ad10a41fb41c30edd9e6e11b08879b6a17afa637ce1d7dc11bc7",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/parser.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 27191,
+      "sha256": "237c99ba5ab641dbf5d897fc1715a00f016f3954d0c356d880aa021d992afad5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/pod.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7091,
+      "sha256": "c7849f6bbcb343e52f0105a18d3db82248b17d9660f6215a422386b6ac9dadb3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/simplify.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4868,
+      "sha256": "ce1d7d9c7cf956dbf60afc1d77e1af40381a7d0071298227723cba2ca4477e6a",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/pod/vararg.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4153,
+      "sha256": "1f3d1b396f61272ebbacbdb3b897b134407529c0586e08ca34be3f35699b05b8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/cpu.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5893,
+      "sha256": "2de0bbc9b5f3f141306e20b8cae9bd9b83d3a6db89eed639559f622df3ecc5a5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/dbus.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3814,
+      "sha256": "dc3934d5be3ccad32ac628501ad85d1ddd363c48e43a0fa8866c1ee8b0ceb0de",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/i18n.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1932,
+      "sha256": "cac28b13a99148187c8b620e9ec57c4839a8a0b7f528c2c4235730010d9f8d36",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/log-impl.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2999,
+      "sha256": "2115fcb1cc0dbf7b8fb80b55d10bae899a0332d5d649c040ac5e62e8547232e2",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/log.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 11200,
+      "sha256": "7a13eafcbe6018f2b6cd471e8c088c1b4c14ea0635018ab729c9fba5874dfde0",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/loop.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 19068,
+      "sha256": "e64d04dd1af5a01d01876fba33d836a88f5f60e3afa750906c0a29c146e99657",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/plugin-loader.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1959,
+      "sha256": "41acd05b275dd594253d8ff9106b44f4da825938463ba73105dfffbbc422c1e5",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/plugin.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7103,
+      "sha256": "96ce7797e67d0a6d7f8a771bc9a2a33ad1cc48158974d58e3b7d485c518d140b",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/system.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7193,
+      "sha256": "34e09d3c61fe8afa8ba69352b5f65277f75c536c2d8398dbf0845b6281628cf8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/support/thread.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3995,
+      "sha256": "7e42d5d6b0d976aac599e6efc43fc3421387fcc3127d139e450dc893984d2cd9",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/ansi.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2761,
+      "sha256": "ed39b431c9b27b5be6af8116b89507e57762d774ee1d965b02a3d86eea23225f",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/atomic.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1211,
+      "sha256": "f35f2101356baed6dbc11fe63c612f6f33381d56c2dfec5ff6faca85c8c1bc46",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/cleanup.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3207,
+      "sha256": "e377bc00f3a0f211f97f12b4d9dbdde9be42e7f2392fd5a461bf53c93b69f4d8",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/defs.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 12968,
+      "sha256": "e03941b5f3e871a362d5c7ce7ecbd3d5a659d9bc45883376e716955662990041",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/dict.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2720,
+      "sha256": "a36b37d65ea1c6b364e05ecf9dfa7b180b8666406b44591a664adf113bf73f5e",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/dll.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1176,
+      "sha256": "5f1fb1747376d7084d034ab3569d39cebaecd149ae37cc63e1435b9c4160a7c3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/endian.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 639,
+      "sha256": "3e18a7726798f6b72f9f792e0451600d5e833bc5d6b57eea67601c0633999a8c",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/enum-types.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1386,
+      "sha256": "73e587d710c0ad2019108af83f1e28db01326ccd44b32acbf31ff52b19e43c75",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/hook.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 16839,
+      "sha256": "d0c50fb1449cdd3a1b28d0c823f05783d85d5cc4cd703e87f6a31db507d51adc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/json-core.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 15637,
+      "sha256": "7d3159cfad392742900f7d8e8a14130a589300fb73b835d706c34e9efb2ddbee",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/json-pod.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4437,
+      "sha256": "fd2c6d7d0bed8e85aa2869d72a650d66d077e57328adf0ddcfe2f3472e4644fc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/json.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5625,
+      "sha256": "d33bbe7697b0b82efebe18e18853ad1c7cdfbd5eaba35ddd3ffb10b3fcdcd267",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/keys.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7042,
+      "sha256": "cdda9f4b172408dc8c10ec0c7ee3d08553ebcf2ebf72808451c4b7628e495358",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/list.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4403,
+      "sha256": "72ef0f15716952de2e3533f8751e7a18eb6d6f56d21595c71bc98b6200aaddfc",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/names.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 7401,
+      "sha256": "2bd1969406873b1cec1c0091a9e701f5ef7fdf08f9dae1fe0fa31cf40c8b68ea",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/ratelimit.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 982,
+      "sha256": "6d61e2e59a257b5163f7b0026feedeb79f1585b9d4ccaf50981fc6350209b327",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/result.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1218,
+      "sha256": "023dd471a92b64a8d22b8e41cf90706365a5b4da837467038bd390870677de49",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/ringbuffer.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4858,
+      "sha256": "18a0aa3a24ed259bbd6cf7e6477dfe8a3ae5851299e6fffb1b6d644785b907a3",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/string.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 8422,
+      "sha256": "2f688c66e204f3af028b6f0faae7ef41ebd57a0bb6e27ca62686442829a21b73",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/type-info.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4633,
+      "sha256": "384e921363a43ec9d8bc92ed64f0a627ef5f23ab06e7bb2f84ef51f255046c43",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/include/spa-0.2/spa/utils/type.h",
+      "package": "pipewire-devel-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4451,
+      "sha256": "1de788d694a42c672fb08785c354b909558aa2d25186253de57cc9fc9d477475",
+      "mode": 420,
+      "role": "headers"
+    },
+    {
+      "path": "usr/bin/pw-dump",
+      "package": "pipewire-utils-1.6.11-1.fc44.x86_64.rpm",
+      "size": 94216,
+      "sha256": "990f60c4700065a124c312fe069060c722dc5d4be29a6f392fb680f86bd9540d",
+      "mode": 493,
+      "role": "test-tool"
+    },
+    {
+      "path": "usr/bin/pw-link",
+      "package": "pipewire-utils-1.6.11-1.fc44.x86_64.rpm",
+      "size": 36664,
+      "sha256": "690f07854802d0073205afd79dbee2bd41fb4100e144706935df80a9e7ca47eb",
+      "mode": 493,
+      "role": "test-tool"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libpipewire-0.3.so.0": "libpipewire-0.3.so.0.1611.0",
+    "usr/lib64/libpipewire-0.3.so": "libpipewire-0.3.so.0"
+  },
+  "scope": "The pipe-tunnel module and pw-link/pw-dump are test-only. ALSA, WirePlumber, Bluetooth and physical devices remain separate integration work. Preserve package mixed licenses; original Aetheri code is MIT.",
+  "development_runtime": {
+    "glibc": "glibc-2.43-9.fc44.x86_64",
+    "libgcc": "libgcc-16.2.1-2.fc44.x86_64",
+    "glib2": "glib2-2.88.0-1.fc44.x86_64",
+    "pcre2": "pcre2-10.47-1.fc44.1.x86_64",
+    "libselinux": "libselinux-3.11-2.fc44.x86_64"
+  },
+  "development_runtime_scope": "Existing enforcing carrier baseline, not an Aetheri image dependency inventory or an RPM requirement in the playback binary."
+}
