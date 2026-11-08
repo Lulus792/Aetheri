@@ -197,7 +197,7 @@ class NativeDeviceEvidence(unittest.TestCase):
 
 
 class SessionEvidence(unittest.TestCase):
-    manifest={**NativeDeviceEvidence.manifest,'proof':'audio-session','control_case':'half','control_volume':.5}
+    manifest={**NativeDeviceEvidence.manifest,'proof':'audio-session','session_case':'playback','control_case':'half','control_volume':.5}
     denied='AETHERI_AUDIO_SESSION_ACCESS allowed=0 uid=1000 groups=0 cap_zero=1\n'
     joined=BootEvidence.base+(
         'AETHERI_AUDIO_UDEV initialized=1 database=1\nAETHERI_AUDIO_ACTOR role=udev uid=0 cap_zero=0 nnp=1\n'
@@ -207,6 +207,7 @@ class SessionEvidence(unittest.TestCase):
         'AETHERI_AUDIO_SESSION_NODE phase=before path=/dev/snd/pcmC0D0p uid=0 gid=63 mode=0660\n')+denied+(
         'AETHERI_AUDIO_LOCAL_SESSION id=2 uid=1000 seat=seat0 active=1 remote=0 type=wayland class=user\n'
         'AETHERI_AUDIO_SESSION_ACCESS allowed=1 uid=1000 groups=1 cap_zero=1\n'
+        'AETHERI_AUDIO_USER_MANAGER owner=:1.1\nAETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n'
         'AETHERI_AUDIO_ACTOR role=server uid=1000 cap_zero=1 nnp=1\n'
         'AETHERI_AUDIO_USER_UNIT name=aetheri-pipewire.service pid=100 image=/usr/bin/pipewire\n'
         'AETHERI_AUDIO_ACTOR role=policy uid=1000 cap_zero=1 nnp=1\n'
@@ -243,12 +244,78 @@ class SessionEvidence(unittest.TestCase):
     def test_missing_completion_returns_false(self):
         trace=self.joined.replace('AETHERI_AUDIO_SESSION_PASS nonce='+'0'*32+' user_end=1 runtime_removed=1 udev_end=1\n','')
         self.assertFalse(self.valid(trace))
+    def test_missing_original_unit_references(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n','')))
+    def test_references_cannot_change_manager(self):self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_USER_REFS owner=:1.1','AETHERI_AUDIO_USER_REFS owner=:1.2')))
+    def test_references_must_precede_actor_acceptance(self):
+        line='AETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n'
+        self.assertFalse(self.valid(self.joined.replace(line,'')+line))
     def test_no_card_failure(self):
         trace=BootEvidence.base+"AETHERI_AUDIO_SESSION_FAIL reason=device errno=2\naetheri-audio.service: Failed with result 'exit-code'.\n"
         self.assertTrue(audio.evaluate(trace,self.manifest,0,BootEvidence.events,missing_device=True))
+    def test_no_card_cannot_hide_a_setup_timeout(self):
+        trace=BootEvidence.base+"AETHERI_AUDIO_COMMAND_TIMEOUT limit_ms=5000\nAETHERI_AUDIO_SESSION_FAIL reason=device errno=2\naetheri-audio.service: Failed with result 'exit-code'.\n"
+        self.assertFalse(audio.evaluate(trace,self.manifest,0,BootEvidence.events,missing_device=True))
+    def test_success_cannot_hide_a_command_timeout(self):
+        self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_COMMAND_TIMEOUT limit_ms=5000\n'))
     def test_no_card_cannot_also_complete(self):
         trace=BootEvidence.base+"AETHERI_AUDIO_SESSION_FAIL reason=device errno=2\nAETHERI_AUDIO_SESSION_PASS nonce="+'0'*32+" user_end=1 runtime_removed=1 udev_end=1\naetheri-audio.service: Failed with result 'exit-code'.\n"
         self.assertFalse(audio.evaluate(trace,self.manifest,0,BootEvidence.events,missing_device=True))
+
+
+class SessionLossEvidence(unittest.TestCase):
+    def trace(self,case):
+        manifest={**SessionEvidence.manifest,'session_case':case}
+        if case=='vt-loss':
+            evidence=('AETHERI_AUDIO_LOSS_INJECT kind=vt target=1\n'
+                      'AETHERI_AUDIO_LOSS_OBSERVED case=vt-loss mask=1 latched=1\n'
+                      'AETHERI_AUDIO_SESSION_ACCESS allowed=0 uid=1000 groups=1 cap_zero=1\n'
+                      'AETHERI_AUDIO_LOSS_INJECT kind=vt target=8\n')
+        else:
+            role=case.removesuffix('-loss');mask=2 if role=='server' else 4
+            evidence=f'AETHERI_AUDIO_LOSS_INJECT kind={role} original_pidfd=1\nAETHERI_AUDIO_LOSS_OBSERVED case={case} mask={mask} latched=1\n'
+        evidence+=f'AETHERI_AUDIO_SESSION_LOSS case={case} originals=2 endpoint_removed=1 restart=0 reactivated={int(case=="vt-loss")}\n'
+        trace=SessionEvidence.joined.replace('AETHERI_AUDIO_USER_END ',evidence+'AETHERI_AUDIO_USER_END ')
+        return manifest,trace
+
+    def test_actual_loss_profiles(self):
+        for case in ('vt-loss','server-loss','policy-loss'):
+            with self.subTest(case=case):
+                manifest,trace=self.trace(case)
+                self.assertTrue(audio.evaluate(trace,manifest,0,BootEvidence.events))
+
+    def test_cannot_substitute_a_different_loss(self):
+        manifest,trace=self.trace('policy-loss')
+        self.assertFalse(audio.evaluate(trace.replace('mask=4','mask=2'),manifest,0,BootEvidence.events))
+
+    def test_guard_observation_error_is_not_success(self):
+        manifest,trace=self.trace('vt-loss')
+        self.assertFalse(audio.evaluate(trace.replace('mask=1','mask=9'),manifest,0,BootEvidence.events))
+
+    def test_endpoint_or_restart_remains_unsettled(self):
+        manifest,trace=self.trace('server-loss')
+        for source,target in (('endpoint_removed=1','endpoint_removed=0'),('restart=0','restart=1')):
+            self.assertFalse(audio.evaluate(trace.replace(source,target),manifest,0,BootEvidence.events))
+
+    def test_no_implicit_live_return_after_vt_reactivation(self):
+        manifest,trace=self.trace('vt-loss')
+        self.assertFalse(audio.evaluate(trace.replace('latched=1','latched=0'),manifest,0,BootEvidence.events))
+        self.assertFalse(audio.evaluate(trace.replace('reactivated=1','reactivated=0'),manifest,0,BootEvidence.events))
+
+    def test_inactive_access_must_be_denied(self):
+        manifest,trace=self.trace('vt-loss')
+        self.assertFalse(audio.evaluate(trace.replace('allowed=0 uid=1000 groups=1','allowed=1 uid=1000 groups=1'),manifest,0,BootEvidence.events))
+
+    def test_injection_must_precede_observation(self):
+        manifest,trace=self.trace('server-loss')
+        line='AETHERI_AUDIO_LOSS_INJECT kind=server original_pidfd=1\n'
+        self.assertFalse(audio.evaluate(trace.replace(line,'')+line,manifest,0,BootEvidence.events))
+
+    def test_playback_cannot_claim_a_loss(self):
+        _,trace=self.trace('server-loss')
+        self.assertFalse(audio.evaluate(trace,SessionEvidence.manifest,0,BootEvidence.events))
+
+    def test_unknown_case_is_rejected(self):
+        self.assertFalse(audio.evaluate(SessionEvidence.joined,{**SessionEvidence.manifest,'session_case':'unknown'},0,BootEvidence.events))
 
 
 class PoweredOffRetirement(unittest.TestCase):

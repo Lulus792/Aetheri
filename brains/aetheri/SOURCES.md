@@ -1,5 +1,24 @@
 # Sources
 
+## Audio loss observation — 9 November 2026
+
+- [Observer contract](../../spec/audio-session.md#observing-session-or-process-loss)
+  and [executed loss record](journal/2026-11-08-audio-loss.md): current native and
+  VM evidence, with preserved failures and separate remaining admission gates.
+- systemd 259 [login monitor](https://raw.githubusercontent.com/systemd/systemd/v259/man/sd_login_monitor_new.xml):
+  wake notifications require flushing and rereading state. The selected runtime
+  remains Fedora systemd 259.10; a notification is not identity/authorization.
+- [Unit garbage collection](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.unit.xml)
+  and [Ref implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-unit.c):
+  inactive unreferenced unit state may disappear; connection references retain
+  it, without proving process, invocation or holder drain. Actual v6 diagnostics
+  show all four missing objects while the runtime directory is already absent.
+- QEMU 11.1.0 [options](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/qemu-options.hx)
+  and [instruction-clock implementation](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/accel/tcg/icount-common.c):
+  explicit fixed instruction counting is a functional test profile, not
+  cycle-accurate or real-time performance evidence. Keep the default-clock
+  kernel panics and rejected PCM captures; the exact default-clock cause is open.
+
 ## Per-user audio integration — 8 November 2026
 
 - [Contract](../../spec/audio-session.md) and

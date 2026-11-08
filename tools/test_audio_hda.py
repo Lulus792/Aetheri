@@ -63,12 +63,22 @@ def control_settings(manifest):
     return expected
 
 
+def session_settings(manifest):
+    if manifest.get('proof')!='audio-session':return None
+    case=manifest.get('session_case')
+    if case not in ('playback','vt-loss','server-loss','policy-loss'):raise ValueError('invalid audio-session case')
+    return case
+
+
 def evaluate(serial,manifest,exit_code,events,missing_device=False):
+    if 'AETHERI_AUDIO_COMMAND_TIMEOUT' in serial:return False
     preflight,_,_=boot.evaluate(serial,manifest,exit_code)
     if not preflight or not image_qmp.guest_poweroff(events):return False
     passes=re.findall(r'^AETHERI_AUDIO_PASS .*$',serial,re.MULTILINE)
     failures=re.findall(r'^AETHERI_AUDIO_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)
     session=manifest.get('proof')=='audio-session'
+    try:session_case=session_settings(manifest)
+    except ValueError:return False
     if missing_device and session:
         return not passes and not failures and 'AETHERI_AUDIO_SESSION_PASS' not in serial and 'AETHERI_AUDIO_USER_BUS_FAIL' not in serial and re.findall(r'^AETHERI_AUDIO_SESSION_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     if missing_device:
@@ -93,6 +103,9 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
              and 'api.alsa.use-acp = "true"' in serial and 'api.alsa.card = "0"' in serial
              and 'POLICY_PROFILE\n' in serial and re.search(r'^\s*\*\s+[0-9]+\s+Analog Stereo Output \[available\]\s+prio=6500\s*$',serial,re.MULTILINE)))
     if session:
+        owners=re.findall(r'^AETHERI_AUDIO_USER_MANAGER owner=(:[0-9]+\.[0-9]+)\s*$',serial,re.MULTILINE)
+        retained=re.findall(r'^AETHERI_AUDIO_USER_REFS owner=(:[0-9]+\.[0-9]+) retained=4\s*$',serial,re.MULTILINE)
+        policy=policy and len(owners)==1 and retained==owners
         units=re.findall(r'^AETHERI_AUDIO_USER_UNIT name=(aetheri-(?:pipewire|wireplumber)\.service) pid=([1-9][0-9]*) image=(/usr/bin/(?:pipewire|wireplumber))\s*$',serial,re.MULTILINE)
         policy=policy and len(units)==2 and units[0][0]=='aetheri-pipewire.service' and units[0][2]=='/usr/bin/pipewire' and units[1][0]=='aetheri-wireplumber.service' and units[1][2]=='/usr/bin/wireplumber' and units[0][1]!=units[1][1]
         policy=policy and len(re.findall(r'^AETHERI_AUDIO_LOCAL_SESSION id=[A-Za-z0-9_-]+ uid=1000 seat=seat0 active=1 remote=0 type=wayland class=user\s*$',serial,re.MULTILINE))==1
@@ -102,9 +115,26 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
                 policy=policy and serial.count(f'AETHERI_AUDIO_SESSION_NODE phase={phase} path={path} uid=0 gid=63 mode=0660')==1
         if policy and passes==[expected] and serial.count('DRAINED frames=96000')==1:
             denied=[m.start() for m in re.finditer('AETHERI_AUDIO_SESSION_ACCESS allowed=0 uid=1000 groups=0 cap_zero=1',serial)]
-            policy=(denied[0]<serial.index('AETHERI_AUDIO_LOCAL_SESSION ')<serial.index('AETHERI_AUDIO_SESSION_ACCESS allowed=1')<serial.index('AETHERI_AUDIO_USER_UNIT ')
+            policy=(denied[0]<serial.index('AETHERI_AUDIO_LOCAL_SESSION ')<serial.index('AETHERI_AUDIO_SESSION_ACCESS allowed=1')<serial.index('AETHERI_AUDIO_USER_MANAGER ')<serial.index('AETHERI_AUDIO_USER_REFS ')<serial.index('AETHERI_AUDIO_USER_UNIT ')
                     <serial.index('DRAINED frames=96000')<serial.index(ended)<denied[1]<serial.index(access)<serial.index(expected))
         else:policy=False
+        if session_case=='playback':policy=policy and 'AETHERI_AUDIO_LOSS_' not in serial and 'AETHERI_AUDIO_SESSION_LOSS ' not in serial
+        else:
+            observations=re.findall(r'^AETHERI_AUDIO_LOSS_OBSERVED case=(vt-loss|server-loss|policy-loss) mask=([1-7]) latched=1\s*$',serial,re.MULTILINE)
+            completed=f'AETHERI_AUDIO_SESSION_LOSS case={session_case} originals=2 endpoint_removed=1 restart=0 reactivated={int(session_case=="vt-loss")}'
+            bit={'vt-loss':1,'server-loss':2,'policy-loss':4}[session_case]
+            policy=policy and len(observations)==1 and observations[0][0]==session_case and int(observations[0][1])&bit!=0 and serial.count(completed)==1
+            if policy:
+                observed='AETHERI_AUDIO_LOSS_OBSERVED case='
+                policy=serial.index('DRAINED frames=96000')<serial.index(observed)<serial.index(completed)<serial.index(ended)
+                if session_case=='vt-loss':
+                    away='AETHERI_AUDIO_LOSS_INJECT kind=vt target=1';back='AETHERI_AUDIO_LOSS_INJECT kind=vt target=8'
+                    inactive_access='AETHERI_AUDIO_SESSION_ACCESS allowed=0 uid=1000 groups=1 cap_zero=1'
+                    policy=policy and serial.count(away)==serial.count(back)==serial.count(inactive_access)==1
+                    if policy:policy=serial.index('DRAINED frames=96000')<serial.index(away)<serial.index(observed)<serial.index(inactive_access)<serial.index(back)<serial.index(completed)
+                else:
+                    injected=f'AETHERI_AUDIO_LOSS_INJECT kind={session_case.removesuffix("-loss")} original_pidfd=1'
+                    policy=policy and serial.count(injected)==1 and serial.index('DRAINED frames=96000')<serial.index(injected)<serial.index(observed)
     mixer=serial.count('AETHERI_AUDIO_MIXER volume=74 switch=1 channels=2 verified=1')==1
     if native:
         try:volume,muted=control_settings(manifest)
@@ -155,13 +185,15 @@ def finish_powered_off(monitor,process,state):
     if process.wait(timeout=10)!=0:raise ValueError('original powered-off VM exit failed')
 
 
-def run(image,output,missing_device=False,timeout=150):
+def run(image,output,missing_device=False,timeout=150,icount=False):
+    if type(icount) is not bool:raise ValueError('instruction-clock selection must be explicit boolean')
     image=Path(image).resolve();output=vm.owned(output)
     if len(str(output/'qmp.sock').encode())>=108 or any(',' in str(p) for p in (image,output,boot.TOOLS)):
         raise ValueError('unsupported QEMU path')
     manifest=boot.inspect(image)
     if manifest.get('proof') not in ('audio-hda','audio-device','audio-control-hda','audio-session'):raise ValueError('not the RAM HDA test image')
     volume,muted=control_settings(manifest)
+    session_settings(manifest)
     sources={'hda_inputs_sha256':'spec/audio-hda-inputs.json','audio_inputs_sha256':'spec/audio-inputs.json',
              'builder_sha256':'tools/build_audio_hda.py','owner_sha256':'src/boot/audio.c'}
     if manifest['proof'] in ('audio-device','audio-control-hda','audio-session'):
@@ -169,7 +201,7 @@ def run(image,output,missing_device=False,timeout=150):
     if manifest['proof'] in ('audio-control-hda','audio-session'):
         sources.update(native_builder_sha256='tools/build_audio_control_hda.py',control_inputs_sha256='spec/audio-control-inputs.json',control_preparer_sha256='tools/prepare_audio_control.py',control_source_sha256='src/audio/control.c',control_header_sha256='src/audio/control.h',remote_source_sha256='src/audio/remote.c',remote_header_sha256='src/audio/remote.h',probe_source_sha256='src/audio/control_probe.c',player_source_sha256='src/audio/check.c',cmake_sha256='CMakeLists.txt')
     if manifest['proof']=='audio-session':
-        sources.update(session_builder_sha256='tools/build_audio_session.py',session_units_sha256='tools/audio_session_units.py',session_runtime_sha256='tools/audio_session_runtime.py',session_source_sha256='src/boot/audio_session.c',session_inputs_sha256='spec/desktop-image-inputs.json')
+        sources.update(session_builder_sha256='tools/build_audio_session.py',session_units_sha256='tools/audio_session_units.py',session_runtime_sha256='tools/audio_session_runtime.py',session_source_sha256='src/boot/audio_session.c',session_guard_source_sha256='src/audio/session_guard.c',session_guard_header_sha256='src/audio/session_guard.h',session_inputs_sha256='spec/desktop-image-inputs.json')
     for key,path in sources.items():
         # Source archives use normalized LF on both build and host.
         if manifest[key]!=hashlib.sha256((boot.ROOT/path).read_bytes().replace(b'\r\n',b'\n')).hexdigest():
@@ -188,6 +220,7 @@ def run(image,output,missing_device=False,timeout=150):
     if not missing_device:
         args+=['-audiodev','none,id=audio,out.frequency=48000,out.channels=2,out.format=s16',
                '-device','intel-hda,id=hda','-device','hda-output,bus=hda.0,audiodev=audio']
+    if icount:args+=['-icount','shift=0,align=off,sleep=off','-rtc','clock=vm']
     state=dict(state='dispatch_pending',uuid=identifier,command=args,missing_device=missing_device,
                manifest_sha256=boot.sha(image/'manifest.json'),host_tools=tools,qmp={},
                controller_sha256=boot.sha(Path(__file__)),qmp_sha256=boot.sha(Path(image_qmp.__file__)))
@@ -215,6 +248,8 @@ def run(image,output,missing_device=False,timeout=150):
                 if capture_reply(reply,'info capture')!='[0]: Capturing audio(48000,16,2) to '+capture_path+': 0 bytes\r\n':raise ValueError('capture not independently listed')
             monitor.execute('cont')
             while not image_qmp.guest_poweroff(state['qmp']['events']):
+                if any(e.get('event')=='SHUTDOWN' and e.get('data',{}).get('reason')=='guest-reset' for e in state['qmp']['events']):
+                    raise RuntimeError('original guest reset instead of powering off')
                 if time.monotonic()-start>timeout:raise TimeoutError('original audio guest deadline')
                 if process.poll() is not None:raise RuntimeError('VM ended before guest shutdown')
                 monitor.poll(.2)
@@ -244,4 +279,5 @@ def run(image,output,missing_device=False,timeout=150):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--image',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--missing-device',action='store_true')
-    a=p.parse_args();run(a.image,a.output,a.missing_device)
+    p.add_argument('--icount',action='store_true',help='Explicit instruction-clock test profile; not real-time evidence')
+    a=p.parse_args();run(a.image,a.output,a.missing_device,icount=a.icount)

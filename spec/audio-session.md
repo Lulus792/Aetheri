@@ -50,6 +50,37 @@ its own primary GID1000; that grants no new rights beyond its existing primary
 group. Any other supplementary group is rejected by the finite test client.
 Both an empty list and primary-only context have separate native probes.
 
+## Observing session or process loss
+
+The opt-in `audio/session_guard` library can run inside a session owner. It adds
+no daemon or thread. Its caller supplies an independently admitted UID/seat and
+original graph/policy pidfds. The observer subscribes before capturing its own
+local Wayland session, duplicates those pins, and checks original context again.
+Notifications are hints: flush the login monitor, then reread the original
+session. A failed/mismatched observation fences work as well as an inactive
+session. Neither a session identifier nor a monitor notification is authority.
+
+The first loss mask is immutable. Returning to the VT does not reset it. The
+caller must retain that lost attempt; closing and reopening an observer cannot
+recover an old run or its admission. This is in-memory observation, not a durable
+recovery journal. The observer only reads and polls; it sends no signal, stop RPC or restart. Closing
+it closes its own monitor/pin copies, preserving the caller's original handles.
+The caller must stop submitting work, coordinate one stop against the original
+manager, and separately observe process/service/endpoint retirement. No stop
+acknowledgement, missing socket or ACL change alone proves general holder drain.
+The fixture retains its four unit objects through the original dedicated user
+bus connection before actor acceptance. Otherwise systemd may garbage-collect
+their inactive state before it is inspected. A GC reference is not invocation,
+process or lease evidence; missing names are still rejected. Final bus close
+releases only this connection's references, after the fixture's end checks.
+
+The private fixture watches during playback. Additional fixed image variants
+inject VT loss or original server/policy exit after the complete reference
+signal. See the [loss record](../brains/aetheri/journal/2026-11-08-audio-loss.md)
+for actual evidence and current acceptance. These tests do not choose final
+background-music/lock behavior or prove in-flight interruption, manager restart
+identity, endpoint authentication, app MAC or delegated-holder revocation.
+
 The executed private check is:
 
 1. Before login, a cap-zero/NNP UID1000 process cannot open control or playback.
@@ -104,6 +135,15 @@ On the prepared Windows host, use a new result directory for every attempt:
 python tools/test_audio_hda_contract.py
 python tools/test_audio_hda.py --image /absolute/output/image --output local/session-attempt
 ```
+
+Additional fixed variants live under `output/vt-loss/image`,
+`output/server-loss/image` and `output/policy-loss/image`. The final loss suite
+uses the explicit `--icount` functional profile: fixed shift 0, align off, sleep
+off and a VM-driven RTC, with the same two virtual CPUs and full PCM criterion.
+There is no automatic fallback; default-clock failures stay failed. The observed
+early APIC timer issue remains unresolved. Instruction counting is not physical
+CPU speed or real-time/cycle-accurate acceptance. Preserve every original result
+directory, including rejected clock, marker and retirement attempts.
 
 The image preserves its original native/device/manual controls below
 `output/native`. All source/archive hashes, original QEMU handles and the

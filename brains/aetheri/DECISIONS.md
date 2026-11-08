@@ -1,5 +1,19 @@
 # Decisions
 
+## Retain original audio observations across stop — 9 November 2026
+
+Observe session changes and original backend pidfds in the existing caller;
+do not add a permanent watchdog. Latch loss, fence new work and coordinate one
+stop with the original manager. Do not restore an old attempt when a VT returns
+or an observer is reopened. General restart/holder admission remains separate.
+
+Retain the four fixture unit objects on its dedicated original user-bus
+connection before actor acceptance. Actual inactive units were collected before
+their state could be inspected. Missing names remain a rejection, not end proof.
+Use atomic no-replace publication for ephemeral test markers so readers cannot
+observe their create-before-write interval. Keep these separate from durable
+operation/lease journals. See the [loss record](journal/2026-11-08-audio-loss.md).
+
 ## Supervise user audio with the existing manager — 8 November 2026
 
 Use explicit opt-in user units for graph/policy and a coordinated session target.

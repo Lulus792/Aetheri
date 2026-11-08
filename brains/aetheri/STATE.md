@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — Per-user audio now passes real PAM/logind login, dynamic device ACLs, user-managed graph/policy, native volume, full PCM, target stop and logout in independent diskless cold boots. Original HDA controls and 64 host contract cases pass. Next: active-session/server-loss fencing before normal desktop/Settings and HP output. The stick stays unchanged.
+9 November 2026 — Actual VT, graph and policy loss now pass original-process/service/runtime retirement, full PCM and logout in the isolated session fixture. Six instruction-clock cold boots pass. Native Release/ASan/UBSan and 78 host review cases pass. Next: original manager/endpoint lifetime and admission before desktop/Settings/HP promotion. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,37 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Audio loss integration — 9 November 2026
+
+The [loss record](journal/2026-11-08-audio-loss.md) keeps every correction and
+rejected attempt. A calling-thread observer retains the original local session
+and duplicated process pins, latches loss and never silently resets on return.
+The six final cold boots prove actual VT loss/reacquisition, original graph and
+policy exits, ordinary playback, legacy device playback and no-card rejection.
+All five captures contain the complete 96,000-frame reference below 0.5 LSB error.
+Original process exits, stopped unit states, runtime removal and logout remain
+separate observations; inactive VT access is denied and audio does not restart.
+
+The two new native groups pass in Release and ASan/UBSan. Atomic no-replace
+marker publication eliminates an actual empty-file observation. The original
+user-bus connection retains four unit objects before actor acceptance: actual
+v6 diagnostics show their inactive state otherwise disappears through systemd
+garbage collection. Missing names remain a rejection, not end proof.
+
+The executed verifier has 76 cases. A final host-only review adds rejection of
+setup timeouts even in the no-card negative, bringing the suite to 78. Complete
+original serial/QMP/PCM evidence is revalidated without rewriting its six
+execution receipts. Current image code/build inputs remain unchanged. Exact
+source/member/retirement and preservation checks are recorded with the audit.
+
+These are explicit fixed-instruction-clock functional tests, not performance or
+physical acceptance. Preserve the default-clock early APIC panics, adaptive-clock
+PCM rejection and all failed fixtures. The default-clock cause remains open;
+there is no automatic fallback or weakened PCM criterion. Next join original
+manager/endpoint lifetime and admission before desktop/Settings/HP promotion.
+General holder drain, app MAC, restart/recovery and normal audio stay open.
+No new flash, normal service, authority, frozen contract or foreign UI change.
 
 ## Per-user audio integration — 8 November 2026
 

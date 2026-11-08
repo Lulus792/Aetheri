@@ -32,7 +32,7 @@ def build(output,nonce,sdk,hardware,manager,headers):
     baseline={'/'+n:e['sha256'] for n,e in original['root'].items() if 'sha256' in e}
     normalized=desktop_payload.normalize_base(tree,runtime,baseline);receipt=desktop_payload.install(tree,runtime)
     (output/'session-runtime.json').write_text(json.dumps(dict(profile=runtime,receipt=receipt,normalized=normalized),indent=2)+'\n')
-    args=['gcc','-std=c17','-O2','-g','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror',str(audio.ROOT/'src/boot/audio_session.c'),'-o',str(tree/'usr/libexec/aetheri-audio-session-check'),'-lsystemd']
+    args=['gcc','-std=c17','-O2','-g','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror',str(audio.ROOT/'src/boot/audio_session.c'),str(audio.ROOT/'src/audio/session_guard.c'),'-o',str(tree/'usr/libexec/aetheri-audio-session-check'),'-lsystemd']
     p=subprocess.run(args,capture_output=True);(logs/'session-build.log').write_bytes(p.stdout+p.stderr);p.check_returncode()
     def link(name,target):
         p=tree/name;p.parent.mkdir(parents=True,exist_ok=True);p.symlink_to(target)
@@ -89,21 +89,27 @@ Restart=no
 ''')
     unit=(tree/'etc/systemd/system/aetheri-audio.service').read_text().replace('ExecStart=/usr/libexec/aetheri-audio-policy-owner','ExecStart=/usr/libexec/aetheri-audio-session-check').replace('TimeoutStartSec=90','TimeoutStartSec=140').replace('CAP_FOWNER','CAP_FOWNER CAP_SYS_TTY_CONFIG')
     replace('etc/systemd/system/aetheri-audio.service',unit)
-    image=output/'image';image.mkdir()
-    for name in ('vmlinuz','cmdline.txt'):shutil.copyfile(output/'native/image'/name,image/name)
-    paths=sorted(tree.rglob('*'),key=lambda p:p.relative_to(tree).as_posix())
-    for p in [tree,*paths]:os.utime(p,(0,0),follow_symlinks=False)
-    names=b'\0'.join(p.relative_to(tree).as_posix().encode() for p in paths)+b'\0'
-    packed=subprocess.run(['cpio','--null','--create','--format=newc','--owner=0:0','--reproducible','--quiet'],input=names,cwd=tree,capture_output=True,check=True)
-    (image/'initramfs.cpio.gz').write_bytes(gzip.compress(packed.stdout,mtime=0))
-    objects={}
-    for p in paths:
-        n=p.relative_to(tree).as_posix()
-        if p.is_symlink():objects[n]={'symlink':os.readlink(p)}
-        elif p.is_file():objects[n]={'sha256':audio.sha(p.read_bytes()),'mode':oct(p.stat().st_mode&0o7777)}
-    sources={'session_builder_sha256':'tools/build_audio_session.py','session_units_sha256':'tools/audio_session_units.py','session_runtime_sha256':'tools/audio_session_runtime.py','session_source_sha256':'src/boot/audio_session.c'}
-    manifest={**original,'proof':'audio-session','purpose':'Isolated PAM/logind/user-manager audio fixture, not normal app/device admission','root':objects,'session_inputs_sha256':pins_hash,**{k:audio.sha((audio.ROOT/n).read_bytes()) for k,n in sources.items()},'outputs':{n:audio.sha((image/n).read_bytes()) for n in ('vmlinuz','initramfs.cpio.gz','cmdline.txt')}}
-    (image/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');return manifest
+    sources={'session_builder_sha256':'tools/build_audio_session.py','session_units_sha256':'tools/audio_session_units.py','session_runtime_sha256':'tools/audio_session_runtime.py','session_source_sha256':'src/boot/audio_session.c','session_guard_source_sha256':'src/audio/session_guard.c','session_guard_header_sha256':'src/audio/session_guard.h'}
+    put('etc/aetheri-audio/session-case','playback\n')
+    for case in ('playback','vt-loss','server-loss','policy-loss'):
+        # Repack the same independently built root; only this fixed selector
+        # differs. No actor/input is selected from a runtime reply or marker.
+        (tree/'etc/aetheri-audio/session-case').write_text(case+'\n')
+        image=output/('image' if case=='playback' else case+'/image');image.mkdir(parents=True)
+        for name in ('vmlinuz','cmdline.txt'):shutil.copyfile(output/'native/image'/name,image/name)
+        paths=sorted(tree.rglob('*'),key=lambda p:p.relative_to(tree).as_posix())
+        for p in [tree,*paths]:os.utime(p,(0,0),follow_symlinks=False)
+        names=b'\0'.join(p.relative_to(tree).as_posix().encode() for p in paths)+b'\0'
+        packed=subprocess.run(['cpio','--null','--create','--format=newc','--owner=0:0','--reproducible','--quiet'],input=names,cwd=tree,capture_output=True,check=True)
+        (image/'initramfs.cpio.gz').write_bytes(gzip.compress(packed.stdout,mtime=0))
+        objects={}
+        for p in paths:
+            n=p.relative_to(tree).as_posix()
+            if p.is_symlink():objects[n]={'symlink':os.readlink(p)}
+            elif p.is_file():objects[n]={'sha256':audio.sha(p.read_bytes()),'mode':oct(p.stat().st_mode&0o7777)}
+        manifest={**original,'proof':'audio-session','session_case':case,'purpose':'Isolated PAM/logind/user-manager audio fixture, not normal app/device admission','root':objects,'session_inputs_sha256':pins_hash,**{k:audio.sha((audio.ROOT/n).read_bytes()) for k,n in sources.items()},'outputs':{n:audio.sha((image/n).read_bytes()) for n in ('vmlinuz','initramfs.cpio.gz','cmdline.txt')}}
+        (image/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    return json.loads((output/'image/manifest.json').read_text())
 
 
 if __name__=='__main__':
