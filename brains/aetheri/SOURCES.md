@@ -4,6 +4,24 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Single-medium USB desktop — 8 November 2026
+
+- systemd259 [SwitchRoot implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/switch-root.c)
+  preserves `/run`; Linux6.19 [block ioctls](https://raw.githubusercontent.com/torvalds/linux/v6.19/block/ioctl.c)
+  supply current partition diskseq, not durable clone/volume trust.
+- Microsoft [FSCTL_SET_SPARSE](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse),
+  [SetFilePointerEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfilepointerex),
+  [SetEndOfFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setendoffile)
+  and [GetCompressedFileSizeW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew):
+  reviewed regular-file I/O avoids the CRT large-truncate zero-fill path.
+  Actual full-geometry sparse/zero-read checks pass. Physical flashing must write
+  zeros as well; sparse host copies are not a device writer.
+- [Contract](../../spec/usb-desktop.md), [geometry pins](../../spec/usb-desktop-inputs.json)
+  and [executed record](journal/2026-11-08-usb-desktop.md): two actual full-medium
+  USB desktop boots, immutable-range checks, independent ext4/document inspection,
+  C17/sanitizer and host/native contract evidence. Actual wrong-parent testing and
+  laptop graphics/input/serial-absent integration remain open at this checkpoint.
+
 ## Actual graphical-image device filter — 8 November 2026
 
 - systemd259 [device controller](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/bpf-devices.c),

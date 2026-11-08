@@ -14,7 +14,9 @@ import test_boot_probe as boot
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def build(base, packages, output, prepare=None, geometry="root-v1"):
+def build(base, packages, output, prepare=None, geometry="root-v1", *, data_bytes=256*1024**2):
+    if type(data_bytes) is not int or not 256*1024**2<=data_bytes<=32*1024**3 or data_bytes%(1024**2):
+        raise ValueError('invalid bounded data extent')
     original = boot.inspect(base)
     pins = json.loads((ROOT/"spec/data-probe-inputs.json").read_text())
     payloads = {}
@@ -77,7 +79,7 @@ def build(base, packages, output, prepare=None, geometry="root-v1"):
         for name,mode in [('home',0o755),('home/aetheri',0o700),('home/aetheri/Documents',0o700)]:
             path=data_tree/name;path.mkdir();path.chmod(mode)
         data_file=output/'data.raw'
-        with data_file.open('xb') as f:f.truncate(256*1024**2)
+        with data_file.open('xb') as f:f.truncate(data_bytes)
         run('mkfs',['/usr/bin/mkfs.ext4','-q','-F','-U',data_uuid,'-L','AETHERI_DATA','-E','root_owner=0:0','-d',str(data_tree),str(data_file)])
         batch=output/'data-owners.debugfs'
         selected=[('/',0),('/home',0),('/home/aetheri',1000),('/home/aetheri/Documents',1000)]
@@ -88,7 +90,7 @@ def build(base, packages, output, prepare=None, geometry="root-v1"):
         owners=re.findall(r'User:\s*(\d+)\s+Group:\s*(\d+)',reports)
         if owners!=[(str(uid),str(uid)) for p,uid in selected]:raise ValueError('data ownership mismatch')
         run('fsck',['/usr/bin/e2fsck','-f','-n',str(data_file)])
-        addition = dict(proof='writable-data',target='aetheri-data.target',data_volume=dict(uuid=data_uuid,serial=serial,size=256*1024**2,initial_sha256=boot.sha(data_file)),data_builder_sha256=boot.sha(Path(__file__)),data_source_sha256=boot.sha(ROOT/'src/boot/data.c'),data_pins_sha256=boot.sha(ROOT/'spec/data-probe-inputs.json'))
+        addition = dict(proof='writable-data',target='aetheri-data.target',data_volume=dict(uuid=data_uuid,serial=serial,size=data_bytes,initial_sha256=boot.sha(data_file)),data_builder_sha256=boot.sha(Path(__file__)),data_source_sha256=boot.sha(ROOT/'src/boot/data.c'),data_pins_sha256=boot.sha(ROOT/'spec/data-probe-inputs.json'))
         if prepare:
             addition.update(prepare(tree, selected_nonce, addition['data_volume']))
         return addition

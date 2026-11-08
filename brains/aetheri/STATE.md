@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — early USB handover and actual development-image device denial now pass; joining the desktop/data/USB/laptop paths remains work.
+8 November 2026 — the desktop now passes two cold boots with persistent data on one full-size virtual USB medium; laptop integration remains work.
 
 ## Coordination
 
@@ -13,7 +13,46 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Actual device filtering in the graphical image — 8 November 2026
+## Single-medium USB desktop — 8 November 2026
+
+The new regular image matches the authorized Intenso's 31,457,280,000-byte geometry,
+with EFI, read-only system and writable data partitions. The initrd binds the
+complete independent root/data profile before handover. The real-root helper
+rechecks the original boot/device observations and a common USB parent before
+mounting data, then verifies the mounted read-write `/var` and home view.
+Read the [contract](../../spec/usb-desktop.md) and
+[executed record](journal/2026-11-08-usb-desktop.md).
+
+Final build-v3 passes strict C17 compilation, Release/ASan/UBSan adversaries and
+native image contracts. Sequence-v3 completes two actual cold boots on the SAME
+fresh writable USB copy, with distinct boot IDs, device-denial checks, actual
+Terminal/Files/Settings input, document persistence and normal unmount/poweroff.
+EFI/system/GPT ranges remain unchanged. An independent ordinary-user e2fsck/debugfs
+inspection verifies the 14-byte document, UID/GID1000, mode0600 and one link;
+the data hash stays unchanged. Its clock warning is retained, not clock acceptance.
+All 500 bundled non-document inputs match, except two explicitly reviewed host-only
+SGR result-parser changes; native image inputs are unchanged. The protected carrier,
+normal sources/contracts/quarantine/P0/CLOSED history and foreign work remain intact.
+
+The separate actual wrong-parent fixture/controller is implemented and its four
+native contract groups pass. Its full-media preparation/test remains in progress;
+do not infer an actual negative result from those isolated tests. Two incomplete
+preparations are preserved after host read ENOSPC. F: was observed completely
+full, then regained about 94 GB without agent cleanup. A complete later read of
+the first failed copy succeeds. A new preflight requires two full logical copies
+plus 8 GiB headroom; native review passes all 35 groups. Fresh v3 preparation is
+running. No VM was launched from either failed fixture.
+
+Next finish that negative and add laptop Intel DRM/input/firmware, automatic DRM
+selection and a tested console/logging path without a serial port. The current
+software-rendered bochs/serial profile is not ready for the laptop or physical
+flash. The identified Intenso G: is already authorized when ready: reidentify it,
+write/verify the whole medium and continue development without waiting for the
+user's later test. No physical write yet. Normal login/MAC/lifecycle/removal,
+browser, installer/LUKS, updates/rollback, suspend and experiment desktop remain
+required. The full OS goal stays active; NexaUI handoff stays closed.
+
+## Prior device filtering in the graphical image — 8 November 2026
 
 The separate graphical build now includes signed Fedora44 libbpf2:1.6.3-2 and
 its separately pinned matching BSD licence. No carrier package/library changes

@@ -19,6 +19,7 @@ import build_root_probe as root_image
 import build_uefi_probe as uefi
 import test_boot_probe as boot
 import uefi_probe_image as media
+import image_io
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -46,15 +47,18 @@ def device_unit(partition):
     return r'dev-disk-by\x2dpartuuid-'+partition.replace('-',r'\x2d')+'.device'
 
 
-def build(base,system,packages,output,wrong_filesystem=False):
+def build(base,system,packages,output,wrong_filesystem=False,*,desktop=None):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:raise ValueError('use an ordinary x86-64 Linux image builder')
     raw=(ROOT/'spec/usb-root-inputs.json').read_bytes();pins=json.loads(raw)
-    if boot.sha(base/'manifest.json')!=pins['boot_source_manifest_sha256'] or boot.sha(system/'manifest.json')!=pins['root_source_manifest_sha256']:raise ValueError('different independently pinned base manifests')
+    if boot.sha(base/'manifest.json')!=pins['boot_source_manifest_sha256'] or (desktop is None and boot.sha(system/'manifest.json')!=pins['root_source_manifest_sha256']):raise ValueError('different independently pinned base manifests')
     original=boot.inspect(base);system_manifest=media.inspect(system)
-    if original.get('proof','ram-root')!='ram-root' or system_manifest.get('proof')!='readonly-root' or original['nonce']!=system_manifest['nonce'] or original['kernel_release']!=pins['kernel_release'] or system_manifest['kernel_release']!=pins['kernel_release']:raise ValueError('different original root profile')
+    if original.get('proof','ram-root')!='ram-root' or system_manifest.get('proof')!=('desktop-image' if desktop else 'readonly-root') or original['nonce']!=system_manifest['nonce'] or original['kernel_release']!=pins['kernel_release'] or system_manifest['kernel_release']!=pins['kernel_release']:raise ValueError('different original root profile')
+    if desktop:
+        selected=json.loads((ROOT/'spec/usb-desktop-inputs.json').read_text())
+        if desktop!={k:selected[k] for k in ('disk_bytes','root_start','root_sectors','data_start','data_sectors')} or system_manifest.get('usb_layout')!=desktop or system_manifest.get('usb_desktop_builder_sha256')!=boot.sha(ROOT/'tools/build_usb_desktop.py'):raise ValueError('different selected desktop layout/source')
     payloads=checked_payloads(pins)
     part=system_manifest['root_partition'];partition=str(uuid.UUID(part['guid']));filesystem=str(uuid.UUID(part['filesystem_uuid']))
-    if partition!=part['guid'] or filesystem!=part['filesystem_uuid'] or (part['start'],part['sectors'])!=(262144,524288):raise ValueError('unexpected root partition')
+    if partition!=part['guid'] or filesystem!=part['filesystem_uuid'] or (part['start'],part['sectors'])!=(262144,1048576 if desktop else 524288):raise ValueError('unexpected root partition')
     output.mkdir(mode=0o700);tree=output/'initrd';tree.mkdir();logs=output/'logs';logs.mkdir()
     def run(name,args,cwd=None,data=None):
         p=subprocess.run(args,cwd=cwd,input=data,capture_output=True,env={**os.environ,'LC_ALL':'C'})
@@ -82,7 +86,12 @@ def build(base,system,packages,output,wrong_filesystem=False):
     put('etc/os-release',b'NAME="Aetheri USB initrd proof"\nID=aetheri-initrd\n')
     put('etc/initrd-release',b'ID=aetheri-initrd\n')
     nonce=original['nonce'];expected_filesystem=('0' if filesystem[0]!='0' else '1')+filesystem[1:] if wrong_filesystem else filesystem
-    put('etc/aetheri-usb-root',f'AETHERI-USB1\n{nonce}\n{partition}\n{expected_filesystem}\n{original["kernel_release"]}\n'.encode())
+    configuration=f'AETHERI-USB1\n{nonce}\n{partition}\n{expected_filesystem}\n{original["kernel_release"]}\n'
+    if desktop:
+        if wrong_filesystem:raise ValueError('separate USB-root negative only')
+        configuration=system_manifest['usb_configuration']
+        if system_manifest['root_inventory']['etc/aetheri-usb-root']['sha256']!=hashlib.sha256(configuration.encode()).hexdigest():raise ValueError('different root/initrd configuration')
+    put('etc/aetheri-usb-root',configuration.encode())
     # Match properties imported by blkid only in the following rule. A match in
     # the importing rule is evaluated before that rule's import is available.
     put('etc/udev/rules.d/99-aetheri-initrd.rules',b'ACTION!="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", IMPORT{builtin}="blkid"\nACTION!="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_PART_ENTRY_UUID}=="?*", SYMLINK+="disk/by-partuuid/$env{ID_PART_ENTRY_UUID}"\nSUBSYSTEM=="block", TAG+="systemd"\n')
@@ -111,7 +120,8 @@ def build(base,system,packages,output,wrong_filesystem=False):
     names=b'\0'.join(p.relative_to(tree).as_posix().encode() for p in paths)+b'\0'
     packed=run('cpio',['/usr/bin/cpio','--quiet','--null','--create','--format=newc','--owner=0:0','--reproducible'],cwd=tree,data=names)
     inputs=output/'kernel-inputs';inputs.mkdir();(inputs/'initramfs.cpio.gz').write_bytes(gzip.compress(packed,mtime=0));shutil.copyfile(base/'vmlinuz',inputs/'vmlinuz')
-    command=f'console=ttyS0,115200n8 panic=-1 rdinit=/init root=PARTUUID={partition} ro rootfstype=ext4 rootflags=noload rd.systemd.unit=aetheri-initrd.target systemd.unit=aetheri-root.target systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n'
+    target='aetheri-desktop.target' if desktop else 'aetheri-root.target'
+    command=f'console=ttyS0,115200n8 panic=-1 rdinit=/init root=PARTUUID={partition} ro rootfstype=ext4 rootflags=noload rd.systemd.unit=aetheri-initrd.target systemd.unit={target} systemd.log_target=console systemd.show_status=yes aetheri.boot_nonce={nonce}\n'
     (inputs/'cmdline.txt').write_bytes(command.encode())
     initrd_manifest=dict(format=1,proof='usb-root',nonce=nonce,kernel_release=original['kernel_release'],outputs={n:boot.sha(inputs/n) for n in ('vmlinuz','initramfs.cpio.gz','cmdline.txt')},root={p.relative_to(tree).as_posix():({'symlink':os.readlink(p)} if p.is_symlink() else dict(sha256=boot.sha(p),mode=oct(p.stat().st_mode&0o7777))) for p in paths if p.is_symlink() or p.is_file()})
     (inputs/'manifest.json').write_bytes((json.dumps(initrd_manifest,indent=2)+'\n').encode());boot.inspect(inputs)
@@ -119,13 +129,24 @@ def build(base,system,packages,output,wrong_filesystem=False):
     if efi['esp_guid']!=system_manifest['esp_guid']:raise ValueError('different original ESP binding')
     final=output/'boot.raw'
     with final.open('xb') as target:
-        target.truncate(512*1024**2)
-        with (system/'boot.raw').open('rb') as source:
-            at=0
-            while block:=source.read(1024**2):
-                if not 1024**2<=at<127*1024**2 and block.strip(b'\0'):target.seek(at);target.write(block)
-                at+=len(block)
-            if at!=512*1024**2:raise ValueError('changed original root length')
+        target.truncate(desktop['disk_bytes'] if desktop else 512*1024**2)
+        if not desktop:
+            with (system/'boot.raw').open('rb') as source:
+                at=0
+                while block:=source.read(1024**2):
+                    if not 1024**2<=at<127*1024**2 and block.strip(b'\0'):target.seek(at);target.write(block)
+                    at+=len(block)
+                if at!=512*1024**2:raise ValueError('changed original root length')
+        else:
+            volume=system_manifest['data_partition'];disk_id=system_manifest['disk_guid']
+            layout=f'label: gpt\nlabel-id: {disk_id}\nunit: sectors\nfirst-lba: 2048\n\nstart=2048,size=258048,type=U,uuid={efi["esp_guid"]},name="Aetheri boot"\nstart=262144,size=1048576,type=4f68bce3-e8cd-4db1-96e7-fbcaf984b709,uuid={partition},attrs="GUID:60",name="Aetheri system"\nstart={volume["start"]},size={volume["sectors"]},type=0fc63daf-8483-4772-8e79-3d69d8477de4,uuid={volume["guid"]},name="Aetheri data"\n'
+            run('combined-gpt',['/usr/bin/sfdisk','--quiet','--no-reread','--no-tell-kernel',str(final)],data=layout.encode())
+            with (system/'boot.raw').open('rb') as source:
+                source.seek(262144*512);target.seek(262144*512)
+                if image_io.copy_extent(source,target,1048576*512)!=part['sha256']:raise ValueError('changed copied root')
+            with (system/'data.raw').open('rb') as source:
+                target.seek(volume['start']*512)
+                if image_io.copy_extent(source,target,volume['sectors']*512)!=volume['initial_sha256']:raise ValueError('changed copied data')
         with (output/'efi/boot.raw').open('rb') as source:
             source.seek(1024**2);at=1024**2
             for _ in range(126):
@@ -135,7 +156,10 @@ def build(base,system,packages,output,wrong_filesystem=False):
                 at+=len(block)
     shutil.copyfile(output/'efi/BOOTX64.EFI',output/'BOOTX64.EFI')
     result=dict(system_manifest);result.update(efi)
-    result.update(proof='usb-root',disk_bytes=512*1024**2,disk_guid=system_manifest['disk_guid'],root_partition=part,usb_source_manifest_sha256=boot.sha(system/'manifest.json'),usb_builder_sha256=boot.sha(Path(__file__)),usb_probe_source_sha256=boot.sha(ROOT/'src/boot/initrd.c'),usb_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_filesystem=wrong_filesystem,outputs={n:boot.sha(output/n) for n in ('boot.raw','BOOTX64.EFI')})
+    result.update(proof='usb-desktop' if desktop else 'usb-root',disk_bytes=desktop['disk_bytes'] if desktop else 512*1024**2,disk_guid=system_manifest['disk_guid'],root_partition=part,usb_source_manifest_sha256=boot.sha(system/'manifest.json'),usb_builder_sha256=boot.sha(Path(__file__)),usb_probe_source_sha256=boot.sha(ROOT/'src/boot/initrd.c'),usb_inputs_sha256=hashlib.sha256(raw).hexdigest(),usb_wrong_filesystem=wrong_filesystem,outputs={n:boot.sha(output/n) for n in ('boot.raw','BOOTX64.EFI')})
+    if desktop:
+        end=(result['data_partition']['start']+result['data_partition']['sectors'])*512
+        result['immutable_ranges']=[dict(start=0,size=desktop['data_start']*512,sha256=image_io.range_sha(final,0,desktop['data_start']*512)),dict(start=end,size=desktop['disk_bytes']-end,sha256=image_io.range_sha(final,end,desktop['disk_bytes']-end))]
     (output/'manifest.json').write_bytes((json.dumps(result,indent=2)+'\n').encode());media.inspect(output)
     print(json.dumps(dict(output=str(output),proof='usb-root',initramfs_bytes=(inputs/'initramfs.cpio.gz').stat().st_size)))
 

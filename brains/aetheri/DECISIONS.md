@@ -1,5 +1,21 @@
 # Decisions
 
+## Bind USB root and data to one development medium — 8 November 2026
+
+Use the authorized stick's full geometry, including a backup GPT at its real end.
+Keep the existing 512MiB read-only root and put writable `/var`/home on the separate
+remaining data partition. Add bounded USB2 configuration and an observation that
+binds every field; compare the candidate root's configuration before SwitchRoot.
+Recheck original root identity and a common current parent before writable mount,
+then inspect actual mounted flags. Preserve the original fixed USB1 diagnostic.
+These observations are fixture correlations, not durable volume/clone trust or
+production admission. [Two-boot evidence](journal/2026-11-08-usb-desktop.md) now
+passes; actual wrong-parent testing and laptop driver/console integration remain
+separate gates. Windows regular-image copies use explicit sparse marking and
+bounded streaming; never use that zero-skipping copier for physical flashing.
+The physical writer must write and read back all intended bytes. The existing
+user authorization needs no repeat question or wait for their later hardware test.
+
 ## Require actual device denial in the development image — 8 November 2026
 
 Add signed Fedora44 libbpf2:1.6.3-2 as systemd's dynamic device-controller backend,

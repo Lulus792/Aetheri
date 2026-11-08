@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "purpose": "Single-medium development desktop for the authorized Intenso test geometry; not production volume or publisher admission",
+  "boot_source_manifest_sha256": "2c6745bf673a1aacf2d9d50ee62e5965e77ac955b98b103b3328797fa874ca34",
+  "disk_bytes": 31457280000,
+  "root_start": 262144,
+  "root_sectors": 1048576,
+  "data_start": 1310720,
+  "data_sectors": 60127232
+}

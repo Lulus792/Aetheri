@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Latest USB desktop boundary: read `spec/usb-desktop.md` and the 2026-11-08 USB
+desktop journal/STATE. Full-size single-medium two-boot/persistence and independent
+ext4 checks pass. USB2's OBS2 binds the complete root/data profile before handover;
+real-root data checks require the original boot/device and same current parent.
+USB1 stays fixed. Current bochs/serial evidence is not laptop acceptance. Actual
+wrong-parent testing is still in progress here; retain incomplete/failed fixtures
+and require unchanged bytes on both media. Native image inputs are fenced; two
+host-only SGR parser/test updates were separately reviewed. Sparse regular-image
+helpers are never physical writers; flash must write and verify zeros too. Next
+finish negatives, add laptop DRM/input/firmware and test without serial before the
+already authorized Intenso G: flash. Reidentify, do not ask again, and continue
+without waiting for the later user test. No flash yet; NexaUI handoff stays closed.
+
 Root v9 now adds immutable unit_allocations: native prepare precedes filesystem
 effects; only fresh confirmed prepare permits one O_TMPFILE/create-only-link
 primary fragment. Recipe AND original directory/parent placement bind before

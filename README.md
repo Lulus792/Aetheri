@@ -26,11 +26,12 @@ The separate [graphical development image](spec/desktop-image.md) now boots
 through UEFI into the original desktop, Terminal, Files and Settings. Its system
 root stays read-only; an ordinary document survives cold boots on a separate data
 volume. Real virtual-keyboard input and normal unmount/poweroff are tested.
-A separate [USB-root proof](spec/usb-root-probe.md) now loads USB storage modules
-and hands over from the initrd to the checked read-only root. Two cold boots and
-wrong-transport/filesystem rejection tests pass. Joining this path to the desktop,
-laptop drivers/layout, normal login, the installer and admitted daily-use
-applications remain work.
+The [single-medium USB desktop](spec/usb-desktop.md) now joins that desktop and
+persistent data to the checked USB initrd on one full-size virtual removable
+medium. Two cold boots, document persistence and unchanged system/EFI/GPT ranges
+pass. Independent filesystem inspection also passes. Laptop drivers, automatic
+display-device selection, operation without a serial console, normal login, the
+installer and admitted daily-use applications remain work; no physical flash yet.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 

@@ -26,7 +26,7 @@ NEXA=Path('/home/aetheri/deps/nexaui-settings-release-05/prefix')
 APPS=('aetheri-compositor','aetheri-desktop','aetheri-settings-nexaui','aetheri-files-nexaui','aetheri-terminal-nexaui','aetheri-terminal-pty-starter','aetheri-shell','aetheri-editor','aetheri-text-editor')
 
 
-def build(base,packages,output):
+def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:
         raise ValueError('use the ordinary x86-64 Linux image builder')
     raw=(ROOT/'spec/desktop-image-inputs.json').read_bytes();manifest=json.loads(raw)
@@ -124,9 +124,11 @@ def build(base,packages,output):
         put('usr/share/licenses/aetheri/COMPOSE-LICENSE.txt',Path('/usr/share/doc/libX11-common/COPYING').read_text())
         flags=['/usr/bin/gcc','-std=c17','-D_GNU_SOURCE','-O2','-g0','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror','-fanalyzer',str(ROOT/'src/boot/desktop.c'),'-lsystemd','-o',str(tree/'usr/libexec/aetheri-desktop-owner')]
         run('owner',flags)
-        return dict(proof='desktop-image',target='aetheri-desktop.target',desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),desktop_builder_sha256=boot.sha(Path(__file__)),desktop_owner_sha256=boot.sha(ROOT/'src/boot/desktop.c'),desktop_runtime=inventory,device_filter=dict(runtime=device_runtime,source_sha256=boot.sha(ROOT/'src/boot/device_filter.c')),applications={n:boot.sha(app_root/n) for n in APPS})
+        result=dict(proof='desktop-image',target='aetheri-desktop.target',desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),desktop_builder_sha256=boot.sha(Path(__file__)),desktop_owner_sha256=boot.sha(ROOT/'src/boot/desktop.c'),desktop_runtime=inventory,device_filter=dict(runtime=device_runtime,source_sha256=boot.sha(ROOT/'src/boot/device_filter.c')),applications={n:boot.sha(app_root/n) for n in APPS})
+        if prepare_extra:result.update(prepare_extra(tree,nonce,volume))
+        return result
 
-    data_image.build(base,packages,output,prepare=prepare,geometry='desktop-v1')
+    data_image.build(base,packages,output,prepare=prepare,geometry='desktop-v1',data_bytes=data_bytes)
 
 
 if __name__=='__main__':

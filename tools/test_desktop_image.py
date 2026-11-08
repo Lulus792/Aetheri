@@ -91,30 +91,34 @@ def command(image,attempt,data,serial,identifier):
             '-qmp','unix:'+str(attempt/'qmp.sock')+',server=on,wait=off']
 
 
-def run(image,output,timeout=180):
+def run(image,output,timeout=180,*,profile=None):
     output=vm.owned(output)
     if any(',' in str(p) for p in (image,output,boot.TOOLS)) or len(str(output/'boot-1/qmp.sock').encode())>=108:
         raise ValueError('unsupported QEMU path')
     manifest=media.inspect(image)
-    if manifest.get('proof')!='desktop-image':raise ValueError('expected graphical image profile')
-    volume=validate_volume(manifest);original=image/'data.raw'
+    if manifest.get('proof')!=('usb-desktop' if profile else 'desktop-image'):raise ValueError('expected graphical image profile')
+    volume=profile.admit(manifest) if profile else validate_volume(manifest);original=image/('boot.raw' if profile else 'data.raw')
     if original.is_symlink() or not original.is_file() or original.stat().st_size!=volume['size'] or boot.sha(original)!=volume['initial_sha256']:
         raise ValueError('changed initial data input')
     hashes=boot.host_tools();output.mkdir(mode=0o700);vm.private_path(output,directory=True)
     state=dict(state='preparing',manifest_sha256=boot.sha(image/'manifest.json'),host_tools=hashes,controller_sha256=boot.sha(Path(__file__)),qmp_adapter_sha256=boot.sha(Path(vm.__file__)),attempts=[])
+    if profile:state['profile_sha256']=boot.sha(Path(profile.__file__))
     def record():vm.write_state(output/'sequence.json',state)
-    record();data=output/'data.raw'
+    record();data=output/('medium.raw' if profile else 'data.raw')
     with data.open('x+b') as held:
-        with original.open('rb') as source:shutil.copyfileobj(source,held,1024**2)
+        if profile:profile.copy(original,held,volume)
+        else:
+            with original.open('rb') as source:shutil.copyfileobj(source,held,1024**2)
         held.flush();os.fsync(held.fileno())
         expected=data_test.identity(os.fstat(held.fileno()))
         if boot.sha(data)!=volume['initial_sha256']:raise ValueError('changed data copy')
         state['data_object']=expected;record()
         for number in (1,2):
             data_test.check_held(held,data,expected)
+            if profile:profile.check_immutable(data,manifest)
             attempt=output/('boot-'+str(number));attempt.mkdir(mode=0o700)
             shutil.copyfile(boot.TOOLS/'share/edk2-i386-vars.fd',attempt/'nvram.fd')
-            identifier=str(uuid.uuid4());args=command(image,attempt,data,volume['serial'],identifier)
+            identifier=str(uuid.uuid4());args=profile.command(image,attempt,data,identifier) if profile else command(image,attempt,data,volume['serial'],identifier)
             current=dict(number=number,uuid=identifier,command=args,state='dispatch_pending',actions=[])
             state['attempts'].append(current);state.update(state='dispatch_pending',pending=number);record()
             started=time.monotonic()
@@ -133,7 +137,7 @@ def run(image,output,timeout=180):
                         body=serial()
                         if value in body:return body
                         if process.poll() is not None:raise RuntimeError('VM ended before '+value)
-                        if 'AETHERI_DEVICE_FAIL' in body or 'AETHERI_DESKTOP_FAIL' in body or 'AETHERI_DESKTOP_END status=failed' in body:raise RuntimeError('native desktop/device check rejected startup/use')
+                        if 'AETHERI_INITRD_FAIL' in body or 'AETHERI_USB_DATA_FAIL' in body or 'AETHERI_DEVICE_FAIL' in body or 'AETHERI_DESKTOP_FAIL' in body or 'AETHERI_DESKTOP_END status=failed' in body:raise RuntimeError('native desktop/device check rejected startup/use')
                         time.sleep(.2)
                     raise TimeoutError('not observed: '+value)
                 def action(name,qmp,args=None):
@@ -166,6 +170,7 @@ def run(image,output,timeout=180):
                     root=re.findall(r'^AETHERI_ROOT_PASS nonce='+manifest['nonce']+r' .*ext4_ro=1 write_erofs=1 cgroup2=1 boot=([0-9a-f-]{36})\s*$',body,re.MULTILINE)
                     if len(root)!=1 or (number==2 and root==state['attempts'][0].get('boot_ids')):raise RuntimeError('missing/distorted root or cold-boot context')
                     check_device_filter(body,manifest,root[0])
+                    if profile:profile.check_boot(body,manifest,root[0])
                     current['boot_ids']=root;capture('desktop')
                     launch('terminal')
                     text("printf 'aetheri-image\\n' > image-note.txt" if number==1 else 'cat image-note.txt');chord('ret');time.sleep(1);capture('terminal-document')
@@ -177,11 +182,14 @@ def run(image,output,timeout=180):
                     while process.poll() is None and time.monotonic()-started<timeout*3:time.sleep(.2)
                     if process.poll() is None:raise TimeoutError('original guest did not power off')
                     body=serial()
-                    if process.returncode!=0 or 'reboot: Power down' not in body or 'EXT4-fs (vdb): unmounting filesystem' not in body or 'Failed unmounting' in body:
+                    unmounted=profile.unmounted(body) if profile else 'EXT4-fs (vdb): unmounting filesystem' in body
+                    if process.returncode!=0 or 'reboot: Power down' not in body or not unmounted or 'Failed unmounting' in body:
                         raise RuntimeError('clean graphical shutdown not proven')
                     check_device_filter(body,manifest,root[0])
+                    if profile:profile.check_boot(body,manifest,root[0]);profile.check_immutable(data,manifest)
                     data_test.check_held(held,data,expected)
-                    current.update(state='accepted',exit=process.returncode,seconds=time.monotonic()-started,serial_sha256=boot.sha(attempt/'serial.log'),data_sha256=boot.sha(data))
+                    current.update(state='accepted',exit=process.returncode,seconds=time.monotonic()-started,serial_sha256=boot.sha(attempt/'serial.log'))
+                    current.update(profile.final_hashes(data,manifest) if profile else dict(data_sha256=boot.sha(data)))
                     state.update(state='boot_accepted',pending=None);record();print(json.dumps(dict(event='accepted',number=number,boot_ids=root)),flush=True)
                 except BaseException as error:
                     current.update(state='failed_preserved',error=str(error),unknown_effects=True)
@@ -189,7 +197,8 @@ def run(image,output,timeout=180):
                     current.update(exit=process.poll(),seconds=time.monotonic()-started);state['state']='failed_preserved';record()
                     raise
         if media.inspect(image)!=manifest:raise ValueError('read-only system artifact changed')
-        state.update(state='accepted',data_final_sha256=boot.sha(data));record()
+        state.update(state='accepted')
+        state.update(dict(data_partition_sha256=state['attempts'][-1]['data_partition_sha256']) if profile else dict(data_final_sha256=boot.sha(data)));record()
     return state
 
 

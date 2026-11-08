@@ -5,6 +5,7 @@ This verifies a development artifact's structure/integrity, not publisher trust.
 """
 import hashlib
 import json
+import os
 from pathlib import Path
 import stat
 import struct
@@ -25,12 +26,39 @@ def require(condition, reason):
         raise ValueError(reason)
 
 
+class RegularImage:
+    """Read small image structures without materializing a whole USB medium."""
+    def __init__(self,stream):
+        self.stream=stream;info=os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode),'image must be a regular file');self.size=info.st_size
+    def __len__(self):return self.size
+    def __getitem__(self,key):
+        if isinstance(key,int):
+            at=key if key>=0 else self.size+key;require(0<=at<self.size,'image byte outside extent');self.stream.seek(at)
+            value=self.stream.read(1);require(len(value)==1,'truncated image byte');return value[0]
+        start,end,step=key.indices(self.size);require(step==1 and end-start<=128*1024**2,'oversized image structure')
+        if end<=start:return b''
+        self.stream.seek(start);value=self.stream.read(end-start);require(len(value)==end-start,'truncated image structure');return value
+    def range_digest(self,start,size):
+        require(0<=start<=self.size and 0<=size<=self.size-start,'hash outside image')
+        self.stream.seek(start);left=size;result=hashlib.sha256()
+        while left:
+            block=self.stream.read(min(left,1024**2));require(bool(block),'truncated image hash');result.update(block);left-=len(block)
+        return result.hexdigest()
+
+
+def extent_digest(data,start,size):
+    return data.range_digest(start,size) if isinstance(data,RegularImage) else digest(data[start:start+size])
+
+
 def root_geometry(manifest):
     """Only the explicitly selected fixed development layouts are accepted."""
     if manifest.get('proof') in ('readonly-root', 'writable-data', 'usb-root'):
         return ROOT_DISK_BYTES, 524288
     if manifest.get('proof') == 'desktop-image':
         return 768*1024**2, 1048576
+    if manifest.get('proof') == 'usb-desktop':
+        return 31457280000, 1048576
     raise ValueError('unsupported root image profile')
 
 
@@ -74,7 +102,7 @@ def esp_extent(data, manifest):
     disk_bytes, root_sectors = root_geometry(manifest) if root_profile else (DISK_BYTES, 0)
     require(len(data) == disk_bytes and data[510:512] == b"\x55\xaa", "invalid image/MBR")
     last = len(data)//512-1
-    require(data[450] == 0xee and struct.unpack_from("<II", data, 454) == (1, last), "invalid protective MBR")
+    require(data[450] == 0xee and struct.unpack_from("<II", data[454:462]) == (1, last), "invalid protective MBR")
     require(not any(data[462:510]), "unexpected hybrid MBR")
     entry_sets = []
     for current, other, array in ((1, last, 2), (last, 1, last-32)):
@@ -90,7 +118,8 @@ def esp_extent(data, manifest):
         at, count, size, checksum = struct.unpack_from("<QIII", h, 72)
         require((at, count, size) == (array, 128, 128), "unexpected GPT array")
         entries = data[at*512:at*512+count*size]
-        require(zlib.crc32(entries) == checksum and not any(entries[256 if root_profile else 128:]), "GPT partition array checksum/profile")
+        used=384 if manifest.get('proof')=='usb-desktop' else 256 if root_profile else 128
+        require(zlib.crc32(entries) == checksum and not any(entries[used:]), "GPT partition array checksum/profile")
         entry_sets.append(entries)
     require(entry_sets[0] == entry_sets[1], "GPT copies disagree")
     entry = bytes(entry_sets[0][:128])
@@ -107,7 +136,15 @@ def esp_extent(data, manifest):
         at = expected["start"]*512
         superblock = data[at+1024:at+2048]
         require(superblock[56:58] == b"\x53\xef" and uuid.UUID(bytes=bytes(superblock[104:120])) == uuid.UUID(expected["filesystem_uuid"]), "wrong root filesystem")
-        require(digest(data[at:at+expected["sectors"]*512]) == expected["sha256"], "changed root filesystem")
+        require(extent_digest(data,at,expected['sectors']*512) == expected["sha256"], "changed root filesystem")
+        if manifest.get('proof')=='usb-desktop':
+            entry=bytes(entry_sets[0][256:384]);expected=manifest['data_partition']
+            require(uuid.UUID(bytes_le=entry[:16])==uuid.UUID('0fc63daf-8483-4772-8e79-3d69d8477de4') and uuid.UUID(bytes_le=entry[16:32])==uuid.UUID(expected['guid']), 'wrong data partition identity')
+            require(struct.unpack_from('<QQQ',entry,32)==(1310720,1310720+60127232-1,0), 'unexpected data extent/flags')
+            require((expected['start'],expected['sectors'])==(1310720,60127232), 'data extent manifest mismatch')
+            at=1310720*512;superblock=data[at+1024:at+2048]
+            require(superblock[56:58]==b'\x53\xef' and uuid.UUID(bytes=bytes(superblock[104:120]))==uuid.UUID(expected['filesystem_uuid']), 'wrong data filesystem')
+            require(extent_digest(data,at,60127232*512)==expected['initial_sha256'],'changed initial data filesystem')
     return data[start*512:(end+1)*512]
 
 
@@ -180,9 +217,10 @@ def inspect(directory):
         path = directory/name
         require(not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "media input must be a regular file")
         require(path.stat().st_size <= expected_size, "oversized media input")
-        require(digest(path.read_bytes()) == expected, "changed media input: "+name)
-    data = (directory/"boot.raw").read_bytes()
-    efi = boot_file(esp_extent(data, manifest))
+        with path.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
+        require(actual == expected, "changed media input: "+name)
+    with (directory/'boot.raw').open('rb') as stream:
+        efi = boot_file(esp_extent(RegularImage(stream), manifest))
     require(digest(efi) == manifest["outputs"]["BOOTX64.EFI"], "fallback file mismatch")
     sections = pe_sections(efi)
     require(set(manifest["sections"]) == {".linux", ".initrd", ".cmdline", ".osrel", ".uname"}, "unexpected UKI resources")
