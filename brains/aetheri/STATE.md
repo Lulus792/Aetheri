@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — single-medium desktop boots pass; the first laptop candidate exposes a no-UART startup failure, with a corrected console build in progress.
+8 November 2026 — two no-UART laptop-profile boots and independent data inspection pass; the authorized physical flash is prepared and requires Windows elevation.
 
 ## Coordination
 
@@ -13,36 +13,56 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Laptop candidate — integration in progress, 8 November 2026
+## Laptop test image — VM acceptance, 8 November 2026
 
-Automatic wlroots GPU selection, same-ABI Intel/input modules, DMC/licence and
-bounded journal logging are implemented. Native DRM selection/FD/heap tests pass
-Release and ASan/UBSan. The first full laptop candidate passes two serial-observed
-cold boots, app input/device denials/persistence and normal unmount/poweroff.
-It then FAILS a separate no-UART boot before the desktop; do not flash it.
-A fresh read-only-backed diagnostic also observes early guest shutdown and its
-actual native captures were reviewed. Full source bytes remain unchanged.
+The corrected tty0-only image passes two cold boots without any UART on one fresh
+writable USB copy. Six native desktop/Terminal/document captures were actually
+reviewed; the document survives. Both original QEMU processes exit0 with genuine
+guest-shutdown events. System/EFI/GPT ranges and the pristine source stay unchanged.
+An independent ordinary-user e2fsck/debugfs inspection verifies all11 proof files,
+two distinct kernel boot IDs, UID/GID1000, zero capabilities/NoNewPrivileges,
+read-only root, rw/nosuid/nodev data/home, tty0-only consoles and three successful
+data/device-check units. The data hash stays unchanged. The less-than-one-day
+future-time warning is retained; clock behaviour is not accepted.
 
-The next build selects only `console=tty0`, removing the unavailable serial
-console selection. This is a hypothesis under test, not an accepted fix yet.
-Laptop-build-v2 completes in a separate private ordinary-user builder in the
-protected carrier; all 195 export members are independently verified and the
-helper is retired. Extract a NEW image and run NEW no-UART
-attempts with capture review gates and independent read-only data inspection.
-Never replay the failed copy. Read the [executed record](journal/2026-11-08-laptop-image.md)
-and [profile](../../spec/laptop-probe.md).
+The pristine source is image-laptop-v2/boot.raw, SHA256
+`06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
+No physical write yet. The [flash procedure](../../spec/usb-flash.md) now has a
+fixed-target helper,13 Windows tests (including actual unbuffered regular-file
+I/O) and metadata-only identification of the real Intenso. Windows elevation is
+needed for actual volume locking and raw writing. The user's authorization is
+already sufficient; do not ask again to erase the selected stick. Finish the
+prepared administrator launch, retain its original process handle and verify
+complete readback/cleanup/exit before reporting a flashed stick. Never replay an
+existing or uncertain attempt. Continue independent development after flashing
+without waiting for the user's later physical test.
 
-Allocation-aware local NTFS image reads now hash every logical byte while
-avoiding reads of kernel-confirmed holes; actual Windows and affected native
-Linux tests pass. Nineteen inactive factory images were sparsified with every
-logical byte/hash preserved; no file was deleted and no data/carrier/physical/
-foreign file changed. Host capacity behaviour remains unexplained. The scoped
-corrupt-data-UUID negative now passes on the first candidate, including full
-unchanged-medium/source checks. Corrected image integration remains in progress.
-An access-only probe confirms that Windows denies this unelevated process direct
-read/write opening of the authorized physical disk (WinError5); no write occurred.
-User authorization still applies once ready; continue
-development after the write without waiting for hardware testing.
+Automatic session GPU selection, same-kernel Intel/input modules and exact DMC/
+licence are included. Native DRM/FD/heap tests pass Release and ASan/UBSan.
+Physical Intel/input/multiple displays, audio/WLAN/Bluetooth, suspend, acceleration,
+normal login/MAC/lifecycle/removal, browser, installer/LUKS, updates/rollback and
+the experiment desktop still remain. This is a development test image.
+
+Earlier failed media are preserved: the dual-console source fails without UART;
+the first corrected run suffers a Windows JSON-reader/replacement failure and
+its second VM is administratively retired. Neither failed copy is replayed or
+accepted. The current image_state guard coordinates all live status reads and
+publication. Use image_state.read, keep its stable guard inode and preserve an
+unknown temporary publication. Failed metadata recording cannot skip original-
+handle retirement. Six Windows cases, applicable native cases and an actual
+paused-QEMU fault probe prove the scoped test-tool correction. See the
+[executed record](journal/2026-11-08-laptop-image.md) and
+[profile](../../spec/laptop-probe.md).
+
+Local NTFS allocation-aware reads hash every logical byte without reading proven
+holes; affected Windows/Linux cases pass. Nineteen inactive factory images were
+sparsified with every logical byte/hash preserved. No data/carrier/physical/foreign
+file was changed. Storage inventory observes about84.5GB of Aetheri development
+files, including48.3GB VM and34.6GB local artifacts; capacity fluctuations and
+unattributed protected/system use remain unexplained. No broad cleanup occurred.
+The older wrong-parent and first-laptop corrupted-data-UUID negatives pass with
+unchanged medium/source bytes; their unchanged initrd guards are not fresh
+negative boots of the corrected tty0-only artifact. Full OS goal remains active.
 
 ## Single-medium USB desktop — 8 November 2026
 

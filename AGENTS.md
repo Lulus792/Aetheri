@@ -1311,8 +1311,12 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   paragraphs above. The separate laptop integration adds automatic session GPU
   selection and same-kernel Intel/input/DMC files. Native DRM tests pass Release/
   ASan/UBSan. Its first dual-console candidate passes serial boots but FAILS
-  without a UART; never flash that candidate or replay failed media. A new
-  tty0-only build is in progress. Read spec/laptop-probe.md and the dated laptop
+  without a UART; never flash that candidate or replay failed media. The new
+  tty0-only build reaches desktop/Terminal; full two-boot acceptance is repeated
+  after a Windows reader/replacement failure in test recording. All live image
+  status reads must use image_state.read and keep its stable guard inode. Failed
+  saves cannot skip original-handle retirement; unknown exits/publications stay
+  unknown. Read spec/laptop-probe.md and the dated laptop
   journal for actual evidence. Native compiled tests are not hardware acceptance.
   Local NTFS sparse image reads may use proven allocation ranges while hashing
   every logical zero byte; this is never a physical-device verification shortcut.
@@ -1320,3 +1324,11 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   Access-only CreateFile returns WinError5 in this unelevated process; no write
   occurred. This is OS access, not missing user authorization. Keep developing;
   preserve the carrier, all failed artifacts, foreign work and closed NexaUI handoff.
+
+- Current laptop status supersedes the older pending paragraphs: tty0-only
+  no-UART v3 now passes both boots, six capture reviews and independent clean
+  data/proof-file inspection. Read STATE and spec/usb-flash.md. The fixed Windows
+  writer has13 actual Windows cases and native applicable review; it must retain
+  exact Intenso/source binding, full zero writes/direct readback and original
+  process exit0. No physical write yet. Windows elevation is required, not a new
+  erase authorization. Never replay uncertain attempts or weaken volume locks.

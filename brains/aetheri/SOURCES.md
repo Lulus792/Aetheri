@@ -15,8 +15,10 @@ current security status, complete license compliance or runtime acceptance.
   are recorded as such; they are not fresh downloaded-RPM signature evidence.
 - [Linux console rules](https://www.kernel.org/doc/html/latest/admin-guide/serial-console.html),
   read 8 November 2026, explain the last console and unavailable-device cases.
-  The first dual-console candidate actually fails without a UART; the new
-  single-console profile still needs actual boot evidence.
+  The first dual-console candidate actually fails without a UART. The corrected
+  single-console profile passes two no-UART boots, six actual capture reviews
+  and independent filesystem/proof-file inspection after a separate Windows
+  test-tool recording failure. Physical hardware acceptance remains pending.
 - Microsoft [allocated ranges](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges)
   distinguish possible nonzero allocation from known zero holes; network mapping
   coherence needs separate care. Aetheri restricts this path to fixed local NTFS
@@ -29,6 +31,25 @@ current security status, complete license compliance or runtime acceptance.
   original-connection QMP reader correlates replies, retains events and forbids
   further dispatch after uncertainty. Isolated tests are separate from no-UART
   image acceptance and independent filesystem inspection.
+- Python3.12 [byte-range locking](https://docs.python.org/3.12/library/msvcrt.html#msvcrt.locking)
+  supplies nonblocking acquisition and explicit unlock for the stable host guard.
+  Actual CPython3.12.14/Windows11 build26200 tests reproduce the ordinary-reader
+  conflict and verify separate-process coordinated publication, including a
+  Unicode path. A paused, diskless-data QEMU fault probe separately proves actual
+  original-handle termination and transport closure despite failed recording.
+  The old/temporary publication remains; this is not graceful guest shutdown,
+  production recovery or volume/process authority.
+
+## Windows first-flash boundary — 8 November 2026
+
+- Microsoft direct-disk, aligned-buffer, volume-lock/extent and held-device
+  references are linked in the [procedure](../../spec/usb-flash.md). The reviewed
+  helper uses existing ctypes/Windows APIs, no new dependency. Thirteen actual
+  Windows tests include aligned unbuffered regular-file write/flush/readback;
+  metadata-only observation independently matches the real Intenso descriptor.
+  Native io-review-v6 verifies applicable pure cases, explicitly skipping actual
+  Windows cases. Physical lock/write/readback requires separate execution and
+  original-process exit evidence; no physical write is implied by these tests.
 
 ## Single-medium USB desktop — 8 November 2026
 

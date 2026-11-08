@@ -12,11 +12,13 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import sys
 import time
 import uuid
 
 import image_qmp
 import image_io
+import image_state
 import run_vm as vm
 import test_boot_probe as boot
 import test_data_probe as data_test
@@ -29,6 +31,25 @@ def require_headroom(free,allocation):
     # It still leaves >7 times the maximum possible source data before guest use.
     if type(free) is not int or free<4*1024**3 or (free<8*1024**3 and (type(allocation) is not int or not 0<=allocation<=512*1024**2)):
         raise OSError(28,'image test needs 8 GiB, or 4 GiB with <=512 MiB proven sparse source')
+
+
+def retire_failed(process,monitor,current,save):
+    """Recording failure must not skip retirement through the ORIGINAL handle."""
+    issues=[]
+    try:save()
+    except BaseException as error:issues.append('record: '+str(error)[:512])
+    try:
+        if process.poll() is None:process.terminate();process.wait(timeout=30)
+    except BaseException as error:issues.append('retire: '+str(error)[:512])
+    finally:
+        try:current['exit']=process.poll()
+        except BaseException as error:current['exit']=None;issues.append('poll: '+str(error)[:512])
+        try:save()
+        except BaseException as error:issues.append('terminal-record: '+str(error)[:512])
+        if monitor:
+            try:monitor.close()
+            except BaseException as error:issues.append('close-record: '+str(error)[:512])
+    return issues
 
 
 def command(image,attempt,medium,identifier):
@@ -51,7 +72,7 @@ def run(image,output):
     if manifest.get('usb_console_fallback') is not True or manifest.get('laptop_drm_selection')!='session-primary-auto':raise ValueError('use the explicit laptop console/DRM profile')
     tools=boot.host_tools();output.mkdir(mode=0o700);vm.private_path(output,directory=True)
     state=dict(state='copy_pending',pending='medium',manifest_sha256=boot.sha(image/'manifest.json'),controller_sha256=boot.sha(Path(__file__)),qmp_sha256=boot.sha(Path(image_qmp.__file__)),host_tools=tools,attempts=[],free_before=free,source_allocation=allocation)
-    def save():vm.write_state(output/'sequence.json',state)
+    def save():image_state.write(output/'sequence.json',state)
     save();medium=output/'medium.raw'
     with medium.open('x+b') as held:
         usb.copy(image/'boot.raw',held,volume);held.flush();os.fsync(held.fileno())
@@ -63,8 +84,9 @@ def run(image,output):
             current=dict(number=number,state='dispatch_pending',uuid=identifier,command=args,qmp={},captures={});state['attempts'].append(current);state['pending']=number;save()
             with (attempt/'qemu.log').open('xb') as log:
                 process=subprocess.Popen(args,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
-                current.update(state='running',pid=process.pid);save();monitor=None
+                monitor=None
                 try:
+                    current.update(state='running',pid=process.pid);save()
                     start=time.monotonic()
                     while not (attempt/'qmp.sock').exists():
                         if process.poll() is not None or time.monotonic()-start>30:raise RuntimeError('original QMP did not appear')
@@ -131,9 +153,15 @@ def run(image,output):
                     data_test.check_held(held,medium,expected);usb.check_immutable(medium,manifest)
                     current.update(state='observed',exit=process.returncode,phase='offline_proof_required',**usb.final_hashes(medium,manifest));state['pending']=None;save()
                 except BaseException as error:
-                    current.update(state='failed_preserved',error=str(error));state['state']='failed_preserved';save()
-                    if process.poll() is None:process.terminate();process.wait(timeout=30)
-                    current['exit']=process.poll();save();raise
+                    current.update(state='failed_preserved',error=str(error));state['state']='failed_preserved'
+                    issues=retire_failed(process,monitor,current,save);monitor=None
+                    failure=dict(state='failed_preserved',error=str(error)[:1024],exit=current['exit'],secondary=issues)
+                    try:
+                        with (attempt/'failure.json').open('x') as record:
+                            json.dump(failure,record,indent=2);record.flush();os.fsync(record.fileno())
+                    except BaseException as recording_error:
+                        print(json.dumps(dict(failure=failure,recording_error=str(recording_error)[:512])),file=sys.stderr,flush=True)
+                    raise
                 finally:
                     if monitor:monitor.close()
         if media.inspect(image)!=manifest:raise ValueError('source image changed')

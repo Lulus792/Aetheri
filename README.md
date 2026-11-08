@@ -31,9 +31,9 @@ persistent data to the checked USB initrd on one full-size virtual removable
 medium. Two cold boots, document persistence and unchanged system/EFI/GPT ranges
 pass. Independent filesystem inspection also passes. A separate
 [laptop profile](spec/laptop-probe.md) adds Intel/input drivers and automatic
-display-device selection. Its console path and hardware acceptance remain under
-test. Normal login, the installer and admitted daily-use applications remain
-work; no physical flash yet.
+display-device selection. Two cold boots without a serial port and independent
+data inspection now pass; physical hardware acceptance remains work. Normal login,
+the installer and admitted daily-use applications remain work; no physical flash yet.
 The [current state](brains/aetheri/STATE.md) records exact implementation
 and test limits.
 

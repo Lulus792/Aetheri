@@ -49,8 +49,8 @@ development software profile; GPU acceleration/performance is not accepted here.
 
 The laptop UKI requests ONLY tty0. The first dual-console candidate passed serial
 tests but shut down early without a UART; it is not accepted for physical use.
-The corrected single-console build must pass new actual no-UART boots before
-acceptance. The separate old serial-only diagnostic remains available.
+The corrected single-console build now passes two actual no-UART boots and
+independent filesystem/proof-file inspection; see the dated record. The separate old serial-only diagnostic remains available.
 Desktop stdout/stderr use the existing bounded volatile journal,
 whose console target is `/dev/console`, instead of opening ttyS0 directly.
 No logging daemon beyond the already selected journal is added.
@@ -71,6 +71,14 @@ process, mount, console and selected service observations. Unknown input/replies
 stop the attempt and preserve it. There is no reconnect/replay. Normal shutdown
 requires the original process exit and one QMP guest-shutdown event; reset, panic,
 host termination or EOF alone cannot pass.
+
+Its publisher and all live status readers coordinate through image_state's stable
+guard. Read with `image_state.read`, never ordinary open/Get-Content while this
+controller writes. A real Windows reader/replacement conflict aborted an earlier
+test; that medium and both old/temporary states are retained. Guard waiting is
+bounded, unknown temporary files are never replaced, and recording errors cannot
+skip original-process retirement. This is a cooperating host-test protocol,
+not process/volume authority or production recovery.
 
 After both boots, independent ordinary-user e2fsck/debugfs must verify a clean
 unchanged data copy, exact document, two distinct boot IDs, UID/GID 1000, zero

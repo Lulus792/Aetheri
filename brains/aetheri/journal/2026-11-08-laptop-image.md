@@ -93,7 +93,57 @@ data; its measured allocation and free space are journaled. This bounds the new
 copy while preserving substantial headroom. It does not reserve against foreign
 writers or authorize a failed replay.
 
-## Remaining boundary
+## Earlier failures and remaining boundary at that point
+
+The corrected image now actually reaches desktop and Terminal without any UART.
+In no-serial-laptop-v2, QEMU 63728 completes the first boot and a genuine guest
+shutdown with exit0. QEMU 66180 reaches desktop/Terminal on boot2, but a parallel
+ordinary JSON reader interferes with Windows replacement of sequence.json.
+WinError5 leaves both the old state and its complete temporary candidate. This
+is a FAILED test-tool run, not a completed two-boot/persistence acceptance.
+
+Error recording itself then fails on the retained temporary name before the
+old handler reaches termination. The status watcher is stopped; the exact test
+QEMU is inspected by full command/UUID and a held process handle with observed
+creation `2026-11-08T07:31:00.1825109Z`, then administratively terminated. Both
+retirement records and all medium/NVRAM/captures/old+temporary state survive.
+Never replay/adopt that medium or call its termination graceful shutdown/drain.
+The protected original carrier is not involved.
+
+The Windows conflict is reproduced with an ordinary held reader. Merely opening
+with delete sharing does NOT make os.replace succeed on this host; that attempted
+fix is rejected. The selected image_state protocol instead serializes cooperating
+readers and the publisher through one stable byte guard (msvcrt on Windows,
+flock on Linux), then retains create-only/fsynced temporary publication. Never
+replace the guard inode, use ordinary live readers or infer authority from it.
+A bounded busy wait fails closed; a leftover temporary file is preserved.
+Controller failure cleanup now uses the original process handle despite recording
+errors, closes transport independently and retains unknown exits as unknown.
+
+Six actual Windows cases pass, including a separate-process writer with a held
+reader/Unicode path, original conflict, bounds, unknown temporary preservation
+and failed recording/retirement. Native io-review-v3 passes its applicable cases
+(the ordinary Windows-reader reproduction is explicitly skipped): token
+`5ce0e978fe664718a6ac2c14cdb70fdb`, helper 1143696,8 members/3241 bytes, SHA256
+`fa1a806927bf56ac115d93b0c5932239ded3bd269308b7bc2cb15f986f3c10d9`.
+A separate no-serial-laptop-v3 starts from a NEW copy of the unchanged corrected
+image. Full acceptance and independent data inspection remain pending.
+
+The actual Windows fault probe also passes: state-retirement-v2 uses a separate
+paused QEMU, checked firmware, no data disk/network/guest execution and one local
+authenticated QMP connection. An ordinary held reader blocks acknowledgement
+publication after the real query-status reply. Despite three further recording
+errors, the original process exits1 through its held handle and the transport
+closes. Published pending state AND complete acknowledged temporary state remain.
+Its UUID is `db064b06-40ef-43f6-a740-323e42e286f4`; numeric PID66180 was reused
+from the earlier unrelated failed VM, explicitly illustrating why PID alone is
+not identity. This is expected fault-probe success, never OS boot/drain acceptance.
+The first fault-probe setup fails before an accepted QMP session because machine
+none/max lacks the expected APIC setup; its artifacts remain separate.
+Runtime: CPython3.12.14, AMD64, Windows11 build26200. One temporary unit-test
+directory left by an initial CRLF assertion failure is retired only after checking
+the exact three owned files/content and absent process; no recursive/foreign
+cleanup occurs. The corrected test always joins its own child before cleanup.
 
 The corrected laptop-build-v2 completes successfully. Token
 `0bdcc4f22aaf435f8664c6405387a67b`, helper 1142086; all 195 members are
@@ -138,3 +188,50 @@ full physical write/readback when OS access permits. No hardware/runtime accepta
 References: [Linux console selection](https://www.kernel.org/doc/html/latest/admin-guide/serial-console.html),
 [profile and pinned components](../../../spec/laptop-probe.md),
 [single-medium evidence](2026-11-08-usb-desktop.md).
+
+## Final no-UART acceptance and prepared physical flash
+
+The fresh no-serial-laptop-v3 completes two cold boots on the same writable copy.
+Original QEMU43788 (UUID8df9494e-b5a6-47f0-975b-3c4225934ef5) and QEMU55440
+(UUIDfe4f6fbd-5644-4600-8f5b-011ffc8bd3e9) each exit0 with a genuine guest=true,
+guest-shutdown event. Six actual desktop/Terminal/document PNGs are reviewed
+and hash-bound separately. Two kernel boot IDs are
+`2eb4ccb1-70bc-4130-84a3-5304b056bcc8` and
+`ee21bb4f-aa17-47dc-8802-2d64fc90fb0f`. The document survives both boots.
+EFI/system/GPT ranges and the pristine source remain unchanged. The controller
+retains observed_requires_offline_verification; it is not rewritten as accepted.
+
+Separate native forensics-v3, token17753957f1f0496682eb2db0d9306695/helper1143802,
+independently exports49 verified members (7084 bytes), SHA256
+`5e7b1e5b31c106e45d892034b622559645081f35910bcc4ca03e93ed78a41134`,
+then acknowledges and exactly retires with exit0. Actual e2fsck-f-n succeeds;
+debugfs verifies all11 proof files, exact14-byte document, regular0600/UID1000/
+GID1000/link1 metadata, both boot IDs, all UID/GID fields1000, CapEff0/NNP1,
+root ext4ro, separate rw/nosuid/nodev var/home, tty0-only consoles and all three
+successful data/device-check services. Inspection does not change data SHA256
+`fa0b332c5f9ea5fa3ca434df2ec35e7b55f363e8187c0829d377233653ed5317`.
+The filesystem future-time warning under one day is retained; this does not
+accept clocks. laptop-v3-acceptance.json joins those observations and a fresh
+complete pristine source hash. It does not accept physical hardware or writing.
+
+The only flash source is image-laptop-v2/boot.raw,31,457,280,000 bytes, SHA256
+`06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20`.
+Never flash a modified VM medium. The [fixed writer](../../../spec/usb-flash.md)
+requires exact independently selected Intenso identity/geometry, held device and
+G: extent, fresh source hash, locked/dismounted volume, complete aligned direct
+write including zeros, flush and complete direct readback. Create-only intent/
+attempt, asset-wide lock and hash-chained append-only diagnostics prevent blind
+replay; original launched exit0 is also mandatory. No physical write yet.
+
+All13 actual Windows tests pass, including unbuffered regular-file transfers,
+failed/short/corrupt I/O, identity/extent negatives and nonadministrator refusal.
+Final native io-review-v6, token7ce4828e7fdc4404955554d8b896730c/helper1146836,
+passes applicable flash/state/QMP/laptop/corruption/parent cases. Three explicitly
+Windows-only cases are skipped there and have actual Windows evidence instead.
+All9 exported members are independently verified (3822 bytes), SHA256
+`938b3d060c61c95ec6e2a8ad86e4ec35f6c70a5d9d38bf5fc169f27328d62883`;
+acknowledgement/exact retirement exit0. No installed carrier service or app
+capability changes. Windows elevation is the remaining physical access boundary;
+credentials belong only in its native dialog. The user's erase authorization is
+already recorded. Continue independent development after the flash without
+waiting for the later laptop test.
