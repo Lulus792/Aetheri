@@ -19,8 +19,14 @@ current security status, complete license compliance or runtime acceptance.
 - [Contract](../../spec/usb-desktop.md), [geometry pins](../../spec/usb-desktop-inputs.json)
   and [executed record](journal/2026-11-08-usb-desktop.md): two actual full-medium
   USB desktop boots, immutable-range checks, independent ext4/document inspection,
-  C17/sanitizer and host/native contract evidence. Actual wrong-parent testing and
-  laptop graphics/input/serial-absent integration remain open at this checkpoint.
+  C17/sanitizer and host/native contract evidence. Actual wrong-parent rejection
+  now passes; laptop graphics/input/serial-absent integration remains work.
+- QEMU [image-tool contract](https://www.qemu.org/docs/master/tools/qemu-img.html):
+  explicit backing formats, JSON chain inspection and offline content/integrity
+  checks. Compare permits zero extensions by default, so both virtual sizes are
+  independently required to match first. Unsafe live-image sharing/repair and
+  rebase/commit are not used. Three actual Windows tests and the real two-USB
+  negative verify the selected 11.1.0 executable, not just current documentation.
 
 ## Actual graphical-image device filter — 8 November 2026
 

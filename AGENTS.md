@@ -5,11 +5,14 @@ desktop journal/STATE. Full-size single-medium two-boot/persistence and independ
 ext4 checks pass. USB2's OBS2 binds the complete root/data profile before handover;
 real-root data checks require the original boot/device and same current parent.
 USB1 stays fixed. Current bochs/serial evidence is not laptop acceptance. Actual
-wrong-parent testing is still in progress here; retain incomplete/failed fixtures
-and require unchanged bytes on both media. Native image inputs are fenced; two
+wrong-parent rejection now passes with new qcow2 overlays over prepared v3 bases;
+raw bases AND guest-visible contents stay unchanged after exact original VM exit.
+Validate both backing chains/sizes and offline integrity/compare; never repair or
+commit live/unknown overlays. Retain failed raw fixtures and never replay them.
+Native image inputs are fenced; two
 host-only SGR parser/test updates were separately reviewed. Sparse regular-image
 helpers are never physical writers; flash must write and verify zeros too. Next
-finish negatives, add laptop DRM/input/firmware and test without serial before the
+finish wrong-data-filesystem testing, add laptop DRM/input/firmware and test without serial before the
 already authorized Intenso G: flash. Reidentify, do not ask again, and continue
 without waiting for the later user test. No flash yet; NexaUI handoff stays closed.
 

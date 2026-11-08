@@ -89,6 +89,18 @@ The pair preparation/controller require two full logical media plus 8 GiB free
 headroom before new files. This does not reserve space against other host writers;
 any later failure still preserves the incomplete attempt and forbids replay.
 
+`test_usb_parent_overlay.py` is the separate actual-test alternative when raw
+copy headroom is unavailable. It uses NEW private qcow2 files over the fully
+verified prepared raw bases; QEMU opens backing files read-only. Both exact
+two-node chains and virtual sizes are checked before/after the original VM.
+Retained base/overlay file identities, complete base hashes, offline qcow2 checks
+and guest-visible content comparisons must all pass. Never inspect/repair a live
+image, use unsafe sharing, rebase/commit overlays or replay a failed attempt.
+The selected qemu-img must match the original Windows extraction receipt. This
+path needs 8 GiB free headroom, not two more full raw copies. Three Windows tests
+include actual equal/different-content comparisons. The dated journal records the
+actual data-parent rejection; this is still not volume/clone authentication.
+
 Primary references: systemd259
 [SwitchRoot](https://raw.githubusercontent.com/systemd/systemd/v259/src/shared/switch-root.c),
 Linux6.19 [block ioctls](https://raw.githubusercontent.com/torvalds/linux/v6.19/block/ioctl.c),

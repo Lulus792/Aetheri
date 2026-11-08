@@ -84,9 +84,30 @@ other writers. Native review-v2 token `3299b8c020a6421c9622706b55220610`, helper
 1123872, passes 35 groups including all four parent-test guards. Nine members retire
 after verification; 3618-byte export
 `85a72ec1cc16ab7e531203d0f804d8bbcc90b6173243c021268bb08cc4e32a4f`.
-Fresh v3 preparation/actual negative is still in progress here. Require actual
-rejection and both unchanged-media checks before acceptance. Actual wrong-data-
-filesystem testing also remains.
+Fresh v3 preparation completes. The original raw-copy controller refuses its
+headroom check before creating an attempt; no VM dispatch occurs there.
+
+The separate `parent-overlay-v1` now passes the actual negative. Two NEW qcow2
+overlays (197120 bytes each) use only the fully checked prepared v3 raw bases;
+backing opens stay read-only. Original QEMU 44108 exits 0 after 20.297 seconds,
+boot `cb0cfbd5-8612-4361-98e7-a4596993b85a`. Actual initrd/root handover precedes
+the exact data-parent failure; no data mount/GUI starts, then normal poweroff.
+Serial SHA-256 `2a1efbfb6815d8d055fbbb35f94c5443e5e91a49564b2265b59396aae2a74f09`.
+Both held raw identities/full hashes and overlay identities/sizes remain intact.
+Before/after exact two-node raw/qcow2 chains and full 31,457,280,000-byte virtual
+sizes match; offline qcow2 checks and both guest-visible content comparisons
+exit 0. These checks happen only after original VM exit, with no unsafe shared
+image mode, repair, rebase or commit. Final state is accepted with no pending step.
+
+The controller's source SHA-256 is
+`d6d91e0f1d5fe2dc969c854aa075971512e685aaa60b7e21eda4e0e1bb2f8f0f`.
+The reused qemu-img executable matches original extraction SHA-256
+`9d930582d0d574bb106d89982c547688e10b8f356192d302cc3d0ae4e8674534`.
+Three Windows tests validate chain/command guards and real equal/different-content
+comparisons. Unlike the raw-copy path, this test creates only bounded fresh overlays
+and requires 8 GiB headroom. Backing/virtual-size validation prevents compare's
+default zero-extension tolerance from accepting another geometry. Actual
+wrong-data-filesystem testing remains.
 
 Next add laptop Intel DRM/input/firmware, automatic DRM selection and a console/
 logging path tested without a UART. The current bochs/serial profile is not

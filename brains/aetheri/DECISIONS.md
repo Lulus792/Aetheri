@@ -16,6 +16,15 @@ bounded streaming; never use that zero-skipping copier for physical flashing.
 The physical writer must write and read back all intended bytes. The existing
 user authorization needs no repeat question or wait for their later hardware test.
 
+The actual wrong-parent negative uses new private qcow2 overlays over the fully
+verified prepared raw fixtures. This avoids two further full copies when their
+headroom check cannot pass. Keep bases read-only, validate exact backing objects/
+formats/virtual sizes before and after original VM exit, and verify both complete
+base hashes and guest-visible unchanged contents. Never repair/rebase/commit a
+live or uncertain overlay. The actual rejection/normal poweroff and all offline
+checks now pass; see the same journal. This test adds no production sandbox or
+durable volume/clone authentication.
+
 ## Require actual device denial in the development image — 8 November 2026
 
 Add signed Fedora44 libbpf2:1.6.3-2 as systemd's dynamic device-controller backend,

@@ -34,16 +34,24 @@ All 500 bundled non-document inputs match, except two explicitly reviewed host-o
 SGR result-parser changes; native image inputs are unchanged. The protected carrier,
 normal sources/contracts/quarantine/P0/CLOSED history and foreign work remain intact.
 
-The separate actual wrong-parent fixture/controller is implemented and its four
-native contract groups pass. Its full-media preparation/test remains in progress;
-do not infer an actual negative result from those isolated tests. Two incomplete
+The actual wrong-parent test now passes after root handover: a valid expected data
+partition on the other USB disk is rejected before any writable mount or GUI,
+followed by normal guest poweroff. Two new qcow2 overlays keep both prepared raw
+bases read-only. Exact backing chains/virtual sizes, retained file identities,
+full base hashes, qcow2 integrity and guest-visible content comparisons all pass.
+The original QEMU exits 0; EOF alone is not a result. Three Windows controller/
+chain tests include real pinned qemu-img equal/different-content cases. Four
+native raw-preparation guards remain valid. Two incomplete
 preparations are preserved after host read ENOSPC. F: was observed completely
 full, then regained about 94 GB without agent cleanup. A complete later read of
 the first failed copy succeeds. A new preflight requires two full logical copies
-plus 8 GiB headroom; native review passes all 35 groups. Fresh v3 preparation is
-running. No VM was launched from either failed fixture.
+plus 8 GiB headroom for raw copies; native review passes all 35 groups. Fresh v3
+preparation completes, but the raw-copy controller then refuses insufficient
+headroom before effects. The separate overlay controller needs 8 GiB headroom
+and finishes with both bases AND guest-visible views unchanged. No failed raw
+fixture or attempt is replayed, and no foreign files/processes are changed.
 
-Next finish that negative and add laptop Intel DRM/input/firmware, automatic DRM
+Next add laptop Intel DRM/input/firmware, automatic DRM
 selection and a tested console/logging path without a serial port. The current
 software-rendered bochs/serial profile is not ready for the laptop or physical
 flash. The identified Intenso G: is already authorized when ready: reidentify it,
