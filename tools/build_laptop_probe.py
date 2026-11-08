@@ -1,8 +1,10 @@
-"""Build a new USB laptop-test candidate; never access physical media.
+"""Build a new USB laptop-test base; never access physical media.
 
 Additional kernel modules and firmware are copied as pinned data. No carrier
 module load, service change or package transaction occurs. Hardware, suspend,
 accelerated rendering and production admission still require their own evidence.
+Finish the reviewed explicit-options boot path with build_boot_manager.py before
+selecting the next physical-flash candidate; this base retains the legacy UKI.
 """
 import argparse
 import hashlib

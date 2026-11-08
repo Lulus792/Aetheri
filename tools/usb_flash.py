@@ -1,4 +1,4 @@
-"""First authorized Intenso laptop-image flash, not a general disk utility.
+"""Explicitly authorized Intenso laptop-image flashes, not a general disk utility.
 
 --inspect only queries metadata. --write needs an independently prepared,
 hash-bound intent and elevation. Every attempt is fresh-only; no automatic replay.
@@ -20,6 +20,8 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 MEDIA_BYTES=31457280000
 APPROVED_IMAGE='06aad2b908ce008d37744c5171d8d10444d81c31bd7692c86f6dc01754337d20'
+# Closed until the new complete image has independent VM/filesystem acceptance.
+APPROVED_REPLACEMENT_IMAGE=None
 BLOCK=1024**2
 SERIAL='212300100050'
 BRIDGE=r'USBSTOR\DISK&VEN_INTENSO&PROD_SPEED_LINE&REV_PMAP\22010500000313&0:'
@@ -76,6 +78,51 @@ def partition(number):
     if value.get('DiskNumber')!=number or value.get('PartitionNumber')!=1 or value.get('DriveLetter')!='G':raise ValueError('different original G: partition')
     if type(value.get('Offset')) is not int or type(value.get('Size')) is not int or value['Offset']<=0 or value['Size']<=0 or value['Offset']+value['Size']>MEDIA_BYTES:raise ValueError('invalid original partition extent')
     return value
+
+
+def admit_replacement_partitions(rows,number):
+    """Only the exact previous Aetheri layout; never a drive-letter guess."""
+    expected=(
+        (1048576,132120576,'95faca9a-919a-5721-a142-7fd2b3480321','c12a7328-f81f-11d2-ba4b-00a0c93ec93b'),
+        (134217728,536870912,'8112b47d-a0fa-53ba-9676-46434744a761','4f68bce3-e8cd-4db1-96e7-fbcaf984b709'),
+        (671088640,30785142784,'fa6f5b93-6372-5028-a36a-304736e93a32','0fc63daf-8483-4772-8e79-3d69d8477de4'))
+    if type(number) is not int or not 0<=number<=1024 or not isinstance(rows,list) or len(rows)!=3:raise ValueError('different previous Aetheri partition count')
+    result=[]
+    for index,(row,(start,size,guid,kind)) in enumerate(zip(rows,expected),1):
+        if (not isinstance(row,dict) or type(row.get('DiskNumber')) is not int or row['DiskNumber']!=number
+            or type(row.get('PartitionNumber')) is not int or row['PartitionNumber']!=index
+            or type(row.get('Offset')) is not int or row['Offset']!=start or type(row.get('Size')) is not int or row['Size']!=size
+            or row.get('IsBoot') is not False or row.get('IsSystem') is not False
+            or row.get('DriveLetter') not in (None,'','\0')
+            or not isinstance(row.get('Guid'),str) or row['Guid'].lower()!='{'+guid+'}'
+            or not isinstance(row.get('GptType'),str) or row['GptType'].lower()!='{'+kind+'}'):
+            raise ValueError('different previous Aetheri partition binding')
+        paths=row.get('AccessPaths')
+        if paths is None:paths=[]
+        if not isinstance(paths,list):raise ValueError('invalid volume/access path observation')
+        volume='\\\\?\\Volume{'+guid+'}\\'
+        if paths!=([volume] if index==1 else []):raise ValueError('unexpected mounted volume/access path')
+        result.append(dict(row,AccessPaths=paths))
+    return result
+
+
+def replacement_partitions(number):
+    if type(number) is not int or not 0<=number<=1024:raise ValueError('invalid disk number')
+    rows=ps('Get-Partition -DiskNumber '+str(number)+' | Sort-Object PartitionNumber | Select-Object DiskNumber,PartitionNumber,DriveLetter,Offset,Size,Guid,GptType,IsBoot,IsSystem,AccessPaths | ConvertTo-Json -Depth 3')
+    return admit_replacement_partitions(rows,number)
+
+
+def approved_intent(intent):
+    kind=intent.get('format');expected=intent.get('source_sha256')
+    if type(kind) is not int:raise ValueError('invalid flash intent version')
+    if kind==1 and expected==APPROVED_IMAGE:return False
+    if (kind==2 and isinstance(APPROVED_REPLACEMENT_IMAGE,str)
+        and re.fullmatch('[0-9a-f]{64}',APPROVED_REPLACEMENT_IMAGE)
+        and expected==APPROVED_REPLACEMENT_IMAGE
+        and intent.get('replaces_source_sha256')==APPROVED_IMAGE
+        and intent.get('authorization')=='user-2026-11-08-reflash-after-tests'):
+        return True
+    raise ValueError('different reviewed flash image/authorization')
 
 
 def descriptor(raw):
@@ -227,9 +274,10 @@ def run(intent_path,intent_sha):
     intent_path=owned(intent_path)
     if digest(intent_path)!=intent_sha:raise ValueError('changed prepared intent')
     intent=json.loads(intent_path.read_text());source_path=owned(intent['source']);directory=intent_path.parent
-    if intent.get('format')!=1 or intent.get('media_bytes')!=MEDIA_BYTES or intent.get('script_sha256')!=digest(Path(__file__)) or intent.get('vm_acceptance') is not True:raise ValueError('different reviewed first-flash intent')
+    replacement=approved_intent(intent)
+    if intent.get('media_bytes')!=MEDIA_BYTES or intent.get('script_sha256')!=digest(Path(__file__)) or intent.get('vm_acceptance') is not True:raise ValueError('different reviewed flash intent')
     expected=intent['source_sha256']
-    if expected!=APPROVED_IMAGE or source_path.name!='boot.raw' or not stat.S_ISREG(source_path.stat().st_mode) or source_path.stat().st_size!=MEDIA_BYTES:raise ValueError('different prepared image')
+    if source_path.name!='boot.raw' or not stat.S_ISREG(source_path.stat().st_mode) or source_path.stat().st_size!=MEDIA_BYTES:raise ValueError('different prepared image')
     io=load_io(intent['image_io_sha256']);api=Windows();handles=[];native=None;source=None;journal=None;dispatched=False;verified=False
     # Exclusive durable attempt marker prevents concurrent or lost-reply replay.
     with (directory/'attempt.json').open('x') as marker:
@@ -246,16 +294,20 @@ def run(intent_path,intent_sha):
         if os.fstat(source.fileno()).st_size!=MEDIA_BYTES:raise ValueError('held source size differs')
         if io.stream_range_sha(source,0,MEDIA_BYTES)!=expected:raise ValueError('fresh complete source hash differs')
         journal.emit('source_verified',MEDIA_BYTES)
-        disk=selected_disk();part=partition(disk['Number'])
+        disk=selected_disk()
+        layout=replacement_partitions(disk['Number']) if replacement else [partition(disk['Number'])]
+        part=layout[0]
         if disk['UniqueId']!=intent['device_unique_id']:raise ValueError('different prepared USB unique ID')
         device=api.open(r'\\.\PhysicalDrive'+str(disk['Number']),0xc0000000,flags=0xa0000000);handles.append(device)
         original=api.observe(device,disk['Number'],True)
-        volume=api.open(r'\\.\G:',0xc0000000);handles.append(volume)
+        volume_path=part['AccessPaths'][0].rstrip('\\') if replacement else r'\\.\G:'
+        volume=api.open(volume_path,0xc0000000);handles.append(volume)
         extent(api.ioctl(volume,0x560000,size=32),part)
         api.ioctl(volume,0x90018,size=0)  # LOCK: never force-dismount open files.
         api.ioctl(volume,0x90020,size=0)  # DISMOUNT while retaining this lock.
-        if selected_disk()!=disk or partition(disk['Number'])!=part or api.observe(device,disk['Number'],True)!=original:raise ValueError('device context changed before writing')
-        journal.emit('device_locked',device=original,storage_observation=disk,partition=part)
+        current=replacement_partitions(disk['Number']) if replacement else [partition(disk['Number'])]
+        if selected_disk()!=disk or current!=layout or api.observe(device,disk['Number'],True)!=original:raise ValueError('device context changed before writing')
+        journal.emit('device_locked',device=original,storage_observation=disk,partition=part,partition_layout=layout)
         native=NativeIO(api,device)
         def emit(phase,bytes):
             nonlocal dispatched
@@ -284,15 +336,15 @@ def run(intent_path,intent_sha):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--inspect',action='store_true');parser.add_argument('--write',action='store_true');parser.add_argument('--status',action='store_true');parser.add_argument('--intent',type=Path);parser.add_argument('--intent-sha256')
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--inspect',action='store_true');parser.add_argument('--replacement-layout',action='store_true');parser.add_argument('--write',action='store_true');parser.add_argument('--status',action='store_true');parser.add_argument('--intent',type=Path);parser.add_argument('--intent-sha256')
     args=parser.parse_args()
-    if args.status and not args.write and not args.inspect and args.intent:
+    if args.status and not args.write and not args.inspect and not args.replacement_layout and args.intent:
         intent=owned(args.intent);records,partial=read_journal(intent.parent/'journal.jsonl')
         if not records or records[0].get('intent_sha256')!=digest(intent):raise ValueError('different intent/journal binding')
         print(json.dumps(dict(last=records[-1],incomplete_tail=partial,historical_complete_record=not partial and records[-1]['phase']=='complete',original_process_exit_still_required=True)))
     elif args.inspect and not args.write and not args.status:
         value=selected_disk();api=Windows();handle=api.open(r'\\.\PhysicalDrive'+str(value['Number']),0)
-        try:print(json.dumps(dict(storage=value,held=api.observe(handle,value['Number']),partition=partition(value['Number']))))
+        try:print(json.dumps(dict(storage=value,held=api.observe(handle,value['Number']),partitions=replacement_partitions(value['Number'])) if args.replacement_layout else dict(storage=value,held=api.observe(handle,value['Number']),partition=partition(value['Number']))))
         finally:api.check(api.close(handle))
-    elif args.write and not args.inspect and not args.status and args.intent and args.intent_sha256:run(args.intent,args.intent_sha256)
+    elif args.write and not args.inspect and not args.status and not args.replacement_layout and args.intent and args.intent_sha256:run(args.intent,args.intent_sha256)
     else:parser.error('choose metadata-only --inspect OR explicit --write with the prepared intent/hash')

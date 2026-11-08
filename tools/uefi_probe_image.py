@@ -146,7 +146,7 @@ def esp_extent(data, manifest):
     return data[start*512:(end+1)*512]
 
 
-def boot_file(volume):
+def boot_file(volume, *, managed=False):
     require(len(volume) == 258048*512 and volume[510:512] == b"\x55\xaa", "invalid FAT volume")
     sector = struct.unpack_from("<H", volume, 11)[0]
     cluster_sectors = volume[13]
@@ -163,11 +163,15 @@ def boot_file(volume):
     fat = volume[reserved*512:(reserved+fat_sectors)*512]
     require(fat == volume[(reserved+fat_sectors)*512:base*512], "FAT copies disagree")
     cluster_bytes = cluster_sectors*512
+    claimed=set()
 
     def chain(first, limit):
         parts, seen, current = [], set(), first
         while True:
             require(2 <= current < count+2 and current not in seen, "invalid/cyclic FAT chain")
+            if managed:
+                require(current not in claimed, "cross-linked FAT chain")
+                claimed.add(current)
             seen.add(current)
             require(len(seen)*cluster_bytes <= limit, "oversized FAT chain")
             begin = (base+(current-2)*cluster_sectors)*512
@@ -178,13 +182,28 @@ def boot_file(volume):
 
     def directory(first, expected, top=False):
         raw = chain(first, 1024**2)
-        entries = {}
+        entries = {};long_name=None;long_sum=None
         for at in range(0, len(raw), 32):
             e = raw[at:at+32]
             if e[0] == 0:
+                require(long_name is None, "orphan FAT long name")
                 break
-            require(e[0] != 0xe5 and e[11] != 0x0f, "unexpected deleted/long-name entry")
+            require(e[0] != 0xe5, "unexpected deleted entry")
+            if e[11]==0x0f:
+                require(managed and long_name is None and e[0]==0x41 and e[12]==0 and e[26:28]==b'\0\0', "unexpected long-name entry")
+                units=struct.unpack('<13H',e[1:11]+e[14:26]+e[28:32])
+                require(0 in units, "unterminated fixed FAT long name")
+                end=units.index(0)
+                require(all(x==0xffff for x in units[end+1:]) and all(32<=x<127 for x in units[:end]), "invalid fixed FAT long name")
+                long_name=bytes(units[:end]);long_sum=e[13]
+                require(long_name in (b'loader.conf',b'aetheri.conf'), "unreviewed FAT long name")
+                continue
             name = e[:11]
+            if long_name is not None:
+                checksum=0
+                for c in name:checksum=(((checksum&1)<<7)+(checksum>>1)+c)&255
+                require(checksum==long_sum, "FAT long-name checksum mismatch")
+                name=long_name;long_name=long_sum=None
             if top and e[11] == 8 and name == b"AETHERI    ":
                 continue
             require(name not in entries, "duplicate FAT name")
@@ -192,8 +211,32 @@ def boot_file(volume):
         if not top:
             require(b".          " in entries and b"..         " in entries, "missing parent entries")
             require(entries.pop(b".          ")[0] == 16 and entries.pop(b"..         ")[0] == 16, "invalid parent entries")
-        require(set(entries) == {expected}, "unexpected FAT directory contents")
-        return entries[expected]
+        require(long_name is None, "orphan FAT long name")
+        require(set(entries) == (expected if isinstance(expected,set) else {expected}), "unexpected FAT directory contents")
+        return entries if isinstance(expected,set) else entries[expected]
+
+    if managed:
+        def child(info):
+            attr,first,size=info
+            require(attr==16 and size==0, "invalid managed boot directory")
+            return first
+        def file(info,limit):
+            attr,first,size=info
+            require(attr==32 and 0<size<=limit, "invalid managed boot file")
+            allocation=((size+cluster_bytes-1)//cluster_bytes)*cluster_bytes
+            raw=chain(first,allocation)
+            require(len(raw)==allocation, "wrong managed file allocation size")
+            return raw[:size]
+        top=directory(root,{b'EFI        ',b'LOADER     '},True)
+        efi=directory(child(top[b'EFI        ']),{b'BOOT       ',b'AETHERI    '})
+        fallback=directory(child(efi[b'BOOT       ']),{b'BOOTX64 EFI'})
+        system=directory(child(efi[b'AETHERI    ']),{b'SYSTEM  EFI'})
+        loader=directory(child(top[b'LOADER     ']),{b'loader.conf',b'ENTRIES    '})
+        entries=directory(child(loader[b'ENTRIES    ']),{b'aetheri.conf'})
+        return {'BOOTX64.EFI':file(fallback[b'BOOTX64 EFI'],512*1024),
+            'system.efi':file(system[b'SYSTEM  EFI'],64*1024**2),
+            'loader.conf':file(loader[b'loader.conf'],4096),
+            'aetheri.conf':file(entries[b'aetheri.conf'],4096)}
 
     attr, first, size = directory(root, b"EFI        ", True)
     require(attr == 16 and size == 0, "EFI is not a directory")
@@ -210,7 +253,8 @@ def inspect(directory):
     manifest = json.loads((directory/"manifest.json").read_text())
     expected_size = root_geometry(manifest)[0] if "root_partition" in manifest else DISK_BYTES
     require(manifest["format"] == 1 and manifest["disk_bytes"] == expected_size, "unsupported media manifest")
-    require(set(manifest["outputs"]) == {"boot.raw", "BOOTX64.EFI"}, "unexpected media outputs")
+    managed='boot_manager' in manifest
+    require(set(manifest["outputs"]) == ({"boot.raw", "BOOTX64.EFI", "system.efi"} if managed else {"boot.raw", "BOOTX64.EFI"}), "unexpected media outputs")
     for name, expected in manifest["outputs"].items():
         path = directory/name
         require(not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "media input must be a regular file")
@@ -218,8 +262,17 @@ def inspect(directory):
         actual=image_io.hash_file(path)
         require(actual == expected, "changed media input: "+name)
     with (directory/'boot.raw').open('rb') as stream:
-        efi = boot_file(esp_extent(RegularImage(stream), manifest))
-    require(digest(efi) == manifest["outputs"]["BOOTX64.EFI"], "fallback file mismatch")
+        efi = boot_file(esp_extent(RegularImage(stream), manifest),managed=managed)
+    if managed:
+        import boot_manager_profile as manager
+        require(manifest['boot_manager']=={'format':1,'profile':manager.PROFILE,'sha256':manager.MANAGER_SHA256}, 'different boot manager profile')
+        require(digest(efi['BOOTX64.EFI'])==manifest['outputs']['BOOTX64.EFI']==manager.MANAGER_SHA256 and len(efi['BOOTX64.EFI'])==manager.MANAGER_BYTES, 'changed boot manager')
+        require(digest(efi['system.efi'])==manifest['outputs']['system.efi'], 'managed UKI mismatch')
+        sections=pe_sections(efi['system.efi'])
+        require(efi['loader.conf']==manager.LOADER and efi['aetheri.conf']==manager.entry(manifest,sections.get('.cmdline',b'')), 'different explicit boot entry')
+        efi=efi['system.efi']
+    else:
+        require(digest(efi) == manifest["outputs"]["BOOTX64.EFI"], "fallback file mismatch")
     sections = pe_sections(efi)
     require(set(manifest["sections"]) == {".linux", ".initrd", ".cmdline", ".osrel", ".uname"}, "unexpected UKI resources")
     for name, expected in manifest["sections"].items():

@@ -47,6 +47,36 @@ class FlashContract(unittest.TestCase):
         with mock.patch.object(flash,'disks',return_value=[self.fixture(),unsafe]):
             with self.assertRaises(ValueError):flash.selected_disk()
 
+    def replacement_layout(self):
+        facts=((1048576,132120576,'95faca9a-919a-5721-a142-7fd2b3480321','c12a7328-f81f-11d2-ba4b-00a0c93ec93b'),
+            (134217728,536870912,'8112b47d-a0fa-53ba-9676-46434744a761','4f68bce3-e8cd-4db1-96e7-fbcaf984b709'),
+            (671088640,30785142784,'fa6f5b93-6372-5028-a36a-304736e93a32','0fc63daf-8483-4772-8e79-3d69d8477de4'))
+        return [dict(DiskNumber=4,PartitionNumber=i,DriveLetter='\0',Offset=a,Size=b,Guid='{'+c+'}',GptType='{'+d+'}',IsBoot=False,IsSystem=False,
+            AccessPaths=['\\\\?\\Volume{'+c+'}\\'] if i==1 else None) for i,(a,b,c,d) in enumerate(facts,1)]
+
+    def test_replacement_requires_all_three_previous_partitions_and_only_esp_volume(self):
+        import copy
+        good=self.replacement_layout();observed=flash.admit_replacement_partitions(good,4)
+        self.assertEqual(observed[0]['AccessPaths'],good[0]['AccessPaths'])
+        self.assertEqual(observed[1]['AccessPaths'],[])
+        for rows in (good[:1],good+[good[-1]],list(reversed(good))):
+            with self.assertRaises(ValueError):flash.admit_replacement_partitions(rows,4)
+        for index in range(3):
+            for key,value in (('DiskNumber',0),('PartitionNumber',True),('Offset',0),('Size',1),('Guid','{foreign}'),('GptType','{foreign}'),('IsBoot',True),('IsSystem',True),('DriveLetter','G'),('AccessPaths',False),('AccessPaths',['\\\\?\\Volume{foreign}\\'])):
+                rows=copy.deepcopy(good);rows[index][key]=value
+                with self.assertRaises(ValueError,msg=(index,key)):flash.admit_replacement_partitions(rows,4)
+
+    def test_replacement_image_stays_closed_without_exact_new_approval(self):
+        from unittest import mock
+        self.assertFalse(flash.approved_intent(dict(format=1,source_sha256=flash.APPROVED_IMAGE)))
+        intent=dict(format=2,source_sha256='a'*64,replaces_source_sha256=flash.APPROVED_IMAGE,authorization='user-2026-11-08-reflash-after-tests')
+        with mock.patch.object(flash,'APPROVED_REPLACEMENT_IMAGE',None):
+            with self.assertRaises(ValueError):flash.approved_intent(intent)
+        with mock.patch.object(flash,'APPROVED_REPLACEMENT_IMAGE','a'*64):
+            self.assertTrue(flash.approved_intent(intent))
+            for key,value in (('format',True),('format',1),('source_sha256','b'*64),('replaces_source_sha256','b'*64),('authorization',None)):
+                with self.assertRaises(ValueError):flash.approved_intent({**intent,key:value})
+
     def test_device_descriptor_is_bounded_and_matches_actual_identity(self):
         raw=bytearray(128);struct.pack_into('<II',raw,0,40,len(raw));raw[10]=1;struct.pack_into('<I',raw,28,7)
         for position,offset,text in ((12,40,b'Intenso'),(16,48,b'Speed Line'),(20,60,b'PMAP'),(24,65,flash.SERIAL.encode())):

@@ -1,7 +1,7 @@
-# First laptop USB flash
+# Laptop USB flash
 
 This Windows host tool writes the already authorized Intenso Speed Line. It is
-a fixed first-flash procedure, not the Aetheri installer or a general disk tool.
+a fixed development procedure, not the Aetheri installer or a general disk tool.
 Original Aetheri code is MIT; it uses the existing Python runtime and Windows APIs.
 
 ## Inputs and target
@@ -19,11 +19,35 @@ boot/system disks, read-only/offline devices and other buses/geometries fail.
 The first-flash profile requires the inspected single original partition on G:.
 Disk numbers are freshly discovered, never used alone as identity.
 
+The later replacement profile is separate. On8 November the user explicitly
+authorizes reflashing after the remaining tests and reconnects the same stick.
+Its previous Aetheri layout has three independently fixed partition GUID/type/
+offset/size bindings. Only the ESP has a Windows volume GUID; the two ext4
+partitions must have no Windows access paths. No partition may be boot/system
+or have an unexpected drive letter. Replacement locks/dismounts the exact held
+ESP volume by GUID and joins its disk extent; it does not assume G: still exists.
+The volume handle omits the GUID path's final backslash, following
+[Microsoft's volume naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-volume).
+It retains read/write sharing and requires a successful
+[volume lock](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_lock_volume)
+before dismount; busy/system/page-file volumes cannot be forced through this gate.
+The source approval stays closed until complete-image acceptance. A new format2
+intent binds the accepted replacement hash, original source hash and this renewed
+authorization. The old completed format1 attempt must never be replayed.
+
 The tool joins that observation to the held device's storage number, bounded
 device descriptor (vendor/product/serial/USB/removable) and geometry/length.
 The held G: volume must have exactly the independently expected extent on that
 disk. These are controlled-host device observations, not cryptographic clone
 authentication or a production StorageRef.
+
+The reviewed checkout, current operator and Windows administrator are trusted.
+The protected intent and held source prevent accidental drift/replay; they are
+not a privilege boundary against a malicious checkout owner or administrator.
+Device descriptors/partition GUIDs are not cryptographic clone authentication.
+No credentials or secret boot arguments are recorded. A new intended image needs
+its own accepted source pin and fresh operation; flags cannot select arbitrary
+devices, images, mount paths or old completed attempts.
 
 ## Procedure
 
@@ -65,16 +89,19 @@ Credentials, if required, belong only in Windows' native dialog.
 `python tools/usb_flash.py --inspect` queries metadata only. The observed held
 descriptor matches Intenso/Speed Line/PMAP, serial212300100050, USB/removable,
 31,457,280,000 bytes and the original G: extent.
+Use `--inspect --replacement-layout` for the current three-partition metadata;
+the old first-flash inspection deliberately refuses that different layout.
 
 Writing requires `--write --intent PATH --intent-sha256 HASH` through the prepared
 administrator launch. `--status --intent PATH` only reads the bounded journal;
 it deliberately does not claim the original process has exited.
 
-Run `python tools/test_usb_flash.py`. Thirteen Windows cases include actual
+Run `python tools/test_usb_flash.py`. Fifteen Windows cases include actual
 aligned unbuffered write/flush/full-readback on a new regular test file, overwriting
 nonzero contents with zeros, malformed/wrong/ambiguous identities, extent/device
 joins, short/failed/corrupt transfers, journal integrity/live reading and the
-non-administrator guard. No unit test opens/writes a physical device. Applicable
+non-administrator guard, exact previous three-partition layout and closed/new
+image-approval checks. No unit test opens/writes a physical device. Applicable
 pure tests also run on Linux; the two Windows-specific cases are explicitly skipped.
 Physical locking/writing/readback remains a separate executed boundary in STATE.
 

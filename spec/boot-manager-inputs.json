@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "purpose": "Explicit-options unsigned laptop development boot manager; no Secure Boot or production advisory acceptance",
+  "profile": "systemd-boot-v1",
+  "package": {
+    "name": "systemd-boot-unsigned-259.10-1.fc44.x86_64.rpm",
+    "size": 119952,
+    "sha256": "ef6e716e8ab4cc71b4174b6b4be4ef4643db669bfc4bb43c225825be2fede792",
+    "fedora_signer": "36F612DCF27F7D1A48A835E4DBFCF71C6D9F90A6",
+    "license": "LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later",
+    "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/s/systemd-boot-unsigned-259.10-1.fc44.x86_64.rpm"
+  },
+  "payload": {
+    "path": "usr/lib/systemd/boot/efi/systemd-bootx64.efi",
+    "size": 139264,
+    "sha256": "1dfce189a5a281bfa0bfc0e6b0ada38674893bfdb4f4d378b58a5c29d79a7821"
+  },
+  "source": "https://raw.githubusercontent.com/systemd/systemd/v259.10/src/boot/boot.c",
+  "review": "brains/aetheri/journal/2026-11-08-laptop-image.md#native-diagnostics-and-isolated-firmware-controls"
+}

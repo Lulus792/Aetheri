@@ -15,6 +15,17 @@ resolve its provenance or lifecycle obligations.
 
 ## Laptop test image — VM acceptance, 8 November 2026
 
+The [explicit boot-manager integration](journal/2026-11-08-boot-manager.md) is now
+under test. Corrected preparation and real-file assembly tests pass8 cases on
+native Linux and Windows; legacy media checks remain strict. The full base export
+is verified/retired and the fresh v2 assembly passes all non-ESP and final image
+checks. The first no-UART sequence reaches both desktops, but the second capture
+review times out; its original VM is retired and the failed copy retained. A
+fresh no-uart-v2 sequence is now running. Two complete no-UART boots and offline
+proof inspection remain before the newly authorized reflash. The replacement
+writer's exact three-partition/volume-GUID guards pass15 actual Windows cases;
+its new image approval stays closed. No new physical write yet.
+
 The corrected tty0-only image passes two cold boots without any UART on one fresh
 writable USB copy. Six native desktop/Terminal/document captures were actually
 reviewed; the document survives. Both original QEMU processes exit0 with genuine
@@ -54,10 +65,14 @@ VM boot. Neither establishes the HP's actual arguments or full laptop-image
 acceptance. New root failure diagnostics pass Release/ASan/UBSan and preserve all
 original guards. Next integrate/review that explicit boot path in a fresh full
 laptop image before any later hardware action; the existing stick is unchanged.
-Preserve the completed flash evidence and
-existing stick state; no automatic reflash is authorized by this report.
-Never replay this completed attempt or automatically reflash for new features:
-the stick now has writable user state to preserve. The Windows access issue is
+Preserve the completed flash evidence. The user has now explicitly authorized
+a NEW flash after the remaining tests and reports the stick reconnected to this
+PC. Metadata again observes the exact Intenso/serial/geometry and previous three
+Aetheri partitions. This later instruction permits replacement, including the
+stick's writable contents; it never permits replay of the completed old attempt.
+Require fresh complete-image acceptance, target reidentification, protected new
+intent, original elevated process handle and full write/readback verification.
+Until those gates pass the new replacement-image approval stays closed. The Windows access issue is
 resolved for this completed operation. Continue independent development without
 waiting for the later physical hardware test.
 The [first laptop guide](../../spec/first-laptop-test.md) covers the actual USB
