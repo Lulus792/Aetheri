@@ -4,6 +4,26 @@ Initial inspection: 25 October 2026; later entries are dated individually. Live
 branches can change. Candidate inventories do not prove selected versions,
 current security status, complete license compliance or runtime acceptance.
 
+## Graphical own-image integration — 8 November 2026
+
+- systemd259's [PAM contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/pam_systemd.xml)
+  distinguishes a normal user session/manager from user-light. The actual image
+  uses the normal user manager, not a lightweight class substitute.
+- Its [journal contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/journald.conf.xml)
+  describes volatile storage, size bounds and console forwarding. The existing
+  broker's PrivateDevices remains enabled; console access is not added to it.
+- The [login D-Bus implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/login/logind-dbus.c)
+  and [session implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/login/logind-session-dbus.c)
+  route activation through chvt authorization. The test image selects a fixed,
+  privileged VT oneshot rather than adding PolicyKit or weakening compositor
+  active-seat checks. This is development autostart, not production login policy.
+- [Pinned runtime files](../../spec/desktop-image-inputs.json),
+  [image contract](../../spec/desktop-image.md) and
+  [executed evidence](journal/2026-11-08-desktop-image.md) bind the native build,
+  actual GUI/cold-boot/shutdown tests and independent filesystem checks. Installed
+  RPM file digests/SDK reports establish development input consistency, not
+  current vulnerability clearance or complete binary-release source compliance.
+
 ## Persistent document image — 8 November 2026
 
 - systemd259 [mount](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.mount.xml)

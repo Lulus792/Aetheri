@@ -78,7 +78,7 @@ def inspect(image):
             files[name] = {"symlink": target}
         elif kind != 0o040000:
             raise ValueError("unexpected archive object")
-    root_profile = manifest.get("proof") in ("readonly-root", "writable-data")
+    root_profile = manifest.get("proof") in ("readonly-root", "writable-data", "desktop-image")
     valid_init = "init" not in seen if root_profile else files.get("init") == {"symlink": "usr/lib/systemd/systemd"}
     if files != manifest["root"] or not valid_init:
         raise ValueError("archive does not match original root manifest")

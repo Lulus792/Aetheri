@@ -3,7 +3,15 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
-8 November checkpoint: the separate own-image [persistent document proof](../../../spec/data-probe.md)
+8 November graphical checkpoint: the [own desktop image](../../../spec/desktop-image.md)
+now opens/closes the fixed apps through real virtual input, retains an ordinary
+document across cold boots and completes normal poweroff. The next laptop-alpha
+boundary is early USB-root/module/firmware and a single-medium data layout, tested
+as removable media in the VM before using the authorized Intenso G: stick. Keep
+developing afterward without waiting for the user's hardware test. Normal login,
+MAC/lifecycle/removal, installer/LUKS, updates and hardware acceptance remain work.
+
+Earlier 8 November checkpoint: the separate own-image [persistent document proof](../../../spec/data-probe.md)
 now advances an actual UID1000 document across two cold boots while keeping the
 system image read-only. A wrong volume rejects before mounting; independent
 filesystem inspection verifies the retained bytes. Next join the existing

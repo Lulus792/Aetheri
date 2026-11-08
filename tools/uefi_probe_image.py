@@ -25,6 +25,15 @@ def require(condition, reason):
         raise ValueError(reason)
 
 
+def root_geometry(manifest):
+    """Only the explicitly selected fixed development layouts are accepted."""
+    if manifest.get('proof') in ('readonly-root', 'writable-data'):
+        return ROOT_DISK_BYTES, 524288
+    if manifest.get('proof') == 'desktop-image':
+        return 768*1024**2, 1048576
+    raise ValueError('unsupported root image profile')
+
+
 def pe_sections(data):
     require(len(data) >= 64 and data[:2] == b"MZ", "invalid DOS header")
     pe = struct.unpack_from("<I", data, 60)[0]
@@ -62,7 +71,8 @@ def pe_sections(data):
 
 def esp_extent(data, manifest):
     root_profile = "root_partition" in manifest
-    require(len(data) == (ROOT_DISK_BYTES if root_profile else DISK_BYTES) and data[510:512] == b"\x55\xaa", "invalid image/MBR")
+    disk_bytes, root_sectors = root_geometry(manifest) if root_profile else (DISK_BYTES, 0)
+    require(len(data) == disk_bytes and data[510:512] == b"\x55\xaa", "invalid image/MBR")
     last = len(data)//512-1
     require(data[450] == 0xee and struct.unpack_from("<II", data, 454) == (1, last), "invalid protective MBR")
     require(not any(data[462:510]), "unexpected hybrid MBR")
@@ -92,8 +102,8 @@ def esp_extent(data, manifest):
         root = bytes(entry_sets[0][128:256])
         expected = manifest["root_partition"]
         require(uuid.UUID(bytes_le=root[:16]) == uuid.UUID("4f68bce3-e8cd-4db1-96e7-fbcaf984b709") and uuid.UUID(bytes_le=root[16:32]) == uuid.UUID(expected["guid"]), "wrong root partition identity")
-        require(struct.unpack_from("<QQQ", root, 32) == (262144, 786431, 1 << 60), "unexpected root extent/flags")
-        require((expected["start"], expected["sectors"]) == (262144, 524288), "root extent manifest mismatch")
+        require(struct.unpack_from("<QQQ", root, 32) == (262144, 262144+root_sectors-1, 1 << 60), "unexpected root extent/flags")
+        require((expected["start"], expected["sectors"]) == (262144, root_sectors), "root extent manifest mismatch")
         at = expected["start"]*512
         superblock = data[at+1024:at+2048]
         require(superblock[56:58] == b"\x53\xef" and uuid.UUID(bytes=bytes(superblock[104:120])) == uuid.UUID(expected["filesystem_uuid"]), "wrong root filesystem")
@@ -163,7 +173,7 @@ def boot_file(volume):
 
 def inspect(directory):
     manifest = json.loads((directory/"manifest.json").read_text())
-    expected_size = ROOT_DISK_BYTES if "root_partition" in manifest else DISK_BYTES
+    expected_size = root_geometry(manifest)[0] if "root_partition" in manifest else DISK_BYTES
     require(manifest["format"] == 1 and manifest["disk_bytes"] == expected_size, "unsupported media manifest")
     require(set(manifest["outputs"]) == {"boot.raw", "BOOTX64.EFI"}, "unexpected media outputs")
     for name, expected in manifest["outputs"].items():

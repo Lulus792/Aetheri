@@ -14,7 +14,7 @@ import test_boot_probe as boot
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def build(base, packages, output):
+def build(base, packages, output, prepare=None, geometry="root-v1"):
     original = boot.inspect(base)
     pins = json.loads((ROOT/"spec/data-probe-inputs.json").read_text())
     payloads = {}
@@ -30,7 +30,7 @@ def build(base, packages, output):
     if len(serial)!=20:
         raise ValueError('virtio data serial must fit exactly 20 bytes')
 
-    def prepare(tree, selected_nonce):
+    def prepare_data(tree, selected_nonce):
         if selected_nonce!=nonce:
             raise ValueError('wrong root profile')
         logs=output/'data-logs';logs.mkdir()
@@ -88,9 +88,12 @@ def build(base, packages, output):
         owners=re.findall(r'User:\s*(\d+)\s+Group:\s*(\d+)',reports)
         if owners!=[(str(uid),str(uid)) for p,uid in selected]:raise ValueError('data ownership mismatch')
         run('fsck',['/usr/bin/e2fsck','-f','-n',str(data_file)])
-        return dict(proof='writable-data',target='aetheri-data.target',data_volume=dict(uuid=data_uuid,serial=serial,size=256*1024**2,initial_sha256=boot.sha(data_file)),data_builder_sha256=boot.sha(Path(__file__)),data_source_sha256=boot.sha(ROOT/'src/boot/data.c'),data_pins_sha256=boot.sha(ROOT/'spec/data-probe-inputs.json'))
+        addition = dict(proof='writable-data',target='aetheri-data.target',data_volume=dict(uuid=data_uuid,serial=serial,size=256*1024**2,initial_sha256=boot.sha(data_file)),data_builder_sha256=boot.sha(Path(__file__)),data_source_sha256=boot.sha(ROOT/'src/boot/data.c'),data_pins_sha256=boot.sha(ROOT/'spec/data-probe-inputs.json'))
+        if prepare:
+            addition.update(prepare(tree, selected_nonce, addition['data_volume']))
+        return addition
 
-    root.build(base,packages,output,prepare=prepare)
+    root.build(base,packages,output,prepare=prepare_data,geometry=geometry)
 
 
 if __name__=='__main__':

@@ -1,5 +1,24 @@
 # Decisions
 
+## Integrate the existing desktop into a bounded own image — 8 November 2026
+
+Reuse the already selected compositor, SDL/text/NexaUI runtime and ordinary
+systemd/logind/user-manager path. Keep a separate development image/account,
+fixed child ownership and read-only root, with persistent documents on the
+separate test data volume. Include the C.UTF-8 and selected keyboard/Compose
+data as actual runtime dependencies. Select a512MiB root inside a768MiB medium
+for the measured software-renderer closure; this is not a final disk layout.
+Use the journal rather than weakening the vendor system-broker device sandbox.
+Only a bounded root oneshot changes the active VT; GUI processes remain cap-zero.
+See [contract](../../spec/desktop-image.md) and
+[evidence](journal/2026-11-08-desktop-image.md).
+
+The user confirms the detected Intenso Speed Line G: stick and authorizes flashing
+when the laptop-test image is ready. Reidentify the exact physical device at the
+write boundary; no repeat permission or wait for the user's later hardware test
+is required. This does not authorize writing internal disks. See
+[device record](knowledge/testumgebung.md#intended-usb-test-medium--8-november-2026).
+
 ## Separate persistent user data from the read-only image — 8 November 2026
 
 Extend the existing root builder through an explicit development profile, using

@@ -1230,3 +1230,24 @@ Start at `brains/aetheri/START.md`, then PROJECT, STATE, DECISIONS and QUESTIONS
   debugfs verifies actual bytes and ownership after unmount. Next integrate the
   existing desktop/session in this base; full OS/apps/installer/hardware and
   experiment goals remain active. Preserve the original carrier and foreign work.
+
+- tools/build_desktop_probe.py now assembles the existing desktop/apps into a
+  separate768MiB system/512MiB readonly-root profile plus256MiB data. Read
+  spec/desktop-image.md and the2026-11-08 desktop journal/STATE. Fixed development
+  PAM autostart is not production login/MAC/app admission. Keep GUI UID1000,
+  NoNewPrivileges/cap-zero and real active-seat/input checks. The bounded root
+  VT oneshot uses only SYS_TTY_CONFIG; broker PrivateDevices stays enabled.
+  Runtime inventory includes locale/input/module/licence data, not libraries
+  alone. Require bounded pinned copy validation and exact fixed image geometry.
+  Native owner uses pidfds and a pre-exec barrier; keep unknown attempts/data.
+  Accepted two-cold-boot sequences prove real app input, persistent documents
+  and normal unmount/poweroff. Separate read-only fsck/debugfs confirms exact
+  bytes/UID/mode/link count without changing input. Settings uses SETTLED and
+  original-owner exit acknowledgement, not invented READY/CLOSED strings.
+  Normal lifecycle/catalogue capabilities and protected carrier stay unchanged.
+  The virtio/bochs image is not laptop/USB acceptance. Next early USB-root/device
+  selection, module/firmware and single-medium data integration. User explicitly
+  authorizes flashing the identified Intenso Speed Line G: when ready; reidentify
+  the physical device before writing but do not ask again or wait for their later
+  hardware test. Internal disks are not authorized. No USB write yet. Full goal
+  remains active; preserve foreign work and the closed NexaUI handoff.

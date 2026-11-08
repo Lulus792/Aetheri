@@ -75,8 +75,9 @@ def write_state(path, value):
     os.replace(temporary, owned(path))
 
 
-def qmp_socket():
-    path = owned(VM / "qmp.sock")
+def qmp_socket_at(path):
+    """Connect only to a workspace-local Unix socket; never a TCP fallback."""
+    path = owned(path)
     if os.name != "nt":
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(3)
@@ -116,6 +117,10 @@ def qmp_socket():
     except BaseException:
         sock.close()
         raise
+
+
+def qmp_socket():
+    return qmp_socket_at(VM / "qmp.sock")
 
 
 def qmp(command, arguments=None):

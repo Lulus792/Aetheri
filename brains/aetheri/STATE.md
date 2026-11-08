@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — persistent user documents proven across own-image cold boots; desktop integration remains work.
+8 November 2026 — the own image now boots the graphical desktop and apps, preserves a document and shuts down normally; laptop USB integration remains work.
 
 ## Coordination
 
@@ -13,7 +13,47 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Persistent document volume — 8 November 2026
+## Graphical own-image integration — 8 November 2026
+
+The separate 768MiB UEFI/read-only-root image now starts the existing wlroots
+compositor, SDL desktop and NexaUI Settings/Files/Terminal under the fixed
+UID/GID1000 development account. Normal logind/user-manager/user-bus components,
+selected device rules, module metadata and a bounded volatile journal are
+included. A root oneshot selects VT8; the desktop/apps retain NoNewPrivileges and
+zero effective capabilities. Read the [contract](../../spec/desktop-image.md)
+and [executed record](journal/2026-11-08-desktop-image.md).
+
+Accepted sequences each complete two actual cold boots with fresh firmware
+variables, original QEMU handles, read-only system image and a separately owned
+256MiB data copy. Real virtual-keyboard input launches and closes Terminal, Files
+and Settings. The final sequence writes a newline-terminated document, then
+visibly reads it after reboot. Each desktop closes through its original owner;
+normal ACPI/logind/systemd poweroff unmounts the data volume before kernel S5.
+Native screenshots were inspected. Independent ordinary-user fsck/debugfs checks
+and native controller/payload regressions are recorded in the journal.
+
+The runtime inventory pins 1426 existing files, 365 aliases and RPM/SDK provenance
+with licence files; total selected payload is258644882 bytes. Nine application
+targets are freshly built. Native desktop-owner Release/ASan/UBSan tests and
+strict analyzer compilation pass. The final canonical build matches all477
+bundled non-document Git index inputs exactly. Host-controller versions have
+separate sequence/inspection pins.
+Earlier failed/unknown attempts and their data remain preserved, never reused.
+The original carrier, normal445 inputs/31 frozen contracts/19 quarantine hashes/
+52 P0 files/authority/CLOSED history and foreign work remain protected.
+
+This is explicit development autostart and fixed L3 app ownership, not production
+login, MAC/app admission, normal lifecycle/removal, recovery or hardware acceptance.
+The built-in virtio root and bochs/PS2 profile cannot yet serve as the laptop USB
+profile. Next implement early USB-root/device selection, the laptop display/input
+module/firmware path and a single-medium writable-data layout, then test the same
+removable profile in the VM before flashing. The user explicitly authorizes the
+identified Intenso G: stick when ready; reidentify the device but do not ask again
+or wait for the user's later hardware test. No USB write has occurred. Full OS,
+apps/browser, installer/LUKS, updates/rollback, hardware/suspend and the resettable
+experiment desktop remain required. NexaUI handoff stays closed.
+
+## Prior persistent document volume — 8 November 2026
 
 The separate own-image proof now mounts a new ext4 data fixture at `/var`, binds
 its home tree at `/home`, and supplies bounded volatile `/tmp` and a private

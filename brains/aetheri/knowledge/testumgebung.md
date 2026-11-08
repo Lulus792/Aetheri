@@ -27,6 +27,26 @@ elsewhere are not ruled out. No /dev/kvm was present in Alpine.
 Some WMI virtualization flags were false despite the running hypervisor/WSL.
 This does not prove disabled firmware virtualization.
 
+## Intended USB test medium — 8 November 2026
+
+The user offers drive **G:** for the later Aetheri USB test version and reports
+29.2 GB capacity. Read-only Windows storage queries identify an **Intenso Speed
+Line**, USB/removable, with a 31,457,280,000-byte device. Its current FAT32 volume
+has 31,439,421,440 bytes, almost entirely free; the current partition table is MBR.
+Windows reports it as neither a boot nor a system disk.
+
+The graphical VM image currently reserves 768 MiB for system/EFI plus a separate
+256 MiB data file. This is comfortably within the stick's capacity; the actual
+later USB image, persistence layout and final size still need engineering review.
+In a subsequent message on 8 November the user confirmed that this is the correct
+stick and explicitly authorized flashing it once the laptop-test image is ready,
+including replacement of its current contents/layout as needed. Do not ask for
+the same permission again or pause project work waiting for the user's hardware
+test. Recheck the exact physical device at the actual write boundary; a drive
+letter or disk number is not a durable hardware identity. This permission covers
+the identified USB stick, not the host's or laptop's internal disks. No USB
+write/format has been performed at this checkpoint.
+
 ## Target laptop: user-reported
 
 | Item | Specification |

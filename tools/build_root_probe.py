@@ -44,9 +44,15 @@ def archive_entries(data):
         yield name, mode, body
 
 
-def build(base, packages, output, wrong_nonce=False, prepare=None):
+def build(base, packages, output, wrong_nonce=False, prepare=None, geometry="root-v1"):
     if sys.platform != "linux" or os.uname().machine != "x86_64" or os.geteuid() == 0:
         raise ValueError("use an ordinary x86-64 Linux build user")
+    if geometry == "root-v1":
+        disk_bytes, root_sectors = DISK_BYTES, ROOT_SECTORS
+    elif geometry == "desktop-v1":
+        disk_bytes, root_sectors = 768*1024**2, 1048576
+    else:
+        raise ValueError("unsupported fixed image geometry")
     original = boot.inspect(base)
     if original.get("proof", "ram-root") != "ram-root":
         raise ValueError("expected the original RAM-root input")
@@ -111,12 +117,14 @@ def build(base, packages, output, wrong_nonce=False, prepare=None):
     addition = prepare(tree, nonce) if prepare else {}
     target = addition.get("target", "aetheri-root.target")
     proof = addition.get("proof", "readonly-root")
+    if (geometry == "desktop-v1") != (proof == "desktop-image"):
+        raise ValueError("root geometry and image profile disagree")
     root_image = output/"root.ext4"
     with root_image.open("xb") as stream:
-        stream.truncate(ROOT_SECTORS*512)
+        stream.truncate(root_sectors*512)
     command("mkfs", ["/usr/bin/mkfs.ext4", "-q", "-F", "-U", fs_uuid, "-L", "AETHERI_SYSTEM", "-E", "root_owner=0:0", "-d", str(tree), str(root_image)])
     paths = ["/", *["/"+p.relative_to(tree).as_posix() for p in sorted(tree.rglob("*"))]]
-    if any(not re.fullmatch(r"/[A-Za-z0-9._+/-]*", p) or ".." in Path(p).parts for p in paths):
+    if any(not re.fullmatch(r"/[A-Za-z0-9._+/@-]*", p) or ".." in Path(p).parts for p in paths):
         raise ValueError("unsupported bootstrap inode path")
     batch = output/"owners.debugfs"
     batch.write_text("".join(f'set_inode_field "{p}" uid 0\nset_inode_field "{p}" gid 0\n' for p in paths))
@@ -152,8 +160,8 @@ def build(base, packages, output, wrong_nonce=False, prepare=None):
     disk_id = str(uuid.uuid5(namespace, nonce+"/system-disk"))
     final = output/"boot.raw"
     with final.open("xb") as stream:
-        stream.truncate(DISK_BYTES)
-    layout = f'label: gpt\nlabel-id: {disk_id}\nunit: sectors\nfirst-lba: 2048\n\nstart=2048,size=258048,type=U,uuid={manifest["esp_guid"]},name="Aetheri boot proof"\nstart={ROOT_START},size={ROOT_SECTORS},type=4f68bce3-e8cd-4db1-96e7-fbcaf984b709,uuid={root_guid},attrs="GUID:60",name="Aetheri system root"\n'
+        stream.truncate(disk_bytes)
+    layout = f'label: gpt\nlabel-id: {disk_id}\nunit: sectors\nfirst-lba: 2048\n\nstart=2048,size=258048,type=U,uuid={manifest["esp_guid"]},name="Aetheri boot proof"\nstart={ROOT_START},size={root_sectors},type=4f68bce3-e8cd-4db1-96e7-fbcaf984b709,uuid={root_guid},attrs="GUID:60",name="Aetheri system root"\n'
     command("gpt", ["/usr/bin/sfdisk", "--quiet", "--no-reread", "--no-tell-kernel", str(final)], layout.encode())
     with final.open("r+b") as target, (output/"efi/boot.raw").open("rb") as source:
         target.seek(2048*512)
@@ -181,11 +189,11 @@ def build(base, packages, output, wrong_nonce=False, prepare=None):
         path = Path("/usr/bin")/name
         root_tools[str(path)] = dict(sha256=boot.sha(path), package=subprocess.check_output(["/usr/bin/rpm", "-qf", "--qf", "%{NEVRA}", str(path)], text=True))
     manifest.update(
-        disk_bytes=DISK_BYTES,
+        disk_bytes=disk_bytes,
         disk_guid=disk_id,
         root_builder_sha256=boot.sha(Path(__file__)),
         root_probe_source_sha256=boot.sha(ROOT/"src/boot/probe.c"),
-        root_partition=dict(guid=root_guid, filesystem_uuid=fs_uuid, start=ROOT_START, sectors=ROOT_SECTORS, sha256=boot.sha(root_image)),
+        root_partition=dict(guid=root_guid, filesystem_uuid=fs_uuid, start=ROOT_START, sectors=root_sectors, sha256=boot.sha(root_image)),
         root_tools=root_tools,
         mke2fs_configuration_sha256=digest(configuration),
         root_inode_count=len(paths),
@@ -194,7 +202,7 @@ def build(base, packages, output, wrong_nonce=False, prepare=None):
     )
     manifest.update(addition)
     (output/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-    print(json.dumps(dict(output=str(output),root_inodes=len(paths),disk_bytes=DISK_BYTES)))
+    print(json.dumps(dict(output=str(output),root_inodes=len(paths),disk_bytes=disk_bytes)))
 
 
 if __name__ == "__main__":
