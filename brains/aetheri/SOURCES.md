@@ -1,5 +1,25 @@
 # Sources
 
+## Private audio policy — 8 November 2026
+
+- [Exact inputs](../../spec/audio-policy-inputs.json),
+  [contract](../../spec/audio-policy.md) and
+  [executed record](journal/2026-11-08-audio-policy.md): signed WirePlumber
+  0.5.19 packages, private automatic links/default output and real PCM volume/
+  mute controls in Release/ASan/UBSan, with no normal hardware/session promotion.
+- [Fedora package](https://packages.fedoraproject.org/pkgs/wireplumber/wireplumber/fedora-44-updates.html)
+  and [upstream releases](https://pipewire.pages.freedesktop.org/wireplumber/resources/releases.html):
+  version selection, dependency/API context and current release fixes; not a
+  blanket security clearance. Actual RPM signatures/metadata are retained locally.
+- [Features](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/features.html),
+  [ALSA monitor](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/alsa.html)
+  and [wpctl](https://pipewire.pages.freedesktop.org/wireplumber/man/wpctl.html):
+  separate monitor/policy responsibilities and control interfaces. The signed
+  shipped configuration and actual graphs are stronger evidence for this profile.
+- [Lua known bugs](https://www.lua.org/bugs.html) and actual installed RPM
+  changelog: record the older baseline's limitations; do not infer current
+  production suitability from its successful trusted-script fixture.
+
 ## Virtual HDA playback — 8 November 2026
 
 - [Exact extra inputs](../../spec/audio-hda-inputs.json),

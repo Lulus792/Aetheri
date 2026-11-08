@@ -1,6 +1,6 @@
 # State
 
-8 November 2026 — A separate diskless HDA guest now passes complete independently captured stereo playback through PipeWire/ALSA/a virtual sound card. Transport Release/ASan/UBSan and HP cat/Files corrections remain recorded below. The stick stays unchanged; physical audio, WLAN/Bluetooth and normal integration remain work.
+8 November 2026 — Private WirePlumber policy now passes actual automatic-link, default-output, volume/mute and missing-manager tests in Release/ASan/UBSan. The separate HDA guest proves virtual-device playback. Joining its device monitor to policy, normal audio/Settings and physical hardware remain work. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,34 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Private audio policy — 8 November 2026
+
+The [WirePlumber 0.5.19 profile](../../spec/audio-policy.md) now selects a default
+output, creates both original stereo links and applies volume/mute controls in
+a real private graph. Full captured samples verify unity and cubic 50% gain;
+muted output is actually zero. Without the manager, the player stays unlinked
+and times out without success. Both Release and ASan/UBSan pass all four policy
+cases and the four existing audio CTest groups. Those now cover seven verifier
+cases and 16 invalid requests. Six real prefix-corruption cases are rejected.
+See the [executed record](journal/2026-11-08-audio-policy.md).
+
+Only explicit `--autoconnect` changes producer routing; existing manual behavior
+remains. The standard manager configuration has a named stateless test profile
+with hardware monitors and D-Bus disabled. Original server/manager/player pins,
+images, UID/capability state and graph snapshots are checked. A real sanitizer
+run exposes early port IDs becoming stale during policy reconfiguration; final
+tests join current roles/ports/links in one snapshot and retain the old-ID
+counterexample. No production admission or backend-ID durability follows.
+
+The separate pinned prefix has 232 package files, including 156 explicitly staged
+ALSA/ACP data files for the next hardware-monitor work. Eight existing runtime/
+notice objects are copied by hash. The legacy Lua baseline is reviewed only for
+trusted private policy testing; runtime update/review remains a rollout gate.
+No normal service, current SDK, public API, catalogue contract, carrier or USB
+is promoted. Next join actual udev/ALSA monitor and ACP routes to the already
+tested HDA path, then add the C17 management adapter, session/device mediation,
+Settings and HP output. Separate graph and hardware tests are not joined acceptance.
 
 ## Virtual HDA playback — 8 November 2026
 

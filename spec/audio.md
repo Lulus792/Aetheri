@@ -81,6 +81,9 @@ interleaved F32LE stereo frames at 48 kHz. Default duration is 48000 frames. Lef
 and right carry distinct 440/880 Hz tones at amplitude 0.125; `--silent` provides a
 zero control. Frame/argument bounds are checked before opening a connection.
 Only the exact 1.6.11 header/library pair is accepted.
+The opt-in `--autoconnect` now supports a session manager on that explicit
+remote; default manual routing remains unchanged. See the separate
+[policy profile](audio-policy.md) for actual automatic-link and control tests.
 
 The diagnostic uses ordinary matching user/group identities and NoNewPrivileges.
 It connects to the explicit path; a failed properties allocation cannot choose
@@ -109,7 +112,8 @@ drain, Aetheri app readiness, run end or release of an authority lease.
 `audio.inputs` checks pins and malformed archive data. Its Linux case proves
 immutable snapshots survive source replacement and refuse writes/truncation.
 `audio.pcm_verifier` rejects missing/swapped channel samples, dropped frames,
-truncation and nonfinite data. `audio.cli` checks 15 invalid requests.
+truncation, nonfinite data and incorrect expected gain. `audio.cli` checks 16
+invalid requests, including a repeated `--autoconnect` option.
 
 `audio.playback` runs seven fresh graphs: tones of 48000 and 96000 frames, a
 partial block of 257 frames, silence, server loss, interruption and an unstarted
@@ -202,7 +206,10 @@ guest has no loaded production SELinux policy. UID/capability observations and
 VM isolation do not establish production audio sandbox admission. Next integrate
 a per-user service, device/profile policy and Settings, then HP jack output and
 Bluetooth. WirePlumber is the recommended policy manager; its exact version and
-profile are not selected here. Recording permissions, volume/device switching,
+profile are not part of this HDA image. The separate
+[policy profile](audio-policy.md) now tests version 0.5.19, automatic links,
+default output and volume/mute in a graph; actual ALSA monitor integration is
+still pending. Recording permissions, physical volume/device switching,
 normal admitted app audio and physical audibility remain untested.
 
 References: [upstream 1.6.11 NEWS](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/NEWS),

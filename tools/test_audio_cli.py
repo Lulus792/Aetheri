@@ -8,7 +8,7 @@ binary = Path(sys.argv[1]).resolve()
 assert os.getuid() != 0
 cases = [[], ['--remote'], ['--remote','relative'], ['--unknown'],
          ['--remote','/absent','--remote','/other'], ['--silent','--silent'],
-         ['--wait-for-start','--wait-for-start']]
+         ['--wait-for-start','--wait-for-start'],['--autoconnect','--autoconnect']]
 for value in ('0','96001','9999999','-1','+1','1x',' 1',''):
     cases.append(['--remote','/absent','--frames',value])
 for args in cases:

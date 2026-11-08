@@ -5,10 +5,10 @@ import unittest
 from test_audio import validate_pcm
 
 
-def tone(frames=257):
+def tone(frames=257,gain=1.0):
     result = bytearray(16 * 8)
     for i in range(frames):
-        result += struct.pack('<ff', *[.125 * math.sin(2 * math.pi * f * i / 48000) for f in (440, 880)])
+        result += struct.pack('<ff', *[gain * .125 * math.sin(2 * math.pi * f * i / 48000) for f in (440, 880)])
     result += bytes(16 * 8)
     return bytes(result)
 
@@ -39,6 +39,15 @@ class PCM(unittest.TestCase):
         raw = tone()
         for changed in (raw[:80 * 8], raw + b'x', struct.pack('<f', float('nan')) + raw[4:], b''):
             with self.assertRaises(AssertionError): validate_pcm(changed, 257)
+
+    def test_requested_gain_requires_actual_scaled_samples(self):
+        self.assertEqual(validate_pcm(tone(gain=.125),257,gain=.125)['signal_frames'],257)
+        with self.assertRaises(AssertionError):validate_pcm(tone(),257,gain=.125)
+        with self.assertRaises(AssertionError):validate_pcm(tone(gain=.5),257,gain=.125)
+
+    def test_invalid_expected_gain_is_refused(self):
+        for gain in (0,-1,1.1,float('nan'),float('inf')):
+            with self.assertRaises(ValueError):validate_pcm(tone(),257,gain=gain)
 
 
 if __name__ == '__main__': unittest.main()

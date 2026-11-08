@@ -1,5 +1,21 @@
 # Decisions
 
+## Select maintained audio policy, keep rollout separate — 8 November 2026
+
+Use signed Fedora 44 WirePlumber 0.5.19 with the existing PipeWire 1.6.11 for
+private policy development. Keep its maintained device/profile/linking rules;
+Aetheri owns the eventual management adapter and presentation. The first actual
+policy suite disables all hardware monitors and D-Bus in a copied stateless
+profile, so it can run without altering the protected carrier's devices/session.
+Unity, cubic 50% volume and mute must agree with actual captured samples.
+
+The original diagnostic gains only explicit `--autoconnect`; no default routing
+change or normal service follows. Six prefix corruption controls and same-graph
+role/port/link joins guard this development boundary. The existing Lua baseline
+does not receive production clearance; update/review it before rollout. Prepared
+ALSA/ACP data is not device-monitor evidence. Next join policy and actual HDA
+discovery, then normal mediation and Settings. [Evidence](journal/2026-11-08-audio-policy.md).
+
 ## Keep virtual-device audio separate from normal admission — 8 November 2026
 
 Use the existing PipeWire1.6.11 C diagnostic with signed Fedora44

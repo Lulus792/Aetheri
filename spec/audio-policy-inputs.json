@@ -1,0 +1,1988 @@
+{
+  "format": 1,
+  "version": "0.5.19",
+  "purpose": "Private WirePlumber policy development; no normal session/device admission",
+  "reviewed": "2026-11-08",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/wireplumber/0.5.19/1.fc44/data/signed/6d9f90a6/x86_64/wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 147922,
+      "sha256": "4b48a8b41251400faee2b13f2828becbb257e548c29d213e377e9870bb5edc4b",
+      "nevra": "wireplumber-0.5.19-1.fc44.x86_64",
+      "license": "MIT",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/wireplumber/0.5.19/1.fc44/src/wireplumber-0.5.19-1.fc44.src.rpm"
+    },
+    {
+      "name": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/wireplumber/0.5.19/1.fc44/data/signed/6d9f90a6/x86_64/wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 484116,
+      "sha256": "89887dcc12a6398778dc55f9ee271022ef3968418e96a0fed8d77166cdc650a6",
+      "nevra": "wireplumber-libs-0.5.19-1.fc44.x86_64",
+      "license": "MIT",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/wireplumber/0.5.19/1.fc44/src/wireplumber-0.5.19-1.fc44.src.rpm"
+    },
+    {
+      "name": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/alsa-lib/1.2.16.1/1.fc44/data/signed/6d9f90a6/x86_64/alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 579276,
+      "sha256": "05d9c51183de8b254df47f09ef1c63419eee3e2caea6452f1b39f10b2a22a9fe",
+      "nevra": "alsa-lib-0:1.2.16.1-1.fc44.x86_64",
+      "license": "LGPL-2.1-or-later",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/alsa-lib/1.2.16.1/1.fc44/src/alsa-lib-1.2.16.1-1.fc44.src.rpm"
+    },
+    {
+      "name": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pipewire/1.6.11/1.fc44/data/signed/6d9f90a6/x86_64/pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2779549,
+      "sha256": "42231bc1667a0ccb0e43b9f845382701899fc451aac17c80124ea1aa2d88f7e6"
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/bin/wireplumber",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 20264,
+      "sha256": "0aafb5c30247aec3901c7d42e2dba88fb5039b57183b28dd1dcba006e58c7ae0",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/bin/wpctl",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 90600,
+      "sha256": "fd425caf2270b16edd8187750bfcf37af9c60b6c05f48827b935b4b9466d6d7f",
+      "mode": 493,
+      "role": "test"
+    },
+    {
+      "path": "usr/share/licenses/wireplumber/LICENSE",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1094,
+      "sha256": "ff2eb9af5b05d92ac3a38cffcad27582ef555a31ff1781e1c1d4e087f77c9c81",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/apply-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3043,
+      "sha256": "febc2d6aa4c2c327b78fcc6de7442992f3278f4886592f9649ee9478f393614a",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/find-config-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4600,
+      "sha256": "5f0c417a7ffbee59300077ade1cd914052440a09785ecb45247664bd1b07a247",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/find-default-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2423,
+      "sha256": "7e5d859d4d4821d45d5ac72301f3d9dc464f26b4a78facf1b2d4ae772dfd28e0",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/find-flatpak-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2776,
+      "sha256": "137ab5fb790f38c47736338d0b3d06de0df6d1b4e681bc9c411b1996dea09645",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/find-portal-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6456,
+      "sha256": "111a02c781a6f9cb758c492c8c6100f30ce68c805e8f6f49b6bb550783d98cd3",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/find-snap-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2769,
+      "sha256": "2d556cc3191cca8941ab914704a8495818b7bff5cbb6a47f70bffb8fb1718cdf",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/client/select-access.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 494,
+      "sha256": "3718d3987a46f502271a522bd7ccfb6a9d1c746fc2a5be10ac5ee43b21bc7f50",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/default-nodes/apply-default-node.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1245,
+      "sha256": "21746be3955485f44e197624fe98eaa94342538eb3895c865e850015c0b554b6",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/default-nodes/find-best-default-node.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3189,
+      "sha256": "5ef24a6239a460fb90ba4d810b5c381756a0004a75a4c70f268a41f1cd4aedba",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/default-nodes/find-selected-default-node.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2074,
+      "sha256": "37f256c714bae4217ad10ff0fba1d2bfb819d66a5e122fd910dbf58ce05aec27",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/default-nodes/rescan.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4063,
+      "sha256": "49060517629cfbe8e45a2551606ed6efaf91e8443f2c0132d63ae1e6fb806373",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/default-nodes/state-default-nodes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 5873,
+      "sha256": "fc968c6bef1fcefe0ccb75264388971533e3ad79df5cb78c599e98742d35a338",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/apply-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1824,
+      "sha256": "f9c98a3ad33ea3c27d9b5f38e4b567a64b4acdd6efeb4dfa570aa55ee9291d72",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/apply-routes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3763,
+      "sha256": "98690d647cebc78e6a6e401814e9086bf13a9c0362496a9d752c7b5bb14d90e5",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/automute-alsa-routes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 7425,
+      "sha256": "726f30174e45885d95431bb80ca7bb1c92fd9a7c0c81a28d955dc6c17a656ce4",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/autoswitch-bluetooth-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 23680,
+      "sha256": "d93cc9fac954ef9f0178d47ca545e1a7b4e54d6c4bb8a3a95e934298e8ef954d",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/find-best-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2957,
+      "sha256": "9eabbe2fe2038950cdb62482d08824f058e1c73a9690e7d447bf2a9f56412334",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/find-best-routes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2560,
+      "sha256": "5f113802e9499d6666fe9f9eb80ed17d3f04729e558e9d5c25964068c179b5f3",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/find-preferred-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3238,
+      "sha256": "543d212b8ad6870dacc74fb2042dea3c6ee9309cacc2c2fcb79ce9f3199631ab",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/find-voice-call-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2347,
+      "sha256": "28a5d39db66735e62ca0f7804a100cc4b254a41a85293a54c3751a18e4a9e3c4",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/select-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1511,
+      "sha256": "6be92c22ebfb412be3cc1ab9953d63e3d335b0656fc35f02e72650406e51f8ae",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/select-routes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 5037,
+      "sha256": "f6864d5717a1420d2f2b43ffe2d7530a98810e9b5fcba9a462a5a344f65300de",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/state-profile.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 5276,
+      "sha256": "8866fd7a5910fd7ff158ecdccfc3a6929d800bfe69d7b581c5d318fbbc7930fc",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/device/state-routes.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 11932,
+      "sha256": "9cc3723f33d9830731d65fdd0a774206f32fa5fe90f915a9971301e3d1426c8e",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/fallback-sink.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2371,
+      "sha256": "6921dcb6dc4cf1db162080d89a728cf9e85d8e75e91d4ba93bdc23eb5eb127be",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/audio-group-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 649,
+      "sha256": "dc66a5609fa3b6f21440982c6bc8e28d2798652702284ac9766bf7641e8fe72f",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/common-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2918,
+      "sha256": "09a9b5c6875039ab93a27f9ce254a4ea767797822323d75c9930fb79a2dffb3b",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/device-info-cache.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1820,
+      "sha256": "83859077720c0f04e4e6cc21497877e23cd94c799c568a091546273be5c9e831",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/filter-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 13575,
+      "sha256": "71ed1d5b1d51ae89b67ae20c1f8b6ac13ae1d365a0e401b9b9dea69d60ccc636",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/linking-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 13963,
+      "sha256": "c1d4267b33d943e327caa5a05187578008bf04f7d44dacce01169e0689dfbb4e",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/monitor-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 5193,
+      "sha256": "7ef9e0c7dd37fe763e31d4c943deafbab6c99fd6d8af304f5133aa1d7e5607bb",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/node-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3449,
+      "sha256": "290e7c1c05de70bf27e2808fbfa7f8d1ee9e0f33f9299da8cb3e99748b7e09c9",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/lib/profile-utils.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2913,
+      "sha256": "669c8796ec32aa9f148a53778ab77928a7a8979f19d4db28446ceb7c0f57d5bd",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-audio-group-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2779,
+      "sha256": "d777febf1e97e555c4d0980973e3bcd3340e146e4354c411ca38abd9e9a07e92",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-best-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4068,
+      "sha256": "91757804fc1ebdfb62760f7705afe12f279916f46aa331a2e1813095095b3d80",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-default-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1741,
+      "sha256": "4c333ce1c0e510ebe1865805da5321c0155a7f90682d4404a8fed7322a137d1d",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-defined-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4353,
+      "sha256": "758a3d25ec9a8064a080c5caaf895624ff217942b913c5ed1839bb318a398c3f",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-filter-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2971,
+      "sha256": "d80a728d23672d6e9781009896a70172f031610a029b1c3b9ec3a60f6fb6abf1",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-media-role-sink-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2645,
+      "sha256": "4fab5313af766110308fb6490ce31b3105ab7669f0a6d0614cb0f2b147d64e0c",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/find-media-role-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2265,
+      "sha256": "8ba852b3b148398436987ea1c10c4857783c95eb9ab82656ed0043ce6c3610b2",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/get-filter-from-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3598,
+      "sha256": "70fb40a96b4638015ec0ad817f3d2b7764d9ee5bef890c0c51e5868433732b9a",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/link-target.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 5352,
+      "sha256": "9e8a24f2ec0fdb52b7db307bfc35d02c03133b4a6f6c98e23fcf27a1779ebf05",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/mpris-pause.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 10256,
+      "sha256": "5736b1fafe65d4a16d519147307c1c5bbc363cbbaf33b34cf000d92f87934b0e",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/prepare-link.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4019,
+      "sha256": "c2dec8776fd7089663cce46db39367049f1e7d7d87119b9d030530df385f7615",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/rescan-media-role-links.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6666,
+      "sha256": "a5507be87263319531ab4dca1d4ce1a57ed310eae85d05aa8df09e09d4020696",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/rescan-on-linkable.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 738,
+      "sha256": "538ebaa392d2e8a78b828f4295eb600823b254f3b6111331100d611007d7668f",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/linking/rescan.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 9838,
+      "sha256": "417e7d1fc40ea195e3568482b36d57b13799e36cf0ad77bb4f505e5e25d58dad",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/metadata.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 662,
+      "sha256": "7394102cc24ee32f68d687fce26033c770e38f5f130a5dd495f6c42506342996",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/monitors/alsa.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 26489,
+      "sha256": "732e9093a22abe85bf8c4d4386920f29c5f9bf49c18212295ce1aecf24d39cbf",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/audio-group.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6696,
+      "sha256": "937a24d2b4d1039b956b3964c4259e995bc67166dc0edf159dcbc17afce6070e",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/create-item.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6119,
+      "sha256": "563ed1e22f01e6886ee39daf97ee1a8be15d2692482fe770ef926f93fb2e61e8",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/filter-graph.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 4954,
+      "sha256": "f9c949aabedb02ddab16596b8a52bbeb315043fddfa60983a662b0d27840534b",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/find-media-role-default-volume.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 2869,
+      "sha256": "b0a2a6d1bfb1aa8a21a8559e28375ccd03cea89175a9e8f9105582cfbc27946b",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/software-dsp.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3036,
+      "sha256": "ddc90448be1159badb29c10db2bb979ebd14c5fdb83837caa97c58e6182e6df0",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/state-stream.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 16438,
+      "sha256": "dd746b0aab8a166ac79481396789bd24ad21afbb20d8e4cb00c06a904577dd00",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/node/suspend-node.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 6338,
+      "sha256": "530b16997e3067ef686cb8945fa331eaf754a7f2b0c6c4fa5a41163d6afb0dcf",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/session-services.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1172,
+      "sha256": "b9d47116f63af2eb3fa4e701d13c2a5911a1d83d148c5d3b7f0ed88c3bbd0376",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/scripts/sm-objects.lua",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 3416,
+      "sha256": "21ebc1dd7ce5593aa77b8ba5666303ba4634e11738bdc427019c89774dd7d39e",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/wireplumber/wireplumber.conf",
+      "package": "wireplumber-0.5.19-1.fc44.x86_64.rpm",
+      "size": 33940,
+      "sha256": "9a886bc8b4e7f2bced130cfd57312658ff983596b1c81c2124f46652894b3a53",
+      "mode": 420,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/libwireplumber-0.5.so.0.519.0",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 674632,
+      "sha256": "abf496f7bbce57e0b449ab9018d0102f370ee8f9fb891dc58127cb7d90d8fafe",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-default-nodes-api.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 24072,
+      "sha256": "c20cb7a553cdd7180143c6a50f8b4563355ffcd3442eb531138092ab07019478",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-log-settings.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 15752,
+      "sha256": "53d92ba29a1ba8efbff3c1cc2f7cd07353c48cc1cbafb397248222be3dd0515d",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-lua-scripting.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 212760,
+      "sha256": "64d40f23e6c011479bb95e3c989eba45d2e19f3c430d0c9a5466718cca77d953",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-mixer-api.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 36408,
+      "sha256": "46c2422ff905e5407fadf2fded7a37a55a1d9c95ca52f6478e65cf85a099d0ad",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-settings.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 28144,
+      "sha256": "b30fa03de2d18164fb5b909b53c65a0b664435f4601a98dd1c0e86d2bd0edb14",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-si-audio-adapter.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 40648,
+      "sha256": "58ec059c91e9db7fc59112033fd6561475dd165903b805bad9eb935b4496e593",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-si-node.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 19880,
+      "sha256": "fb2553a651c726adf3c25fc214227819b0b3e398e2c48008ac45d0ca23a423d9",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-si-standard-link.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 40648,
+      "sha256": "a9c0f812d4c6dd202373fc8c06f0cb67a12715cc3d39f251543e50b944845b30",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/wireplumber-0.5/libwireplumber-module-standard-event-source.so",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 28264,
+      "sha256": "635fcffc9619ac2fae0b98ff85c19c511d650964ad0d8f80191f734279187b27",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/licenses/wireplumber-libs/LICENSE",
+      "package": "wireplumber-libs-0.5.19-1.fc44.x86_64.rpm",
+      "size": 1094,
+      "sha256": "ff2eb9af5b05d92ac3a38cffcad27582ef555a31ff1781e1c1d4e087f77c9c81",
+      "mode": 420,
+      "role": "notice"
+    },
+    {
+      "path": "usr/share/alsa/alsa.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 10092,
+      "sha256": "2821ad9f3b3cef408a52706d12c5485311d68039ee63dbde359d2135ee963d14",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/AACI.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 664,
+      "sha256": "910c5d6779174a0b346dee85dce7771a5281971079dff57e4593acb55e225f85",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ATIIXP-MODEM.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 303,
+      "sha256": "8236a9c628221bf581f0170c7c923677246b14f2b6d0c7ee888f5913fc10c5ee",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ATIIXP-SPDMA.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2241,
+      "sha256": "9126a61351065366b35752c3be064d0bccecb2079da0c994e610a365583bbb5f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ATIIXP.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2487,
+      "sha256": "9cb10b6a2043dcb296fe70e3d2502e4ae64ac61abda34101b43dd26c0077d0f7",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/AU8810.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 438,
+      "sha256": "a4d42fee6d6d39ef2e2dd893b2be5ef83a73159731630ba41ae06dc808f27b28",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/AU8820.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 159,
+      "sha256": "a7de76cb2142a8cd29d1d5f2df8a2c792b21dfd421f3ab6f31ef81b483025a55",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/AU8830.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 521,
+      "sha256": "6907549997dd77bda5033765ad026b538a742dd95865a1f99976a85ba7701fd7",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Audigy.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 4101,
+      "sha256": "5437ba2bfa422c718926cf3c52670a2f49f7719afd44eea491b73f2ee4e94ae3",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Audigy2.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 5560,
+      "sha256": "6c925bcfcb2bfd1dd8e76e011fd0d84bd23c286a46de593ee9f6968e8967d7a1",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Aureon51.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2373,
+      "sha256": "b327071469e13647a20cfb0d7e7daf669d73aaeb8e8af025141caec1cf09ad84",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Aureon71.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2504,
+      "sha256": "4de4f54d684cb6593e667a857a6c8150defed7d560123ceb0ce26a7c7b073b7d",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CA0106.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 3853,
+      "sha256": "624f6cfc965d7b6d120c5e7e47793cc72a424411a00a956996b1e89eb15f7777",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CMI8338-SWIEC.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1788,
+      "sha256": "a9779375df471d8fd99ea8cf9b84b1b6a0581eb46ee89c3a686e9be39d2a5f93",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CMI8338.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1915,
+      "sha256": "3ffa621044f0e522864ae2df9bde5801bfc5dea7687ceb58cb723cafe22d2ce5",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CMI8738-MC6.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2134,
+      "sha256": "31e6c2adeb789f8776ea14129a76cb91123d89e3d3361b3de508f709176e7a24",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CMI8738-MC8.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2985,
+      "sha256": "f094654f0428a59d01a705b212318d7929a106e5ad305b321b305b5fa4025653",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CMI8788.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1643,
+      "sha256": "014a9bd696cfc2721f2d85f7659f915a0e582718a67eaa8a54db3ab5650d00e5",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/CS46xx.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2949,
+      "sha256": "4d19a06598f035eda1cb598681cb0e651e3d58b2e819e10c362c2e2588f18448",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/EMU10K1.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 4423,
+      "sha256": "6aaca0c90e6378460ca6a6a1d0b1b85a118ba10bdfdde8623fcbb5b6f906014e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/EMU10K1X.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2758,
+      "sha256": "b9dcf5c6a2415e0098c5e83d38a04d94ee40d1e4f22563fcdd5ba3913069c40c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ENS1370.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1369,
+      "sha256": "a7e1b7625da8192e69f5b528c26f59eaff6a4424b4c3bb942c5ce9d126acb23e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ENS1371.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1727,
+      "sha256": "a4dee29f224cbd9407d2f129dc0cc1d0604ba62898f4a6708a67344afb552d3b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ES1968.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 152,
+      "sha256": "b0de614ab6f00e1d73c99c8f4b46bc5a7120deb7d7751e65839731246b095b6a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Echo_Echo3G.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 4409,
+      "sha256": "721d269ff4a56e5caa6726fb80733dd47a3ed060b1c23022225763b3be4a4a5b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/FM801.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1229,
+      "sha256": "ad46ab2baaf7467352a087a827fe2dc0be03427e7803f46e51c9941c111b78a8",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/FWSpeakers.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 335,
+      "sha256": "2c834034dae912dc490ddbe6ca95efaec8409e2205470d10265d5e216229eb93",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/FireWave.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 705,
+      "sha256": "e8c2712dd455de061a87222ef06604b3d7ed25e6d58f049a20948ad3351ccbd8",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/GUS.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 217,
+      "sha256": "ea2e2c5b8a5886cc3c1726bf8be926bcde659e0829988364c85a06473ff62ebe",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/HDA-Intel.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 8064,
+      "sha256": "152e7e4d9036ae3979b5f7ae24335cf41e66388ee4c8eac9386f351d2ea78a81",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/HdmiLpeAudio.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1487,
+      "sha256": "d0b400251619bfb20d7445ea0e91a26e0bbc379362fac37ab6d9fdffb1ac98c3",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ICE1712.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2413,
+      "sha256": "09f4f21d3f040fff4ff0f28dacd3d02ed4abf323654638101c1753f547f95228",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ICE1724.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2882,
+      "sha256": "4e5af66a96e1201ff92dcec0a66cfca2f5786cc38d7f855f98077aeb1d61a9b2",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ICH-MODEM.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 193,
+      "sha256": "65a6944df3b6a4597b9ca33b7775300d3754e8a3c27a68800c07e67ec27e50a4",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ICH.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 3058,
+      "sha256": "d977c105c389fa2cd67f87497d341e3c6be6e42b71b858577c37b9964c7cdf35",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/ICH4.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2890,
+      "sha256": "cc25c4f0e1cc6eb189e658166e90bd9794ddde30c8850a8bf1991bdea519dc63",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Loopback.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1273,
+      "sha256": "6677944c6e2f16bee5531374bc8dfbb437ecf136beba20ff5dbdfbb342dce2f1",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/Maestro3.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 558,
+      "sha256": "6ff294001eb15b82731948f0d695f03cc0e53fba7a8dc057f61aeddf31f74ddd",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/NFORCE.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 4100,
+      "sha256": "464b320b86b119c9bd306e0282dd3e3b4a27f4afea64dd9302c980c84c5deed5",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/PC-Speaker.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 657,
+      "sha256": "782d9f536fbc7d074490945e871abd8537aa1af3f4274419e1d4e1d3c1d28ad4",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/PMac.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 487,
+      "sha256": "45f273398be5638455576d6393f29c2200a22d673d9698e300a7fd9aba1f3b76",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/PMacToonie.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 706,
+      "sha256": "42e66ada06d1b45ab75abbe6e5461bc7458e7850907511363149d607046bfca1",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/PS3.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1098,
+      "sha256": "c6463a840877e0fd9bcdf6e20b067f0c4dce67aec2281d96df835eb0373a7440",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/RME9636.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 781,
+      "sha256": "23f49b3bd427af980efb0eff43fc1ca2731d666555a382aa2e58c620aa03c7aa",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/RME9652.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 781,
+      "sha256": "14b3cb6669e965df68917b1b3f761b17ef8ba79f7f3ddc88d9304aa80087312c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/SB-XFi.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1503,
+      "sha256": "979b5b8c31f3facc1c360aa0b8dc3d8960636ffb3434f153a2cbf6aa31c85dd9",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/SI7018.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2274,
+      "sha256": "a1f84c8d20113e21a3a95de2333c1feef6965613cf0ade2d4d5c335325b829d7",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/TRID4DWAVENX.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1794,
+      "sha256": "8043b25edbb300c337847e80ca61573e82b464552a29377d275a4a9ae3f39724",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/USB-Audio.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 9906,
+      "sha256": "77bbd0d5a1769b13e98a5c6d807f48042db2d670b8d5e14b81f0e5cf8ca52187",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VIA686A.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1201,
+      "sha256": "7009bb8ebacc2a5d15b1c2889b6d492495321bb4194155fcd7e47810de44c67f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VIA8233.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2760,
+      "sha256": "32c641c72dd77ea48f438a481c4f090f0ac4125329a5815f00d24339f71c176f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VIA8233A.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2816,
+      "sha256": "1079b0511f836ff80c935b984dba4e00dba59714927d7903a4c139392c540ae3",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VIA8237.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 2590,
+      "sha256": "82d8b9408d594faa78c387148efab4b4e744571539621f083eefc075bc27df55",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VX222.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 831,
+      "sha256": "5239480cf33353c93b1449180b0b780ab3c32e342a3e175484af5ab0bfe2c02c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VXPocket.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 840,
+      "sha256": "3aeed5bf8f82f8a1820645a3bd2ad3a561a0d2132ec0591b65310b5351d85460",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/VXPocket440.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1483,
+      "sha256": "d023289aeb640ac5052c99a188521d633ae2be2c3c7ec5c219dbece4c1dd9423",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/YMF744.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1359,
+      "sha256": "393d596c73de8205a2aafffd94fab8cd31c2bc04d2838b4c17eb5e412a9fe241",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/aliases.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1536,
+      "sha256": "461f3e706351a4ec61f1d6c61769e2e933c409460022e8e10ac2866b8709c22a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/pistachio-card.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1633,
+      "sha256": "8c6ac3972deb36b1596c7db612cc1e48f9033b69cadf84d6e24863256d03c720",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/cards/vc4-hdmi.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1405,
+      "sha256": "904c1c5789fb34f634e01088649c2cfaa60f3c6275681275c83917868562724b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/ctl/default.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 539,
+      "sha256": "6ab4a977ee780c466ab09ce5b3eb11a81e829a07cc277e108416be5fb57360f8",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/center_lfe.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 803,
+      "sha256": "d7c6d1582e910445db3bdacdce95d57f5833373d57944b92d3604478df992663",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/default.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 760,
+      "sha256": "751d2fdecf36464d11f5b0895f020d5875265ca53423d20eae532d4ce72ecb57",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/dmix.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1652,
+      "sha256": "8a0880069c491708030325c10c21b6d720da5bf4d796e22bc43a65de939fff85",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/dpl.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 645,
+      "sha256": "ccec7c194270433c2dcdf3622b2ef25e3197020da800662c6111ff8b8638f30b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/dsnoop.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1534,
+      "sha256": "fc70acb68b701ae1f944ba5136f4c77e04a6a8c701464ad33799cb5940971a60",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/front.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 802,
+      "sha256": "f9c8750ab61549d15b24adccc39587459e1fd6a448f259625d3c31fb0e46f8db",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/hdmi.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1186,
+      "sha256": "4d0708b1417921f72bece0217547b3b41ca348f93804496a5061f20c92c073f0",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/iec958.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1218,
+      "sha256": "30e4411fb010b64f1c570534c805ce4ce9be98ed1bbad95a2cdb7e6ed8bb1bcd",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/modem.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1312,
+      "sha256": "56eaca2008cdef9a8b94f1e622f10b6c21cc1496b9b4e570ff989b19369e85b8",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/rear.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 742,
+      "sha256": "663ebadd34cf94e8b5780fa51159c62d7cce503cf955f585a44b05eb9e390022",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/side.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 742,
+      "sha256": "de6aa38da3163709d3b81cc8a56c4afed3e76788cc0cd912c14ec6c5b2a0761a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround21.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 923,
+      "sha256": "4849b4b523b4995d5d700370787511ab4cd73db447f8fc02dd6e0bb221025120",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround40.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 901,
+      "sha256": "f32c9810643fe2a371ff0e3c62011b4fbb544702e08424425983f74146989394",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround41.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1004,
+      "sha256": "8ee8178f092294ff94ce2e065126888992eeb35cd5119e53487fd0b55fc8be32",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround50.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1003,
+      "sha256": "7d028550074f0e1d14c9a09bb76a6498771c2ca8660a8cebbf61b6c19d5e70da",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround51.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 954,
+      "sha256": "6ee4124c414833fdfd24dbb584092b77564aaa3481a4b73f34c301ac79636428",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa/pcm/surround71.conf",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 1002,
+      "sha256": "615c9e0a739902b304787ea3cb202800ac861727fb2e1501eaa409f4c6a9fc40",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-client-device.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 69136,
+      "sha256": "54edc08d66a38bb89649092eef613b6507922300b470952ec88f2ce8db495602",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/lib64/pipewire-0.3/libpipewire-module-metadata.so",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 61096,
+      "sha256": "206bf0c829e153a4e28b2e1dcca1a53bf3c7d88f1cd028b759fece09e3f86b79",
+      "mode": 493,
+      "role": "runtime"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-aux.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1415,
+      "sha256": "8cfdf1190de489037b38627d59976db2f97968f91df1080c029e49cbc5805668",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-dock-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2185,
+      "sha256": "f384e6158eeb2a844bda761e41137199fcb284841bbc6e6bf963ec1c091dbc93",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-fm.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1420,
+      "sha256": "bd302e95e63f4a23b90383c1a7019da20d352359c89cecfd2effa6ff17d816a5",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-front-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2196,
+      "sha256": "56dbf67cd1f831f04ade1b2f0bfa5896aeb37abe99c801638866a59f841e4c1e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-headphone-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2298,
+      "sha256": "5b3cc458304477bfac8dd6fdd383dc8a1c94b80987dd36d3ff9cf6b86c3d72e0",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-headset-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2360,
+      "sha256": "9a6a6a3c6d42753743dd5a523bc30e5e83b424a31d665894af021bfdc5546747",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-internal-mic-always.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2797,
+      "sha256": "cb797c78e09c02e782faa6d5005922f498941fa3709916b0c311aa029ddc2662",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-internal-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3155,
+      "sha256": "aed33a4ba81e4dc4a580a3a0b8f2668f49b03644291320a5a5705a4e521312bf",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-linein.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2609,
+      "sha256": "180136bc6f7e2f91fe1abe9de57faddad1ed80a705c9691e545010c703bad7b2",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-mic-line.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1457,
+      "sha256": "6a33421919c6c8dabc301bd1da5a1ad332bbea5cc69d2ea16676dbd735972125",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2797,
+      "sha256": "231741eb25593485000500ad5ae5e473f4e5c86341f7143b97075e90f0cad63f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-mic.conf.common",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1330,
+      "sha256": "927ddc7376500fc7cc396833c06c7847f0d3e172c4dd524129253b8ccd7e8581",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-rear-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2229,
+      "sha256": "8c9df52461e4ef12b08381fd6cff4a4c932b7b2c6b648924a936020f688045e6",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-tvtuner.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1425,
+      "sha256": "69152fb03997a9fe5e09039671a6897735b954e31cc878d690e4d570eff046d6",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input-video.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1385,
+      "sha256": "8d3fe46fadd652cd26f72732c15352b9b23e291b08b932ed74a9e8bb094803af",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2056,
+      "sha256": "a66ddfa7d3723d099ab874b55c6faf6d31727056d9b90ae3c983778887f48ef6",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-input.conf.common",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5769,
+      "sha256": "cdecb2934db2db7269f72e3ede55a61748d16c06a0126c2c4ed1ee6ae8d1d8a5",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-chat.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 309,
+      "sha256": "28dd252e42faa82c8a37fe2e0807f992d73caa9ab1d5b00a80de33ecbb75c54e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-headphones-2.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2540,
+      "sha256": "2c2f0d38f9f375b5ff4f049afdd8709e16c608d2a3e5406683ad04c5dc389fe6",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-headphones.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3683,
+      "sha256": "f81ec1b07dedefdf9bbca5d6d47d401f10a6b6b9820475666e67dd57e376ac37",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-lineout.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4123,
+      "sha256": "cc09e74ad122727ce51cdb38c0948afdfd5a10e9b9aa5ec69f3b1246367332f8",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-mono.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2044,
+      "sha256": "e7dae5dad2b509017ba64ceedf82e3997f75ee5aa7a91ac2014f16f8cfeb939a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-speaker-always.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3887,
+      "sha256": "35183952c2783747b7ce93dd5854d945298421031a4f73961df497b00a470a69",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output-speaker.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4952,
+      "sha256": "be156d5186887f28dcd2f129d1d9efd91643f74c6859f3c305d773aadd04be7e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2040,
+      "sha256": "1ae2721891fdc47f2518a4182823d94cd12a730a42c0b494119e81b6e980abd7",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/analog-output.conf.common",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 11986,
+      "sha256": "a8b58bdb919f2657ffda89e3bfa3406c915ef3bb22912f4926b1fc0b15d90c00",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/audigy-analog-output-mirror.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1596,
+      "sha256": "56e5448f319303c5f88af79b5ac2d2e1f3ec157dc4ec222d33520aaa1b36e603",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/audigy-analog-output.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1103,
+      "sha256": "65e2c229454d4d153b5a2d86467ec99e6274f29bb11a9f51d01e91c8bb24c4bf",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-0.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 248,
+      "sha256": "8e5e8426d4634cee5083781c68f63157f9ee86913e1cf14994c84fecf935978e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-1.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "6776e159df5e9cf3f90028190eed740331dcc6a73230e3efdb516cd15fedfd34",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-10.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 251,
+      "sha256": "cbf4c064d7260dd23b75d6fce28d1b44d7bdfdc41785017daf6b2397974e0e8e",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-2.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "7ba7347a3e7b4dde22601a92f5e1acaf343c95bc8e118e1a90f532a1fc0711ac",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-3.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "8bead4246c5a5e0a7188929b5c25d75d859e653e6af69188b2bcda9f219b9051",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-4.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "6287f4c69927165f21da386d969c892e5b470ddc772e81e8026fc642963cff0c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-5.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "8457124ffc4bec3e53bad511e2a95a0002fe2107b53234cd59b75fa7594d8074",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-6.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "9e1ed6431144d0a2f4b08816b751fd08a8c25689391c7dc49776a79dc500e004",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-7.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "8a79b3e8ae48796bc9391dbecf8e6e57d265ae8a8c90d18842ec588dfa0dadbe",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-8.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 250,
+      "sha256": "52e97701101e07717091f61884895dfb0814ba3987a11301809cb0bb830fef71",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/hdmi-output-9.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 251,
+      "sha256": "c2ebdd590a5593352f0010c4fff730028985d8dc061368b9bfed32e67fc3d60b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/iec958-stereo-input.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 789,
+      "sha256": "6f639917b373bd60120864dd6b76f163439b88fa1e88ce6b2a6e078f4fdd476a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/iec958-stereo-output.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 712,
+      "sha256": "dc8f258cc786471d8e3edb1631593c544c5c468f196fb67aff358157c259c451",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/logi407-iec958-stereo-output.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 278,
+      "sha256": "5025485aea3cf16cb5d8e4a0e3ad843f1f7ac609825da6cd22cafa29ec43c622",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/steelseries-arctis-output-chat-common.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1072,
+      "sha256": "c7c275e83b1ccdd29d07846c0389eb499dab2759c199428d023e202a08bb8337",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/steelseries-arctis-output-game-common.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1064,
+      "sha256": "c97f4b0e1de860b86d3ba078440f433087798dce1446123faba1c7b873059abb",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/usb-gaming-headset-input.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1273,
+      "sha256": "86a0b0a037f039cc4fcdadc16f7911447bb41662f31db4204e5f020b836e88bc",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/usb-gaming-headset-output-mono.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1262,
+      "sha256": "fc35e19d053530149fc415beff8e63c4337c08ab333f9be1f192f68882d9e4d2",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/usb-gaming-headset-output-stereo.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1259,
+      "sha256": "8ae2fe977983b1d6775a4092735d3fbce85465088ff46fdc1d63a04638c06b6b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/paths/virtual-surround-7.1.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 102,
+      "sha256": "47cf9ceed1d0a41ee83bf96dd15fec06950002e1dc2172b1bb356352ab402dca",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/9999-custom.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 937,
+      "sha256": "3b02e9ae36f70917abb18191931af8e77acf62531e2345733af50dd7befb722c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/analog-only.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4520,
+      "sha256": "e0ee6c41e5b0e656cd9491140559529621c14a4b8ac4433ae6c8c47b1118a5e3",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/asus-xonar-se.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2778,
+      "sha256": "39e8f2b4649f78145ace11ad2931baae86512a5f22c8c001b37c3ee77276dc30",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/audigy.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3995,
+      "sha256": "219658b54032a5932d038b5cda5592142361d134db95ed0054ffba8262d820d2",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/cmedia-high-speed-true-hdaudio.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2867,
+      "sha256": "da84270b29927d8d37a5e29ba6435acdf3232e3711d08f3fd803b668fa38364f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/default.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 22370,
+      "sha256": "92c977e8926fd40ee169885eb1b1b2e3082a0ea52643f65cafab8b5a1e27b5bc",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/dell-dock-tb16-usb-audio.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1579,
+      "sha256": "9b990784481ebc94a70121f2a6ddc1c0e780d7b7ebd20476b050397c09417c2f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/force-speaker-and-int-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5491,
+      "sha256": "33fc9461af9765cc0446875dea83544dfa443439bd5a9063211b1317dc13a140",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/force-speaker.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 5456,
+      "sha256": "9de0208e53d9ec28d5350b2a0c7c660af17692f807c35c76795c1f4522d92062",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/hdmi-ac3.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3870,
+      "sha256": "4fe0f5d854fbb3d1a8499e40eb45d942d42b87dba9825199bad4f4c29709318c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/hp-tbt-dock-120w-g2.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1315,
+      "sha256": "849694d785e9c9a70ec71d693753b3e1869df104753835ca8f4434d91c251106",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/hp-tbt-dock-audio-module.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1395,
+      "sha256": "2fd2b46ad2bc94546687ba4175786277ea4958c313ab0e45180d34164a7bbcc4",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/kinect-audio.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1284,
+      "sha256": "361670fb6183c840f2dfef947fb48b2653003d50cb8459fcd27e5791508fe61c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/logi407.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1248,
+      "sha256": "6badd25458044c746bf5ce135e484f67413b8f2f8ed6369ed3f632e4b2288282",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/maudio-fasttrack-pro.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2714,
+      "sha256": "407cd96445ee262b40ecde7793d3423f6247f52b19ee7d6e1f4624ff62eee07b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-audio4dj.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2769,
+      "sha256": "4c5c1e1652e1192c4a301a10250257f6fdd5340393d3d39f84a1f95e2916f76b",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-audio8dj.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 4999,
+      "sha256": "dfa4376acd59927b4e6189659bbc8e380bf466ff4bb9491271a23b4f66b39a01",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-komplete-audio6.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3379,
+      "sha256": "842fd21bea1726323bfadcca200960b7d100b580ce1acbf4424c0f2f79442d4f",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-korecontroller.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2713,
+      "sha256": "35dc1c073ac952ba3112b20b2f6c60d280e261bd2a68fbc4447d2f3fdf7099e6",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-traktor-audio10.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3778,
+      "sha256": "ccfeb983437d6e2ed46993402362c173b31b9e47ada0134c77b1f43c893ae40a",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-traktor-audio2.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 1583,
+      "sha256": "093d9e7dce9bfbfcd3533e13f57432f3cdfed8c9a7ab5a261d1893ef05c8dec4",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-traktor-audio6.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2741,
+      "sha256": "cad8b0fed1c14916273236a03a57ecc8c571a03fd503d80ad17cab4bc5f84809",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/native-instruments-traktorkontrol-s4.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2419,
+      "sha256": "ea146097e661fcc1b3e2ac24684318d7c5f3f2bdf89ef7f2bdc61b1517bdd18c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/sb-omni-surround-5.1.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 3536,
+      "sha256": "12e381917650f22dde4b0f08b51c483922739eb6ee02a16042f53ec7fd78abfe",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/sennheiser-gsx.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2557,
+      "sha256": "9e90352f61a0298cef4eeef6e808b77c775561a3298390bc0ea8177a54412f0d",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/simple-headphones-mic.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2121,
+      "sha256": "36762047410fa606435d55e9226554544e54f50c4dbb13c4e9e4be7bfd943bad",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/steelseries-arctis-common-usb-audio.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 606,
+      "sha256": "47b4b9420979eb349f62307a0b26355f72a4e8f8f9630565bcf1ff4f76a68dbe",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/texas-instruments-pcm2902.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2427,
+      "sha256": "c78988cf40462330178e74a8c7df880af9269530a6af2304c5babdae24b4bf80",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/usb-gaming-headset-gamefirst.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2285,
+      "sha256": "f880c7cc04bb5336605748f75ebb92becb595465d36b5f0560fca641f06d04e2",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/alsa-card-profile/mixer/profile-sets/usb-gaming-headset.conf",
+      "package": "pipewire-libs-1.6.11-1.fc44.x86_64.rpm",
+      "size": 2095,
+      "sha256": "9482f4a0bf3895d3a389f02c37a507d7eec618a5d2a9d0e15d6e6f02837ab96c",
+      "mode": 420,
+      "role": "device-data"
+    },
+    {
+      "path": "usr/share/licenses/alsa-lib/COPYING",
+      "package": "alsa-lib-1.2.16.1-1.fc44.x86_64.rpm",
+      "size": 26440,
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "mode": 420,
+      "role": "notice"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libwireplumber-0.5.so.0": "libwireplumber-0.5.so.0.519.0"
+  },
+  "existing_runtime": {
+    "format": 1,
+    "files": [
+      {
+        "source": "/usr/lib64/libgio-2.0.so.0.8800.0",
+        "destination": "/usr/lib64/libgio-2.0.so.0.8800.0",
+        "size": 2049680,
+        "sha256": "ee1ba3d4649da3581154bef67f158d72ca0f661b229f8bd761f9aef8838d3463",
+        "mode": 493,
+        "package": "glib2-2.88.0-1.fc44.x86_64"
+      },
+      {
+        "source": "/usr/lib64/libgobject-2.0.so.0.8800.0",
+        "destination": "/usr/lib64/libgobject-2.0.so.0.8800.0",
+        "size": 405072,
+        "sha256": "0eade7de53e7312959e66af41cd70d8cc1b2d407a7e8023aadc55cfb691c2364",
+        "mode": 493,
+        "package": "glib2-2.88.0-1.fc44.x86_64"
+      },
+      {
+        "source": "/usr/lib64/libgmodule-2.0.so.0.8800.0",
+        "destination": "/usr/lib64/libgmodule-2.0.so.0.8800.0",
+        "size": 19688,
+        "sha256": "bcb76201856de43b616d21049188cf21f3d21de819b351413ff962963945d639",
+        "mode": 493,
+        "package": "glib2-2.88.0-1.fc44.x86_64"
+      },
+      {
+        "source": "/usr/lib64/liblua-5.4.so",
+        "destination": "/usr/lib64/liblua-5.4.so",
+        "size": 287400,
+        "sha256": "f452186a357307daa99edf5f1f5178e6aee9ce38b51e30952de1814d8f5599e2",
+        "mode": 493,
+        "package": "lua-libs-5.4.8-5.fc44.x86_64"
+      },
+      {
+        "source": "/usr/lib64/libffi.so.8.2.0",
+        "destination": "/usr/lib64/libffi.so.8.2.0",
+        "size": 65584,
+        "sha256": "05bf4048cc0fd016140d7d880c4a4ec402096732f60463c8fb87b98d877d3628",
+        "mode": 493,
+        "package": "libffi-3.5.2-2.fc44.x86_64"
+      },
+      {
+        "source": "/usr/share/licenses/libffi/LICENSE",
+        "destination": "/usr/share/licenses/libffi/LICENSE",
+        "size": 1132,
+        "sha256": "d5699fa516968e3a1550e6c902b7441c78856f2603d61bedd0b0662a26655366",
+        "mode": 420,
+        "package": "libffi-3.5.2-2.fc44.x86_64"
+      },
+      {
+        "source": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+        "destination": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+        "size": 25967,
+        "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+        "mode": 420,
+        "package": "glib2-2.88.0-1.fc44.x86_64"
+      },
+      {
+        "source": "/usr/share/licenses/lua-libs/mit.txt",
+        "destination": "/usr/share/licenses/lua-libs/mit.txt",
+        "size": 1067,
+        "sha256": "ac92bb84aa21edfecf0112e59c96c75620313d504ada0d66e8e78fe6788d3a4d",
+        "mode": 420,
+        "package": "lua-libs-5.4.8-5.fc44.x86_64"
+      }
+    ],
+    "symlinks": {
+      "/usr/lib64/libgio-2.0.so.0": "libgio-2.0.so.0.8800.0",
+      "/usr/lib64/libgobject-2.0.so.0": "libgobject-2.0.so.0.8800.0",
+      "/usr/lib64/libgmodule-2.0.so.0": "libgmodule-2.0.so.0.8800.0",
+      "/usr/lib64/libffi.so.8": "libffi.so.8.2.0"
+    }
+  },
+  "lua_review": {
+    "version": "lua-libs-5.4.8-5.fc44.x86_64",
+    "scope": "Existing carrier/desktop baseline; only trusted signed policy scripts, never app Lua or bytecode admission",
+    "known_limit": "Fedora backports upstream 5.4.8 bugs 1-3. Upstream 5.4.9 is newer and fixes finalizer-stack leak; newer 5.5 bug list also identifies older-version issues. This is not production security acceptance. Review/update before normal rollout.",
+    "sources": [
+      "https://www.lua.org/bugs.html",
+      "https://packages.fedoraproject.org/pkgs/lua/lua-libs/"
+    ]
+  },
+  "device_data_scope": "Pinned ALSA/ACP configuration for the next actual device-monitor integration; graph-only policy tests do not open or validate hardware with these files."
+}

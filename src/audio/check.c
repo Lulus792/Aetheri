@@ -83,7 +83,7 @@ static const struct pw_core_events core_events={.version=PW_VERSION_CORE_EVENTS,
 static const struct pw_stream_events stream_events={.version=PW_VERSION_STREAM_EVENTS,.state_changed=state,.param_changed=format,.process=process,.drained=drained};
 
 int main(int argc,char **argv) {
-    const char *remote=NULL;struct check c={.total=RATE};bool frames_set=false;
+    const char *remote=NULL;struct check c={.total=RATE};bool frames_set=false,autoconnect=false;
     for(int i=1;i<argc;++i) {
         if(!strcmp(argv[i],"--remote") && !remote && i+1<argc) remote=argv[++i];
         else if(!strcmp(argv[i],"--frames") && !frames_set && i+1<argc) {
@@ -91,6 +91,7 @@ int main(int argc,char **argv) {
             unsigned long count=strtoul(value,NULL,10);if(!count || count>MAX_FRAMES) return 2;c.total=(uint32_t)count;frames_set=true;
         } else if(!strcmp(argv[i],"--silent") && !c.silent) c.silent=true;
         else if(!strcmp(argv[i],"--wait-for-start") && !c.wait_start) c.wait_start=true;
+        else if(!strcmp(argv[i],"--autoconnect") && !autoconnect) autoconnect=true;
         else return 2;
     }
     if(!remote || remote[0]!='/' || strlen(remote)>=sizeof(((struct sockaddr_un *)0)->sun_path) || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid()) return 2;
@@ -113,6 +114,7 @@ int main(int argc,char **argv) {
     struct spa_audio_info_raw info={.format=SPA_AUDIO_FORMAT_F32_LE,.rate=RATE,.channels=CHANNELS,.position={SPA_AUDIO_CHANNEL_FL,SPA_AUDIO_CHANNEL_FR}};
     const struct spa_pod *params[]={spa_format_audio_raw_build(&builder,SPA_PARAM_EnumFormat,&info)};
     enum pw_stream_flags flags=PW_STREAM_FLAG_MAP_BUFFERS|PW_STREAM_FLAG_DONT_RECONNECT;
+    if(autoconnect) flags|=PW_STREAM_FLAG_AUTOCONNECT;
     if(c.wait_start) flags|=PW_STREAM_FLAG_INACTIVE;
     if(!params[0] || pw_stream_connect(c.stream,PW_DIRECTION_OUTPUT,PW_ID_ANY,flags,params,1)<0) goto done;
     c.timer=pw_loop_add_timer(loop,timeout,&c);

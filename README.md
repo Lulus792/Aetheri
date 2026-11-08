@@ -48,6 +48,8 @@ through a private PipeWire graph and checks the actual output independently.
 Release and ASan/UBSan tests cover complete/short playback, silence, server loss,
 interruption and timeout. A separate diskless guest now verifies complete stereo
 playback through ALSA and a virtual HDA card against a host-file capture.
+The separate [policy profile](spec/audio-policy.md) now tests automatic stream
+links, a default output, volume and mute against real captured samples.
 This is not yet sound in the USB desktop: physical output, headphone/Bluetooth
 policy and Settings controls remain work.
 
