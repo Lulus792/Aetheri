@@ -1,5 +1,11 @@
 # First laptop test
 
+The user has completed this early hardware test. On9 November2026 they require
+the next image intended for the stick to wait until the agreed first version is
+implemented and verified. This guide describes the historical test image; it is
+not a request to rebuild or flash it for individual fixes. Internal development
+and disposable VM tests continue. Preserve the stick's existing user documents.
+
 Use the verified Intenso Speed Line on the spare HP EliteBook 840 G4. This first
 image starts the Aetheri development desktop directly from USB. It has persistent
 documents, Terminal, Files and Settings. It does not install Aetheri on the laptop.

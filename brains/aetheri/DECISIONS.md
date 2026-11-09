@@ -1,5 +1,18 @@
 # Decisions
 
+## Hold the next USB build until first-version readiness — 9 November 2026
+
+The user requires the next image intended for the stick to wait until the agreed
+first-version scope is implemented and verified. Do not produce another incremental
+USB test image or flash for isolated fixes/dependency milestones. Continue native
+application/SDK builds and disposable VM testing toward that scope. This does not
+pause the OS project. Preserve the user's existing USB documents.
+
+The earlier laptop alpha and backend/GUI fixtures establish partial development
+evidence. They do not establish a finished first version. Evaluate the agreed
+user workflows, normal system integration, recovery and target-hardware acceptance
+before treating the USB build gate as satisfied; do not silently shrink the scope.
+
 ## Keep Lua ABI ownership explicit — 9 November 2026
 
 The policy candidate's Lua 5.5 rebuild now passes confined system/user roles and

@@ -1,6 +1,21 @@
 # State
 
-9 November 2026 — The protected projected input runtime now passes actual DRM input and connected Sound with compositor/policy mapping the same Lua5.5 object. A separate default RPM Sound run also passes; all24 image captures are checked and corresponding pixels match. All727 exported files and both original input inventories are verified; original processes/units/sessions/mounts/policy retire. Next stage full native SDK/tool inputs and rebuild/test the current complete desktop and full image ELF closure. Normal defaults/manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
+9 November 2026 — The protected projected input runtime passes actual DRM input and connected Sound with shared Lua5.5; the default RPM regression also passes. All727 evidence files/24 captures and original retirement are verified. Native SDK/current desktop rebuild and VM integration continue. The user now holds any next USB-targeted image build until the agreed first version is implemented and verified; no incremental stick build/flash. Hardware, normal provisioning, apps, recovery and release work remain open.
+
+## Confirmed USB release gate — 9 November 2026
+
+Do not build the next image intended for the stick until the agreed first-version
+scope is implemented and verified. Internal application/SDK builds and disposable
+VM tests continue; the overall OS goal is active. Isolated dependency/GUI success
+does not satisfy this gate. Preserve the current stick and its user documents.
+Read the [decision](DECISIONS.md#hold-the-next-usb-build-until-first-version-readiness--9-november-2026).
+
+The current system is a development prototype with a user-tested HP desktop boot,
+document persistence and useful original app workflows. Normal laptop wireless/
+Bluetooth/audio/suspend integration, browser and project-app integration, general
+app ownership/removal, installer/encryption, recoverable updates/backups and the
+product experiment desktop remain incomplete. Existing milestones are not a
+quantified first-version completion percentage or a reliable delivery schedule.
 
 ## Coordination
 

@@ -3,6 +3,22 @@
 Architecture foundations are approved; the implementation sequence and schedule
 remain a proposal.
 
+## Confirmed next USB build gate — 9 November 2026
+
+The next image intended for the stick must wait for implementation and verified
+acceptance of the agreed first version. Do not send another incremental laptop
+alpha for isolated fixes or library milestones. Continue internal native builds
+and disposable VM testing. The following older checkpoint notes are historical;
+their earlier next-flash instructions do not override this gate.
+
+The successful HP boot and VM/backend tests are development progress. They do not
+complete normal device/session integration, everyday app workflows, managed
+installation/removal, recovery/update or the experiment-desktop product. Keep
+those requirements visible; do not infer readiness from test counts or rename a
+narrower prototype as the agreed finished first version.
+
+## Historical development checkpoints
+
 8 November device-filter checkpoint: the [graphical image](../../../spec/device-filter.md)
 now includes the reviewed dynamic backend and proves actual baseline/denied block
 opens in two cold boots, while preserving GUI/document/shutdown behavior. Next
