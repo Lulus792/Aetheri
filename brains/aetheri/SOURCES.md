@@ -4,7 +4,8 @@
 
 - [Build record](journal/2026-11-09-libinput-build.md),
   [device/DRM record](journal/2026-11-09-libinput-devices.md) and
-  [contract](../../spec/libinput-build.md): independently selected source/SDKs,
+  [build contract](../../spec/libinput-build.md) /
+  [runtime contract](../../spec/libinput-runtime.md): independently selected source/SDKs,
   functional and instrumented controls, actual normal DRM input, complete
   verified exports and original test retirement. These are scoped lab results,
   not normal provider, whole-stack memory, physical-device or release acceptance.

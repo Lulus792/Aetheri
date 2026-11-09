@@ -18,6 +18,7 @@ import build_data_probe as data_image
 import desktop_payload
 import device_filter_image
 import test_boot_probe as boot
+import prepare_libinput_runtime as input_projection
 
 ROOT=Path(__file__).resolve().parents[1]
 WLR=Path('/home/aetheri/deps/wlroots-session-release-02/prefix')
@@ -26,11 +27,19 @@ NEXA=Path('/home/aetheri/deps/nexaui-settings-release-05/prefix')
 APPS=('aetheri-compositor','aetheri-desktop','aetheri-settings-nexaui','aetheri-files-nexaui','aetheri-terminal-nexaui','aetheri-terminal-pty-starter','aetheri-shell','aetheri-editor','aetheri-text-editor')
 
 
-def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2):
+def runtime_selection(input_runtime=None):
+    raw=(ROOT/'spec/desktop-image-inputs.json').read_bytes();manifest=json.loads(raw)
+    if input_runtime is not None:
+        manifest=input_projection.desktop_manifest(input_runtime)
+        raw=(json.dumps(manifest,indent=2)+'\n').encode()
+    desktop_payload.validate(manifest)
+    return raw,manifest
+
+
+def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input_runtime=None):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:
         raise ValueError('use the ordinary x86-64 Linux image builder')
-    raw=(ROOT/'spec/desktop-image-inputs.json').read_bytes();manifest=json.loads(raw)
-    desktop_payload.validate(manifest)
+    raw,manifest=runtime_selection(input_runtime)
     selected=json.loads((ROOT/'spec/nexaui-inputs.json').read_text())
     if manifest['sdk']['nexaui_revision']!=selected['revision'] or manifest['sdk']['nexaui_version']!=selected['version']:
         raise ValueError('different reviewed NexaUI image inputs')
@@ -46,6 +55,8 @@ def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2):
         baseline={('/usr'+p['source'] if p['source'].startswith('/lib64/') else p['source']):p['sha256'] for p in pins['files']}
         normalized=desktop_payload.normalize_base(tree,manifest,baseline)
         inventory=desktop_payload.install(tree,manifest)
+        input_audit=input_projection.audit_elfs(tree,manifest) if input_runtime is not None else None
+        if input_audit is not None:(output/'input-runtime-elf-audit.json').write_text(json.dumps(input_audit,indent=2)+'\n')
         device_runtime=device_filter_image.install(tree,packages,output,run)
         (output/'desktop-runtime.json').write_bytes(raw)
         (output/'desktop-copy.json').write_text(json.dumps(dict(inventory=inventory,normalized_flat_base=normalized),indent=2)+'\n')
@@ -134,4 +145,5 @@ def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--boot-image',type=Path,required=True);p.add_argument('--packages',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
-    a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute())
+    p.add_argument('--input-runtime',type=Path)
+    a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),input_runtime=a.input_runtime)

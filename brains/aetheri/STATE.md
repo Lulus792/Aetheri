@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private libinput1.32/Lua5.5 candidate now passes actual DRM/logind/PS2/Wayland key, pointer and button input with its explicitly bound quirks data, plus the existing three-output/pixel/focus/drag suites. All385 evidence files and original fixture retirement are checked. Earlier functional and dual-library memory evidence remains scoped as recorded below. Next review the normal runtime/data projection and rebuild the current full desktop before release selection. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
+9 November 2026 — The maintained input runtime now has an explicit63-file/1,124,239-byte projection with Lua5.5, matching device data/helpers/rules and notices. All8 native copy/overlay/corruption/ELF controls, selected-loader and Lua probes pass; all314 evidence files/234 original inputs are checked. Image builders have an opt-in selection/static ELF gate; a full new desktop image is not built. Next join the protected projected prefix to actual compositor/Sound tests and rebuild the current complete desktop. Normal defaults/manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
 
 ## Coordination
 
@@ -14,6 +14,22 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Maintained audio Lua candidate — 9 November 2026
+
+The [runtime projection](../../spec/libinput-runtime.md) and
+[build record](journal/2026-11-09-libinput-build.md) now bind the precise tested
+Release library and matching helpers/data/notices. The derived desktop manifest
+has1,434 files and preserves1,371 unrelated entries exactly; normal defaults stay
+byte-identical. All8 native cases pass, including the actual original old-ABI
+counter; the selected loader and C Lua probe also pass. The314-file export and
+all234 input files match. The component's five ELFs are audited; the full image
+ELF gate is wired but not executed. Do not claim a new image/full desktop rebuild.
+The retained user-owned prefix is `/run/a-lrt-cd92722c2cf3/owned/candidate`; protected
+evidence is recorded in the build journal. It is not privileged runtime authority.
+Next independently protect/select the projected prefix for actual DRM/session
+and connected Sound tests, then stage full native SDK/tool inputs and rebuild
+the current whole desktop. Existing actual DRM evidence below uses separately
+selected old GUI/new input trees, not this projected prefix. Full image/PCRE2/
+normal device ownership and physical testing remain open.
 
 The [libinput build record](journal/2026-11-09-libinput-build.md) and
 [build contract](../../spec/libinput-build.md) now establish a private 1.32.0

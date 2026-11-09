@@ -28,7 +28,7 @@ def selected_layout():
     return raw,pin,layout
 
 
-def build(base,packages,output,wrong_data_filesystem=False,*,prepare_extra=None,console_fallback=False):
+def build(base,packages,output,wrong_data_filesystem=False,*,prepare_extra=None,console_fallback=False,input_runtime=None):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:raise ValueError('use the ordinary x86-64 Linux image builder')
     raw,pin,layout=selected_layout()
     if boot.sha(base/'manifest.json')!=pin['boot_source_manifest_sha256']:raise ValueError('different independently pinned RAM source')
@@ -67,11 +67,12 @@ def build(base,packages,output,wrong_data_filesystem=False,*,prepare_extra=None,
             if not isinstance(extra,dict) or set(extra)&set(result):raise ValueError('conflicting additional profile metadata')
             result.update(extra)
         return result
-    desktop.build(base,packages,output/'system',prepare_extra=prepare,data_bytes=layout['data_sectors']*512)
+    desktop.build(base,packages,output/'system',prepare_extra=prepare,data_bytes=layout['data_sectors']*512,input_runtime=input_runtime)
     usb.build(base,output/'system',packages,output/'media',desktop=layout,console_fallback=console_fallback)
     (output/'build.json').write_text(json.dumps(dict(format=1,media_manifest_sha256=boot.sha(output/'media/manifest.json'),builder_sha256=boot.sha(Path(__file__)),wrong_data_filesystem=wrong_data_filesystem),indent=2)+'\n')
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--boot-image',type=Path,required=True);p.add_argument('--packages',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--wrong-data-filesystem',action='store_true')
-    a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),a.wrong_data_filesystem)
+    p.add_argument('--input-runtime',type=Path)
+    a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),a.wrong_data_filesystem,input_runtime=a.input_runtime)

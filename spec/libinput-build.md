@@ -3,6 +3,9 @@
 The candidate builds libinput 1.32.0 against the reviewed Lua 5.5.1 SDK, keeping
 mtdev, libwacom and optional Lua plugin support. Plugin autoload stays off.
 Normal graphics, input, audio and image manifests remain unchanged.
+The separate [runtime projection](libinput-runtime.md) now prepares an explicitly
+selected component for subsequent desktop-image builds; it does not change those
+defaults or establish a new full desktop image.
 
 [libinput-build-inputs.json](libinput-build-inputs.json) pins the official source
 archive/tag and eleven signed build-input RPMs. The source archive's complete

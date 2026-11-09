@@ -1,0 +1,599 @@
+{
+  "format": 1,
+  "id": "libinput-1.32.0-lua55-runtime",
+  "purpose": "Explicit maintained input runtime for reviewed desktop-image integration; not normal installation, release or physical acceptance",
+  "base_desktop_sha256": "845ea6e9ad09364f216f70b7319d03e6c8b720e5fea47c42a5378bc1b8bd5c9f",
+  "libinput_build_profile_sha256": "f5274676b3bfaaab9596f9f14ef9f372f59b40828fcf51814a0517a5738edcba",
+  "lua_profile_sha256": "ffa4d3937f8138f3bdd5bd3158747b14e9df094d44f0debdd4aa0711c0d59107",
+  "release_export_sha256": "606f70ee8b37909f5ce231d7e70b2dc1dc211782591d88ffbb53f3f075c6a70f",
+  "remove_packages": [
+    "libinput-1.31.3-1.fc44.x86_64",
+    "lua-libs-5.4.8-5.fc44.x86_64"
+  ],
+  "components": {
+    "libinput": {
+      "origin": "libinput1.32.0/5cf833b572f5a33663888da321dce0ba1abd82a2; reviewed Release v5 source build; MIT",
+      "notices": [
+        "usr/share/licenses/libinput/COPYING"
+      ]
+    },
+    "lua": {
+      "origin": "Lua5.5.1 reviewed patched glibc Release SDK; spec/audio-policy-lua-inputs.json; MIT",
+      "notices": [
+        "usr/share/licenses/lua/COPYRIGHT"
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "usr/lib/udev/libinput-device-group",
+      "source": "libinput_build",
+      "input": "stage/usr/lib/udev/libinput-device-group",
+      "size": 22800,
+      "sha256": "9862c89ef8d7cdcd0491128d7a387bfe87dc63dd1f69081b1153da5198591f10",
+      "mode": 493,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib/udev/libinput-fuzz-extract",
+      "source": "libinput_build",
+      "input": "stage/usr/lib/udev/libinput-fuzz-extract",
+      "size": 37344,
+      "sha256": "c45007fc7680efb78964a645e15849af62700624e69d5b6eee71b7b613d5d97b",
+      "mode": 493,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib/udev/libinput-fuzz-to-zero",
+      "source": "libinput_build",
+      "input": "stage/usr/lib/udev/libinput-fuzz-to-zero",
+      "size": 17256,
+      "sha256": "cfab3858c28ad53dfd8e739545cc8b08a0be44552cbbc0492aae4af9eec54768",
+      "mode": 493,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib/udev/rules.d/80-libinput-device-groups.rules",
+      "source": "libinput_build",
+      "input": "stage/usr/lib/udev/rules.d/80-libinput-device-groups.rules",
+      "size": 221,
+      "sha256": "1de78426f5e6dec266cfff24adcbc73fb99957d326c0abe8182fd5978f300c1f",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib/udev/rules.d/90-libinput-fuzz-override.rules",
+      "source": "libinput_build",
+      "input": "stage/usr/lib/udev/rules.d/90-libinput-fuzz-override.rules",
+      "size": 1154,
+      "sha256": "34ec4420780f1674484e8efed3a58eaf9439f5bab1d31a87b05516683f2a37c7",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib64/libinput.so.10.13.0",
+      "source": "libinput_build",
+      "input": "stage/usr/lib64/libinput.so.10.13.0",
+      "size": 637664,
+      "sha256": "ca4472b257663239f9356e5ec07fcd1983193311cf755d325c7006c94cc69b9b",
+      "mode": 493,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/lib64/liblua-5.5.so",
+      "source": "lua_sdk",
+      "input": "usr/lib64/liblua-5.5.so",
+      "size": 335184,
+      "sha256": "ae4c2ba082fcc33a040a7370c4396820a52ecaab72b2a1f8d04f81928409eddd",
+      "mode": 493,
+      "component": "lua"
+    },
+    {
+      "path": "usr/share/libinput/10-generic-keyboard.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/10-generic-keyboard.quirks",
+      "size": 1069,
+      "sha256": "9af2309537535ed3c726dc12446b1ab4559fa280934aa5e76a1faf8464e30343",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/10-generic-mouse.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/10-generic-mouse.quirks",
+      "size": 197,
+      "sha256": "05e1d4ade23f481b880fa8d87749ada4ab0a58a35f3cce04620591d0dcd9cdfe",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/10-generic-trackball.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/10-generic-trackball.quirks",
+      "size": 110,
+      "sha256": "5ca0c549f5dd153825fd175438806341383f0b9c37404c23a34184d11f5fad88",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-a4tech.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-a4tech.quirks",
+      "size": 172,
+      "sha256": "e7ad27d823c2d38afef2e734b59fedc5a406211b3193a7b12c516bf82c1290ac",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-aiptek.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-aiptek.quirks",
+      "size": 307,
+      "sha256": "a882c9d0e1ec960d2f30a18b477df766719e84f4aadb528112f05aac82409ef5",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-alps.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-alps.quirks",
+      "size": 894,
+      "sha256": "7c15f71f6ed2b063b2ef0d106c9dbd6b25952db0b22f8a8a4b71709771f23376",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-clevetura.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-clevetura.quirks",
+      "size": 342,
+      "sha256": "e253b208f57f9cbb1b42c30b55a230f27f7668a93999683e425095d96b85fd4c",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-contour.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-contour.quirks",
+      "size": 834,
+      "sha256": "9ea061bd08c0067ef2d0c60fac490927a6bdcbc2a65b3da966c50183092311a4",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-cypress.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-cypress.quirks",
+      "size": 321,
+      "sha256": "b38f57ae7d06c29e145e989df24aacc430e58da1914deb52e36168039e963707",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-elantech.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-elantech.quirks",
+      "size": 447,
+      "sha256": "6cac6f222545bb3da2de5ea72f0970e6f8d9e9957bf9401f6573b720b6480928",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-glorious.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-glorious.quirks",
+      "size": 170,
+      "sha256": "6c9c59752eb5fb5e3308904bd40bb0d4c3d8513d557836fa5e34c29d01caa717",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-goodix.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-goodix.quirks",
+      "size": 2088,
+      "sha256": "a03851d8c2c8e0116e4afb7c02d663f6181fe0d88e73b1038d0722f987b4709b",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-hantick.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-hantick.quirks",
+      "size": 639,
+      "sha256": "90482673b2eb2b058e4117192213293d78c03a86e3e223f098ffc9225e291c9d",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-huion.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-huion.quirks",
+      "size": 239,
+      "sha256": "097f132e9675726abee02dbcaf7372bc97ec1aca3a022506b9e57fa7908f6bc8",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-ite.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-ite.quirks",
+      "size": 1018,
+      "sha256": "a20592b1a80ae3947ee3cd862bb76d9508739bcdfd934e9bd267f92a6c48fa0e",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-kensington.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-kensington.quirks",
+      "size": 246,
+      "sha256": "dbb1701d392db07ed7c591cf7421393d34b4178a96b20ca4d7212e4a585c4b93",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-logitech.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-logitech.quirks",
+      "size": 2808,
+      "sha256": "c0c8513bc268435f023b05e6dbe0dadec4d78fc5e986671b2ed80a028db2ff41",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-madcatz.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-madcatz.quirks",
+      "size": 1952,
+      "sha256": "4c9f382225bec2f1d4d12668568a5d1d00748bcaa7b6b117a93ed47f7fe4a70f",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-microsoft.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-microsoft.quirks",
+      "size": 1045,
+      "sha256": "cb5aba130e70853e2ace0f349320f9b02e894afc6683f23322b204e82eac12fb",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-nulea.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-nulea.quirks",
+      "size": 366,
+      "sha256": "1f378a64d96a4e1ac2aa3b4a65e787420f2c5fe7fd610d07b1d4f10367db6014",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-oracle.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-oracle.quirks",
+      "size": 147,
+      "sha256": "9cb38507fef7f898be9129c4f72fa381750d49297d010f2261248e8b77a75daa",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-pixart.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-pixart.quirks",
+      "size": 1038,
+      "sha256": "0bccba43e8f4e794a520f4f044d066ecd1670520e8d4b4c27adc52c7b21a77f3",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-qemu.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-qemu.quirks",
+      "size": 137,
+      "sha256": "6524ffba78b3ce9fcea799b5bb04d9c032c33c550f089a05ac913509338f0acd",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-razer.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-razer.quirks",
+      "size": 6800,
+      "sha256": "80a3673a7577d7b03d347c618c557146e97a5cc7903d83c0a83d3164cc5b4f88",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-synaptics.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-synaptics.quirks",
+      "size": 937,
+      "sha256": "2dee75231237f4aa31809786494564f7a6e0e234b56f8790a946e9906d933b27",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-trust.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-trust.quirks",
+      "size": 179,
+      "sha256": "f348d3af3153f27425f327efaae5b3bba1c2cf280e3950dea604e40ea2941fc4",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-vmware.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-vmware.quirks",
+      "size": 237,
+      "sha256": "74919b0292afcaedd40332751af1572dff768c0a85f728fa9bb815fa61b63fe4",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/30-vendor-wacom.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/30-vendor-wacom.quirks",
+      "size": 809,
+      "sha256": "bdcc5942b424f1a53e4da4cbdd69edfc7a1499e0cb35d1ad3816858242ee90a2",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-acer.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-acer.quirks",
+      "size": 1102,
+      "sha256": "e74400efc64523b511e6eaaa30a21e401f192fb5af8f85b15854cc933bb24e71",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-apple.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-apple.quirks",
+      "size": 3722,
+      "sha256": "64a5a5f64d1d64506e4cdf05cd8fc5fad2027c57b5890f88a0eaafbf4276e0d7",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-asus.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-asus.quirks",
+      "size": 1775,
+      "sha256": "aa69962627c5bf25c928360ba87955ae2a375c83ca2de2bb62ed0d170cc56e15",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-cyborg.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-cyborg.quirks",
+      "size": 1522,
+      "sha256": "6b9774a5aed1723b30c8e62cbef14d97675e4e56293ed7882beccc34277d7121",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-dell.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-dell.quirks",
+      "size": 5261,
+      "sha256": "8314b90ca4fa5c4d3a2b5de391d9b4e1407470aa5f54db1f0e81382691ed8d5c",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-eaecis.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-eaecis.quirks",
+      "size": 549,
+      "sha256": "e7ca4a095efb988a296f72fdd8f2e2318c74f468e24df5eef6ad0b28dc52fe1b",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-framework.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-framework.quirks",
+      "size": 250,
+      "sha256": "d8f7e3a96568d76e836222fd19d70d774b2b384904a179e0d4b3cafaa9fc4eb9",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-gigabyte.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-gigabyte.quirks",
+      "size": 410,
+      "sha256": "1fcd85dc2f4da4715ee8f8e32e7b533f2108077c7fd7aa76c26ac66f86544106",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-google.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-google.quirks",
+      "size": 4566,
+      "sha256": "b3dccfd119e5d29477d0549c526a246ecea3f772a3563f1e792a6ebfa81bb583",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-gpd.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-gpd.quirks",
+      "size": 227,
+      "sha256": "e9ed54838e1cd012d5d4bddeb98ae40d93dae7cfa1e49b9e20bb834810e36766",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-graviton.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-graviton.quirks",
+      "size": 564,
+      "sha256": "c0f190447e35e291320aab58ddf9899ca1074b7a194ee88beef18bc3a0e39848",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-honor.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-honor.quirks",
+      "size": 320,
+      "sha256": "2dc7130ee107c0453c1716effa8647a5975fdffe4434a4146769c744b5f42e78",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-hp.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-hp.quirks",
+      "size": 3967,
+      "sha256": "b4059e2780526881fd701a17aede6a97a11156fd7856e1edec4e78aa907bc032",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-huawei.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-huawei.quirks",
+      "size": 761,
+      "sha256": "c1524137af4d2a797364cd40b518e197172226abdbf5b856517b3e0b9993213f",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-icl.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-icl.quirks",
+      "size": 329,
+      "sha256": "158d4a469e5076fee6e4ccc5f965d96f197882512a443784c0fd29aee003b883",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-lenovo.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-lenovo.quirks",
+      "size": 15409,
+      "sha256": "ce9ed1c05b28d84cb1da44d00e2a455a7f720b443bf0340a6dc06ab88760dde6",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-lg.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-lg.quirks",
+      "size": 195,
+      "sha256": "360d9d4aa74c533c026c167d755f05a0a9b827332705eda5f9db4db735e3d82c",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-minisforum.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-minisforum.quirks",
+      "size": 351,
+      "sha256": "8b306d4b8a3498d105022fecb49d42695211c7e27c20b075020189f3da7c5678",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-panasonic.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-panasonic.quirks",
+      "size": 252,
+      "sha256": "79613a0d39d58f126b85c9f81fb7e1c40b9be1256e34d0660bdf281baa0bab16",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-pine64.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-pine64.quirks",
+      "size": 191,
+      "sha256": "88623e144558127b68faed1e1c3a2e81addc8e891dc0fd43824cf71087983633",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-positivo.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-positivo.quirks",
+      "size": 777,
+      "sha256": "f8b4340e760c964d0b54b345dd6cef1f7fa86bf70cfd64c5ac4ab7f6be2109e1",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-sony.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-sony.quirks",
+      "size": 249,
+      "sha256": "0398ee5e5a92ea4bb515e4357cc5eb8bd2d5104162681c47c14a1a0abf70f63e",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-starlabs.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-starlabs.quirks",
+      "size": 221,
+      "sha256": "8a6505f65055364e8b2053fe4d52046782dfa5215e8e447e4b57fef74302b298",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-system76.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-system76.quirks",
+      "size": 587,
+      "sha256": "25f019eda0089819d946317bc20f4f7fa56454a4cc0643fb086e41960ed8564a",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-toshiba.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-toshiba.quirks",
+      "size": 264,
+      "sha256": "88b6a3fe4dfad716061b005766962d49628aa8330c9061e99b445227ab8dfca0",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/libinput/50-system-wareus.quirks",
+      "source": "libinput_archive",
+      "input": "quirks/50-system-wareus.quirks",
+      "size": 246,
+      "sha256": "531a5bf98f455649c1165b2d45ebe105e311aeb3183f70cff3a89bcf257b29d5",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/licenses/libinput/COPYING",
+      "source": "libinput_archive",
+      "input": "COPYING",
+      "size": 1738,
+      "sha256": "80de50b2022a840db044c56db804ca3565600a692c0714babface587acc6d1b0",
+      "mode": 420,
+      "component": "libinput"
+    },
+    {
+      "path": "usr/share/licenses/lua/COPYRIGHT",
+      "source": "lua_sdk",
+      "input": "usr/share/licenses/lua/COPYRIGHT",
+      "size": 1263,
+      "sha256": "fe7591799d3e229b3c9640314215dd085777889df9a35d4ea78d1c7aa5c351c6",
+      "mode": 420,
+      "component": "lua"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libinput.so.10": "libinput.so.10.13.0"
+  }
+}

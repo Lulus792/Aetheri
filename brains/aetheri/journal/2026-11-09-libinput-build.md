@@ -120,3 +120,74 @@ Independent same-boot inspection finds no executable/working directory under any
 of the four build scratch roots, and enforcing remains1. All four foreign file
 hashes match the initial snapshot. This is administrative build-process evidence,
 not production app/descendant/cgroup/lease settlement.
+
+## Explicit maintained runtime projection
+
+After the separately recorded functional, memory and actual DRM input checks,
+`spec/libinput-runtime-inputs.json` now independently selects one component for
+subsequent desktop builds. The [runtime contract](../../spec/libinput-runtime.md)
+and preparer bind63 regular files/1,124,239 bytes plus one soname alias: the actual
+tested Release-v5 library, three matching Release helpers/two udev rules, all54
+source quirks, Lua5.5 and both original MIT notices. No development tool/header,
+test program, debug runner, interpreter or daemon enters this projection.
+
+Both original Release-v4/v5 complete2,465-file exports are rechecked. Their equal
+637,664-byte libraries have different hashes; select v5's previously exercised
+`ca4472b257663239f9356e5ec07fcd1983193311cf755d325c7006c94cc69b9b` and matching
+helper artifacts. Never substitute a merely equal version or the larger
+debugoptimized/instrumented library. Source/archive and Lua SDK pins remain
+independent of the component's own receipt. The existing Wacom database stays
+with its original owner in the normal desktop manifest.
+
+`prepare_libinput_runtime.py` verifies inputs before creating fresh output,
+rejects aliases/overlap, preserves partial failures and refuses output adoption.
+Its checker accounts for directories, exact aliases/modes, notices and receipt
+origin. The derived desktop manifest removes55 original libinput/Lua files,
+adds63 and preserves all1,371 unrelated entries exactly. It has1,434 files and
+explicitly records source-build origins instead of those two removed RPMs.
+The old manifest lacks libinput's standalone COPYING notice; the new component
+includes it. This observation is not a complete release-compliance audit.
+
+Desktop and regular-USB image builders now accept explicit `--input-runtime`.
+With no argument the original manifest bytes/providers remain unchanged. After
+candidate payload copy, a static readelf pass rejects retained old Lua linkage
+and checks the selected input library's genuine5.5 dependency/no RPATH. It writes
+the exact dependency audit. The complete image audit is wired but not executed
+here: only the component's five actual ELFs and original old-ABI counter run.
+No full new image or current whole-desktop build/boot is claimed.
+
+Native work uses fresh `/run/a-lrt-cd92722c2cf3`, protected inputs at
+`/root/aetheri-libinput-runtime-inputs-cd92722c2cf34024a2a876d7fe0744e6`.
+The first host wrapper fails before dispatch at Windows' command-line limit;
+the final wrapper carries its complete hash-bound input inventory through stdin
+instead. It never replays an uncertain guest attempt. All234 input files match
+their original selected host bundle.
+
+All8 native projection tests pass without skips as UID1000, including actual
+copy/overlay, unchanged unrelated owners, changed code/data/rules/notices/receipt,
+alias/mode drift, rejected changed input before output, existing-tree refusal
+and actual ELF old-Lua rejection. Preparation, manifest creation, selected-loader
+listing and the existing independent Lua C probe all exit0. Loader initialization
+actually selects both libraries from the candidate prefix; text reports Lua505
+with zero device-open calls, and matching5.5 bytecode is rejected. This is a
+library/loader probe, not an actual compositor run of the newly projected prefix.
+
+The complete314-file export is checked:2,877,201 bytes, SHA256
+`8cce0218b0844fa7c1e58743d2eb12c254f791a3efd392499f93a276c1d98910`, protected at
+`/root/aetheri-libinput-runtime-evidence-43260c9ad53646dd99952ed66dcfc6f1/export.tar.gz`.
+The alias is separately recorded and checked; every regular member and original
+input matches. Independent end inspection finds no candidate mapping or test
+unit. Original udev PID693/invocation remains unchanged and enforcing stays1.
+The same original QEMU5548/controller15559/boot remains live. On Windows the three
+pure profile tests pass with five Linux cases skipped; the existing USB6,
+desktop-controller7, payload7 and Sound-runtime8 controls pass (one Linux Sound
+case skipped). These host checks do not replace the8 native cases above.
+
+The retained candidate at `/run/a-lrt-cd92722c2cf3/owned/candidate` is user-owned
+development output, never privileged admission. Before any privileged consumption
+select/protect/check its inputs independently. Next join an explicitly protected
+projected prefix to actual compositor/session and connected Sound tests, then
+stage the full native SDK/tool inputs and rebuild/test the current complete
+desktop. The full image ELF audit, normal device/session ownership, PCRE2 review,
+physical HP and broader OS/app/installer/experiment work remain open. Normal
+manifests, old carrier, physical stick and foreign UI notes remain unchanged.
