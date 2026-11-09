@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The protected projected input runtime passes actual DRM input and connected Sound with shared Lua5.5; the default RPM regression also passes. All727 evidence files/24 captures and original retirement are verified. Native SDK/current desktop rebuild and VM integration continue. The user now holds any next USB-targeted image build until the agreed first version is implemented and verified; no incremental stick build/flash. Hardware, normal provisioning, apps, recovery and release work remain open.
+9 November 2026 — Private native desktop build tools now pass C17/C++23/shared-adapter compilation, actual tests and installed probes. All2,837 exported files and original input/runtime hashes are verified; native package inventory, sanitizer runtimes and udev stay unchanged. The protected input runtime's preceding DRM/shared Sound tests remain separate. Exact SDK/current desktop rebuild and VM integration continue. The user's first-version gate forbids any next USB-targeted build/flash until the agreed scope is implemented and verified. Hardware, provisioning, apps, recovery and release work remain open.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,30 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Private native desktop build tools — 9 November 2026
+
+Read the [tool contract](../../spec/desktop-toolchain.md) and
+[execution record](journal/2026-11-09-desktop-toolchain.md). The separate audio lab
+now has a private nine-RPM projection with CMake4.3.0/Ninja1.13.2/g++16.2.1 and
+matching C++ headers/runtime. Native GCC/binutils/glibc and the original pinned
+libstdc++16.0.1/sanitizer files remain unchanged. No package is installed.
+Ten archive/profile controls pass on host/native; the removed-header-guard counter
+fails precisely. The native Release proof runs C17, C++23 vector/exception/thread
+and C/C++ shared-adapter tests, installed probes and actual private runtime checks.
+All16 final command rows pass;51 loader-selected ELF and seven native helper hashes
+are independently rechecked. All2,837 export files and2,618 prefix regular files
+match, including submitted source inventories. Original failed parent/plugin and
+fixture-marker attempts remain separately retained; no failure is adopted.
+
+Successful tool prefix: `/home/aetheri/deps/desktop-toolchain-b684db424dcb`;
+protected source: `/run/a-dts-b684db424dcb`. Final public proof:
+`/home/aetheri/deps/desktop-tool-public-1b12b92ac766`. Package inventory, enforcing
+policy and original udev invocation remain unchanged; no selected code remains
+mapped. The same restricted audio VM remains live; revalidate it before dispatch.
+Next assemble genuine exact graphics/UI/system development inputs and rebuild the
+current SDK/apps with their normal regressions. These tools are not a hermetic
+SDK, complete current desktop, image closure or release acceptance. No USB work.
 
 ## Maintained audio Lua candidate — 9 November 2026
 

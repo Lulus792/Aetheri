@@ -1,5 +1,26 @@
 # Sources
 
+## Private native desktop build tooling — 9 November 2026
+
+- [Execution record](journal/2026-11-09-desktop-toolchain.md),
+  [contract](../../spec/desktop-toolchain.md) and
+  [input inventory](../../spec/desktop-toolchain-inputs.json): nine signature-
+  checked RPMs, exact bodies/notices, bounded hardlink controls, real C17/C++23
+  builds/tests/install, loader/native-helper observations and a fully verified
+  2,837-file export. This is developer-tool preparation, not a full SDK, current
+  desktop, image or release result; original native packages/libraries stay fixed.
+- [CMake4.3 notes](https://cmake.org/cmake/help/v4.3/release/4.3.html),
+  [Fedora CMake4.3.0](https://packages.fedoraproject.org/pkgs/cmake/cmake/fedora-44.html)
+  and [exact upstream license](https://raw.githubusercontent.com/Kitware/CMake/v4.3.0/LICENSE.rst):
+  source/version/license evidence. The retained4.3.0 development baseline is not
+  described as the latest patch release or exhaustive security acceptance.
+- [Fedora jsoncpp](https://packages.fedoraproject.org/pkgs/jsoncpp/jsoncpp/fedora-44.html),
+  [rhash](https://packages.fedoraproject.org/pkgs/rhash/rhash/fedora-44.html) and
+  [libuv](https://packages.fedoraproject.org/pkgs/libuv/libuv/): tool dependency
+  families. Exact libuv1:1.52.1-2 and all selected ABIs/licenses are independently
+  established by the pinned signed RPMs, rather than inferred from release-page
+  headings or freshness. No normal product runtime is selected by this work.
+
 ## Maintained libinput/Lua integration — 9 November 2026
 
 - [Build record](journal/2026-11-09-libinput-build.md),
