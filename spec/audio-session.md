@@ -6,6 +6,50 @@ pass the complete private session/playback/stop/logout flow and full PCM checks.
 The [executed record](../brains/aetheri/journal/2026-11-08-audio-session.md) keeps
 actual results and failures. It does not install normal audio in the USB desktop.
 
+## Shared session control handle
+
+[`audio/session_control.h`](../src/audio/session_control.h) now joins the existing
+manager, graph/policy actor, local Wayland-session and original-listener checks
+in one C17 handle. This is an opt-in owner-side library, not an installed service
+or public app capability. The caller supplies independently admitted buses,
+protected images, literal units/contexts, original process pins, seat and socket.
+The bridge does not select these from an application request or socket claims.
+
+Open establishes all observers and rechecks them before the strict connection.
+Snapshot and every volume/mute/default request check the original observations
+again. The backend still enforces its latest revision/output reference, command
+serialization and readback rules. The bridge forwards those results without
+turning submission into acknowledgement. Checks are observations, not locks
+against later execution, delegation or configuration changes.
+
+The first observed loss is immutable. It clears selectable outputs, rejects all
+later commands and starts local backend retirement. A pending command in the
+last available snapshot becomes `UNKNOWN`; losing an observation never proves
+that a submitted effect did not occur. A returning session or replacement
+manager/service cannot restore the handle. Its caller must retain and reconcile
+the lost attempt, rather than reopen to bypass this fence.
+
+The caller pushes and iterates one GLib thread-default context throughout the
+handle's life. There is no new thread, process, periodic scan or automatic
+restart. The owner must invoke snapshot on its session/process notifications
+and before presenting controls; this library does not yet wire those events
+into Settings. Wrong-thread and post-fork API use is rejected. Close clears the
+public handle, while original observer references survive until the backend's
+asynchronous destruction. Keep the context alive until the data-destroy callback.
+Closing neither stops the services nor revokes devices, settles delegated
+holders or rolls back effects.
+
+`audio.session_control` uses controlled observer/backend adapters and real GLib
+context, thread and fork lifetimes. Release and ASan/UBSan runs cover partial
+setup unwind, immediate/deferred retirement, all independent/combined losses,
+cached pending uncertainty and direct commands without a preceding UI refresh.
+A private counterexample with all three effect guards removed reaches the
+expected forbidden-effect assertion; the restored source passes. See the
+[execution record](../brains/aetheri/journal/2026-11-09-audio-session-control.md).
+These tests do not establish actual joined Wayland/logind/MAC acceptance for
+the new bridge. Protected normal provisioning, owner event-loop integration,
+normal device/session admission and the visible Sound page remain work.
+
 ## Processes and units
 
 The existing user manager supervises the two audio processes. There is no extra

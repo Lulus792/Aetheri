@@ -6,7 +6,10 @@ It calls the two maintained API modules directly. Settings will not need to
 launch or parse `wpctl`; that tool remains an independent test oracle.
 
 This is an opt-in development library. Normal session/device mediation and
-Settings integration are still separate work. The local API is declared in
+Settings integration are still separate work. The owner-side
+[session control handle](audio-session.md#shared-session-control-handle) now
+joins original service/session checks before control effects; it is not yet
+installed or connected to the visible Settings view. The local API is declared in
 [`control.h`](../src/audio/control.h), not an installed D-Bus capability.
 The separate [user-session fixture](audio-session.md) now joins this adapter to
 real PAM/logind, user-managed services and dynamic device ACLs in a diskless VM.

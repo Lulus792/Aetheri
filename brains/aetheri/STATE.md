@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Confined PipeWire, WirePlumber routing and original control/player clients now pass full virtual HDA unity/half/mute captures under the real user manager. Temporary ACLs and MAC types restrict raw device access to the backend; actual foreign denials and exact restoration pass. The unchanged default synthetic profile also passes after the shared-flow refactor. The successful runs retire 37 role services, 12 native observers and six session targets; all four original QEMU processes exit 0. Normal protected services/session/device admission, Settings and physical audio remain work. USB stays unchanged.
+9 November 2026 — A shared native audio session-control handle now joins original manager, graph/policy actor, Wayland-session and strict listener observations before mutations. Loss fences every later effect, preserves pending uncertainty and retires the backend asynchronously. Four focused groups pass Release and ASan/UBSan; a removed-guard counterexample is detected. These bridge tests use controlled admission/backend adapters. The earlier full virtual HDA unity/half/mute evidence remains separate. Protected normal provisioning, owner event-loop/Settings integration and physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,28 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Shared audio session control — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-audio-session-control.md) and
+[contract](../../spec/audio-session.md#shared-session-control-handle).
+`audio/session_control` owns the existing read-only observers and strict backend.
+Snapshot and each mutation recheck the originals. First loss is latched; no
+replacement/reconnect or later command is accepted. Cached pending work becomes
+unknown and output selection clears. Async local retirement retains observers
+until backend destruction; it does not stop services or prove holder drain.
+
+Release and ASan/UBSan pass the new bridge plus existing manager, session guard
+and original-peer groups. The private removed-guard control fails at the actual
+forbidden-effect assertion; restored code passes. The first staging failure
+normalized binary archive bytes and is preserved separately. All three original
+RAM helpers retire after independently verified exports; no normal service,
+policy, frozen contract, protected original guest input or USB changes.
+
+Next connect the owner to real session notifications and protected service
+provisioning, then expose the controls in Settings. The new bridge's joined
+live Wayland/logind/MAC behavior is not accepted by its controlled adapters.
+No new NexaUI handoff is pending.
 
 ## Confined graph on the virtual device — 9 November 2026
 

@@ -1,5 +1,20 @@
 # Decisions
 
+## Fence audio controls through one original-session handle — 9 November 2026
+
+Join the already reviewed manager, actor, session and strict-listener observers
+in an opt-in owner-side facade. Recheck before every mutation as well as view
+snapshots. Latch the first loss, disable selection/effects and retire only the
+backend observer; never reconnect, restart, infer cancellation or release holders.
+Retain original observers until asynchronous backend destruction. Preserve the
+backend's revision/reference and acknowledgement semantics. This adds no daemon,
+timer, installed service, public capability or dependency family.
+
+The controlled native tests accept the facade's fencing/lifetime behavior only.
+Normal protected provisioning, actual joined admission, owner event dispatch and
+the Sound UI still require separate implementation/evidence. See the
+[execution record](journal/2026-11-09-audio-session-control.md).
+
 ## Give only the audio backend direct device access — 9 November 2026
 
 The existing ALSA adapter opens its configured path, so keep preopened-FD
