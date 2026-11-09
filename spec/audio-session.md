@@ -101,6 +101,24 @@ exact `init.scope`; its current cgroup inode must match the kernel observation.
 The current executable must match the independently selected root-owned,
 non-writable file object and metadata.
 
+The manager must also have zero effective, permitted, inheritable and ambient
+capabilities and `NoNewPrivs=1`. Bounded trusted-proc status reads check this
+before and after the executable observation, inside the existing repeated kernel
+identity checks. Missing/duplicate/truncated fields and unreadable/oversized
+status fail closed. The observer never changes the manager's credentials.
+PID 1's selected user@ profile already applies the empty bounding mask/NNP;
+this check observes that profile rather than replacing configuration admission.
+
+An enforcing-carrier read failure is not automatically a SELinux denial.
+The preserved carrier's ordinary upstream user manager has CAP_WAKE_ALARM
+permitted/effective/inheritable and NNP disabled. Commoncap's proc inspection
+rules independently reject a cap-zero caller inspecting that more privileged
+process. The explicit [security probe](../tests/test_audio_manager_security.c)
+keeps one own child, UID/GID, image, NNP, dumpability and SELinux context while
+clearing only its CAP_WAKE_ALARM. The cap-zero reader's current-image open then
+changes from EACCES to success under the unchanged enforcing policy. This is a
+kernel privilege boundary test, not normal Aetheri MAC/service admission.
+
 Initial discovery may wait only for the bus driver's NameHasNoOwner, before
 capture and before any fixture unit effect. An available bus is not an already
 registered manager. No admitted identity or mutation is retried this way.
@@ -127,6 +145,12 @@ cold boots and a separate actual enforcing-carrier read rejection. The native
 for real message objects/IDs; its subject's credential/PID1/cgroup facts are
 controlled. Use the reviewed disposable Linux environment for that test; it
 does not create a private bus, acquire a host service name or change host units.
+
+`test_audio_manager_security` is built separately and has no automatic CTest
+registration. Run it only as an administrator in the registered disposable
+carrier. It changes only its own test children, never the original user manager,
+policy or services. The [security record](../brains/aetheri/journal/2026-11-09-audio-manager-security.md)
+retains the causal countercheck and ordinary-profile regression evidence.
 
 The executed private check is:
 

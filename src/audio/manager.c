@@ -59,6 +59,45 @@ static int identity(struct ae_audio_manager *g,struct pidfd_info *info) {
        info->rgid!=getgid() || info->egid!=getgid() || info->sgid!=getgid() || info->fsgid!=getgid()) return -EACCES;
     return live(g->pin);
 }
+/* Trusted proc is still only an observation. Require the already selected
+ * ordinary-manager profile rather than granting a cap-zero observer ptrace
+ * rights to inspect a more privileged target. Kernel identity checks bracket
+ * these reads in observe(); policy/exec/delegation exclusion remain separate. */
+static int security_text(const char *text,size_t size) {
+    if(!size || memchr(text,0,size)) return -EBADMSG;
+    const char *keys[]={"CapInh:\t","CapPrm:\t","CapEff:\t","CapAmb:\t","NoNewPrivs:\t"};
+    unsigned found=0;size_t offset=0;
+    while(offset<size) {
+        const char *line=text+offset,*end=memchr(line,'\n',size-offset);
+        if(!end) return -EBADMSG;
+        size_t length=(size_t)(end-line);
+        for(unsigned i=0;i<5;++i) {
+            size_t key=strlen(keys[i]);
+            if(length<key || memcmp(line,keys[i],key)) continue;
+            if(found&(1u<<i)) return -EBADMSG;
+            found|=1u<<i;
+            const char *value=i==4 ? "1" : "0000000000000000";
+            if(length-key!=strlen(value) || memcmp(line+key,value,strlen(value))) return -EPERM;
+        }
+        offset+=(size_t)(end-line)+1u;
+    }
+    return found==31u ? 0 : -ENODATA;
+}
+static int security_context(uint32_t pid) {
+    char path[64],text[8192];snprintf(path,sizeof(path),"/proc/%u/status",pid);
+    int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return -errno;
+    size_t size=0;int r=0;
+    for(;;) {
+        ssize_t n=read(fd,text+size,sizeof(text)-size);
+        if(n<0 && errno==EINTR) continue;
+        if(n<0) {r=-errno;break;}
+        if(!n) break;
+        size+=(size_t)n;
+        if(size==sizeof(text)) {r=-E2BIG;break;}
+    }
+    if(close(fd) && !r) r=-errno;
+    return r ? r : security_text(text,size);
+}
 static bool same_info(const struct pidfd_info *a,const struct pidfd_info *b) {
     return a->pid==b->pid && a->tgid==b->tgid && a->cgroupid==b->cgroupid &&
         a->ruid==b->ruid && a->euid==b->euid && a->suid==b->suid && a->fsuid==b->fsuid &&
@@ -134,6 +173,7 @@ static int observe(struct ae_audio_manager *g,struct snapshot *s) {
     STEP("owner",owner(g->user,name));
     if(!r && strcmp(name,g->name)) r=-ESTALE;
     STEP("kernel-identity",identity(g,&s->info));
+    STEP("ordinary-manager",security_context(s->info.pid));
     if(!r && fstat(g->pin,&s->pin)) r=-errno;
     STEP("supervisor",supervisor(g,s));
     STEP("cgroup",cgroup_check(g,s));
@@ -142,6 +182,7 @@ static int observe(struct ae_audio_manager *g,struct snapshot *s) {
     if(!r && fstat(image,&s->image)) r=-errno;
     if(image>=0) close(image);
     if(!r && !same_image(&s->image,&g->expected_image)) r=-ESTALE;
+    STEP("ordinary-manager-recheck",security_context(s->info.pid));
     struct pidfd_info after;STEP("kernel-recheck",identity(g,&after));
     if(!r && !same_info(&s->info,&after)) r=-ESTALE;
     STEP("owner-recheck",owner(g->user,name));

@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private audio session now joins its original user-manager bus process to PID 1's main/invocation, current cgroup and expected systemd image before effects. Six cold boots, four native groups in Release/ASan/UBSan, three controlled counterexamples and 85 host cases pass. The separate enforcing-carrier executable denial remains closed. Next: normal graph/policy invocation and endpoint/holder admission, enforcing broker integration and desktop/Settings/HP promotion. The stick stays unchanged.
+9 November 2026 — Audio manager admission now also requires the selected cap-zero/NoNewPrivs profile. A same-process enforcing-kernel countercheck proves CAP_WAKE_ALARM alone can deny the cap-zero observer's image read; the preserved upstream manager is now rejected earlier, without new rights. Six cold boots, four native groups in Release/ASan/UBSan, the explicit kernel probe and 85 host cases pass. Next: confined graph/policy/service and endpoint/holder admission before desktop/Settings/HP promotion. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,33 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Ordinary audio-manager privilege profile — 9 November 2026
+
+The [security record](journal/2026-11-09-audio-manager-security.md) distinguishes
+the old access denial from its cause. The original carrier manager retains
+CAP_WAKE_ALARM and NoNewPrivs=0; an enforcing flag alone never proves a SELinux
+cause. A separate own-child probe holds UID/GID, pidfs identity, NNP, dumpability,
+image and label constant. Clearing just CAP_WAKE_ALARM changes the cap-zero
+reader's image result from EACCES to success under unchanged enforcing policy.
+
+Native manager admission now requires zero effective/permitted/inheritable/
+ambient caps and NNP=1 through bounded status reads inside existing repeated
+identity checks. Missing, duplicate, truncated and oversized status fails closed.
+It observes the already selected empty-bounding/NNP user@ profile; it does not
+modify or grant inspection rights to the preserved upstream manager. That
+manager is rejected earlier with EPERM at ordinary-manager. Normal confined
+graph/policy/app admission remains work; this countercheck is not its acceptance.
+
+Four native groups pass Release and ASan/UBSan; the explicit administrative
+security executable passes with all own children waited and original exit.
+Six new cold boots pass playback, VT loss/return, graph/policy exits and native/
+no-card regressions. All five captures retain the complete 96,000-frame stereo
+reference below 0.5 LSB. Functional instruction-clock limits remain unchanged.
+The final audit binds 568 current code/pin inputs, both exact helper retirements,
+the actual root-probe binary/log, original manager facts and all original six
+VM receipts; 85 host cases pass. Runtime/dependencies, normal services, source/
+quarantine/CLOSED, frozen contracts and foreign work remain unchanged.
 
 ## Original audio user manager — 9 November 2026
 

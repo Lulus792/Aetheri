@@ -12,6 +12,9 @@ struct ae_audio_manager;
  * library verification, an exec/delegation lock, recovery or holder drain.
  * Borrow image_fd; retain bus references and duplicate the bus-authenticated
  * ProcessFD. No numeric-PID opening, credential augmentation or fallback.
+ * The manager must have zero effective/permitted/inheritable/ambient capabilities
+ * and NoNewPrivs=1. This observes the selected protected user@ profile; it never
+ * changes that process or grants inspection privileges to the caller.
  * Single calling thread/process throughout; buses must have bounded timeouts.
  * Failures return NULL and set errno. Open/check make no service mutations. */
 struct ae_audio_manager *ae_audio_manager_open(sd_bus *user_bus,sd_bus *system_bus,

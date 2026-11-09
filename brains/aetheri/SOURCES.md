@@ -1,5 +1,18 @@
 # Sources
 
+## Audio-manager privilege boundary — 9 November 2026
+
+- [Security record](journal/2026-11-09-audio-manager-security.md),
+  [contract](../../spec/audio-session.md#original-user-manager-observation) and
+  [explicit native probe](../../tests/test_audio_manager_security.c): real
+  same-process capability reduction, unchanged enforcing policy/context and
+  cap-zero reader image denial/success. Keep this apart from ordinary app MAC.
+- Linux [ptrace access-check rules](https://man7.org/linux/man-pages/man2/ptrace.2.html):
+  filesystem/effective credential mode and commoncap's comparison against the
+  target's permitted set. An enforcing flag plus EACCES does not identify the
+  denying layer. Exact Linux 6.19 source retrieval returned rate limiting;
+  unseen source is not treated as inspected.
+
 ## Original user-manager observation — 9 November 2026
 
 - [Contract](../../spec/audio-session.md#original-user-manager-observation) and

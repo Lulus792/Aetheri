@@ -1,5 +1,18 @@
 # Decisions
 
+## Require the ordinary audio-manager privilege profile — 9 November 2026
+
+Observe cap-zero effective/permitted/inheritable/ambient state and NNP=1 in
+addition to the original manager process/unit/image binding. Keep bounded status
+reads inside repeated kernel identity checks. The selected PID 1 user@ profile
+already enforces its empty bounding mask; no service mutation or caller privilege
+grant is introduced. Never interpret an enforcing-carrier errno as a proven
+SELinux cause without separating the kernel credential/capability boundary.
+
+The same-process [security countercheck](journal/2026-11-09-audio-manager-security.md)
+requires no ptrace call or policy grant. Preserve the original upstream manager
+and its expected rejection. Continue separate confined graph/policy/holder work.
+
 ## Observe the original user manager before audio effects — 9 November 2026
 
 Join the trusted user-bus ProcessFD to PID 1's active `user@UID.service` main,

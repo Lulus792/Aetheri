@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -141,7 +142,21 @@ int main(void) {
     CHECK(sd_bus_set_method_call_timeout(user,1000000)>=0 && sd_bus_set_method_call_timeout(system,1000000)>=0);
     int image=open("/usr/bin/sleep",O_PATH|O_CLOEXEC),wrong=open("/usr/bin/true",O_PATH|O_CLOEXEC);CHECK(image>=0 && wrong>=0);
     group_fd=open(".",O_RDONLY|O_DIRECTORY|O_CLOEXEC);struct stat st;CHECK(group_fd>=0 && !fstat(group_fd,&st));group_inode=(uint64_t)st.st_ino;
-    actor=fork();CHECK(actor>=0);if(!actor) {execl("/usr/bin/sleep","sleep","30",(char *)NULL);_exit(125);}
+    const char *ordinary="CapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\n";
+    CHECK(!security_text(ordinary,strlen(ordinary)));
+    for(unsigned field=0;field<5;++field) {
+        char changed[256];CHECK(strlen(ordinary)<sizeof(changed));strcpy(changed,ordinary);
+        const char *keys[]={"CapInh:\t","CapPrm:\t","CapEff:\t","CapAmb:\t","NoNewPrivs:\t"};
+        char *value=strstr(changed,keys[field])+strlen(keys[field]);*value=field==4 ? '0' : '1';
+        CHECK(security_text(changed,strlen(changed))==-EPERM);
+    }
+    CHECK(security_text(ordinary,strlen(ordinary)-1)==-EBADMSG);
+    const char *missing="CapEff:\t0000000000000000\n";
+    CHECK(security_text(missing,strlen(missing))==-ENODATA);
+    char duplicated[256];snprintf(duplicated,sizeof(duplicated),"%sCapEff:\t0000000000000000\n",ordinary);
+    CHECK(security_text(duplicated,strlen(duplicated))==-EBADMSG);
+    CHECK(security_text("bad\0\n",5)==-EBADMSG);
+    actor=fork();CHECK(actor>=0);if(!actor) {CHECK(!prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0));execl("/usr/bin/sleep","sleep","30",(char *)NULL);_exit(125);}
     actor_pin=(int)syscall(SYS_pidfd_open,actor,0);CHECK(actor_pin>=0);
     bool ready=false;for(unsigned i=0;i<500;++i) {char path[64];snprintf(path,sizeof(path),"/proc/%d/exe",actor);struct stat actual,expected;
         if(!stat(path,&actual) && !fstat(image,&expected) && actual.st_dev==expected.st_dev && actual.st_ino==expected.st_ino) {ready=true;break;}usleep(1000);}
