@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The explicitly selected Lua 5.5 policy runtime now passes actual graph/PCM and native control comparisons against the unchanged RPM baseline. Normal audio/image profiles remain unchanged. Next repeat confined service roles and connected Sound GUI/source-loss/retirement acceptance with candidate provenance. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
+9 November 2026 — The Lua 5.5 policy candidate now passes confined system/user roles and connected Sound/source-loss retirement, with independent exports and PCM checks. The GUI client maps no Lua, but the compositor's selected libinput still requires its old Lua 5.4 ABI. Review that remaining binding before normal rollout; no normal audio/image manifest is changed. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
 
 ## Coordination
 
@@ -15,6 +15,20 @@ resolve its provenance or lifecycle obligations.
 
 ## Maintained audio Lua candidate — 9 November 2026
 
+The [confined/GUI record](journal/2026-11-09-audio-policy-confined.md) establishes
+four completed role runs: 76 services, 16 memory probes, 12 independently recomputed
+PCM captures and all user observers/targets retired. The complete 242-file export
+is checked. The candidate's connected GUI also passes actual pointer/keyboard,
+mute/unmute, raw channel readback, source loss and full session/policy retirement;
+its 63-file export and 12 captures are checked, with four primary images reviewed.
+
+Next review libinput 1.31.3's Lua binding: exact ELF/source-provider evidence shows
+it still needs Lua 5.4. A proposed 78-file GUI runtime fails compositor preflight
+before service dispatch and is rejected. Keep the unchanged 80-file GUI runtime,
+which owns that dependency, separate from the Lua 5.5 policy prefix. Actual process
+maps prove that division and no Lua in Settings itself. Never alias the ABIs or
+weaken provenance checks. PCRE2 and normal admission/device/release work remain.
+
 The [runtime record](journal/2026-11-09-audio-policy-candidate.md) and
 [projection contract](../../spec/audio-policy-candidate.md) now establish the
 explicit mixed-origin candidate: 241 payload files/five aliases, 5,718,952 bytes,
@@ -25,11 +39,10 @@ policy mappings select Lua5.5; baseline/candidate positive PCM hashes match.
 Both complete exports (1,489 and 1,843 files) are independently checked; the host
 recomputes all fourteen positive PCM captures and verifies native subcase evidence.
 
-Next join confined system/user roles and connected GUI to this explicitly
-selected projection. Review the GUI runtime's old Lua inventory separately;
-never alter its receipt or auto-select a candidate from directory metadata.
-No normal manifest/profile default, P0 carrier or USB changes are authorized by
-these ordinary-user results alone. The lab remains live under the same controller.
+The subsequent confined/GUI checks above now pass with this explicitly selected
+projection. Never alter the GUI receipt or auto-select a candidate from directory
+metadata. No normal manifest/profile default, P0 carrier or USB is changed. The
+lab remains live under the same controller.
 
 The [module rebuild record](journal/2026-11-09-audio-policy-lua.md) and
 [build contract](../../spec/audio-policy-lua.md) now establish the native Lua
@@ -43,7 +56,7 @@ Audio lab QEMU43164/controller10491 remains running, boot
 `32baadd1-a444-4aa8-8c32-56eb3ce22c21`; all original build children have ended.
 Inspect actual state before the next action. The distinct candidate projection
 and ordinary-user graph/PCM checks above now pass. Keep old RPM-only checks and
-defaults strict while completing GUI/enforcing/source-loss/retirement acceptance.
+defaults strict while reviewing remaining input/runtime release dependencies.
 
 Read the [record](journal/2026-11-09-audio-lua.md) and
 [candidate build contract](../../spec/audio-lua.md). Lua 5.4's end of releases

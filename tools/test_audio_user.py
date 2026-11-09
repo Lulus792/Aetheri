@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import select
+import signal
 import shutil
 import socket
 import subprocess
@@ -89,8 +90,8 @@ class UserAudio(Audio):
         assert not select.select([self.manager_pin],[],[],0)[0]
         assert facts('user@1000.service')==self.manager_facts,'original user manager changed'
 
-    def setup(self,sdk,policy,control,binary,source):
-        super().setup(sdk,policy,control,binary,source)
+    def setup(self,sdk,policy,control,binary,source,policy_profile='rpm'):
+        super().setup(sdk,policy,control,binary,source,policy_profile=policy_profile)
         self.observers={};self.targets={};self.current_target=None;self.source=source
         self.manager_facts=facts('user@1000.service');pid=int(self.manager_facts['MainPID'])
         assert self.manager_facts['ActiveState']=='active' and pid and not self.manager_facts['Job']
@@ -197,13 +198,16 @@ class UserAudio(Audio):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('sdk','policy','control','binary','source','output'):parser.add_argument(name,type=Path)
+    parser.add_argument('--policy-profile',choices=('rpm','lua55-candidate'),default='rpm')
     args=parser.parse_args()
     if os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM' or Path('/sys/fs/selinux/enforce').read_text().strip()!='1':raise ValueError('separate root-only enforcing audio lab required')
     fixture=UserAudio(args.output)
     try:
-        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source);fixture.memory_factories()
+        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,policy_profile=args.policy_profile);fixture.memory_factories()
         for case in fixture.session_cases():fixture.case(case)
         fixture.retire();print(json.dumps(fixture.record))
     except BaseException as error:
-        fixture.record.update(state='needs-inspection',error=repr(error));fixture.save();raise
+        fixture.record.update(state='needs-inspection',error=repr(error),keeper_pid=os.getpid());fixture.save()
+        print(json.dumps(dict(state='needs-inspection',keeper_pid=os.getpid(),output=str(args.output),error=repr(error))),flush=True)
+        while True:signal.pause()
     finally:fixture.bus.close()

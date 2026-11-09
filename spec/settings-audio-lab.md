@@ -77,6 +77,21 @@ and their separate retirement. Its updated native program fixes passive slider
 rounding; third-party versions/notices stay unchanged. Do not infer the complete
 joined workflow from the earlier projection/loader checks.
 
+The [Lua 5.5 policy run](../brains/aetheri/journal/2026-11-09-audio-policy-confined.md)
+also passes the connected workflow with the unchanged GUI projection. Dependency
+ownership is now checked explicitly:
+
+| Process | Lua dependency |
+| --- | --- |
+| WirePlumber candidate policy | Reviewed Lua 5.5 and rebuilt scripting module in its own prefix |
+| Headless test compositor | Original Lua 5.4 through the selected libinput library |
+| Settings client | No Lua library mapped; uses the original C core/APIs |
+
+Removing Lua 5.4 from this shared runtime fails compositor ELF preflight. Retain
+its notice and exact ABI until libinput's source/binding review and input tests
+justify a replacement. Do not create a 5.4-to-5.5 SONAME alias. This dependency
+review and the existing PCRE2 release review remain open before normal rollout.
+
 `tools/test_settings_audio_live.py` is an explicit root-only disposable-lab
 driver. It independently checks its SDKs, native helpers and complete GUI
 projection before provisioning. It connects original source handles and selected

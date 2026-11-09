@@ -53,8 +53,16 @@ and rebuilt module paths; actual audio samples still need to match independently
 
 The [execution record](../brains/aetheri/journal/2026-11-09-audio-policy-candidate.md)
 contains actual graph, independent PCM and native-control comparisons against the
-unchanged RPM baseline. These run as ordinary cap-zero/NNP actors on the separate
-enforcing lab. They do not establish confined service-policy acceptance. Next
-repeat confined system/user roles, source loss and complete connected Sound GUI
-retirement with explicit candidate selection before changing normal manifests.
-Physical audio and normal session/device ownership remain separate work.
+unchanged RPM baseline. The subsequent
+[confined/GUI record](../brains/aetheri/journal/2026-11-09-audio-policy-confined.md)
+also passes system/user-service roles and connected Sound/source-loss retirement.
+All three explicit lab harnesses accept the same `--policy-profile` selection.
+The normal defaults remain strict. Failed administrative system/user runs keep
+their original observations pending for exact reconciliation.
+
+The GUI client needs the C core, while the existing compositor's libinput still
+requires Lua5.4. Its shared GUI runtime retains that separately attributed ABI;
+the policy candidate uses Lua5.5 in its own prefix/process. Review libinput's
+binding before claiming a maintained whole-desktop Lua closure or selecting new
+normal manifests. Physical audio, normal session/device ownership and the PCRE2
+release review remain separate work.

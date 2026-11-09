@@ -71,11 +71,11 @@ class Sound(UserAudio):
         # processes belong to test_audio_user, not this interactive test.
         Audio.image(self,name,path)
 
-    def setup(self,sdk,policy,control,binary,source,gui):
+    def setup(self,sdk,policy,control,binary,source,gui,policy_profile='rpm'):
         self.gui=gui;self.root_bus=Bus();self.root_create_bus=Bus(private=True);self.gui_pin=None;self.input_fds=[]
         self.server=None;self.server_pin=None;self.server_log=None;self.input=None
         os.environ['LD_LIBRARY_PATH']=':'.join(str(self.root/n/'usr/lib64') for n in ('control','policy','sdk'))
-        super().setup(sdk,policy,control,binary,source)
+        super().setup(sdk,policy,control,binary,source,policy_profile=policy_profile)
 
     def original_sources(self):
         self.check_manager()
@@ -147,6 +147,14 @@ class Sound(UserAudio):
         observed=(Path('/proc')/str(self.server.pid)/'exe').stat()
         assert not select.select([self.server_pin],[],[],0)[0] and (expected.st_dev,expected.st_ino)==(observed.st_dev,observed.st_ino)
         self.record['gui_compositor'].update(state='original-running',ordinary=ordinary(self.server.pid));self.save()
+        if self.policy_profile=='lua55-candidate':
+            maps=(Path('/proc')/str(self.server.pid)/'maps').read_text()
+            lua={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
+            inputs={line.split()[-1] for line in maps.splitlines() if 'libinput.so.' in line}
+            assert lua=={str(self.gui/'usr/lib64/liblua-5.4.so')} and inputs=={str(self.gui/'usr/lib64/libinput.so.10')},(lua,inputs)
+            assert not select.select([self.server_pin],[],[],0)[0]
+            (self.output/'compositor-ready-maps.txt').write_text(maps)
+            self.record['gui_compositor']['libinput_lua54_observed']=True;self.save()
         self.gui_unit='aetheri-audio-'+self.token+'-gui.service';self.pam=Path('/etc/pam.d')/('aetheri-audio-gui-'+self.token)
         self.old_vt=Path('/sys/class/tty/tty0/active').read_text().strip();assert re.fullmatch('tty[0-9]+',self.old_vt)
         content=b'auth required pam_permit.so\naccount required pam_permit.so\nsession required pam_systemd.so type=wayland class=user\n'
@@ -269,6 +277,15 @@ class Sound(UserAudio):
         if not row[1]:
             self.click(self.row);self.gui_wait(lambda t:self.observed_output()[1]==1,'observed default output')
         self.gui_wait(lambda t:self.enabled(self.row+1),'enabled volume control')
+        self.policy_lua_ready(self.policy_unit)
+        if self.policy_profile=='lua55-candidate':
+            # The GUI needs the original C core/APIs, not an embedded Lua engine.
+            assert not select.select([self.gui_pin],[],[],0)[0]
+            maps=(Path('/proc')/str(self.gui_pid)/'maps').read_text()
+            assert not any('liblua-' in line for line in maps.splitlines())
+            assert facts(self.gui_unit)['InvocationID']==self.gui_facts['InvocationID']
+            (self.output/'gui-ready-maps.txt').write_text(maps)
+            self.record['gui']['no_lua_runtime_mapped']=True;self.save()
         self.capture('live-output')
         # Change through a real pointer gesture, then one keyboard decrement.
         initial=self.observed_output()[3];self.click(self.row+1,.5)
@@ -328,15 +345,17 @@ class Sound(UserAudio):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('sdk','policy','control','binary','source','gui','output'):parser.add_argument(name,type=Path)
+    parser.add_argument('--policy-profile',choices=('rpm','lua55-candidate'),default='rpm')
     args=parser.parse_args()
     if not __debug__ or os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM' or Path('/sys/fs/selinux/enforce').read_text().strip()!='1':raise ValueError('explicit unoptimized root-only enforcing audio lab required')
     if list(Path('/etc/pam.d').glob('aetheri-audio-*')) or run('systemctl','list-units','--all','--plain','--no-legend','aetheri-audio-*'):raise ValueError('foreign/pending test actors; reconcile first')
-    for check,path in ((prepare_audio.check,args.sdk),(prepare_audio_policy.check,args.policy),(prepare_audio_control.check,args.control)):check(path)
+    from test_audio import check_policy
+    prepare_audio.check(args.sdk);check_policy(args.policy,args.policy_profile);prepare_audio_control.check(args.control)
     check_binaries(args.binary)
     prepare_settings_audio_lab.check(args.gui,json.loads((args.source/'spec/settings-audio-lab-inputs.json').read_text()))
     fixture=Sound(args.output)
     try:
-        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,args.gui);fixture.exercise();fixture.retire();print(json.dumps(fixture.record),flush=True)
+        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,args.gui,policy_profile=args.policy_profile);fixture.exercise();fixture.retire();print(json.dumps(fixture.record),flush=True)
     except BaseException as error:
         fixture.record.update(state='needs-inspection',error=repr(error),traceback=traceback.format_exc(),keeper_pid=os.getpid());fixture.save();print(json.dumps(fixture.record),flush=True)
         # Retain original bus/process/cgroup/input handles. No retry, stop,

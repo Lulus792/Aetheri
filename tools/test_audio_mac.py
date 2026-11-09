@@ -24,7 +24,7 @@ import image_state
 
 from audio_mac_bus import Bus
 import prepare_audio,prepare_audio_policy,prepare_audio_control
-from test_audio import validate_pcm
+from test_audio import validate_pcm,check_policy
 
 ROLES={r:'aetheri_audio_'+r+'_test_t' for r in ('graph','policy','control','player','foreign')}
 
@@ -212,7 +212,10 @@ class Audio(Fixture):
         st=os.fstat(self.capture_reader);assert (st.st_dev,st.st_ino)==self.capture_object
         os.close(self.capture_reader);self.capture_reader=None;self.capture_object=None;self.pump=lambda:None
 
-    def setup(self,sdk,policy,control,binary,source):
+    def setup(self,sdk,policy,control,binary,source,policy_profile='rpm'):
+        prepare_audio.check(sdk);check_policy(policy,policy_profile);prepare_audio_control.check(control)
+        self.policy_profile=policy_profile
+        self.record.update(policy_profile=policy_profile,policy_receipt_sha256=sha(policy/'inputs.json'));self.save()
         if Path('/sys/fs/selinux/policy_capabilities/memfd_class').read_text().strip()!='0':raise RuntimeError('different memfd policy class; review before dispatch')
         self.record['modules_before']=run('semodule','-lfull')
         if any(line.split()[1]=='audio-test' for line in self.record['modules_before'].splitlines()):raise RuntimeError('foreign/pending audio module; inspect first')
@@ -285,6 +288,28 @@ context.modules = [
 context.objects = [ { factory = spa-node-factory args = { factory.name = support.node.driver node.name = Test-Driver priority.driver = 200000 } } ]
 ''')
         return conf
+
+    def policy_lua_ready(self,name):
+        # Re-observe the original actor without invoking UserAudio.image again:
+        # that override creates separate once-only actor observers.
+        Audio.image(self,name,self.images['policy'])
+        unit=self.units[name];maps=(Path('/proc')/str(unit['pid'])/'maps').read_text()
+        soname='liblua-5.5.so' if self.policy_profile=='lua55-candidate' else 'liblua-5.4.so'
+        lua=self.policy/'usr/lib64'/soname
+        scripting=self.policy/'usr/lib64/wireplumber-0.5/libwireplumber-module-lua-scripting.so'
+        mapped={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
+        mapped_module={line.split()[-1] for line in maps.splitlines() if 'libwireplumber-module-lua-scripting.so' in line}
+        assert mapped=={str(lua)} and mapped_module=={str(scripting)},(mapped,mapped_module)
+        if self.policy_profile=='lua55-candidate':
+            import prepare_audio_policy_candidate as candidate
+            _,entries,_=candidate.profile()
+        else:
+            pins,_=prepare_audio_policy.profile()
+            entries={e['path']:e for e in pins['files']}
+            entries.update({e['destination'].lstrip('/'):e for e in pins['existing_runtime']['files']})
+        for p in (lua,scripting):assert sha(p)==entries[p.relative_to(self.policy).as_posix()]['sha256']
+        assert not select.select([unit['pin']],[],[],0)[0]
+        self.record['units'][name]['lua_ready']=dict(profile=self.policy_profile,lua=str(lua),lua_sha256=sha(lua),module=str(scripting),module_sha256=sha(scripting));self.save()
 
     def extra_environment(self,root,conf):return {}
     def signal_frames(self):return 48000
@@ -363,6 +388,7 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
             assert all(str(clients[int(o['info']['props']['client.id'])]['pipewire.sec.pid'])==str(self.units[policy]['pid']) and str(clients[int(o['info']['props']['client.id'])]['pipewire.sec.uid'])=='1000' for o in links)
             (self.output/(case+'-linked.json')).write_text(result.stdout);return True
         self.wait(linked,[graph,policy,player],'original policy stereo links')
+        self.policy_lua_ready(policy)
         assert not any(captured),'signal before explicit activation'
         signal.pidfd_send_signal(self.units[player]['pin'],signal.SIGUSR1)
         self.finished(player)
@@ -390,18 +416,23 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('sdk','policy','control','binary','source','output'):parser.add_argument(name,type=Path)
+    parser.add_argument('--policy-profile',choices=('rpm','lua55-candidate'),default='rpm')
     args=parser.parse_args()
     if os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM' or run('getenforce')!='Enforcing':raise RuntimeError('requires the separate registered enforcing audio lab')
-    for check,path in ((prepare_audio.check,args.sdk),(prepare_audio_policy.check,args.policy),(prepare_audio_control.check,args.control)):check(path)
+    prepare_audio.check(args.sdk);check_policy(args.policy,args.policy_profile);prepare_audio_control.check(args.control)
     if run('systemctl','list-units','--all','--plain','--no-legend','aetheri-audio-*'):raise RuntimeError('prior units remain')
     fixture=Audio(args.output)
     try:
-        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source)
+        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,policy_profile=args.policy_profile)
         fixture.memory_factories()
         for case in ('unity','half','muted'):fixture.case(case)
         fixture.retire();print(json.dumps(fixture.record))
     except BaseException as error:
-        fixture.record.update(state='needs-inspection',error=repr(error));fixture.save();raise
+        fixture.record.update(state='needs-inspection',error=repr(error),keeper_pid=os.getpid());fixture.save()
+        print(json.dumps(dict(state='needs-inspection',keeper_pid=os.getpid(),output=str(args.output),error=repr(error))),flush=True)
+        # Preserve the original bus/process/cgroup handles and pending effects.
+        # A later exact administrative reconciliation must decide retirement.
+        while True:signal.pause()
     finally:fixture.bus.close()
 
 

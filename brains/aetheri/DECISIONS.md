@@ -1,5 +1,18 @@
 # Decisions
 
+## Keep Lua ABI ownership explicit — 9 November 2026
+
+The policy candidate's Lua 5.5 rebuild now passes confined system/user roles and
+connected Sound retirement. Its new ABI remains separate from the compositor's
+existing libinput/Lua 5.4 dependency. Actual ELF and process-map evidence rejects
+removing Lua 5.4 from the shared GUI runtime. Keep its notice and exact soname;
+never alias it to 5.5 or report the policy upgrade as a whole-desktop upgrade.
+
+Review libinput's source binding and input/compositor regressions next, alongside
+the existing PCRE2 release review, before selecting normal runtime/image updates.
+No normal admission, physical-device or full OS acceptance follows from the lab.
+See the [record](journal/2026-11-09-audio-policy-confined.md).
+
 ## Project test runtimes with attribution — 9 November 2026
 
 Give the Sound GUI lab an explicit bounded code/font/notice inventory, using
