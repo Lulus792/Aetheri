@@ -34,6 +34,7 @@ Run from the checkout with the existing reviewed host tools available:
 python tools/audio_lab_vm.py status
 python tools/audio_lab_vm.py install
 python tools/audio_lab_vm.py boot
+python tools/audio_lab_vm.py boot-hda
 python tools/audio_lab_vm.py ssh "uname -r"
 python tools/audio_lab_vm.py poweroff
 python tools/test_audio_lab_vm.py
@@ -50,14 +51,21 @@ Do not modify the controller or kickstart while their original process is live.
 The kickstart hash also prevents silently reconfiguring an existing registration.
 Preserve process records, guard files and unresolved fixture evidence.
 
+The explicit `boot-hda` profile adds virtual playback only. It records a fresh
+private capture file and uses two protected local AF_UNIX QMP endpoints: one for
+ordinary control, one retained for capture. A paused start and explicit capture
+stop after guest shutdown provide finalized WAV evidence. Plain boot and install
+are unchanged. See the [device diagnostic](audio-pcm-device.md) for permissions,
+full-signal verification and the limits of the silent guard interval.
+
 ## Executed boundary
 
 On 9 November 2026 the installer and first UEFI disk boot both exit 0. SSH checks
 the private post marker, enforcing SELinux, own disk serial and geometry. Six
-host tests cover isolated helper globals, registration/geometry rejection,
+host tests initially cover isolated helper globals, registration/geometry rejection,
 command confinement, kickstart guards, object replacement and installer evidence.
 
-A separate, still uncommitted administrative fixture passes real transient-unit
+A separate administrative fixture passes real transient-unit
 creation, a system-bus reference and exact FD3 process-handle transfer. It checks
 UID/GID 1000, cap-zero/NNP, original invocation, held process/cgroup handles,
 cgroup event-reader deactivation and unit collection. A final PID1 FD scan finds

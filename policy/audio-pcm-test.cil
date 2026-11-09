@@ -1,0 +1,11 @@
+; MIT. Selected virtual playback-node FD test; no production sound-device grant.
+(type aetheri_audio_pcm_test_t)
+(typeattributeset device_node (aetheri_audio_pcm_test_t))
+(allow init_t aetheri_audio_pcm_test_t (chr_file (read write getattr)))
+(allow system_dbusd_t aetheri_audio_pcm_test_t (chr_file (read write getattr)))
+(allow unconfined_dbusd_t aetheri_audio_pcm_test_t (chr_file (read write getattr)))
+(allow aetheri_audio_graph_test_t aetheri_audio_pcm_test_t (chr_file (read write getattr ioctl)))
+(neverallow aetheri_audio_policy_test_t aetheri_audio_pcm_test_t (chr_file (read write open ioctl map)))
+(neverallow aetheri_audio_control_test_t aetheri_audio_pcm_test_t (chr_file (read write open ioctl map)))
+(neverallow aetheri_audio_player_test_t aetheri_audio_pcm_test_t (chr_file (read write open ioctl map)))
+(neverallow aetheri_audio_foreign_test_t aetheri_audio_pcm_test_t (chr_file (read write open ioctl map)))

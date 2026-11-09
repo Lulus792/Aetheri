@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Confined graph/policy/control/player now pass complete synthetic audio under the real user manager, with six native original-actor observers and three test-session targets. One target stop ends both originally live sources before independent retirement. The corrected negative detects missing session relations; its original resources retire separately. Seven native FD/channel controls and the19-role default system regression pass. All evidence is exported and the separate VM exits0. Normal protected session/device/Settings admission and physical audio remain work. USB stays unchanged.
+9 November 2026 — A confined UID1000 backend now writes through the separate lab's virtual HDA device FD. The final explicitly padded diagnostic passes the unchanged full 96,000-frame host reference; earlier unpadded captures remain failed evidence. Original user-service actor, unit/cgroup/FD retirement and exact node-label restoration pass. Capture finalization and ordinary lab control use separate protected AF_UNIX QMP endpoints. Normal protected session/device/Settings integration and physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,33 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Confined virtual sound device — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-audio-pcm.md) and
+[contract](../../spec/audio-pcm-device.md). Root passes one independently checked
+playback FD to a finite cap-zero/NNP user backend, with a native original-actor
+observer before playback. No device owner/mode/ACL is broadened; original node
+context, units, held cgroup, supervisor FD copies, worker and test modules retire.
+
+The first WAV backend fails RIFF finalization. Explicit monitor capture fixes
+that boundary but independently rejects a second unpadded truncated signal.
+The final diagnostic submits 96,000 tone frames plus 8,192 counted silent guard
+frames. Its complete raw WAV contains all reference frames, max error0.499658LSB,
+with an unchanged two-LSB acceptance bound. Some silent tail frames still are not
+observed; this is not acceptance of complete production or physical drain.
+All guest evidence is exported before actual shutdown and original QEMU exit0.
+
+Final native Release and ASan/UBSan ordinary bad-input controls and copied-store
+policy compilation pass. Nine host lab controls,85 HDA contracts and the existing
+seven synthetic PCM-verifier cases pass. The diagnostic has its own filename;
+`tools/test_audio_pcm.py` stays unchanged. The original guest, protected inputs,
+quarantined runtime, frozen contracts, foreign work and USB are preserved.
+
+Next connect actual devices to the reviewed PipeWire/WirePlumber role/session
+path and protected service/configuration ownership, then Settings. The current
+root-preopened FD and trusted lab manager are administrative test infrastructure,
+not production device admission, full revocation/recovery or normal app access.
 
 ## Confined per-user audio — 9 November 2026
 

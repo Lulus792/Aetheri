@@ -21,6 +21,7 @@ import uuid
 from functools import partial
 
 import image_state
+import image_qmp
 import prepare_vm
 import run_vm
 
@@ -108,7 +109,10 @@ def prepare(module):
     return value
 
 
-def command(module,install):
+def command(module,install,capture=None):
+    if capture is not None:
+        if install or capture.parent.parent!=module.VM/'hda' or capture.name!='capture.wav' or not re.fullmatch(r'[0-9a-f]{32}',capture.parent.name):raise ValueError('only a fresh owned HDA boot capture is allowed')
+        if not re.fullmatch(r'[A-Za-z0-9:/_.-]+',capture.as_posix()):raise ValueError('unsupported HDA capture path')
     value=load(module);directory=module.VM;tools=module.TOOLS
     args=[str(module.QEMU),'-name','aetheri-audio-lab','-uuid',value['uuid'],'-machine','pc-q35-11.1,accel=whpx','-cpu','host,vmx=off,svm=off','-smp','2','-m','4096M',
         '-smbios','type=1,product='+PRODUCT,'-no-user-config',
@@ -119,6 +123,10 @@ def command(module,install):
         '-netdev',f'user,id=net0,{"" if install else "restrict=on,"}hostfwd=tcp:127.0.0.1:{module.SSH_PORT}-:22','-device','virtio-net-pci,netdev=net0',
         '-display','none','-serial',f'file:{directory / ("install-serial.log" if install else "serial.log")}',
         '-qmp',f'unix:{directory / "qmp.sock"},server=on,wait=off','-no-reboot']
+    if capture is not None:
+        args+=['-audiodev','none,id=audio,out.frequency=48000,out.channels=2,out.format=s16',
+               '-device','intel-hda,id=hda','-device','hda-output,bus=hda.0,audiodev=audio','-S','-no-shutdown',
+               '-qmp',f'unix:{directory / "qmp-capture.sock"},server=on,wait=off']
     if install:
         kernel=directory/'installer/images/pxeboot/vmlinuz'
         if not kernel.exists():
@@ -156,7 +164,53 @@ def require_installation(module):
     image_state.write(receipt,dict(process=record,serial_sha256=digest,runtime_accepted=False))
 
 
-def start(module,install):
+def capture_reply(reply,command):
+    warning="warning: '"+command+"' is deprecated since v10.2, to be removed\r\n"
+    return reply[len(warning):] if reply.startswith(warning) else reply
+
+
+def capture_session(module,process,identifier,audio,capture,save):
+    """Pinned-tool capture only; unknown requests preserve the live original VM."""
+    start=time.monotonic()
+    while not (module.VM/'qmp-capture.sock').exists():
+        if process.poll() is not None or time.monotonic()-start>30:raise RuntimeError('original HDA QMP did not appear')
+        time.sleep(.1)
+    monitor=image_qmp.Connection(module.VM/'qmp-capture.sock',identifier,process,audio.setdefault('qmp',{}),save)
+    try:
+        path=capture.as_posix()
+        if capture_reply(monitor.execute('human-monitor-command',{'command-line':'info capture'}),'info capture'):
+            raise ValueError('foreign capture exists; preserve')
+        if identity(capture)!=audio['object']:raise ValueError('HDA capture object replaced')
+        audio['state']='capture-start-pending';save()
+        reply=monitor.execute('human-monitor-command',{'command-line':'wavcapture "'+path+'" audio 48000 16 2'})
+        audio['capture_start']=reply;save()
+        if capture_reply(reply,'wavcapture'):raise ValueError('capture start diagnostic')
+        reply=monitor.execute('human-monitor-command',{'command-line':'info capture'})
+        audio['capture_active']=reply;save()
+        if capture_reply(reply,'info capture')!='[0]: Capturing audio(48000,16,2) to '+path+': 0 bytes\r\n':
+            raise ValueError('original capture not listed')
+        audio['state']='capturing';save();monitor.execute('cont')
+        while not image_qmp.guest_poweroff(audio['qmp']['events']):
+            if process.poll() is not None:raise RuntimeError('original HDA VM ended before captured poweroff')
+            if any(e.get('event')=='SHUTDOWN' for e in audio['qmp']['events']):raise ValueError('different HDA shutdown; preserve')
+            monitor.poll(.25)
+        status=monitor.execute('query-status');audio['guest_status']=status;save()
+        if status.get('running') is not False or status.get('status')!='shutdown':raise ValueError('HDA guest is not powered off')
+        audio['state']='capture-stop-pending';save()
+        reply=monitor.execute('human-monitor-command',{'command-line':'stopcapture 0'})
+        audio['capture_stop']=reply;save()
+        if capture_reply(reply,'stopcapture') or capture_reply(monitor.execute('human-monitor-command',{'command-line':'info capture'}),'info capture'):
+            raise ValueError('HDA capture not retired')
+        audio['state']='capture-finalized';audio['quit_acknowledged']=False;save()
+        try:monitor.execute('quit');audio['quit_acknowledged']=True;save()
+        except (EOFError,ConnectionResetError) as error:
+            audio['quit_transport_error']=str(error)[:1024];save()
+        if process.wait(timeout=10)!=0:raise ValueError('original HDA VM exit failed')
+    finally:monitor.close()
+
+
+def start(module,install,hda=False):
+    if type(hda) is not bool or (install and hda):raise ValueError('HDA is an explicit disk-boot profile only')
     with module.launch_guard():
         record=module.VM/'process.json'
         if record.exists():
@@ -164,11 +218,19 @@ def start(module,install):
             if 'pid' not in old or module.pid_alive(old['pid']):raise ValueError('original lab start unresolved/live; do not retry')
             if install:raise ValueError('lab installation is never automatically repeated')
         if (module.VM/'config.json').exists() and module.running():raise ValueError('original lab is running')
-        if (module.VM/'qmp.sock').exists():raise ValueError('original lab socket needs reconciliation')
+        if any((module.VM/name).exists() for name in ('qmp.sock','qmp-capture.sock')):raise ValueError('original lab socket needs reconciliation')
         module.free_ports(module.SSH_PORT,*([module.HTTP_PORT] if install else []))
         prepare(module)
         if not install:require_installation(module)
-        args=command(module,install);image_state.write(module.VM/'last-command.json',dict(arguments=args))
+        capture=None;audio=None
+        if hda:
+            parent=module.owned(module.VM/'hda');parent.mkdir(exist_ok=True);module.private_path(parent,directory=True)
+            directory=parent/uuid.uuid4().hex;directory.mkdir(mode=0o700);module.private_path(directory,directory=True)
+            capture=directory/'capture.wav'
+            with capture.open('xb') as stream:stream.flush();os.fsync(stream.fileno())
+            audio=dict(state='prepared',path=str(capture),object=identity(capture),directory_object=dict(device=directory.stat().st_dev,inode=directory.stat().st_ino))
+            image_state.write(directory/'capture.json',audio)
+        args=command(module,install,capture);image_state.write(module.VM/'last-command.json',dict(arguments=args))
         server=None
         if install:
             server=http.server.ThreadingHTTPServer(('127.0.0.1',module.HTTP_PORT),partial(http.server.SimpleHTTPRequestHandler,directory=str(module.VM/'http')))
@@ -176,23 +238,33 @@ def start(module,install):
         try:
             with (module.VM/('install-qemu.log' if install else 'qemu.log')).open('ab') as log:
                 value=dict(uuid=load(module)['uuid'],state='starting',install=install,started_unix=time.time())
+                if audio is not None:
+                    value['hda']=audio;audio['state']='dispatch-pending';image_state.write(capture.parent/'capture.json',audio)
                 image_state.write(record,value)
                 process=subprocess.Popen(args,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=module.FLAGS)
                 value.update(pid=process.pid,state='spawned');image_state.write(record,value)
                 print(json.dumps(value),flush=True)
+                if audio is not None:
+                    def save():
+                        image_state.write(capture.parent/'capture.json',audio);image_state.write(record,value)
+                    capture_session(module,process,value['uuid'],audio,capture,save)
                 result=process.wait();value.update(state='exited',exit=result);image_state.write(record,value)
+                if audio is not None:
+                    if identity(capture)!=audio['object']:raise ValueError('original HDA capture object changed; preserve')
+                    audio.update(state='original-vm-exited',vm_pid=process.pid,vm_exit=result,size=capture.stat().st_size,sha256=hashlib.sha256(capture.read_bytes()).hexdigest())
+                    image_state.write(capture.parent/'capture.json',audio);image_state.write(record,value)
                 print(json.dumps(value),flush=True);return result
         finally:
             if server:server.shutdown();server.server_close()
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('prepare','install','boot','status','ssh','poweroff'));parser.add_argument('remote',nargs=argparse.REMAINDER);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('prepare','install','boot','boot-hda','status','ssh','poweroff'));parser.add_argument('remote',nargs=argparse.REMAINDER);args=parser.parse_args()
     module=runtime()
     if args.action=='prepare':
         with module.launch_guard():print(json.dumps(prepare(module),indent=2))
         return 0
-    if args.action in ('install','boot'):return start(module,args.action=='install')
+    if args.action in ('install','boot','boot-hda'):return start(module,args.action=='install',hda=args.action=='boot-hda')
     if not (module.VM/'config.json').exists():
         if args.action=='status':print(json.dumps(dict(registered=False)));return 0
         raise ValueError('lab is not registered')

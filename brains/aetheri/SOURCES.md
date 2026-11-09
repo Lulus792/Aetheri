@@ -1,5 +1,18 @@
 # Sources
 
+## Confined virtual sound-device boundary — 9 November 2026
+
+- [Execution record](journal/2026-11-09-audio-pcm.md) and
+  [diagnostic contract](../../spec/audio-pcm-device.md): exact playback FD,
+  confined real user-service actor, original-resource retirement, Release and
+  sanitizer controls, failed capture evidence and full host reference comparison.
+- QEMU11.1 [WAV backend](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/wavaudio.c),
+  [capture writer](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/wavcapture.c)
+  and [monitor commands](https://raw.githubusercontent.com/qemu/qemu/v11.1.0/audio/audio-hmp-cmds.c):
+  backend and monitor captures have separate finalization paths; monitor stop
+  removes its capture and closes/patches RIFF. The commands are deprecated.
+  Their source behavior does not prove a particular native capture is complete.
+
 ## Confined per-user audio and target stop — 9 November 2026
 
 - [Executed record](journal/2026-11-09-audio-user.md) and

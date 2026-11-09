@@ -1,5 +1,22 @@
 # Decisions
 
+## Separate virtual-device drain from captured audio — 9 November 2026
+
+Use the separate enforcing audio lab for a root-selected PCM FD passed only to
+the finite confined user backend. Preserve device owner/mode/ACL and restore its
+exact temporary MAC label only after original actor/unit/cgroup/FD retirement.
+Keep raw device transport outside normal app IPC and production permissions.
+
+Guest DRAIN and exit do not prove full captured audio. Preserve both failed
+unpadded captures; use an explicitly counted silent guard in the diagnostic and
+retain the unchanged 96,000-frame reference. This does not fix or accept normal
+device/physical drain. The host capture must explicitly finalize before original
+QEMU exit; file hashes and terminal processes alone are not audio acceptance.
+Use the pinned test-only monitor capture over a second protected AF_UNIX QMP
+endpoint so ordinary lab control remains available. See the
+[execution record](journal/2026-11-09-audio-pcm.md) and
+[contract](../../spec/audio-pcm-device.md).
+
 ## Join confined audio to original user services — 9 November 2026
 
 Reuse the existing PCM, role-policy and original-object checks with a retained
