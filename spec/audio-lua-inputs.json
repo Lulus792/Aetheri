@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "purpose": "Private audio Lua candidate SDK; no normal installation or release acceptance",
+  "version": "5.5.1",
+  "reviewed": "2026-11-09",
+  "source": {
+    "url": "https://codeload.github.com/lua/lua/tar.gz/refs/tags/v5.5.1",
+    "commit": "7579fc9d7ed90240487251dfb69168f8e64e9294",
+    "root": "lua-5.5.1",
+    "size": 501560,
+    "sha256": "ffed0b0e2987e66b0142491b26c63170ffd2d86e425ff3703799f4933fd91810"
+  },
+  "patch": {
+    "path": "patches/lua-5.5.1-upstream-fixes.patch",
+    "sha256": "d5ae84408e56a8ad8e4435b9d1d22155b34020ec91a2bee617f45379cf7775d7",
+    "files": {
+      "lcode.c": {
+        "original_sha256": "9ad73605143555e094f00bd87b0dadb3002c440e7ed743bdd09637e73466cbb6",
+        "patched_sha256": "79f5c2ac0d701adbb9f488e1bf2f443f6a189ab3cc98d552f4c4812a1569fe69"
+      },
+      "lcorolib.c": {
+        "original_sha256": "14ab32084fafe825b6dca8c2d69fbbfd68e6a5c442acf4b18cc78f9dc15a820a",
+        "patched_sha256": "a3d9eb722d975ce285bfbceaf1439dc5c5b6932cbbe865a73105086ed073992b"
+      },
+      "lgc.c": {
+        "original_sha256": "fdbeb7246deebb353fc0d462a9712a7e34983b37340be4877c621535e3b1baa3",
+        "patched_sha256": "137e646f2e240311a58312fa024d5426a7138132b4bb6af7e6ec2a037adc0f9f"
+      },
+      "lobject.c": {
+        "original_sha256": "c5bb25d52e84294289b34ed20f1004fa6ed9bf9a5012ccb81c67eba43163a48b",
+        "patched_sha256": "56b90d71d3bf45f98be32f1ebe2423d49451efbf4487793df1817825e10303e2"
+      },
+      "lstate.c": {
+        "original_sha256": "19335bd0c9c3ea691cf0cbadcae4b40c08116aa8477bf661c7fa951e5874af1e",
+        "patched_sha256": "d8a32a8dc3bbdd87caef595d45fe91e59d92321cfd7bd11cda941dd48c6c186b"
+      },
+      "lvm.c": {
+        "original_sha256": "632ca1fc6400301e3b11195d4830e948e6b4a50b6262187307eb8afe1f769c22",
+        "patched_sha256": "7b055ea5535e81dee3cb4556eea8bae3a4198cd76f85dcc0af194eace2e0868d"
+      }
+    },
+    "upstream": [
+      {
+        "commit": "0b29f408433e92953cc72b1d3e06c7ac8139e439",
+        "url": "https://github.com/lua/lua/commit/0b29f408433e92953cc72b1d3e06c7ac8139e439",
+        "download_sha256": "0d196ef065208c578e1a26ce792b8e4399a507ff446e9128e285ea2b5e9c7993"
+      },
+      {
+        "commit": "e8533201cd2448d668c9b64758fc44205544b27f",
+        "url": "https://github.com/lua/lua/commit/e8533201cd2448d668c9b64758fc44205544b27f",
+        "download_sha256": "a535288b7a5037aaa5cedb8f75bd8fe2c1d56bb171e241de49b0a350e9ae9f69"
+      },
+      {
+        "commit": "b35736b9d71182bae67492af2a387b3f6e89fd05",
+        "url": "https://github.com/lua/lua/commit/b35736b9d71182bae67492af2a387b3f6e89fd05",
+        "download_sha256": "45ffbc5cf56fe982bcf22b99bdc5914f2a987324d0b2864fe410a444eb0f09e3"
+      },
+      {
+        "commit": "15b2a78106f85a3f8ef2efe5683148d9dad84b33",
+        "url": "https://github.com/lua/lua/commit/15b2a78106f85a3f8ef2efe5683148d9dad84b33",
+        "download_sha256": "a7b45fb306544a48c1d968c6c7c6872f63862e1e1f0763281ab67c935e21da20"
+      }
+    ]
+  },
+  "license": "MIT",
+  "notice_source": "lua.h",
+  "soname": "liblua-5.5.so",
+  "review_sources": [
+    "https://www.lua.org/bugs.html#5.5.1",
+    "https://www.lua.org/versions.html",
+    "https://raw.githubusercontent.com/PipeWire/wireplumber/0.5.19/meson.build"
+  ],
+  "rollout": "Candidate only: rebuild the Lua-dependent WirePlumber modules and repeat actual graph/PCM/GUI and enforcing tests before changing any normal profile."
+}

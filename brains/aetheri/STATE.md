@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The connected Sound GUI passes the full separate enforcing-lab test: pointer/keyboard volume, independent graph properties, mute/unmute, source-loss fencing and original-resource retirement. A passive-rounding resubmission defect is corrected and counterchecked; nine groups pass in Release and ASan/UBSan. Six driver controls and nine native projection tests pass. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
+9 November 2026 — The private Lua 5.5.1 candidate plus four upstream fixes now passes native Release/ASan/UBSan source regressions and four original-source counterexamples on both musl and glibc. It is not selected by normal audio/image profiles yet: rebuild WirePlumber's Lua-linked objects and repeat live audio acceptance next. The preceding connected Sound GUI lab milestone remains accepted. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
 
 ## Coordination
 
@@ -12,6 +12,26 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Maintained audio Lua candidate — 9 November 2026
+
+Read the [record](journal/2026-11-09-audio-lua.md) and
+[candidate build contract](../../spec/audio-lua.md). Lua 5.4's end of releases
+changes the upgrade direction: the actual WirePlumber 0.5.19 source supports 5.5.
+The new private SDK uses Lua 5.5.1 and six fully bound C pre/postimages for four
+upstream fixes. Three input controls and eight native positive cases pass in
+each libc environment; four original-source cases fail precisely in each.
+The glibc Release library is 335,184 bytes. Original notices are retained;
+there is no new daemon, app language or normal service/profile change.
+
+The original P0 VM is observed stopped after the pause. Do not restart/adopt old
+retained-handle state to obtain a compiler. The separate audio lab now has twelve
+reviewed offline build packages; network restriction remains enabled. Reuse its
+checked toolchain and independent code/data snapshots for the WirePlumber rebuild.
+Check actual VM/controller state and the journal before any start or retry.
+Next verify the rebuilt Lua-linked objects and full graph/PCM/GUI/policy retirement
+before selecting new runtime/image manifests. Normal ownership and PCRE2 review
+remain separate requirements. User USB documents remain untouched.
 
 ## Connected Sound GUI and complete lab retirement — 9 November 2026
 
