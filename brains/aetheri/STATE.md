@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The Lua 5.5 policy candidate now passes confined system/user roles and connected Sound/source-loss retirement, with independent exports and PCM checks. The GUI client maps no Lua, but the compositor's selected libinput still requires its old Lua 5.4 ABI. Review that remaining binding before normal rollout; no normal audio/image manifest is changed. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
+9 November 2026 — A private libinput 1.32/Lua 5.5 build now passes generic deviceless, utility/version and matching-bytecode guard tests with a real negative counterexample. Its complete export is checked; full upstream Lua/uinput, sanitizer and compositor/input acceptance remain next. Normal manifests still use the original input library. The previously accepted policy/Sound candidate and original carrier/USB remain unchanged. Normal provisioning, device policy, physical sound and release review remain work.
 
 ## Coordination
 
@@ -14,6 +14,21 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Maintained audio Lua candidate — 9 November 2026
+
+The [libinput build record](journal/2026-11-09-libinput-build.md) and
+[build contract](../../spec/libinput-build.md) now establish a private 1.32.0
+candidate retaining mtdev/tablet/plugin support with autoload off and genuine
+Lua 5.5 linkage. 44 generic deviceless cases, 64 utility cases, version and matching
+bytecode checks pass; the deliberately weakened counter library fails precisely.
+All 2,465 exported files and the 309 retained API symbols are checked. No normal
+provider changes. The SDK is data-only extraction, with no package installation.
+
+Next run upstream Lua/input cases under a fresh root-only virtual-device fixture,
+then sanitizers and actual compositor/input regressions. Upstream's `no_device`
+Lua cases are not included by `--filter-deviceless`; do not claim they passed.
+Keep counter libraries quarantined and preserve udev/rule/device/process lifetimes.
+The known live audio lab/controller remains available; inspect actual state before
+dispatch. Normal release/PCRE2/device/ownership work and USB protection continue.
 
 The [confined/GUI record](journal/2026-11-09-audio-policy-confined.md) establishes
 four completed role runs: 76 services, 16 memory probes, 12 independently recomputed

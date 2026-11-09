@@ -1,0 +1,145 @@
+{
+  "format": 1,
+  "version": "1.32.0",
+  "source": {
+    "url": "https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.32.0/libinput-1.32.0.tar.gz",
+    "commit": "5cf833b572f5a33663888da321dce0ba1abd82a2",
+    "size": 1193963,
+    "sha256": "7dd6c1ca964c86eb6810ccd6639cda634e68bdca43bf3afec39e94e942fac8d4"
+  },
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "purpose": "Private libinput1.32/Lua55 compatibility build with unchanged existing runtime providers; not normal input or hardware acceptance",
+  "packages": [
+    {
+      "name": "libevdev-devel-1.13.6-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libevdev/1.13.6/2.fc44/data/signed/6d9f90a6/x86_64/libevdev-devel-1.13.6-2.fc44.x86_64.rpm",
+      "size": 29377,
+      "sha256": "2936ff675694a5b3a112e97f6b949948525f2fc3eafb1af250098641c640dbc1",
+      "metadata": [
+        "libevdev-devel 1.13.6-2.fc44.x86_64",
+        "MIT",
+        "libevdev-1.13.6-2.fc44.src.rpm"
+      ],
+      "selected_files": 3
+    },
+    {
+      "name": "mtdev-devel-1.1.6-12.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mtdev/1.1.6/12.fc44/data/signed/6d9f90a6/x86_64/mtdev-devel-1.1.6-12.fc44.x86_64.rpm",
+      "size": 17041,
+      "sha256": "4aadcb5e4dfb25b3bc93f0ccd376fe14d8c47e6f41a6f15ee58540c4a971e8d9",
+      "metadata": [
+        "mtdev-devel 1.1.6-12.fc44.x86_64",
+        "MIT",
+        "mtdev-1.1.6-12.fc44.src.rpm"
+      ],
+      "selected_files": 4
+    },
+    {
+      "name": "libwacom-devel-2.19.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libwacom/2.19.0/1.fc44/data/signed/6d9f90a6/x86_64/libwacom-devel-2.19.0-1.fc44.x86_64.rpm",
+      "size": 17358,
+      "sha256": "44d8a5d0375fdf4fa06f787f706df905888b71afbe47ec655d781cd5f7120216",
+      "metadata": [
+        "libwacom-devel 2.19.0-1.fc44.x86_64",
+        "HPND",
+        "libwacom-2.19.0-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "systemd-devel-259.10-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/systemd/259.10/1.fc44/data/signed/6d9f90a6/x86_64/systemd-devel-259.10-1.fc44.x86_64.rpm",
+      "size": 718475,
+      "sha256": "5084b02d680e990d022734f8083aa40c5f882ef68d9f8e8710cbaa2eae511711",
+      "metadata": [
+        "systemd-devel 259.10-1.fc44.x86_64",
+        "LGPL-2.1-or-later AND MIT",
+        "systemd-259.10-1.fc44.src.rpm"
+      ],
+      "selected_files": 20
+    },
+    {
+      "name": "libgudev-devel-238-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libgudev/238/9.fc44/data/signed/6d9f90a6/x86_64/libgudev-devel-238-9.fc44.x86_64.rpm",
+      "size": 42230,
+      "sha256": "636f6c0bd29d3b4be534fa753b705812d9b8f32d3ec17f5f27dbdb73c8734484",
+      "metadata": [
+        "libgudev-devel 238-9.fc44.x86_64",
+        "LGPL-2.1-or-later",
+        "libgudev-238-9.fc44.src.rpm"
+      ],
+      "selected_files": 8
+    },
+    {
+      "name": "sysprof-capture-devel-50.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/sysprof/50.0/1.fc44/data/signed/6d9f90a6/x86_64/sysprof-capture-devel-50.0-1.fc44.x86_64.rpm",
+      "size": 178245,
+      "sha256": "05fcdccdc643b701634aed9a92fa77e6ef33ef9c7884756f7607b6993522acb6",
+      "metadata": [
+        "sysprof-capture-devel 50.0-1.fc44.x86_64",
+        "BSD-2-Clause-Patent",
+        "sysprof-50.0-1.fc44.src.rpm"
+      ],
+      "selected_files": 14
+    },
+    {
+      "name": "glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/glib2/2.88.0/1.fc44/data/signed/6d9f90a6/x86_64/glib2-devel-2.88.0-1.fc44.x86_64.rpm",
+      "size": 1577142,
+      "sha256": "01b81ced14cb4415389043c99e5d9487b47ed6ac68e1afdd55de5e7735c79248",
+      "metadata": [
+        "glib2-devel 2.88.0-1.fc44.x86_64",
+        "LGPL-2.1-or-later",
+        "glib2-2.88.0-1.fc44.src.rpm"
+      ],
+      "selected_files": 317
+    },
+    {
+      "name": "pcre2-devel-10.47-1.fc44.1.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pcre2/10.47/1.fc44.1/data/signed/6d9f90a6/x86_64/pcre2-devel-10.47-1.fc44.1.x86_64.rpm",
+      "size": 564145,
+      "sha256": "592e7c77e1fa9513c1e5f419c2b437a51c1d5f36d12e794844ea3e0a7b33f92e",
+      "metadata": [
+        "pcre2-devel 10.47-1.fc44.1.x86_64",
+        "BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later",
+        "pcre2-10.47-1.fc44.1.src.rpm"
+      ],
+      "selected_files": 6
+    },
+    {
+      "name": "libffi-devel-3.5.2-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libffi/3.5.2/2.fc44/data/signed/6d9f90a6/x86_64/libffi-devel-3.5.2-2.fc44.x86_64.rpm",
+      "size": 30419,
+      "sha256": "89310f3daf6bdd8dbcc081891a653a4bf54d115e5614020fa761f56f84158911",
+      "metadata": [
+        "libffi-devel 3.5.2-2.fc44.x86_64",
+        "MIT AND CC-PDDC AND (GPL-3.0-or-later WITH Texinfo-exception)",
+        "libffi-3.5.2-2.fc44.src.rpm"
+      ],
+      "selected_files": 5
+    },
+    {
+      "name": "ninja-build-1.13.2-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/ninja-build/1.13.2/2.fc44/data/signed/6d9f90a6/x86_64/ninja-build-1.13.2-2.fc44.x86_64.rpm",
+      "size": 208791,
+      "sha256": "fb1d93e66fde0db8b874f88d2280210b09da157292b1c941671f19d6ae1e3e42",
+      "metadata": [
+        "ninja-build 1.13.2-2.fc44.x86_64",
+        "Apache-2.0",
+        "ninja-build-1.13.2-2.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "meson-1.11.2-1.fc44.noarch.rpm",
+      "size": 2740686,
+      "sha256": "fdfc1a5c36867a340734d108bd34098b6f88b58258c6328492b134d635ed0420",
+      "metadata": [
+        "meson 1.11.2-1.fc44.noarch",
+        "Apache-2.0",
+        "meson-1.11.2-1.fc44.src.rpm"
+      ],
+      "selected_files": 243
+    }
+  ]
+}
