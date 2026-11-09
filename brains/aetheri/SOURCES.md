@@ -1,5 +1,17 @@
 # Sources
 
+## Confined per-user audio and target stop — 9 November 2026
+
+- [Executed record](journal/2026-11-09-audio-user.md) and
+  [contract](../../spec/audio-user.md): actual user role PCM, six native actor
+  observers, three source-stop targets, broken-relation counterexample and owned
+  capture/FD retirement. Keep failed setups/negative expectations distinct.
+- systemd v259 [target implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/target.c),
+  [transient-unit admission](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-manager.c)
+  and [dependency reference](https://raw.githubusercontent.com/systemd/systemd/v259/man/systemd.unit.xml):
+  targets use ordinary unit files; Requisite/Requires and PartOf propagate
+  explicit stops, while ordering alone does not create that relationship.
+
 ## Original audio user-service actors — 9 November 2026
 
 - [Actor record](journal/2026-11-09-audio-actor.md),

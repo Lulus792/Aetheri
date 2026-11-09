@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Native original-user-service observation now joins an audio actor's held process/image/context/cgroup to its retained manager and exact active invocation. Four native groups pass Release and ASan/UBSan; actual user-unit tests reject foreign unit/image/context and latch original exit. The separate VM exits0 after test retirement. Confined graph/policy/control/player PCM remains separately verified. Normal role/session/Settings/device integration and physical audio remain work. USB stays unchanged.
+9 November 2026 — Confined graph/policy/control/player now pass complete synthetic audio under the real user manager, with six native original-actor observers and three test-session targets. One target stop ends both originally live sources before independent retirement. The corrected negative detects missing session relations; its original resources retire separately. Seven native FD/channel controls and the19-role default system regression pass. All evidence is exported and the separate VM exits0. Normal protected session/device/Settings admission and physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,28 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Confined per-user audio — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-audio-user.md) and
+[fixture contract](../../spec/audio-user.md). The real UID1000 user manager now
+supervises19 role services over the three full PCM cases and four memory factories.
+Six native observers independently join source images/contexts/invocations.
+Actual foreign MAC denials remain; both temporary modules and all target files
+are removed after bounded original unit/cgroup/FD retirement.
+
+Regular protected target files replace the rejected transient-target proposal.
+Active-target Requisite/After, source PartOf and policy BindsTo coordinate this
+test session. Both sources must be live before one target stop, then dead before
+retirement without extra source StopUnit calls. Removing both session relations
+exposes the missing coupling. Its failed-case capture reader is now explicitly
+owned and can close only after independently settled actors/effects.
+
+The trusted lab manager remains unconfined. Its temporary transition grant is
+not production app admission, and these targets do not authenticate a Wayland
+login. Normal manager/authority separation, complete protected service/config/
+dependency provenance, session/revocation/holder coordination, device access,
+Settings and physical HP/Bluetooth remain. Do not promote this fixture to the USB.
 
 ## Original audio user-service actor — 9 November 2026
 

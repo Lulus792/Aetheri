@@ -1,5 +1,21 @@
 # Decisions
 
+## Join confined audio to original user services — 9 November 2026
+
+Reuse the existing PCM, role-policy and original-object checks with a retained
+user-manager destination. Keep finite administrative FD transport separate from
+normal app IPC. Use protected ordinary target files because systemd259 rejects
+transient targets. Observe actual selected files, both live source invocations
+before target stop, and independent original end before retirement; never issue
+extra source stops to hide missing propagation. Requisite also propagates an
+explicit stop, so a broken-coupling control must remove all relevant relations.
+
+Retain a failed case's capture FD explicitly. Retire that observer only after
+settled original actors/effects and matching FD identity; closure is not drain.
+Keep the lab's unconfined manager transition test-only. The
+[per-user record](journal/2026-11-09-audio-user.md) separates this execution from
+normal session/app admission and actual device integration.
+
 ## Retain original audio user-service observations — 9 November 2026
 
 Join independently admitted actor pins/images/contexts to the retained original

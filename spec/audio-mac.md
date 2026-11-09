@@ -96,3 +96,9 @@ successful 19-unit run, all four memory factories, actual negative controls and
 full PCM, alongside every failed attempt and remaining timing limitation.
 Next connect these roles to normal per-user admission, device/endpoint ownership,
 revocation/holder coordination and Settings, then test the HP's actual jack.
+
+The later [per-user fixture](audio-user.md) now exercises these roles under the
+real user manager, with native actor observations and fixed session-target stop.
+Its trusted-manager permission profile remains temporary administrative tooling;
+normal desktop/device admission is still open. The default system-scope fixture
+retains its original role contexts and namespace profile.

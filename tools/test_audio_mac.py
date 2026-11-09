@@ -41,10 +41,14 @@ class Fixture:
     def __init__(self,output):
         self.output=output;output.mkdir(mode=0o700);self.token=uuid.uuid4().hex
         self.root=Path('/run/a-audio-'+self.token[:12]);self.bus=Bus();self.units={};self.pending=None
-        self.extra_pins={}
+        self.extra_pins={};self.facts=facts;self.supervisor_pid=1
+        self.capture_reader=None;self.capture_object=None
         self.pump=lambda:None
         self.record=dict(token=self.token,boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip(),root=str(self.root),units={},pending=None,state='preparing')
         self.save()
+
+    def context(self,role):return 'system_u:system_r:'+ROLES[role]+':s0'
+    def memory_context(self,role):return 'system_u:object_r:aetheri_audio_'+role+'_mem_test_t:s0'
 
     def save(self):
         self.record['pending']=self.pending
@@ -58,7 +62,7 @@ class Fixture:
 
     def start(self,case,role,args,env,pin=None,neutral=False):
         name='aetheri-audio-'+self.token+'-'+case+'-'+role+'.service'
-        if facts(name)['LoadState']!='not-found':raise RuntimeError('foreign fixture unit')
+        if self.facts(name)['LoadState']!='not-found':raise RuntimeError('foreign fixture unit')
         log=self.output/(case+'-'+role+'.log');stream=log.open('xb')
         if not neutral:label(log,'aetheri_audio_log_test_t')
         props=[('User','s','1000'),('Group','s','1000'),('NoNewPrivileges','b',True),('CapabilityBoundingSet','t',0),('AmbientCapabilities','t',0),
@@ -66,7 +70,7 @@ class Fixture:
             ('StandardOutputFileDescriptor','h',stream.fileno()),('StandardErrorFileDescriptor','h',stream.fileno()),
             ('Environment','as',[k+'='+v for k,v in env.items()]),('ExecStart','a(sasb)',[(args[0],args,False)])]
         if not neutral:
-            props+=[('SELinuxContext','s','system_u:system_r:'+ROLES[role]+':s0'),('PrivateDevices','b',True),('ProtectHome','s','yes'),('ProtectSystem','s','strict'),('ReadWritePaths','as',[str(self.root)])]
+            props+=[('SELinuxContext','s',self.context(role)),('PrivateDevices','b',True),('ProtectHome','s','yes'),('ProtectSystem','s','strict'),('ReadWritePaths','as',[str(self.root)])]
         if pin is not None:props.append(('ExtraFileDescriptors','a(hs)',[(pin,'original-graph')]))
         if pin is not None:
             source=os.fstat(pin);identity=(source.st_dev,source.st_ino)
@@ -83,7 +87,7 @@ class Fixture:
         deadline=time.monotonic()+8
         while time.monotonic()<deadline:
             self.pump()
-            value=facts(name)
+            value=self.facts(name)
             if value['ActiveState']=='failed':raise RuntimeError('fixture startup failed: '+name+' '+log.read_text(errors='replace'))
             if value['ActiveState']=='active' and value['SubState']=='running' and value['MainPID']!='0' and not value['Job']:break
             time.sleep(.025)
@@ -95,8 +99,8 @@ class Fixture:
         assert set(status['Uid'].split())=={'1000'} and set(status['Gid'].split())=={'1000'}
         assert all(int(status[k],16)==0 for k in ('CapEff','CapPrm','CapInh','CapAmb')) and status['NoNewPrivs'].strip()=='1'
         context=(proc/'attr/current').read_bytes().removesuffix(b'\0').decode().strip()
-        if not neutral:assert context=='system_u:system_r:'+ROLES[role]+':s0',context
-        assert facts(name)==value and not select.select([handle],[],[],0)[0]
+        if not neutral:assert context==self.context(role),context
+        assert self.facts(name)==value and not select.select([handle],[],[],0)[0]
         assert value['InvocationID'] and int(value['InvocationID'],16)
         group=Path('/sys/fs/cgroup'+value['ControlGroup']);directory=os.open(group,os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)
         events=os.open('cgroup.events',os.O_RDONLY|os.O_CLOEXEC,dir_fd=directory)
@@ -112,7 +116,7 @@ class Fixture:
     def release(self,name):
         unit=self.units[name]
         self.wait(lambda:'AETHERI_AUDIO_MAC_READY ' in unit['log'].read_text(errors='replace'),[name],'gateway barrier')
-        assert facts(name)['InvocationID']==unit['facts']['InvocationID'] and not select.select([unit['pin']],[],[],0)[0]
+        assert self.facts(name)['InvocationID']==unit['facts']['InvocationID'] and not select.select([unit['pin']],[],[],0)[0]
         signal.pidfd_send_signal(unit['pin'],signal.SIGUSR1)
 
     def wait(self,predicate,names,description,seconds=12):
@@ -128,20 +132,21 @@ class Fixture:
     def finished(self,name):
         unit=self.units[name];deadline=time.monotonic()+20
         while True:
-            self.pump();value=facts(name)
+            self.pump();value=self.facts(name)
             if select.select([unit['pin']],[],[],0)[0] and value['MainPID']=='0':break
             if time.monotonic()>deadline:raise TimeoutError('original finite actor')
             time.sleep(.01)
         assert value['InvocationID']==unit['facts']['InvocationID'] and value['ExecMainStatus']=='0' and value['MainPID']=='0',value
         self.record['units'][name]['finite_exit']=0;self.save()
 
-    def stop(self,name):
+    def stop(self,name,request=True):
         unit=self.units[name]
         if 'facts' not in unit:raise RuntimeError('unadmitted unit needs reconciliation')
-        assert facts(name)['InvocationID']==unit['facts']['InvocationID']
-        self.effect('stop',name,lambda:self.bus.stop(name));deadline=time.monotonic()+8
+        assert self.facts(name)['InvocationID']==unit['facts']['InvocationID']
+        if request:self.effect('stop',name,lambda:self.bus.stop(name))
+        deadline=time.monotonic()+8
         while time.monotonic()<deadline:
-            value=facts(name)
+            value=self.facts(name)
             if value['ActiveState'] in ('inactive','failed') and value['MainPID']==value['ControlPID']=='0' and not value['Job'] and select.select([unit['pin']],[],[],0)[0]:break
             time.sleep(.025)
         else:raise TimeoutError('original unit not terminal')
@@ -162,7 +167,7 @@ class Fixture:
         if value['ActiveState']=='failed':self.effect('reset-failed',name,lambda:self.bus.unit('ResetFailedUnit',name))
         self.effect('unref',name,lambda:self.bus.unit('UnrefUnit',name))
         deadline=time.monotonic()+5
-        while facts(name)['LoadState']!='not-found':
+        while self.facts(name)['LoadState']!='not-found':
             if time.monotonic()>deadline:raise TimeoutError('original unit GC/extra-FD retirement')
             time.sleep(.025)
         # PID1 also retains its independent supervisory pidfd while the source
@@ -176,7 +181,7 @@ class Fixture:
         assert all(v['state']=='retired' for v in self.record['units'].values())
         for identity,pin in self.extra_pins.items():
             assert (os.fstat(pin).st_dev,os.fstat(pin).st_ino)==identity
-            for descriptor in Path('/proc/1/fd').iterdir():
+            for descriptor in Path('/proc/'+str(self.supervisor_pid)+'/fd').iterdir():
                 try:held=descriptor.stat()
                 except FileNotFoundError:continue
                 if (held.st_dev,held.st_ino)==identity:raise RuntimeError('PID1 retains original object after source/client unit GC')
@@ -199,6 +204,14 @@ def configuration(root,sdk,policy):
 
 
 class Audio(Fixture):
+    def retire_capture(self):
+        # Failure paths retain this bounded observer until original actors and
+        # uncertain effects are independently settled. It is not holder drain.
+        if self.capture_reader is None:return
+        assert self.pending is None and all(u['state']=='retired' for u in self.record['units'].values())
+        st=os.fstat(self.capture_reader);assert (st.st_dev,st.st_ino)==self.capture_object
+        os.close(self.capture_reader);self.capture_reader=None;self.capture_object=None;self.pump=lambda:None
+
     def setup(self,sdk,policy,control,binary,source):
         if Path('/sys/fs/selinux/policy_capabilities/memfd_class').read_text().strip()!='0':raise RuntimeError('different memfd policy class; review before dispatch')
         self.record['modules_before']=run('semodule','-lfull')
@@ -234,7 +247,7 @@ class Audio(Fixture):
             name=self.start('memory',role,[str(self.images['gateway']),'memory'],{})
             self.release(name);self.finished(name)
             text=self.units[name]['log'].read_text()
-            expected='MEMORY label=system_u:object_r:aetheri_audio_'+role+'_mem_test_t:s0 label_errno=0 resized=0 resize_errno=0'
+            expected='MEMORY label='+self.memory_context(role)+' label_errno=0 resized=0 resize_errno=0'
             assert expected in text and 'MEMORY mapped=1 map_errno=0' in text,text
             self.stop(name)
             self.record.setdefault('memory_factories',{})[role]=text;self.save()
@@ -243,8 +256,8 @@ class Audio(Fixture):
         unit=self.units[name];proc=Path('/proc')/str(unit['pid'])
         self.wait(lambda:os.readlink(proc/'exe')==str(path),[name],'selected target image')
         assert not select.select([unit['pin']],[],[],0)[0]
-        assert facts(name)['InvocationID']==unit['facts']['InvocationID']
-        assert (proc/'attr/current').read_bytes().rstrip(b'\0\n').decode()=='system_u:system_r:'+ROLES[unit['role']]+':s0'
+        assert self.facts(name)['InvocationID']==unit['facts']['InvocationID']
+        assert (proc/'attr/current').read_bytes().rstrip(b'\0\n').decode()==self.context(unit['role'])
         status=dict(line.split(':',1) for line in (proc/'status').read_text().splitlines() if ':' in line)
         assert set(status['Uid'].split())==set(status['Gid'].split())=={'1000'}
         assert all(int(status[k],16)==0 for k in ('CapEff','CapPrm','CapInh','CapAmb')) and status['NoNewPrivs'].strip()=='1'
@@ -262,6 +275,7 @@ class Audio(Fixture):
             path.mkdir(mode=0o700);os.chown(path,1000,1000);label(path,'aetheri_audio_'+kind+'_test_t')
         fifo=root/'capture.fifo';os.mkfifo(fifo,0o600);os.chown(fifo,1000,1000);label(fifo,'aetheri_audio_capture_test_t')
         reader=os.open(fifo,os.O_RDONLY|os.O_NONBLOCK|os.O_CLOEXEC);captured=bytearray()
+        self.capture_reader=reader;st=os.fstat(reader);self.capture_object=(st.st_dev,st.st_ino)
         def pump():
             for _ in range(8):
                 try:raw=os.read(reader,65536)
@@ -346,7 +360,7 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
         assert 'DRAINED frames=48000' in self.units[player]['log'].read_text()
         self.stop(player)
         for _ in range(30):pump();time.sleep(.01)
-        self.stop(policy);self.stop(graph);self.retire_extra_fds();pump();os.close(reader);self.pump=lambda:None
+        self.stop(policy);self.stop(graph);self.retire_extra_fds();pump();self.retire_capture()
         raw=bytes(captured);(self.output/(case+'.f32le')).write_bytes(raw)
         result=validate_pcm(raw,48000,silent=case=='muted',gain=.125 if case=='half' else 1)
         self.record.setdefault('cases',{})[case]=result;self.save()

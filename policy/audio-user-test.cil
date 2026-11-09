@@ -1,0 +1,11 @@
+; MIT. Additional disposable-carrier USER-manager fixture only.
+; The lab's unconfined user manager is trusted test infrastructure. Granting
+; this transition to unconfined_t is NOT production service/app admission.
+(roletype unconfined_r aetheri_audio_graph_test_t)
+(roletype unconfined_r aetheri_audio_policy_test_t)
+(roletype unconfined_r aetheri_audio_control_test_t)
+(roletype unconfined_r aetheri_audio_player_test_t)
+(roletype unconfined_r aetheri_audio_foreign_test_t)
+(allow unconfined_t aetheri_audio_actor_test (process (transition)))
+(allow unconfined_t aetheri_audio_actor_test (process2 (nnp_transition)))
+(allow unconfined_dbusd_t aetheri_audio_log_test_t (file (read write getattr)))
