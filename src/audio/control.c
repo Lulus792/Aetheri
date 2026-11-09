@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
+#include <unistd.h>
 #include <wp/wp.h>
 
 struct ae_audio_control {
@@ -173,7 +174,15 @@ static struct ae_audio_control *open_control(GMainContext *context,const char *r
     c->changed=callback;c->data=data;c->destroy=destroy;c->snapshot.state=AE_AUDIO_CONNECTING;
     wp_init(WP_INIT_ALL);
     if(strcmp(wp_get_library_version(),"0.5.19") || glib_major_version!=2 || glib_minor_version!=88 || glib_micro_version!=0) {c->destroy=NULL;release(c);return NULL;}
+    /* Reject the endpoint before constructing a backend. In particular, an
+     * invalid original pin must not depend on SPA/plugin availability. */
+    int fd=original>=0 ? ae_audio_remote_connect_original(remote,original) : ae_audio_remote_connect(remote);
+    if(fd<0) {
+        if(original>=0) c->snapshot.error=AE_AUDIO_ERROR_ENDPOINT;
+        fail(c,AE_AUDIO_DISCONNECTED);return c;
+    }
     c->core=wp_core_new(context,NULL,wp_properties_new("remote.name",remote,"application.name","Aetheri Audio Control",NULL));
+    if(!c->core) {close(fd);c->snapshot.error=AE_AUDIO_ERROR_PLUGINS;fail(c,AE_AUDIO_FAILED);return c;}
     c->objects=wp_object_manager_new();
     wp_object_manager_add_interest(c->objects,WP_TYPE_NODE,WP_CONSTRAINT_TYPE_PW_GLOBAL_PROPERTY,"media.class","=s","Audio/Sink",NULL);
     wp_object_manager_request_object_features(c->objects,WP_TYPE_NODE,WP_PIPEWIRE_OBJECT_FEATURES_MINIMAL);
@@ -182,11 +191,9 @@ static struct ae_audio_control *open_control(GMainContext *context,const char *r
     g_signal_connect(c->core,"connected",G_CALLBACK(connected),c);
     c->deadline=g_timeout_source_new(5000);g_source_set_callback(c->deadline,timeout_command,retain(c),release);g_source_attach(c->deadline,c->context);
     g_main_context_push_thread_default(context);
-    int fd=original>=0 ? ae_audio_remote_connect_original(remote,original) : ae_audio_remote_connect(remote);
-    if(fd<0 && original>=0) c->snapshot.error=AE_AUDIO_ERROR_ENDPOINT;
     /* connect_fd consumes the original socket on success and on error. The
      * ambient PIPEWIRE_REMOTE may not override the caller's explicit endpoint. */
-    if(fd<0 || !wp_core_connect_fd(c->core,fd)) fail(c,AE_AUDIO_DISCONNECTED);
+    if(!wp_core_connect_fd(c->core,fd)) fail(c,AE_AUDIO_DISCONNECTED);
     g_main_context_pop_thread_default(context);dirty(c);return c;
 }
 struct ae_audio_control *ae_audio_control_open(GMainContext *context,const char *remote,ae_audio_changed callback,void *data,GDestroyNotify destroy) {
@@ -245,7 +252,7 @@ enum ae_audio_submit ae_audio_control_mute(struct ae_audio_control *c,uint64_t r
 enum ae_audio_submit ae_audio_control_default(struct ae_audio_control *c,uint64_t rev,struct ae_audio_output_ref ref) {return submit(c,rev,ref,AE_AUDIO_DEFAULT,0,false);}
 static void finish_close(struct ae_audio_control *c) {
     if(c->closed) return;
-    c->closed=true;source_clear(&c->deadline);wp_core_disconnect(c->core);
+    c->closed=true;source_clear(&c->deadline);if(c->core) wp_core_disconnect(c->core);
 }
 static gboolean close_timeout(gpointer data) {
     struct ae_audio_control *c=data;GSource *s=c->deadline;c->deadline=NULL;g_source_unref(s);
@@ -270,7 +277,8 @@ bool ae_audio_control_close(struct ae_audio_control **slot) {
     if(!slot || !owner(*slot)) return false;
     struct ae_audio_control *c=*slot;*slot=NULL;c->closing=true;
     source_clear(&c->idle);source_clear(&c->deadline);
-    g_signal_handlers_disconnect_by_data(c->core,c);g_signal_handlers_disconnect_by_data(c->objects,c);
+    if(c->core) g_signal_handlers_disconnect_by_data(c->core,c);
+    if(c->objects) g_signal_handlers_disconnect_by_data(c->objects,c);
     if(c->mixer) g_signal_handlers_disconnect_by_data(c->mixer,c);
     if(c->defaults) g_signal_handlers_disconnect_by_data(c->defaults,c);
     g_cancellable_cancel(c->cancel);
@@ -278,7 +286,7 @@ bool ae_audio_control_close(struct ae_audio_control **slot) {
      * local observer retirement, not app/process/device drain or rollback. */
     if(c->mixer) wp_object_deactivate(WP_OBJECT(c->mixer),WP_PLUGIN_FEATURE_ENABLED);
     if(c->defaults) wp_object_deactivate(WP_OBJECT(c->defaults),WP_PLUGIN_FEATURE_ENABLED);
-    if(wp_core_get_pw_core(c->core)) {
+    if(c->core && wp_core_get_pw_core(c->core)) {
         c->deadline=g_timeout_source_new(5000);g_source_set_callback(c->deadline,close_timeout,retain(c),release);g_source_attach(c->deadline,c->context);
         g_main_context_push_thread_default(c->context);
         /* Even a false return retains its asynchronous callback obligation. */

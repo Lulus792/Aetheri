@@ -1,5 +1,25 @@
 # Decisions
 
+## Confined audio test roles and endpoint rejection — 9 November 2026
+
+Keep the audio experiment in the separate disposable carrier. Align its eight
+signed Fedora runtime packages to the existing audio pins through the protected,
+no-replay administrative transaction; this is not the Aetheri update service.
+Use separate graph/policy/control/player/foreign domains and four creator-specific
+anonymous-memory types for the actually observed legacy memfd policy profile.
+Do not grant generic tmpfs write/map or ordinary apps unrestricted graph access.
+
+Retain the original source identity until all source/client units are collected
+before checking PID1 for extra process objects. PID1's live supervisory pidfd
+is not evidence of a leaked client copy. Unknown effects remain pending.
+
+Validate the explicit audio endpoint/original peer before constructing the
+WirePlumber backend. A rejected peer must not depend on SPA plugin availability.
+Close a disconnected observer safely even when no backend was constructed.
+This does not admit a valid endpoint's complete library/configuration/runtime.
+The [execution record](journal/2026-11-09-audio-mac.md) keeps actual results,
+failed attempts and remaining normal-session/physical-audio gates separate.
+
 ## Isolate new audio policy tests from the retained carrier — 9 November 2026
 
 Use a separate freshly installed Fedora VM with its own disk, registration,

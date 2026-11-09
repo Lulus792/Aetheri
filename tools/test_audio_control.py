@@ -231,10 +231,17 @@ class OriginalRejection:
     def __init__(self,binary,headers):self.binary=binary;self.headers=headers
     def configure(self,conf,env):env['LD_LIBRARY_PATH']=str(self.headers/'usr/lib64')+':'+env['LD_LIBRARY_PATH']
     def exercise(self,root,env,remote,server,graph,volume,muted):
+        self.reject(root,env,remote,'original-rejection')
+        # The original peer must be rejected before backend construction even
+        # when the client has no SPA plugins. Keep the live graph's env intact.
+        missing=root/'absent-spa-plugins';assert not missing.exists()
+        self.reject(root,{**env,'SPA_PLUGIN_DIR':str(missing)},remote,'original-rejection-no-spa')
+
+    def reject(self,root,env,remote,name):
         p=subprocess.Popen(['setpriv','--no-new-privs',str(self.binary),str(remote),'--reject-original'],env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         pin=os.pidfd_open(p.pid)
         try:
-            out,err=p.communicate(timeout=15);(root/'original-rejection.stdout').write_bytes(out);(root/'original-rejection.stderr').write_bytes(err)
+            out,err=p.communicate(timeout=15);(root/(name+'.stdout')).write_bytes(out);(root/(name+'.stderr')).write_bytes(err)
             assert p.returncode==0 and not err and out==b'CLOSED\nORIGINAL_REJECTED no_protocol_fallback=1\n',(p.returncode,out,err)
             assert select.select([pin],[],[],0)[0]
         finally:

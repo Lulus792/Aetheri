@@ -68,8 +68,9 @@ The earlier failed trials and pending records remain archived. They are not
 replayed or rewritten as successful runs. See the
 [execution record](../brains/aetheri/journal/2026-11-09-audio-lab.md).
 
-The new guest's glibc, libgcc and libselinux differ from the accepted audio
-development pins. Keep those checks intact. Review/stage compatible exact inputs
-before running the actual graph, policy, control and player roles. No audio policy
-has been loaded in this new guest. The original guest receives only a copied-store
+At that preflight checkpoint the new guest's glibc, libgcc and libselinux differed
+from the accepted audio pins. The later [role record](../brains/aetheri/journal/2026-11-09-audio-mac.md)
+documents the reviewed eight-package alignment, cold boot, actual enforcing
+graph/policy/control/player tests and exact temporary-policy retirement. See the
+[role fixture guide](audio-mac.md). The original guest receives only copied-store
 offline compilation; its loaded policy and normal files remain unchanged.

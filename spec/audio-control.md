@@ -172,6 +172,13 @@ session access, hardware hotplug, suspend or Settings integration. Read the
 
 ## Inputs and build
 
+Endpoint connection/original-peer validation precedes backend construction.
+A rejected endpoint publishes DISCONNECTED (ENDPOINT for the strict variant)
+and can close without a WirePlumber core. This path is tested with missing SPA
+plugins under ASan/UBSan as well as Release. It does not make a valid endpoint
+safe with an incomplete or unadmitted backend: full library/configuration
+admission remains required. See the [role record](../brains/aetheri/journal/2026-11-09-audio-mac.md).
+
 The [control SDK inventory](audio-control-inputs.json) adds exact signed
 WirePlumber-devel 0.5.19 and glib2-devel 2.88.0 headers: 351 files, 2,825,653 bytes.
 It also copies one existing pinned GLib runtime object, 1,469,656 bytes, for

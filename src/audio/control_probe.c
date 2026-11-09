@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <linux/capability.h>
 #include <math.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/prctl.h>
@@ -72,13 +73,21 @@ static bool ordinary(void) {
         syscall(SYS_capget,&h,d)==0 && !(d[0].effective|d[0].permitted|d[0].inheritable|d[1].effective|d[1].permitted|d[1].inheritable);
 }
 int main(int argc,char **argv) {
-    bool original=argc==6 && !strcmp(argv[4],"--server-pidfd") && !strcmp(argv[5],"3");
+    bool wait_start=argc==7 && !strcmp(argv[6],"--wait-for-start");
+    bool original=(argc==6 || wait_start) && !strcmp(argv[4],"--server-pidfd") && !strcmp(argv[5],"3");
     if((argc!=4 && !original) || argv[1][0]!='/' || !*argv[2] || strlen(argv[2])>=256 || strspn(argv[2],"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")!=strlen(argv[2]) || !ordinary()) return 2;
     struct probe p={.name=argv[2],.test=argv[3],.volume=1,.result=1,.original=original};
     if(!strcmp(p.test,"half")) p.volume=.5;
     else if(!strcmp(p.test,"muted")) p.mute=true;
     else if(strcmp(p.test,"unity")) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);
+    if(wait_start) {
+        sigset_t signals;sigemptyset(&signals);sigaddset(&signals,SIGUSR1);
+        if(sigprocmask(SIG_BLOCK,&signals,NULL)) return 2;
+        alarm(20);puts("AETHERI_AUDIO_NATIVE_WAIT start=explicit");
+        int number=0;if(sigwait(&signals,&number) || number!=SIGUSR1) return 2;
+        alarm(0);if(sigprocmask(SIG_UNBLOCK,&signals,NULL)) return 2;
+    }
     printf("AETHERI_AUDIO_NATIVE_ACTOR uid=1000 gid=1000 cap_zero=1 nnp=1 groups=%d\n",getgroups(0,NULL));
     GMainContext *context=g_main_context_new();g_main_context_push_thread_default(context);p.loop=g_main_loop_new(context,FALSE);
     p.control=original ? ae_audio_control_open_original(context,argv[1],3,changed,&p,retired) : ae_audio_control_open(context,argv[1],changed,&p,retired);

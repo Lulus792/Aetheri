@@ -1,5 +1,23 @@
 # Sources
 
+## Confined audio roles and runtime alignment — 9 November 2026
+
+- [Executed record](journal/2026-11-09-audio-mac.md),
+  [fixture contract](../../spec/audio-mac.md) and
+  [signed runtime manifest](../../spec/audio-lab-runtime.json): exact package
+  metadata/scripts, enforcing role/memory/negative controls, full PCM and native
+  Release/sanitizer results. Preserve the failed captures and dispatch histories.
+- systemd v259 [transient execution properties](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-execute.c):
+  SELinuxContext's transient setter takes a string, distinct from its getter.
+- PipeWire1.6.11 [configuration](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/src/pipewire/conf.c),
+  [pipe tunnel](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/src/modules/module-pipe-tunnel.c)
+  and [memory](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/src/pipewire/mem.c):
+  read-only config mapping, internal connection/FIFO mode and memfd creation.
+- Linux6.19 [SELinux hooks](https://raw.githubusercontent.com/torvalds/linux/v6.19/security/selinux/hooks.c)
+  and the actual carrier's base CIL distinguish legacy memfd labeling from the
+  policy-capability profile. Actual root observations verify the creator labels;
+  an enforcing flag and errno alone are insufficient.
+
 ## Separate audio test carrier — 9 November 2026
 
 - [Execution record](journal/2026-11-09-audio-lab.md) and

@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — A separate enforcing Fedora audio lab is installed, booted, tested and cleanly powered off. Six host cases and an actual system-bus transient-unit/process-FD transfer/retirement preflight pass. Copied-store CIL compilation and four existing audio tests pass without changing the original guest's policy. Confined audio roles remain uncommitted work; three fresh-base runtime versions need review before reusing the pinned audio profile. USB stays unchanged.
+9 November 2026 — The separate enforcing audio lab now passes graph/policy/control/player isolation, four actual memory-label factories and complete synthetic PCM at unity, half volume and mute. Its eight-package runtime alignment is signed, pinned and checked. An invalid-endpoint ordering correction passes the native control suite in Release and ASan/UBSan; the changed Release binary also passes all19 enforcing role units. The separate VM exits0 after retirement. Normal user-session/Settings/physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -15,6 +15,15 @@ resolve its provenance or lifecycle obligations.
 
 ## Separate audio lab — 9 November 2026
 
+The [confined-role continuation](journal/2026-11-09-audio-mac.md) and
+[fixture contract](../../spec/audio-mac.md) supersede the dependency/role-pending
+status below. The exact eight signed Fedora packages are applied only to the
+new guest, followed by a cold boot and clean package verification. Actual
+temporary system-scope UID1000 roles pass full synthetic audio and independent
+foreign-process denials. No normal user service or physical audio support follows.
+Preserve every failed attempt; the unchanged native default-clock PCM failure
+remains unexplained despite later passing runs.
+
 Read the [execution record](journal/2026-11-09-audio-lab.md) and
 [controller guide](../../spec/audio-lab.md). New `vm/audio-lab` owns a 32GiB
 virtual disk/4GiB RAM/two vCPUs, separate UEFI/key/QMP and no physical disks.
@@ -27,14 +36,12 @@ Earlier disconnected starts and a failed direct-peer RefUnit remain pending in
 the archive; do not replay or rewrite them. Separate administrative unit removal
 does not reconstruct original drain or release any Aetheri lease.
 
-No new audio policy is loaded. The new base's glibc/libgcc/libselinux differ from
-the accepted audio pins; review and stage compatible exact inputs before role
-execution. `policy/audio-test.cil`, probe target/source and `audio_mac_bus.py` /
-`test_audio_mac.py` remain uncommitted drafts. The latter main is not accepted;
-the passing archived local preflight driver uses its Fixture directly.
+At the earlier preflight checkpoint no audio policy was loaded and the fresh
+base's glibc/libgcc/libselinux differed from the accepted pins. The continuation
+above records the later reviewed alignment and actual temporary role policy.
 Normal authority/services, original source/quarantine/loaded policy, frozen
-contracts, foreign UI notes and USB data stay unchanged. Next: actual confined
-graph/policy/control/player/foreign and PCM evidence, then normal admission.
+contracts, foreign UI notes and USB data stay unchanged. Next: normal per-user
+service/image/configuration/device/endpoint admission and lifetime coordination.
 
 ## Ordinary audio-manager privilege profile — 9 November 2026
 
