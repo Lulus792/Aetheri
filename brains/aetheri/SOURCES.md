@@ -1,5 +1,24 @@
 # Sources
 
+## Actual private Mesa rendering — 10 November 2026
+
+- [Execution record](journal/2026-11-10-graphics-runtime.md),
+  [runtime contract](../../spec/graphics-runtime.md) and
+  [exact input profile](../../spec/graphics-runtime-inputs.json): signed original
+  RPMs, original source/notice data, bounded streaming selection, actual shader/
+  pixel draw, no-draw counter and independently verified 400-file export.
+- [Mesa EGL documentation](https://docs.mesa3d.org/egl.html) describes the driver
+  boundary, software initialization and resource teardown. Mesa/driver ABI is not
+  stable; keep the matching exact EGL/Gallium/DRI package family together.
+  [Mesa environment variables](https://docs.mesa3d.org/envvars.html) documents
+  explicit software rendering. Consulted 10 November 2026; these support the test
+  design, not proof of current graphics/hardware acceptance.
+- Actual signed headers identify Mesa source data with SOURCEPACKAGE=1; its i686
+  source-header ARCH is not the x86-64 binary runtime. The older carrier DRM/Expat/
+  C++ bodies remain unchanged and are not selected for those private dependencies.
+  Runtime source/notices and repeated mapped-library evidence are development
+  storage, not final image footprint or exhaustive release/security approval.
+
 ## Current SDL/text SDK — 9 November UTC / 10 November local
 
 - [Execution record](journal/2026-11-09-sdl-sdk.md),

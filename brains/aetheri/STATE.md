@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 local / 9 November UTC — The current private SDL3/TTF/FreeType/HarfBuzz SDK now builds and passes actual CPU text/event/ABI proofs in Release and ASan/UBSan with leak detection. All 1,113 export files, both 7,219-file source inventories, source changes and artifacts are independently verified. Carrier packages, original sanitizer runtimes and udev stay unchanged. Full graphics/runtime, wlroots and current desktop integration continue; no complete desktop or image is claimed. The first-version gate still forbids the next USB-targeted build/flash until the agreed scope is implemented and verified.
+10 November 2026 — The private Mesa/DRI runtime now passes real EGL/GLES shader drawing and all-pixel readback: 1,352 red triangle pixels and 2,744 blue background pixels. The no-draw counter fails precisely. All 400 export files, 52 runtime bodies, 86 aliases, 18 original inputs and 40 actual mappings are independently checked. Carrier packages, udev and enforcing policy remain unchanged. Continue with genuine current wlroots SDK inputs, compositor/apps and normal GUI integration. No complete desktop, hardware acceptance or image is claimed; the agreed first-version gate still forbids the next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,28 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Actual private Mesa rendering — 10 November 2026
+
+Read the [execution record](journal/2026-11-10-graphics-runtime.md) and
+[runtime contract](../../spec/graphics-runtime.md). Original controller 43654
+exits zero for 14 native controls, fresh preparation and actual EGL/GLES drawing.
+Runtime `/home/aetheri/deps/mesa-runtime-c5d3c88f8995`, protected source
+`/run/a-mesa-c5d3c88f8995`. The final probe/counter also exits zero, at
+`/home/aetheri/deps/mesa-counter-proof-7926c3a6615d` with source
+`/run/a-mesa-counter-7926c3a6615d`. Both real shader rendering and expected no-draw
+rejection are verified; this is llvmpipe, not a window or physical GPU.
+
+The 400-file export, all 238 submitted source files, 52 original runtime bodies,
+86 aliases, 18 source/package inputs and 40 actual mapped files match. Host combined
+SDK/toolchain/graphics regressions: 35 pass. The failed first preparation remains:
+its trailer cap was too small for original rpm2cpio 10-KiB output blocks; no output
+runtime existed. Corrected streaming keeps all older parser bounds unchanged.
+No package is installed, source-RPM data never executes, normal pins stay fixed,
+udev 693/original invocation and enforcing policy remain unchanged. No selected
+runtime/probe remains mapped. Revalidate the same restricted audio VM before
+continuing. Next genuine wlroots SDK/current apps, normal GUI/native integration;
+no USB work or new NexaUI handoff.
 
 ## SDL/text SDK rebuilt — 10 November local / 9 November UTC
 

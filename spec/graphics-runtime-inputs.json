@@ -1,0 +1,799 @@
+{
+  "format": 1,
+  "purpose": "private-mesa-dri-runtime",
+  "reviewed": "2026-11-10",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "boundary": "Private native runtime projection; not package installation, normal promotion, exhaustive security/compliance review or GPU/session/hardware acceptance.",
+  "packages": [
+    {
+      "name": "mesa-libEGL-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-libEGL-26.2.5-1.fc44.x86_64.rpm",
+      "size": 144433,
+      "sha256": "4ae0e3d0efb86555b48f7639f3940cf9ea8bf16fe35a9145bd3b90661cb608f7",
+      "metadata": [
+        "mesa-libEGL 26.2.5-1.fc44.x86_64",
+        "MIT AND BSD-3-Clause AND SGI-B-2.0",
+        "mesa-26.2.5-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+      "size": 14502730,
+      "sha256": "2c8033d42d624a9f7a60f10b52950dd1f4042ac91acfe06a00f70f2c799cfbd2",
+      "metadata": [
+        "mesa-dri-drivers 26.2.5-1.fc44.x86_64",
+        "MIT AND BSD-3-Clause AND SGI-B-2.0",
+        "mesa-26.2.5-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "mesa-libgbm-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-libgbm-26.2.5-1.fc44.x86_64.rpm",
+      "size": 15511,
+      "sha256": "d40d9a107f9824b1102d928589ffadeedcc1ce5baa74ac8b307a9e9aa1ca0084",
+      "metadata": [
+        "mesa-libgbm 26.2.5-1.fc44.x86_64",
+        "MIT AND BSD-3-Clause AND SGI-B-2.0",
+        "mesa-26.2.5-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "mesa-filesystem-26.2.5-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/x86_64/mesa-filesystem-26.2.5-1.fc44.x86_64.rpm",
+      "size": 9360,
+      "sha256": "39fabbd5f105c9b454028487dca23e729db2a370f069de7d3e693acd6a4c334e",
+      "metadata": [
+        "mesa-filesystem 26.2.5-1.fc44.x86_64",
+        "MIT AND BSD-3-Clause AND SGI-B-2.0",
+        "mesa-26.2.5-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "llvm-libs-22.1.8-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/llvm/22.1.8/4.fc44/data/signed/6d9f90a6/x86_64/llvm-libs-22.1.8-4.fc44.x86_64.rpm",
+      "size": 35736228,
+      "sha256": "c033e24457336cc887611599a180b623893cefaf2ad0a540741fdd812b20a81d",
+      "metadata": [
+        "llvm-libs 22.1.8-4.fc44.x86_64",
+        "Apache-2.0 WITH LLVM-exception OR NCSA",
+        "llvm-22.1.8-4.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "llvm-filesystem-22.1.8-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/llvm/22.1.8/4.fc44/data/signed/6d9f90a6/x86_64/llvm-filesystem-22.1.8-4.fc44.x86_64.rpm",
+      "size": 10255,
+      "sha256": "c3a50a21b34d66693388fbb86371d0cc815c3218fbdc89bdecccdf4599a0d008",
+      "metadata": [
+        "llvm-filesystem 22.1.8-4.fc44.x86_64",
+        "Apache-2.0 WITH LLVM-exception OR NCSA",
+        "llvm-22.1.8-4.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libX11-1.8.13-3.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/x86_64/libX11-1.8.13-3.fc44.x86_64.rpm",
+      "size": 696289,
+      "sha256": "a3aa5c9199b442e13e5cf4d0996294397057606bef0a349df3a20cc921663041",
+      "metadata": [
+        "libX11 1.8.13-3.fc44.x86_64",
+        "MIT AND X11",
+        "libX11-1.8.13-3.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libX11-xcb-1.8.13-3.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/x86_64/libX11-xcb-1.8.13-3.fc44.x86_64.rpm",
+      "size": 11093,
+      "sha256": "952df583a1a31dadbbbdd875d9efe5d091a8b6896e182cff44270345b9671884",
+      "metadata": [
+        "libX11-xcb 1.8.13-3.fc44.x86_64",
+        "MIT AND X11",
+        "libX11-1.8.13-3.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libX11-common-1.8.13-3.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libX11/1.8.13/3.fc44/data/signed/6d9f90a6/noarch/libX11-common-1.8.13-3.fc44.noarch.rpm",
+      "size": 179489,
+      "sha256": "2db18bf693dfb285a17e520a4007063edb4c88b4f2ac2ed6e66ffab1e318c37d",
+      "metadata": [
+        "libX11-common 1.8.13-3.fc44.noarch",
+        "MIT AND X11",
+        "libX11-1.8.13-3.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libXau-1.0.12-4.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libXau/1.0.12/4.fc44/data/signed/6d9f90a6/x86_64/libXau-1.0.12-4.fc44.x86_64.rpm",
+      "size": 34530,
+      "sha256": "2aef79919b82c4d76dd28ef4c81fc86d7d790b4abcbac4e418d541b29cf82fca",
+      "metadata": [
+        "libXau 1.0.12-4.fc44.x86_64",
+        "MIT-open-group",
+        "libXau-1.0.12-4.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libxcb/1.17.0/7.fc44/data/signed/6d9f90a6/x86_64/libxcb-1.17.0-7.fc44.x86_64.rpm",
+      "size": 243678,
+      "sha256": "f997c30c7203d9c150f7c4982dd4d4c4c94b3e2cdfd5aec7ed3afa55370f0162",
+      "metadata": [
+        "libxcb 1.17.0-7.fc44.x86_64",
+        "X11",
+        "libxcb-1.17.0-7.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libxshmfence-1.3.2-8.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libxshmfence/1.3.2/8.fc44/data/signed/6d9f90a6/x86_64/libxshmfence-1.3.2-8.fc44.x86_64.rpm",
+      "size": 13533,
+      "sha256": "c25f27024419607d84725563bdde157887dd8c90b767beaf10745826715ccc5e",
+      "metadata": [
+        "libxshmfence 1.3.2-8.fc44.x86_64",
+        "HPND-sell-variant",
+        "libxshmfence-1.3.2-8.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/lm_sensors/3.6.0/24.fc44/data/signed/6d9f90a6/x86_64/lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm",
+      "size": 42940,
+      "sha256": "8baa6be6981022632fad26a741e598c7e89c864494c676a3b4a9433f7899e4bc",
+      "metadata": [
+        "lm_sensors-libs 3.6.0-24.fc44.x86_64",
+        "LGPL-2.1-or-later",
+        "lm_sensors-3.6.0-24.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "spirv-tools-libs-2026.1-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/spirv-tools/2026.1/1.fc44/data/signed/6d9f90a6/x86_64/spirv-tools-libs-2026.1-1.fc44.x86_64.rpm",
+      "size": 1825635,
+      "sha256": "1a0aa8095ec306a62bd5a439c33faeaeb0c34749d0263024f756a5cc67f172ea",
+      "metadata": [
+        "spirv-tools-libs 2026.1-1.fc44.x86_64",
+        "Apache-2.0",
+        "spirv-tools-2026.1-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "size": 170660,
+      "sha256": "edd4ba5100079961bb7f9ebcb3efda75dac38f7be79f73e55839c699e236e997",
+      "metadata": [
+        "libdrm 2.4.134-1.fc44.x86_64",
+        "MIT",
+        "libdrm-2.4.134-1.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "expat-2.9.0-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/e/expat-2.9.0-1.fc44.x86_64.rpm",
+      "size": 139273,
+      "sha256": "ffec2aa09ae0a4d9a33ee0f4458b222745fa7717d8098bf1bdd3ec0255c9b5b3",
+      "metadata": [
+        "expat 2.9.0-1.fc44.x86_64",
+        "MIT",
+        "expat-2.9.0-1.fc44.src.rpm"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/lib64/dri/libdril_dri.so",
+      "size": 93592,
+      "sha256": "4537a0e240941151ef843f7f0313627e756e3334e8185c8d723bc90e5306bc32",
+      "mode": 493,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/gbm/dri_gbm.so",
+      "size": 139720,
+      "sha256": "0d12bad2fa49604d83b611fcad0034b0d8353c33f725fddcd8de98db2e4860a2",
+      "mode": 493,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libEGL_mesa.so.0.0.0",
+      "size": 407840,
+      "sha256": "7b49f73596932edcdbf02b81a424654de5a8edf49da3a210eb417ed4caa92df5",
+      "mode": 493,
+      "package": "mesa-libEGL-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libLLVM.so.22.1",
+      "size": 147082848,
+      "sha256": "aec1ccf02e5cc4d161920d76dce31dbbb22efebf62da71ec3180b70ff15d77bb",
+      "mode": 493,
+      "package": "llvm-libs-22.1.8-4.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libSPIRV-Tools.so",
+      "size": 1722808,
+      "sha256": "06897d4ed1051d4e95b1045288d54230564440064fd117965d742267e7f4834e",
+      "mode": 493,
+      "package": "spirv-tools-libs-2026.1-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libX11-xcb.so.1.0.0",
+      "size": 11016,
+      "sha256": "57cdf71a9b30e068f7b00112b6e879a804fb8d451d351e3dff8260a34718f408",
+      "mode": 493,
+      "package": "libX11-xcb-1.8.13-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libX11.so.6.4.0",
+      "size": 1408520,
+      "sha256": "95b9ecfbde1b73c7f7380ae643e8ade9555234607a47d7e131ae6365a9899244",
+      "mode": 493,
+      "package": "libX11-1.8.13-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libXau.so.6.0.0",
+      "size": 19640,
+      "sha256": "78e2e7a514a6844530b099c7dfb184a9992f7b0681c30105281ddb8e48dc8a59",
+      "mode": 493,
+      "package": "libXau-1.0.12-4.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm.so.2.134.0",
+      "size": 91056,
+      "sha256": "e2a416f7b7c9e9e46b5f96bf20be71f146426daa6e1e8438adce2ab8e4c0fc0e",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_amdgpu.so.1.134.0",
+      "size": 52696,
+      "sha256": "a28f07a5f69cd85d5a55b18f436cff5e0e33087181bdc3b8061ac2dec99d1322",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_intel.so.1.134.0",
+      "size": 153984,
+      "sha256": "38fa873e99c904bd072ff58e6dbbc8dfa08b8940010ff135a24b509fc7756ebb",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_nouveau.so.2.134.0",
+      "size": 36480,
+      "sha256": "d62ccd7e424aba47fce6eca1058cb138a737dac890ce15e52cbbc084945688c6",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_radeon.so.1.134.0",
+      "size": 52968,
+      "sha256": "114e8f319b2960934368b64bd844bc46efceb198f0bf11e49115c41f66e243d5",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libexpat.so.1.13.0",
+      "size": 195120,
+      "sha256": "9b16cd9bcb8c1b7b037eb01229143b021b6e70572b89478e5294e8448738275e",
+      "mode": 493,
+      "package": "expat-2.9.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libgallium-26.2.5.so",
+      "size": 55510872,
+      "sha256": "13bd40d3f6c91004855a6aab1c54345f12d3e05a3b098a8b2566218426d76737",
+      "mode": 493,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libgbm.so.1.0.0",
+      "size": 19944,
+      "sha256": "fbf42b74fe8927a198956fc46ee5c456b421179ef8d3908f59fc629c2a8a478a",
+      "mode": 493,
+      "package": "mesa-libgbm-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libsensors.so.4.5.0",
+      "size": 61144,
+      "sha256": "9980bd4d6836c5ebc8f8ea8f7a8858e0d5c355fa38289850470316ed1ee22a21",
+      "mode": 493,
+      "package": "lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-dri3.so.0.1.0",
+      "size": 23704,
+      "sha256": "68618518da296821983f625112923b4c247dd073060508250e73cfd8cada166a",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-present.so.0.0.0",
+      "size": 15496,
+      "sha256": "f05943f707a89465291685f539d7b8070fbb630eb518f70c4f14931f6600e211",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-randr.so.0.1.0",
+      "size": 72896,
+      "sha256": "bd9493e1eaec84ad952388095d5c64165a3b345c342ecacf2dc7fdcc9ddf3abb",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-shm.so.0.0.0",
+      "size": 15544,
+      "sha256": "fe83f32f3c5d3337e2c6c1b36949e4087877697d32317c52611743c70ab7e13c",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-sync.so.1.0.0",
+      "size": 31952,
+      "sha256": "70a683c72408b0b2b4c3db6217eafb7e54c6c27659ff09444277586394fe4da8",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb-xfixes.so.0.0.0",
+      "size": 35960,
+      "sha256": "3ba1cf11d47c26f03f2efa573acbdcc71e4a4e95b9438a1958e25b15a0f020fa",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxcb.so.1.1.0",
+      "size": 173424,
+      "sha256": "15fd80f8917a44ec68c17a322648a5c576c3fc3bc7745c691573bd6d24ade7eb",
+      "mode": 493,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libxshmfence.so.1.0.0",
+      "size": 11424,
+      "sha256": "fa822d052508b66cb80b5fb42d2ad3686dc7cf47b1ef578fad71cf9d3a82576d",
+      "mode": 493,
+      "package": "libxshmfence-1.3.2-8.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/doc/libX11-common/COPYING",
+      "size": 45013,
+      "sha256": "eda0c2ed1cae0280c7fe79762eaad8ad31c044afc64e71e92ef2c6f3cd7bc395",
+      "mode": 420,
+      "package": "libX11-common-1.8.13-3.fc44.noarch.rpm"
+    },
+    {
+      "path": "usr/share/doc/libXau/COPYING",
+      "size": 1148,
+      "sha256": "56abe29bb1d9806a9e04fa9f80fed2c0f18027594df3f098148d814aef6bddfa",
+      "mode": 420,
+      "package": "libXau-1.0.12-4.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/doc/mesa-filesystem/Mesa-MLAA-License-Clarification-Email.txt",
+      "size": 3682,
+      "sha256": "68e7be52203a4457ea97d9c4744661a07fc3d78edb44a86b43349fb66f09147a",
+      "mode": 420,
+      "package": "mesa-filesystem-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-asahi-defaults.conf",
+      "size": 4204,
+      "sha256": "580792d542f4b864d6969e79a1c5c2cf16ed8ba5aec742ccc8275284fcf90d12",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-crocus-defaults.conf",
+      "size": 557,
+      "sha256": "4c18a043e0ebd8247f2d24b8b4abf54e10a146c6fc1e380c027a2356dec33a3c",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-d3d12-defaults.conf",
+      "size": 529,
+      "sha256": "7a29c37068cefdb1e023e00b1945ad28151ee58d77cd5c2f4ca3ef2d3cee0640",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-iris-defaults.conf",
+      "size": 1374,
+      "sha256": "9e648734d06e69c248f0f6eb170192f1708ab062af0ecf13f5424292d06f0ef9",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-mesa-defaults.conf",
+      "size": 36400,
+      "sha256": "2058060fea7fa3493166268ffcee4a8112c616f0ebba8a888fc7fa2a5ccb928b",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-msm-defaults.conf",
+      "size": 4754,
+      "sha256": "f85d035bedbd320f76e59c40cfb5610873406d17c536cc3e6568a24f0313f35a",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-panfrost-defaults.conf",
+      "size": 215,
+      "sha256": "c290432a8d624f91a7abcfc02438b3a090d753d22814f6f25cf90519e5b105b4",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-r300-defaults.conf",
+      "size": 1999,
+      "sha256": "666ac4b447b3a808a1e70936e438bb6724f9c0ee38af2c2531c8e33359dfaf11",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-r600-defaults.conf",
+      "size": 271,
+      "sha256": "026003a301229cde98be1aa2644db4b949dfeba40537bfeae943fe4ef69d0f8d",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-radeonsi-defaults.conf",
+      "size": 4214,
+      "sha256": "a8c4ccc3c7dfe4a5f18825f3263117215c63804a6cd903258399900bdc7e8527",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-v3d-defaults.conf",
+      "size": 548,
+      "sha256": "302d0b2330436da00c7215aa629a816f265fc67c6b60d48d47a9c7778b50f7d9",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-virtio_gpu-defaults.conf",
+      "size": 274,
+      "sha256": "74a293c45f4247f1b3d383d5519f158ce7eee53e6765922355521c863cfd0959",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-vmwgfx-defaults.conf",
+      "size": 713,
+      "sha256": "c4b689b153c7b88eff8b1132485f4e6165bb85c95a2657eed5727a506449f80a",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/drirc.d/00-zink-defaults.conf",
+      "size": 1602,
+      "sha256": "22ba73c372e3b291da2cbe22f6243fe463c9296626d2905cca8492799033ce44",
+      "mode": 420,
+      "package": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/glvnd/egl_vendor.d/50_mesa.json",
+      "size": 105,
+      "sha256": "cd3881df4227c13ca7f9cfe6c78820f21d5f7a00a41b299214f6f827e63be369",
+      "mode": 420,
+      "package": "mesa-libEGL-26.2.5-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/libdrm/amdgpu.ids",
+      "size": 25377,
+      "sha256": "ffd2a8f1bfa755f4d90f537b4969fc4676f116e5af051ce2f18ef93a96d8beb6",
+      "mode": 420,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/expat/COPYING",
+      "size": 1144,
+      "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
+      "mode": 420,
+      "package": "expat-2.9.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/libxcb/COPYING",
+      "size": 1337,
+      "sha256": "c5ffbfeaa501071ceeb97b7de2c0d703fdaa35de01c0fb6cbac1c28453a3e9fd",
+      "mode": 420,
+      "package": "libxcb-1.17.0-7.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/libxshmfence/COPYING",
+      "size": 1128,
+      "sha256": "64a579d1a0b3347301d87c94698a58ea7933d0ae6ca7e8fdd702fde2ea376301",
+      "mode": 420,
+      "package": "libxshmfence-1.3.2-8.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/llvm-libs/LICENSE.TXT",
+      "size": 15141,
+      "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "mode": 420,
+      "package": "llvm-libs-22.1.8-4.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/lm_sensors-libs/COPYING.LGPL",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "package": "lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/spirv-tools-libs/LICENSE",
+      "size": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "mode": 420,
+      "package": "spirv-tools-libs-2026.1-1.fc44.x86_64.rpm"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libEGL_mesa.so.0": "libEGL_mesa.so.0.0.0",
+    "usr/lib64/dri/apple_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/armada-drm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/asahi_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/crocus_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/d3d12_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/d3d12_drv_video.so": "../libgallium-26.2.5.so",
+    "usr/lib64/dri/etnaviv_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/exynos_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/gm12u320_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/hdlcd_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/hx8357d_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/i915_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ili9163_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ili9225_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ili9341_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ili9486_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/imx-dcss_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/imx-drm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/imx-lcdif_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ingenic-drm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/iris_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/kgsl_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/kirin_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/kms_swrast_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/komeda_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/lima_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/mali-dp_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/mcde_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/mediatek_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/meson_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/mi0283qt_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/msm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/mxsfb-drm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/nouveau_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/nouveau_drv_video.so": "../libgallium-26.2.5.so",
+    "usr/lib64/dri/panel-mipi-dbi_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/panfrost_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/panthor_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/pl111_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/r300_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/r600_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/r600_drv_video.so": "../libgallium-26.2.5.so",
+    "usr/lib64/dri/radeonsi_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/radeonsi_drv_video.so": "../libgallium-26.2.5.so",
+    "usr/lib64/dri/rcar-du_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/repaper_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/rockchip_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/rzg2l-du_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/ssd130x_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/st7586_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/st7735r_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/sti_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/stm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/sun4i-drm_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/swrast_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/tegra_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/udl_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/v3d_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/vc4_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/virtio_gpu_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/virtio_gpu_drv_video.so": "../libgallium-26.2.5.so",
+    "usr/lib64/dri/vkms_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/vmwgfx_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/zink_dri.so": "libdril_dri.so",
+    "usr/lib64/dri/zynqmp-dpsub_dri.so": "libdril_dri.so",
+    "usr/lib64/libgbm.so.1": "libgbm.so.1.0.0",
+    "usr/lib64/libLLVM-22.so": "libLLVM.so.22.1",
+    "usr/lib64/libX11.so.6": "libX11.so.6.4.0",
+    "usr/lib64/libX11-xcb.so.1": "libX11-xcb.so.1.0.0",
+    "usr/lib64/libXau.so.6": "libXau.so.6.0.0",
+    "usr/lib64/libxcb-dri3.so.0": "libxcb-dri3.so.0.1.0",
+    "usr/lib64/libxcb-present.so.0": "libxcb-present.so.0.0.0",
+    "usr/lib64/libxcb-randr.so.0": "libxcb-randr.so.0.1.0",
+    "usr/lib64/libxcb-shm.so.0": "libxcb-shm.so.0.0.0",
+    "usr/lib64/libxcb-sync.so.1": "libxcb-sync.so.1.0.0",
+    "usr/lib64/libxcb-xfixes.so.0": "libxcb-xfixes.so.0.0.0",
+    "usr/lib64/libxcb.so.1": "libxcb.so.1.1.0",
+    "usr/lib64/libxshmfence.so.1": "libxshmfence.so.1.0.0",
+    "usr/lib64/libsensors.so.4": "libsensors.so.4.5.0",
+    "usr/lib64/libdrm.so.2": "libdrm.so.2.134.0",
+    "usr/lib64/libdrm_amdgpu.so.1": "libdrm_amdgpu.so.1.134.0",
+    "usr/lib64/libdrm_intel.so.1": "libdrm_intel.so.1.134.0",
+    "usr/lib64/libdrm_nouveau.so.2": "libdrm_nouveau.so.2.134.0",
+    "usr/lib64/libdrm_radeon.so.1": "libdrm_radeon.so.1.134.0",
+    "usr/lib64/libexpat.so.1": "libexpat.so.1.13.0"
+  },
+  "symlink_packages": {
+    "usr/lib64/libEGL_mesa.so.0": "mesa-libEGL-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/apple_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/armada-drm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/asahi_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/crocus_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/d3d12_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/d3d12_drv_video.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/etnaviv_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/exynos_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/gm12u320_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/hdlcd_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/hx8357d_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/i915_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ili9163_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ili9225_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ili9341_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ili9486_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/imx-dcss_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/imx-drm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/imx-lcdif_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ingenic-drm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/iris_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/kgsl_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/kirin_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/kms_swrast_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/komeda_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/lima_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/mali-dp_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/mcde_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/mediatek_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/meson_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/mi0283qt_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/msm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/mxsfb-drm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/nouveau_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/nouveau_drv_video.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/panel-mipi-dbi_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/panfrost_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/panthor_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/pl111_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/r300_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/r600_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/r600_drv_video.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/radeonsi_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/radeonsi_drv_video.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/rcar-du_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/repaper_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/rockchip_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/rzg2l-du_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/ssd130x_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/st7586_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/st7735r_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/sti_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/stm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/sun4i-drm_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/swrast_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/tegra_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/udl_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/v3d_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/vc4_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/virtio_gpu_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/virtio_gpu_drv_video.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/vkms_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/vmwgfx_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/zink_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/dri/zynqmp-dpsub_dri.so": "mesa-dri-drivers-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/libgbm.so.1": "mesa-libgbm-26.2.5-1.fc44.x86_64.rpm",
+    "usr/lib64/libLLVM-22.so": "llvm-libs-22.1.8-4.fc44.x86_64.rpm",
+    "usr/lib64/libX11.so.6": "libX11-1.8.13-3.fc44.x86_64.rpm",
+    "usr/lib64/libX11-xcb.so.1": "libX11-xcb-1.8.13-3.fc44.x86_64.rpm",
+    "usr/lib64/libXau.so.6": "libXau-1.0.12-4.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-dri3.so.0": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-present.so.0": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-randr.so.0": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-shm.so.0": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-sync.so.1": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb-xfixes.so.0": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxcb.so.1": "libxcb-1.17.0-7.fc44.x86_64.rpm",
+    "usr/lib64/libxshmfence.so.1": "libxshmfence-1.3.2-8.fc44.x86_64.rpm",
+    "usr/lib64/libsensors.so.4": "lm_sensors-libs-3.6.0-24.fc44.x86_64.rpm",
+    "usr/lib64/libdrm.so.2": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_amdgpu.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_intel.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_nouveau.so.2": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_radeon.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libexpat.so.1": "expat-2.9.0-1.fc44.x86_64.rpm"
+  },
+  "notices": [
+    {
+      "name": "mesa-26.2.5-1.fc44.src.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/mesa/26.2.5/1.fc44/data/signed/6d9f90a6/src/mesa-26.2.5-1.fc44.src.rpm",
+      "size": 69191486,
+      "sha256": "db7dbb485b6c240cb4ee79147ceea102e91570943f1008f82c49c3a5ad6345a8",
+      "source_package": 1,
+      "path": "usr/share/licenses/mesa/mesa-26.2.5-1.fc44.src.rpm",
+      "mode": 420,
+      "metadata": [
+        "mesa 26.2.5-1.fc44.i686",
+        "MIT AND BSD-3-Clause AND SGI-B-2.0",
+        "(none)"
+      ]
+    },
+    {
+      "url": "https://dri.freedesktop.org/libdrm/libdrm-2.4.134.tar.xz",
+      "size": 437244,
+      "sha256": "ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95",
+      "name": "libdrm-2.4.134.tar.xz",
+      "path": "usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz",
+      "mode": 420
+    }
+  ],
+  "native_files": {
+    "/usr/lib64/ld-linux-x86-64.so.2": {
+      "size": 1002600,
+      "sha256": "4e5d39355699e90fa29313d3100e82af4a23290028c58c364d6a249ef6a78e5e",
+      "package": "glibc 2.43-9.fc44.x86_64"
+    },
+    "/usr/lib64/libc.so.6": {
+      "size": 2482096,
+      "sha256": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8",
+      "package": "glibc 2.43-9.fc44.x86_64"
+    },
+    "/usr/lib64/libm.so.6": {
+      "size": 1153848,
+      "sha256": "16a03ce6d24c8a46742206d4a9c1d35bb6577ae2384f153dc6ef4a4b62b5357f",
+      "package": "glibc 2.43-9.fc44.x86_64"
+    },
+    "/usr/lib64/libelf-0.194.so": {
+      "size": 120168,
+      "sha256": "6fe2fab130ee0984439acbefb00569f1e5eb6fac9712a3ea04f01dab10e8cd4e",
+      "package": "elfutils-libelf 0.194-5.fc44.x86_64"
+    },
+    "/usr/lib64/libz.so.1.3.1.zlib-ng": {
+      "size": 169544,
+      "sha256": "bbde8faec092a7c67b8bd76bbba4a826e61b05c171b97004ce6b308c5a090351",
+      "package": "zlib-ng-compat 2.3.3-3.fc44.x86_64"
+    },
+    "/usr/lib64/libzstd.so.1.5.7": {
+      "size": 959384,
+      "sha256": "70ec54d150f4052f28fb1e8f8a1c6ca35e1a499e4744c6f6d9d783537618f80b",
+      "package": "libzstd 1.5.7-5.fc44.x86_64"
+    },
+    "/usr/lib64/libxml2.so.2.12.10": {
+      "size": 1523128,
+      "sha256": "8473a76caaed1e702f5c4f2dfac69b4aa92d2f18217edcf23c73214ea7750ab5",
+      "package": "libxml2 2.12.10-6.fc44.x86_64"
+    },
+    "/usr/lib64/libedit.so.0.0.76": {
+      "size": 236704,
+      "sha256": "f5a0587ec981b0358ce964f49b2901e6f77a2c231caa27105d1f18466da00840",
+      "package": "libedit 3.1-58.20251016cvs.fc44.x86_64"
+    },
+    "/usr/lib64/libtinfo.so.6.6": {
+      "size": 187232,
+      "sha256": "b053da6b12bebc6e239835fbb646d46f26c97942b3098ac7b01604f8ce827679",
+      "package": "ncurses-libs 6.6-1.fc44.x86_64"
+    },
+    "/usr/lib64/libgcc_s-16-20260819.so.1": {
+      "size": 186512,
+      "sha256": "c71a62b5ef442ab8cf4470874dee6f2383d73a744f0006b6d287412f131c2e09",
+      "package": "libgcc 16.2.1-2.fc44.x86_64"
+    },
+    "/usr/lib64/libpciaccess.so.0.11.1": {
+      "size": 44600,
+      "sha256": "f1e0fd734af39ce0b015028c29708794e25d79022e05028a6e20980afc14762d",
+      "package": "libpciaccess 0.16-17.fc44.x86_64"
+    },
+    "/usr/lib64/liblzma.so.5.8.2": {
+      "size": 219768,
+      "sha256": "18b4994cd29a3e39f35ad719702925740703e76057fb2ce8c0eb7c7ce7a3acef",
+      "package": "xz-libs 1:5.8.2-2.fc44.x86_64"
+    }
+  }
+}
