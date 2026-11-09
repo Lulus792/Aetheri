@@ -380,11 +380,13 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
             if(state.clicked && !n.disabled && !v->sound_intent) {v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_MUTE;v->sound_mute=!n.selected;}
         } else {
             if(v->sound_drag_id!=n.id || n.disabled) {v->sound_drag_id=0;v->sound_draft=n.value;}
-            double value=v->sound_drag_id?v->sound_draft:n.value,before=value;
+            /* Compare on the slider's whole-percent grid. Upstream readback
+             * has floating-point noise and need not land on that grid; passive
+             * snapping during paint must never become another audio command. */
+            double value=round((v->sound_drag_id?v->sound_draft:n.value)*100),before=value;
             float scale=(float)v->model->text_percent/100;
             desc.bounds.x+=8*scale;desc.bounds.width-=16*scale;
             nx_value_control_desc slider={.control=desc,.minimum=0,.maximum=100,.step=1,.units_per_pixel=1};
-            value*=100;
             if(nx_slider(v->context,&slider,&value,&state)!=NX_OK) return false;
             const nx_event *events=NULL;size_t event_count=0;bool cancelled=false;
             if(nx_frame_events(v->context,&events,&event_count)!=NX_OK) return false;
@@ -399,12 +401,11 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
                     nx_fill_round_rect(v->context,(nx_rect){track.x,track.y,(float)(value/100)*track.width,track.height},2*scale,n.disabled?p.line:p.accent)!=NX_OK ||
                     nx_fill_round_rect(v->context,thumb,8*scale,n.disabled?p.secondary:p.text)!=NX_OK ||
                     (state.focused && nx_stroke_rect(v->context,desc.bounds,2,p.focus)!=NX_OK)) return false;
-            value/=100;
             if(!cancelled && !n.disabled && !v->sound_intent && (state.pointer_released || (!state.held && value!=before))) {
-                v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_VOLUME;v->sound_volume=value;
+                v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_VOLUME;v->sound_volume=value/100;
             }
             if(state.held && value!=before) v->sound_redraw=true;
-            v->sound_drag_id=!n.disabled && state.held?n.id:0;v->sound_draft=value;
+            v->sound_drag_id=!n.disabled && state.held?n.id:0;v->sound_draft=value/100;
         }
         return true;
     }

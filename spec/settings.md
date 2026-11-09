@@ -38,6 +38,12 @@ are never retried. Stale/busy/rejected submissions need a fresh user action.
 Observed boosted levels are displayed but cannot trigger an automatic clamp
 write. Mute preserves the observed volume and disables its slider.
 
+Slider comparisons use its whole-percent grid. Merely drawing an observed
+fractional percentage or floating-point readback noise must not submit a new
+command. The copied audio observation retains its original precision. The
+native regression includes adjacent representable values around 50%, off-grid
+values and repeated input-free frames; the old view fails that assertion.
+
 [`settings/audio.h`](../src/settings/audio.h) connects the model to the existing
 [original-session control handle](audio-session.md#shared-session-control-handle).
 An admitted owner calls its pump on relevant notifications and after input.
@@ -47,14 +53,17 @@ timer, thread, socket selection or reconnect. This is a programmatic binding;
 the regular executable does not yet create an owner. An explicit
 [embedded event host](audio-session.md#embedded-native-host-event-loop) now wires
 the programmatic binding into the original native wait/frame path; its separate
-lab client has not yet received a positive joined live run. Normal
-session/service/device provisioning remains separate work.
+lab client now passes the separate joined live test described in the
+[connected record](../brains/aetheri/journal/2026-11-09-settings-audio-live.md).
+Normal session/service/device provisioning remains separate work.
 
 The view exposes radio, slider and switch semantics, keyboard focus and
 English/German labels. Both raster densities, dark/light/high contrast,
 100/150/200% text, narrow layouts, actual native window/navigation and stale
-held-row behavior are tested. Model/owner binding uses controlled adapters;
-the populated page's rendered captures use explicit test data. No actual joined
+held-row behavior are tested. Model/owner unit tests use controlled adapters;
+their populated captures use explicit test data. The separate fixed live lab
+also reads actual synthetic graph outputs and verifies original-resource end.
+No actual joined
 Sound-UI-to-HDA/physical playback or screenreader task is accepted here. Input
 devices, per-app mixing and the full final materials/layout remain work. See the
 [execution record](../brains/aetheri/journal/2026-11-09-settings-sound.md).

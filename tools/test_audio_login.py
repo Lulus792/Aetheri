@@ -31,7 +31,17 @@ try:
  with pam.open('xb') as f:f.write(content);f.flush();os.fsync(f.fileno())
  pam.chmod(0o444);run('restorecon',str(pam));st=pam.stat();record['pam_object']=[st.st_dev,st.st_ino];record['pam_sha256']=hashlib.sha256(content).hexdigest();save()
  run('chvt','8')
- program="import json,os,subprocess,time;print(json.dumps(dict(pid=os.getpid(),uid=os.getuid(),gid=os.getgid(),context=open('/proc/self/attr/current').read().strip(),login=subprocess.check_output(['loginctl','show-session','self','-p','Id','-p','User','-p','Active','-p','Remote','-p','Seat','-p','Type','-p','Class','-p','Scope','-p','Service','-p','TTY'],text=True))),flush=True);time.sleep(10)"
+ program="""import ctypes as c,json,os,subprocess,time
+lib=c.CDLL('libsystemd.so.0');memory=c.CDLL(None);memory.free.argtypes=[c.c_void_p];memory.free.restype=None
+def read(member):
+ fn=getattr(lib,member);fn.argtypes=[c.c_int,c.POINTER(c.c_void_p)];fn.restype=c.c_int
+ value=c.c_void_p();result=fn(0,c.byref(value));text=c.string_at(value).decode() if value.value else None
+ if value.value:memory.free(value)
+ return result,text
+rc,session=read('sd_pid_get_session');group_rc,group=read('sd_pid_get_cgroup')
+print(json.dumps(dict(pid=os.getpid(),uid=os.getuid(),gid=os.getgid(),context=open('/proc/self/attr/current').read().strip(),native_result=rc,native_session=session,native_group_result=group_rc,native_group=group,login=subprocess.check_output(['loginctl','show-session','self','-p','Id','-p','User','-p','Active','-p','Remote','-p','Seat','-p','Type','-p','Class','-p','Scope','-p','Service','-p','TTY'],text=True))),flush=True)
+time.sleep(10)
+"""
  properties=[('Description','s','Aetheri explicit local Wayland login probe'),('Type','s','exec'),('User','s','aetheri'),('Group','s','aetheri'),('PAMName','s',pam.name),('TTYPath','s','/dev/tty8'),('StandardInput','s','tty'),('NoNewPrivileges','b',True),('CapabilityBoundingSet','t',0),('AmbientCapabilities','t',0),('KillMode','s','control-group'),('TimeoutStopUSec','t',5000000),('Environment','as',['XDG_SESSION_TYPE=wayland','XDG_SESSION_CLASS=user','XDG_SEAT=seat0','XDG_VTNR=8']),('ExecStart','a(sasb)',[('/usr/bin/python3',['/usr/bin/python3','-c',program],False)])]
  if True:
   properties.extend([('StandardOutput','s','journal'),('StandardError','s','journal'),('SyslogIdentifier','s',name)])
@@ -58,6 +68,8 @@ try:
   scope=login['Scope'];assert scope.startswith('session-') and scope.endswith('.scope')
   scope_facts=dict(line.split('=',1) for line in run('systemctl','show',scope,'-p','ControlGroup','-p','InvocationID','-p','ActiveState','-p','Job').splitlines())
   assert scope_facts['ActiveState']=='active' and scope_facts['ControlGroup'].startswith('/user.slice/user-1000.slice/')
+  assert value['native_result']>=0 and value['native_session']==login['Id']
+  assert value['native_group_result']>=0 and value['native_group']==scope_facts['ControlGroup']
   bus.unit('RefUnit',scope);groups[scope]=scope_facts['ControlGroup'];record['scope_facts']=scope_facts
   held={}
   for unit,path in groups.items():

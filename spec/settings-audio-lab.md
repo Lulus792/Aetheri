@@ -3,7 +3,7 @@
 The explicit audio-linked Settings client has a separately reviewed runtime
 projection in [settings-audio-lab-inputs.json](settings-audio-lab-inputs.json).
 It contains 34 shared objects, two test programs, one font and 43 notice/source
-files: 80 files, 30 components and 25,241,810 bytes. It supplies files for the
+files: 80 files, 30 components and 25,241,858 bytes. It supplies files for the
 next [embedded host integration](audio-session.md#embedded-native-host-event-loop).
 It does not install a normal app, start an audio service or admit a caller.
 
@@ -71,10 +71,22 @@ Both actual ELF loader listings succeed. The actual GUI client exits 2 without
 output when original input descriptors are absent. No audio test unit is started.
 See the [execution record](../brains/aetheri/journal/2026-11-09-audio-runtime.md).
 
-Next join the original user manager, graph/policy actors, protected descriptor
-delivery, local PAM session and real GUI input/readback in that lab. The positive
-GUI/backend path remains unexecuted. Normal service/broker/device policy,
-holder/restart coordination, physical HP/Bluetooth and release integration remain.
+The subsequent [connected test record](../brains/aetheri/journal/2026-11-09-settings-audio-live.md)
+tracks actual local-session/GUI joining and volume readback, plus failed attempts
+and their separate retirement. Its updated native program fixes passive slider
+rounding; third-party versions/notices stay unchanged. Do not infer the complete
+joined workflow from the earlier projection/loader checks.
+
+`tools/test_settings_audio_live.py` is an explicit root-only disposable-lab
+driver. It independently checks its SDKs, native helpers and complete GUI
+projection before provisioning. It connects original source handles and selected
+image FDs through private PID1 transport, then exercises real headless Wayland
+input and independent graph properties. A failed/unknown step retains the
+controller and original handles for inspection. Do not rerun that attempt.
+`tools/test_settings_audio_live_controls.py` exercises the driver parsers and
+preflight without provisioning; it requires Linux imports. Normal
+service/broker/device policy, holder/restart coordination, physical HP/Bluetooth
+and release integration remain work.
 
 There is also an explicit release review item: the existing PCRE2 provider is
 10.47-1.fc44.1. The installed changelog ends at the January 2026 mass rebuild;

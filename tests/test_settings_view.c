@@ -205,10 +205,11 @@ int main(int argc,char **argv) {
     struct ae_settings_sound_request request;
     CHECK(ae_settings_sound_take(&m,&request) && request.kind==AE_AUDIO_VOLUME && fabs(request.volume-0.8)<0.00001);
     CHECK(m.sound.observation.outputs[0].volume==0.6);ae_settings_sound_result(&m,AE_AUDIO_STALE);frame(v,1000,720);
-    const double levels[]={0,1,1.5,DBL_MAX};
+    const double levels[]={0,1,1.5,DBL_MAX,nextafter(0.5,0),nextafter(0.5,1),0.504,0.506};
     for(size_t i=0;i<sizeof(levels)/sizeof(levels[0]);++i) {
         audio.outputs[0].volume=levels[i];++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));
-        frame(v,1000,720);CHECK(!m.sound.queued);
+        frame(v,1000,720);frame(v,1000,720);CHECK(!m.sound.queued);
+        CHECK(m.sound.observation.outputs[0].volume==levels[i]);
     }
     audio.outputs[0].volume=0.6;++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));frame(v,1000,720);
     drag.type=NX_EVENT_POINTER_DOWN;drag.x=slider.x+slider.width*0.2f;

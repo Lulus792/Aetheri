@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The Sound GUI lab now has an exact 80-file runtime with original attribution and actual enforcing-Linux projection/loader checks. Nine native projection tests and a removed-notice-guard counterexample pass. The actual GUI client rejects missing original input handles. Positive live UI-to-graph joining remains next; normal provisioning, device policy and release review remain work. Original carrier and USB stay unchanged.
+9 November 2026 — The connected Sound GUI passes the full separate enforcing-lab test: pointer/keyboard volume, independent graph properties, mute/unmute, source-loss fencing and original-resource retirement. A passive-rounding resubmission defect is corrected and counterchecked; nine groups pass in Release and ASan/UBSan. Six driver controls and nine native projection tests pass. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
 
 ## Coordination
 
@@ -12,6 +12,25 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Connected Sound GUI and complete lab retirement — 9 November 2026
+
+Read the [active record](journal/2026-11-09-settings-audio-live.md).
+The exact extended public local-session prerequisite passes, including native
+session/cgroup lookup. The isolated GUI/owner/graph fixture now passes actual
+pointer/keyboard volume readback, independent cubic channel values, mute/unmute,
+source-loss fencing, GUI/session/compositor/source end, input-FD retirement and
+policy restoration. All27 exported files and12 original captures are checked.
+Original host controller exits0. Current source loss hides controls while keeping
+the last copied observation; historical output must not restore controls.
+
+Idle rounding no longer generates an unsolicited command; the previous view
+fails the new native assertion. Root-only private PID1 delivery carries readonly
+original image FDs without a broker permission change. Preserve all failed
+attempts and their separate exact administrative retirement records.
+Next integrate protected normal session/service/device ownership; the trusted
+unconfined GUI/headless/PAM lab does not establish that admission, physical
+HP/Bluetooth support, full holder/restart coordination or release acceptance.
 
 ## Sound lab runtime and attribution — 9 November 2026
 

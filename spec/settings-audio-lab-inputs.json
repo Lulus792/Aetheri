@@ -3,7 +3,7 @@
   "purpose": "settings-audio-lab",
   "reviewed": "2026-11-09",
   "boundary": "Explicit disposable Sound GUI test only; not installed admission, a release, exhaustive security review or source-distribution compliance audit.",
-  "build_export_sha256": "e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716",
+  "build_export_sha256": "d73033559bb8551a00ada7b5e5a683b7f923df2e082bbbf6cc01395099ff5146",
   "upstream_notice_sources": {
     "libdrm-2.4.134.tar.xz": {
       "url": "https://dri.freedesktop.org/libdrm/libdrm-2.4.134.tar.xz",
@@ -247,7 +247,7 @@
       ]
     },
     "aetheri": {
-      "origin": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716",
+      "origin": "Aetheri native input snapshot 0973b233cf8f74d6a372b227b2314fac2ab709c421e20cd09b7e2d6809120d6c; build export d73033559bb8551a00ada7b5e5a683b7f923df2e082bbbf6cc01395099ff5146",
       "license": "MIT",
       "notices": [
         "/usr/share/licenses/aetheri/LICENSE"
@@ -1096,18 +1096,18 @@
       "role": "notice",
       "component": "aetheri",
       "package": null,
-      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+      "provenance": "Aetheri native input snapshot 0973b233cf8f74d6a372b227b2314fac2ab709c421e20cd09b7e2d6809120d6c; build export d73033559bb8551a00ada7b5e5a683b7f923df2e082bbbf6cc01395099ff5146"
     },
     {
       "source": "Release/probe_settings_audio_live",
       "destination": "/usr/libexec/aetheri-audio-lab/probe_settings_audio_live",
-      "size": 164744,
-      "sha256": "76340d26761f2c9bdb776f1d28b3e9cac293b8c8226c647998d4a5464466a063",
+      "size": 164792,
+      "sha256": "4620821fc3a3a2791b3037b134a0dd5dca11606f7dbcb000217d7986ba2f3ff4",
       "mode": 493,
       "role": "program",
       "component": "aetheri",
       "package": null,
-      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+      "provenance": "Aetheri native input snapshot 0973b233cf8f74d6a372b227b2314fac2ab709c421e20cd09b7e2d6809120d6c; build export d73033559bb8551a00ada7b5e5a683b7f923df2e082bbbf6cc01395099ff5146"
     },
     {
       "source": "Release/test_compositor_server",
@@ -1118,7 +1118,7 @@
       "role": "program",
       "component": "aetheri",
       "package": null,
-      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+      "provenance": "Aetheri native input snapshot 0973b233cf8f74d6a372b227b2314fac2ab709c421e20cd09b7e2d6809120d6c; build export d73033559bb8551a00ada7b5e5a683b7f923df2e082bbbf6cc01395099ff5146"
     },
     {
       "source": "notices/liberation-sans-fonts/LICENSE",
