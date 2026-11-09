@@ -24,6 +24,14 @@
     "src/settings/model.c",
     "src/settings/model.h"
   ],
+  "model_support": [
+    "src/audio/types.h",
+    "src/text/grapheme.c",
+    "src/text/grapheme.h",
+    "src/text/grapheme_data.h",
+    "src/text/UNICODE-LICENSE.txt",
+    "LICENSE"
+  ],
   "consumer": "examples/21_aetheri_model",
   "development_builds": {
     "release": "/home/aetheri/deps/nexaui-settings-release-05",

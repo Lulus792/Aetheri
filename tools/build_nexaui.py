@@ -3,7 +3,7 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import sys
 import tarfile
@@ -16,6 +16,30 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def snapshot_models(config, repository, destination):
+    """Copy the current pure model closure, keeping frozen model keys separate."""
+    model, support = config["model"], config["model_support"]
+    names = [*model, *support]
+    if len(set(names)) != len(names):
+        raise ValueError("duplicate model snapshot source")
+    data = {}
+    for name in names:
+        path = PurePosixPath(name)
+        if path.is_absolute() or str(path) != name or any(p in (".", "..") for p in name.split("/")):
+            raise ValueError("invalid model snapshot source")
+        raw = (repository / name).read_bytes()
+        if len(raw) > 2 * 1024**2:
+            raise ValueError("model snapshot source exceeded bound")
+        data[name] = raw
+    for name, raw in data.items():
+        dest = destination / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("xb") as stream:
+            stream.write(raw)
+    hashes = {name: hashlib.sha256(raw).hexdigest() for name, raw in data.items()}
+    return ({name: hashes[name] for name in model}, {name: hashes[name] for name in support})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path)
@@ -23,6 +47,8 @@ def main():
     parser.add_argument("--sanitizers", action="store_true")
     parser.add_argument("--dbus-rpm", type=Path, required=True,
                         help="pinned Fedora SDK read as headers only; never installed")
+    parser.add_argument("--dependency-sdk", type=Path,
+                        help="explicit checked private Wayland/XKB/FFI SDK; default carrier build stays unchanged")
     args = parser.parse_args()
     if sys.platform != "linux" or os.getuid() == 0:
         raise ValueError("use an unprivileged Linux build account")
@@ -42,6 +68,11 @@ def main():
     nevra = subprocess.check_output(["rpm", "-q", "--qf", "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}", "dbus-libs"], text=True)
     if nevra != dbus["runtime_nevra"]:
         raise ValueError("reviewed D-Bus runtime changed")
+    dependency_sdk = None
+    if args.dependency_sdk is not None:
+        import prepare_desktop_sdk
+        dependency_sdk = prepare_desktop_sdk.prefix_path(args.dependency_sdk)
+        dependency_check = prepare_desktop_sdk.check(dependency_sdk)
     work = args.work.absolute()
     if work.is_symlink() or work.resolve() != work:
         raise ValueError("aliased build destination")
@@ -72,6 +103,12 @@ def main():
     (pc / "dbus-1.pc").write_text("Name: dbus\nDescription: pinned header-only SDK for late-bound native AT-SPI\nVersion: 1.16.2\n"
         + "Cflags: -I" + str(sdk / "include/dbus-1.0") + " -I" + str(sdk / "lib64/dbus-1.0/include") + "\nLibs:\n")
     env = {**os.environ, "PKG_CONFIG_PATH": str(pc)}
+    if dependency_sdk is not None:
+        env.pop("PKG_CONFIG_SYSROOT_DIR", None)
+        env["PKG_CONFIG_LIBDIR"] = str(dependency_sdk / "usr/lib64/pkgconfig") + ":" + str(dependency_sdk / "usr/share/pkgconfig")
+        env["PATH"] = str(dependency_sdk / "usr/bin") + ":" + env.get("PATH", "/usr/bin:/usr/sbin")
+        env["LD_LIBRARY_PATH"] = ":".join([str(dependency_sdk / "usr/lib64"),
+                                            *[p for p in env.get("LD_LIBRARY_PATH", "").split(":") if p]])
     with tarfile.open(archive, "r:") as stream:
         members = stream.getmembers()
         names = set()
@@ -97,18 +134,22 @@ def main():
         stream.extractall(source, members=members, filter="data")
     if digest(source / config["license"]["path"]) != config["license"]["sha256"]:
         raise ValueError("source license mismatch")
-    models = {}
-    for name in config["model"]:
-        data = (ROOT / name).read_bytes()
-        dest = snapshot / name
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(data)
-        models[name] = hashlib.sha256(data).hexdigest()
+    models, model_support = snapshot_models(config, ROOT, snapshot)
+    consumer_notices = work / "consumer-notices"
+    consumer_notices.mkdir(mode=0o700)
+    for name, original in (("LICENSE", "LICENSE"), ("UNICODE-LICENSE.txt", "src/text/UNICODE-LICENSE.txt")):
+        with (consumer_notices / name).open("xb") as stream:
+            stream.write((snapshot / original).read_bytes())
     commands = []
     flags = "-fsanitize=address,undefined -fno-omit-frame-pointer" if args.sanitizers else ""
+    install_rpath = str(prefix / "lib")
+    if dependency_sdk is not None:
+        install_rpath += ";" + str(dependency_sdk / "usr/lib64")
     common = ["-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + ("Debug" if args.sanitizers else "Release"),
               "-DCMAKE_C_FLAGS=" + flags, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-              "-DCMAKE_INSTALL_RPATH=" + str(prefix / "lib")]
+              "-DCMAKE_INSTALL_RPATH=" + install_rpath]
+    if dependency_sdk is not None:
+        common.append("-DWAYLAND_SCANNER=" + str(dependency_sdk / "usr/bin/wayland-scanner"))
     with (work / "build.log").open("xb") as log:
         def run(command):
             commands.append(command)
@@ -131,6 +172,8 @@ def main():
             "project(AetheriNexaUIConsumer LANGUAGES C)\n"
             "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"${CMAKE_BINARY_DIR}\")\n"
             "add_subdirectory(\"${NEXAUI_UPSTREAM_CONSUMER}\" upstream)\n"
+            "target_include_directories(aetheri_model PUBLIC \"${AETHERI_SOURCE_DIR}/src\")\n"
+            "target_sources(aetheri_model PRIVATE \"${AETHERI_SOURCE_DIR}/src/text/grapheme.c\")\n"
             "target_link_libraries(aetheri_view PUBLIC m)\n")
         consumer = work / "consumer-build"
         run(["cmake", "-S", str(adapter), "-B", str(consumer), *common,
@@ -145,13 +188,16 @@ def main():
     notice.mkdir(parents=True)
     (notice / "LICENSE").write_bytes((source / "LICENSE").read_bytes())
     result = {"revision": config["revision"], "version": config["version"],
-              "archive_sha256": digest(archive), "model": models, "commands": commands,
+              "archive_sha256": digest(archive), "model": models, "model_support": model_support, "commands": commands,
               "sanitizers": args.sanitizers, "atspi_compiled": True,
               "dbus_headers": header_hashes, "rpm_signature": signature,
               "artifacts": {str(p.relative_to(work)): digest(p) for p in
                   [consumer / "aetheri_model_view", consumer / "aetheri_model_view_test",
+                   consumer / "aetheri_model_text_wrap_test",
                    prefix / ("lib/libnexaui.so." + config["version"])]},
               "scope": config["adoption"]}
+    if dependency_sdk is not None:
+        result["dependency_sdk"] = dict(prefix=str(dependency_sdk), check=dependency_check)
     (work / "build.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps({"result": "built", "work": str(work), **result}))
 

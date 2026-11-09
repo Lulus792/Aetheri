@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Private native desktop build tools now pass C17/C++23/shared-adapter compilation, actual tests and installed probes. All2,837 exported files and original input/runtime hashes are verified; native package inventory, sanitizer runtimes and udev stay unchanged. The protected input runtime's preceding DRM/shared Sound tests remain separate. Exact SDK/current desktop rebuild and VM integration continue. The user's first-version gate forbids any next USB-targeted build/flash until the agreed scope is implemented and verified. Hardware, provisioning, apps, recovery and release work remain open.
+9 November 2026 — The private common Wayland SDK and current NexaUI/example now build and pass native model/text tests in Release and ASan/UBSan. All 3,091 exported files, both exact original source trees, model-support closure and artifacts are verified. Carrier packages, sanitizer runtimes and udev stay unchanged. SDL/wlroots/current desktop integration continues; no complete desktop or image is claimed. The user's first-version gate forbids the next USB-targeted build/flash until the agreed scope is implemented and verified. Hardware, provisioning, apps, recovery and release work remain open.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,37 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Common SDK and current NexaUI rebuild — 9 November 2026
+
+Read the [SDK contract](../../spec/desktop-sdk.md) and
+[execution record](journal/2026-11-09-desktop-sdk.md). Ten signed RPMs provide
+169 original regular inputs, 12 aliases and nine path-only pkg-config derivations.
+Eight SDK and three model-snapshot controls pass on host/native. The real SDK
+probe has 43 successful rows, including six generated/compiled protocols and an
+actual Wayland/XKB/FFI join. The current Settings consumer's missing pure audio/
+UTF-8 dependencies are fixed through an explicit six-file support snapshot and
+adapter; original upstream sources and frozen two-key model metadata stay separate.
+
+Release controller 58498 exits zero for the full seven-step build/test sequence.
+The debug controller 36215 reports all three native commands successful, then
+exits one in its post-test dependency-list verifier. A separate read-only audit
+passes without replaying tests or rewriting that original outcome. Both builds
+run model/semantic-layout and wrap tests; debug has real ASan/UBSan instrumentation
+and leak detection enabled, without suppression. All 3,091 exported files, both
+1,106-file original source trees, compile commands, support/notices and artifacts
+are verified. Package inventory, original udev and enforcing policy stay fixed;
+no selected code remains mapped. Earlier path/probe/compiler failures are retained.
+
+Source: `/run/a-dsk-c2d8d3d0c244`;
+SDK: `/home/aetheri/deps/common-wayland-sdk-c2d8d3d0c244`;
+Release: `/home/aetheri/deps/nexaui-desktop-release-c2d8d3d0c244`;
+Debug: `/home/aetheri/deps/nexaui-desktop-debug-bf29bf228030`.
+Keep these private candidates distinct from the old normal runtime/build pins.
+Next rebuild SDL/text and wlroots with exact SDK inputs, then current apps and
+normal GUI/native regressions. Full desktop/image closure and app/device/service
+admission remain open. The same restricted audio VM is live; revalidate it first.
+No USB work or new NexaUI handoff.
 
 ## Private native desktop build tools — 9 November 2026
 

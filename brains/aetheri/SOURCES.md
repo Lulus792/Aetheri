@@ -1,5 +1,21 @@
 # Sources
 
+## Common SDK and current NexaUI — 9 November 2026
+
+- [Execution record](journal/2026-11-09-desktop-sdk.md),
+  [contract](../../spec/desktop-sdk.md) and
+  [signed-input inventory](../../spec/desktop-sdk-inputs.json): original
+  Wayland/XKB/FFI files, explicit path derivations, native protocol/compiler join,
+  current model support and Release/instrumented example tests. The complete
+  3,091-file export is verified, including both exact 1,106-file source trees.
+- [Existing NexaUI source pin](../../spec/nexaui-inputs.json) remains commit
+  `97a42647480bb05167cee5e4ae08cedd9147d80d` / 0.1.23. New support fields describe
+  Aetheri's own pure Settings-model dependencies and notices, not an upstream
+  release, source modification, normal profile promotion or new UI requirement.
+- Exact Fedora package URLs, sizes, digests, licenses and source RPMs are in the
+  SDK inventory and native signed queries. Successful builds do not establish
+  exhaustive current security, graphical/session, hardware or release acceptance.
+
 ## Private native desktop build tooling — 9 November 2026
 
 - [Execution record](journal/2026-11-09-desktop-toolchain.md),
