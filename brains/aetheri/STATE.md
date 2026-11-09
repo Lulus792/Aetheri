@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate now also passes the general touchpad suite with its independently bound device database. Four full functional groups report 3,647 pass, 731 not applicable, one explained debug-only skip, zero failures. A separate dual-library ASan/UBSan build passes generic/API/bytecode checks and real memory-fault controls; complete exports and test retirement are checked. Instrumented virtual-device and actual compositor/input integration remain next. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
+9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate passes four functional groups with 3,647 pass, 731 not applicable, one explained debug-only skip, zero failures. The separate dual-library ASan/UBSan build now also passes all50 Lua virtual-device cases, alongside generic/API/bytecode and memory-fault controls. Complete exports and test retirement are checked. Actual compositor/input integration remains next. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
 
 ## Coordination
 
@@ -48,11 +48,19 @@ no sanitizer is disabled. Failed memory builds v7/v8 remain verified/quarantined
 The three larger input bind mounts are deliberately retained on the lab disk;
 none has a mapped process. Do not adopt failed inputs or claim mount retirement.
 
+Explicit instrumented device v9/controller16083 exits0:50 Lua cases pass with
+no NA/skip/failure. Actual process maps bind both instrumented libraries and
+the three independently checked tooling runtimes. The complete10-file export
+and original submitted inputs match; original service/cgroup/device/rule/module
+retirement and a separate same-boot audit pass. Leak checking stays enabled with
+no suppression/policy change. This is Lua-only instrumented device coverage,
+not actual compositor/input acceptance or a normal runtime selection.
+
 Two failed preparation attempts remain preserved after actual original QEMU43164
 exit0. The fresh lab is now QEMU5548/controller15559, boot
 `8b915c0c-ab36-4cce-a8a3-e84e1c12627c`, still enforcing/restricted. All new test
-children and units have retired. Next join an explicit instrumented virtual-device
-profile and actual compositor/input regressions, then independently attributed
+children and units have retired. Next join actual compositor/input regressions,
+then independently attributed
 runtime selection. Inspect actual state before dispatch. Normal release/PCRE2/
 device/ownership work and USB protection continue.
 

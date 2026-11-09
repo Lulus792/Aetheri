@@ -222,7 +222,38 @@ Independent same-boot inspection finds no mapped code under the three memory
 builds or functional runner, no test unit/device/rule/quirk/module remnants and
 no system libwacom installation. Original udev PID693/invocation remains unchanged,
 enforcing1. Input bind mounts and their failed/ready artifacts stay retained.
-QEMU5548/controller15559 remains live. Next join the instrumented virtual-device
-profile and actual compositor/input regressions, then review an independently
+QEMU5548/controller15559 remains live. The instrumented virtual-device profile
+now has the scoped evidence below. Next join actual compositor/input regressions,
+then review an independently
 attributed normal runtime. Other touchpad/gesture collections, physical devices,
 PCRE2, normal ownership and the rest of Aetheri remain open.
+
+## Instrumented virtual-device Lua run
+
+Device v9 is distinct from memory build v9. It explicitly selects the completed,
+sealed `/run/a-li-5aaa7f22470a` inventory and `candidate/build` library through
+the new instrumented profile. Release selection remains unchanged. Counter-build
+directories, unknown profiles and mismatched profile/directory pairs are refused.
+Eight host result/profile controls pass. The retained sanitizer-tool packages and
+exact canonical files are checked before dispatch and after retirement; actual
+main-process maps bind both instrumented libraries and all three tooling runtimes.
+Leak checking and halt-on-error remain enabled, without suppression or policy changes.
+
+All50 Lua virtual-device cases pass: zero NA, skip or failure. Original controller
+16083 exits0. Unit `aetheri-libinput-97b3afe926a34505b6a6669048831524.service`,
+invocation `f38c4eb9a0564a29b7c3a2407359b31f`, reaches retired state with no
+pending effect after original process/cgroup/unit and device/rule/module checks.
+The complete10-file export is independently checked:236,788 bytes, SHA256
+`a06ce121e25c14b61ad5906690110812e2ea91a33ad3500995fb525fa8d46dd3`, protected at
+`/root/aetheri-libinput-evidence-838b6c0a30fb40f18409681c3aff5076/export.tar.gz`.
+Inputs still match the original submitted bundle. No udev journal diagnostics
+occur during the run.
+
+Final independent same-boot inspection again finds no selected-library mapping,
+litest process, test unit, private rule directory, uinput module or global Wacom
+installation. Udev remains PID693 with its original invocation; SELinux stays
+enforcing. The three input bind mounts intentionally remain. The QMP-verified
+audio lab remains QEMU5548/controller15559 on its original boot. Four foreign UI
+note hashes remain unchanged. Neither this Lua-only instrumented coverage nor
+the earlier functional groups establish actual compositor/physical-input or
+whole-stack memory acceptance. Normal runtime/image/USB inputs remain unchanged.

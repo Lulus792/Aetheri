@@ -88,6 +88,25 @@ def parse_summary(text,status):
     return dict(counts=counts,coverage_complete=passed and counts['pass']==counts['completed'],upstream_passed=passed)
 
 
+def library_selection(selection):
+    profile=selection.get('library_profile','release')
+    directory={'release':'release','instrumented':'candidate/build'}.get(profile)
+    if directory is None or selection.get('library_directory')!=directory:
+        raise ValueError('explicit library profile required; never select a counter build')
+    return profile,directory
+
+
+def verify_tooling(tooling):
+    packages=[v.split()[0] for v in tooling['packages']]
+    if run('rpm','-q','--qf','%{NAME} %{EVR}.%{ARCH}\n',*packages).splitlines()!=tooling['packages']:
+        raise ValueError('different instrumented test tooling')
+    run('rpm','-V',*packages)
+    for name,e in tooling['files'].items():
+        p=Path(name).resolve(strict=True)
+        if str(p)!=e['resolved'] or p.stat().st_size!=e['size'] or hashlib.sha256(p.read_bytes()).hexdigest()!=e['sha256']:
+            raise ValueError('instrumented runtime changed')
+
+
 class Fixture:
     def __init__(self,selection,output,group,test=None):
         if os.name!='posix' or os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM':
@@ -104,14 +123,18 @@ class Fixture:
         if self.wacom is not None:verify_build(Path(self.wacom['root']),self.wacom['files'],'a-wacom-')
         if self.wacom is not None and any(Path(p).exists() for p in ('/etc/libwacom','/usr/share/libwacom')):raise ValueError('unselected system libwacom data fallback')
         verify_build(self.root,selection['files'])
-        if selection.get('library_directory')!='release':raise ValueError('separately selected Release library required; never select a counter build')
-        self.library=self.root/'release'
+        self.profile,directory=library_selection(selection);self.library=self.root/directory;self.tooling=None
+        if self.profile=='instrumented':
+            receipt=json.loads((self.root/'candidate/inputs.json').read_bytes())
+            if receipt.get('sanitizers') is not True or receipt.get('build_type')!='debugoptimized':raise ValueError('incomplete instrumented build')
+            self.tooling=receipt['sanitizer_tools'];verify_tooling(self.tooling)
         if not self.library.resolve().is_relative_to(self.root):raise ValueError('external runtime library directory')
         configuration=(self.root/'candidate/build/config.h').read_text()
         if '#define IS_DEBUG_BUILD 1' not in configuration:raise ValueError('upstream device runner requires its build-directory profile')
         output.mkdir(mode=0o700);self.bus=Bus();self.private=None
         self.unit='aetheri-libinput-'+uuid.uuid4().hex+'.service';self.group=group
-        self.held=[];self.record=dict(format=1,boot=selection['boot'],root=str(self.root),group=group,unit=self.unit,state='preparing',pending=None)
+        self.held=[];self.record=dict(format=1,boot=selection['boot'],root=str(self.root),group=group,unit=self.unit,state='preparing',pending=None,library_profile=self.profile)
+        if self.tooling is not None:self.record['sanitizer_tools']=self.tooling
         if self.wacom is not None:self.record['wacom']=self.wacom
         self.save()
 
@@ -162,6 +185,7 @@ class Fixture:
         args=[str(executable),'--jobs=1','--verbose','--filter-group='+self.group]
         if self.test is not None:args.append('--filter-test='+self.test)
         env=['LC_ALL=C','PATH=/usr/bin:/bin','LD_LIBRARY_PATH='+str(self.library)+':'+str(self.root/'candidate/sdk/usr/lib64')]
+        if self.tooling is not None:env+=['ASAN_OPTIONS=detect_leaks=1:halt_on_error=1','UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1','LSAN_OPTIONS=exitcode=23']
         if self.wacom is not None:env.append('XDG_CONFIG_HOME='+str(Path(self.wacom['root'])/'usr/share'))
         if facts(self.unit)['LoadState']!='not-found':raise RuntimeError('foreign unit')
         with (self.output/'test.log').open('xb') as stream:
@@ -188,7 +212,8 @@ class Fixture:
             maps=Path('/proc/'+str(pid)+'/maps')
             try:raw=maps.read_text()
             except FileNotFoundError:raw=''
-            if str(self.root/'candidate/sdk/usr/lib64/liblua-5.5.so') in raw and str(self.library/'libinput.so') in raw:
+            if (str(self.root/'candidate/sdk/usr/lib64/liblua-5.5.so') in raw and str(self.library/'libinput.so') in raw
+                    and (self.tooling is None or all(e['resolved'] in raw for e in self.tooling['files'].values()))):
                 self.record['maps']=raw
             if time.monotonic()>deadline:raise TimeoutError('original test still running; preserve')
             time.sleep(.05)
@@ -244,6 +269,7 @@ class Fixture:
             if (Path('/run/udev').stat().st_dev,Path('/run/udev').stat().st_ino)!=(parent_id.st_dev,parent_id.st_ino):raise RuntimeError('udev parent changed')
             self.effect('remove-owned-empty-rules',lambda:os.rmdir('rules.d',dir_fd=parent))
         verify_build(self.root,self.selection['files'])
+        if self.tooling is not None:verify_tooling(self.tooling)
         if self.wacom is not None:verify_build(Path(self.wacom['root']),self.wacom['files'],'a-wacom-')
         if self.wacom is not None and any(Path(p).exists() for p in ('/etc/libwacom','/usr/share/libwacom')):raise ValueError('system libwacom data changed during test')
         self.record.update(parse_summary((self.output/'test.log').read_text(),int(value['ExecMainStatus'])))

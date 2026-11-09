@@ -1,12 +1,22 @@
 """Host-only result controls; never creates devices or starts a service."""
 import unittest
-from test_libinput_devices import parse_summary
+from test_libinput_devices import parse_summary,library_selection
 
 
 TEXT='\nsummary:\n  completed: 293\n  pass: 262\n  na: 30\n  fail: 0\n  skip: 1\n  status: PASS\n'
 
 
 class Report(unittest.TestCase):
+    def test_explicit_library_profiles(self):
+        self.assertEqual(library_selection(dict(library_directory='release')),('release','release'))
+        self.assertEqual(library_selection(dict(library_profile='instrumented',library_directory='candidate/build')),('instrumented','candidate/build'))
+
+    def test_counter_and_unbound_profiles_rejected(self):
+        for profile,directory in [('release','candidate/counter-build'),('instrumented','candidate/counter-build'),
+                                  ('instrumented','release'),('release','candidate/build'),('unknown','candidate/build')]:
+            with self.subTest(profile=profile,directory=directory),self.assertRaises(ValueError):
+                library_selection(dict(library_profile=profile,library_directory=directory))
+
     def test_hardware_na_and_skip_remain_visible(self):
         r=parse_summary(TEXT,0)
         self.assertTrue(r['upstream_passed']);self.assertFalse(r['coverage_complete'])

@@ -150,6 +150,17 @@ all sanitizer checks enabled. The address control loads its pointer through
 volatile storage so ASan can demonstrate its heap check separately from UBSan's
 earlier object-size diagnostic. Neither change hides a library error.
 
+Virtual-device runs select this build explicitly with
+`library_profile: "instrumented"` and `library_directory: "candidate/build"`.
+The default Release profile still requires `library_directory: "release"`;
+neither profile admits a counter build. The full sealed inventory binds the
+completed debugoptimized sanitizer receipt and its separate Lua SDK. Verify
+the receipt's compiler runtime packages, canonical paths, sizes and hashes
+before dispatch and after retirement. Actual test-process maps must contain
+both selected libraries and all three tooling runtimes. Keep ASan leak detection,
+UBSan halt/stack traces and LSan exit23 enabled without suppressions. This uses
+the same original service/device/udev retirement protocol as Release tests.
+
 ## Tests and next acceptance
 
 The upstream generic deviceless run executes44 cases, utility run 64 cases, and
@@ -169,7 +180,8 @@ The new library retains all 309 versioned exported API symbols of the selected
 1.31.3 library. That observation does not prove all ABI/layout or input behavior.
 The separate [device record](../brains/aetheri/journal/2026-11-09-libinput-devices.md)
 tracks executed upstream Lua/input cases against the selected Release artifact.
-Sanitizer checks and actual compositor/input integration remain separate gates.
+Instrumented virtual-device coverage and actual compositor/input integration
+remain separate gates; executed coverage is recorded in the device record.
 Preserve original udev rules, devices, processes and unknown effects. Only after
 those gates should a separately attributed runtime replace the old libinput/Lua
 payload. Normal device/session admission and physical HP tests remain separate.
