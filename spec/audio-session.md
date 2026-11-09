@@ -58,6 +58,8 @@ an explicit audio-linked host build. The ordinary executable still passes no
 owner. There is no new CLI socket/PID option or normal installed capability.
 The separate `probe_settings_audio_live` target is lab-only test infrastructure;
 its positive joined UI/backend path has not been executed yet.
+Its [reviewed runtime projection](settings-audio-lab.md) now has exact
+component/notice coverage and actual lab loader compatibility checks.
 
 The owner lends four wake hints: its original manager process, graph/policy
 processes and login monitor, plus the monitor's absolute monotonic deadline.

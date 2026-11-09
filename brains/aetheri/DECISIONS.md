@@ -1,5 +1,19 @@
 # Decisions
 
+## Project test runtimes with attribution — 9 November 2026
+
+Give the Sound GUI lab an explicit bounded code/font/notice inventory, using
+the existing verified native export and reviewed providers. Require original
+notice coverage per component before creating output; preserve failed partial
+trees and refuse their adoption. Reuse the existing payload copier. Recover
+omitted documentation from signed sealed RPM data without installing anything.
+Keep exact upstream source archives when notices are distributed across files.
+
+This is private test preparation, not normal package/app admission or release
+compliance/security acceptance. Keep the PCRE2 advisory/backport review explicit
+before release. Actual loader checks and missing-handle rejection precede the
+positive joined GUI/backend test. See the [record](journal/2026-11-09-audio-runtime.md).
+
 ## Integrate audio with native event waits — 9 November 2026
 
 Keep the admitted original session owner and UI on their creating thread/context

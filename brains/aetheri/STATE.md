@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The Sound owner now has an embedded native event host that combines GLib, original process/login hints and Wayland waits without an added watcher thread or scan. Nine native groups pass Release and ASan/UBSan; the ordinary no-owner Settings path stays unchanged. A separate actual local PAM/logind probe verifies cap-zero/NNP UID1000 and both original service/session-scope end, then removes its exact profile. The audio-linked GUI client is compiled only; live UI-to-graph joining and normal provisioning/broker policy still remain work. All separate test-VM processes end; original guest and USB stay unchanged.
+9 November 2026 — The Sound GUI lab now has an exact 80-file runtime with original attribution and actual enforcing-Linux projection/loader checks. Nine native projection tests and a removed-notice-guard counterexample pass. The actual GUI client rejects missing original input handles. Positive live UI-to-graph joining remains next; normal provisioning, device policy and release review remain work. Original carrier and USB stay unchanged.
 
 ## Coordination
 
@@ -12,6 +12,29 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Sound lab runtime and attribution — 9 November 2026
+
+Read the [record](journal/2026-11-09-audio-runtime.md) and
+[projection contract](../../spec/settings-audio-lab.md). The 80-file/30-component
+runtime is 25,241,810 bytes including notices/source archives. Native objects
+retain the preceding v4 inputs; no library version or normal service changes.
+The create-only tool rejects unowned/missing attribution, aliases, extra entries
+and changed bytes/modes. All nine native tests pass; a private removed guard
+fails the precise missing-attribution assertion. Windows skips only Linux checks.
+
+The actual complete projection passes in the enforcing audio lab. Both ELF
+dependency listings use its selected libraries and independently checked system
+interpreter. The actual GUI client rejects absent original handles. Neither
+result establishes the positive GUI/backend path. Preserve the first listing
+verifier failure and protected staging receipt separately.
+
+Next join the root-selected descriptors, original manager/graph/policy, local
+PAM session and native GUI input/readback. Normal policy/holder/restart/device
+integration remains. The existing PCRE2 10.47 provider also needs an explicit
+upstream-advisory/Fedora-backport review before release; no security acceptance
+or in-place change to the original carrier is implied. See the scope document.
+Preserve user USB files and foreign UI notes. No NexaUI message is pending.
 
 ## Embedded Sound event host and actual login — 9 November 2026
 

@@ -1,0 +1,1146 @@
+{
+  "format": 1,
+  "purpose": "settings-audio-lab",
+  "reviewed": "2026-11-09",
+  "boundary": "Explicit disposable Sound GUI test only; not installed admission, a release, exhaustive security review or source-distribution compliance audit.",
+  "build_export_sha256": "e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716",
+  "upstream_notice_sources": {
+    "libdrm-2.4.134.tar.xz": {
+      "url": "https://dri.freedesktop.org/libdrm/libdrm-2.4.134.tar.xz",
+      "size": 437244,
+      "sha256": "ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95"
+    },
+    "pcre2-10.47-LICENCE.md": {
+      "url": "https://raw.githubusercontent.com/PCRE2Project/pcre2/pcre2-10.47/LICENCE.md",
+      "size": 4011,
+      "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
+    },
+    "zlib-ng-2.3.3-LICENSE.md": {
+      "url": "https://raw.githubusercontent.com/zlib-ng/zlib-ng/2.3.3/LICENSE.md",
+      "size": 867,
+      "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee"
+    },
+    "libevdev-1.13.6-2.fc44.x86_64.rpm": {
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libevdev-1.13.6-2.fc44.x86_64.rpm",
+      "size": 40115,
+      "sha256": "2df6f27b682b3b12b3786ebdd8a6ce84c5bd2cd7fd9b19eff906bd86dda58ae5"
+    },
+    "pcre2-10.47.tar.bz2": {
+      "url": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.47/pcre2-10.47.tar.bz2",
+      "size": 2145789,
+      "sha256": "47fe8c99461250d42f89e6e8fdaeba9da057855d06eb7fc08d9ca03fd08d7bc7"
+    },
+    "zlib-ng-2.3.3.tar.gz": {
+      "url": "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.3.3.tar.gz",
+      "size": 2447397,
+      "sha256": "f9c65aa9c852eb8255b636fd9f07ce1c406f061ec19a2e7d508b318ca0c907d1"
+    }
+  },
+  "components": {
+    "dbus-libs": {
+      "origin": "dbus-libs-1:1.16.2-1.fc44.x86_64; source RPM dbus-1.16.2-1.fc44.src.rpm",
+      "license": "(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later",
+      "notices": [
+        "/usr/share/licenses/dbus-libs/COPYING"
+      ]
+    },
+    "libwayland-client": {
+      "origin": "libwayland-client-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libwayland-client/COPYING"
+      ]
+    },
+    "libxkbcommon": {
+      "origin": "libxkbcommon-1.13.1-2.fc44.x86_64; source RPM libxkbcommon-1.13.1-2.fc44.src.rpm",
+      "license": "MIT AND X11 AND MIT-CMU",
+      "notices": [
+        "/usr/share/licenses/libxkbcommon/LICENSE"
+      ]
+    },
+    "glibc": {
+      "origin": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.0-or-later AND Unicode-3.0 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception",
+      "notices": [
+        "/usr/share/licenses/glibc/COPYING.LESSERv2",
+        "/usr/share/licenses/glibc/COPYING.LIB",
+        "/usr/share/licenses/glibc/COPYINGv2",
+        "/usr/share/licenses/glibc/COPYINGv3",
+        "/usr/share/licenses/glibc/LICENSES"
+      ]
+    },
+    "libffi": {
+      "origin": "libffi-3.5.2-2.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/libffi/LICENSE"
+      ]
+    },
+    "systemd-libs": {
+      "origin": "systemd-libs-259.10-1.fc44.x86_64; source RPM systemd-259.10-1.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later AND MIT",
+      "notices": [
+        "/usr/share/licenses/systemd-libs/LICENSE.LGPL2.1"
+      ]
+    },
+    "libgcc": {
+      "origin": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm",
+      "license": "GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel",
+      "notices": [
+        "/usr/share/licenses/libgcc/COPYING",
+        "/usr/share/licenses/libgcc/COPYING.LIB",
+        "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+        "/usr/share/licenses/libgcc/COPYING3",
+        "/usr/share/licenses/libgcc/COPYING3.LIB"
+      ]
+    },
+    "wlroots": {
+      "origin": "wlroots 0.20.2 reviewed clipboard/input patches; spec/graphics-inputs.json",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/wlroots/LICENSE"
+      ]
+    },
+    "libwayland-server": {
+      "origin": "libwayland-server-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libwayland-server/COPYING"
+      ]
+    },
+    "pixman": {
+      "origin": "pixman-0.46.2-3.fc44.x86_64; source RPM pixman-0.46.2-3.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/pixman/COPYING"
+      ]
+    },
+    "libdrm": {
+      "origin": "libdrm-2.4.134-1.fc44.x86_64; source RPM libdrm-2.4.134-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz"
+      ]
+    },
+    "libseat": {
+      "origin": "libseat-0.9.3-1.fc44.x86_64; source RPM seatd-0.9.3-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libseat/LICENSE"
+      ]
+    },
+    "libdisplay-info": {
+      "origin": "libdisplay-info-0.3.0-1.fc44.x86_64; source RPM libdisplay-info-0.3.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libdisplay-info/LICENSE"
+      ]
+    },
+    "libinput": {
+      "origin": "libinput-1.31.3-1.fc44.x86_64; source RPM libinput-1.31.3-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libinput/COPYING"
+      ]
+    },
+    "mtdev": {
+      "origin": "mtdev-1.1.6-12.fc44.x86_64; source RPM mtdev-1.1.6-12.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/mtdev/COPYING"
+      ]
+    },
+    "libevdev": {
+      "origin": "libevdev-1.13.6-2.fc44.x86_64; source RPM libevdev-1.13.6-2.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libevdev/COPYING"
+      ]
+    },
+    "libwacom": {
+      "origin": "libwacom-2.19.0-1.fc44.x86_64; source RPM libwacom-2.19.0-1.fc44.src.rpm",
+      "license": "HPND",
+      "notices": [
+        "/usr/share/licenses/libwacom/COPYING"
+      ]
+    },
+    "lua-libs": {
+      "origin": "lua-libs-5.4.8-5.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/lua-libs/mit.txt"
+      ]
+    },
+    "libgudev": {
+      "origin": "libgudev-238-9.fc44.x86_64; source RPM libgudev-238-9.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later",
+      "notices": [
+        "/usr/share/licenses/libgudev/COPYING"
+      ]
+    },
+    "glib2": {
+      "origin": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt"
+      ]
+    },
+    "pcre2": {
+      "origin": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm",
+      "license": "BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later",
+      "notices": [
+        "/usr/share/licenses/pcre2/pcre2-10.47-LICENCE.md",
+        "/usr/share/licenses/pcre2/pcre2-10.47.tar.bz2",
+        "/usr/share/licenses/pcre2/SLJIT-LICENSE"
+      ]
+    },
+    "nexaui": {
+      "origin": "NexaUI 0.1.23 revision 97a42647480bb05167cee5e4ae08cedd9147d80d; spec/nexaui-inputs.json",
+      "license": "MIT and Unicode-3.0 data notice",
+      "notices": [
+        "/usr/share/licenses/nexaui/LICENSE",
+        "/usr/share/licenses/nexaui/UNICODE-LICENSE"
+      ]
+    },
+    "wireplumber-libs": {
+      "origin": "wireplumber-libs-0.5.19-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/wireplumber-libs/LICENSE"
+      ]
+    },
+    "pipewire-libs": {
+      "origin": "pipewire-libs-1.6.11-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/pipewire-libs/COPYING",
+        "/usr/share/licenses/pipewire-libs/LICENSE"
+      ]
+    },
+    "zlib-ng-compat": {
+      "origin": "zlib-ng-compat-2.3.3-3.fc44.x86_64; source RPM zlib-ng-2.3.3-3.fc44.src.rpm",
+      "license": "Zlib",
+      "notices": [
+        "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+        "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3.tar.gz"
+      ]
+    },
+    "libmount": {
+      "origin": "libmount-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later",
+      "notices": [
+        "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later"
+      ]
+    },
+    "libselinux": {
+      "origin": "libselinux-3.11-2.fc44.x86_64; source RPM libselinux-3.11-2.fc44.src.rpm",
+      "license": "LicenseRef-Fedora-Public-Domain",
+      "notices": [
+        "/usr/share/licenses/libselinux/LICENSE"
+      ]
+    },
+    "libblkid": {
+      "origin": "libblkid-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later",
+      "notices": [
+        "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later"
+      ]
+    },
+    "aetheri": {
+      "origin": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/aetheri/LICENSE"
+      ]
+    },
+    "liberation-sans-fonts": {
+      "origin": "liberation-sans-fonts-1:2.1.5-15.fc44.noarch; source RPM liberation-fonts-2.1.5-15.fc44.src.rpm",
+      "license": "OFL-1.1-RFN",
+      "notices": [
+        "/usr/share/licenses/liberation-sans-fonts/LICENSE"
+      ]
+    }
+  },
+  "files": [
+    {
+      "source": "notices/dbus-libs/COPYING",
+      "destination": "/usr/share/licenses/dbus-libs/COPYING",
+      "size": 1134,
+      "sha256": "150e5d08e1cb5e62b65967d7931acad2c42d98ec1bbb584bebb01921cbc853c2",
+      "mode": 420,
+      "role": "notice",
+      "component": "dbus-libs",
+      "package": null,
+      "provenance": "dbus-libs-1:1.16.2-1.fc44.x86_64; source RPM dbus-1.16.2-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libdbus-1.so.3",
+      "destination": "/usr/lib64/libdbus-1.so.3",
+      "size": 364808,
+      "sha256": "5c6ed93ed3e31e36a45e4e52725355b5e31248bb075d495bea29aa090e5f995f",
+      "mode": 493,
+      "role": "library",
+      "component": "dbus-libs",
+      "package": null,
+      "provenance": "dbus-libs-1:1.16.2-1.fc44.x86_64; source RPM dbus-1.16.2-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libwayland-client/COPYING",
+      "destination": "/usr/share/licenses/libwayland-client/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "role": "notice",
+      "component": "libwayland-client",
+      "package": null,
+      "provenance": "libwayland-client-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libwayland-client.so.0",
+      "destination": "/usr/lib64/libwayland-client.so.0",
+      "size": 66168,
+      "sha256": "cb517c02f6e808257932a4b3f1a4bd1232ce415cdd8e41a854ff0f0e918b51c9",
+      "mode": 493,
+      "role": "library",
+      "component": "libwayland-client",
+      "package": null,
+      "provenance": "libwayland-client-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libxkbcommon/LICENSE",
+      "destination": "/usr/share/licenses/libxkbcommon/LICENSE",
+      "size": 12820,
+      "sha256": "967e97b28658f0037bbe164a237bdfb0c3ec790e67f6c29372ea5b09306f61f3",
+      "mode": 420,
+      "role": "notice",
+      "component": "libxkbcommon",
+      "package": null,
+      "provenance": "libxkbcommon-1.13.1-2.fc44.x86_64; source RPM libxkbcommon-1.13.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libxkbcommon.so.0",
+      "destination": "/usr/lib64/libxkbcommon.so.0",
+      "size": 388544,
+      "sha256": "4ca0a8544873c3b7feafe4b0086ddf74e389e3a739da1e3a940a2aa15a441819",
+      "mode": 493,
+      "role": "library",
+      "component": "libxkbcommon",
+      "package": null,
+      "provenance": "libxkbcommon-1.13.1-2.fc44.x86_64; source RPM libxkbcommon-1.13.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glibc/COPYING.LESSERv2",
+      "destination": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "size": 26419,
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "mode": 420,
+      "role": "notice",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glibc/COPYING.LIB",
+      "destination": "/usr/share/licenses/glibc/COPYING.LIB",
+      "size": 26419,
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "mode": 420,
+      "role": "notice",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glibc/COPYINGv2",
+      "destination": "/usr/share/licenses/glibc/COPYINGv2",
+      "size": 17984,
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "mode": 420,
+      "role": "notice",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glibc/COPYINGv3",
+      "destination": "/usr/share/licenses/glibc/COPYINGv3",
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "mode": 420,
+      "role": "notice",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glibc/LICENSES",
+      "destination": "/usr/share/licenses/glibc/LICENSES",
+      "size": 19665,
+      "sha256": "b22a69aa3f80a5201818c66cb0df0f25f9fa13cf5861b0093a058dbd12d50dce",
+      "mode": 420,
+      "role": "notice",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libc.so.6",
+      "destination": "/usr/lib64/libc.so.6",
+      "size": 2482096,
+      "sha256": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8",
+      "mode": 493,
+      "role": "library",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/ld-linux-x86-64.so.2",
+      "destination": "/usr/lib64/ld-linux-x86-64.so.2",
+      "size": 1002600,
+      "sha256": "4e5d39355699e90fa29313d3100e82af4a23290028c58c364d6a249ef6a78e5e",
+      "mode": 493,
+      "role": "library",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libffi/LICENSE",
+      "destination": "/usr/share/licenses/libffi/LICENSE",
+      "size": 1132,
+      "sha256": "d5699fa516968e3a1550e6c902b7441c78856f2603d61bedd0b0662a26655366",
+      "mode": 420,
+      "role": "notice",
+      "component": "libffi",
+      "package": null,
+      "provenance": "libffi-3.5.2-2.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libffi.so.8",
+      "destination": "/usr/lib64/libffi.so.8",
+      "size": 65584,
+      "sha256": "05bf4048cc0fd016140d7d880c4a4ec402096732f60463c8fb87b98d877d3628",
+      "mode": 493,
+      "role": "library",
+      "component": "libffi",
+      "package": null,
+      "provenance": "libffi-3.5.2-2.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/systemd-libs/LICENSE.LGPL2.1",
+      "destination": "/usr/share/licenses/systemd-libs/LICENSE.LGPL2.1",
+      "size": 26518,
+      "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+      "mode": 420,
+      "role": "notice",
+      "component": "systemd-libs",
+      "package": null,
+      "provenance": "systemd-libs-259.10-1.fc44.x86_64; source RPM systemd-259.10-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libsystemd.so.0",
+      "destination": "/usr/lib64/libsystemd.so.0",
+      "size": 1304672,
+      "sha256": "f0e7a49adc0c3191c434643d788020fc062d2d1bc1b00db66409a333ab73bf7a",
+      "mode": 493,
+      "role": "library",
+      "component": "systemd-libs",
+      "package": null,
+      "provenance": "systemd-libs-259.10-1.fc44.x86_64; source RPM systemd-259.10-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libm.so.6",
+      "destination": "/usr/lib64/libm.so.6",
+      "size": 1153848,
+      "sha256": "16a03ce6d24c8a46742206d4a9c1d35bb6577ae2384f153dc6ef4a4b62b5357f",
+      "mode": 493,
+      "role": "library",
+      "component": "glibc",
+      "package": null,
+      "provenance": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libgcc/COPYING",
+      "destination": "/usr/share/licenses/libgcc/COPYING",
+      "size": 18002,
+      "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libgcc/COPYING.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "size": 26440,
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libgcc/COPYING.RUNTIME",
+      "destination": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "size": 3324,
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libgcc/COPYING3",
+      "destination": "/usr/share/licenses/libgcc/COPYING3",
+      "size": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libgcc/COPYING3.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "size": 7639,
+      "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libgcc_s.so.1",
+      "destination": "/usr/lib64/libgcc_s.so.1",
+      "size": 186512,
+      "sha256": "c71a62b5ef442ab8cf4470874dee6f2383d73a744f0006b6d287412f131c2e09",
+      "mode": 493,
+      "role": "library",
+      "component": "libgcc",
+      "package": null,
+      "provenance": "libgcc-16.2.1-2.fc44.x86_64; source RPM gcc-16.2.1-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/wlroots/LICENSE",
+      "destination": "/usr/share/licenses/wlroots/LICENSE",
+      "size": 1140,
+      "sha256": "35d427c043dcafe8893b9e7247348f599847c81d9a067703587c80707f3d58df",
+      "mode": 420,
+      "role": "notice",
+      "component": "wlroots",
+      "package": null,
+      "provenance": "wlroots 0.20.2 reviewed clipboard/input patches; spec/graphics-inputs.json"
+    },
+    {
+      "source": "gui-runtime/lib/libwlroots-0.20.so",
+      "destination": "/usr/lib64/libwlroots-0.20.so",
+      "size": 1495816,
+      "sha256": "208e526fbe592b0c448035a56372e2ac950e39e232dbff6e705660329c8e8453",
+      "mode": 493,
+      "role": "library",
+      "component": "wlroots",
+      "package": null,
+      "provenance": "wlroots 0.20.2 reviewed clipboard/input patches; spec/graphics-inputs.json"
+    },
+    {
+      "source": "notices/libwayland-server/COPYING",
+      "destination": "/usr/share/licenses/libwayland-server/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "role": "notice",
+      "component": "libwayland-server",
+      "package": null,
+      "provenance": "libwayland-server-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libwayland-server.so.0",
+      "destination": "/usr/lib64/libwayland-server.so.0",
+      "size": 87160,
+      "sha256": "6f27c2fc1589f9d8e5525ea7729fbf35cbd27d5501f36b068cad4213a665736d",
+      "mode": 493,
+      "role": "library",
+      "component": "libwayland-server",
+      "package": null,
+      "provenance": "libwayland-server-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/pixman/COPYING",
+      "destination": "/usr/share/licenses/pixman/COPYING",
+      "size": 2087,
+      "sha256": "fac9270f0987b96ff4533fca3548c633e02083cbba4a0172a3b149b2e4019793",
+      "mode": 420,
+      "role": "notice",
+      "component": "pixman",
+      "package": null,
+      "provenance": "pixman-0.46.2-3.fc44.x86_64; source RPM pixman-0.46.2-3.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libpixman-1.so.0",
+      "destination": "/usr/lib64/libpixman-1.so.0",
+      "size": 733240,
+      "sha256": "0af247f5d42793ed0db3295744cbe143bb4fa2f30242a6db734565fe4f876b18",
+      "mode": 493,
+      "role": "library",
+      "component": "pixman",
+      "package": null,
+      "provenance": "pixman-0.46.2-3.fc44.x86_64; source RPM pixman-0.46.2-3.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libdrm/libdrm-2.4.134.tar.xz",
+      "destination": "/usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz",
+      "size": 437244,
+      "sha256": "ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95",
+      "mode": 420,
+      "role": "notice",
+      "component": "libdrm",
+      "package": null,
+      "provenance": "libdrm-2.4.134-1.fc44.x86_64; source RPM libdrm-2.4.134-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libdrm.so.2",
+      "destination": "/usr/lib64/libdrm.so.2",
+      "size": 91056,
+      "sha256": "e2a416f7b7c9e9e46b5f96bf20be71f146426daa6e1e8438adce2ab8e4c0fc0e",
+      "mode": 493,
+      "role": "library",
+      "component": "libdrm",
+      "package": null,
+      "provenance": "libdrm-2.4.134-1.fc44.x86_64; source RPM libdrm-2.4.134-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libudev.so.1",
+      "destination": "/usr/lib64/libudev.so.1",
+      "size": 320144,
+      "sha256": "22513c89165308495bb0d4e93c4885b52b038920d78856c50d709d908952a9a4",
+      "mode": 493,
+      "role": "library",
+      "component": "systemd-libs",
+      "package": null,
+      "provenance": "systemd-libs-259.10-1.fc44.x86_64; source RPM systemd-259.10-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libseat/LICENSE",
+      "destination": "/usr/share/licenses/libseat/LICENSE",
+      "size": 1054,
+      "sha256": "282a494803d666616bd726e0279636b5f6a31387ae19a707459074050f2600d3",
+      "mode": 420,
+      "role": "notice",
+      "component": "libseat",
+      "package": null,
+      "provenance": "libseat-0.9.3-1.fc44.x86_64; source RPM seatd-0.9.3-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libseat.so.1",
+      "destination": "/usr/lib64/libseat.so.1",
+      "size": 49184,
+      "sha256": "5c9080c404143590da53ef3e42400db9ae0f666a211d2d6ba94642699e4c26c9",
+      "mode": 493,
+      "role": "library",
+      "component": "libseat",
+      "package": null,
+      "provenance": "libseat-0.9.3-1.fc44.x86_64; source RPM seatd-0.9.3-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libdisplay-info/LICENSE",
+      "destination": "/usr/share/licenses/libdisplay-info/LICENSE",
+      "size": 1089,
+      "sha256": "15b396244e58830c5614b9394f4deccfe684970cd507f299383ab57ad339eedd",
+      "mode": 420,
+      "role": "notice",
+      "component": "libdisplay-info",
+      "package": null,
+      "provenance": "libdisplay-info-0.3.0-1.fc44.x86_64; source RPM libdisplay-info-0.3.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libdisplay-info.so.3",
+      "destination": "/usr/lib64/libdisplay-info.so.3",
+      "size": 224808,
+      "sha256": "2744bd4b6f456e67f24a37f79c43ed2d3fd73b87802ab677dd3a5ad4c5ad5a7d",
+      "mode": 493,
+      "role": "library",
+      "component": "libdisplay-info",
+      "package": null,
+      "provenance": "libdisplay-info-0.3.0-1.fc44.x86_64; source RPM libdisplay-info-0.3.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libinput/COPYING",
+      "destination": "/usr/share/licenses/libinput/COPYING",
+      "size": 1738,
+      "sha256": "80de50b2022a840db044c56db804ca3565600a692c0714babface587acc6d1b0",
+      "mode": 420,
+      "role": "notice",
+      "component": "libinput",
+      "package": null,
+      "provenance": "libinput-1.31.3-1.fc44.x86_64; source RPM libinput-1.31.3-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libinput.so.10",
+      "destination": "/usr/lib64/libinput.so.10",
+      "size": 475176,
+      "sha256": "b1e42c42977e94b9e61442066775711646657b9f31d660e3ef32ff976d7f1ae8",
+      "mode": 493,
+      "role": "library",
+      "component": "libinput",
+      "package": null,
+      "provenance": "libinput-1.31.3-1.fc44.x86_64; source RPM libinput-1.31.3-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/mtdev/COPYING",
+      "destination": "/usr/share/licenses/mtdev/COPYING",
+      "size": 1209,
+      "sha256": "795bfe74daae59a97d3a0c8ec0ba0f08c243adf94a3aa7981a4136fce31d55b4",
+      "mode": 420,
+      "role": "notice",
+      "component": "mtdev",
+      "package": null,
+      "provenance": "mtdev-1.1.6-12.fc44.x86_64; source RPM mtdev-1.1.6-12.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libmtdev.so.1",
+      "destination": "/usr/lib64/libmtdev.so.1",
+      "size": 27968,
+      "sha256": "4cc158116fc64c5d1615584c33c18762f02e9f08032433575de75d135e03e6d0",
+      "mode": 493,
+      "role": "library",
+      "component": "mtdev",
+      "package": null,
+      "provenance": "mtdev-1.1.6-12.fc44.x86_64; source RPM mtdev-1.1.6-12.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libevdev/COPYING",
+      "destination": "/usr/share/licenses/libevdev/COPYING",
+      "size": 1499,
+      "sha256": "6f13de7ce28e4948ba95170e0723ee1254c1978ce1f127af82aeca597b567cb9",
+      "mode": 420,
+      "role": "notice",
+      "component": "libevdev",
+      "package": null,
+      "provenance": "libevdev-1.13.6-2.fc44.x86_64; source RPM libevdev-1.13.6-2.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libevdev.so.2",
+      "destination": "/usr/lib64/libevdev.so.2",
+      "size": 90480,
+      "sha256": "2e33ec577983ac245a2672cd03c172a1f4c3f91b4ae1b2c99728fa685d99b469",
+      "mode": 493,
+      "role": "library",
+      "component": "libevdev",
+      "package": null,
+      "provenance": "libevdev-1.13.6-2.fc44.x86_64; source RPM libevdev-1.13.6-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libwacom/COPYING",
+      "destination": "/usr/share/licenses/libwacom/COPYING",
+      "size": 1081,
+      "sha256": "65425589a37ca2b3f4c74af5382859112b71a28bfff53d42afea4eaeaa999b5b",
+      "mode": 420,
+      "role": "notice",
+      "component": "libwacom",
+      "package": null,
+      "provenance": "libwacom-2.19.0-1.fc44.x86_64; source RPM libwacom-2.19.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libwacom.so.9",
+      "destination": "/usr/lib64/libwacom.so.9",
+      "size": 78536,
+      "sha256": "cd40bc3364ea493a515facc71c052c076e4ee1de3c5bcf644f8ad0379ceaad2e",
+      "mode": 493,
+      "role": "library",
+      "component": "libwacom",
+      "package": null,
+      "provenance": "libwacom-2.19.0-1.fc44.x86_64; source RPM libwacom-2.19.0-1.fc44.src.rpm"
+    },
+    {
+      "source": "notices/lua-libs/mit.txt",
+      "destination": "/usr/share/licenses/lua-libs/mit.txt",
+      "size": 1067,
+      "sha256": "ac92bb84aa21edfecf0112e59c96c75620313d504ada0d66e8e78fe6788d3a4d",
+      "mode": 420,
+      "role": "notice",
+      "component": "lua-libs",
+      "package": null,
+      "provenance": "lua-libs-5.4.8-5.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/liblua-5.4.so",
+      "destination": "/usr/lib64/liblua-5.4.so",
+      "size": 287400,
+      "sha256": "f452186a357307daa99edf5f1f5178e6aee9ce38b51e30952de1814d8f5599e2",
+      "mode": 493,
+      "role": "library",
+      "component": "lua-libs",
+      "package": null,
+      "provenance": "lua-libs-5.4.8-5.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/libgudev/COPYING",
+      "destination": "/usr/share/licenses/libgudev/COPYING",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "role": "notice",
+      "component": "libgudev",
+      "package": null,
+      "provenance": "libgudev-238-9.fc44.x86_64; source RPM libgudev-238-9.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libgudev-1.0.so.0",
+      "destination": "/usr/lib64/libgudev-1.0.so.0",
+      "size": 56824,
+      "sha256": "c0d6fc0655a784a65c229266aaa089096181dc2215e21cff7a3b692fd3db22a0",
+      "mode": 493,
+      "role": "library",
+      "component": "libgudev",
+      "package": null,
+      "provenance": "libgudev-238-9.fc44.x86_64; source RPM libgudev-238-9.fc44.src.rpm"
+    },
+    {
+      "source": "notices/glib2/LGPL-2.1-or-later.txt",
+      "destination": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+      "size": 25967,
+      "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+      "mode": 420,
+      "role": "notice",
+      "component": "glib2",
+      "package": null,
+      "provenance": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libgobject-2.0.so.0",
+      "destination": "/usr/lib64/libgobject-2.0.so.0",
+      "size": 405072,
+      "sha256": "0eade7de53e7312959e66af41cd70d8cc1b2d407a7e8023aadc55cfb691c2364",
+      "mode": 493,
+      "role": "library",
+      "component": "glib2",
+      "package": null,
+      "provenance": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libglib-2.0.so.0",
+      "destination": "/usr/lib64/libglib-2.0.so.0",
+      "size": 1469656,
+      "sha256": "5a83924bca2c3f672d51d4daddb025ce44f5f59bc27efa3139c726a378eb497f",
+      "mode": 493,
+      "role": "library",
+      "component": "glib2",
+      "package": null,
+      "provenance": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/pcre2/pcre2-10.47-LICENCE.md",
+      "destination": "/usr/share/licenses/pcre2/pcre2-10.47-LICENCE.md",
+      "size": 4011,
+      "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+      "mode": 420,
+      "role": "notice",
+      "component": "pcre2",
+      "package": null,
+      "provenance": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm"
+    },
+    {
+      "source": "notices/pcre2/pcre2-10.47.tar.bz2",
+      "destination": "/usr/share/licenses/pcre2/pcre2-10.47.tar.bz2",
+      "size": 2145789,
+      "sha256": "47fe8c99461250d42f89e6e8fdaeba9da057855d06eb7fc08d9ca03fd08d7bc7",
+      "mode": 420,
+      "role": "notice",
+      "component": "pcre2",
+      "package": null,
+      "provenance": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm"
+    },
+    {
+      "source": "notices/pcre2/SLJIT-LICENSE",
+      "destination": "/usr/share/licenses/pcre2/SLJIT-LICENSE",
+      "size": 1444,
+      "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb",
+      "mode": 420,
+      "role": "notice",
+      "component": "pcre2",
+      "package": null,
+      "provenance": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libpcre2-8.so.0",
+      "destination": "/usr/lib64/libpcre2-8.so.0",
+      "size": 724280,
+      "sha256": "473aeb0704abc871886650c553b43bb300395d73fe4088620329459b5ddbf4be",
+      "mode": 493,
+      "role": "library",
+      "component": "pcre2",
+      "package": null,
+      "provenance": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm"
+    },
+    {
+      "source": "notices/nexaui/LICENSE",
+      "destination": "/usr/share/licenses/nexaui/LICENSE",
+      "size": 1076,
+      "sha256": "e569a5d0fc9485fcc3aeca8f285a0b25ddcf11849254d0eba2bb8efa2d470c2e",
+      "mode": 420,
+      "role": "notice",
+      "component": "nexaui",
+      "package": null,
+      "provenance": "NexaUI 0.1.23 revision 97a42647480bb05167cee5e4ae08cedd9147d80d; spec/nexaui-inputs.json"
+    },
+    {
+      "source": "notices/nexaui/UNICODE-LICENSE",
+      "destination": "/usr/share/licenses/nexaui/UNICODE-LICENSE",
+      "size": 1995,
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "mode": 420,
+      "role": "notice",
+      "component": "nexaui",
+      "package": null,
+      "provenance": "NexaUI 0.1.23 revision 97a42647480bb05167cee5e4ae08cedd9147d80d; spec/nexaui-inputs.json"
+    },
+    {
+      "source": "gui-runtime/lib/libnexaui.so.0",
+      "destination": "/usr/lib64/libnexaui.so.0",
+      "size": 920488,
+      "sha256": "1b6d3201f25cf76a8502d6884ad809515220b34d75cc6767ce517197007aeb1e",
+      "mode": 493,
+      "role": "library",
+      "component": "nexaui",
+      "package": null,
+      "provenance": "NexaUI 0.1.23 revision 97a42647480bb05167cee5e4ae08cedd9147d80d; spec/nexaui-inputs.json"
+    },
+    {
+      "source": "notices/wireplumber-libs/LICENSE",
+      "destination": "/usr/share/licenses/wireplumber-libs/LICENSE",
+      "size": 1094,
+      "sha256": "ff2eb9af5b05d92ac3a38cffcad27582ef555a31ff1781e1c1d4e087f77c9c81",
+      "mode": 420,
+      "role": "notice",
+      "component": "wireplumber-libs",
+      "package": null,
+      "provenance": "wireplumber-libs-0.5.19-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libwireplumber-0.5.so.0",
+      "destination": "/usr/lib64/libwireplumber-0.5.so.0",
+      "size": 674632,
+      "sha256": "abf496f7bbce57e0b449ab9018d0102f370ee8f9fb891dc58127cb7d90d8fafe",
+      "mode": 493,
+      "role": "library",
+      "component": "wireplumber-libs",
+      "package": null,
+      "provenance": "wireplumber-libs-0.5.19-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libgio-2.0.so.0",
+      "destination": "/usr/lib64/libgio-2.0.so.0",
+      "size": 2049680,
+      "sha256": "ee1ba3d4649da3581154bef67f158d72ca0f661b229f8bd761f9aef8838d3463",
+      "mode": 493,
+      "role": "library",
+      "component": "glib2",
+      "package": null,
+      "provenance": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/pipewire-libs/COPYING",
+      "destination": "/usr/share/licenses/pipewire-libs/COPYING",
+      "size": 1218,
+      "sha256": "8909c319a7e27dbb33a15b9035f89ab3b7b2f6a12f8bcddc755206a8db1ada44",
+      "mode": 420,
+      "role": "notice",
+      "component": "pipewire-libs",
+      "package": null,
+      "provenance": "pipewire-libs-1.6.11-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/pipewire-libs/LICENSE",
+      "destination": "/usr/share/licenses/pipewire-libs/LICENSE",
+      "size": 349,
+      "sha256": "be4be5d77424833edf31f53fc1f1cecb6996b9e2d747d9e6fb8f878362ebc92b",
+      "mode": 420,
+      "role": "notice",
+      "component": "pipewire-libs",
+      "package": null,
+      "provenance": "pipewire-libs-1.6.11-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libpipewire-0.3.so.0",
+      "destination": "/usr/lib64/libpipewire-0.3.so.0",
+      "size": 859296,
+      "sha256": "13ea08846cd7ac14e4a11897fe250629a9f705028b99ee22cdcfc1030560f5d2",
+      "mode": 493,
+      "role": "library",
+      "component": "pipewire-libs",
+      "package": null,
+      "provenance": "pipewire-libs-1.6.11-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "gui-runtime/lib/libgmodule-2.0.so.0",
+      "destination": "/usr/lib64/libgmodule-2.0.so.0",
+      "size": 19688,
+      "sha256": "bcb76201856de43b616d21049188cf21f3d21de819b351413ff962963945d639",
+      "mode": 493,
+      "role": "library",
+      "component": "glib2",
+      "package": null,
+      "provenance": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles"
+    },
+    {
+      "source": "notices/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+      "destination": "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+      "size": 867,
+      "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+      "mode": 420,
+      "role": "notice",
+      "component": "zlib-ng-compat",
+      "package": null,
+      "provenance": "zlib-ng-compat-2.3.3-3.fc44.x86_64; source RPM zlib-ng-2.3.3-3.fc44.src.rpm"
+    },
+    {
+      "source": "notices/zlib-ng-compat/zlib-ng-2.3.3.tar.gz",
+      "destination": "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3.tar.gz",
+      "size": 2447397,
+      "sha256": "f9c65aa9c852eb8255b636fd9f07ce1c406f061ec19a2e7d508b318ca0c907d1",
+      "mode": 420,
+      "role": "notice",
+      "component": "zlib-ng-compat",
+      "package": null,
+      "provenance": "zlib-ng-compat-2.3.3-3.fc44.x86_64; source RPM zlib-ng-2.3.3-3.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libz.so.1",
+      "destination": "/usr/lib64/libz.so.1",
+      "size": 169544,
+      "sha256": "bbde8faec092a7c67b8bd76bbba4a826e61b05c171b97004ce6b308c5a090351",
+      "mode": 493,
+      "role": "library",
+      "component": "zlib-ng-compat",
+      "package": null,
+      "provenance": "zlib-ng-compat-2.3.3-3.fc44.x86_64; source RPM zlib-ng-2.3.3-3.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libmount/COPYING.LGPL-2.1-or-later",
+      "destination": "/usr/share/licenses/libmount/COPYING.LGPL-2.1-or-later",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "role": "notice",
+      "component": "libmount",
+      "package": null,
+      "provenance": "libmount-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libmount.so.1",
+      "destination": "/usr/lib64/libmount.so.1",
+      "size": 371304,
+      "sha256": "bae9062f215fe51448fd69dd0b28713c5aa9cc46c776804d0d3e3e1d859ec3e4",
+      "mode": 493,
+      "role": "library",
+      "component": "libmount",
+      "package": null,
+      "provenance": "libmount-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libselinux/LICENSE",
+      "destination": "/usr/share/licenses/libselinux/LICENSE",
+      "size": 1034,
+      "sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364",
+      "mode": 420,
+      "role": "notice",
+      "component": "libselinux",
+      "package": null,
+      "provenance": "libselinux-3.11-2.fc44.x86_64; source RPM libselinux-3.11-2.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libselinux.so.1",
+      "destination": "/usr/lib64/libselinux.so.1",
+      "size": 209040,
+      "sha256": "cc9f8b1691e4f8cc807b2d8fe4a1ce2e0bdb96386285fdc7769849ffab0aaa7e",
+      "mode": 493,
+      "role": "library",
+      "component": "libselinux",
+      "package": null,
+      "provenance": "libselinux-3.11-2.fc44.x86_64; source RPM libselinux-3.11-2.fc44.src.rpm"
+    },
+    {
+      "source": "notices/libblkid/COPYING.LGPL-2.1-or-later",
+      "destination": "/usr/share/licenses/libblkid/COPYING.LGPL-2.1-or-later",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "role": "notice",
+      "component": "libblkid",
+      "package": null,
+      "provenance": "libblkid-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/lib/libblkid.so.1",
+      "destination": "/usr/lib64/libblkid.so.1",
+      "size": 254280,
+      "sha256": "5189894b541c68251f3a4c79d922290c1750fe003f799e84df0029b0d769089a",
+      "mode": 493,
+      "role": "library",
+      "component": "libblkid",
+      "package": null,
+      "provenance": "libblkid-2.41.3-12.fc44.x86_64; source RPM util-linux-2.41.3-12.fc44.src.rpm"
+    },
+    {
+      "source": "notices/aetheri/LICENSE",
+      "destination": "/usr/share/licenses/aetheri/LICENSE",
+      "size": 1077,
+      "sha256": "6b160e331afc59e499b71990572b40335fabbe2a16fca939bcc3dd30a678fb3a",
+      "mode": 420,
+      "role": "notice",
+      "component": "aetheri",
+      "package": null,
+      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+    },
+    {
+      "source": "Release/probe_settings_audio_live",
+      "destination": "/usr/libexec/aetheri-audio-lab/probe_settings_audio_live",
+      "size": 164744,
+      "sha256": "76340d26761f2c9bdb776f1d28b3e9cac293b8c8226c647998d4a5464466a063",
+      "mode": 493,
+      "role": "program",
+      "component": "aetheri",
+      "package": null,
+      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+    },
+    {
+      "source": "Release/test_compositor_server",
+      "destination": "/usr/libexec/aetheri-audio-lab/test_compositor_server",
+      "size": 79768,
+      "sha256": "8ac7a218cca5df4152b8dcbbff4614708247c92ae1222915be49dc707e5c0ed6",
+      "mode": 493,
+      "role": "program",
+      "component": "aetheri",
+      "package": null,
+      "provenance": "Aetheri native inputs match revision 4c12de242ca031fe6b4c178467f2d8e1e6db1ee7; build export e3b196bdc66119421ea7b007561f44c24f75890d4bc86f362d266878a8e13716"
+    },
+    {
+      "source": "notices/liberation-sans-fonts/LICENSE",
+      "destination": "/usr/share/licenses/liberation-sans-fonts/LICENSE",
+      "size": 4414,
+      "sha256": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b",
+      "mode": 420,
+      "role": "notice",
+      "component": "liberation-sans-fonts",
+      "package": null,
+      "provenance": "liberation-sans-fonts-1:2.1.5-15.fc44.noarch; source RPM liberation-fonts-2.1.5-15.fc44.src.rpm"
+    },
+    {
+      "source": "gui-runtime/font.ttf",
+      "destination": "/usr/share/aetheri-audio-lab/font.ttf",
+      "size": 410712,
+      "sha256": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+      "mode": 420,
+      "role": "font",
+      "component": "liberation-sans-fonts",
+      "package": null,
+      "provenance": "liberation-sans-fonts-1:2.1.5-15.fc44.noarch; source RPM liberation-fonts-2.1.5-15.fc44.src.rpm"
+    }
+  ]
+}
