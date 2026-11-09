@@ -50,8 +50,10 @@ the future audio runtime simply because a compiler needs them.
 ## Before rollout
 
 The actual WirePlumber 0.5.19 meson source already supports Lua 5.5. Its currently
-selected Fedora Lua-scripting module is linked to 5.4 and must be rebuilt against
-the new SDK. Recheck every resulting ELF dependency, preserve complete notices
+selected Fedora Lua-scripting module is linked to 5.4. The separate
+[module candidate](audio-policy-lua.md) now builds against the new SDK and passes
+all eleven upstream model tests with the original core. Recheck every resulting
+ELF dependency, preserve complete notices
 and exact source/runtime inventories, then repeat actual graph, PCM, GUI,
 enforcing policy, source-loss and original-resource retirement tests. Only then
 select a new audio/image profile. Keep the old reviewed prefixes and historical

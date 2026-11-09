@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "version": "0.5.19",
+  "lua_version": "5.5.1",
+  "purpose": "Private native Lua scripting module candidate only; no normal runtime selection or live acceptance",
+  "source": {
+    "url": "https://codeload.github.com/PipeWire/wireplumber/tar.gz/refs/tags/0.5.19",
+    "commit": "4ab992fa2931ae2b17ef73508b1370030b7878c3",
+    "root": "wireplumber-0.5.19",
+    "size": 714665,
+    "sha256": "f9454eae3a5a6ca903c05ead2a7e47d7d3957fb0ffac3ebb11d92842603ae80f"
+  },
+  "resource_tool": {
+    "path": "usr/bin/glib-compile-resources",
+    "mode": 493,
+    "size": 48640,
+    "sha256": "972d1da456160525f626d02e7bbd841145c65088b882afbbd26ca248ef158412",
+    "package": "glib2-devel-2.88.0-1.fc44.x86_64.rpm"
+  },
+  "lua_files": {
+    "usr/include/lua5.5/lauxlib.h": {
+      "size": 8644,
+      "sha256": "007608c5e2abd231a9f61dc6cf4080ff6d4b54c845aa87b08162b5c778960443"
+    },
+    "usr/include/lua5.5/lua.h": {
+      "size": 16674,
+      "sha256": "5e00319e803893f4310b1206394c80b82f03f42609b40ceb306d92a6740d828e"
+    },
+    "usr/include/lua5.5/luaconf.h": {
+      "size": 20345,
+      "sha256": "1e617ae6f206d701018941b64ed61851da4ffc3573a0f96b73ebe64e340bfb5d"
+    },
+    "usr/include/lua5.5/lualib.h": {
+      "size": 1593,
+      "sha256": "ca847f045256db26a03a654c60ca4db567fc63a54679bba4233114f0c3d532d1"
+    },
+    "usr/lib64/liblua-5.5.so": {
+      "size": 335184,
+      "sha256": "ae4c2ba082fcc33a040a7370c4396820a52ecaab72b2a1f8d04f81928409eddd"
+    },
+    "usr/share/licenses/lua/COPYRIGHT": {
+      "size": 1263,
+      "sha256": "fe7591799d3e229b3c9640314215dd085777889df9a35d4ea78d1c7aa5c351c6"
+    }
+  },
+  "omitted_source_links": {
+    "CLAUDE.md": "AGENTS.md",
+    "GEMINI.md": "AGENTS.md",
+    "tests/wplua/settings": "../wp/settings"
+  }
+}

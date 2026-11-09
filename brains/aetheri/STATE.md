@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private Lua 5.5.1 candidate plus four upstream fixes now passes native Release/ASan/UBSan source regressions and four original-source counterexamples on both musl and glibc. It is not selected by normal audio/image profiles yet: rebuild WirePlumber's Lua-linked objects and repeat live audio acceptance next. The preceding connected Sound GUI lab milestone remains accepted. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
+9 November 2026 — WirePlumber's private Lua scripting module now builds against the maintained Lua 5.5.1 candidate and passes all eleven upstream model tests with the original RPM core. Normal audio/image profiles remain unchanged. Next prepare an explicitly attributed candidate projection and repeat live graph/PCM/GUI/policy retirement acceptance. Normal provisioning, device policy, physical sound and release review remain work. Original carrier and USB stay unchanged.
 
 ## Coordination
 
@@ -14,6 +14,20 @@ Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
 ## Maintained audio Lua candidate — 9 November 2026
+
+The [module rebuild record](journal/2026-11-09-audio-policy-lua.md) and
+[build contract](../../spec/audio-policy-lua.md) now establish the native Lua
+integration: eleven upstream model tests, five host archive controls, selected
+loader paths and all 1,477 exported files pass. The 253,072-byte module retains
+the original RPM core and other modules. A narrow explicit C recipe follows
+upstream's source/resource boundary; the broader offline Meson dependency preview
+is retained without installing any additional packages. No new runtime is selected.
+
+Audio lab QEMU43164/controller10491 remains running, boot
+`32baadd1-a444-4aa8-8c32-56eb3ce22c21`; all original build children have ended.
+Inspect actual state before the next action. Prepare a fresh candidate projection
+with distinct rebuilt provenance, keep old RPM-only checks/defaults strict,
+then run real graph/PCM/GUI/enforcing/source-loss/retirement acceptance.
 
 Read the [record](journal/2026-11-09-audio-lua.md) and
 [candidate build contract](../../spec/audio-lua.md). Lua 5.4's end of releases
@@ -29,7 +43,7 @@ retained-handle state to obtain a compiler. The separate audio lab now has twelv
 reviewed offline build packages; network restriction remains enabled. Reuse its
 checked toolchain and independent code/data snapshots for the WirePlumber rebuild.
 Check actual VM/controller state and the journal before any start or retry.
-Next verify the rebuilt Lua-linked objects and full graph/PCM/GUI/policy retirement
+Next verify the candidate runtime and full graph/PCM/GUI/policy retirement
 before selecting new runtime/image manifests. Normal ownership and PCRE2 review
 remain separate requirements. User USB documents remain untouched.
 
