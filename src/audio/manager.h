@@ -23,6 +23,11 @@ struct ae_audio_manager *ae_audio_manager_open(sd_bus *user_bus,sd_bus *system_b
  * new owner on check failure. Recheck immediately before a caller's effect;
  * successful observations cannot exclude changes after they return. */
 const char *ae_audio_manager_name(const struct ae_audio_manager *);
+/* Borrow original process pin for poll only, on the observer's owning thread.
+ * No observation is refreshed; readiness is a hint, never a drain/release proof.
+ * Do not close, read, transfer or change flags. Valid until the retained manager
+ * closes. This is internal event-loop plumbing, not a public FD transport. */
+int ae_audio_manager_poll_fd(const struct ae_audio_manager *);
 /* Zero while original bus/owner/process/image/PID1 invocation still agree.
  * First negative result is latched, including observation failure. No restart,
  * reconnect, stop, signal, UnrefUnit or implicit acceptance of a replacement. */

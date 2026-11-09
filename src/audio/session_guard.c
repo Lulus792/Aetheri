@@ -67,6 +67,13 @@ unsigned ae_audio_session_guard_wait(struct ae_audio_session_guard *g,int timeou
         return g->loss=loss;
     }
 }
+bool ae_audio_session_guard_poll(struct ae_audio_session_guard *g,struct pollfd out[3],uint64_t *deadline_us) {
+    if(!g || !out || !deadline_us || g->loss) return false;
+    int fd=sd_login_monitor_get_fd(g->monitor),events=sd_login_monitor_get_events(g->monitor);uint64_t deadline;
+    if(fd<0 || events<0 || events>SHRT_MAX || sd_login_monitor_get_timeout(g->monitor,&deadline)<0) return false;
+    struct pollfd copy[3]={{fd,(short)events,0},{g->pins[0],POLLIN,0},{g->pins[1],POLLIN,0}};
+    memcpy(out,copy,sizeof(copy));*deadline_us=deadline;return true;
+}
 struct ae_audio_session_guard *ae_audio_session_guard_open(uid_t uid,const char *seat,int server,int policy) {
     if(uid!=getuid() || uid!=geteuid() || !seat || !*seat || strlen(seat)>128 || server<0 || policy<0 || server==policy) return NULL;
     struct ae_audio_session_guard *g=calloc(1,sizeof(*g));if(!g) return NULL;

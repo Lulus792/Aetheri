@@ -1,5 +1,21 @@
 # Decisions
 
+## Integrate audio with native event waits — 9 November 2026
+
+Keep the admitted original session owner and UI on their creating thread/context
+in the explicit embedded test host. Combine GLib polling/deadlines, original
+process/login hints and the native window wait through one temporary multiplexer;
+do not add a watcher thread, scan timer or resident helper. Readiness only wakes
+fresh checks. Remove lost-process hints without releasing owner obligations.
+Abort a failed wait without another intent; retain original backend retirement.
+
+Normal Settings still has no owner or socket/PID option. Test the real local
+PAM/logind prerequisite separately before joining the compiled live GUI client.
+Use ordinary system-bus references and a unique journal identifier on this
+carrier: private RefUnit failed and PAM moved stdout attribution into its scope.
+Preserve failures and use explicit administrative test retirement after actual
+VM exit, never call it production recovery. See the [record](journal/2026-11-09-audio-host.md).
+
 ## Keep Sound intent separate from observed device state — 9 November 2026
 
 Use the accepted Sound study's output list, thin track and mute switch in the

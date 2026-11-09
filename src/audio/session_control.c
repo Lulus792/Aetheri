@@ -35,6 +35,14 @@ static void changed(const struct ae_audio_snapshot *snapshot,void *data) {
     struct ae_audio_session_control *s=data;
     if(!s->snapshot.loss) s->snapshot.audio=*snapshot;
 }
+static void fence(struct ae_audio_session_control *s,unsigned loss) {
+    if(s->snapshot.loss) return;
+    s->snapshot.loss=loss;
+    s->snapshot.audio.state=AE_AUDIO_DISCONNECTED;s->snapshot.audio.count=0;
+    memset(s->snapshot.audio.outputs,0,sizeof(s->snapshot.audio.outputs));
+    if(s->snapshot.audio.command_state==AE_AUDIO_COMMAND_PENDING) s->snapshot.audio.command_state=AE_AUDIO_COMMAND_UNKNOWN;
+    (void)ae_audio_control_close(&s->control);
+}
 static unsigned check(struct ae_audio_session_control *s) {
     if(s->snapshot.loss) return s->snapshot.loss;
     unsigned loss=0;
@@ -49,15 +57,7 @@ static unsigned check(struct ae_audio_session_control *s) {
         if(current.state==AE_AUDIO_FAILED || current.state==AE_AUDIO_DISCONNECTED)
             loss|=AE_AUDIO_CONTROL_BACKEND_LOST;
     }
-    if(loss) {
-        s->snapshot.loss=loss;
-        s->snapshot.audio.state=AE_AUDIO_DISCONNECTED;
-        s->snapshot.audio.count=0;
-        memset(s->snapshot.audio.outputs,0,sizeof(s->snapshot.audio.outputs));
-        if(s->snapshot.audio.command_state==AE_AUDIO_COMMAND_PENDING)
-            s->snapshot.audio.command_state=AE_AUDIO_COMMAND_UNKNOWN;
-        (void)ae_audio_control_close(&s->control);
-    }
+    if(loss) fence(s,loss);
     return loss;
 }
 struct ae_audio_session_control *ae_audio_session_control_open(GMainContext *context,
@@ -96,6 +96,18 @@ fail: {
 bool ae_audio_session_control_snapshot(struct ae_audio_session_control *s,struct ae_audio_session_snapshot *out) {
     if(!owner(s) || !out) return false;
     (void)check(s);*out=s->snapshot;return true;
+}
+bool ae_audio_session_control_poll(struct ae_audio_session_control *s,struct pollfd out[4],size_t *count,uint64_t *deadline_us) {
+    if(!owner(s) || !out || !count || !deadline_us) return false;
+    if(s->snapshot.loss) {*count=0;*deadline_us=UINT64_MAX;return true;}
+    struct pollfd fds[4];uint64_t deadline;
+    if(!ae_audio_session_guard_poll(s->guard,fds,&deadline)) fence(s,AE_AUDIO_CONTROL_SESSION_LOST);
+    else {
+        int fd=ae_audio_manager_poll_fd(s->manager);
+        if(fd<0) fence(s,AE_AUDIO_CONTROL_MANAGER_LOST);
+        else {fds[3]=(struct pollfd){fd,POLLIN,0};memcpy(out,fds,sizeof(fds));*count=4;*deadline_us=deadline;return true;}
+    }
+    *count=0;*deadline_us=UINT64_MAX;return true;
 }
 enum ae_audio_submit ae_audio_session_control_volume(struct ae_audio_session_control *s,
         uint64_t revision,struct ae_audio_output_ref ref,double value) {

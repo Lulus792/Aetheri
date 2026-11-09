@@ -5,6 +5,10 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #include "settings/nexaui_view.h"
+#include "settings/nexaui_main.h"
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+#include "settings/audio_host.h"
+#endif
 #include <nexaui/software.h>
 #include <nexaui/wayland_outputs.h>
 #include <errno.h>
@@ -195,7 +199,10 @@ static int observe_displays(nx_window *window, struct ae_settings *model,
     }
     return 1;
 }
-int main(int argc, char **argv) {
+int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *audio) {
+#ifndef AETHERI_SETTINGS_AUDIO_HOST
+    if(audio) return 2;
+#endif
     const char *font_path=NULL, *cache_path=NULL; int verify=0, diagnostics=0, fixture_displays=0;
     for(int i=1;i<argc;++i) {
         if(!strcmp(argv[i],"--font") && i+1<argc && !font_path) font_path=argv[++i];
@@ -215,6 +222,17 @@ int main(int argc, char **argv) {
     struct chrome_pointer pointer={0};
     size_t length=0; unsigned char *font=load_font(font_path,&length);
     struct ae_settings model; ae_settings_init(&model);
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+    bool audio_bound=false;
+    if(audio) {
+        audio_bound=ae_settings_audio_host_bind(audio,&model);
+        bool changed=false;
+        if(!audio_bound || !ae_settings_audio_host_update(audio,&changed)) {
+            if(audio_bound) (void)ae_settings_audio_host_bind(audio,NULL);
+            free(font);signal_fd=-1;close(fds[0]);close(fds[1]);return 1;
+        }
+    }
+#endif
     nx_window *window=NULL; nx_software_view *renderer=NULL; struct ae_settings_view *view=NULL;
     nx_window_desc desc={"Aetheri Settings",1000,720,NX_WINDOW_CLIENT_CHROME|NX_WINDOW_STATE_EVENTS,{0}};
     if(fixture_displays) {
@@ -231,8 +249,20 @@ int main(int argc, char **argv) {
     while(okay && !stopping) {
         nx_window_info info; nx_event event; int available=0, quit=0;
         uint32_t signal_events=0;
-        if(nx_window_poll_with_fd(window,busy?16:dirty?0:unavailable?1000:UINT32_MAX,fds[0],&signal_events)!=NX_OK ||
-           nx_window_get_info(window,&info)!=NX_OK) {okay=0;break;}
+        uint32_t timeout=busy?16:dirty?0:unavailable?1000:UINT32_MAX;int wait_fd=fds[0];
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+        if(audio) {wait_fd=ae_settings_audio_host_prepare(audio,fds[0],&timeout);if(wait_fd<0) {okay=0;break;}}
+#endif
+        nx_result waited=nx_window_poll_with_fd(window,timeout,wait_fd,&signal_events);
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+        if(audio) {
+            bool changed=dirty!=0;
+            if(waited!=NX_OK) (void)ae_settings_audio_host_abort(audio);
+            else if(!ae_settings_audio_host_finish(audio,&changed)) {okay=0;break;}
+            dirty=changed?1:0;
+        }
+#endif
+        if(waited!=NX_OK || nx_window_get_info(window,&info)!=NX_OK) {okay=0;break;}
         if(signal_events & (NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP)) {okay=0;break;}
         if(stopping) break;
         if(info.should_close) break;
@@ -274,6 +304,9 @@ int main(int argc, char **argv) {
         if(nx_window_get_status(window,&status)!=NX_OK) {okay=0;break;}
         if(nx_context_set_text_raster_scale(ae_settings_view_context(view),info.scale)!=NX_OK ||
            !ae_settings_view_frame(view,info.width,info.height,&status,&changed)) {okay=0;break;}
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+        if(audio && !ae_settings_audio_host_update(audio,&changed)) {okay=0;break;}
+#endif
         enum ae_settings_window_action action=ae_settings_view_take_action(view);
         if(action==AE_SETTINGS_WINDOW_CLOSE) break;
         nx_result request=NX_OK;
@@ -310,6 +343,19 @@ int main(int argc, char **argv) {
             }
             fflush(stdout);}
         if(verify || diagnostics) {printf("MODEL theme=%d german=%d text=%u page=%d\n",(int)model.theme,model.german,model.text_percent,(int)model.page);fflush(stdout);}
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+        if(audio && diagnostics) {
+            const struct ae_settings_sound *s=&model.sound;
+            printf("AUDIO state=%d revision=%llu count=%zu feedback=%d stale=%d fenced=%d\n",(int)s->observation.state,
+                (unsigned long long)s->observation.revision,s->observation.count,(int)s->feedback,s->stale,s->fenced);
+            for(size_t i=0;i<s->observation.count;++i) {
+                const struct ae_audio_output *o=&s->observation.outputs[i];
+                printf("AUDIO_OUTPUT id=%llu default=%d available=%d volume=%.9f muted=%d\n",
+                    (unsigned long long)s->ids[i],o->is_default,o->volume_available,o->volume,o->muted);
+            }
+            fflush(stdout);
+        }
+#endif
         if(diagnostics && !changed) {
             printf("SETTLED theme=%d german=%d text=%u page=%d %.0f %.0f\n",
                 (int)model.theme,model.german,model.text_percent,(int)model.page,info.width,info.height);
@@ -325,6 +371,9 @@ int main(int argc, char **argv) {
         dirty=changed?1:0;
     }
 done:
+#ifdef AETHERI_SETTINGS_AUDIO_HOST
+    if(audio_bound && !ae_settings_audio_host_bind(audio,NULL)) okay=0;
+#endif
     if(renderer && nx_software_view_close(&renderer)!=NX_OK) okay=0;
     if(window && view && nx_window_publish_semantics(window,NULL)!=NX_OK) okay=0;
     ae_settings_view_destroy(view); nx_window_destroy(window); free(font);
@@ -333,3 +382,6 @@ done:
     if(!okay) fputs("Aetheri Settings view failed\n",stderr);
     return okay?0:1;
 }
+#ifndef AETHERI_SETTINGS_NO_MAIN
+int main(int argc,char **argv) {return ae_settings_nexaui_run(argc,argv,NULL);}
+#endif

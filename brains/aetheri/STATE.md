@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The native NexaUI Settings view now has a Sound page with output selection, draft-on-drag volume and an observed mute switch. The model and programmatic session-owner binding preserve exact refs/revisions and at-most-once intents. Source/model/view and real native navigation pass Release and ASan/UBSan; an omitted-serial counterexample is detected. Populated captures use test observations, while the normal executable correctly stays unavailable without an admitted owner. Normal provisioning/event wiring and joined live UI-to-audio/physical acceptance remain work. USB stays unchanged.
+9 November 2026 — The Sound owner now has an embedded native event host that combines GLib, original process/login hints and Wayland waits without an added watcher thread or scan. Nine native groups pass Release and ASan/UBSan; the ordinary no-owner Settings path stays unchanged. A separate actual local PAM/logind probe verifies cap-zero/NNP UID1000 and both original service/session-scope end, then removes its exact profile. The audio-linked GUI client is compiled only; live UI-to-graph joining and normal provisioning/broker policy still remain work. All separate test-VM processes end; original guest and USB stay unchanged.
 
 ## Coordination
 
@@ -12,6 +12,37 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Embedded Sound event host and actual login — 9 November 2026
+
+Read the [record](journal/2026-11-09-audio-host.md) and
+[contract](../../spec/audio-session.md#embedded-native-host-event-loop).
+`settings/audio_host` now wraps native waits with the owning GLib context and
+original process/login hints. Observe before presenting and after input; retire
+every temporary multiplexer. Collect before prepare/query so a fencing/close
+source is included. Tests cover real I/O/timers/thread wakeups, callback-time
+reentrancy, abort and latched loss with controlled owner adapters.
+
+The explicit `aetheri_settings_audio_entry`/`probe_settings_audio_live` path is
+compiled, not installed or positively joined to real sources yet. The normal
+executable has no owner and no admission-bypassing CLI. Its unchanged native
+window/navigation path also passes. New internal FD views are borrowed wake
+hints, not transport, caller authority, process/holder drain or lease release.
+
+`tools/test_audio_login.py` passes actual enforcing PAM/logind registration on
+seat0/tty8, four ordinary UID/GID fields, zero effective/permitted/inheritable/
+ambient capabilities and NNP. Hold original process and both cgroups through
+actual end; missing names plus original event-reader ENODEV confirm removal.
+Three prior probe failures remain historical, separately administratively
+retired only after observed original QEMU exit. No permission was weakened.
+
+Next stage the complete reviewed GUI/audio runtime, including all notices and
+protected input provenance, then join the actual C host, root-selected original
+descriptors, real PAM session and graph. The ELF-only candidate export in local
+evidence is not an accepted install/deployment. Normal broker/service/device
+policy, full holder/restart coordination, physical HP/Bluetooth and release
+integration remain work. Original quarantine, foreign UI files and USB stay
+untouched. NexaUI handoff remains delivered; no new message is pending.
 
 ## Native Sound view and owner binding — 9 November 2026
 

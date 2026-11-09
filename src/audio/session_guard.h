@@ -2,6 +2,9 @@
 #define AETHERI_AUDIO_SESSION_GUARD_H
 
 #include <sys/types.h>
+#include <poll.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 enum ae_audio_session_loss {
     AE_AUDIO_SESSION_LIVE=0,
@@ -27,6 +30,11 @@ struct ae_audio_session_guard *ae_audio_session_guard_open(uid_t expected_uid,
  * are hints followed by a fresh check of the original session. Timeout alone
  * is not loss. Once nonzero, the first loss mask remains immutable. */
 unsigned ae_audio_session_guard_wait(struct ae_audio_session_guard *,int timeout_ms);
+/* Borrow monitor/original process FDs for poll, and the monitor's absolute
+ * CLOCK_MONOTONIC microsecond deadline (UINT64_MAX: none). Never consume, close,
+ * change or transfer these FDs. Same calling thread/process; a wake is only a
+ * hint followed by wait(0). Output is unchanged on failure. */
+bool ae_audio_session_guard_poll(struct ae_audio_session_guard *,struct pollfd out[3],uint64_t *deadline_us);
 void ae_audio_session_guard_close(struct ae_audio_session_guard **);
 
 #endif

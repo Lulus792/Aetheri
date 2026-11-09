@@ -63,8 +63,12 @@ int main(void) {
     g=ae_audio_session_guard_open(getuid(),"seat0",pins[0],pins[1]);CHECK(g);
     int original_monitor=monitor->fd;
     CHECK(ae_audio_session_guard_wait(g,20)==AE_AUDIO_SESSION_LIVE);
+    struct pollfd watched[3];uint64_t deadline=0;
+    CHECK(ae_audio_session_guard_poll(g,watched,&deadline) && watched[0].fd==original_monitor && deadline==UINT64_MAX);
+    CHECK(fcntl(watched[1].fd,F_GETFD)>=0 && fcntl(watched[2].fd,F_GETFD)>=0);
     active=false;CHECK(notify());CHECK(ae_audio_session_guard_wait(g,100)==AE_AUDIO_SESSION_INACTIVE);
     active=true;CHECK(notify());CHECK(ae_audio_session_guard_wait(g,0)==AE_AUDIO_SESSION_INACTIVE);
+    CHECK(!ae_audio_session_guard_poll(g,watched,&deadline));
     ae_audio_session_guard_close(&g);CHECK(!g && !monitor && fcntl(original_monitor,F_GETFD)<0 && errno==EBADF);
     ae_audio_session_guard_close(&g);ae_audio_session_guard_close(NULL);
     g=ae_audio_session_guard_open(getuid(),"seat0",pins[0],pins[1]);CHECK(g);

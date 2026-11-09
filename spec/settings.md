@@ -44,8 +44,11 @@ An admitted owner calls its pump on relevant notifications and after input.
 It reads original observations before consuming an intent once, forwards the
 exact revision/ref and reads back after submission. It creates no service,
 timer, thread, socket selection or reconnect. This is a programmatic binding;
-the regular executable does not yet create an owner or dispatch those events.
-Normal session/service/device provisioning remains separate work.
+the regular executable does not yet create an owner. An explicit
+[embedded event host](audio-session.md#embedded-native-host-event-loop) now wires
+the programmatic binding into the original native wait/frame path; its separate
+lab client has not yet received a positive joined live run. Normal
+session/service/device provisioning remains separate work.
 
 The view exposes radio, slider and switch semantics, keyboard focus and
 English/German labels. Both raster densities, dark/light/high contrast,

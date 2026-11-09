@@ -4,6 +4,7 @@
 #include "audio/control.h"
 #include <systemd/sd-bus.h>
 #include <sys/types.h>
+#include <poll.h>
 
 enum ae_audio_control_loss {
     AE_AUDIO_CONTROL_LIVE=0,
@@ -50,6 +51,14 @@ struct ae_audio_session_control *ae_audio_session_control_open(GMainContext *,
  */
 bool ae_audio_session_control_snapshot(struct ae_audio_session_control *,
     struct ae_audio_session_snapshot *);
+/* Borrow at most four original monitor/process FDs for event-loop wakeup only.
+ * No descriptor ownership or authority is transferred. Same owner thread;
+ * after every wake call snapshot to reobserve. No names/units/configuration
+ * are authenticated by these hints. Zero count after a latched loss avoids
+ * watching permanently readable dead pins. Deadline is absolute monotonic us.
+ */
+bool ae_audio_session_control_poll(struct ae_audio_session_control *,struct pollfd out[4],
+    size_t *count,uint64_t *deadline_us);
 enum ae_audio_submit ae_audio_session_control_volume(struct ae_audio_session_control *,
     uint64_t,struct ae_audio_output_ref,double);
 enum ae_audio_submit ae_audio_session_control_mute(struct ae_audio_session_control *,

@@ -51,6 +51,64 @@ These tests do not establish actual joined Wayland/logind/MAC acceptance for
 the new bridge. Protected normal provisioning, owner event-loop integration,
 normal device/session admission and live joined Sound UI/backend acceptance remain work.
 
+## Embedded native host event loop
+
+`settings/audio_host` now connects that owner to the native NexaUI wait loop in
+an explicit audio-linked host build. The ordinary executable still passes no
+owner. There is no new CLI socket/PID option or normal installed capability.
+The separate `probe_settings_audio_live` target is lab-only test infrastructure;
+its positive joined UI/backend path has not been executed yet.
+
+The owner lends four wake hints: its original manager process, graph/policy
+processes and login monitor, plus the monitor's absolute monotonic deadline.
+These borrowed descriptors cannot be closed, consumed, modified or transferred.
+Readiness is not admission or drain; the original observers recheck before
+snapshot/intent handling. A latched loss removes permanently readable dead
+process hints from subsequent waits, retaining the actual owner handles.
+
+The adapter collects hints before GLib prepare/query, including sources added
+by a fencing/close path. It acquires the creating thread's pushed context,
+queries at most256 poll records and combines deadlines with the native window
+budget. One fresh internal epoll FD wakes the native wait. Afterward, an actual
+nonblocking GLib poll supplies revents for check/dispatch; the multiplexer is
+only a hint. Close it and release the context every cycle. Abort retires the
+wait without dispatching or submitting another intent. Callback-time close,
+wrong-thread/post-fork use and overlapping waits are rejected.
+
+This follows GLib's documented
+[acquire/prepare contract](https://docs.gtk.org/glib/method.MainContext.prepare.html)
+and [custom event-loop phases](https://gnome.pages.gitlab.gnome.org/gtk/glib/main-loop.html).
+The online reference identifies2.90; actual compilation/runtime uses the already
+reviewed2.88.0 library. This changes no dependency version. Aetheri adds no
+watcher thread, resident helper or periodic audio scan; upstream libraries keep
+their own thread/async behavior. The admitted owner and context still outlive
+the adapter; local retirement is not service stop or holder settlement.
+
+The embedded Settings entry binds its stack model before opening the window,
+pumps original observations and UI intents in that same loop, then unbinds
+before destroying the view. The lab client expects independently root-selected
+FD3/4 process pins, a read-only root-owned `AETHAUI1` test profile in FD5 and
+manager/graph/policy image FDs6/7/8. That codec, DMI check and trusted test delivery
+are not production provenance/admission or an installed app transport.
+
+Native adapter tests use real GLib sources/I/O/timers, epoll, threads, fork and
+FD retirement with controlled owner observations. The separate enforcing lab
+now also passes an actual local UID1000 PAM/logind session and original process,
+service and session-scope end observation. This does not yet join the live C
+Settings host to the audio graph or accept normal provisioning, broker policy,
+holder/restart recovery or physical audio. Read the
+[execution record](../brains/aetheri/journal/2026-11-09-audio-host.md).
+
+`tools/test_audio_login.py` is an explicit root-only manual lab probe, never a
+default host test. Its permissive temporary PAM profile is only for the
+root-selected test process, not normal authentication. It refuses optimized
+Python, foreign/pending profiles and a different carrier. Failure retains the
+keeper and original references for independent inspection; do not retry or
+infer teardown. Successful end requires the original dead pin, terminal unit,
+unchanged invocation/no job and both original recursive cgroups empty/removed.
+Missing names require original event-reader `ENODEV`, not path absence alone.
+Only then remove the exact owned profile and restore the prior VT.
+
 ## Processes and units
 
 The existing user manager supervises the two audio processes. There is no extra

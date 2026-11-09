@@ -207,6 +207,9 @@ int ae_audio_manager_check(struct ae_audio_manager *g) {
     return g->loss=r;
 }
 const char *ae_audio_manager_name(const struct ae_audio_manager *g) {return g ? g->name : NULL;}
+int ae_audio_manager_poll_fd(const struct ae_audio_manager *g) {
+    return g && g->thread==(pid_t)syscall(SYS_gettid) ? g->pin : -EINVAL;
+}
 void ae_audio_manager_close(struct ae_audio_manager **pointer) {
     if(!pointer || !*pointer) return;
     struct ae_audio_manager *g=*pointer;*pointer=NULL;

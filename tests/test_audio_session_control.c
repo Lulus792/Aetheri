@@ -39,6 +39,7 @@ struct ae_audio_manager *ae_audio_manager_open(sd_bus *u,sd_bus *s,uid_t uid,int
     manager.alive=1;return &manager;
 }
 int ae_audio_manager_check(struct ae_audio_manager *m) {CHECK(m==&manager && m->alive);return manager_result;}
+int ae_audio_manager_poll_fd(const struct ae_audio_manager *m) {CHECK(m==&manager && m->alive);return 99;}
 void ae_audio_manager_close(struct ae_audio_manager **m) {
     if(*m) {CHECK(*m==&manager && manager.alive);manager.alive=0;++closed_manager;*m=NULL;}
 }
@@ -58,6 +59,9 @@ struct ae_audio_session_guard *ae_audio_session_guard_open(uid_t uid,const char 
     guard.alive=1;return &guard;
 }
 unsigned ae_audio_session_guard_wait(struct ae_audio_session_guard *g,int timeout) {CHECK(g==&guard && g->alive && !timeout);return session_result;}
+bool ae_audio_session_guard_poll(struct ae_audio_session_guard *g,struct pollfd out[3],uint64_t *deadline) {
+    CHECK(g==&guard && g->alive);out[0]=(struct pollfd){71,POLLIN,0};out[1]=(struct pollfd){72,POLLIN,0};out[2]=(struct pollfd){73,POLLIN,0};*deadline=UINT64_MAX;return true;
+}
 void ae_audio_session_guard_close(struct ae_audio_session_guard **g) {if(*g) {CHECK((*g)->alive);(*g)->alive=0;++closed_guard;*g=NULL;}}
 struct ae_audio_control *ae_audio_control_open_original(GMainContext *context,const char *remote,int pin,
         ae_audio_changed changed,void *data,GDestroyNotify destroy) {
@@ -126,6 +130,8 @@ int main(void) {
     reset();struct ae_audio_session_control *s=ae_audio_session_control_open(context,&profile,(void *)9,destroyed);CHECK(s);
     struct ae_audio_session_snapshot snapshot;
     CHECK(ae_audio_session_control_snapshot(s,&snapshot) && !snapshot.loss && snapshot.audio.count==1);
+    struct pollfd watched[4];size_t count=0;uint64_t deadline=0;
+    CHECK(ae_audio_session_control_poll(s,watched,&count,&deadline) && count==4 && watched[3].fd==99 && deadline==UINT64_MAX);
     struct ae_audio_output_ref ref=snapshot.audio.outputs[0].ref;
     CHECK(ae_audio_session_control_volume(s,44,ref,0.75)==AE_AUDIO_SUBMITTED);
     CHECK(effects==1 && effect_revision==44 && ref.connection==effect_ref.connection && ref.serial==effect_ref.serial && ref.id==effect_ref.id && effect_kind==AE_AUDIO_VOLUME && effect_volume==0.75);
@@ -153,6 +159,7 @@ int main(void) {
         if(variant==5) {snapshot_ok=false;expected=AE_AUDIO_CONTROL_BACKEND_LOST;}
         CHECK(ae_audio_session_control_mute(s,44,ref,true)==AE_AUDIO_UNAVAILABLE && !effects && closes==1);
         CHECK(ae_audio_session_control_snapshot(s,&snapshot) && snapshot.loss==expected && !snapshot.audio.count);
+        count=4;deadline=0;CHECK(ae_audio_session_control_poll(s,watched,&count,&deadline) && !count && deadline==UINT64_MAX);
         CHECK(snapshot.audio.state==AE_AUDIO_DISCONNECTED);
         CHECK(snapshot.audio.command==17 && snapshot.audio.command_state==AE_AUDIO_COMMAND_UNKNOWN);
         manager_result=actor_results[0]=actor_results[1]=0;session_result=0;observed.state=AE_AUDIO_READY;snapshot_ok=true;
