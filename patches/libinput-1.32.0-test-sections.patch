@@ -1,0 +1,41 @@
+--- a/test/litest-main.c
++++ b/test/litest-main.c
+@@ -135,14 +135,14 @@
+ 	}
+ }
+ 
+-extern const struct test_device __start_test_device_section, __stop_test_device_section;
++extern const struct test_device __start_test_device_section[], __stop_test_device_section[];
+ 
+ static void
+ litest_init_test_devices(void)
+ {
+ 	const struct test_device *t;
+-	const struct test_device *start = &__start_test_device_section;
+-	const struct test_device *stop = &__stop_test_device_section;
++	const struct test_device *start = __start_test_device_section;
++	const struct test_device *stop = __stop_test_device_section;
+ 
+ 	for (t = start; t < stop; t++)
+ 		litest_add_test_device(
+@@ -150,16 +150,16 @@
+ 					    */
+ }
+ 
+-extern const struct test_collection __start_test_collection_section,
+-	__stop_test_collection_section;
++extern const struct test_collection __start_test_collection_section[],
++	__stop_test_collection_section[];
+ 
+ static void
+ setup_tests(void)
+ {
+ 	/* Iterate through linker-provided section boundaries.
+ 	 * These symbols mark the start and end of the test_collection_section. */
+-	const struct test_collection *start = &__start_test_collection_section;
+-	const struct test_collection *stop = &__stop_test_collection_section;
++	const struct test_collection *start = __start_test_collection_section;
++	const struct test_collection *stop = __stop_test_collection_section;
+ 	const struct test_collection *c;
+ 
+ 	for (c = start; c < stop;

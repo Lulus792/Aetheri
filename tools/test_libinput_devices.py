@@ -56,9 +56,9 @@ def rules():
             for q in sorted(p.iterdir())} if p.exists() else {}
 
 
-def verify_build(root, expected):
+def verify_build(root, expected, prefix='a-li-'):
     """Caller-selected hashes precede privileged execution; no self-adoption."""
-    if root.is_symlink() or not re.fullmatch(r'a-li-[0-9a-f]{12}',root.name) or root.parent!=Path('/run'):
+    if prefix not in ('a-li-','a-wacom-') or root.is_symlink() or not re.fullmatch(re.escape(prefix)+r'[0-9a-f]{12}',root.name) or root.parent!=Path('/run'):
         raise ValueError('fresh audio-lab build root required')
     found=set()
     for p in [root,*root.rglob('*')]:
@@ -89,7 +89,7 @@ def parse_summary(text,status):
 
 
 class Fixture:
-    def __init__(self,selection,output,group):
+    def __init__(self,selection,output,group,test=None):
         if os.name!='posix' or os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM':
             raise ValueError('disposable audio lab root only')
         if output.parent!=Path('/root') or not re.fullmatch(r'aetheri-libinput-devices-[0-9a-f]{32}',output.name):
@@ -98,6 +98,11 @@ class Fixture:
         self.selection=selection;self.root=Path(selection['root']);self.output=output
         if Path('/proc/sys/kernel/random/boot_id').read_text().strip()!=selection['boot']:raise ValueError('different original boot')
         if group not in ('lua','keyboard','pointer','touchpad'):raise ValueError('unsupported test group')
+        if test is not None and not re.fullmatch(r'[a-z][a-z_0-9]{0,127}',test):raise ValueError('literal test name required')
+        self.test=test;self.wacom=selection.get('wacom')
+        if group=='touchpad' and self.wacom is None:raise ValueError('touchpad tests require the independently selected libwacom database')
+        if self.wacom is not None:verify_build(Path(self.wacom['root']),self.wacom['files'],'a-wacom-')
+        if self.wacom is not None and any(Path(p).exists() for p in ('/etc/libwacom','/usr/share/libwacom')):raise ValueError('unselected system libwacom data fallback')
         verify_build(self.root,selection['files'])
         if selection.get('library_directory')!='release':raise ValueError('separately selected Release library required; never select a counter build')
         self.library=self.root/'release'
@@ -107,6 +112,7 @@ class Fixture:
         output.mkdir(mode=0o700);self.bus=Bus();self.private=None
         self.unit='aetheri-libinput-'+uuid.uuid4().hex+'.service';self.group=group
         self.held=[];self.record=dict(format=1,boot=selection['boot'],root=str(self.root),group=group,unit=self.unit,state='preparing',pending=None)
+        if self.wacom is not None:self.record['wacom']=self.wacom
         self.save()
 
     def save(self):image_state.write(self.output/'controller.json',self.record)
@@ -154,7 +160,9 @@ class Fixture:
             self.effect('label-owned-input:'+str(p),lambda p=p,kind=kind:run('chcon','system_u:object_r:'+kind+':s0',str(p)))
         executable=self.root/'candidate/build/libinput-test-suite'
         args=[str(executable),'--jobs=1','--verbose','--filter-group='+self.group]
+        if self.test is not None:args.append('--filter-test='+self.test)
         env=['LC_ALL=C','PATH=/usr/bin:/bin','LD_LIBRARY_PATH='+str(self.library)+':'+str(self.root/'candidate/sdk/usr/lib64')]
+        if self.wacom is not None:env.append('XDG_CONFIG_HOME='+str(Path(self.wacom['root'])/'usr/share'))
         if facts(self.unit)['LoadState']!='not-found':raise RuntimeError('foreign unit')
         with (self.output/'test.log').open('xb') as stream:
             # PID1 must be allowed to receive/write this original FD. Keep the
@@ -236,6 +244,8 @@ class Fixture:
             if (Path('/run/udev').stat().st_dev,Path('/run/udev').stat().st_ino)!=(parent_id.st_dev,parent_id.st_ino):raise RuntimeError('udev parent changed')
             self.effect('remove-owned-empty-rules',lambda:os.rmdir('rules.d',dir_fd=parent))
         verify_build(self.root,self.selection['files'])
+        if self.wacom is not None:verify_build(Path(self.wacom['root']),self.wacom['files'],'a-wacom-')
+        if self.wacom is not None and any(Path(p).exists() for p in ('/etc/libwacom','/usr/share/libwacom')):raise ValueError('system libwacom data changed during test')
         self.record.update(parse_summary((self.output/'test.log').read_text(),int(value['ExecMainStatus'])))
         self.record['state']='retired';self.record['passed']=self.record['upstream_passed'] and 'maps' in self.record;self.save()
         for fd in self.held:os.close(fd)
@@ -245,8 +255,8 @@ class Fixture:
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('selection',type=Path);p.add_argument('output',type=Path);p.add_argument('--group',default='lua')
-    a=p.parse_args();fixture=Fixture(json.loads(a.selection.read_bytes()),a.output,a.group)
+    p.add_argument('selection',type=Path);p.add_argument('output',type=Path);p.add_argument('--group',default='lua');p.add_argument('--test')
+    a=p.parse_args();fixture=Fixture(json.loads(a.selection.read_bytes()),a.output,a.group,a.test)
     try:passed=fixture.execute()
     except BaseException as error:
         fixture.record.update(state='inspection-required',error=repr(error));fixture.save()

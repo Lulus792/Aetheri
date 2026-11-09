@@ -141,5 +141,70 @@
       ],
       "selected_files": 243
     }
-  ]
+  ],
+  "sanitizer_lua": {
+    "origin_archive_sha256": "804be7384f67470c6b9c07c78e25cba6b4172945b50f6bf276ad522218329db7",
+    "files": {
+      "usr/include/lua5.5/lauxlib.h": {
+        "size": 8644,
+        "sha256": "007608c5e2abd231a9f61dc6cf4080ff6d4b54c845aa87b08162b5c778960443"
+      },
+      "usr/include/lua5.5/lua.h": {
+        "size": 16674,
+        "sha256": "5e00319e803893f4310b1206394c80b82f03f42609b40ceb306d92a6740d828e"
+      },
+      "usr/include/lua5.5/luaconf.h": {
+        "size": 20345,
+        "sha256": "1e617ae6f206d701018941b64ed61851da4ffc3573a0f96b73ebe64e340bfb5d"
+      },
+      "usr/include/lua5.5/lualib.h": {
+        "size": 1593,
+        "sha256": "ca847f045256db26a03a654c60ca4db567fc63a54679bba4233114f0c3d532d1"
+      },
+      "usr/lib64/liblua-5.5.so": {
+        "size": 6082112,
+        "sha256": "51bcd64207349f63774de451d734be8cac0f22ed30f5902ac341f1fac3c5c52e"
+      },
+      "usr/share/licenses/lua/COPYRIGHT": {
+        "size": 1263,
+        "sha256": "fe7591799d3e229b3c9640314215dd085777889df9a35d4ea78d1c7aa5c351c6"
+      }
+    }
+  },
+  "sanitizer_tools": {
+    "purpose": "Existing disposable-carrier GCC tooling only; not production runtime dependencies",
+    "packages": [
+      "libasan 16.2.1-2.fc44.x86_64",
+      "libubsan 16.2.1-2.fc44.x86_64",
+      "libstdc++ 16.0.1-0.10.fc44.x86_64"
+    ],
+    "files": {
+      "/usr/lib64/libasan.so.8": {
+        "size": 1931048,
+        "sha256": "e4a7dbd1207e0140f2ddedecdf6ffaba87e542693247d9f51b5ec1e9b320da9f",
+        "resolved": "/usr/lib64/libasan.so.8.0.0"
+      },
+      "/usr/lib64/libubsan.so.1": {
+        "size": 507648,
+        "sha256": "7a86e4af33a636ea89cc64295e04bb02fc067d8f2f929d87475d971f852b4f17",
+        "resolved": "/usr/lib64/libubsan.so.1.0.0"
+      },
+      "/usr/lib64/libstdc++.so.6": {
+        "size": 2705936,
+        "sha256": "407e49545d51ea9626584547226501a2ab36f358326e54cae4d1f5b7bcb52cb0",
+        "resolved": "/usr/lib64/libstdc++.so.6.0.35"
+      }
+    }
+  },
+  "sanitizer_test_patch": {
+    "path": "patches/libinput-1.32.0-test-sections.patch",
+    "size": 1444,
+    "sha256": "b58cc71709f56f0f04806b808a657ec7417a778a8ed1b46bd4b92ed3bf3de24e",
+    "files": {
+      "test/litest-main.c": {
+        "original_sha256": "236cd067096a735d3c97c782bd7a34089a4d1f3e040d441a87ca6b423356371e",
+        "patched_sha256": "60a54cd438a0804a9117ea212413d31efb14fa5aae8e044b7c88c5a3ac8196ab"
+      }
+    }
+  }
 }

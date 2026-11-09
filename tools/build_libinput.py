@@ -8,6 +8,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shlex
 from pathlib import Path, PurePosixPath
 import shutil
@@ -18,6 +19,7 @@ import tarfile
 import prepare_audio as audio
 import build_audio_policy_lua as lua_build
 import prepare_settings_audio_lab as gui
+from build_graphics import apply_reviewed_patch
 
 ROOT=Path(__file__).resolve().parents[1]
 PROFILE=ROOT/'spec/libinput-build-inputs.json'
@@ -45,9 +47,22 @@ def selected(name,mode):
     return stat.S_ISREG(mode) and (name.startswith('usr/include/') or name=='usr/lib64/glib-2.0/include/glibconfig.h' or name.endswith('.pc') or name in ('usr/bin/meson','usr/bin/ninja','usr/bin/ninja-build') or name.startswith('usr/lib/python3.14/site-packages/mesonbuild/') and name.endswith('.py'))
 
 
-def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
+def sanitizer_tools(pins):
+    value=pins['sanitizer_tools'];packages=[p.split()[0] for p in value['packages']]
+    versions=subprocess.check_output(['rpm','-q','--qf','%{NAME} %{EVR}.%{ARCH}\n',*packages],text=True).splitlines()
+    if versions!=value['packages']:raise ValueError('different native sanitizer tooling')
+    subprocess.check_output(['rpm','-V',*packages],stderr=subprocess.STDOUT)
+    for n,e in value['files'].items():
+        p=Path(n)
+        if str(p.resolve(strict=True))!=e['resolved']:raise ValueError('different native sanitizer link')
+        lua_build.check_file(p.resolve(),e)
+    return dict(packages=versions,files=value['files'])
+
+
+def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release',sanitizers=False):
     if os.name!='posix' or os.getuid()==0 or os.getuid()!=os.geteuid() or os.uname().machine!='x86_64':raise ValueError('ordinary native x86-64 Linux builder required')
     if build_type not in ('release','debugoptimized'):raise ValueError('unsupported libinput build type')
+    if sanitizers and build_type!='debugoptimized':raise ValueError('sanitizers require the separate debugoptimized build')
     pins=json.loads(PROFILE.read_bytes())
     if pins['format']!=1 or pins['version']!='1.32.0' or pins['source']['commit']!='5cf833b572f5a33663888da321dce0ba1abd82a2':raise ValueError('different libinput candidate')
     archive,cache,gui_runtime,lua_sdk,output=[Path(p).absolute() for p in (archive,cache,gui_runtime,lua_sdk,output)]
@@ -55,7 +70,11 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
         if p.resolve()!=p:raise ValueError('aliased build input/output')
     members=source_members(archive,pins);runtime=json.loads((ROOT/'spec/settings-audio-lab-inputs.json').read_bytes());gui.check(gui_runtime,runtime)
     lua=lua_build.profile()
-    for n,e in lua['lua_files'].items():lua_build.check_file(lua_sdk/n,e)
+    lua_files=pins['sanitizer_lua']['files'] if sanitizers else lua['lua_files']
+    if set(lua_files)!=set(lua['lua_files']) or any(type(e['size']) is not int or not 0<e['size']<=8*1024**2 or not re.fullmatch('[0-9a-f]{64}',e['sha256']) for e in lua_files.values()):raise ValueError('different Lua SDK inventory')
+    tooling=sanitizer_tools(pins) if sanitizers else None
+    if sanitizers:lua_build.check_file(ROOT/pins['sanitizer_test_patch']['path'],pins['sanitizer_test_patch'])
+    for n,e in lua_files.items():lua_build.check_file(lua_sdk/n,e)
     payload={};proofs=[]
     # Verify all packages before effects; signature, parser and metadata share
     # the same sealed snapshot. No scriptlet or archive link is executed.
@@ -85,7 +104,7 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
         name=Path(e['destination']).name
         if e['role']=='library' and name in RUNTIME_NAMES:put(sdk,e['destination'].lstrip('/'),(gui_runtime/e['destination'].lstrip('/')).read_bytes(),e['mode']);copied.add(name)
     if copied!=RUNTIME_NAMES:raise ValueError('different SDK runtime closure')
-    for n in lua['lua_files']:put(sdk,n,(lua_sdk/n).read_bytes(),0o755 if n.endswith('.so') else 0o644)
+    for n in lua_files:put(sdk,n,(lua_sdk/n).read_bytes(),0o755 if n.endswith('.so') else 0o644)
     lib=sdk/'usr/lib64';pc=lib/'pkgconfig'
     for n,target in LINKS.items():(lib/n).symlink_to(target)
     # The RPM .pc files describe /usr. Ask pkgconf to relocate their prefix;
@@ -100,11 +119,15 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
     with tarfile.open(archive) as a:
         for m in a:
             if m.isfile() and m.mode&0o111:(source/'/'.join(PurePosixPath(m.name).parts[1:])).chmod(0o755)
+    if sanitizers:apply_reviewed_patch(source,pins['sanitizer_test_patch'])
     env={**os.environ,'LC_ALL':'C','SOURCE_DATE_EPOCH':'0','PATH':str(sdk/'usr/bin')+':/usr/bin:/bin','PYTHONPATH':str(sdk/'usr/lib/python3.14/site-packages'),'PYTHONDONTWRITEBYTECODE':'1','PKG_CONFIG_LIBDIR':str(pc),'PKG_CONFIG_PATH':'','PKG_CONFIG_SYSROOT_DIR':'','LD_LIBRARY_PATH':str(lib),'CC':'/usr/bin/gcc','CFLAGS':'-fstack-protector-strong -D_FORTIFY_SOURCE=3','LDFLAGS':'-Wl,-z,relro,-z,now','HOME':str(output),'TMPDIR':str(temporary)}
+    env.pop('SUDO_COMMAND',None) # Never copy the administrative wrapper into test logs.
+    if sanitizers:env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1',LSAN_OPTIONS='exitcode=23')
     commands=[]
-    def run(label,args,negative=None):
+    def run(label,args,negative=None,memory_fault=False):
         commands.append(args);p=subprocess.run(args,cwd=source,env=env,capture_output=True)
         (logs/(label+'.stdout')).write_bytes(p.stdout);(logs/(label+'.stderr')).write_bytes(p.stderr)
+        if sanitizers and not memory_fault and any(v in p.stderr for v in (b'ERROR: AddressSanitizer',b'ERROR: LeakSanitizer',b'runtime error:')):raise RuntimeError(label+' reported an unexpected memory error')
         if negative is None and p.returncode:raise RuntimeError(label+' failed; inspect '+str(logs))
         if negative is not None and (p.returncode==0 or negative not in p.stderr):raise RuntimeError(label+' counterexample did not detect its guard')
         return p.stdout
@@ -114,7 +137,7 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
     cflags=shlex.split(run('dependency-paths',['pkg-config','--cflags','libudev','libevdev','libwacom']).decode())
     if '-I'+str(sdk/'usr/include') not in cflags or any(x.startswith('-I/') and not x.startswith('-I'+str(sdk)+'/') for x in cflags):raise ValueError('unrelocated SDK header dependency')
     builddir=output/'build';stage=output/'stage'
-    run('configure',['meson','setup',str(builddir),str(source),'--prefix=/usr','--libdir=lib64','--wrap-mode=nodownload','--buildtype='+build_type,'-Dc_std=gnu17','-Db_ndebug=false','-Dauto_features=disabled','-Dlua-plugins=enabled','-Dautoload-plugins=false','-Dmtdev=true','-Dlibwacom=true','-Dtests=true','-Dinstall-tests=false','-Ddebug-gui=false','-Ddocumentation=false','-Dzshcompletiondir=no'])
+    run('configure',['meson','setup',str(builddir),str(source),'--prefix=/usr','--libdir=lib64','--wrap-mode=nodownload','--buildtype='+build_type,'-Dc_std=gnu17','-Db_ndebug=false','-Dauto_features=disabled','-Dlua-plugins=enabled','-Dautoload-plugins=false','-Dmtdev=true','-Dlibwacom=true','-Dtests=true','-Dinstall-tests=false','-Ddebug-gui=false','-Ddocumentation=false','-Dzshcompletiondir=no',*(['-Db_sanitize=address,undefined'] if sanitizers else [])])
     run('compile',['meson','compile','-C',str(builddir),'-j2'])
     run('deviceless',['meson','test','-C',str(builddir),'--no-rebuild','--verbose','--print-errorlogs','--num-processes=1','libinput-test-deviceless'])
     run('utils',['meson','test','-C',str(builddir),'--no-rebuild','--verbose','--print-errorlogs','--num-processes=1','test-utils','test-library-version'])
@@ -123,9 +146,23 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
     dynamic=run('dynamic',['readelf','--dynamic','--wide',str(target)]).decode()
     if 'liblua-5.5.so' not in dynamic or 'liblua-5.4' in dynamic or '(RPATH)' in dynamic or '(RUNPATH)' in dynamic:raise ValueError('different installed Lua linkage/path')
     probe=output/'test-libinput-lua'
-    run('probe-build',['gcc','-std=c17','-O2','-Wall','-Wextra','-Werror','-I'+str(source/'src'),'-I'+str(sdk/'usr/include'),'-I'+str(sdk/'usr/include/lua5.5'),str(ROOT/'tests/test_libinput_lua.c'),str(target),str(lib/'liblua-5.5.so'),'-Wl,-rpath-link,'+str(lib),'-Wl,-z,relro,-z,now','-o',str(probe)])
+    probe_flags=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-O1','-g'] if sanitizers else []
+    probe_command=['gcc','-std=c17','-O2','-Wall','-Wextra','-Werror',*probe_flags,'-I'+str(source/'src'),'-I'+str(sdk/'usr/include'),'-I'+str(sdk/'usr/include/lua5.5'),str(ROOT/'tests/test_libinput_lua.c'),str(target),str(lib/'liblua-5.5.so'),'-Wl,-rpath-link,'+str(lib),'-Wl,-z,relro,-z,now','-o',str(probe)]
+    run('probe-build',probe_command)
     env['LD_LIBRARY_PATH']=str(stage/'usr/lib64')+':'+str(lib)
     run('matching-bytecode',[str(probe),str(output/'matching-bytecode')])
+    if sanitizers:
+        for name,p in [('libinput',target),('lua',lib/'liblua-5.5.so')]:
+            symbols=run('instrumented-'+name,['readelf','--dyn-syms','--wide',str(p)])
+            if b'__asan_init' not in symbols or b'__ubsan_handle_' not in symbols:raise ValueError('uninstrumented '+name)
+        control=output/'test-libinput-sanitizer'
+        command=[v.replace(str(ROOT/'tests/test_libinput_lua.c'),str(ROOT/'tests/test_libinput_sanitizer.c')).replace(str(probe),str(control)) for v in probe_command]
+        run('sanitizer-control-build',command)
+        for kind in ('address','undefined'):
+            maps=run('sanitizer-'+kind+'-clean',[str(control),kind,'0']).decode()
+            if 'SANITIZER_CONTEXT_READY' not in maps or any(n not in maps for n in [str(target),str(lib/'liblua-5.5.so'),*(e['resolved'] for e in tooling['files'].values())]):raise ValueError('different actual sanitizer mappings')
+        run('sanitizer-address-counter',[str(control),'address','8'],negative=b'AddressSanitizer: heap-buffer-overflow',memory_fault=True)
+        run('sanitizer-undefined-counter',[str(control),'undefined','2147483647'],negative=b'runtime error: signed integer overflow',memory_fault=True)
     # Upstream's embedded negative vector is Lua5.4; a Lua55 decoder could reject
     # it for version mismatch even without text-only admission. Regenerate55 above
     # and prove the actual guard with a separate deliberately weakened library.
@@ -139,8 +176,9 @@ def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
     env['LD_LIBRARY_PATH']=str(counterdir)+':'+str(lib)
     run('matching-bytecode-counter',[str(probe),str(output/'matching-bytecode-counter')],negative=b'MATCHING_BYTECODE_ACCEPTED')
     gui.check(gui_runtime,runtime)
-    for n,e in lua['lua_files'].items():lua_build.check_file(lua_sdk/n,e)
-    record=dict(format=1,build_type=build_type,profile_sha256=audio.sha(PROFILE.read_bytes()),compiler=compiler,target_triple=triple,providers=versions,packages=proofs,commands=commands,artifact=dict(path=str(target),size=target.stat().st_size,sha256=audio.sha(target.read_bytes())),scope=pins['purpose'])
+    for n,e in lua_files.items():lua_build.check_file(lua_sdk/n,e)
+    if sanitizers and sanitizer_tools(pins)!=tooling:raise ValueError('sanitizer tooling changed during build')
+    record=dict(format=1,build_type=build_type,sanitizers=sanitizers,sanitizer_tools=tooling,test_patch=pins['sanitizer_test_patch'] if sanitizers else None,profile_sha256=audio.sha(PROFILE.read_bytes()),compiler=compiler,target_triple=triple,providers=versions,packages=proofs,commands=commands,artifact=dict(path=str(target),size=target.stat().st_size,sha256=audio.sha(target.read_bytes())),scope=pins['purpose'])
     (output/'inputs.json').write_text(json.dumps(record,indent=2)+'\n');return record
 
 
@@ -148,4 +186,5 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('archive','cache','gui_runtime','lua_sdk','output'):p.add_argument(n,type=Path)
     p.add_argument('--build-type',choices=('release','debugoptimized'),default='release')
+    p.add_argument('--sanitizers',action='store_true')
     a=p.parse_args();print(json.dumps(build(**vars(a))))

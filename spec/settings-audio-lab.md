@@ -7,6 +7,12 @@ files: 80 files, 30 components and 25,241,858 bytes. It supplies files for the
 next [embedded host integration](audio-session.md#embedded-native-host-event-loop).
 It does not install a normal app, start an audio service or admit a caller.
 
+This scoped Sound projection omits the static libwacom device database. The
+desktop image profile already includes its 829 data/layout files. The separate
+[input regression fixture](libinput-build.md#complete-device-data) selects and
+verifies them independently. The 80-file loader/GUI result does not establish
+general tablet/touchpad model coverage.
+
 ## Provenance and attribution
 
 The program/library/font bytes come from the independently verified native v4

@@ -103,6 +103,53 @@ Reports retain upstream pass, not-applicable, fail and skip counts separately.
 report controls reject missing/inconsistent summaries and native failures. A
 successful upstream exit never turns skipped or inapplicable cases into passes.
 
+### Complete device data
+
+Touchpad tests require a separately selected `wacom` input (`root`, `files`),
+checked like the code tree under a fresh `/run/a-wacom-HEX` directory. The helper
+`prepare_libinput_data.load()` checks the already pinned libwacom-data 2.19 RPM's
+sealed signature/payload, exact origin and absence of scripts. It materializes
+all 829 independently pinned database/layout files from the existing desktop
+profile: 1,174,091 bytes, retaining HPND attribution. Five newc hardlink entries
+carry their bytes in another member of the same RPM-header inode/device class.
+Resolve that exact class and still require each destination's independent size/
+digest, then create separate regular copies. Never create filesystem links or
+infer a hardlink class from matching bytes alone. Pure controls cover those cases.
+
+The selected library's [upstream constructor](https://raw.githubusercontent.com/linuxwacom/libwacom/libwacom-2.19.0/libwacom/libwacom-database.c)
+checks `XDG_CONFIG_HOME/libwacom` before its system directories. The fixture sets
+that environment only for its own service, to the sealed data tree's `usr/share`.
+It refuses unselected `/etc/libwacom` or `/usr/share/libwacom` fallback data and
+checks the data tree again at end. No global data directory or package is installed.
+`--test LITERAL_NAME` permits a focused upstream regression before repeating the
+full group; it never changes the selected library. The prior missing-data failure
+and its original result remain evidence, not a library-source defect to patch.
+
+### Separate memory instrumentation
+
+The ordinary builder also accepts `--build-type debugoptimized --sanitizers` in
+a fresh output. Its separate Lua SDK is the previously checked patched 5.5 ASan/
+UBSan artifact; Release pins remain strict. Existing carrier sanitizer runtimes
+and their libstdc++ dependency are version/hash/RPM-verified before and after the
+build. They are compiler tooling, not new production dependencies or app code.
+
+Both C libraries must actually reference ASan/UBSan instrumentation. Positive
+controls initialize and release actual libinput/Lua contexts and record their
+process maps, including the selected sanitizer runtimes. Two test-only controls
+must fail precisely for heap-buffer overflow and signed overflow. Leak checking
+and halt-on-error stay enabled; no suppression is added. Test controls and
+instrumented libraries never enter a normal runtime projection. Executed evidence
+and remaining coverage belong in the device record; build options alone prove
+neither memory safety nor complete integration.
+
+The instrumented test runner uses one pinned test-only patch: linker-provided
+registration sections are declared as unknown-bound arrays rather than single
+objects. GCC's object-size check otherwise stops registration before any case
+runs. The patch checks complete pre/postimages and leaves library sources and
+all sanitizer checks enabled. The address control loads its pointer through
+volatile storage so ASan can demonstrate its heap check separately from UBSan's
+earlier object-size diagnostic. Neither change hides a library error.
+
 ## Tests and next acceptance
 
 The upstream generic deviceless run executes44 cases, utility run 64 cases, and

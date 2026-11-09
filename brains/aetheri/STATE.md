@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate now passes the full Lua suite and upstream keyboard/pointer suites in the separate VM: 2,470 pass, 536 not applicable, one explained debug-only skip, zero failures. Complete evidence and original test retirement are checked. Touchpad collections, sanitizers and compositor/input integration remain gates before normal runtime promotion. Original carrier/USB and normal manifests remain unchanged; normal provisioning, physical hardware and release work remain open.
+9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate now also passes the general touchpad suite with its independently bound device database. Four full functional groups report 3,647 pass, 731 not applicable, one explained debug-only skip, zero failures. A separate dual-library ASan/UBSan build passes generic/API/bytecode checks and real memory-fault controls; complete exports and test retirement are checked. Instrumented virtual-device and actual compositor/input integration remain next. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
 
 ## Coordination
 
@@ -31,11 +31,28 @@ selected Release library and Lua5.5. The selected Release ELF retains all309
 functions; the source counter libraries remain quarantined. Native fixture end
 and independent inspection restore the original udev/input/rule/module state.
 
+The same record now adds the full touchpad run: 1,177 pass/195NA/zero fail/skip.
+Two preceding Wacom rotation failures expose a missing database in the scoped
+lab, not a library-source regression. The existing desktop image's 829 data files
+are independently selected from the signed pinned libwacom-data RPM; five archive
+hardlink bodies become separate regular copies under exact header-class and
+destination-hash checks. Focused and full reruns pass with unchanged libraries.
+The 19-file positive, 10-file failed and 833-file data exports are checked.
+
+Fresh memory build v9 (`/run/a-li-5aaa7f22470a`, controller96113 exit0) passes
+44 deviceless/64 utility cases, version and matching-bytecode checks, two clean
+context controls and precise ASan/UBSan fault counters. Both libraries are truly
+instrumented; actual mappings and all 2,486 exported files are checked. A pinned
+test-only array-declaration patch fixes the upstream runner's object-size error;
+no sanitizer is disabled. Failed memory builds v7/v8 remain verified/quarantined.
+The three larger input bind mounts are deliberately retained on the lab disk;
+none has a mapped process. Do not adopt failed inputs or claim mount retirement.
+
 Two failed preparation attempts remain preserved after actual original QEMU43164
 exit0. The fresh lab is now QEMU5548/controller15559, boot
 `8b915c0c-ab36-4cce-a8a3-e84e1c12627c`, still enforcing/restricted. All new test
-children and units have retired. Next cover remaining touchpad/input groups,
-sanitizers and actual compositor/input regressions, then independently attributed
+children and units have retired. Next join an explicit instrumented virtual-device
+profile and actual compositor/input regressions, then independently attributed
 runtime selection. Inspect actual state before dispatch. Normal release/PCRE2/
 device/ownership work and USB protection continue.
 
