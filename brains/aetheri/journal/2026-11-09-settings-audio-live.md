@@ -196,7 +196,9 @@ The final native check matches346 current C/header/CMake inputs to the accepted
 build. Read-only preservation checks retain445 original guest inputs,19 protected
 hashes,31 frozen SQL/XML,52 normal files, the previous SDK, original authority,
 loaded enforcing policy and190 CLOSED history receipts. Four foreign planning/UI
-files remain byte-identical. The original carrier and user USB documents remain
+files are byte-identical at that audit. A later post-commit check observes a
+concurrent change to the untracked UI design note; this task neither edits nor
+stages it. The three tracked foreign notes still match. The original carrier and user USB documents remain
 unchanged. NexaUI handoff remains delivered; no new chat message is pending.
 
 After the checked export, normal audio-lab shutdown also ends original
