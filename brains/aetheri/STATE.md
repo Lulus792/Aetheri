@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private common Wayland SDK and current NexaUI/example now build and pass native model/text tests in Release and ASan/UBSan. All 3,091 exported files, both exact original source trees, model-support closure and artifacts are verified. Carrier packages, sanitizer runtimes and udev stay unchanged. SDL/wlroots/current desktop integration continues; no complete desktop or image is claimed. The user's first-version gate forbids the next USB-targeted build/flash until the agreed scope is implemented and verified. Hardware, provisioning, apps, recovery and release work remain open.
+10 November 2026 local / 9 November UTC — The current private SDL3/TTF/FreeType/HarfBuzz SDK now builds and passes actual CPU text/event/ABI proofs in Release and ASan/UBSan with leak detection. All 1,113 export files, both 7,219-file source inventories, source changes and artifacts are independently verified. Carrier packages, original sanitizer runtimes and udev stay unchanged. Full graphics/runtime, wlroots and current desktop integration continue; no complete desktop or image is claimed. The first-version gate still forbids the next USB-targeted build/flash until the agreed scope is implemented and verified.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,32 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## SDL/text SDK rebuilt — 10 November local / 9 November UTC
+
+Read the [active execution record](journal/2026-11-09-sdl-sdk.md) and
+[SDK contract](../../spec/sdl-sdk.md). The private SDL/EGL/Meson input projection
+and full Release SDL3/TTF/FreeType/HarfBuzz build pass (original controller 46564).
+Actual native text/event/version/library selection passes after correcting a
+verifier's false mandatory-C++-runtime assumption; the Release ELF needs none.
+Wayland, GLES2 renderer and EGL compile-time flags are independently present.
+
+The separate instrumented build and final Release/memory proofs also pass:
+original host controller 47013 / Python 70160 exits zero, with no suppression or
+policy change. Input `local/full-desktop-build-2026-11-09/sdl-debug-intent-v1.json`.
+Source `/run/a-ui-memory-13dad161969d`, debug work
+`/home/aetheri/deps/ui-desktop-debug-13dad161969d`; guest original Python 72926,
+builder 73011 and Meson/Ninja 73418/73420 ended after actual successful builds.
+All 1,113 exported files, all 242 submitted inputs, both 200-file installed
+artifact inventories and both 7,219-file source inventories match. Four reviewed
+SDL source changes, actual maps/ELFs, 20 dependency files and matching text metrics
+are checked. First false C++ expectation and export-only loader-path failure are
+retained; native work is never replayed to relabel them. Packages, original udev
+and enforcing policy stay unchanged; no selected code remains mapped. Next finish
+the actual Mesa/DRI graphics runtime and wlroots SDK/current app rebuild, then
+normal GUI/native integration. These CPU proofs are not a window/GPU/session or
+physical acceptance. Revalidate the restricted audio VM before dispatch. No USB
+work, normal promotion or new NexaUI handoff.
 
 ## Common SDK and current NexaUI rebuild — 9 November 2026
 

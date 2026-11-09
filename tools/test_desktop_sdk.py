@@ -56,6 +56,27 @@ class SDK(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'ordinary native build account'):
                 sdk.prepare('missing', 'missing')
 
+    def test_sdl_profile_keeps_real_api_versions_and_meson_notice(self):
+        v, _ = sdk.profile('sdl')
+        self.assertEqual(len(v['packages']), 5)
+        self.assertEqual(v['versions'], {'egl': '1.5', 'glesv2': '3.2'})
+        names = {e['path'] for e in v['files']}
+        self.assertIn('usr/include/EGL/egl.h', names)
+        self.assertIn('usr/bin/meson', names)
+        self.assertIn('usr/lib/python3.14/site-packages/meson-1.11.2.dist-info/licenses/COPYING', names)
+        self.assertEqual(len(v['source_notices']), 1)
+        self.assertEqual(v['source_notices'][0]['source_package'], 1)
+
+    def test_source_notice_must_stay_source_data(self):
+        v, _ = sdk.profile('sdl')
+        v['source_notices'][0]['source_package'] = 0
+        with self.assertRaisesRegex(ValueError, 'source notice data'):
+            sdk.validate(v)
+
+    def test_unselected_profile_refused(self):
+        with self.assertRaisesRegex(ValueError, 'unsupported'):
+            sdk.profile('unreviewed')
+
 
 if __name__ == '__main__':
     unittest.main()

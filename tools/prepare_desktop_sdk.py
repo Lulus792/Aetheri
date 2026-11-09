@@ -18,6 +18,10 @@ from prepare_desktop_toolchain import canonical, select, sha
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'spec/desktop-sdk-inputs.json'
+PROFILES = {'common': (PROFILE, 'private-common-wayland-sdk'),
+            'sdl': (ROOT / 'spec/sdl-sdk-inputs.json', 'private-sdl-build-sdk')}
+LIMITS = {'private-common-wayland-sdk': (10, 512, 2*1024**2),
+          'private-sdl-build-sdk': (5, 1024, 4*1024**2)}
 PATH_KEYS = {'prefix', 'exec_prefix', 'includedir', 'libdir', 'bindir', 'datarootdir'}
 
 
@@ -35,19 +39,20 @@ def rebase(raw, prefix):
 
 
 def validate(v):
-    if (v.get('format') != 1 or v.get('purpose') != 'private-common-wayland-sdk'
+    if (v.get('format') != 1 or v.get('purpose') not in LIMITS
             or v.get('signer') != '36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6'):
         raise ValueError('different common SDK profile')
     packages = {p['name']: p for p in v['packages']}
-    if len(packages) != 10 or len(v['packages']) != 10:
+    package_count, file_count, package_bytes = LIMITS[v['purpose']]
+    if len(packages) != package_count or len(v['packages']) != package_count:
         raise ValueError('different common SDK package set')
     for p in packages.values():
         if (not re.fullmatch(r'[A-Za-z0-9.+_-]+\.rpm', p['name'])
-                or type(p['size']) is not int or not 0 < p['size'] <= 2*1024**2
+                or type(p['size']) is not int or not 0 < p['size'] <= package_bytes
                 or not re.fullmatch('[0-9a-f]{64}', p['sha256'])):
             raise ValueError('invalid common SDK package')
     files = {}
-    if not 1 <= len(v['files']) <= 512:
+    if not 1 <= len(v['files']) <= file_count:
         raise ValueError('common SDK inventory bound')
     for e in v['files']:
         n = canonical(e['path'])
@@ -83,12 +88,27 @@ def validate(v):
         raw = text.encode()
         if len(raw) != files[n]['size'] or sha(raw) != files[n]['sha256']:
             raise ValueError('changed original pkg-config body')
+    for e in v.get('source_notices', []):
+        canonical(e['path'])
+        if (v['purpose'] != 'private-sdl-build-sdk' or not e['path'].startswith('usr/share/aetheri-sources/')
+                or e['path'] in files or e['path'] in aliases or e['mode'] != 0o644
+                or not re.fullmatch(r'[A-Za-z0-9.+_-]+\.src\.rpm', e['name'])
+                or type(e['size']) is not int or not 0 < e['size'] <= 4*1024**2
+                or e['source_package'] != 1 or not re.fullmatch('[0-9a-f]{64}', e['sha256'])):
+            raise ValueError('invalid source notice data')
+        files[e['path']] = e
     return v
 
 
-def profile():
-    raw = PROFILE.read_bytes()
-    return validate(json.loads(raw)), sha(raw)
+def profile(kind='common'):
+    if kind not in PROFILES:
+        raise ValueError('unsupported developer SDK profile')
+    path, purpose = PROFILES[kind]
+    raw = path.read_bytes()
+    value = validate(json.loads(raw))
+    if value['purpose'] != purpose:
+        raise ValueError('different selected SDK purpose')
+    return value, sha(raw)
 
 
 def prefix_path(value):
@@ -98,10 +118,10 @@ def prefix_path(value):
     return p
 
 
-def check(prefix):
-    v, digest = profile()
+def check(prefix, kind='common'):
+    v, digest = profile(kind)
     prefix = prefix_path(prefix)
-    expected = {e['path']: e for e in v['files']}
+    expected = {e['path']: e for e in [*v['files'], *v.get('source_notices', [])]}
     seen = set()
     for p in prefix.rglob('*'):
         n = p.relative_to(prefix).as_posix()
@@ -134,10 +154,10 @@ def check(prefix):
                 pkgconfig_rebased=len(v['pkgconfig']), original_bytes=sum(e['size'] for e in expected.values()))
 
 
-def prepare(cache, output):
+def prepare(cache, output, kind='common'):
     if sys.platform != 'linux' or os.geteuid() == 0:
         raise ValueError('use an ordinary native build account')
-    v, digest = profile()
+    v, digest = profile(kind)
     cache, output = prefix_path(cache), prefix_path(output)
     payload, proofs = {}, []
     with contextlib.ExitStack() as stack:
@@ -160,13 +180,28 @@ def prepare(cache, output):
                 raise ValueError('different common SDK inventory')
             payload.update(selected)
             proofs.append(dict(package=p['name'], signature=proof, metadata=metadata))
+        # The source RPM supplies the original per-file notices and Fedora
+        # patches omitted by the binary packages. It remains opaque data.
+        for p in v.get('source_notices', []):
+            fd = stack.enter_context(sealed_package(cache/p['name'], p))
+            path = '/proc/self/fd/'+str(fd)
+            proof = subprocess.check_output(['rpmkeys', '--checksig', '--verbose', path], pass_fds=(fd,), text=True)
+            metadata = subprocess.check_output(['rpm', '-qp', '--qf', '%{NAME} %{EVR}.%{ARCH}\n%{LICENSE}\n%{SOURCERPM}\n', path], pass_fds=(fd,), text=True)
+            source = subprocess.check_output(['rpm', '-qp', '--qf', '%{SOURCEPACKAGE}', path], pass_fds=(fd,), text=True)
+            if (v['signer']+': OK' not in proof or 'Payload SHA256 digest: OK' not in proof
+                    or metadata.splitlines() != p['metadata'] or source != '1'):
+                raise ValueError('unverified source notice data')
+            payload[p['path']] = os.pread(fd, p['size']+1, 0)
+            if len(payload[p['path']]) != p['size'] or sha(payload[p['path']]) != p['sha256']:
+                raise ValueError('changed sealed source notice')
+            proofs.append(dict(package=p['name'], source_notice_only=True, signature=proof, metadata=metadata))
     # Original bytes are checked before derivation or the first output effect.
     for n, text in v['pkgconfig'].items():
         if payload[n] != text.encode():
             raise ValueError('different original SDK paths')
         payload[n] = rebase(payload[n], output)
     output.mkdir(mode=0o700)
-    modes = {e['path']: e['mode'] for e in v['files']}
+    modes = {e['path']: e['mode'] for e in [*v['files'], *v.get('source_notices', [])]}
     for n, raw in payload.items():
         p = output/n
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -177,7 +212,7 @@ def prepare(cache, output):
         (output/n).symlink_to(target)
     with (output/'profile.sha256').open('x') as f:
         f.write(digest+'\n')
-    return dict(check=check(output), signatures=proofs)
+    return dict(check=check(output, kind), signatures=proofs)
 
 
 def main():
@@ -185,13 +220,14 @@ def main():
     p.add_argument('action', choices=('prepare', 'check'))
     p.add_argument('prefix', type=Path)
     p.add_argument('--cache', type=Path)
+    p.add_argument('--profile', choices=tuple(PROFILES), default='common')
     args = p.parse_args()
     if args.action == 'prepare':
         if args.cache is None:
             p.error('prepare requires --cache')
-        result = prepare(args.cache, args.prefix)
+        result = prepare(args.cache, args.prefix, args.profile)
     else:
-        result = check(args.prefix)
+        result = check(args.prefix, args.profile)
     print(json.dumps(result, indent=2))
 
 

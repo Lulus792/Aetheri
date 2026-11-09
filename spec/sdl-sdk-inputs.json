@@ -1,0 +1,1906 @@
+{
+  "format": 1,
+  "purpose": "private-sdl-build-sdk",
+  "reviewed": "2026-11-09",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "boundary": "Original EGL/GLES dispatch/header inputs and Meson for private SDL/text compilation; no Mesa renderer, normal runtime or display acceptance",
+  "packages": [
+    {
+      "name": "libglvnd-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-1.7.0-9.fc44.x86_64.rpm",
+      "size": 117450,
+      "sha256": "212df4a80c24320c53477d6d4a1fae424c58bbe475761d04a74c648c350a5fdc",
+      "metadata": [
+        "libglvnd 1:1.7.0-9.fc44.x86_64",
+        "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+        "libglvnd-1.7.0-9.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+      "size": 38094,
+      "sha256": "30286b1e16ab7830a0d9e34dc82fcc0234d3cfc7dbb937940bb3fc7b38b84272",
+      "metadata": [
+        "libglvnd-egl 1:1.7.0-9.fc44.x86_64",
+        "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+        "libglvnd-1.7.0-9.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+      "size": 29289,
+      "sha256": "c23493344e44f01306d96e9639eff3b168af74b75262b2ad16b11d666b7b6fbd",
+      "metadata": [
+        "libglvnd-gles 1:1.7.0-9.fc44.x86_64",
+        "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+        "libglvnd-1.7.0-9.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/x86_64/libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "size": 165971,
+      "sha256": "825f800af6106893ee976a860b7ecadd9655ada9029747053f8bbdf98cefee4f",
+      "metadata": [
+        "libglvnd-devel 1:1.7.0-9.fc44.x86_64",
+        "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+        "libglvnd-1.7.0-9.fc44.src.rpm"
+      ],
+      "selected_files": 9
+    },
+    {
+      "name": "meson-1.11.2-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/meson/1.11.2/1.fc44/data/signed/6d9f90a6/noarch/meson-1.11.2-1.fc44.noarch.rpm",
+      "size": 2740686,
+      "sha256": "fdfc1a5c36867a340734d108bd34098b6f88b58258c6328492b134d635ed0420",
+      "metadata": [
+        "meson 1.11.2-1.fc44.noarch",
+        "Apache-2.0",
+        "meson-1.11.2-1.fc44.src.rpm"
+      ],
+      "selected_files": 244
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/bin/meson",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 493,
+      "size": 172,
+      "sha256": "47c9dcc96c469ae06a7b13d2feeb8ba985928373102eebe3f0fa29b2682a0e1c"
+    },
+    {
+      "path": "usr/include/EGL/egl.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 19286,
+      "sha256": "b7fc152de7981da4e36957a8c8d085075c7366c81bbd27e920880464b87b7f7c"
+    },
+    {
+      "path": "usr/include/EGL/eglext.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 71951,
+      "sha256": "fbc70471a706d5c36427f032fa528de72bb0cfa2efb278d82b6bf2f675543295"
+    },
+    {
+      "path": "usr/include/EGL/eglplatform.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 5011,
+      "sha256": "1081d0dd1099f5f0367d21c2949e3be344d3fe37c41e7cab907b12ef71f95703"
+    },
+    {
+      "path": "usr/include/GLES2/gl2.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 42930,
+      "sha256": "12b68cd454156211ce9a8f835e21fd72005324ab05b372ce6d22d58d48bb5932"
+    },
+    {
+      "path": "usr/include/GLES2/gl2ext.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 241221,
+      "sha256": "4fc5b0034dcde9c125922e3e70d01489a6b335076856ee660294e1a6305a3719"
+    },
+    {
+      "path": "usr/include/GLES2/gl2platform.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 642,
+      "sha256": "f5da0747540a50be5f44aad264aae45bdf157a192c40f17487dd9a2f99c71b6c"
+    },
+    {
+      "path": "usr/include/KHR/khrplatform.h",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 11131,
+      "sha256": "7b1e01aaa7ad8f6fc34b5c7bdf79ebf5189bb09e2c4d2e79fc5d350623d11e83"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/meson-1.11.2.dist-info/licenses/COPYING",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/_pathlib.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1914,
+      "sha256": "ff78ddff8bfac3016fc653c992cbcd165b9a3e8890a93af851936e0499a25c39"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/_typing.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1860,
+      "sha256": "e7c53efdd477d2b4d1490e78fba39abee9c187b6e296a831e537297d96ab03cb"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/arglist.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 13475,
+      "sha256": "75c889df5878d696e30fd2ab121cbf70f70cdef73773e2f9bbba7661e9d52abd"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 707,
+      "sha256": "76733b101870514cf282f2beba7d39c2d2a5987bea3bb8801a29dbe924774d1f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/interpreter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 35592,
+      "sha256": "662d21d8f7ce0d93291e7cf1363bde387bc8e21b6b8e6472c577a60c842bffb1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/introspection.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 17987,
+      "sha256": "f8ead3bd949d39e7ac6991a8fe77dfa32c91a526ef36ef3ff35bffc704d838eb"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/postprocess.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3733,
+      "sha256": "9a59023296f3482142eecb2b021ee28d1e832338f76fdd3fda39d1a94d39d1af"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/printer.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 17573,
+      "sha256": "4f8e5c1c7fb11fe5fac9065df31aa90a7f0199840688a78d2b99c7e5d85e9479"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/ast/visitor.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10964,
+      "sha256": "72de916b5bea3af1002e1fc069cddfae2d29196cf5f6853145adff3d9b98e254"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/backends.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 101664,
+      "sha256": "01530e57b252782636881545dd19e333e9e846d0b9f6be5bb05c29254e8bc58a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/ninjabackend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 210005,
+      "sha256": "88cee96cd3454fed086632b8279ead908d0fe575c3b1c80f758af3421b3840d6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/nonebackend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 983,
+      "sha256": "9a4e6bc1a58eeaa7c523a450a22e0c2cc472b51228335245e6c492b29f4fef12"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2010backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 126621,
+      "sha256": "6aac468785cc0580a5cb21b2ee4a3ec74e31e23b356c62d8d625f4a60f31f7e9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2012backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1259,
+      "sha256": "7074467640b1cd194fa9a3de03efa912dde55b86eaf0a8f0cd469b3331bfd635"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2013backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1258,
+      "sha256": "6b61e3cd0e2e0f5f649211ab73f265fb40650e774008f185532c11693c3121b7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2015backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1225,
+      "sha256": "ad9bfb55742d30e6718862ff4f05fc62ea188d2a2d487bebd06d429ac7507033"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2017backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2440,
+      "sha256": "366691d29f123e410bfbaf2ec1362dc429d3fe0c34e7e3d5a35e62b446cd58c4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2019backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2188,
+      "sha256": "521349c29d1eea083733ae65821c34de6a85fbe08549681e7a618d73d348ed9f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2022backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2231,
+      "sha256": "aa2f1d5cde272f552433bf03adc8c5a2723ee2b49e7adb92de829912fc71d3ee"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/vs2026backend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2226,
+      "sha256": "81563e5ebebeaf63b68a877a89c5b099edd68d6acd5045b3bd7d403ac24abe9d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/backend/xcodebackend.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 99433,
+      "sha256": "1a2cd842bb460862601a3e14d1ae86cae2d50928f1fb7e91d3b0c5f9766d23d1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/build.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 154065,
+      "sha256": "6b324beb89d3f70aad0acd85dd92e4e3c8669910dee29bdb7e4b9459ede5ebae"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 220,
+      "sha256": "12d0888d0a2baf25a8f85935d6a2030457e86de5df4a95c556322d9831d03a7a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/builder.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 9174,
+      "sha256": "3ee6d055c6cf2ce3b6c5889ee12859f5ce30ad8fa45e4abeeced4796fa3cf9c5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/cfg.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5348,
+      "sha256": "afe8295c228b4ca34dc25381ea865b42c7695ec5404ffa400665089cf0b6b38d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/interpreter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 42586,
+      "sha256": "b8dc135c2b3608545b07e4b2ce6da444627466fef05fc74a01ed90c08eed7e3b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/manifest.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 25817,
+      "sha256": "058d6dd01e953c2028c8d43e97ddebcde759890c501c94ec4a988310b7dd84d9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/raw.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5257,
+      "sha256": "d8f0b266e76b7fb7b920110ec03f367693bde176d4b91e0f387240976b37eba4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/toml.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2011,
+      "sha256": "5805c554178ac67f5f86308df991f50206ea22ccf0edbef15ae6a5ed780c7090"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cargo/version.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4646,
+      "sha256": "3f2b3b0089621091a0b8f0256b8ef8e6ca7b9f21bd6f16eeb224422ed71a8065"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 874,
+      "sha256": "6219c8d13eea37db6f56cf457343d376583313e144c6e0beee55081000332c4c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/common.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 13258,
+      "sha256": "564136dcab836d97b4a568dbb8da4e3da9683dde06c6075c8758fa75e1f50fef"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/data/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/executor.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10748,
+      "sha256": "921a324a501260b44c7cbe30552d5e2b73a7d84c8fa9b1021907e6717d243794"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/fileapi.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 12931,
+      "sha256": "d614498b3607250f7d750db2cbe9f0b1b23781c4dc79fc3db7d14fb9a2ca0a24"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/generator.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6171,
+      "sha256": "b7e93edca5c2a01823f55dda1c51de4725325fa4cb0421e6c7d33f7dea237816"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/interpreter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 60570,
+      "sha256": "236ea2bb78b49e1e25f93b6623d036cf51c88aa48d601dec987d6d5e77f36b5b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/toolchain.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10847,
+      "sha256": "81bca425c36313300bb3de03e9284132d9bd9118fbef67c8a2bf9791b1ce4488"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/traceparser.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 33378,
+      "sha256": "1d05ac27a48d8c818343e97d27ec9ee790c26b5f4f52d29f8d2bbf35350c5141"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmake/tracetargets.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 7129,
+      "sha256": "91664e1890fbf27ba75a37f1c87cb39c1f367e935d2b69c1910715637cd0b962"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/cmdline.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 9869,
+      "sha256": "9a2c66f6410304c0954115b163dbbd16ed456c3ea1d738b6ec8f42c2a36253b6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1957,
+      "sha256": "dff230c043a27f896c382c23e4421e744b3c8ba619c067a3e52e68f62cf4560a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/asm.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 12372,
+      "sha256": "e6cc2febad7323d279c3dc6423e3d6027722f6be697763c3006fa92a0ce06458"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/c.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 33329,
+      "sha256": "49e8c4ca0b8ad43f6816080c5aa03cce740adaca5a105719731eddd64c7e15d9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/c_function_attributes.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5884,
+      "sha256": "4a268184fedacc06489e788b1be9e5ba37253e871f9acec002bd028948a77186"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/compilers.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 69963,
+      "sha256": "6a6774cd0751f6cb3930949f3177c92ed4ba6d21663dd552aefc3e5fedd3bd8a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/cpp.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 49285,
+      "sha256": "92104f935191ba71d18e798144d946eb369cedf24c6693a195406133299f92a8"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/cs.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4072,
+      "sha256": "8023a17af7ce0c1335bc06c68fa20f9fc978f72f4f29c3970224caceda1a02b7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/cuda.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 41416,
+      "sha256": "9909984264488a7e2e441df4d735d6d369cd2e2eb4baef40657f8baa1f9d7f28"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/cython.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5056,
+      "sha256": "b98f9220c0f6bf9ed0c238c3bc6fc9465df48b482d9a78bea30772ed27d9a9c9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/d.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 33035,
+      "sha256": "c84d3a5fe95b898b653ee594ff573e77933a5bf373d24a516e282be58e48db4e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/detect.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 74212,
+      "sha256": "d15275bd890e3dd6a0e266d2a919094cc581784903e328988dc3a1f568cb8db7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/fortran.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 29867,
+      "sha256": "03e6b4ee3c3ea4389987ae703ee1c409b8c267a7d20d8c847bff0f2d90d80d6d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/java.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3982,
+      "sha256": "43bb5efb27648d36c1b7896dd933132e4688715930074c5b6bd9f86c646fa98f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/apple.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3512,
+      "sha256": "5374ee22165befa4240687cf33b6bd1c9a5230c4f090c19cf526ef0607bd02f6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/arm.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6157,
+      "sha256": "1b28f6c3f4ed54855686133cbdeffe976c19a89d4d79b0196b06cc5c4307a0d1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/ccrx.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3477,
+      "sha256": "df8f40dd6132c7936214eacb053515dd99ac53f77ef148dfd219fae239771ed2"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/clang.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 13271,
+      "sha256": "e20363f2e4518b9cb4ee599f9a724bc959ba7ef1c1dbcd71a38d8a0fce700d60"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/clike.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 62315,
+      "sha256": "b17dc0edd70159e3800ea9a9447a9c65b70462fa3a695ad00ba85974af58bb62"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/compcert.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3538,
+      "sha256": "524248dc70e770bc9d11d117749358a623a664c808f3f78952d4968bcf27d5cb"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/elbrus.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4147,
+      "sha256": "dcbf3ef8936c9675e93fa69d53d04338a8b1ced1e305c8cee6e16a7a18cc4749"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/emscripten.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3743,
+      "sha256": "7b0f96bdb7c3595fc2ae1c68b0d4fb743a0c8aa1348076f2ec164ab55854fe57"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/gnu.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 24265,
+      "sha256": "2d6a19e60945874f864fd2de0039979589b599177996cbfee3a2171a406701c1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/intel.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5799,
+      "sha256": "488c7bf4d26e43ab74c50971728d6750c57a7d1bb750a23b90aa57636adef43a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/islinker.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4269,
+      "sha256": "991283ada08f1fe75323952e61aabba5524191c0de434c9a7f1c43b651cedff8"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/metrowerks.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 8821,
+      "sha256": "c0e2abd75b54383b415e1ac44044f53b9a4c77be568d1fc6b97611df7da532d4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/microchip.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6099,
+      "sha256": "49c8bc6b4cdbc937ee55db46bb56d9901316e7ab61387e66d1f42ce350c20c98"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/pgi.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2993,
+      "sha256": "e1f2de511b173fed4b2b715f406cd1af788eb0cd01c349a00d41b0aab2c904c3"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/tasking.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4401,
+      "sha256": "f0b9a7be4642eaaa37d0f2c2ebaf94246ed6c5c327d88b9b4272cbbdb7ba8fa7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/ti.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4148,
+      "sha256": "f4aa435f98baaa30f901ad49964f96f26ed4324b2e97d8787b61bc4442201949"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/mixins/visualstudio.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 20736,
+      "sha256": "3b120e6b0113d666e8384ed769a0678470bfd8c7acaa414478fbea705aac5503"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/objc.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5396,
+      "sha256": "364c6205606055c1b4753a93d4855418b4b0a1ad10cb2e0182cd9fdc3ed9bfc5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/objcpp.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5214,
+      "sha256": "abc99212c45abb375494bc241867c5f928c2c948dfbf534ff6227c29174467f5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/rust.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 24895,
+      "sha256": "4a432b6615c1897bdce5361315b2dde9539d9704d128127a6b9acfa911e46c30"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/swift.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 7489,
+      "sha256": "c5d54fe37a8227a69df0af93eb53a4fee08322d66f43f0ddfd6e63f4e11025e0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/compilers/vala.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10341,
+      "sha256": "45b539bbdbae5bde03d68f87f9d230dade57a0c3bd41e8a4162eddfcc68e891c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/coredata.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 21045,
+      "sha256": "7ad750babaa076e3c5988d291d2ee15bc21ead70864bf7ba04bbf1430c0e2604"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 8316,
+      "sha256": "f9c6c5473cc99344627cfa99d69c972756ff2eea888fe87be84820f9aeee45a0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/base.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 29904,
+      "sha256": "14572aa6608b153ee6e7bb7640bad1d87e08d23fe2b61e6dd550edfb50f26511"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/boost.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 40752,
+      "sha256": "4059bc77150ca3a34a2bdad79de1a8ab2eeaa4e7d79f17e8f1a4d4754916cdda"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/cmake.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 29635,
+      "sha256": "54e4177a9efb6d7a2c19583b5a2e4ce0891fdc705862b05a0adbdb2047d725d9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/coarrays.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3292,
+      "sha256": "30156f2f21b257caab348f60b5e79635abb56ab76950d4b029a5352846ee4d1f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/configtool.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 7452,
+      "sha256": "1b05156281e9abde927be376ffb7d7bbbebbac182bbd049cb5f8e2a1013515ff"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/cuda.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 15612,
+      "sha256": "dbea8fac044bfe7cceb94c21a9ddf82053e286405bc424a395225788c652691f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/data/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/detect.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 9220,
+      "sha256": "4ede75350c883edd0ef8bdd8df235349e8ddbe32475cf52b9142bc77e2b43678"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/dev.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 34606,
+      "sha256": "4876471174a1fdb294f4af07dd1b41e74d1c984449fadcc92d3a76554fb0743d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/dub.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 22631,
+      "sha256": "3bd4c202bce84b181e4a2e805287cabff7ca502a796c0a0b30abede824c25384"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/factory.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 7171,
+      "sha256": "b3e6ad0f34ffb2a99ac3dd741b7b6fa9054650d1d46f8a8be897a50d06059676"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/framework.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5262,
+      "sha256": "0c956be62a633f0e544b9ee833fd26a1303b66a76873a7ca93af510126137e9b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/hdf5.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6808,
+      "sha256": "b2282b14ff2be934ddcb1a8db8cc51ab9615f99dc84b0ad87921dbd52d15c036"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/misc.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 27864,
+      "sha256": "c0cf974b3ac444de07bbb1a5f9e38d5bd2e94bcdea5ed35bf293d990e962d4e5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/mpi.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 11573,
+      "sha256": "15c69e17d740db58b08261e6a9b32c53b02a40cc4a2034c32bab1488999a5b67"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/pkgconfig.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 29011,
+      "sha256": "b2ead8d7bee6c6708b3f252aff04d9eaf343375b116fd581f2bcbeb808edd838"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/platform.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1801,
+      "sha256": "3114ace1eb4792251f3c981029862931299fccc9c9d31518e99ea167caa446d4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/python.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 26701,
+      "sha256": "495e0d68429e89e89c6f1df7e6fb76f052318dc2c82e6a20fff5d3aa862d7aa9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/qt.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 20529,
+      "sha256": "086a2d233e5eee05655157e534e2b9e96fa963c0c8f5da8e2d6d4273ce1d0eef"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/scalapack.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5543,
+      "sha256": "e52ff7f33b3b4f52ff45831c3275cc45b92bb862d7b24f064127403beba6937d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/dependencies/ui.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 12842,
+      "sha256": "23082dd8d9f773bc03dcbb28af667aabbb8d0b268804ba74536288cfe423b401"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/depfile.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2382,
+      "sha256": "4eb4ef26132aa8277288d651ebc758a50eea866cb0a79773d73cd158dfaec90a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/envconfig.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 27450,
+      "sha256": "5d299e8e702ed1dd9f134e3c6e8a6d9ce7cbb9a35b087a430fef5736d90914c6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/environment.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 29445,
+      "sha256": "ead528a3557185e43c20c529460bf7f2e6c3b36662ef4c551d2349685eb8cdcd"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1123,
+      "sha256": "4e65be0063290eac234ac322c435fe54f346e3df7861f64181ce58562b54ce22"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/compiler.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 44068,
+      "sha256": "a62cc5ec959fdb2f800fdd66efd5def4a14fb4bc6767cba68086ecdcd112db07"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/dependencyfallbacks.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 19385,
+      "sha256": "d16979281300bcda61b8736ad9dddf56341c3596129bd4299f9ebcdf681334d4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/interpreter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 192783,
+      "sha256": "ec9981c7d8b79838e40c413cbdcf2612bd3a4414b1df06cce451a42a3cc5e96c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/interpreterobjects.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 53026,
+      "sha256": "e77692a033eb9b0b0d603d81a9b93982143f05edf99b7eec2815a5c7a3fa4f6b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/kwargs.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 14837,
+      "sha256": "d623c0535c78d1393b3dc387ab4e845d644dd0703d5c7ad434950c2ed36bc3e9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/mesonmain.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 23368,
+      "sha256": "f0dbde9cfcf5557f2f60ecebd292019d19159f08447e953229485fc20ae941f9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 743,
+      "sha256": "4bccd380f093cb326366e1a99475ccf57ecba184b24ba22d2ee3ae6e5e9424bd"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/array.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4588,
+      "sha256": "142176333a0192b951237a71755ca8e0d3cfe947d4186fed3bfb19947ff03efc"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/boolean.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1620,
+      "sha256": "86d2975c91e815880889ccab713140829dc986ac6c621b74cbc10e733951f0af"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/dict.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2848,
+      "sha256": "bdd323e51b2e65fc5fd2ff6dd7ab8fe9019c933757f7495a3745f72adc1d8664"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/integer.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3036,
+      "sha256": "8675ff3517937e3772f70e5ce422f1a731bc3e3f237340d60228e1a241caed7f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/range.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1048,
+      "sha256": "5fd83de8e3712778658dec3a2936797daeb0b08c09947416d72c8b369eaae7bd"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/primitives/string.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10017,
+      "sha256": "e8332a847702722e45564c11a5b6db77522f63f64599f25d2612dabe1c4f34d5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreter/type_checking.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 41358,
+      "sha256": "106172e0d58ff5e52b14a0ea446dd124116f7f9ddbb406c385f1dba09888107c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2468,
+      "sha256": "cdf48368ff8d1cab8b24f479814ea1b0e44577b0dad38c8b5cf54d1f714f6c2f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/_unholder.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1065,
+      "sha256": "9d8876a372d8faab06e8cda3bcab1c35a0d16d5f57f590b37dae30c1a1055e6c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/baseobjects.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10574,
+      "sha256": "92c8d30ddd986be064bc2e037c31788beb99def5ead4da0a8070939f5990c660"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/decorators.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 40970,
+      "sha256": "5455141d787c096c0dbc69f9ab4522ac10b8e28d8257d37125b8343ba94d2eaa"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/disabler.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 980,
+      "sha256": "45f1e404a160b79ea3b32b695e68a76410e157452e6f34687ebad284dbb6feb9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/exceptions.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 430,
+      "sha256": "a305fd35c10ae0011a3a4e696fc033951294fb36156785d6041e8f5b210b92a3"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/helpers.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2724,
+      "sha256": "fbbeeeb1ed0906aab29f4a6033b6272afd30dae3267e41649d922182f0ece20a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/interpreterbase.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 33854,
+      "sha256": "4558a3022e77cbc1d9a12c56f3498473b8f36f4fbe2766fb36673503f54b1d08"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/interpreterbase/operator.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 774,
+      "sha256": "29f89c34a167e9fe15c9d911b8b174765200bdd70620e2791655858b6abd2e0f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/linkers/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 367,
+      "sha256": "967826d6f0780a816e9a53b22652e14c464b0f810f608c1804acc270c69d5844"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/linkers/base.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 993,
+      "sha256": "c1c40d49595fd540246ecde36df0220685d2f6297b8e12f8cdf7bf8b9f7a4eb8"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/linkers/detect.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 12167,
+      "sha256": "5d30c37c8954443e255a5a436884bdfb17b9f5c3d4d6d95749c1218c042e0ed2"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/linkers/linkers.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 68178,
+      "sha256": "d3b63ad1189a1b062182b529a2792d072297487d63281792f0e3f9f7547f816d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/machinefile.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4759,
+      "sha256": "921b1030ddf160ce3bc3f828132dc6996e460bc3e0df9e333e5ad4f5abd73936"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mcompile.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 14202,
+      "sha256": "fb6bbf8285a59acc45be4a70adfae02c4f1dff41faf4ad73f7e2f210c7b111de"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mconf.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 18660,
+      "sha256": "26af25acfc7fe7a43e6bec6c6a2494673da333b478e86a889c7a567850fbbd5c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mdevenv.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 13225,
+      "sha256": "b01d1d20546be6044f85a06811dbeac8e2353b086c7e6ed3ea35a456b1f11743"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mdist.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 18744,
+      "sha256": "9bd796e8bd4bc58c476c4149ef16f2c59e9acf44ad814a1ee3224e44c4e336a9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mesondata.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1513,
+      "sha256": "6c9cd1577ca7d786cc92b5324f70ccd5279ebe90bf7a9c1362263c0b5b81e692"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mesonlib.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 315,
+      "sha256": "6e1cfe1d2d5e43c74a65ada0857235d1d2d931ec9d4f3078df58e5784c25ccdb"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mesonmain.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 14721,
+      "sha256": "6f6866cc9760e2ad9516ccdb3f3a42b3733dc3ce718e78e915ed2589b14f95b4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mformat.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 43977,
+      "sha256": "9048addab5aa1da5221ad34b2dd71b604e3aa05398442d95671dfc89d4fd0bfc"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/minit.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 8307,
+      "sha256": "ff3998d67887ed990bc57c39338228e61fe75c39f54235468ad40094a76f968c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/minstall.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 40027,
+      "sha256": "bca08ef98201cc0b557d9856512e1ecaaf9434b9aeb66e81fb10f36c18481981"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mintro.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 30369,
+      "sha256": "95c11399333dc5bc924a4ee6c187886df31283d4b560fa0a5d771347697fabbf"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mlog.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 21356,
+      "sha256": "c2afd29cee2e4dd54f8108ea9a3ea5f562f0d9302e5c70603e388618226e533e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 12182,
+      "sha256": "2e598bc7c16c9a61ee5f886a375a76f9054be61e19bfba193a3b22d1a486df0f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/_qt.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 56870,
+      "sha256": "9733293921cf0324c922b955bfbdca67a9a9786057c3f741c030c35eb302c196"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/cmake.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 19322,
+      "sha256": "c93befa62aefbcbaceeee5d2908d9c7ba26ca159dcc0929616f0e0f80de8dc20"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/codegen.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 18141,
+      "sha256": "027e0d9eb4b1103aa4d808834f9704383a6573e8787bd2a4cd1dacc59b9e1358"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/cuda.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 20846,
+      "sha256": "ff30365a54fa01da2a51f6857acebf912d5d3447baea2e970329cf9deea6a0c2"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/dlang.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5679,
+      "sha256": "7f43b068f1354e14d810a8321413aef3c17527e3a28f4d5818f06c804d3010a6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/external_project.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 15242,
+      "sha256": "e5d9e54ef6c3d5caa5ce01a6c29dabe30c2f86078a95b91d30bc1e3528614487"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/fs.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 14929,
+      "sha256": "f36ebae54f03cc931f75f99ef1b1035847d2be980c9ee4e7462a74ef1283e5d4"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/gnome.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 108879,
+      "sha256": "3ab0ba2c60c26b0e1850fc2b0cef6c6a042e249607acb9969d672f50ea5e2469"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/hotdoc.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 19964,
+      "sha256": "8c62a5a99e567b9f58bbc544a23ca8e57c3db85d895c32bfe52d84d6badffdbc"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/i18n.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 23203,
+      "sha256": "44b15a8e029aa155cfce05de8aada72576b379e23b59644e33d2131bbc4cdff0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/icestorm.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4056,
+      "sha256": "ff267125d3d1122e059544bd6a81585147d1ff07c9882c75995523cf87304a41"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/java.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4526,
+      "sha256": "55d14ee87756e2d96bccc97cabfea9ceeaa9c0b2ccb717ab7b351108b51c7373"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/keyval.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2106,
+      "sha256": "09693db5f5cb26e155d26b09ac9a79d3170ca260870e7e10ff912ea6bf12fc6d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/modtest.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 908,
+      "sha256": "3fdccf5f4c52d8d6e53a027020a394991228f195e2975fbcc5a914febcd2803d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/pkgconfig.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 42957,
+      "sha256": "12528e8b55c21d0e1bb2a69cec475f3cb8786a0e7abe1f8f0c5421e45d53db1c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/python.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 27493,
+      "sha256": "997af77011f4ba6dd2c531ba9e85a5cb8a7e0fb4a2e0a206046c5d4e91bc85f3"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/python3.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3397,
+      "sha256": "f4401597193f4b0720cfeb2c12b27c99beaa9df3faa58dc8ac3d53296504078e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/qt4.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 514,
+      "sha256": "0c96e18c3ad63b54c5ce3678cb3ae58c8b7c10296f2142aabce03ed9484b3e2e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/qt5.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 514,
+      "sha256": "d0936580cf3ba3a10a80641c5932603a66119bf95574a5f2f6e970842cab41db"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/qt6.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 523,
+      "sha256": "a4f48d9820a54b77afa4ef515ba34906024b8b564eb15aa873206f9499aa4f79"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/rust.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 46647,
+      "sha256": "5eb755c71967ee7dc228645cf9933795f87c8b64033114fcadc34bcce3074150"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/simd.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3865,
+      "sha256": "03070a291e3f8ceaba107abeb3100fb72a73d561f564ae764d2ed163110dcecc"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/snippets.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4222,
+      "sha256": "1074b4935528ab2d04687586f3127564400de29ed83809f9886054019dd59958"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/sourceset.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 11839,
+      "sha256": "1a7f4e1b80341ed90110fa7958bbf12f300c99989512191e769abd9d3290fec0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/wayland.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 5602,
+      "sha256": "4defbc499d79ca898388fd6aaa223a164629a53401779ac887240faff9020cd9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/modules/windows.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10315,
+      "sha256": "5f4141f54e5235ea85f362070846518b9bee991a0445f7d496caffb9bc1c03cf"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mparser.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 41389,
+      "sha256": "805c536964fc237bc8af130d1c176a5955260f43f1137ad39562f4e0fb9bf9f6"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/msetup.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 21597,
+      "sha256": "7f2c073f1a5190e7b683c468f83061035aab219e86eb31231bcab3f72e9ec57b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/msubprojects.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 33787,
+      "sha256": "76362e71ca07ec929883e20170c8151b8177926d6f00db922ee93d0197a1edbf"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/mtest.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 95572,
+      "sha256": "491426d65c11b702039ee3bf7671c53ecd24f2b072490c2fca68d44eb26f9046"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/munstable_coredata.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4267,
+      "sha256": "ebbd33e9716e74af0176d8d89ceb042491814ba7811c7f29d150509aa5fc8a07"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/optinterpreter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 11824,
+      "sha256": "b787e7a22a17dba0586299c3cc0793f194357b9e238dcfc959abb32947aee673"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/options.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 62223,
+      "sha256": "178264a13728f529734f541a94fcab1ebf4534c51b324a2c25ec6fe8d0c5d43c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/programs.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 19255,
+      "sha256": "ce28e75a7dc7de52cb0259c95f54fffaf85b7871d40dc2856f4d00eb90d9bc68"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/rewriter.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 51601,
+      "sha256": "2a2bfab2f7785f4977737ab50e09e600a8e6c229c4f1fdee1f2a919e6355e452"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 303,
+      "sha256": "37bdcc690bf5b7cb32a0e02dec521bee78001db7ae159d460239bdbaf769f60c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/clangformat.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2150,
+      "sha256": "79718484b6c306b30f55281b6da5cb2773c95f6acf18cc2518f254867b386594"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/clangtidy.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2499,
+      "sha256": "bdbe8658062e93b1f9a70e8b302840120fe37ef705313af846a40a932516e81b"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/cleantrees.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1048,
+      "sha256": "e232d1c4b6102531a21c016fa42687d4ea97d835d2103bb1746cdc66a48b7af0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/clippy.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3024,
+      "sha256": "18266082653f85a0540dcd298784c8a43fd806ae2b8d2f6a7acaa33dafb22a6c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/cmake_run_ctgt.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3264,
+      "sha256": "3542101379f4f04e723930ee5eb5f40ebda25da0cffb516026d84cd5b6f8ec37"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/copy.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 420,
+      "sha256": "aa155356cc007f8cf99bc6e95cd621a94f96e3fc6f9118601a429f32d3864af5"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/coverage.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 10819,
+      "sha256": "4ce0770ca8e61857d90c0d08d1f9339917657c4544f091cf79faabec5e05320e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/delwithsuffix.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 664,
+      "sha256": "589f78c7192f5911b9012e24fc167fd7c3a2638067dbf5cdd931a65fa4e3035a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/depaccumulate.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4463,
+      "sha256": "fe968f8cd5c64c0caa7f7eadb08a930bcd66d0ac1bc840ff344b26d1a8354535"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/depfixer.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 22859,
+      "sha256": "fd99cd28e329deeccc4dfef5dc46e618c0f0d4b86f4a732d325fa49f184824cb"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/depscan.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 8574,
+      "sha256": "4cdf9b6e452f82bfdcb4b3cc041a54361781a3cd58c1074f6f4f5e7d4d09c87e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/dirchanger.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 473,
+      "sha256": "e533a84e5658820c6de253dc53170b9496a8bcd750b65e654b85895b66cf16f2"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/env2mfile.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 21886,
+      "sha256": "75bd1ed93acda47d2b65fce1b5222ea7ef59d129bc17d9ba5aff67aab6e02634"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/externalproject.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3846,
+      "sha256": "eb56ccf00edf3111775ad6eb91841cba1e2a829e5e2209957a9378b934b96b74"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/gettext.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3453,
+      "sha256": "a5bff3d006a5003bfeedaa5305503f53efa0c3cd5f60449b61071ca8972d01fe"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/gtkdochelper.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 11131,
+      "sha256": "2a7d17c2305a3e5275615cebcaa60d4904b35d3efdbc829e6f8e4297ea118c5d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/hotdochelper.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1111,
+      "sha256": "f89136fad38133d94a077a7b3e1795afacf981285682541ce61631660d9319b9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/itstool.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2614,
+      "sha256": "9c7ba23682c7d26f4601cf747946b53791ffbb37adaf8e7323ec09e1346b022e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/meson_exe.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4159,
+      "sha256": "415683ebd2421934a8d4537505c98fab412fa3015138384d15faab8f5fdadee1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/msgfmthelper.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 937,
+      "sha256": "0c33807fb8af012bb3871720cd203abc6b60a1b39f063ff73bbf398f73a73097"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/pickle_env.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 168,
+      "sha256": "5e8550a57b8ecca1a04c14ae1b428a3412b18b3e254b4e00c0b7b24a2bec499a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/pycompile.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1813,
+      "sha256": "96ea0380bab29dc4a9a856ec042e5f4524eb9bca099596801af58e975fedaea7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/python_info.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4401,
+      "sha256": "645571b9b6c8c678766739ff97e9d684a570f85d7c7ed4c50d42b8fbaa16c0c7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/rc.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1192,
+      "sha256": "1c38c8cff3800ca9a91fc58451742451177cdd1876c9787805e38b5af0c6b5c7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/regen_checker.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2158,
+      "sha256": "e49eea61c169d9e4ed44f97b844eaf1250a54f215c4020a365ffcef419f07121"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/reprotest.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4216,
+      "sha256": "191537c639393b4c05a9462595b2e7e076f014b4f47b0b022951ebb52348f234"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/run_tool.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6037,
+      "sha256": "30842d5baebb04cfd5eb0080b0622316b6eb3e7725b1992091d4eb1d27f8fad1"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/rustdoc.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4627,
+      "sha256": "92349da575b0d5a640eb9e2af801ff41c9fe53cbbb0d91216cd646e6dfddd422"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/scanbuild.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2118,
+      "sha256": "cc0391e399f609c398adc7ace0553acbbe69017b1864a42b2deefa768cc251a2"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/symbolextractor.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 14062,
+      "sha256": "fac4041047d4cef1d4942f80352481c19fe632b876cfcb8fb54e7882aef87236"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/tags.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1239,
+      "sha256": "5115da76507ddcfcd527ec5d2c5ee369ac35efaa56410a92da19f7dce3733ae0"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/test_loaded_modules.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 343,
+      "sha256": "29a5c54226c1876efccf8a84bd356ade67db12ac1c1da83f72d938b1ba251a5c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/uninstall.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1171,
+      "sha256": "acd8d82b80d796635ab3dfb2a8952bfd4d4f22ae4a376e08a9731769e608d24f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/vcstagger.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1265,
+      "sha256": "f81e4b92888a5bb9a68777132d9d6934cc666e740a16c5d4f9e56dd90bc3805a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/scripts/yasm.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 604,
+      "sha256": "c47a00cb659f62fa8118cb5e716a70f5b3b9530b0fe051d06dd1be12697e0d38"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/cpptemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3805,
+      "sha256": "c4e2980c3de65e51f15f7dc342b79a5c5af44b6bc2e647e1eff6131be54b0054"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/cstemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2544,
+      "sha256": "24f0081f6796dec0b6d6891cc4ca46083263ceb9b205e79a73668982c48e03c7"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/ctemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3629,
+      "sha256": "01cfd7156716a9b637494b868182f5ca034e84cfb21fdc8a4d781d3e107e5a0a"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/cudatemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3669,
+      "sha256": "53aac0480e0288f930a2004cb5362cf685541aca14df15a2afeff1dce5607c71"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/dlangtemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3035,
+      "sha256": "041bb55437d3fb41a8c2e453dfdb829ef1849929cba06e4bb1b1faaa6e03f6dc"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/fortrantemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2819,
+      "sha256": "ff7052df070de6662b3f669f8526fa01f8a0c298e80d39a58e5d5a1096eb4dc9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/javatemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2637,
+      "sha256": "28bb764aa8bed96cf685b4bc04a371db036c5caabaf545eb9c49f307f802cb59"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/mesontemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 482,
+      "sha256": "5116f650791eee3b485d2d52dacc0cb88b6cb2b8e2739a853ef70dca79721fd8"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/objcpptemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3747,
+      "sha256": "0c852e581c13a3b1d2a4139846bc2c437b4e2c39c9b342f2bfd3283dd2756e39"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/objctemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 3665,
+      "sha256": "868327bbd91931dddc786401f6423a11612ecd5c9296d238c7f0b39b825e8cd3"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/rusttemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2424,
+      "sha256": "2b1dafc1c02ad1f7c50b76304cca1a89b9c3bd3d08b937b025ffb69823ab739e"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/samplefactory.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 1443,
+      "sha256": "ba69f5735030ecdc393696db5ec9d47752c3c363bf622cb59b549bb1be04e993"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/sampleimpl.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 8824,
+      "sha256": "3ab334195048b8e6600869ea658bf7d03d2ae783557a2a7e2f1d11d098e71ac9"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/templates/valatemplates.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2279,
+      "sha256": "06baba6741ab8138c2f4a1abd0c43502ba5534fe4d1d3839415cfb0e2d177675"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/tooldetect.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 9005,
+      "sha256": "140eb59b77a960bd1d628cc0893baa4fb603c2a66e98fed7c58e5df676b39aff"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/utils/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/utils/core.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 6928,
+      "sha256": "521fec0505a9784fdd352001e5f1a3436d145177f17084ef1678ab7d3dff3655"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/utils/platform.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4687,
+      "sha256": "2ab81827688cb7711cf93b6a9c140524103cd26a539f1178a77fbce4c0050e4c"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/utils/universal.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 92091,
+      "sha256": "ca74a11c239a884826e245eb989f09f0e639a8a9aba542374c893fdde402c691"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/utils/vsenv.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 4075,
+      "sha256": "730d3a89a1aebc363f5547e66517eaff764004b1f4b07907f25b4dfd77d4043d"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/wrap/__init__.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 2070,
+      "sha256": "fda52df00809af960ad6b74a1712f1a91ad1d56b502960da09d20f09100a9a06"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/wrap/wrap.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 45478,
+      "sha256": "9d805b904d30730bdeaca05cc8cb461147204e8d905866cbdf2aad2b029b535f"
+    },
+    {
+      "path": "usr/lib/python3.14/site-packages/mesonbuild/wrap/wraptool.py",
+      "package": "meson-1.11.2-1.fc44.noarch.rpm",
+      "mode": 420,
+      "size": 9310,
+      "sha256": "56a94be53c3af930997c94b57f3bd94e41eeeebbc0e4883f1f0db1e414b56e7b"
+    },
+    {
+      "path": "usr/lib64/libEGL.so.1.1.0",
+      "package": "libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 493,
+      "size": 70184,
+      "sha256": "76ffc090b8990696d028e7d1bc82606c564565fb05d2fa9e5f6122b61e9f1b60"
+    },
+    {
+      "path": "usr/lib64/libGLESv2.so.2.1.0",
+      "package": "libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 493,
+      "size": 62648,
+      "sha256": "1935a45182f6a50d88382a31261c322c75adb799b826aaa9afeb52354c210ceb"
+    },
+    {
+      "path": "usr/lib64/libGLdispatch.so.0.0.0",
+      "package": "libglvnd-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 493,
+      "size": 513088,
+      "sha256": "3c53e14fb731128afe1fa1c88e94944fe9a60cbe170f2e08c1134b709d771ec7"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/egl.pc",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 185,
+      "sha256": "9db4c3dc52294bbc04c6e9c4b0f468e48b10b1f41d4ca22407bd35b4e29c32cf"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/glesv2.pc",
+      "package": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+      "mode": 420,
+      "size": 202,
+      "sha256": "a6f4c416b80822af36ee13e8a5c49ea7f729d423c427bc52faa7fe1633da2513"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libGLdispatch.so.0": "libGLdispatch.so.0.0.0",
+    "usr/lib64/libEGL.so.1": "libEGL.so.1.1.0",
+    "usr/lib64/libGLESv2.so.2": "libGLESv2.so.2.1.0",
+    "usr/lib64/libEGL.so": "libEGL.so.1.1.0",
+    "usr/lib64/libGLESv2.so": "libGLESv2.so.2.1.0",
+    "usr/lib64/libGLdispatch.so": "libGLdispatch.so.0.0.0"
+  },
+  "symlink_packages": {
+    "usr/lib64/libGLdispatch.so.0": "libglvnd-1.7.0-9.fc44.x86_64.rpm",
+    "usr/lib64/libEGL.so.1": "libglvnd-egl-1.7.0-9.fc44.x86_64.rpm",
+    "usr/lib64/libGLESv2.so.2": "libglvnd-gles-1.7.0-9.fc44.x86_64.rpm",
+    "usr/lib64/libEGL.so": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+    "usr/lib64/libGLESv2.so": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm",
+    "usr/lib64/libGLdispatch.so": "libglvnd-devel-1.7.0-9.fc44.x86_64.rpm"
+  },
+  "pkgconfig": {
+    "usr/lib64/pkgconfig/egl.pc": "prefix=/usr\nexec_prefix=${prefix}\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: egl\nDescription: EGL library and headers\nVersion: 1.5\nLibs: -L${libdir} -lEGL\nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/glesv2.pc": "prefix=/usr\nexec_prefix=${prefix}\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: gles2\nDescription: OpenGL ES v2/v3 library and headers\nVersion: 3.2\nLibs: -L${libdir} -lGLESv2\nCflags: -I${includedir}\n"
+  },
+  "versions": {
+    "egl": "1.5",
+    "glesv2": "3.2"
+  },
+  "meson_version": "1.11.2",
+  "path_derivation": "Only the same literal pkg-config path assignments as the common SDK change. No version, API, requirement or source relabelling.",
+  "source_notices": [
+    {
+      "name": "libglvnd-1.7.0-9.fc44.src.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libglvnd/1.7.0/9.fc44/data/signed/6d9f90a6/src/libglvnd-1.7.0-9.fc44.src.rpm",
+      "size": 876540,
+      "sha256": "e83440deedde996f034ef0f59eae0b10095a1abf197ca6668257c42e61ab3264",
+      "path": "usr/share/aetheri-sources/libglvnd-1.7.0-9.fc44.src.rpm",
+      "mode": 420,
+      "metadata": [
+        "libglvnd 1:1.7.0-9.fc44.i686",
+        "MIT-feh AND MIT-Modern-Variant AND BSD-1-Clause AND BSD-3-Clause AND GPL-3.0-or-later WITH Autoconf-exception-macro",
+        "(none)"
+      ],
+      "source_package": 1,
+      "purpose": "Exact signed source RPM retained only as source/notice data. Its ARCH field is not the target ABI and no spec/patch/payload executes."
+    }
+  ]
+}

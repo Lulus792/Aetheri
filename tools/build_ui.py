@@ -108,6 +108,10 @@ def main():
     parser.add_argument("cache", type=Path)
     parser.add_argument("work", type=Path, help="fresh workspace; partial attempts are preserved")
     parser.add_argument("--sanitizers", action="store_true")
+    parser.add_argument("--common-sdk", type=Path, help="checked private Wayland/XKB/FFI developer prefix")
+    parser.add_argument("--sdl-sdk", type=Path, help="checked private EGL/GLES/Meson build prefix")
+    parser.add_argument("--toolchain", type=Path, help="checked private CMake/C++ build tools; requires both SDK options")
+    parser.add_argument("--font-runtime", type=Path, help="checked original GUI snapshot, used only for its font/notices")
     args = parser.parse_args()
     if sys.platform != "linux" or os.getuid() == 0:
         raise ValueError("use an unprivileged Linux build account")
@@ -121,12 +125,42 @@ def main():
     sdk_record = next(r for r in config["inputs"] if r["name"] == config["graphics_sdk"]["headers"])
     sdk_rpm = args.cache / sdk_record["name"]
     verify(sdk_rpm, sdk_record)
-    for package in config["graphics_sdk"]["runtime"]:
-        evr = subprocess.check_output(["rpm", "-q", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}", package], text=True)
-        if evr != config["graphics_sdk"]["runtime_evr"]:
-            raise ValueError("reviewed graphics runtime changed")
+    selected = (args.common_sdk, args.sdl_sdk, args.toolchain)
+    if any(p is not None for p in selected) and not all(p is not None for p in selected):
+        raise ValueError("private build requires common SDK, SDL SDK and toolchain together")
+    private = None
+    if all(p is not None for p in selected):
+        import prepare_desktop_sdk as developer_sdk
+        import prepare_desktop_toolchain as developer_tools
+        common, sdl_sdk, toolchain = [developer_sdk.prefix_path(p) for p in selected]
+        private = dict(common=dict(prefix=str(common), check=developer_sdk.check(common)),
+                       sdl=dict(prefix=str(sdl_sdk), check=developer_sdk.check(sdl_sdk, 'sdl')),
+                       toolchain=dict(prefix=str(toolchain), check=developer_tools.check(toolchain)))
+        sdl_profile, _ = developer_sdk.profile('sdl')
+        package = next(p for p in sdl_profile['packages'] if p['name'] == sdk_record['name'])
+        if package['size'] != sdk_record['size'] or package['sha256'] != sdk_record['digest']:
+            raise ValueError("different private EGL/GLES header origin")
+    else:
+        for package in config["graphics_sdk"]["runtime"]:
+            evr = subprocess.check_output(["rpm", "-q", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}", package], text=True)
+            if evr != config["graphics_sdk"]["runtime_evr"]:
+                raise ValueError("reviewed graphics runtime changed")
     font = config["font"]
-    if hashlib.sha256(Path(font["path"]).read_bytes()).hexdigest() != font["sha256"]:
+    font_path, font_license = Path(font["path"]), Path(font["license_path"])
+    font_input = None
+    if args.font_runtime is not None:
+        import prepare_settings_audio_lab as gui
+        font_profile = json.loads((ROOT / 'spec/settings-audio-lab-inputs.json').read_bytes())
+        gui.check(args.font_runtime, font_profile)
+        entry = next(e for e in font_profile['files'] if e['role'] == 'font')
+        notice = next(e for e in font_profile['files'] if e['destination'] == font['license_path'])
+        font_path = args.font_runtime / entry['destination'].lstrip('/')
+        font_license = args.font_runtime / notice['destination'].lstrip('/')
+        if entry['sha256'] != font['sha256']:
+            raise ValueError("different private font origin")
+        font_input = dict(path=str(font_path), license=str(font_license), sha256=entry['sha256'],
+                          license_sha256=notice['sha256'], provenance=entry['provenance'])
+    if hashlib.sha256(font_path.read_bytes()).hexdigest() != font["sha256"]:
         raise ValueError("reviewed font bytes changed")
     work = args.work.absolute()
     work.mkdir(mode=0o700)
@@ -163,36 +197,55 @@ def main():
                               work / "wayland-wakeup-patch.json")
     # Read only reviewed EGL/GLES2/KHR headers from a pinned RPM; never install
     # the broad GLX/X11 development package or execute package scriptlets.
-    sdk = work / "graphics-sdk"
-    headers = subprocess.check_output(["rpm", "-qpl", str(sdk_rpm)], text=True).splitlines()
-    cpio = subprocess.check_output(["rpm2cpio", str(sdk_rpm)])
-    for name in headers:
-        if not name.endswith(".h") or not any(name.startswith("/usr/include/" + d + "/") for d in ("EGL", "GLES2", "KHR")):
-            continue
-        relative = Path(name).relative_to("/usr/include")
-        if ".." in relative.parts:
-            raise ValueError("unexpected header path")
-        data = subprocess.check_output(["cpio", "-i", "--quiet", "--to-stdout", "." + name], input=cpio)
-        if not data or len(data) > 2 * 1024**2:
-            raise ValueError("unexpected header bytes")
-        dest = sdk / "include" / relative
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(data)
-    pc = sdk / "lib/pkgconfig"
-    pc.mkdir(parents=True)
-    for name, library, version in (("egl", "EGL", "1.5"), ("glesv2", "GLESv2", "3.2")):
-        soname = "lib" + library + (".so.1" if library == "EGL" else ".so.2")
-        target = Path("/usr/lib64") / soname
-        if not target.is_file():
-            raise ValueError("reviewed graphics runtime missing")
-        (sdk / "lib" / ("lib" + library + ".so")).symlink_to(target)
-        (pc / (name + ".pc")).write_text(
-            f"prefix={sdk}\nlibdir=${{prefix}}/lib\nincludedir=${{prefix}}/include\n"
-            f"Name: {name}\nDescription: private reviewed headers and installed guest runtime\nVersion: {version}\n"
-            f"Libs: -L${{libdir}} -l{library}\nCflags: -I${{includedir}}\n")
+    if private is not None:
+        sdk = sdl_sdk / 'usr'
+        pc = sdk / 'lib64/pkgconfig'
+    else:
+        sdk = work / "graphics-sdk"
+        headers = subprocess.check_output(["rpm", "-qpl", str(sdk_rpm)], text=True).splitlines()
+        cpio = subprocess.check_output(["rpm2cpio", str(sdk_rpm)])
+        for name in headers:
+            if not name.endswith(".h") or not any(name.startswith("/usr/include/" + d + "/") for d in ("EGL", "GLES2", "KHR")):
+                continue
+            relative = Path(name).relative_to("/usr/include")
+            if ".." in relative.parts:
+                raise ValueError("unexpected header path")
+            data = subprocess.check_output(["cpio", "-i", "--quiet", "--to-stdout", "." + name], input=cpio)
+            if not data or len(data) > 2 * 1024**2:
+                raise ValueError("unexpected header bytes")
+            dest = sdk / "include" / relative
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+        pc = sdk / "lib/pkgconfig"
+        pc.mkdir(parents=True)
+        for name, library, version in (("egl", "EGL", "1.5"), ("glesv2", "GLESv2", "3.2")):
+            soname = "lib" + library + (".so.1" if library == "EGL" else ".so.2")
+            target = Path("/usr/lib64") / soname
+            if not target.is_file():
+                raise ValueError("reviewed graphics runtime missing")
+            (sdk / "lib" / ("lib" + library + ".so")).symlink_to(target)
+            (pc / (name + ".pc")).write_text(
+                f"prefix={sdk}\nlibdir=${{prefix}}/lib\nincludedir=${{prefix}}/include\n"
+                f"Name: {name}\nDescription: private reviewed headers and installed guest runtime\nVersion: {version}\n"
+                f"Libs: -L${{libdir}} -l{library}\nCflags: -I${{includedir}}\n")
     env = os.environ.copy()
     env["PKG_CONFIG_PATH"] = str(prefix / "lib/pkgconfig") + ":" + str(pc)
     env["LD_LIBRARY_PATH"] = str(prefix / "lib")
+    install_rpath = str(prefix / 'lib')
+    cmake_prefixes = [str(prefix), str(sdk)]
+    if private is not None:
+        env.pop('PKG_CONFIG_SYSROOT_DIR', None)
+        paths = [prefix/'lib/pkgconfig', common/'usr/lib64/pkgconfig', common/'usr/share/pkgconfig', pc]
+        env['PKG_CONFIG_PATH'] = ':'.join(map(str, paths))
+        env['PKG_CONFIG_LIBDIR'] = env['PKG_CONFIG_PATH']
+        env['PATH'] = ':'.join(map(str, [toolchain/'bin', common/'usr/bin', sdl_sdk/'usr/bin'])) + ':/usr/bin:/usr/sbin:/bin:/sbin'
+        env['PYTHONPATH'] = str(sdl_sdk/'usr/lib/python3.14/site-packages')
+        env['PYTHONDONTWRITEBYTECODE'] = '1'
+        env['CC'], env['CXX'] = '/usr/bin/gcc', str(toolchain/'bin/c++')
+        libraries = [prefix/'lib', common/'usr/lib64', sdl_sdk/'usr/lib64', toolchain/'usr/lib64']
+        env['LD_LIBRARY_PATH'] = ':'.join(map(str, libraries))
+        install_rpath = ';'.join(map(str, libraries))
+        cmake_prefixes += [str(common/'usr'), str(toolchain/'usr')]
     build_type = "RelWithDebInfo" if args.sanitizers else "Release"
     flags = "-fsanitize=address,undefined -fno-omit-frame-pointer" if args.sanitizers else ""
     commands = []
@@ -205,8 +258,8 @@ def main():
         build = work / (name + "-build")
         run(["cmake", "-G", "Ninja", "-S", str(source / root), "-B", str(build),
              "-DCMAKE_BUILD_TYPE=" + build_type, "-DCMAKE_INSTALL_PREFIX=" + str(prefix),
-             "-DCMAKE_INSTALL_LIBDIR=lib", "-DCMAKE_PREFIX_PATH=" + str(prefix) + ";" + str(sdk),
-             "-DCMAKE_INSTALL_RPATH=" + str(prefix / "lib"),
+             "-DCMAKE_INSTALL_LIBDIR=lib", "-DCMAKE_PREFIX_PATH=" + ";".join(cmake_prefixes),
+             "-DCMAKE_INSTALL_RPATH=" + install_rpath,
              "-DCMAKE_C_FLAGS=" + flags, "-DCMAKE_CXX_FLAGS=" + flags,
              "-DBUILD_SHARED_LIBS=ON", *options], log)
         run(["cmake", "--build", str(build), "-j2"], log)
@@ -221,6 +274,10 @@ def main():
                    "-Dsubset=disabled", "-Dutilities=disabled", "-Dtests=disabled", "-Ddocs=disabled",
                    "-Ddefault_library=shared"]
         options += ["--buildtype=debugoptimized", "-Db_sanitize=address,undefined"] if args.sanitizers else ["--buildtype=release"]
+        if private is not None:
+            runtime_flag = '-Wl,-rpath,'+':'.join(map(str, libraries))
+            options += ['-Dc_link_args='+json.dumps([runtime_flag]),
+                        '-Dcpp_link_args='+json.dumps([runtime_flag])]
         run(["meson", "setup", str(hb_build), str(source / "harfbuzz-15.0.0"), "--prefix=" + str(prefix), *options], log)
         run(["meson", "compile", "-C", str(hb_build), "-j2"], log)
         run(["meson", "install", "-C", str(hb_build)], log)
@@ -243,13 +300,17 @@ def main():
             shutil.copyfile(source / root / file, dest / Path(file).name)
     fonts = prefix / "share/aetheri-fonts"
     fonts.mkdir(parents=True)
-    shutil.copyfile(font["path"], fonts / "LiberationSans-Regular.ttf")
-    shutil.copyfile(font["license_path"], fonts / "LICENSE")
+    shutil.copyfile(font_path, fonts / "LiberationSans-Regular.ttf")
+    shutil.copyfile(font_license, fonts / "LICENSE")
     report = {"inputs": records, "patch": patch, "event_wakeup_patch": wakeup_patch,
               "wayland_wakeup_patch": wayland_wakeup_patch, "patch_tool": patch_tool,
               "graphics_sdk": sdk_record, "font": font, "commands": commands,
               "artifacts": {str(p.relative_to(prefix)): hashlib.sha256(p.read_bytes()).hexdigest()
                             for p in sorted(prefix.rglob("*")) if p.is_file() and not p.is_symlink()}}
+    if private is not None:
+        report['private_dependencies'] = private
+    if font_input is not None:
+        report['font_input'] = font_input
     (work / "result.json").write_text(json.dumps(report, indent=2) + "\n")
     print("Private UI profile built at", prefix)
 

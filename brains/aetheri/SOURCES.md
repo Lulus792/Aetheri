@@ -1,5 +1,23 @@
 # Sources
 
+## Current SDL/text SDK — 9 November UTC / 10 November local
+
+- [Execution record](journal/2026-11-09-sdl-sdk.md),
+  [contract](../../spec/sdl-sdk.md) and
+  [SDL build inputs](../../spec/sdl-sdk-inputs.json): original signed dispatch/
+  header/Meson inputs, opaque signed source notices, exact patched source,
+  full Release/instrumented SDK builds and actual CPU text/event/library proofs.
+  The 1,113-file export and both complete 7,219-file source inventories are checked.
+- The exact source RPM's signed `SOURCEPACKAGE=1` and retained spec/archive/patch
+  establish source-notice data, not target CPU or executable library admission.
+  No source spec or package script executes. The libglvnd binary RPMs themselves
+  omit a consolidated license text; Meson's Apache notice is in dist-info.
+- Native ELF dependency records show that the Release HarfBuzz build needs no
+  C++ runtime despite C++ compilation. The instrumented graph does, and actual
+  maps bind the selected private 16.2.1. Do not infer runtime requirements merely
+  from compiler language. These are scoped lab checks, not Mesa/DRI, actual GUI,
+  hardware, general admission or release acceptance.
+
 ## Common SDK and current NexaUI — 9 November 2026
 
 - [Execution record](journal/2026-11-09-desktop-sdk.md),
