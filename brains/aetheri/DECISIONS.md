@@ -1,5 +1,19 @@
 # Decisions
 
+## Isolate new audio policy tests from the retained carrier — 9 November 2026
+
+Use a separate freshly installed Fedora VM with its own disk, registration,
+UEFI variables, SSH identity and local AF_UNIX QMP. Keep the original guest and
+its quarantined runtime running unchanged. A byte difference between loaded and
+stored policy is not semantic proof and does not authorize reloading that store.
+Offline copied-store compilation remains separate from enforcing execution.
+
+The [audio lab record](journal/2026-11-09-audio-lab.md) distinguishes a successful
+administrative FD/unit preflight from unexecuted confined roles. Preserve failed
+dispatch journals and exact dependency checks. Review the fresh release base's
+different runtime inputs before using the accepted audio profile. This test
+carrier does not deliver or replace the planned Aetheri desktop sandbox.
+
 ## Require the ordinary audio-manager privilege profile — 9 November 2026
 
 Observe cap-zero effective/permitted/inheritable/ambient state and NNP=1 in

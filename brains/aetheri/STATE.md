@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Audio manager admission now also requires the selected cap-zero/NoNewPrivs profile. A same-process enforcing-kernel countercheck proves CAP_WAKE_ALARM alone can deny the cap-zero observer's image read; the preserved upstream manager is now rejected earlier, without new rights. Six cold boots, four native groups in Release/ASan/UBSan, the explicit kernel probe and 85 host cases pass. Next: confined graph/policy/service and endpoint/holder admission before desktop/Settings/HP promotion. USB stays unchanged.
+9 November 2026 — A separate enforcing Fedora audio lab is installed, booted, tested and cleanly powered off. Six host cases and an actual system-bus transient-unit/process-FD transfer/retirement preflight pass. Copied-store CIL compilation and four existing audio tests pass without changing the original guest's policy. Confined audio roles remain uncommitted work; three fresh-base runtime versions need review before reusing the pinned audio profile. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,29 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Separate audio lab — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-audio-lab.md) and
+[controller guide](../../spec/audio-lab.md). New `vm/audio-lab` owns a 32GiB
+virtual disk/4GiB RAM/two vCPUs, separate UEFI/key/QMP and no physical disks.
+Installer and first disk boot exit0. This is Fedora development infrastructure,
+not the user's full Aetheri desktop experiment sandbox or a new release.
+
+The actual fixed sleep preflight checks UID1000/cap-zero/NNP, original invocation,
+FD3 object equality, process exit, held-cgroup ENODEV and unit/extra-FD retirement.
+Earlier disconnected starts and a failed direct-peer RefUnit remain pending in
+the archive; do not replay or rewrite them. Separate administrative unit removal
+does not reconstruct original drain or release any Aetheri lease.
+
+No new audio policy is loaded. The new base's glibc/libgcc/libselinux differ from
+the accepted audio pins; review and stage compatible exact inputs before role
+execution. `policy/audio-test.cil`, probe target/source and `audio_mac_bus.py` /
+`test_audio_mac.py` remain uncommitted drafts. The latter main is not accepted;
+the passing archived local preflight driver uses its Fixture directly.
+Normal authority/services, original source/quarantine/loaded policy, frozen
+contracts, foreign UI notes and USB data stay unchanged. Next: actual confined
+graph/policy/control/player/foreign and PCM evidence, then normal admission.
 
 ## Ordinary audio-manager privilege profile — 9 November 2026
 

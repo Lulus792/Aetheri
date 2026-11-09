@@ -1,0 +1,55 @@
+# Disposable audio-lab VM only. No physical disk or original carrier is allowed.
+text
+eula --agreed
+lang en_US.UTF-8
+keyboard us
+timezone Europe/Berlin --utc
+network --bootproto=dhcp --device=link --activate --hostname=aetheri-audio-lab
+url --url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/
+rootpw --lock
+user --name=aetheri --lock
+sshkey --username=aetheri "@SSH_PUBLIC_KEY@"
+selinux --enforcing
+firewall --enabled --service=ssh
+services --enabled=sshd --disabled=kdump
+firstboot --disable
+skipx
+ignoredisk --only-use=vda
+clearpart --all --initlabel --drives=vda --disklabel=gpt
+reqpart
+part /boot --fstype=ext4 --size=1024 --ondisk=vda
+part / --fstype=ext4 --size=8192 --grow --ondisk=vda
+bootloader --location=mbr --boot-drive=vda --append="console=ttyS0,115200n8"
+poweroff
+
+%pre --erroronfail --log=/tmp/aetheri-audio-lab-pre.log
+set -eux
+test -d /sys/firmware/efi
+test "$(cat /sys/class/dmi/id/product_name)" = "Aetheri audio lab VM"
+test "$(readlink -f /dev/disk/by-id/virtio-AETH_AUDIO_LAB)" = /dev/vda
+test "$(blockdev --getsize64 /dev/vda)" = 34359738368
+test "$(lsblk -dn -o NAME,TYPE | awk '$2 == "disk" && $1 !~ /^zram[0-9]+$/ { n++ } END { print n+0 }')" = 1
+echo AETHERI_AUDIO_LAB_DISK_IDENTITY_VERIFIED
+%end
+
+%packages --excludedocs
+@core
+openssh-server
+sudo
+python3
+policycoreutils
+tar
+%end
+
+%post --erroronfail --log=/root/aetheri-audio-lab-post.log
+set -eu
+printf 'aetheri ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/aetheri-audio-lab
+chmod 0440 /etc/sudoers.d/aetheri-audio-lab
+visudo -cf /etc/sudoers.d/aetheri-audio-lab
+mkdir -p /etc/ssh/sshd_config.d /etc/systemd/system/user@.service.d
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n' > /etc/ssh/sshd_config.d/10-aetheri-audio-lab.conf
+printf '[Service]\nCapabilityBoundingSet=\nAmbientCapabilities=\nNoNewPrivileges=yes\n' > /etc/systemd/system/user@.service.d/aetheri-audio-lab.conf
+printf 'Disposable enforcing audio development carrier; not an Aetheri release.\n' > /etc/aetheri-audio-lab-carrier
+restorecon -RF /etc/sudoers.d /etc/ssh /etc/systemd/system/user@.service.d /etc/aetheri-audio-lab-carrier
+echo AETHERI_AUDIO_LAB_INSTALL_COMPLETE
+%end

@@ -1,5 +1,18 @@
 # Sources
 
+## Separate audio test carrier — 9 November 2026
+
+- [Execution record](journal/2026-11-09-audio-lab.md) and
+  [controller](../../spec/audio-lab.md): actual installer/disk boot, independent
+  enforcing/DMI/geometry/post checks, six host cases, successful system-bus
+  FD3/unit preflight and retained failed attempts. No confined-role acceptance.
+- systemd v259 [sd-bus declarations](https://raw.githubusercontent.com/systemd/systemd/v259/src/systemd/sd-bus.h),
+  [extra-FD implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-service.c)
+  and [manager bus setup](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus.c):
+  typed calls/owned replies, configured FD copies and distinct API/private buses.
+  Actual tests retain remote error names instead of inferring elapsed timeout
+  from errno alone. Unit collection is followed by an original-object PID1 scan.
+
 ## Audio-manager privilege boundary — 9 November 2026
 
 - [Security record](journal/2026-11-09-audio-manager-security.md),
