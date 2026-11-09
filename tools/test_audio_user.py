@@ -83,6 +83,7 @@ class UserBus:
 class UserAudio(Audio):
     def context(self,role):return 'unconfined_u:unconfined_r:'+ROLES[role]+':s0'
     def memory_context(self,role):return 'unconfined_u:object_r:aetheri_audio_'+role+'_mem_test_t:s0'
+    def session_cases(self):return ('unity','half','muted')
 
     def check_manager(self):
         assert not select.select([self.manager_pin],[],[],0)[0]
@@ -107,7 +108,7 @@ class UserAudio(Audio):
         shutil.copyfile(binary/'probe_audio_actor',code/'actor-observer');(code/'actor-observer').chmod(0o555);label(code/'actor-observer','aetheri_audio_fixture_test_t')
         # Targets cannot be transient units. Keep their root-selected ordinary
         # unit files distinct from the disposable transient source services.
-        for case in ('unity','half','muted'):
+        for case in self.session_cases():
             target='aetheri-audio-'+self.token+'-'+case+'-session.target';self.targets[case]=target
             path=Path('/etc/systemd/user')/target
             content=b'[Unit]\nDescription=Aetheri fixed audio test session\n'
@@ -201,7 +202,7 @@ if __name__=='__main__':
     fixture=UserAudio(args.output)
     try:
         fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source);fixture.memory_factories()
-        for case in ('unity','half','muted'):fixture.case(case)
+        for case in fixture.session_cases():fixture.case(case)
         fixture.retire();print(json.dumps(fixture.record))
     except BaseException as error:
         fixture.record.update(state='needs-inspection',error=repr(error));fixture.save();raise

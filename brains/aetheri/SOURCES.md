@@ -1,5 +1,21 @@
 # Sources
 
+## Confined graph reaches HDA — 9 November 2026
+
+- [Execution record](journal/2026-11-09-audio-hardware.md) and
+  [contract](../../spec/audio-hardware.md): three complete device captures,
+  actual ACL/MAC controls, exact original retirement, private runtime projection,
+  malformed runtime counterparts and the full default per-user regression.
+- PipeWire 1.6.11 [ALSA adapter](https://raw.githubusercontent.com/PipeWire/pipewire/1.6.11/spa/plugins/alsa/alsa-pcm.c)
+  opens through snd_pcm_open. ALSA 1.2.16.1
+  [hardware configuration](https://raw.githubusercontent.com/alsa-project/alsa-lib/v1.2.16.1/src/pcm/pcm_hw.c)
+  selects card/device/subdevice rather than exposing the preopened fixture FD.
+- Linux [ACL xattr layout](https://raw.githubusercontent.com/torvalds/linux/master/include/uapi/linux/posix_acl_xattr.h)
+  and [tags](https://raw.githubusercontent.com/torvalds/linux/master/include/uapi/linux/posix_acl.h):
+  the public little-endian version2 layout. The actual carrier headers, exact
+  ACL round trip and before/active/after controls provide the local version and
+  behavior evidence; upstream master alone is not proof of a deployed kernel.
+
 ## Confined virtual sound-device boundary — 9 November 2026
 
 - [Execution record](journal/2026-11-09-audio-pcm.md) and

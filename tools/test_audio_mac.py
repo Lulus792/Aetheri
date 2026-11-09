@@ -30,7 +30,7 @@ ROLES={r:'aetheri_audio_'+r+'_test_t' for r in ('graph','policy','control','play
 
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-def run(*args):return subprocess.check_output(args,text=True,stderr=subprocess.STDOUT,timeout=20).strip()
+def run(*args):return subprocess.check_output(args,text=True,stderr=subprocess.STDOUT,timeout=55 if args[0]=='semodule' else 20).strip()
 def label(path,kind):run('chcon','-h','system_u:object_r:'+kind+':s0',str(path))
 def facts(unit):
     keys='Id,LoadState,ActiveState,SubState,MainPID,ControlPID,InvocationID,ControlGroup,Job,ExecMainStatus'
@@ -268,6 +268,28 @@ class Audio(Fixture):
                 assert str(library) in maps
         self.record['units'][name]['observed_image']=dict(path=str(path),sha256=sha(path));self.save()
 
+    def configure_case(self,root,fifo):
+        conf,common=configuration(root,self.sdk,self.policy)
+        (conf/'server.conf').write_text(common+'''context.properties = { core.daemon = true core.name = aetheri-audio-test default.clock.rate = 48000 default.clock.quantum = 1024 default.clock.min-quantum = 1024 default.clock.max-quantum = 1024 mem.allow-mlock = false support.dbus = false }
+context.modules = [
+ { name = libpipewire-module-protocol-native args = { sockets = [ { name = aetheri-audio-test mode = 0600 } ] } }
+ { name = libpipewire-module-client-node }
+ { name = libpipewire-module-adapter }
+ { name = libpipewire-module-link-factory }
+ { name = libpipewire-module-spa-node-factory }
+ { name = libpipewire-module-metadata }
+ { name = libpipewire-module-client-device }
+ { name = libpipewire-module-access args = { access.legacy = false access.socket = { aetheri-audio-test = unrestricted } } }
+ { name = libpipewire-module-pipe-tunnel args = { tunnel.mode = sink pipe.filename = '''+json.dumps(str(fifo))+''' audio.format = F32LE audio.rate = 48000 audio.channels = 2 audio.position = [ FL FR ] stream.props = { media.class = Audio/Sink node.virtual = true node.name = aetheri.test.sink adapter.auto-port-config = { mode = dsp position = preserve } } } }
+]
+context.objects = [ { factory = spa-node-factory args = { factory.name = support.node.driver node.name = Test-Driver priority.driver = 200000 } } ]
+''')
+        return conf
+
+    def extra_environment(self,root,conf):return {}
+    def signal_frames(self):return 48000
+    def validate_case(self,case,raw):return validate_pcm(raw,self.signal_frames(),silent=case=='muted',gain=.125 if case=='half' else 1)
+
     def case(self,case):
         root=self.root/case;root.mkdir(mode=0o755);label(root,'aetheri_audio_fixture_test_t')
         runtime=root/'run';state=root/'state'
@@ -284,21 +306,7 @@ class Audio(Fixture):
                 captured.extend(raw)
                 assert len(captured)<=8*1024**2,'PCM budget'
         self.pump=pump
-        conf,common=configuration(root,self.sdk,self.policy)
-        (conf/'server.conf').write_text(common+'''context.properties = { core.daemon = true core.name = aetheri-audio-test default.clock.rate = 48000 default.clock.quantum = 1024 default.clock.min-quantum = 1024 default.clock.max-quantum = 1024 mem.allow-mlock = false support.dbus = false }
-context.modules = [
- { name = libpipewire-module-protocol-native args = { sockets = [ { name = aetheri-audio-test mode = 0600 } ] } }
- { name = libpipewire-module-client-node }
- { name = libpipewire-module-adapter }
- { name = libpipewire-module-link-factory }
- { name = libpipewire-module-spa-node-factory }
- { name = libpipewire-module-metadata }
- { name = libpipewire-module-client-device }
- { name = libpipewire-module-access args = { access.legacy = false access.socket = { aetheri-audio-test = unrestricted } } }
- { name = libpipewire-module-pipe-tunnel args = { tunnel.mode = sink pipe.filename = '''+json.dumps(str(fifo))+''' audio.format = F32LE audio.rate = 48000 audio.channels = 2 audio.position = [ FL FR ] stream.props = { media.class = Audio/Sink node.virtual = true node.name = aetheri.test.sink adapter.auto-port-config = { mode = dsp position = preserve } } } }
-]
-context.objects = [ { factory = spa-node-factory args = { factory.name = support.node.driver node.name = Test-Driver priority.driver = 200000 } } ]
-''')
+        conf=self.configure_case(root,fifo)
         for path in (conf,*conf.rglob('*')):label(path,'aetheri_audio_config_test_t')
         remote=runtime/'aetheri-audio-test'
         env=dict(PATH='/usr/bin:/bin',HOME=str(root),XDG_RUNTIME_DIR=str(runtime),XDG_CONFIG_HOME=str(conf),XDG_STATE_HOME=str(state),
@@ -306,6 +314,7 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
             PIPEWIRE_CONFIG_DIR=str(conf),PIPEWIRE_MODULE_DIR=str(conf/'modules'),SPA_PLUGIN_DIR=str(self.sdk/'usr/lib64/spa-0.2'),
             WIREPLUMBER_CONFIG_DIR=str(conf/'wp'),WIREPLUMBER_DATA_DIR=str(self.policy/'usr/share/wireplumber'),
             WIREPLUMBER_MODULE_DIR=str(self.policy/'usr/lib64/wireplumber-0.5'),GIO_USE_VFS='local',GIO_MODULE_DIR='/nonexistent')
+        env.update(self.extra_environment(root,conf))
         def start(role,arguments,pin=None):
             unit=self.start(case,role,[str(self.images['gateway']),'exec','pin' if pin is not None else 'none',*map(str,arguments)],env,pin=pin)
             self.release(unit);self.image(unit,Path(arguments[0]));return unit
@@ -331,7 +340,7 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
         assert 'AETHERI_AUDIO_NATIVE_PASS case='+case in self.units[native]['log'].read_text()
         assert 'AETHERI_AUDIO_NATIVE_PEER original=1' in self.units[native]['log'].read_text()
         self.stop(native)
-        player=start('player',[self.images['player'],'--remote',str(remote),'--frames','48000','--wait-for-start','--autoconnect','--server-pidfd','3'],self.units[graph]['pin'])
+        player=start('player',[self.images['player'],'--remote',str(remote),'--frames',str(self.signal_frames()),'--wait-for-start','--autoconnect','--server-pidfd','3'],self.units[graph]['pin'])
         self.wait(lambda:'CONNECTED node=' in self.units[player]['log'].read_text(),[graph,policy,player],'player connected')
         def linked():
             pump()
@@ -357,12 +366,12 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
         assert not any(captured),'signal before explicit activation'
         signal.pidfd_send_signal(self.units[player]['pin'],signal.SIGUSR1)
         self.finished(player)
-        assert 'DRAINED frames=48000' in self.units[player]['log'].read_text()
+        assert 'DRAINED frames='+str(self.signal_frames()) in self.units[player]['log'].read_text()
         self.stop(player)
         for _ in range(30):pump();time.sleep(.01)
         self.stop(policy);self.stop(graph);self.retire_extra_fds();pump();self.retire_capture()
         raw=bytes(captured);(self.output/(case+'.f32le')).write_bytes(raw)
-        result=validate_pcm(raw,48000,silent=case=='muted',gain=.125 if case=='half' else 1)
+        result=self.validate_case(case,raw)
         self.record.setdefault('cases',{})[case]=result;self.save()
 
     def retire(self):

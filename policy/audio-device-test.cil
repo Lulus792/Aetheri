@@ -1,0 +1,12 @@
+; MIT. Fixed virtual playback/control nodes in the disposable lab only.
+(type aetheri_audio_playback_device_test_t)
+(type aetheri_audio_control_device_test_t)
+(typeattributeset device_node (aetheri_audio_playback_device_test_t aetheri_audio_control_device_test_t))
+(allow aetheri_audio_actor_test device_t (dir (search getattr)))
+(allow aetheri_audio_actor_test sound_device_t (dir (search getattr)))
+(allow aetheri_audio_graph_test_t aetheri_audio_playback_device_test_t (chr_file (open read write getattr ioctl map)))
+(allow aetheri_audio_graph_test_t aetheri_audio_control_device_test_t (chr_file (open read write getattr ioctl)))
+(neverallow aetheri_audio_client_test aetheri_audio_playback_device_test_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_client_test aetheri_audio_control_device_test_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_foreign_test_t aetheri_audio_playback_device_test_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_foreign_test_t aetheri_audio_control_device_test_t (chr_file (open read write ioctl map)))

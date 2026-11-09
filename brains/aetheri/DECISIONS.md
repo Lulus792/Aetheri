@@ -1,5 +1,23 @@
 # Decisions
 
+## Give only the audio backend direct device access — 9 November 2026
+
+The existing ALSA adapter opens its configured path, so keep preopened-FD
+diagnostics separate. Use a temporary fixed-user ACL plus distinct playback/
+control test types in the disposable lab. Only the graph backend receives raw
+I/O permissions; clients retain media/control IPC and compiled device denials.
+Preserve node owner/group/mode and user groups, then restore exact original
+contexts and ACL absence after original holder retirement. This selects a test
+boundary, not normal session admission or a production uaccess implementation.
+
+Reuse the shared per-user actor/session/client flow with small test-profile
+hooks. Each hardware case has its own cold-boot capture; keep the unchanged
+default synthetic profile and verify it separately. Use the already pinned
+private libudev object when the carrier's same-named object differs. Do not
+silently adopt a version or replace the system library. See the
+[record](journal/2026-11-09-audio-hardware.md) and
+[contract](../../spec/audio-hardware.md).
+
 ## Separate virtual-device drain from captured audio — 9 November 2026
 
 Use the separate enforcing audio lab for a root-selected PCM FD passed only to

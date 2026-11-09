@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — A confined UID1000 backend now writes through the separate lab's virtual HDA device FD. The final explicitly padded diagnostic passes the unchanged full 96,000-frame host reference; earlier unpadded captures remain failed evidence. Original user-service actor, unit/cgroup/FD retirement and exact node-label restoration pass. Capture finalization and ordinary lab control use separate protected AF_UNIX QMP endpoints. Normal protected session/device/Settings integration and physical audio remain work. USB stays unchanged.
+9 November 2026 — Confined PipeWire, WirePlumber routing and original control/player clients now pass full virtual HDA unity/half/mute captures under the real user manager. Temporary ACLs and MAC types restrict raw device access to the backend; actual foreign denials and exact restoration pass. The unchanged default synthetic profile also passes after the shared-flow refactor. The successful runs retire 37 role services, 12 native observers and six session targets; all four original QEMU processes exit 0. Normal protected services/session/device admission, Settings and physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,35 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Confined graph on the virtual device — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-audio-hardware.md) and
+[contract](../../spec/audio-hardware.md). The existing per-user actor, policy,
+stereo-link, native control/player and target-stop flow now reaches the real
+virtual PCM node. Unity and cubic half gain preserve all 96,000 reference frames
+within the unchanged two-LSB bound; mute is entirely silent with sufficient
+captured duration. Raw captures and complete guest exports are independently
+checked after original resource retirement and QEMU exit.
+
+The root-selected device ACL leaves owner/group/mode and user groups unchanged.
+Only the graph test role may open the selected playback/control types. Actual
+same-UID DAC controls and foreign enforcing AVCs distinguish those boundaries.
+Original ACL absence and raw labels are restored after all owned units/holders.
+The ALSA/plugin and already pinned private libudev are observed in the graph;
+the fresh carrier's different same-named library is not silently adopted.
+
+Both native Release/ASan controls and copied-store policy compilation pass.
+The normal synthetic UserAudio flow passes 19 role services, six observers and
+all three 48,000-frame cases on a separate plain boot. Retain the rejected
+staging, audit-transport assertion and separate exact administrative retirement.
+Earlier clock-loss and raw-PCM drain limitations remain open.
+
+Next establish protected normal service/session/device ownership and wire the
+native audio controls into Settings. The fixed card/UID and unconfined lab
+manager remain test infrastructure; discovery/ACP, complete provenance,
+revocation/delegation/restart, physical HP/Bluetooth and release integration
+are not completed by these captures. Preserve the original guest and USB.
 
 ## Confined virtual sound device — 9 November 2026
 
@@ -35,8 +64,9 @@ seven synthetic PCM-verifier cases pass. The diagnostic has its own filename;
 `tools/test_audio_pcm.py` stays unchanged. The original guest, protected inputs,
 quarantined runtime, frozen contracts, foreign work and USB are preserved.
 
-Next connect actual devices to the reviewed PipeWire/WirePlumber role/session
-path and protected service/configuration ownership, then Settings. The current
+The full graph profile above now connects the virtual device to the reviewed
+PipeWire/WirePlumber role/session path. Protected normal ownership and Settings
+remain work. The earlier
 root-preopened FD and trusted lab manager are administrative test infrastructure,
 not production device admission, full revocation/recovery or normal app access.
 
