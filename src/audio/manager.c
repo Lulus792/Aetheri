@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "manager.h"
+#include "actor.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/magic.h>
@@ -42,6 +43,7 @@ struct ae_audio_manager {
     uid_t uid;
     pid_t thread;
     int pin,loss;
+    unsigned references;
     struct stat expected_image;
     struct snapshot original;
 };
@@ -118,31 +120,31 @@ static int owner(sd_bus *bus,char name[256]) {
     if(r>0) memcpy(name,text,strlen(text)+1);
     sd_bus_message_unref(reply);return r>0 ? 0 : r<0 ? r : -EBADMSG;
 }
-static int supervisor(struct ae_audio_manager *g,struct snapshot *s) {
+static int supervisor(struct ae_audio_manager *g,struct snapshot *s,sd_bus *bus,const char *destination,const char *expected_unit,bool manager) {
     sd_bus_message *reply=NULL;const char *path=NULL,*unit=NULL;const void *bytes=NULL;size_t size=0;
-    int r=sd_bus_call_method(g->system,service,object,"org.freedesktop.systemd1.Manager","GetUnitByPIDFD",NULL,&reply,"h",g->pin);
+    int r=sd_bus_call_method(bus,destination,object,"org.freedesktop.systemd1.Manager","GetUnitByPIDFD",NULL,&reply,"h",g->pin);
     if(r>=0 && !sd_bus_message_has_signature(reply,"osay")) r=-EBADMSG;
     if(r>=0) r=sd_bus_message_read(reply,"os",&path,&unit);
-    if(r>0 && strcmp(unit,g->unit)) r=-EACCES;
+    if(r>0 && strcmp(unit,expected_unit)) r=-EACCES;
     if(r>0) r=sd_bus_message_read_array(reply,'y',&bytes,&size);
     if(r>0 && size!=16) r=-EBADMSG;
     if(r>0) {unsigned nonzero=0;for(unsigned i=0;i<16;++i) nonzero|=((const uint8_t *)bytes)[i];if(!nonzero) r=-ENODATA;else memcpy(s->invocation,bytes,16);}
     char *state=NULL,*cgroup=NULL;uint32_t main_pid=0,control_pid=0;
-    if(r>0) r=sd_bus_get_property_string(g->system,service,path,unit_interface,"ActiveState",NULL,&state);
+    if(r>0) r=sd_bus_get_property_string(bus,destination,path,unit_interface,"ActiveState",NULL,&state);
     if(r>=0 && (!state || strcmp(state,"active"))) r=-EAGAIN;
-    if(r>=0) r=sd_bus_get_property_trivial(g->system,service,path,service_interface,"MainPID",NULL,'u',&main_pid);
+    if(r>=0) r=sd_bus_get_property_trivial(bus,destination,path,service_interface,"MainPID",NULL,'u',&main_pid);
     if(r>=0 && main_pid!=s->info.pid) r=-EACCES;
-    if(r>=0) r=sd_bus_get_property_trivial(g->system,service,path,service_interface,"ControlPID",NULL,'u',&control_pid);
+    if(r>=0) r=sd_bus_get_property_trivial(bus,destination,path,service_interface,"ControlPID",NULL,'u',&control_pid);
     if(r>=0 && control_pid) r=-EAGAIN;
-    if(r>=0) r=sd_bus_get_property_string(g->system,service,path,service_interface,"ControlGroup",NULL,&cgroup);
+    if(r>=0) r=sd_bus_get_property_string(bus,destination,path,service_interface,"ControlGroup",NULL,&cgroup);
     if(r>=0 && (!cgroup || cgroup[0]!='/' || !cgroup[1] || strlen(cgroup)+12>=sizeof(s->cgroup))) r=-EBADMSG;
-    if(r>=0) snprintf(s->cgroup,sizeof(s->cgroup),"%s/init.scope",cgroup);
+    if(r>=0) snprintf(s->cgroup,sizeof(s->cgroup),manager ? "%s/init.scope" : "%s",cgroup);
     sd_bus_message *property=NULL;
-    if(r>=0) r=sd_bus_get_property(g->system,service,path,unit_interface,"InvocationID",NULL,&property,"ay");
+    if(r>=0) r=sd_bus_get_property(bus,destination,path,unit_interface,"InvocationID",NULL,&property,"ay");
     if(r>=0) r=sd_bus_message_read_array(property,'y',&bytes,&size);
     if(r>0 && (size!=16 || memcmp(bytes,s->invocation,16))) r=-ESTALE;
     sd_bus_message_unref(property);property=NULL;
-    if(r>0) r=sd_bus_get_property(g->system,service,path,unit_interface,"Job",NULL,&property,"(uo)");
+    if(r>0) r=sd_bus_get_property(bus,destination,path,unit_interface,"Job",NULL,&property,"(uo)");
     if(r>=0) r=sd_bus_message_enter_container(property,'r',"uo");
     uint32_t job=0;const char *job_path=NULL;
     if(r>0) r=sd_bus_message_read(property,"uo",&job,&job_path);
@@ -150,7 +152,7 @@ static int supervisor(struct ae_audio_manager *g,struct snapshot *s) {
     sd_bus_message_unref(property);sd_bus_message_unref(reply);free(state);free(cgroup);
     return r>0 ? 0 : r<0 ? r : -EBADMSG;
 }
-static int cgroup_check(struct ae_audio_manager *g,struct snapshot *s) {
+static int cgroup_handle(struct ae_audio_manager *g,struct snapshot *s,int *result) {
     char *actual=NULL;int r=sd_pidfd_get_cgroup(g->pin,&actual);
     if(r>=0 && (!actual || strcmp(actual,s->cgroup))) r=-ESTALE;
     free(actual);if(r<0) return r;
@@ -162,8 +164,11 @@ static int cgroup_check(struct ae_audio_manager *g,struct snapshot *s) {
     int fd=-1;if(!r) {fd=(int)syscall(SYS_openat2,root,s->cgroup+1,&how,sizeof(how));if(fd<0) r=-errno;}
     if(!r && fstat(fd,&st)) r=-errno;
     if(!r && (uint64_t)st.st_ino!=s->info.cgroupid) r=-ESTALE;
-    if(fd>=0) close(fd);
+    if(!r) *result=fd;else if(fd>=0) close(fd);
     close(root);return r;
+}
+static int cgroup_check(struct ae_audio_manager *g,struct snapshot *s) {
+    int fd=-1;int r=cgroup_handle(g,s,&fd);if(fd>=0) close(fd);return r;
 }
 static int observe(struct ae_audio_manager *g,struct snapshot *s) {
     char name[256];sd_id128_t user,system;const char *phase="pin-live";int r=live(g->pin);
@@ -175,7 +180,7 @@ static int observe(struct ae_audio_manager *g,struct snapshot *s) {
     STEP("kernel-identity",identity(g,&s->info));
     STEP("ordinary-manager",security_context(s->info.pid));
     if(!r && fstat(g->pin,&s->pin)) r=-errno;
-    STEP("supervisor",supervisor(g,s));
+    STEP("supervisor",supervisor(g,s,g->system,service,g->unit,true));
     STEP("cgroup",cgroup_check(g,s));
     char path[64];snprintf(path,sizeof(path),"/proc/%u/exe",s->info.pid);
     int image=-1;if(!r) {phase="current-image";image=open(path,O_PATH|O_CLOEXEC);if(image<0) r=-errno;}
@@ -205,13 +210,14 @@ const char *ae_audio_manager_name(const struct ae_audio_manager *g) {return g ? 
 void ae_audio_manager_close(struct ae_audio_manager **pointer) {
     if(!pointer || !*pointer) return;
     struct ae_audio_manager *g=*pointer;*pointer=NULL;
+    if(--g->references) return;
     if(g->pin>=0) close(g->pin);
     sd_bus_unref(g->user);sd_bus_unref(g->system);free(g);
 }
 struct ae_audio_manager *ae_audio_manager_open(sd_bus *user,sd_bus *system,uid_t uid,int image) {
     if(!user || !system || user==system || uid!=getuid() || uid!=geteuid() || getgid()!=getegid() || image<0) {errno=EINVAL;return NULL;}
     struct ae_audio_manager *g=calloc(1,sizeof(*g));if(!g) return NULL;
-    g->pin=-1;g->uid=uid;g->thread=(pid_t)syscall(SYS_gettid);g->user=sd_bus_ref(user);g->system=sd_bus_ref(system);
+    g->references=1;g->pin=-1;g->uid=uid;g->thread=(pid_t)syscall(SYS_gettid);g->user=sd_bus_ref(user);g->system=sd_bus_ref(system);
     snprintf(g->unit,sizeof(g->unit),"user@%u.service",(unsigned)uid);
     const char *phase="bus-client";
     int r=sd_bus_is_bus_client(user)>0 && sd_bus_is_bus_client(system)>0 ? 0 : -EPROTO;
@@ -240,4 +246,100 @@ struct ae_audio_manager *ae_audio_manager_open(sd_bus *user,sd_bus *system,uid_t
     STEP("original-recheck",ae_audio_manager_check(g));
     if(!r) return g;
     trace_failure(phase,r);ae_audio_manager_close(&g);errno=-r;return NULL;
+}
+
+/* Share bounded kernel/image/supervisor primitives with the manager observer;
+ * user actors still have their own immutable baseline, pins and latched loss. */
+struct ae_audio_actor {
+    struct ae_audio_manager *manager;
+    int pin,group,loss;
+    char unit[256],context[512];
+    struct stat expected_image,original_group;
+    struct snapshot original;
+};
+static int actor_context(uint32_t pid,const char *expected) {
+    char path[64],text[512];snprintf(path,sizeof(path),"/proc/%u/attr/current",pid);
+    int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(fd<0) return -errno;
+    size_t size=0;int r=0;
+    for(;;) {
+        ssize_t n=read(fd,text+size,sizeof(text)-size);
+        if(n<0 && errno==EINTR) continue;
+        if(n<0) {r=-errno;break;}
+        if(!n) break;
+        size+=(size_t)n;if(size==sizeof(text)) {r=-E2BIG;break;}
+    }
+    if(close(fd) && !r) r=-errno;
+    if(r) return r;
+    if(size && text[size-1]==0) --size;
+    if(size && text[size-1]=='\n') --size;
+    return size==strlen(expected) && !memcmp(text,expected,size) ? 0 : -EACCES;
+}
+static int actor_subtree(struct ae_audio_manager *g,const char *cgroup) {
+    size_t size=strlen(g->original.cgroup),suffix=sizeof("/init.scope")-1;
+    if(size<=suffix || strcmp(g->original.cgroup+size-suffix,"/init.scope")) return -EBADMSG;
+    size_t base=size-suffix,actual=strlen(cgroup);
+    if(actual<=base+1 || strncmp(cgroup,g->original.cgroup,base) || cgroup[base]!='/') return -EACCES;
+    if(actual>=size && !strncmp(cgroup,g->original.cgroup,size) && (!cgroup[size] || cgroup[size]=='/')) return -EACCES;
+    return 0;
+}
+static int actor_observe(struct ae_audio_actor *a,struct snapshot *s,int *group) {
+    struct ae_audio_manager *g=a->manager,view=*g;
+    view.pin=a->pin;
+    const char *phase="original-manager";int r=ae_audio_manager_check(g);
+    STEP("actor-identity",identity(&view,&s->info));
+    STEP("ordinary-actor",security_context(s->info.pid));
+    STEP("actor-context",actor_context(s->info.pid,a->context));
+    if(!r && fstat(a->pin,&s->pin)) r=-errno;
+    STEP("user-unit",supervisor(&view,s,g->user,g->name,a->unit,false));
+    STEP("user-subtree",actor_subtree(g,s->cgroup));
+    STEP("actor-cgroup",cgroup_handle(&view,s,group));
+    char path[64];snprintf(path,sizeof(path),"/proc/%u/exe",s->info.pid);
+    int image=-1;if(!r) {image=open(path,O_PATH|O_CLOEXEC);if(image<0) r=-errno;}
+    if(!r && fstat(image,&s->image)) r=-errno;
+    if(image>=0) close(image);
+    if(!r && !same_image(&s->image,&a->expected_image)) r=-ESTALE;
+    STEP("actor-context-recheck",actor_context(s->info.pid,a->context));
+    STEP("ordinary-actor-recheck",security_context(s->info.pid));
+    struct pidfd_info after;STEP("actor-identity-recheck",identity(&view,&after));
+    if(!r && !same_info(&s->info,&after)) r=-ESTALE;
+    STEP("original-manager-recheck",ae_audio_manager_check(g));
+    trace_failure(phase,r);return r;
+}
+int ae_audio_actor_check(struct ae_audio_actor *a) {
+    if(!a) return -EINVAL;
+    if(a->loss) return a->loss;
+    if(a->manager->thread!=(pid_t)syscall(SYS_gettid)) return a->loss=-ECHILD;
+    struct snapshot current={0};struct stat named,held;int group=-1;
+    int r=actor_observe(a,&current,&group);
+    if(!r && !equal(&current,&a->original)) r=-ESTALE;
+    if(!r && (fstat(group,&named) || fstat(a->group,&held))) r=-errno;
+    if(!r && (!same_object(&named,&a->original_group) || !same_object(&held,&a->original_group))) r=-ESTALE;
+    if(group>=0) close(group);
+    return a->loss=r;
+}
+void ae_audio_actor_close(struct ae_audio_actor **pointer) {
+    if(!pointer || !*pointer) return;
+    struct ae_audio_actor *a=*pointer;*pointer=NULL;
+    if(a->pin>=0) close(a->pin);
+    if(a->group>=0) close(a->group);
+    ae_audio_manager_close(&a->manager);free(a);
+}
+struct ae_audio_actor *ae_audio_actor_open(struct ae_audio_manager *g,const char *unit,int pin,int image,const char *context) {
+    size_t n=unit ? strnlen(unit,256) : 0,label=context ? strnlen(context,512) : 0;
+    if(!g || n<=8 || n>=256 || strcmp(unit+n-8,".service") || strspn(unit,"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.@:-")!=n ||
+       !label || label>=512 || pin<0 || image<0) {errno=EINVAL;return NULL;}
+    for(size_t i=0;i<label;++i) if((unsigned char)context[i]<33 || (unsigned char)context[i]>126) {errno=EINVAL;return NULL;}
+    int r=ae_audio_manager_check(g);if(r<0) {errno=-r;return NULL;}
+    if(g->references==UINT32_MAX) {errno=EOVERFLOW;return NULL;}
+    struct ae_audio_actor *a=calloc(1,sizeof(*a));if(!a) return NULL;
+    a->pin=-1;a->group=-1;a->manager=g;++g->references;
+    memcpy(a->unit,unit,n+1);memcpy(a->context,context,label+1);
+    a->pin=fcntl(pin,F_DUPFD_CLOEXEC,3);if(a->pin<0) r=-errno;
+    if(!r && fstat(image,&a->expected_image)) r=-errno;
+    if(!r && (!S_ISREG(a->expected_image.st_mode) || a->expected_image.st_uid || (a->expected_image.st_mode&0022) || a->expected_image.st_size<=0)) r=-EACCES;
+    if(!r) r=actor_observe(a,&a->original,&a->group);
+    if(!r && fstat(a->group,&a->original_group)) r=-errno;
+    if(!r) r=ae_audio_actor_check(a);
+    if(!r) return a;
+    ae_audio_actor_close(&a);errno=-r;return NULL;
 }

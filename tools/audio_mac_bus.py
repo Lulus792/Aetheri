@@ -11,12 +11,20 @@ class Error(c.Structure):
     _fields_=[('name',c.c_char_p),('message',c.c_char_p),('need_free',c.c_int)]
 
 
+class BusError(OSError):
+    def __init__(self,number,name,message):
+        self.remote_name=name;self.remote_message=message
+        super().__init__(number,'administrative bus call failed; do not replay: '+': '.join(v for v in (name,message) if v))
+
+
 class Bus:
-    def __init__(self,private=False):
+    def __init__(self,private=False,user=False):
+        if private and user:raise ValueError('choose one administrative bus')
         self.private=private
         self.lib=c.CDLL('libsystemd.so.0');self.bus=c.c_void_p()
         signatures={
             'sd_bus_open_system':([c.POINTER(c.c_void_p)],c.c_int),
+            'sd_bus_open_user':([c.POINTER(c.c_void_p)],c.c_int),
             'sd_bus_new':([c.POINTER(c.c_void_p)],c.c_int),
             'sd_bus_set_address':([c.c_void_p,c.c_char_p],c.c_int),
             'sd_bus_negotiate_fds':([c.c_void_p,c.c_int],c.c_int),
@@ -41,6 +49,7 @@ class Bus:
                 self.check(self.lib.sd_bus_set_address(self.bus,b'unix:path=/run/systemd/private'))
                 self.check(self.lib.sd_bus_negotiate_fds(self.bus,1))
                 self.check(self.lib.sd_bus_start(self.bus))
+            elif user:self.check(self.lib.sd_bus_open_user(c.byref(self.bus)))
             else:self.check(self.lib.sd_bus_open_system(c.byref(self.bus)))
             self.check(self.lib.sd_bus_set_method_call_timeout(self.bus,3000000))
         except BaseException:
@@ -91,8 +100,7 @@ class Bus:
             if build:build(request)
             status=self.lib.sd_bus_call(self.bus,request,3000000,c.byref(error),c.byref(reply))
             if status<0:
-                detail=': '.join(raw.decode(errors='replace') for raw in (error.name,error.message) if raw)
-                raise OSError(-status,'administrative bus call failed; do not replay: '+detail)
+                raise BusError(-status,*(raw.decode(errors='replace') if raw else None for raw in (error.name,error.message)))
             if self.lib.sd_bus_message_has_signature(reply,(result or '').encode())!=1:raise ValueError('different administrative reply signature; do not replay')
             if result:
                 value=c.c_char_p() if result in 'so' else c.c_uint32()
@@ -102,16 +110,16 @@ class Bus:
             self.lib.sd_bus_error_free(c.byref(error))
             self.lib.sd_bus_message_unref(reply);self.lib.sd_bus_message_unref(request)
 
-    def create(self,name,properties):
+    def create(self,name,properties,destination='org.freedesktop.systemd1'):
         def build(message):
             self.append(message,'s',name);self.append(message,'s','fail');self.open(message,'a','(sv)')
             for key,signature,value in properties:
                 self.open(message,'r','sv');self.append(message,'s',key);self.open(message,'v',signature)
                 self.value(message,signature,value);self.end(message);self.end(message)
             self.end(message);self.open(message,'a','(sa(sv))');self.end(message)
-        return self.call('StartTransientUnit',build,result='o')
+        return self.call('StartTransientUnit',build,result='o',destination=destination)
 
-    def unit(self,member,name):return self.call(member,lambda m:self.append(m,'s',name))
-    def stop(self,name):return self.call('StopUnit',lambda m:(self.append(m,'s',name),self.append(m,'s','fail')),result='o')
+    def unit(self,member,name,destination='org.freedesktop.systemd1'):return self.call(member,lambda m:self.append(m,'s',name),destination=destination)
+    def stop(self,name,destination='org.freedesktop.systemd1'):return self.call('StopUnit',lambda m:(self.append(m,'s',name),self.append(m,'s','fail')),result='o',destination=destination)
     def close(self):
         if self.bus:self.lib.sd_bus_unref(self.bus);self.bus=c.c_void_p()

@@ -126,8 +126,9 @@ registered manager. No admitted identity or mutation is retried this way.
 The observer retains the original unique destination, both bus IDs, process pin,
 invocation, cgroup and executable observations. Rechecks precede fixture effects
 and run during playback. The first observed mismatch or read failure is latched;
-returning to the old owner does not reset it. Closing only retires its own pin
-and bus references. It sends no service mutation, signal or reconnect, and adds
+returning to the old owner does not reset it. Closing drops the caller's reference;
+the original pin/bus references remain while a retained actor still needs them.
+It sends no service mutation, signal or reconnect, and adds
 no permanent process or database. The caller keeps stop/drain coordination separate.
 
 These are bounded observations on the calling thread, not exclusion of exec,
@@ -151,6 +152,56 @@ registration. Run it only as an administrator in the registered disposable
 carrier. It changes only its own test children, never the original user manager,
 policy or services. The [security record](../brains/aetheri/journal/2026-11-09-audio-manager-security.md)
 retains the causal countercheck and ordinary-profile regression evidence.
+
+## Original user-service actor observation
+
+`audio/actor.h` adds a read-only observer for a specific original user-service
+main. The caller supplies the already admitted manager, literal service name,
+original live pidfd, independently selected root-owned non-writable executable
+and exact expected MAC context. No PID is opened from a socket or app claim.
+It reuses the manager library's bounded kernel/image checks without introducing
+another daemon, database or installed management interface.
+
+Calls go to the retained manager's original unique bus destination.
+GetUnitByPIDFD must identify the selected service and a nonzero invocation;
+ActiveState, MainPID, ControlPID, InvocationID, Job and ControlGroup must agree.
+The main's current kernel credentials, cap-zero/NNP status, executable and MAC
+context are checked repeatedly. Its exact cgroup must lie below this original
+user@ delegation, outside init.scope, with the kernel cgroup ID matching the
+held/named cgroup object. Another same-UID unit or same-unit non-main is refused.
+
+The actor retains its own process/cgroup handles and a reference to the original
+manager observer. Closing the caller's original FDs or manager reference does not
+invalidate it. Close only retires owned observations; it sends no StopUnit,
+UnrefUnit, signal or release. The first failed observation is latched, including
+manager loss; returning to an earlier state never restores the attempt.
+
+These remain snapshots, not exclusion of future exec, migration or delegation.
+Protected unit/configuration/dependency provenance, supplementary-group policy,
+mutation fences, device/listener admission and complete holder/recovery handling
+remain separate. Comparing an expected MAC label does not install that policy
+or prove its permissions. Normal audio is not enabled by this library.
+
+The [actor record](../brains/aetheri/journal/2026-11-09-audio-actor.md) binds native
+Release/sanitizer tests to an actual enforcing-carrier user-unit test. The
+permanent explicit probe/driver uses root-selected `/usr/bin/sleep` units with
+the existing cap-zero/NNP user@ profile, not graph playback or confined audio
+roles. It rejects a different actual unit/image/context and observes original
+process exit. The administrative controller independently retires unit/job/
+cgroup resources; the observer's loss marker is never used as a drain proof.
+
+Build `probe_audio_actor` with `AETHERI_LINUX_IPC` and `BUILD_TESTING`. In the
+registered enforcing audio lab, with protected root-selected source/binary
+inputs and its existing cap-zero/NNP user@ profile, run:
+
+```text
+python tools/test_audio_actor.py /absolute/build/probe_audio_actor /absolute/source /root/fresh-actor-evidence
+```
+
+The output directory must be new. An interrupted attempt requires inspection,
+not redispatch. `tools/test_audio_actor_controls.py` runs five host-only cases
+without opening a bus or changing a guest. The driver is not a normal installer
+or a production recovery/removal command.
 
 The executed private check is:
 

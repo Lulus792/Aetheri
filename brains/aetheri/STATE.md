@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The separate enforcing audio lab now passes graph/policy/control/player isolation, four actual memory-label factories and complete synthetic PCM at unity, half volume and mute. Its eight-package runtime alignment is signed, pinned and checked. An invalid-endpoint ordering correction passes the native control suite in Release and ASan/UBSan; the changed Release binary also passes all19 enforcing role units. The separate VM exits0 after retirement. Normal user-session/Settings/physical audio remain work. USB stays unchanged.
+9 November 2026 — Native original-user-service observation now joins an audio actor's held process/image/context/cgroup to its retained manager and exact active invocation. Four native groups pass Release and ASan/UBSan; actual user-unit tests reject foreign unit/image/context and latch original exit. The separate VM exits0 after test retirement. Confined graph/policy/control/player PCM remains separately verified. Normal role/session/Settings/device integration and physical audio remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,27 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Original audio user-service actor — 9 November 2026
+
+Read the [actor record](journal/2026-11-09-audio-actor.md) and
+[contract](../../spec/audio-session.md#original-user-service-actor-observation).
+`audio/actor.h` retains the original manager plus its own process/cgroup handles.
+Strict current main/invocation/context/image checks use that manager's unique
+destination. First observation loss stays latched; close is not stop or drain.
+
+The existing native manager test now includes actor counterchecks and real
+process/FD observations, with controlled bus/unit/cgroup facts. Four groups pass
+Release and ASan/UBSan. Two actual disposable-carrier runs each retire two real
+user units; wrong unit/image/context fail, original admission and exit succeed.
+Five host controls cover initial discovery and refusal before guest effects.
+NameHasNoOwner-only waiting is limited to initial discovery, never replacements
+or mutation retries. Failed attempts and separate retirement evidence survive.
+
+This does not promote the original unconfined manager, install normal units,
+verify complete configuration/dependency provenance or settle delegated holders.
+Next connect the confined audio roles to protected per-user service/session
+configuration and these observations, then Settings and actual devices.
 
 ## Separate audio lab — 9 November 2026
 

@@ -1,5 +1,18 @@
 # Sources
 
+## Original audio user-service actors — 9 November 2026
+
+- [Actor record](journal/2026-11-09-audio-actor.md),
+  [contract](../../spec/audio-session.md#original-user-service-actor-observation),
+  [native tests](../../tests/test_audio_manager.c) and
+  [explicit carrier test](../../tools/test_audio_actor.py): controlled owner/unit
+  counterchecks, actual process/image/FD lifetime and real user-service rejection/
+  exit/independent retirement. No normal audio-session acceptance is implied.
+- systemd v259 [manager implementation](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-manager.c)
+  and [D-Bus contract](https://raw.githubusercontent.com/systemd/systemd/v259/man/org.freedesktop.systemd1.xml):
+  GetUnitByPIDFD returns unit object/id/invocation. Current main/control/job,
+  process context and original manager still require independent checks.
+
 ## Confined audio roles and runtime alignment — 9 November 2026
 
 - [Executed record](journal/2026-11-09-audio-mac.md),

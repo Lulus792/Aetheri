@@ -1,5 +1,19 @@
 # Decisions
 
+## Retain original audio user-service observations — 9 November 2026
+
+Join independently admitted actor pins/images/contexts to the retained original
+user manager, exact service main/invocation and delegated cgroup object. Keep
+actor lifetime separate from the caller's manager/FD references. Reuse bounded
+manager kernel/supervisor primitives, with separate actor baselines and latched
+loss. No bus-owner replacement, numeric-PID adoption, process control or implicit
+drain follows. This read-only boundary is not full normal service admission.
+
+The [actor record](journal/2026-11-09-audio-actor.md) separates controlled native
+faults, actual per-user unit evidence and future confined graph/session work.
+The administrative test may wait only for initial NameHasNoOwner before effects;
+retain the exact remote error name and never retry transport/unknown mutations.
+
 ## Confined audio test roles and endpoint rejection — 9 November 2026
 
 Keep the audio experiment in the separate disposable carrier. Align its eight

@@ -27,6 +27,8 @@ const char *ae_audio_manager_name(const struct ae_audio_manager *);
  * First negative result is latched, including observation failure. No restart,
  * reconnect, stop, signal, UnrefUnit or implicit acceptance of a replacement. */
 int ae_audio_manager_check(struct ae_audio_manager *);
+/* Drop this caller's reference. An audio actor retains the same original
+ * observer until its own close; never substitute another manager for it. */
 void ae_audio_manager_close(struct ae_audio_manager **);
 
 #endif
