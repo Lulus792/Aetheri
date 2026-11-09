@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — A private libinput 1.32/Lua 5.5 build now passes generic deviceless, utility/version and matching-bytecode guard tests with a real negative counterexample. Its complete export is checked; full upstream Lua/uinput, sanitizer and compositor/input acceptance remain next. Normal manifests still use the original input library. The previously accepted policy/Sound candidate and original carrier/USB remain unchanged. Normal provisioning, device policy, physical sound and release review remain work.
+9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate now passes the full Lua suite and upstream keyboard/pointer suites in the separate VM: 2,470 pass, 536 not applicable, one explained debug-only skip, zero failures. Complete evidence and original test retirement are checked. Touchpad collections, sanitizers and compositor/input integration remain gates before normal runtime promotion. Original carrier/USB and normal manifests remain unchanged; normal provisioning, physical hardware and release work remain open.
 
 ## Coordination
 
@@ -23,12 +23,21 @@ bytecode checks pass; the deliberately weakened counter library fails precisely.
 All 2,465 exported files and the 309 retained API symbols are checked. No normal
 provider changes. The SDK is data-only extraction, with no package installation.
 
-Next run upstream Lua/input cases under a fresh root-only virtual-device fixture,
-then sanitizers and actual compositor/input regressions. Upstream's `no_device`
-Lua cases are not included by `--filter-deviceless`; do not claim they passed.
-Keep counter libraries quarantined and preserve udev/rule/device/process lifetimes.
-The known live audio lab/controller remains available; inspect actual state before
-dispatch. Normal release/PCRE2/device/ownership work and USB protection continue.
+The [device record](journal/2026-11-09-libinput-devices.md) now adds actual upstream
+Lua50/50, keyboard262 pass/30NA/1skip and pointer2,158 pass/506NA/0skip, no failures.
+Its 30-file export is checked. A fresh debugoptimized runner supplies upstream's
+build-directory test profile while actual process maps bind the independently
+selected Release library and Lua5.5. The selected Release ELF retains all309
+functions; the source counter libraries remain quarantined. Native fixture end
+and independent inspection restore the original udev/input/rule/module state.
+
+Two failed preparation attempts remain preserved after actual original QEMU43164
+exit0. The fresh lab is now QEMU5548/controller15559, boot
+`8b915c0c-ab36-4cce-a8a3-e84e1c12627c`, still enforcing/restricted. All new test
+children and units have retired. Next cover remaining touchpad/input groups,
+sanitizers and actual compositor/input regressions, then independently attributed
+runtime selection. Inspect actual state before dispatch. Normal release/PCRE2/
+device/ownership work and USB protection continue.
 
 The [confined/GUI record](journal/2026-11-09-audio-policy-confined.md) establishes
 four completed role runs: 76 services, 16 memory probes, 12 independently recomputed
@@ -37,10 +46,10 @@ is checked. The candidate's connected GUI also passes actual pointer/keyboard,
 mute/unmute, raw channel readback, source loss and full session/policy retirement;
 its 63-file export and 12 captures are checked, with four primary images reviewed.
 
-Next review libinput 1.31.3's Lua binding: exact ELF/source-provider evidence shows
-it still needs Lua 5.4. A proposed 78-file GUI runtime fails compositor preflight
-before service dispatch and is rejected. Keep the unchanged 80-file GUI runtime,
-which owns that dependency, separate from the Lua 5.5 policy prefix. Actual process
+The original libinput 1.31.3 still needs Lua5.4. A proposed 78-file GUI runtime
+fails compositor preflight before service dispatch and remains rejected. The
+private replacement tests above do not yet promote a normal provider. Keep the
+unchanged 80-file GUI runtime separate from the Lua5.5 policy prefix; its original
 maps prove that division and no Lua in Settings itself. Never alias the ABIs or
 weaken provenance checks. PCRE2 and normal admission/device/release work remain.
 
@@ -67,8 +76,8 @@ the original RPM core and other modules. A narrow explicit C recipe follows
 upstream's source/resource boundary; the broader offline Meson dependency preview
 is retained without installing any additional packages. No new runtime is selected.
 
-Audio lab QEMU43164/controller10491 remains running, boot
-`32baadd1-a444-4aa8-8c32-56eb3ce22c21`; all original build children have ended.
+Audio lab QEMU43164/controller10491 has subsequently exited0; the fresh current
+boot/controller is recorded above. All original build children had ended.
 Inspect actual state before the next action. The distinct candidate projection
 and ordinary-user graph/PCM checks above now pass. Keep old RPM-only checks and
 defaults strict while reviewing remaining input/runtime release dependencies.

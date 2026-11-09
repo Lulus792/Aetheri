@@ -45,8 +45,9 @@ def selected(name,mode):
     return stat.S_ISREG(mode) and (name.startswith('usr/include/') or name=='usr/lib64/glib-2.0/include/glibconfig.h' or name.endswith('.pc') or name in ('usr/bin/meson','usr/bin/ninja','usr/bin/ninja-build') or name.startswith('usr/lib/python3.14/site-packages/mesonbuild/') and name.endswith('.py'))
 
 
-def build(archive,cache,gui_runtime,lua_sdk,output):
+def build(archive,cache,gui_runtime,lua_sdk,output,build_type='release'):
     if os.name!='posix' or os.getuid()==0 or os.getuid()!=os.geteuid() or os.uname().machine!='x86_64':raise ValueError('ordinary native x86-64 Linux builder required')
+    if build_type not in ('release','debugoptimized'):raise ValueError('unsupported libinput build type')
     pins=json.loads(PROFILE.read_bytes())
     if pins['format']!=1 or pins['version']!='1.32.0' or pins['source']['commit']!='5cf833b572f5a33663888da321dce0ba1abd82a2':raise ValueError('different libinput candidate')
     archive,cache,gui_runtime,lua_sdk,output=[Path(p).absolute() for p in (archive,cache,gui_runtime,lua_sdk,output)]
@@ -113,7 +114,7 @@ def build(archive,cache,gui_runtime,lua_sdk,output):
     cflags=shlex.split(run('dependency-paths',['pkg-config','--cflags','libudev','libevdev','libwacom']).decode())
     if '-I'+str(sdk/'usr/include') not in cflags or any(x.startswith('-I/') and not x.startswith('-I'+str(sdk)+'/') for x in cflags):raise ValueError('unrelocated SDK header dependency')
     builddir=output/'build';stage=output/'stage'
-    run('configure',['meson','setup',str(builddir),str(source),'--prefix=/usr','--libdir=lib64','--wrap-mode=nodownload','--buildtype=release','-Dc_std=gnu17','-Db_ndebug=false','-Dauto_features=disabled','-Dlua-plugins=enabled','-Dautoload-plugins=false','-Dmtdev=true','-Dlibwacom=true','-Dtests=true','-Dinstall-tests=false','-Ddebug-gui=false','-Ddocumentation=false','-Dzshcompletiondir=no'])
+    run('configure',['meson','setup',str(builddir),str(source),'--prefix=/usr','--libdir=lib64','--wrap-mode=nodownload','--buildtype='+build_type,'-Dc_std=gnu17','-Db_ndebug=false','-Dauto_features=disabled','-Dlua-plugins=enabled','-Dautoload-plugins=false','-Dmtdev=true','-Dlibwacom=true','-Dtests=true','-Dinstall-tests=false','-Ddebug-gui=false','-Ddocumentation=false','-Dzshcompletiondir=no'])
     run('compile',['meson','compile','-C',str(builddir),'-j2'])
     run('deviceless',['meson','test','-C',str(builddir),'--no-rebuild','--verbose','--print-errorlogs','--num-processes=1','libinput-test-deviceless'])
     run('utils',['meson','test','-C',str(builddir),'--no-rebuild','--verbose','--print-errorlogs','--num-processes=1','test-utils','test-library-version'])
@@ -139,11 +140,12 @@ def build(archive,cache,gui_runtime,lua_sdk,output):
     run('matching-bytecode-counter',[str(probe),str(output/'matching-bytecode-counter')],negative=b'MATCHING_BYTECODE_ACCEPTED')
     gui.check(gui_runtime,runtime)
     for n,e in lua['lua_files'].items():lua_build.check_file(lua_sdk/n,e)
-    record=dict(format=1,profile_sha256=audio.sha(PROFILE.read_bytes()),compiler=compiler,target_triple=triple,providers=versions,packages=proofs,commands=commands,artifact=dict(path=str(target),size=target.stat().st_size,sha256=audio.sha(target.read_bytes())),scope=pins['purpose'])
+    record=dict(format=1,build_type=build_type,profile_sha256=audio.sha(PROFILE.read_bytes()),compiler=compiler,target_triple=triple,providers=versions,packages=proofs,commands=commands,artifact=dict(path=str(target),size=target.stat().st_size,sha256=audio.sha(target.read_bytes())),scope=pins['purpose'])
     (output/'inputs.json').write_text(json.dumps(record,indent=2)+'\n');return record
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('archive','cache','gui_runtime','lua_sdk','output'):p.add_argument(n,type=Path)
+    p.add_argument('--build-type',choices=('release','debugoptimized'),default='release')
     a=p.parse_args();print(json.dumps(build(**vars(a))))

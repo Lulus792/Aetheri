@@ -44,10 +44,64 @@ python3 tools/test_libinput_inputs.py REVIEWED_SOURCE_ARCHIVE
 python3 tools/build_libinput.py \
   REVIEWED_SOURCE_ARCHIVE REVIEWED_RPM_CACHE ORIGINAL_GUI_RUNTIME \
   REVIEWED_LUA55_SDK FRESH_BUILD
+python3 tools/test_libinput_device_report.py
 ```
 
 No root or device access is needed for this build. Record actual compiler/triple;
 the checked execution uses the separate enforcing Fedora/glibc lab.
+
+## Explicit virtual-device fixture
+
+`tools/test_libinput_devices.py` is an administrative test for the separate audio
+lab only. It refuses the original P0 carrier and requires the selected original
+boot, a fresh protected output and a complete caller-selected file/hash inventory
+of a completed root-owned, non-writable build. Links must resolve inside that
+build. It never installs the library, enables networking or changes SELinux policy.
+
+The upstream device runner must use `--build-type debugoptimized`. In 1.32.0,
+`builddir_lookup()` deliberately returns false for Release, causing that runner
+to assume installed rules/quirks under `/usr`. Generic deviceless tests do not
+expose this prerequisite. Do not populate the host's `/usr` to accommodate it.
+Instead build a fresh debugoptimized runner with the ordinary-user builder. Keep
+the independently selected Release library in a separate `release` directory
+inside its sealed input tree, with its original soname links. This is reuse of a
+verified code artifact, not restoration of an old live runtime or its handles.
+
+The protected selection JSON contains `boot`, `root`, `files` (relative regular
+names mapped to `size`/`sha256`) and `library_directory: "release"`. It binds the
+Release artifact independently of the debugoptimized build's own library. The
+test environment selects the Release directory and private SDK; actual process
+maps must show that library and the SDK's real Lua 5.5 file. The upstream runner
+and udev helpers retain their build-directory profile. Their debug build is not
+a replacement production input library.
+
+```sh
+python3 tools/test_libinput_devices.py \
+  PROTECTED_SELECTION_JSON FRESH_PROTECTED_TEST_OUTPUT --group lua
+```
+
+Run one group at a time. The fixture records the original udev manager, input
+objects/nodes, rules and module state before effects. It uses standard existing
+SELinux types on its own helper/library/log files, root-only PID1 FD delivery,
+one non-restarting service and `--jobs=1`; no TTY is supplied. A lost reply keeps
+the pending intent and original controller/handles alive, without retry or cleanup.
+In particular PID1 must be allowed to receive the log FD: an `admin_home_t` log
+is rejected; the fixture labels its fresh log `var_log_t` before delivery.
+
+After observed main-process end, require the original test cgroup empty or
+already removed through its held event FD, then retire the same referenced unit
+and verify GC. Settle udev, compare complete baseline input/rule/quirk state and
+reject remaining helper/library mappings. Only an original, unused module loaded
+by this attempt may be unloaded. Remove only its own held, unchanged and empty
+rules directory. Unknown outcomes and aborted-test artifacts remain for inspection.
+This is a disposable administrative fixture, not production device/session
+admission or durable recovery.
+
+Reports retain upstream pass, not-applicable, fail and skip counts separately.
+`upstream_passed` requires a consistent positive summary and native exit0;
+`coverage_complete` additionally requires every selected case to pass. The host
+report controls reject missing/inconsistent summaries and native failures. A
+successful upstream exit never turns skipped or inapplicable cases into passes.
 
 ## Tests and next acceptance
 
@@ -66,8 +120,9 @@ Lua sandbox or hardware acceptance.
 
 The new library retains all 309 versioned exported API symbols of the selected
 1.31.3 library. That observation does not prove all ABI/layout or input behavior.
-Next run the upstream Lua/input suites with controlled virtual devices, sanitizer
-checks and actual compositor/input integration in a fresh disposable fixture.
+The separate [device record](../brains/aetheri/journal/2026-11-09-libinput-devices.md)
+tracks executed upstream Lua/input cases against the selected Release artifact.
+Sanitizer checks and actual compositor/input integration remain separate gates.
 Preserve original udev rules, devices, processes and unknown effects. Only after
 those gates should a separately attributed runtime replace the old libinput/Lua
 payload. Normal device/session admission and physical HP tests remain separate.
