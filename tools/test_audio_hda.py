@@ -80,14 +80,14 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
     try:session_case=session_settings(manifest)
     except ValueError:return False
     if missing_device and session:
-        return not passes and not failures and 'AETHERI_AUDIO_SESSION_PASS' not in serial and 'AETHERI_AUDIO_USER_BUS_FAIL' not in serial and 'AETHERI_AUDIO_NATIVE_PEER' not in serial and 'AETHERI_AUDIO_PLAYER_PEER' not in serial and re.findall(r'^AETHERI_AUDIO_SESSION_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
+        return not passes and not failures and 'AETHERI_AUDIO_SESSION_PASS' not in serial and 'AETHERI_AUDIO_MANAGER_' not in serial and 'AETHERI_AUDIO_USER_BUS_FAIL' not in serial and 'AETHERI_AUDIO_NATIVE_PEER' not in serial and 'AETHERI_AUDIO_PLAYER_PEER' not in serial and re.findall(r'^AETHERI_AUDIO_SESSION_FAIL reason=(\S+) errno=\d+\s*$',serial,re.MULTILINE)==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     if missing_device:
         return not passes and failures==['device'] and 'AETHERI_AUDIO_ACTOR' not in serial and "aetheri-audio.service: Failed with result 'exit-code'." in serial
     expected='AETHERI_AUDIO_PASS nonce='+manifest['nonce']+' frames=96000 rate=48000 channels=2 server_end=1 player_end=1'
     if session:
         expected='AETHERI_AUDIO_SESSION_PASS nonce='+manifest['nonce']+' user_end=1 runtime_removed=1 udev_end=1'
         passes=re.findall(r'^AETHERI_AUDIO_SESSION_PASS .*$',serial,re.MULTILINE)
-        if 'AETHERI_AUDIO_SESSION_FAIL' in serial or 'AETHERI_AUDIO_USER_BUS_FAIL' in serial:return False
+        if 'AETHERI_AUDIO_SESSION_FAIL' in serial or 'AETHERI_AUDIO_USER_BUS_FAIL' in serial or 'AETHERI_AUDIO_MANAGER_REJECT' in serial:return False
     native=manifest.get('proof') in ('audio-control-hda','audio-session')
     device=native or manifest.get('proof')=='audio-device'
     actors=re.findall(r'^AETHERI_AUDIO_ACTOR role=(server|policy|control|player) uid=1000 cap_zero=1 nnp=1\s*$',serial,re.MULTILINE)
@@ -105,7 +105,9 @@ def evaluate(serial,manifest,exit_code,events,missing_device=False):
     if session:
         owners=re.findall(r'^AETHERI_AUDIO_USER_MANAGER owner=(:[0-9]+\.[0-9]+)\s*$',serial,re.MULTILINE)
         retained=re.findall(r'^AETHERI_AUDIO_USER_REFS owner=(:[0-9]+\.[0-9]+) retained=4\s*$',serial,re.MULTILINE)
-        policy=policy and len(owners)==1 and retained==owners
+        manager_proof='AETHERI_AUDIO_MANAGER_ADMITTED original=1 pid1_main=1 image=1 invocation=1 cgroup=1'
+        policy=policy and len(owners)==1 and retained==owners and serial.count(manager_proof)==1
+        if policy:policy=serial.index('AETHERI_AUDIO_USER_MANAGER ')<serial.index(manager_proof)<serial.index('AETHERI_AUDIO_USER_REFS ')
         units=re.findall(r'^AETHERI_AUDIO_USER_UNIT name=(aetheri-(?:pipewire|wireplumber)\.service) pid=([1-9][0-9]*) image=(/usr/bin/(?:pipewire|wireplumber))\s*$',serial,re.MULTILINE)
         policy=policy and len(units)==2 and units[0][0]=='aetheri-pipewire.service' and units[0][2]=='/usr/bin/pipewire' and units[1][0]=='aetheri-wireplumber.service' and units[1][2]=='/usr/bin/wireplumber' and units[0][1]!=units[1][1]
         policy=policy and len(re.findall(r'^AETHERI_AUDIO_LOCAL_SESSION id=[A-Za-z0-9_-]+ uid=1000 seat=seat0 active=1 remote=0 type=wayland class=user\s*$',serial,re.MULTILINE))==1
@@ -205,7 +207,7 @@ def run(image,output,missing_device=False,timeout=150,icount=False):
     if manifest['proof'] in ('audio-control-hda','audio-session'):
         sources.update(native_builder_sha256='tools/build_audio_control_hda.py',control_inputs_sha256='spec/audio-control-inputs.json',control_preparer_sha256='tools/prepare_audio_control.py',control_source_sha256='src/audio/control.c',control_header_sha256='src/audio/control.h',remote_source_sha256='src/audio/remote.c',remote_header_sha256='src/audio/remote.h',probe_source_sha256='src/audio/control_probe.c',player_source_sha256='src/audio/check.c',cmake_sha256='CMakeLists.txt')
     if manifest['proof']=='audio-session':
-        sources.update(session_builder_sha256='tools/build_audio_session.py',session_units_sha256='tools/audio_session_units.py',session_runtime_sha256='tools/audio_session_runtime.py',session_source_sha256='src/boot/audio_session.c',session_guard_source_sha256='src/audio/session_guard.c',session_guard_header_sha256='src/audio/session_guard.h',session_inputs_sha256='spec/desktop-image-inputs.json')
+        sources.update(session_builder_sha256='tools/build_audio_session.py',session_units_sha256='tools/audio_session_units.py',session_runtime_sha256='tools/audio_session_runtime.py',session_source_sha256='src/boot/audio_session.c',session_guard_source_sha256='src/audio/session_guard.c',session_guard_header_sha256='src/audio/session_guard.h',session_manager_source_sha256='src/audio/manager.c',session_manager_header_sha256='src/audio/manager.h',session_inputs_sha256='spec/desktop-image-inputs.json')
     for key,path in sources.items():
         # Source archives use normalized LF on both build and host.
         if manifest[key]!=hashlib.sha256((boot.ROOT/path).read_bytes().replace(b'\r\n',b'\n')).hexdigest():

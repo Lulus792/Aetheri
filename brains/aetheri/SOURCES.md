@@ -1,5 +1,17 @@
 # Sources
 
+## Original user-manager observation — 9 November 2026
+
+- [Contract](../../spec/audio-session.md#original-user-manager-observation) and
+  [manager record](journal/2026-11-09-audio-manager.md): native pin/image/FD facts,
+  controlled bus/PID1/cgroup counterchecks, real private PAM integration and the
+  separate enforcing-carrier rejection. Do not equate those distinct scopes.
+- systemd [bus credentials](https://man7.org/linux/man-pages/man3/sd_bus_get_name_creds.3.html)
+  and [PIDFD unit lookup](https://raw.githubusercontent.com/systemd/systemd/v259/src/core/dbus-manager.c):
+  credential ownership/non-negative success and containing-unit/invocation lookup.
+  Separate MainPID, current image/cgroup, no-job and repeat checks remain necessary.
+  Existing Fedora systemd 259.10 pins are retained; no new package is adopted.
+
 ## Original audio listener binding — 9 November 2026
 
 - [Contract](../../spec/audio-control.md#original-listener-binding) and

@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — Native audio clients now join the connected listener to an independently admitted original server pidfd before protocol. Same-UID takeover and inherited/stale-peer counterchecks pass; both user-session clients and full PCM pass six cold boots. Three native groups, fourteen private graphs and 83 host review cases pass. Next: original user-manager admission/lifetime and normal endpoint/holder policy before desktop/Settings/HP promotion. The stick stays unchanged.
+9 November 2026 — The private audio session now joins its original user-manager bus process to PID 1's main/invocation, current cgroup and expected systemd image before effects. Six cold boots, four native groups in Release/ASan/UBSan, three controlled counterexamples and 85 host cases pass. The separate enforcing-carrier executable denial remains closed. Next: normal graph/policy invocation and endpoint/holder admission, enforcing broker integration and desktop/Settings/HP promotion. The stick stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,36 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Original audio user manager — 9 November 2026
+
+The [manager record](journal/2026-11-09-audio-manager.md) joins native tests and
+the [session contract](../../spec/audio-session.md#original-user-manager-observation).
+The read-only C observer retains the bus-authenticated ProcessFD, unique owner,
+both bus IDs and original PID 1 invocation. It requires the active user@ main,
+no control process/job, exact init.scope/cgroup inode and independently selected
+current systemd object. Rechecks precede fixture effects and run during playback;
+observed loss is latched. No daemon, database, reconnect or normal capability is added.
+
+Actual failed boots show the bus comes up before the manager owns its name.
+Bounded NameHasNoOwner-only initial discovery now precedes capture/effects.
+It never retries an admitted owner or unknown mutation. All six final v5 boots
+pass playback, VT loss/return, graph/policy exit and native/no-card regressions.
+Five captures retain all 96,000 reference frames below 0.5 LSB error using the
+explicit functional instruction clock. Default-clock/physical gates remain open.
+
+Four native groups pass Release and ASan/UBSan. Bus/PID1/cgroup fault cases are
+controlled models; pins, current image, process exit and FD accounting are real.
+Three deliberately damaged variants fail their intended assertions. All 85 host
+cases pass. The final audit binds 567 unchanged code/pin inputs, seven exact
+build/probe helper retirements and the original six VM receipts. Original
+carrier/quarantine/normal inputs, frozen SQL/XML and foreign UI work remain intact.
+
+A separate read-only enforcing-carrier probe rejects the current executable
+read with EACCES. No policy or ptrace grant bypasses it. This is private PAM
+integration, not normal confined service admission. Unit/configuration/library
+provenance, changes between observations, exec/FD delegation, general holders,
+restart/recovery and normal Settings/HP audio remain separate work.
 
 ## Original audio listener binding — 9 November 2026
 

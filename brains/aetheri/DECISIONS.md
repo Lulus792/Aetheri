@@ -1,5 +1,20 @@
 # Decisions
 
+## Observe the original user manager before audio effects — 9 November 2026
+
+Join the trusted user-bus ProcessFD to PID 1's active `user@UID.service` main,
+original invocation, exact `init.scope` and independently selected systemd file.
+Retain both bus identities and the original process/destination. Latch observed
+loss and keep service mutation/stop coordination with the caller. The native
+observer adds no daemon, database, reconnect or authority capability.
+
+Allow bounded initial discovery only while the bus driver reports NameHasNoOwner,
+before capture and before effects. Actual cold boots show bus availability precedes
+systemd's initial name acquisition. Never apply this wait to an admitted identity
+or an unknown unit mutation. Keep enforcing MAC/exec/delegated-holder admission
+separate; the existing carrier's denied executable observation stays denied.
+See the [manager record](journal/2026-11-09-audio-manager.md).
+
 ## Join native audio to the original listener — 9 November 2026
 
 Keep same-UID connection checks as an explicitly unadmitted development profile.

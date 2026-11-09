@@ -32,7 +32,8 @@ def build(output,nonce,sdk,hardware,manager,headers):
     baseline={'/'+n:e['sha256'] for n,e in original['root'].items() if 'sha256' in e}
     normalized=desktop_payload.normalize_base(tree,runtime,baseline);receipt=desktop_payload.install(tree,runtime)
     (output/'session-runtime.json').write_text(json.dumps(dict(profile=runtime,receipt=receipt,normalized=normalized),indent=2)+'\n')
-    args=['gcc','-std=c17','-O2','-g','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror',str(audio.ROOT/'src/boot/audio_session.c'),str(audio.ROOT/'src/audio/session_guard.c'),'-o',str(tree/'usr/libexec/aetheri-audio-session-check'),'-lsystemd']
+    args=['gcc','-std=c17','-O2','-g','-Wall','-Wextra','-Wpedantic','-Wconversion','-Wshadow','-Werror',str(audio.ROOT/'src/boot/audio_session.c'),str(audio.ROOT/'src/audio/session_guard.c'),str(audio.ROOT/'src/audio/manager.c'),'-o',str(tree/'usr/libexec/aetheri-audio-session-check'),'-lsystemd']
+    args.insert(1,'-DAETHERI_AUDIO_MANAGER_TRACE')
     p=subprocess.run(args,capture_output=True);(logs/'session-build.log').write_bytes(p.stdout+p.stderr);p.check_returncode()
     def link(name,target):
         p=tree/name;p.parent.mkdir(parents=True,exist_ok=True);p.symlink_to(target)
@@ -89,7 +90,7 @@ Restart=no
 ''')
     unit=(tree/'etc/systemd/system/aetheri-audio.service').read_text().replace('ExecStart=/usr/libexec/aetheri-audio-policy-owner','ExecStart=/usr/libexec/aetheri-audio-session-check').replace('TimeoutStartSec=90','TimeoutStartSec=140').replace('CAP_FOWNER','CAP_FOWNER CAP_SYS_TTY_CONFIG')
     replace('etc/systemd/system/aetheri-audio.service',unit)
-    sources={'session_builder_sha256':'tools/build_audio_session.py','session_units_sha256':'tools/audio_session_units.py','session_runtime_sha256':'tools/audio_session_runtime.py','session_source_sha256':'src/boot/audio_session.c','session_guard_source_sha256':'src/audio/session_guard.c','session_guard_header_sha256':'src/audio/session_guard.h'}
+    sources={'session_builder_sha256':'tools/build_audio_session.py','session_units_sha256':'tools/audio_session_units.py','session_runtime_sha256':'tools/audio_session_runtime.py','session_source_sha256':'src/boot/audio_session.c','session_guard_source_sha256':'src/audio/session_guard.c','session_guard_header_sha256':'src/audio/session_guard.h','session_manager_source_sha256':'src/audio/manager.c','session_manager_header_sha256':'src/audio/manager.h'}
     put('etc/aetheri-audio/session-case','playback\n')
     for case in ('playback','vt-loss','server-loss','policy-loss'):
         # Repack the same independently built root; only this fixed selector

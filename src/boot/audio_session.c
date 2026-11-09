@@ -10,6 +10,7 @@
 #include <systemd/sd-bus.h>
 #include <systemd/sd-login.h>
 #include "../audio/session_guard.h"
+#include "../audio/manager.h"
 
 static char session_case[32]="playback";
 /* Fixed test barriers only. They select no PID, path, unit or command. The
@@ -35,7 +36,26 @@ static bool await_barrier(const char *leaf,unsigned turns) {
 }
 
 static const char *manager_name="org.freedesktop.systemd1";
+static struct ae_audio_manager *manager_guard;
+static bool manager_current(void) {return manager_guard && ae_audio_manager_check(manager_guard)==0;}
+static bool await_initial_manager(sd_bus *bus) {
+    /* Read-only initial discovery, before capturing an original or submitting
+     * any unit effect. Bus availability precedes systemd's name acquisition.
+     * Only NameHasNoOwner may wait; no admitted/replaced owner is retried. */
+    for(unsigned i=0;i<100;++i) {
+        sd_bus_message *reply=NULL;sd_bus_error error=SD_BUS_ERROR_NULL;const char *name=NULL;
+        int r=sd_bus_call_method(bus,"org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","GetNameOwner",&error,&reply,"s","org.freedesktop.systemd1");
+        bool ready=r>=0 && sd_bus_message_has_signature(reply,"s") && sd_bus_message_read(reply,"s",&name)>0 && name && name[0]==':' && sd_bus_service_name_is_valid(name);
+        bool absent=r<0 && sd_bus_error_has_name(&error,SD_BUS_ERROR_NAME_HAS_NO_OWNER);
+        sd_bus_message_unref(reply);sd_bus_error_free(&error);
+        if(ready) {printf("AETHERI_AUDIO_MANAGER_DISCOVERY initial=1 attempts=%u\n",i+1);return true;}
+        if(!absent) return false;
+        pause_ms(50);
+    }
+    return false;
+}
 static bool retain_units(sd_bus *bus) {
+    if(!manager_current()) return false;
     const char *units[]={"aetheri-session.target","aetheri-audio.target","aetheri-pipewire.service","aetheri-wireplumber.service"};
     for(unsigned i=0;i<4;++i) {
         sd_bus_message *reply=NULL;sd_bus_error error=SD_BUS_ERROR_NULL;
@@ -49,18 +69,8 @@ static bool retain_units(sd_bus *bus) {
      * unknown ref call is replayed and no replacement owner is adopted. */
     printf("AETHERI_AUDIO_USER_REFS owner=%s retained=4\n",manager_name);return true;
 }
-static char *manager_owner(sd_bus *bus) {
-    for(unsigned i=0;i<100;++i) {
-        sd_bus_message *reply=NULL;const char *value=NULL;char *copy=NULL;
-        int r=sd_bus_call_method(bus,"org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","GetNameOwner",NULL,&reply,"s","org.freedesktop.systemd1");
-        if(r>=0 && sd_bus_message_read(reply,"s",&value)>0 && value[0]==':' && strlen(value)<128) copy=strdup(value);
-        sd_bus_message_unref(reply);
-        if(copy) return copy;
-        pause_ms(50);
-    }
-    return NULL;
-}
 static bool method(sd_bus *bus,const char *name,const char *unit) {
+    if(!manager_current()) return false;
     sd_bus_message *reply=NULL;const char *job=NULL;
     sd_bus_error error=SD_BUS_ERROR_NULL;
     int r=sd_bus_call_method(bus,manager_name,"/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager",name,&error,&reply,"ss",unit,"fail");
@@ -70,6 +80,7 @@ static bool method(sd_bus *bus,const char *name,const char *unit) {
     sd_bus_message_unref(reply);return okay; /* Unknown calls are never replayed. */
 }
 static bool unit_path(sd_bus *bus,const char *unit,char path[256]) {
+    if(!manager_current()) return false;
     sd_bus_message *reply=NULL;const char *value=NULL;
     int r=sd_bus_call_method(bus,manager_name,"/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnit",NULL,&reply,"s",unit);
     bool okay=r>=0 && sd_bus_message_read(reply,"o",&value)>0 && strlen(value)<256;
@@ -149,15 +160,20 @@ static bool node_metadata(const char *phase) {
     return true;
 }
 static int user_check(void) {
-    sd_bus *bus=NULL;int pins[2]={-1,-1};bool okay=false,stop_requested=false;char sink[256];char *owner=NULL;const char *reason="local-session";
+    sd_bus *bus=NULL,*system=NULL;int pins[2]={-1,-1},image=-1;bool okay=false,stop_requested=false;char sink[256];const char *reason="local-session";
     struct ae_audio_session_guard *guard=NULL;unsigned loss=0;
     if(!local_session() || !access_check(true)) goto done;
     reason="user-bus";
     for(unsigned i=0;i<100 && access("/run/user/1000/bus",F_OK);++i) pause_ms(50);
     if(sd_bus_open_user(&bus)<0) goto done;
-    reason="user-manager-owner";owner=manager_owner(bus);if(!owner) goto done;
-    manager_name=owner;
-    printf("AETHERI_AUDIO_USER_MANAGER owner=%s\n",owner);
+    if(sd_bus_open_system(&system)<0 || sd_bus_set_method_call_timeout(bus,1000000)<0 || sd_bus_set_method_call_timeout(system,1000000)<0) goto done;
+    reason="initial-manager-discovery";if(!await_initial_manager(bus)) goto done;
+    reason="user-manager-admission";image=open("/usr/lib/systemd/systemd",O_PATH|O_CLOEXEC|O_NOFOLLOW);if(image<0) goto done;
+    manager_guard=ae_audio_manager_open(bus,system,1000,image);
+    if(!manager_guard) {printf("AETHERI_AUDIO_MANAGER_REJECT errno=%d\n",errno);goto done;}
+    manager_name=ae_audio_manager_name(manager_guard);
+    printf("AETHERI_AUDIO_USER_MANAGER owner=%s\n",manager_name);
+    puts("AETHERI_AUDIO_MANAGER_ADMITTED original=1 pid1_main=1 image=1 invocation=1 cgroup=1");
     reason="user-start";if(!method(bus,"StartUnit","aetheri-session.target") || !method(bus,"StartUnit","aetheri-audio.target")) goto done;
     reason="unit-references";if(!retain_units(bus)) goto done;
     uint32_t pid=0;bool ready=false;
@@ -167,16 +183,16 @@ static int user_check(void) {
         unit_debug(bus,"aetheri-session.target");unit_debug(bus,"aetheri-audio.target");unit_debug(bus,"aetheri-pipewire.service");unit_debug(bus,"aetheri-wireplumber.service");goto done;
     }
     reason="session-guard";guard=ae_audio_session_guard_open(1000,"seat0",pins[0],pins[1]);if(!guard) goto done;
-    reason="native-control";if(!policy_output_original(sink,sizeof(sink),pins[0])) goto done;
+    reason="native-control";if(!manager_current() || !policy_output_original(sink,sizeof(sink),pins[0])) goto done;
     char *args[]={"/usr/libexec/aetheri-audio-check","--remote",(char *)remote,"--frames","96000","--wait-for-start","--autoconnect","--server-pidfd","3",NULL};
-    reason="player";if(!spawn_with_pin(args,false,"player",-1,pins[0],&player)) goto done;
+    reason="player";if(!manager_current() || !spawn_with_pin(args,false,"player",-1,pins[0],&player)) goto done;
     char *links[]={"/usr/bin/pw-link","-r",(char *)remote,"-o","-l",NULL};char output[8192];ready=false;
     for(unsigned i=0;i<100;++i) {if(!command(links,false,output,sizeof(output))) goto done;if(automatic_links(output,sink)) {ready=true;break;}pause_ms(25);}
     printf("POLICY_LINKS\n%s",output);reason="playback";
     int status=0;bool player_end=false;
     if(!ready || syscall(SYS_pidfd_send_signal,player.pin,SIGUSR1,NULL,0)) goto done;
     for(unsigned i=0;i<800;++i) {
-        if(ae_audio_session_guard_wait(guard,25)) goto done;
+        if(ae_audio_session_guard_wait(guard,25) || !manager_current()) goto done;
         if(wait_child(&player,0,&status)) {player_end=true;break;}
     }
     if(!player_end || status) goto done;
@@ -234,11 +250,13 @@ static int user_check(void) {
     puts("AETHERI_AUDIO_USER_END originals=2 session_target_stopped=1");
 done:
     if(!okay) printf("AETHERI_AUDIO_SESSION_FAIL reason=%s\n",reason);
-    if(!okay && bus && owner && !stop_requested) {stop_requested=true;(void)method(bus,"StopUnit","aetheri-session.target");}
+    if(!okay && bus && manager_guard && !stop_requested) {stop_requested=true;(void)method(bus,"StopUnit","aetheri-session.target");}
     if(!stop(&player)) okay=false;
     ae_audio_session_guard_close(&guard);
     for(unsigned i=0;i<2;++i) if(pins[i]>=0) close(pins[i]);
-    sd_bus_unref(bus);manager_name="org.freedesktop.systemd1";free(owner);return okay ? 0 : 1;
+    ae_audio_manager_close(&manager_guard);
+    if(image>=0) close(image);
+    sd_bus_unref(bus);sd_bus_unref(system);manager_name="org.freedesktop.systemd1";return okay ? 0 : 1;
 }
 static int root_check(void) {
     const char *reason="root-setup";bool okay=false;char profile[128],value[32];

@@ -88,6 +88,46 @@ each child closes its inherited pin after its synchronous connection check.
 The parent retains the lifetime observer. This is not a normal app transport or
 permission grant, and third-party policy tools remain independent test oracles.
 
+## Original user-manager observation
+
+`audio/manager` now observes the original user manager before the private fixture
+starts audio. Its caller supplies two independently trusted local bus connections
+and the protected systemd executable. It requires non-augmented bus EUID/PID/
+ProcessFD credentials, mandatory kernel PID/credential/cgroup information and the
+original live pidfs object. PID 1 must identify that process as the active main
+of `user@UID.service`, with no control process or pending job. Both invocation
+observations must agree and be nonzero. The manager must inhabit that service's
+exact `init.scope`; its current cgroup inode must match the kernel observation.
+The current executable must match the independently selected root-owned,
+non-writable file object and metadata.
+
+Initial discovery may wait only for the bus driver's NameHasNoOwner, before
+capture and before any fixture unit effect. An available bus is not an already
+registered manager. No admitted identity or mutation is retried this way.
+
+The observer retains the original unique destination, both bus IDs, process pin,
+invocation, cgroup and executable observations. Rechecks precede fixture effects
+and run during playback. The first observed mismatch or read failure is latched;
+returning to the old owner does not reset it. Closing only retires its own pin
+and bus references. It sends no service mutation, signal or reconnect, and adds
+no permanent process or database. The caller keeps stop/drain coordination separate.
+
+These are bounded observations on the calling thread, not exclusion of exec,
+delegation, ptrace, configuration mutation or changes between checks. Trusted
+host proc/cgroup views and protected unit, executable and library provenance
+remain prerequisites. The executable comparison does not measure its dependency
+closure or implement the accepted enforcing app policy. This separate audio
+observer does not weaken `linux/peer` or `linux/process` MAC requirements and is
+not an authority admission API. Normal desktop promotion remains separate.
+
+The [executed manager record](../brains/aetheri/journal/2026-11-09-audio-manager.md)
+includes both native build modes, intended counterexample failures, six full
+cold boots and a separate actual enforcing-carrier read rejection. The native
+`audio.original_manager` test uses existing read-only system-bus clients only
+for real message objects/IDs; its subject's credential/PID1/cgroup facts are
+controlled. Use the reviewed disposable Linux environment for that test; it
+does not create a private bus, acquire a host service name or change host units.
+
 The executed private check is:
 
 1. Before login, a cap-zero/NNP UID1000 process cannot open control or playback.

@@ -207,7 +207,9 @@ class SessionEvidence(unittest.TestCase):
         'AETHERI_AUDIO_SESSION_NODE phase=before path=/dev/snd/pcmC0D0p uid=0 gid=63 mode=0660\n')+denied+(
         'AETHERI_AUDIO_LOCAL_SESSION id=2 uid=1000 seat=seat0 active=1 remote=0 type=wayland class=user\n'
         'AETHERI_AUDIO_SESSION_ACCESS allowed=1 uid=1000 groups=1 cap_zero=1\n'
-        'AETHERI_AUDIO_USER_MANAGER owner=:1.1\nAETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n'
+        'AETHERI_AUDIO_USER_MANAGER owner=:1.1\n'
+        'AETHERI_AUDIO_MANAGER_ADMITTED original=1 pid1_main=1 image=1 invocation=1 cgroup=1\n'
+        'AETHERI_AUDIO_USER_REFS owner=:1.1 retained=4\n'
         'AETHERI_AUDIO_ACTOR role=server uid=1000 cap_zero=1 nnp=1\n'
         'AETHERI_AUDIO_USER_UNIT name=aetheri-pipewire.service pid=100 image=/usr/bin/pipewire\n'
         'AETHERI_AUDIO_ACTOR role=policy uid=1000 cap_zero=1 nnp=1\n'
@@ -241,6 +243,11 @@ class SessionEvidence(unittest.TestCase):
     def test_unsettled_originals(self):self.assertFalse(self.valid(self.joined.replace('originals=2','originals=1')))
     def test_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_SESSION_FAIL reason=user-stop\n'))
     def test_bus_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_USER_BUS_FAIL method=StartUnit unit=aetheri-audio.target code=-1 error=failed\n'))
+    def test_manager_failure_even_with_pass(self):self.assertFalse(self.valid(self.joined+'AETHERI_AUDIO_MANAGER_REJECT errno=116\n'))
+    def test_manager_admission_required_before_actors(self):
+        line='AETHERI_AUDIO_MANAGER_ADMITTED original=1 pid1_main=1 image=1 invocation=1 cgroup=1\n'
+        self.assertFalse(self.valid(self.joined.replace(line,'')))
+        self.assertFalse(self.valid(self.joined.replace(line,'')+line))
     def test_no_user_owned_device(self):self.assertFalse(self.valid(self.joined.replace('uid=0 gid=63 mode=0660','uid=1000 gid=63 mode=0660')))
     def test_missing_control_actor_returns_false(self):
         self.assertFalse(self.valid(self.joined.replace('AETHERI_AUDIO_ACTOR role=control uid=1000 cap_zero=1 nnp=1\n','')))
