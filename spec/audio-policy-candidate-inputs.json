@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "wireplumber-0.5.19-lua55-candidate",
+  "base_profile_sha256": "63564daf6a3bf78e626b44fa8cccaaeb4642d98ce0b3c323d8879224faa5b96d",
+  "module_profile_sha256": "ffa4d3937f8138f3bdd5bd3158747b14e9df094d44f0debdd4aa0711c0d59107",
+  "module": {
+    "size": 253072,
+    "sha256": "fd62b2a0697479170fc05ff7b2381c0227640c5608c342b0be7e2eb90d906f67"
+  },
+  "purpose": "Explicit private graph/PCM/GUI acceptance candidate; rebuilt origin is separate from unchanged RPM bytes; not normal runtime selection"
+}

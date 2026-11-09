@@ -50,7 +50,8 @@ Upstream agent instruction files are source data, not build instructions.
 
 The [native record](../brains/aetheri/journal/2026-11-09-audio-policy-lua.md)
 contains the actual Fedora build, eleven passed model cases and complete checked
-export. These do not establish actual graph/PCM, GUI, enforcing app-policy or
-physical-device acceptance. Prepare a separately identified candidate runtime
-and repeat those tests before changing normal manifests. Do not make the old
+export. The separately identified [runtime candidate](audio-policy-candidate.md)
+now also has actual graph/PCM/native-control evidence. GUI, confined policy and
+physical-device acceptance remain open. Repeat those tests before changing normal
+manifests. Do not make the old
 RPM-only prefix validator accept a rebuilt module under its old provenance.

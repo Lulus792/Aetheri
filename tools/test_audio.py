@@ -47,7 +47,17 @@ def validate_pcm(raw, frames, silent=False, gain=1.0):
     return {"captured_frames": len(samples), "signal_start": start, "signal_frames": frames, "max_error": peak_error}
 
 
-def run_case(binary, prefix, root, frames, silent=False, failure=None, policy=None, volume=1.0, muted=False, manager=True, controller=None):
+def check_policy(prefix,profile='rpm'):
+    if profile=='rpm':
+        import prepare_audio_policy
+        return prepare_audio_policy.check(prefix)
+    if profile=='lua55-candidate':
+        import prepare_audio_policy_candidate
+        return prepare_audio_policy_candidate.check(prefix)
+    raise ValueError('unknown explicitly selected policy profile')
+
+
+def run_case(binary, prefix, root, frames, silent=False, failure=None, policy=None, volume=1.0, muted=False, manager=True, controller=None, policy_profile='rpm'):
     root.mkdir(mode=0o700)
     runtime, conf, home = [root / n for n in ('run', 'conf', 'home')]
     for p in (runtime, conf, home):
@@ -67,8 +77,7 @@ def run_case(binary, prefix, root, frames, silent=False, failure=None, policy=No
            'ASAN_OPTIONS': 'detect_leaks=1:halt_on_error=1',
            'UBSAN_OPTIONS': 'halt_on_error=1:print_stacktrace=1'}
     if policy:
-        import prepare_audio_policy
-        prepare_audio_policy.check(policy)
+        check_policy(policy,policy_profile)
         env.update(LD_LIBRARY_PATH=str(policy/'usr/lib64')+':'+env['LD_LIBRARY_PATH'],
                    WIREPLUMBER_CONFIG_DIR=str(conf/'wp'),WIREPLUMBER_DATA_DIR=str(policy/'usr/share/wireplumber'),
                    WIREPLUMBER_MODULE_DIR=str(policy/'usr/lib64/wireplumber-0.5'),
@@ -307,7 +316,13 @@ context.objects = [ { factory = spa-node-factory args = {
             policy_pin=next(pin for p,pin in children if p is policy_process)
             assert not select.select([policy_pin],[],[],0)[0]
             proc=Path('/proc')/str(policy_process.pid)
-            (root/'policy-ready-maps.txt').write_text((proc/'maps').read_text())
+            ready_maps=(proc/'maps').read_text()
+            (root/'policy-ready-maps.txt').write_text(ready_maps)
+            if policy_profile=='lua55-candidate':
+                mapped_lua={line.split()[-1] for line in ready_maps.splitlines() if 'liblua-' in line}
+                mapped_module={line.split()[-1] for line in ready_maps.splitlines() if 'libwireplumber-module-lua-scripting.so' in line}
+                assert mapped_lua=={str(policy/'usr/lib64/liblua-5.5.so')},mapped_lua
+                assert mapped_module=={str(policy/'usr/lib64/wireplumber-0.5/libwireplumber-module-lua-scripting.so')},mapped_module
             fds=[os.readlink(p) for p in (proc/'fd').iterdir() if p.exists()]
             assert not any(p.startswith(('/dev/snd/','/dev/video')) for p in fds),fds
             assert not select.select([policy_pin],[],[],0)[0]

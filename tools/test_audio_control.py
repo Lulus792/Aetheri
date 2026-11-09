@@ -12,7 +12,7 @@ import time
 import prepare_audio
 import prepare_audio_control
 import prepare_audio_policy
-from test_audio import run_case
+from test_audio import run_case,check_policy
 
 
 class Client:
@@ -199,7 +199,7 @@ class Controller:
         if errors:raise RuntimeError('native controller retirement failed') from errors[0]
 
 
-def retirement_fault(producer,sdk,policy,control,root):
+def retirement_fault(producer,sdk,policy,control,root,policy_profile='rpm'):
     class Fault(Controller):
         def exercise(self,*args):
             self.held=[(p,os.dup(pin)) for p,pin in self.test_owners]
@@ -207,7 +207,7 @@ def retirement_fault(producer,sdk,policy,control,root):
         def close(self):raise RuntimeError('injected controller cleanup failure')
     fault=Fault(None,sdk,policy,control);fault.held=[]
     try:
-        try:run_case(producer,sdk,root/'cleanup-fault',48000,policy=policy,controller=fault)
+        try:run_case(producer,sdk,root/'cleanup-fault',48000,policy=policy,controller=fault,policy_profile=policy_profile)
         except RuntimeError as error:assert str(error)=='injected controller cleanup failure'
         else:raise AssertionError('cleanup fault was hidden')
         assert len(fault.held)==2
@@ -252,18 +252,20 @@ class OriginalRejection:
     def close(self):pass
 
 
-def run(binary,producer,sdk,policy,control,work):
+def run(binary,producer,sdk,policy,control,work,policy_profile='rpm'):
     if os.getuid()==0:raise ValueError('ordinary test user required')
-    prepare_audio.check(sdk);prepare_audio_policy.check(policy);prepare_audio_control.check(control)
+    prepare_audio.check(sdk);check_policy(policy,policy_profile);prepare_audio_control.check(control)
     root=Path(tempfile.mkdtemp(prefix='ctl-',dir=work));results=[]
     for name,volume,muted in [('unity',1.0,False),('half',.5,False),('muted',1.0,True)]:
-        results.append(run_case(producer,sdk,root/name,48000,policy=policy,volume=volume,muted=muted,controller=Controller(binary,sdk,policy,control)))
-    retirement_fault(producer,sdk,policy,control,root)
-    results.append(run_case(producer,sdk,root/'original-rejection',48000,policy=policy,volume=1.0,muted=False,controller=OriginalRejection(binary,control)))
-    (root/'result.json').write_text(json.dumps(dict(passed=True,cases=results),indent=2)+'\n');return root
+        results.append(run_case(producer,sdk,root/name,48000,policy=policy,volume=volume,muted=muted,controller=Controller(binary,sdk,policy,control),policy_profile=policy_profile))
+    retirement_fault(producer,sdk,policy,control,root,policy_profile)
+    results.append(run_case(producer,sdk,root/'original-rejection',48000,policy=policy,volume=1.0,muted=False,controller=OriginalRejection(binary,control),policy_profile=policy_profile))
+    prepare_audio.check(sdk);check_policy(policy,policy_profile);prepare_audio_control.check(control)
+    (root/'result.json').write_text(json.dumps(dict(passed=True,policy_profile=policy_profile,cases=results),indent=2)+'\n');return root
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('binary','producer','sdk','policy','control','work'):p.add_argument(name,type=Path)
-    a=p.parse_args();print(run(*(getattr(a,n).resolve() for n in ('binary','producer','sdk','policy','control','work'))))
+    p.add_argument('--policy-profile',choices=('rpm','lua55-candidate'),default='rpm')
+    a=p.parse_args();print(run(*(getattr(a,n).resolve() for n in ('binary','producer','sdk','policy','control','work')),policy_profile=a.policy_profile))

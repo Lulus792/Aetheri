@@ -39,7 +39,9 @@ def check(prefix):
     pins,digest=profile();prefix=Path(prefix).absolute()
     if prefix.is_symlink() or prefix.resolve()!=prefix:raise ValueError('aliased policy prefix')
     record=prefix/'inputs.json'
-    if record.is_symlink() or json.loads(record.read_text())['profile_sha256']!=digest:raise ValueError('different policy prefix profile')
+    if record.is_symlink():raise ValueError('different policy prefix profile')
+    metadata=json.loads(record.read_text())
+    if not isinstance(metadata,dict) or metadata.get('profile_sha256')!=digest:raise ValueError('different policy prefix profile')
     entries=pins['files']+[dict(path=e['destination'].lstrip('/'),size=e['size'],sha256=e['sha256'],mode=e['mode']) for e in pins['existing_runtime']['files']]
     expected={'inputs.json'}
     for e in entries:
