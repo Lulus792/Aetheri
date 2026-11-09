@@ -32,8 +32,9 @@ the lost attempt, rather than reopen to bypass this fence.
 The caller pushes and iterates one GLib thread-default context throughout the
 handle's life. There is no new thread, process, periodic scan or automatic
 restart. The owner must invoke snapshot on its session/process notifications
-and before presenting controls; this library does not yet wire those events
-into Settings. Wrong-thread and post-fork API use is rejected. Close clears the
+and before presenting controls. The [Settings binding](settings.md#native-sound-page)
+now pumps these observations and one explicit intent; regular host event wiring
+is still pending. Wrong-thread and post-fork API use is rejected. Close clears the
 public handle, while original observer references survive until the backend's
 asynchronous destruction. Keep the context alive until the data-destroy callback.
 Closing neither stops the services nor revokes devices, settles delegated
@@ -48,7 +49,7 @@ expected forbidden-effect assertion; the restored source passes. See the
 [execution record](../brains/aetheri/journal/2026-11-09-audio-session-control.md).
 These tests do not establish actual joined Wayland/logind/MAC acceptance for
 the new bridge. Protected normal provisioning, owner event-loop integration,
-normal device/session admission and the visible Sound page remain work.
+normal device/session admission and live joined Sound UI/backend acceptance remain work.
 
 ## Processes and units
 

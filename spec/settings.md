@@ -12,6 +12,52 @@ or establish native accessibility/normal session acceptance.
 
 ## Behavior and responsibility
 
+### Native Sound page
+
+The optional NexaUI view now has a **Sound** page alongside the original three
+pages below. It follows the accepted sound study's output list, thin volume
+track and mute switch, using the current opaque material fallback. The normal
+development executable has no admitted audio owner yet: its Sound page reports
+unavailability and offers no working-looking device controls. No example device
+is inserted into the normal application.
+
+The shared display model accepts bounded copied audio observations. Each window
+assigns monotonically allocated semantic IDs to complete connection/serial/node
+references. Reordering retains an ID; node reuse, disappearance/reappearance or
+a different connection cannot inherit a held press. Invalid observations retain
+the old data marked stale and disable effects. Owner/backend loss permanently
+fences this model. These copies and IDs authenticate no caller, device or service.
+
+Output selection, volume and mute create one explicit intent, without changing
+observed device state. Dragging edits a local draft and submits on release;
+pointer cancellation/focus loss drops that draft. Keyboard and accessible value
+changes submit directly. Pending work disables further effects. A submitted
+change is reported as confirmed only after matching original-owner command
+readback; an old observed command cannot confirm a new intent. Unknown effects
+are never retried. Stale/busy/rejected submissions need a fresh user action.
+Observed boosted levels are displayed but cannot trigger an automatic clamp
+write. Mute preserves the observed volume and disables its slider.
+
+[`settings/audio.h`](../src/settings/audio.h) connects the model to the existing
+[original-session control handle](audio-session.md#shared-session-control-handle).
+An admitted owner calls its pump on relevant notifications and after input.
+It reads original observations before consuming an intent once, forwards the
+exact revision/ref and reads back after submission. It creates no service,
+timer, thread, socket selection or reconnect. This is a programmatic binding;
+the regular executable does not yet create an owner or dispatch those events.
+Normal session/service/device provisioning remains separate work.
+
+The view exposes radio, slider and switch semantics, keyboard focus and
+English/German labels. Both raster densities, dark/light/high contrast,
+100/150/200% text, narrow layouts, actual native window/navigation and stale
+held-row behavior are tested. Model/owner binding uses controlled adapters;
+the populated page's rendered captures use explicit test data. No actual joined
+Sound-UI-to-HDA/physical playback or screenreader task is accepted here. Input
+devices, per-app mixing and the full final materials/layout remain work. See the
+[execution record](../brains/aetheri/journal/2026-11-09-settings-sound.md).
+
+### Original SDL pages
+
 `src/settings/model.*` contains transient observations and selection without
 SDL, font or renderer types. Display IDs are session-local; they never enter a
 catalogue or become device/permission identity. A snapshot is validated before

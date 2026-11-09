@@ -8,7 +8,7 @@
    No compositor blur or backdrop permission is inferred from a painted panel. */
 struct palette { nx_color canvas, sidebar, card, text, secondary, line, accent, selected, hover, focus; };
 struct label { char bytes[512]; float width, size; nx_text_layout *layout; };
-enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV, CHROME };
+enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV, CHROME, VALUE, TOGGLE };
 struct node {
     enum node_kind kind;
     uint64_t id, parent;
@@ -17,6 +17,8 @@ struct node {
     nx_icon icon;
     const char *name;
     bool selected, disabled, secondary, icon_only;
+    uint64_t target_id;
+    double value;
 };
 #define LABELS 128u
 #define NODES 128u
@@ -37,6 +39,10 @@ struct ae_settings_view {
     enum ae_settings_page last_page;
     enum ae_settings_window_action action;
     bool refresh;
+    uint64_t sound_drag_id,sound_target;
+    double sound_draft,sound_volume;
+    enum ae_audio_command_kind sound_kind;
+    bool sound_intent,sound_mute,sound_redraw;
 };
 static nx_utf8_span span(const char *s) { return (nx_utf8_span){s, strlen(s)}; }
 static nx_color rgb(unsigned value) {
@@ -199,13 +205,68 @@ static bool group(struct ae_settings_view *v, uint64_t id, float x, float y, flo
     *index=v->node_count;
     return node(v,(struct node){.kind=CARD,.id=id,.parent=5,.rect={x,y,w,0}});
 }
+static bool sound_content(struct ae_settings_view *v,float x,float *y,float w,float s) {
+    struct ae_settings_sound *audio=&v->model->sound;
+    const char *status=audio->fenced?tr(v,"Audio connection lost. Changes are disabled.","Audioverbindung verloren. Änderungen sind gesperrt."):
+        audio->stale?tr(v,"Audio information could not be refreshed.","Audioinformationen konnten nicht aktualisiert werden."):
+        !audio->attached?tr(v,"Audio is unavailable in this session.","Audio ist in dieser Sitzung nicht verfügbar."):
+        audio->observation.state==AE_AUDIO_CONNECTING?tr(v,"Connecting to audio…","Verbindung mit Audio wird hergestellt…"):
+        !audio->observation.count?tr(v,"No audio outputs are available.","Keine Audioausgänge verfügbar."):
+        audio->feedback==AE_SETTINGS_SOUND_UNKNOWN?tr(v,"The outcome of the last change is unknown.","Das Ergebnis der letzten Änderung ist unbekannt."):
+        audio->feedback==AE_SETTINGS_SOUND_QUEUED || audio->feedback==AE_SETTINGS_SOUND_SUBMITTED || audio->observation.command_state==AE_AUDIO_COMMAND_PENDING?
+            tr(v,"Applying change…","Änderung wird angewendet…"):
+        audio->feedback==AE_SETTINGS_SOUND_REJECTED?tr(v,"The change was not submitted. Check the current state and try again.","Die Änderung wurde nicht übermittelt. Prüfe den aktuellen Stand und versuche es erneut."):
+        audio->feedback==AE_SETTINGS_SOUND_OBSERVED?tr(v,"Change confirmed by the audio service.","Änderung vom Audiodienst bestätigt."):
+        tr(v,"Choose where sound plays.","Wähle, wo Ton wiedergegeben wird.");
+    if(!text(v,22,5,status,13*s,x,y,w,true)) return false;
+    *y+=20;
+    if(!audio->attached || audio->fenced || audio->observation.state!=AE_AUDIO_READY) return true;
+    size_t card,selected=AE_AUDIO_OUTPUTS_MAX;
+    bool enabled=ae_settings_sound_enabled(v->model);
+    if(audio->observation.count) {
+        if(!group(v,30,x,*y,w,&card)) return false;
+        *y+=8;
+        for(size_t i=0;i<audio->observation.count;++i) {
+            const struct ae_audio_output *o=&audio->observation.outputs[i];
+            nx_rect r={x+8,*y,w-16,52*s};
+            const char *description=o->description[0]?o->description:o->name;
+            if(!choice(v,RADIO,audio->ids[i],30,description,14*s,&r,o->is_default,!enabled,NX_ICON_NONE)) return false;
+            if(o->is_default) selected=i;
+            *y+=r.height+8;
+        }
+        v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
+    }
+    *y+=20;
+    if(selected==AE_AUDIO_OUTPUTS_MAX) return text(v,23,5,tr(v,"Choose an output to adjust its volume.","Wähle einen Ausgang, um seine Lautstärke einzustellen."),13*s,x,y,w,true);
+    const struct ae_audio_output *o=&audio->observation.outputs[selected];
+    if(!o->volume_available) return text(v,23,5,tr(v,"Volume control is unavailable for this output.","Für diesen Ausgang ist keine Lautstärkeregelung verfügbar."),13*s,x,y,w,true);
+    if(!group(v,31,x,*y,w,&card)) return false;
+    *y+=16;
+    char volume[128];
+    double shown=v->sound_drag_id==audio->ids[selected]+1?v->sound_draft:o->volume;
+    if(shown>10) (void)snprintf(volume,sizeof(volume),"%s",tr(v,"Volume above 1000 %","Lautstärke über 1000 %"));
+    else (void)snprintf(volume,sizeof(volume),"%s   %.0f %%",tr(v,"Volume","Lautstärke"),shown*100);
+    if(!text(v,23,31,volume,14*s,x+16,y,w-32,false)) return false;
+    *y+=12;
+    if(!node(v,(struct node){.kind=VALUE,.id=audio->ids[selected]+1,.target_id=audio->ids[selected],.parent=31,
+            .rect={x+16,*y,w-32,40*s},.name=tr(v,"Volume","Lautstärke"),.value=fmin(o->volume,1),.disabled=!enabled || o->muted})) return false;
+    *y+=40*s+12;
+    size_t label_id;
+    if(!label(v,tr(v,"Mute output","Ausgabe stummschalten"),13*s,w-48-36*s,&label_id) ||
+            !node(v,(struct node){.kind=TOGGLE,.id=audio->ids[selected]+2,.target_id=audio->ids[selected],.parent=31,
+            .rect={x+16,*y,w-32,fmaxf(44*s,(float)nx_text_layout_height(v->labels[label_id].layout)+24)},
+            .label=label_id,.name=tr(v,"Mute output","Ausgabe stummschalten"),.selected=o->muted,.disabled=!enabled})) return false;
+    *y+=v->nodes[v->node_count-1].rect.height+16;
+    v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
+    return true;
+}
 static bool content(struct ae_settings_view *v, float width, float *extent) {
     struct ae_settings *m=v->model;
     float s=(float)m->text_percent/100, x=16, y=20, w=width-32;
-    const char *titles[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache")};
+    const char *titles[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),tr(v,"Sound","Ton")};
     const char *subtitles[]={tr(v,"Displays observed in this session","Beobachtete Bildschirme dieser Sitzung"),
         tr(v,"Colors and text for this window","Farben und Text für dieses Fenster"),
-        tr(v,"Language for this window","Sprache für dieses Fenster")};
+        tr(v,"Language for this window","Sprache für dieses Fenster"),tr(v,"Output and volume","Ausgabe und Lautstärke")};
     if(!text(v,20,5,titles[m->page],25*s,x,&y,w,false)) return false;
     y+=8;
     if(!text(v,21,5,subtitles[m->page],13*s,x,&y,w,true)) return false;
@@ -275,6 +336,8 @@ static bool content(struct ae_settings_view *v, float width, float *extent) {
             y+=r.height+4;
         }
         y+=4;v->nodes[card].rect.height=y-v->nodes[card].rect.y;
+    } else if(m->page==AE_SETTINGS_SOUND) {
+        if(!sound_content(v,x,&y,w,s)) return false;
     } else {
         if(!text(v,22,5,tr(v,"DISPLAY LANGUAGE","ANZEIGESPRACHE"),11*s,x,&y,w,true)) return false;
         y+=10;
@@ -289,13 +352,62 @@ static bool content(struct ae_settings_view *v, float width, float *extent) {
         y+=4;v->nodes[card].rect.height=y-v->nodes[card].rect.y;
     }
     y+=24;
-    if(!text(v,25,5,tr(v,"Appearance and language choices last until this window closes.",
-        "Design und Sprache gelten für dieses Fenster, bis es geschlossen wird."),12*s,x,&y,w,true)) return false;
+    const char *footer=m->page==AE_SETTINGS_SOUND?
+        tr(v,"Microphone and app mixer controls are not available yet.","Mikrofon- und App-Mixer-Einstellungen sind noch nicht verfügbar."):
+        tr(v,"Appearance and language choices last until this window closes.","Design und Sprache gelten für dieses Fenster, bis es geschlossen wird.");
+    if(!text(v,25,5,footer,12*s,x,&y,w,true)) return false;
     *extent=y+24;return true;
 }
 static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy, uint64_t *pressed) {
     nx_rect r=n.rect;r.x+=dx;r.y+=dy;
     struct palette p=v->colors;
+    if(n.kind==VALUE || n.kind==TOGGLE) {
+        nx_control_desc desc={.id=n.id,.parent_id=n.parent,.bounds=r,.name=span(n.name),.disabled=n.disabled};
+        nx_interaction_state state;
+        if(n.kind==TOGGLE) {
+            struct label *l=&v->labels[n.label];
+            nx_widget_desc widget={.semantic={.id=n.id,.parent_id=n.parent,.bounds=r,.name=span(n.name),.role=NX_ROLE_SWITCH,
+                .state=(n.selected?NX_SEM_CHECKED:0u)|(n.disabled?NX_SEM_DISABLED:0u),.actions=NX_ACTION_PRESS|NX_ACTION_FOCUS},
+                .flags=NX_WIDGET_INTERACTIVE|NX_WIDGET_FOCUSABLE};
+            if(nx_widget_register(v->context,&widget,&state)!=NX_OK) return false;
+            float scale=(float)v->model->text_percent/100;
+            nx_rect track={r.x+r.width-36*scale,r.y+r.height/2-10*scale,36*scale,20*scale};
+            nx_rect thumb={track.x+(n.selected?18:2)*scale,track.y+2*scale,16*scale,16*scale};
+            if(nx_fill_round_rect(v->context,track,10*scale,n.disabled?p.line:n.selected?p.accent:p.line)!=NX_OK ||
+                    nx_fill_round_rect(v->context,thumb,8*scale,n.selected?p.canvas:p.text)!=NX_OK ||
+                    nx_draw_text_layout(v->context,l->layout,(nx_point){r.x,r.y+(r.height-(float)nx_text_layout_height(l->layout))/2},n.disabled?p.secondary:p.text,GLYPH_CACHE)!=NX_OK ||
+                    (state.focused && nx_stroke_rect(v->context,r,2,p.focus)!=NX_OK)) return false;
+            if(state.clicked && !n.disabled && !v->sound_intent) {v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_MUTE;v->sound_mute=!n.selected;}
+        } else {
+            if(v->sound_drag_id!=n.id || n.disabled) {v->sound_drag_id=0;v->sound_draft=n.value;}
+            double value=v->sound_drag_id?v->sound_draft:n.value,before=value;
+            float scale=(float)v->model->text_percent/100;
+            desc.bounds.x+=8*scale;desc.bounds.width-=16*scale;
+            nx_value_control_desc slider={.control=desc,.minimum=0,.maximum=100,.step=1,.units_per_pixel=1};
+            value*=100;
+            if(nx_slider(v->context,&slider,&value,&state)!=NX_OK) return false;
+            const nx_event *events=NULL;size_t event_count=0;bool cancelled=false;
+            if(nx_frame_events(v->context,&events,&event_count)!=NX_OK) return false;
+            for(size_t i=0;i<event_count;++i)
+                if(events[i].type==NX_EVENT_POINTER_CANCEL || (events[i].type==NX_EVENT_FOCUS && !events[i].focused)) cancelled=true;
+            if(cancelled) {value=n.value*100;state.held=0;v->sound_redraw=true;}
+            /* Keep the toolkit's native input, value semantics and full-height
+             * target; skin its default filled bar with our approved thin track. */
+            nx_rect track={desc.bounds.x,r.y+r.height/2-2*scale,desc.bounds.width,4*scale};
+            nx_rect thumb={track.x+(float)(value/100)*track.width-8*scale,r.y+r.height/2-8*scale,16*scale,16*scale};
+            if(nx_fill_rect(v->context,r,p.card)!=NX_OK || nx_fill_round_rect(v->context,track,2*scale,p.line)!=NX_OK ||
+                    nx_fill_round_rect(v->context,(nx_rect){track.x,track.y,(float)(value/100)*track.width,track.height},2*scale,n.disabled?p.line:p.accent)!=NX_OK ||
+                    nx_fill_round_rect(v->context,thumb,8*scale,n.disabled?p.secondary:p.text)!=NX_OK ||
+                    (state.focused && nx_stroke_rect(v->context,desc.bounds,2,p.focus)!=NX_OK)) return false;
+            value/=100;
+            if(!cancelled && !n.disabled && !v->sound_intent && (state.pointer_released || (!state.held && value!=before))) {
+                v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_VOLUME;v->sound_volume=value;
+            }
+            if(state.held && value!=before) v->sound_redraw=true;
+            v->sound_drag_id=!n.disabled && state.held?n.id:0;v->sound_draft=value;
+        }
+        return true;
+    }
     if(n.kind==CARD) {
         nx_semantic_desc sem={.id=n.id,.parent_id=n.parent,.role=NX_ROLE_GROUP,.bounds=r};
         return nx_semantics_add(v->context,&sem,NULL)==NX_OK &&
@@ -340,7 +452,14 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
         tx+=28;
     } else if(n.icon!=NX_ICON_NONE) {
         float icon_x=n.icon_only?r.x+r.width/2-8:r.x+12;
-        if(nx_draw_icon(v->context,n.icon,(nx_rect){icon_x,r.y+r.height/2-8,16,16},1.5f,p.accent)!=NX_OK) return false;
+        if(n.kind==NAV && n.id==53) {
+            float cy=r.y+r.height/2;
+            const nx_point points[]={{icon_x+1,cy-3},{icon_x+5,cy-3},{icon_x+10,cy-7},{icon_x+10,cy+7},{icon_x+5,cy+3},{icon_x+1,cy+3},{icon_x+1,cy-3}};
+            for(size_t i=1;i<sizeof(points)/sizeof(points[0]);++i)
+                if(nx_draw_line(v->context,points[i-1],points[i],1.5f,p.accent)!=NX_OK) return false;
+            if(nx_draw_line(v->context,(nx_point){icon_x+13,cy-4},(nx_point){icon_x+15,cy},1.5f,p.accent)!=NX_OK ||
+                    nx_draw_line(v->context,(nx_point){icon_x+15,cy},(nx_point){icon_x+13,cy+4},1.5f,p.accent)!=NX_OK) return false;
+        } else if(nx_draw_icon(v->context,n.icon,(nx_rect){icon_x,r.y+r.height/2-8,16,16},1.5f,p.accent)!=NX_OK) return false;
         tx+=26;
     }
     if(n.icon_only) return true;
@@ -368,12 +487,13 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(!v || !changed || !status || !isfinite(width) || !isfinite(height) || width<64 || height<64) return false;
     *changed=false;
     struct ae_settings *m=v->model;
-    if(m->page<AE_SETTINGS_DISPLAY || m->page>AE_SETTINGS_LANGUAGE || m->count>AE_SETTINGS_DISPLAYS ||
+    if(m->page<AE_SETTINGS_DISPLAY || m->page>AE_SETTINGS_SOUND || m->count>AE_SETTINGS_DISPLAYS || m->sound.observation.count>AE_AUDIO_OUTPUTS_MAX ||
        (m->count && m->selected>=m->count) || m->theme<AE_SETTINGS_DARK || m->theme>AE_SETTINGS_CONTRAST ||
        (m->text_percent!=100 && m->text_percent!=150 && m->text_percent!=200)) return false;
     for(size_t i=0;i<m->count;++i)
         if(!m->displays[i].id || !memchr(m->displays[i].name,0,sizeof(m->displays[i].name))) return false;
     v->label_count=v->node_count=0;
+    v->sound_intent=false;v->sound_redraw=false;
     if(width<320 || height<240) return small_frame(v,width,height);
     float s=(float)m->text_percent/100;
     bool narrow=width<640*s;
@@ -402,11 +522,11 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(!node(v,(struct node){.kind=CHROME,.id=11,.parent=1,.rect=chrome.zoom,
         .name=restore?tr(v,"Restore","Wiederherstellen"):tr(v,"Maximize","Maximieren"),.selected=restore,
         .disabled=!(status->capabilities&(restore?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE))})) return false;
-    float nav_y=header+18, nav_x=12, nav_width=narrow?(width-32)/3:side-24;
-    const char *names[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache")};
-    const nx_icon icons[]={NX_ICON_GRID,NX_ICON_SUN,NX_ICON_SETTINGS};
+    float nav_y=header+18, nav_x=12, nav_width=narrow?(width-36)/4:side-24;
+    const char *names[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),tr(v,"Sound","Ton")};
+    const nx_icon icons[]={NX_ICON_GRID,NX_ICON_SUN,NX_ICON_SETTINGS,NX_ICON_SETTINGS};
     float nav_bottom=header;
-    for(unsigned i=0;i<3;++i) {
+    for(unsigned i=0;i<4;++i) {
         nx_rect r={nav_x,nav_y,nav_width,narrow?32:40*s};
         if(!choice(v,NAV,50+i,2,narrow?"":names[i],13*s,&r,(unsigned)m->page==i,false,icons[i])) return false;
         v->nodes[v->node_count-1].name=names[i];v->nodes[v->node_count-1].icon_only=narrow;
@@ -446,7 +566,7 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(pressed==10) v->action=AE_SETTINGS_WINDOW_CLOSE;
     else if(pressed==11) v->action=AE_SETTINGS_WINDOW_ZOOM;
     else if(pressed==12) v->action=AE_SETTINGS_WINDOW_MINIMIZE;
-    else if(pressed>=50 && pressed<=52) {m->page=(enum ae_settings_page)(pressed-50);*changed=true;}
+    else if(pressed>=50 && pressed<=53) {m->page=(enum ae_settings_page)(pressed-50);v->sound_drag_id=0;*changed=true;}
     else if(pressed>=100 && pressed<=102) {m->theme=(enum ae_settings_theme)(pressed-100);*changed=true;}
     else if(pressed>=110 && pressed<=112) {const unsigned values[]={100,150,200};m->text_percent=values[pressed-110];*changed=true;}
     else if(pressed==120 || pressed==121) {m->german=pressed==121;*changed=true;}
@@ -455,5 +575,10 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
         if(!ae_settings_select(m,(uint32_t)(pressed-UINT64_C(0x100000000)))) return false;
         *changed=true;
     }
+    else if(pressed>=UINT64_C(0x200000000) && m->page==AE_SETTINGS_SOUND) {
+        if(ae_settings_sound_request(m,pressed,AE_AUDIO_DEFAULT,0,false)) *changed=true;
+    }
+    if(v->sound_intent && ae_settings_sound_request(m,v->sound_target,v->sound_kind,v->sound_volume,v->sound_mute)) *changed=true;
+    if(v->sound_redraw) *changed=true;
     return true;
 }

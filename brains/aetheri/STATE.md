@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — A shared native audio session-control handle now joins original manager, graph/policy actor, Wayland-session and strict listener observations before mutations. Loss fences every later effect, preserves pending uncertainty and retires the backend asynchronously. Four focused groups pass Release and ASan/UBSan; a removed-guard counterexample is detected. These bridge tests use controlled admission/backend adapters. The earlier full virtual HDA unity/half/mute evidence remains separate. Protected normal provisioning, owner event-loop/Settings integration and physical audio remain work. USB stays unchanged.
+9 November 2026 — The native NexaUI Settings view now has a Sound page with output selection, draft-on-drag volume and an observed mute switch. The model and programmatic session-owner binding preserve exact refs/revisions and at-most-once intents. Source/model/view and real native navigation pass Release and ASan/UBSan; an omitted-serial counterexample is detected. Populated captures use test observations, while the normal executable correctly stays unavailable without an admitted owner. Normal provisioning/event wiring and joined live UI-to-audio/physical acceptance remain work. USB stays unchanged.
 
 ## Coordination
 
@@ -12,6 +12,30 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Native Sound view and owner binding — 9 November 2026
+
+Read the [execution record](journal/2026-11-09-settings-sound.md) and
+[contract](../../spec/settings.md#native-sound-page). Original C17 models now
+accept copied audio observations, allocate never-rebound window IDs and consume
+one explicit intent. `settings/audio` checks original owner snapshots, forwards
+the exact revision/ref once and records the actual submission/readback result.
+No UI selection, volume or mute observation is changed optimistically.
+
+The native view adds output choices, a thin-track slider and mute switch, with
+keyboard/radio/slider/switch semantics. Drafts commit on release and cancel on
+pointer/focus loss; unavailable/stale/pending/lost states disable effects.
+Ready layouts, two raster densities, three themes/text sizes and both languages
+are checked. The real normal executable's native Sound navigation/unavailable
+state passes, without injected devices or an audio trust-bypassing option.
+The populated captures and owner-binding tests use controlled observations.
+
+The final native source is checked in Release and ASan/UBSan. A private copy
+omitting serial identity fails the held-row replacement assertion; restored
+source passes. Preserve both earlier fixture-expectation failures. Normal
+service/session/device provisioning, host event dispatch, live joined UI/audio,
+microphone/app mixer and physical HP/Bluetooth acceptance remain open. Preserve
+the original guest, foreign UI files and USB. NexaUI handoff stays closed.
 
 ## Shared audio session control — 9 November 2026
 

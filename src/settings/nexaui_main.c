@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
             for(size_t i=0;i<nodes;++i) {
                 nx_semantic_view item;
                 if(nx_semantics_get(ae_settings_view_context(view),(uint32_t)i,&item)!=NX_OK) {okay=0;break;}
-                if(item.role==NX_ROLE_BUTTON || item.role==NX_ROLE_RADIO)
+                if(item.role==NX_ROLE_BUTTON || item.role==NX_ROLE_RADIO || item.role==NX_ROLE_SLIDER || item.role==NX_ROLE_SWITCH)
                     printf("CONTROL %llu %.2f %.2f %.2f %.2f %u\n",(unsigned long long)item.id,
                         item.bounds.x,item.bounds.y,item.bounds.width,item.bounds.height,item.state);
                 if(item.id==25) printf("FOOTER %.2f %.2f\n",item.bounds.y,item.bounds.height);

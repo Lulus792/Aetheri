@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 #define CHECK(x) do { if(!(x)) {fprintf(stderr,"line %d: %s\n",__LINE__,#x);exit(1);} } while(0)
 static nx_semantic_view find(nx_context *ui, uint64_t id) {
     uint32_t index;nx_semantic_view item;
@@ -39,6 +40,17 @@ static void contrast(nx_context *ui,nx_color_token foreground,nx_color_token bac
     double x=luminance(a),y=luminance(b);
     CHECK((fmax(x,y)+0.05)/(fmin(x,y)+0.05)>=minimum);
 }
+static void capture(nx_context *ui,const char *directory,const char *name,unsigned width,unsigned height) {
+    if(!directory) return;
+    const nx_command *commands;size_t count;nx_color clear;
+    CHECK(nx_frame_commands(ui,&commands,&count)==NX_OK && nx_theme_color(ui,NX_COLOR_BACKGROUND,&clear)==NX_OK);
+    unsigned char *pixels=calloc((size_t)width*height,4);CHECK(pixels);
+    CHECK(nx_headless_render(commands,count,pixels,width,height,(size_t)width*4,clear)==NX_OK);
+    char path[1024];int n=snprintf(path,sizeof(path),"%s/%s.ppm",directory,name);CHECK(n>0 && (size_t)n<sizeof(path));
+    FILE *f=fopen(path,"wb");CHECK(f && fprintf(f,"P6\n%u %u\n255\n",width,height)>0);
+    for(size_t i=0;i<(size_t)width*height;++i) CHECK(fwrite(pixels+4*i,1,3,f)==3);
+    CHECK(!fclose(f));free(pixels);
+}
 static void chrome_contracts(struct ae_settings *m,float width,float height) {
     struct ae_settings_chrome c;struct ae_settings_hit hit;
     nx_window_status status={.capabilities=NX_WINDOW_CAP_RESIZE|NX_WINDOW_CAP_MOVE|NX_WINDOW_CAP_MAXIMIZE|NX_WINDOW_CAP_RESTORE};
@@ -70,9 +82,10 @@ static void chrome_contracts(struct ae_settings *m,float width,float height) {
     CHECK(!ae_settings_chrome_hit(m,width,height,&status,(nx_point){NAN,10},&hit));
 }
 int main(int argc,char **argv) {
-    CHECK(argc==2 || argc==3);
+    CHECK(argc==2 || argc==3 || argc==4);
     unsigned density_only=0;
-    if(argc==3) {CHECK(!strcmp(argv[2],"1") || !strcmp(argv[2],"2"));density_only=(unsigned)(argv[2][0]-'0');}
+    if(argc>=3) {CHECK(!strcmp(argv[2],"1") || !strcmp(argv[2],"2"));density_only=(unsigned)(argv[2][0]-'0');}
+    const char *captures=argc==4?argv[3]:NULL;
     FILE *f=fopen(argv[1],"rb");CHECK(f);
     CHECK(!fseek(f,0,SEEK_END));long length=ftell(f);CHECK(length>0 && length<64*1024*1024);
     CHECK(!fseek(f,0,SEEK_SET));void *font=malloc((size_t)length);CHECK(font);
@@ -97,7 +110,7 @@ int main(int argc,char **argv) {
     for(unsigned density=1;density<=2;++density)
     for(unsigned theme=0;theme<3;++theme) for(unsigned german=0;german<2;++german)
     for(unsigned scale=100;scale<=200;scale+=50) for(size_t size=0;size<sizeof(sizes)/sizeof(sizes[0]);++size)
-    for(unsigned page=0;page<3;++page) {
+    for(unsigned page=0;page<4;++page) {
         if(density_only && density_only!=density) continue;
         m.theme=(enum ae_settings_theme)theme;m.german=german!=0;m.text_percent=scale;m.page=(enum ae_settings_page)page;
         CHECK(nx_context_set_text_raster_scale(ui,(float)density)==NX_OK);
@@ -108,9 +121,9 @@ int main(int argc,char **argv) {
         contrast(ui,NX_COLOR_TEXT,NX_COLOR_SELECTION,4.5);
         contrast(ui,NX_COLOR_FOCUS,NX_COLOR_SURFACE,3);
         for(uint64_t id=10;id<=12;++id) visible(ui,id,w,h);
-        for(uint64_t id=50;id<=52;++id) visible(ui,id,w,h);
+        for(uint64_t id=50;id<=53;++id) visible(ui,id,w,h);
         nx_semantic_view scroll=find(ui,5);CHECK(scroll.bounds.height>=40);
-        const uint64_t last=page==1?112:page==2?121:40;
+        const uint64_t last=page==1?112:page==2?121:page==3?53:40;
         CHECK(nx_focus_set(ui,last)==NX_OK);frame(v,w,h);visible(ui,last,w,h);
         if(page==1) {
             CHECK(nx_focus_set(ui,100)==NX_OK);frame(v,w,h);
@@ -174,6 +187,64 @@ int main(int argc,char **argv) {
     CHECK(ae_settings_snapshot(&m,d,1));m.page=AE_SETTINGS_DISPLAY;frame(v,320,320);
     nx_semantic_view long_name=find(ui,UINT64_C(0x100000000)+42);
     CHECK(long_name.name.length==130 && !memcmp(long_name.name.data+3,d[0].name,127));
+    m.theme=AE_SETTINGS_DARK;m.german=false;m.text_percent=100;m.page=AE_SETTINGS_SOUND;
+    CHECK(nx_context_set_text_raster_scale(ui,(float)(density_only?density_only:1))==NX_OK);
+    struct ae_audio_snapshot audio={.revision=1,.state=AE_AUDIO_READY,.count=2};
+    audio.outputs[0]=(struct ae_audio_output){.ref={14,10,3},.name="speakers",.description="Speakers",.is_default=true,.volume_available=true,.volume=0.6};
+    audio.outputs[1]=(struct ae_audio_output){.ref={14,11,4},.name="headphones",.description="Headphones",.volume_available=true,.volume=0.8};
+    CHECK(ae_settings_sound_snapshot(&m,&audio,0));frame(v,1000,720);
+    capture(ui,captures,"sound-dark",1000,720);
+    uint64_t speaker=m.sound.ids[0],headphones=m.sound.ids[1];
+    CHECK(find(ui,speaker+1).role==NX_ROLE_SLIDER && find(ui,speaker+2).role==NX_ROLE_SWITCH);
+    nx_rect slider=find(ui,speaker+1).bounds;
+    nx_event drag={.type=NX_EVENT_POINTER_DOWN,.button=NX_BUTTON_LEFT,.x=slider.x+slider.width*0.2f,.y=slider.y+slider.height/2};
+    CHECK(nx_context_queue_event(ui,&drag)==NX_OK);frame(v,1000,720);CHECK(!m.sound.queued);
+    drag.type=NX_EVENT_POINTER_MOVE;drag.x=slider.x+slider.width*0.8f;
+    CHECK(nx_context_queue_event(ui,&drag)==NX_OK);frame(v,1000,720);CHECK(!m.sound.queued);
+    drag.type=NX_EVENT_POINTER_UP;CHECK(nx_context_queue_event(ui,&drag)==NX_OK);frame(v,1000,720);
+    struct ae_settings_sound_request request;
+    CHECK(ae_settings_sound_take(&m,&request) && request.kind==AE_AUDIO_VOLUME && fabs(request.volume-0.8)<0.00001);
+    CHECK(m.sound.observation.outputs[0].volume==0.6);ae_settings_sound_result(&m,AE_AUDIO_STALE);frame(v,1000,720);
+    const double levels[]={0,1,1.5,DBL_MAX};
+    for(size_t i=0;i<sizeof(levels)/sizeof(levels[0]);++i) {
+        audio.outputs[0].volume=levels[i];++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));
+        frame(v,1000,720);CHECK(!m.sound.queued);
+    }
+    audio.outputs[0].volume=0.6;++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));frame(v,1000,720);
+    drag.type=NX_EVENT_POINTER_DOWN;drag.x=slider.x+slider.width*0.2f;
+    CHECK(nx_context_queue_event(ui,&drag)==NX_OK);frame(v,1000,720);
+    drag.type=NX_EVENT_POINTER_MOVE;drag.x=slider.x+slider.width*0.4f;CHECK(nx_context_queue_event(ui,&drag)==NX_OK);
+    drag.type=NX_EVENT_POINTER_CANCEL;CHECK(nx_context_queue_event(ui,&drag)==NX_OK);frame(v,1000,720);CHECK(!m.sound.queued);
+    CHECK(nx_focus_set(ui,speaker+1)==NX_OK);key(ui,NX_KEY_RIGHT,0);frame(v,1000,720);
+    CHECK(ae_settings_sound_take(&m,&request) && request.kind==AE_AUDIO_VOLUME && fabs(request.volume-0.61)<0.00001);
+    CHECK(m.sound.observation.outputs[0].volume==0.6);ae_settings_sound_result(&m,AE_AUDIO_STALE);frame(v,1000,720);
+    activate(v,speaker+2);CHECK(ae_settings_sound_take(&m,&request) && request.kind==AE_AUDIO_MUTE && request.mute);
+    ae_settings_sound_result(&m,AE_AUDIO_SUBMITTED);frame(v,1000,720);CHECK(find(ui,speaker+2).state&NX_SEM_DISABLED);
+    audio.command=1;audio.command_kind=AE_AUDIO_MUTE;audio.command_target=request.target;audio.command_state=AE_AUDIO_COMMAND_OBSERVED;
+    audio.outputs[0].muted=true;++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));frame(v,1000,720);
+    CHECK(find(ui,speaker+1).state&NX_SEM_DISABLED);CHECK(find(ui,speaker+2).state&NX_SEM_CHECKED);
+    m.theme=AE_SETTINGS_CONTRAST;frame(v,1000,720);capture(ui,captures,"sound-muted-contrast",1000,720);m.theme=AE_SETTINGS_DARK;
+    activate(v,headphones);CHECK(ae_settings_sound_take(&m,&request) && request.kind==AE_AUDIO_DEFAULT && request.target.id==4);
+    CHECK(m.sound.observation.outputs[0].is_default && !m.sound.observation.outputs[1].is_default);
+    ae_settings_sound_result(&m,AE_AUDIO_STALE);frame(v,1000,720);
+    /* A held row may not transfer its press to a replacement with the same
+     * numeric PipeWire node ID. The model allocates a fresh semantic ID. */
+    nx_rect row=find(ui,headphones).bounds;
+    nx_event pointer={.type=NX_EVENT_POINTER_DOWN,.button=NX_BUTTON_LEFT,.x=row.x+20,.y=row.y+20};
+    CHECK(nx_context_queue_event(ui,&pointer)==NX_OK);frame(v,1000,720);
+    ++audio.outputs[1].ref.serial;++audio.revision;CHECK(ae_settings_sound_snapshot(&m,&audio,0));
+    pointer.type=NX_EVENT_POINTER_UP;CHECK(nx_context_queue_event(ui,&pointer)==NX_OK);frame(v,1000,720);
+    CHECK(!m.sound.queued && m.sound.ids[1]!=headphones);
+    for(unsigned theme=0;theme<3;++theme) for(unsigned language=0;language<2;++language) for(unsigned scale=100;scale<=200;scale+=50) {
+        m.theme=(enum ae_settings_theme)theme;m.german=language!=0;m.text_percent=scale;
+        frame(v,1000,720);frame(v,320,320);
+    }
+    m.theme=AE_SETTINGS_LIGHT;m.german=true;m.text_percent=200;frame(v,640,600);
+    capture(ui,captures,"sound-light-de-200",640,600);
+    CHECK(nx_focus_set(ui,speaker+2)==NX_OK);frame(v,640,600);visible(ui,speaker+2,640,600);
+    capture(ui,captures,"sound-light-de-200-controls",640,600);
+    CHECK(ae_settings_sound_snapshot(&m,NULL,8));frame(v,1000,720);CHECK(!m.sound.queued);
+    CHECK(nx_semantics_request_action(ui,m.sound.ids[1],NX_ACTION_PRESS)!=NX_OK);
     ae_settings_view_destroy(v);free(font);
     printf("Settings presentation: %u theme/language/text/viewport/page frames, keyboard, ownership and stale-state cases\n",frames);
     return 0;

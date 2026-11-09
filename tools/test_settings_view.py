@@ -188,6 +188,11 @@ def main():
         assert not any(name in maps for name in ("libSDL", "libvulkan", "libEGL", "libGLX", "libX11"))
         (root / "loaded-maps.txt").write_text(maps)
         capture("own Settings display page")
+        click(53)
+        wait(lambda: model() == (0,0,100,3), "native Sound navigation")
+        capture("native Sound unavailable without an admitted audio owner")
+        click(50)
+        wait(lambda: model() == (0,0,100,0), "native return to Displays")
         # Native title dragging waits for the app to own the original press,
         # then for the actual server RPC before advancing the compositor grab.
         moves = log("server").count(".move(")
@@ -335,6 +340,7 @@ def main():
             tab(target)
         key(57)
         wait(lambda: model() == (2, 0, 200, 2), "keyboard opens Language")
+        tab(53)
         tab(120)
         tab(121)
         key(57)
@@ -352,6 +358,7 @@ def main():
         key(57)
         wait(lambda: model() == (2, 1, 200, 1), "narrow keyboard navigation")
         tab(52)
+        tab(53)
         for target in (100, 101, 102, 110, 111, 112):
             tab(target)
         capture("own minimum German contrast 200 percent")

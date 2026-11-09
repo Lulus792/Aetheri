@@ -1,5 +1,21 @@
 # Decisions
 
+## Keep Sound intent separate from observed device state — 9 November 2026
+
+Use the accepted Sound study's output list, thin track and mute switch in the
+existing NexaUI view. Keep copied audio value types independent of GLib/UI so
+the shared Settings model needs no new runtime family. Allocate window-local
+semantic IDs against complete live refs and never reuse them for replacements.
+Consume each explicit intent once; preserve the original backend revision/ref
+and submission/readback distinction. Commit drag drafts only on release, discard
+cancelled drafts and never automatically clamp/write an observed boost.
+
+The owner supplies and supervises the existing session-control handle; UI state
+does not open or admit one. Without it, normal Sound stays unavailable. Test data
+belongs to the native view tests, with no fake devices or socket bypass in the
+normal executable. Regular provisioning/event wiring and actual joined audio
+acceptance remain separate. See the [record](journal/2026-11-09-settings-sound.md).
+
 ## Fence audio controls through one original-session handle — 9 November 2026
 
 Join the already reviewed manager, actor, session and strict-listener observers
