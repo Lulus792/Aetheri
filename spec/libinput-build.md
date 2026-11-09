@@ -181,7 +181,45 @@ The new library retains all 309 versioned exported API symbols of the selected
 The separate [device record](../brains/aetheri/journal/2026-11-09-libinput-devices.md)
 tracks executed upstream Lua/input cases against the selected Release artifact.
 Instrumented virtual-device coverage and actual compositor/input integration
-remain separate gates; executed coverage is recorded in the device record.
+are separate gates; executed coverage is recorded in the device record.
 Preserve original udev rules, devices, processes and unknown effects. Only after
 those gates should a separately attributed runtime replace the old libinput/Lua
 payload. Normal device/session admission and physical HP tests remain separate.
+
+### Actual DRM compositor fixture
+
+`tools/test_compositor_libinput.py SELECTION FRESH_OUTPUT` is an explicit root-only
+administrative test in the disposable enforcing audio lab. It does not replace
+the existing headless `test_compositor_input.py` suite. The selected normal DRM
+compositor exposes no test injection protocol. A separately built independent
+Wayland client uses its opt-in `--single-output-input` mode; its default still
+requires three outputs. That mode waits for input without a scan timer; the
+supervising fixture bounds the host's acceptance window.
+
+The protected JSON binds the original `boot`, sealed `program_root`/`program_files`,
+literal `compositor`/`client`, an unchanged attributed `gui` tree/profile, the full
+`input` and `wacom` inventories, exact `library_path` and `quirks_directory`.
+Only the selected Release library and real Lua5.5 are admitted in actual compositor
+maps. The 54 source-version-matched `.quirks` files come from that independently
+checked sealed source tree. Upstream's `LIBINPUT_QUIRKS_DIR` override selects them
+for this process only; it also avoids unrelated system overrides. This is not a
+global installation or a reason to omit the data from a future system image.
+Initialization/runtime libinput errors reject the run.
+
+One temporary PAM profile registers an ordinary cap-zero/NNP local seat0/tty8
+session. Keep original wrapper/compositor/client pidfds, service/scope references,
+invocations and both cgroup readers. Root refuses another local seat session.
+The host supplies verified local QMP PS/2 events and checks actual Wayland key,
+motion and button observations. QMP acknowledgement alone is insufficient:
+observe a mouse press before dispatching release, since a combined make/break
+can coalesce before a PS/2 packet reaches the guest.
+
+Only after observing input create `FRESH_OUTPUT/finish` once as root, containing
+literal `finish` plus LF. The original wrapper closes/reaps its client and then
+gracefully terminates/reaps the compositor. Require native success, all original
+process ends, both original cgroups empty/removed through retained readers and
+session removal; compare the input/udev baseline and all selected inputs again.
+Remove only the exact owned PAM object and restore the original VT. Runtime/input
+artifacts remain retained. Any uncertain effect preserves the keeper and original
+handles without stop/replay/adoption/cleanup. This fixture does not establish
+production authentication, app admission, suspend or physical-device acceptance.

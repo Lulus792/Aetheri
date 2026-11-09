@@ -1,5 +1,20 @@
 # Sources
 
+## Maintained libinput/Lua integration — 9 November 2026
+
+- [Build record](journal/2026-11-09-libinput-build.md),
+  [device/DRM record](journal/2026-11-09-libinput-devices.md) and
+  [contract](../../spec/libinput-build.md): independently selected source/SDKs,
+  functional and instrumented controls, actual normal DRM input, complete
+  verified exports and original test retirement. These are scoped lab results,
+  not normal provider, whole-stack memory, physical-device or release acceptance.
+- The exact libinput1.32.0 archive/commit in
+  [build inputs](../../spec/libinput-build-inputs.json), inspected locally:
+  `src/libinput.c`'s `libinput_init_quirks` uses the process's
+  `LIBINPUT_QUIRKS_DIR` before compiled system paths. The positive DRM run binds
+  all54 version-matched source quirks; the preceding missing-data diagnostics
+  remain evidence. Normal image data selection still requires its own review.
+
 ## Confined graph reaches HDA — 9 November 2026
 
 - [Execution record](journal/2026-11-09-audio-hardware.md) and

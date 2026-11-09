@@ -257,3 +257,81 @@ audio lab remains QEMU5548/controller15559 on its original boot. Four foreign UI
 note hashes remain unchanged. Neither this Lua-only instrumented coverage nor
 the earlier functional groups establish actual compositor/physical-input or
 whole-stack memory acceptance. Normal runtime/image/USB inputs remain unchanged.
+
+## Normal DRM compositor with selected input libraries
+
+The separate `test_compositor_libinput.py` now joins the selected Release
+libinput/Lua5.5 to an actual bochs-drm/logind/PS2/Wayland session in the same lab.
+The existing headless input suite remains byte-identical; the new helper has its
+own file. The independent C client adds only an explicit one-output input mode;
+its original default/three-output behavior remains required by the old suites.
+
+The normal compositor is the exact verified keyboard-v3 artifact, SHA256
+`614faa62aa68514a045c8a366db0a30105cf5eca36418f91bf5f4b681684acbe`, from the
+279-file export SHA256
+`180e2e0e7b54e9307c3c8043661deff10b7feaea01e19dacda06a378f05b3104`.
+All279 members are rechecked. Its CMake cache enables the DRM/session profile.
+Comparison of all11 compositor C/header inputs finds ten identical; current
+main.c differs only by the keyboard-layout field in READY. This tests the actual
+previously built normal compositor with new libraries, not a newly built current
+full desktop or release. Preserve that distinction when selecting image inputs.
+
+The current independent Wayland client is rebuilt as UID1000 with GCC, C17,
+warnings-as-errors and the exact generated xdg protocol files from that verified
+export. Two existing pinned development RPMs supply headers only: Wayland1.26.0
+and xkbcommon1.13.1. Shared sealed snapshots bind full Fedora signatures, hashes,
+metadata/license/source RPM and absence of scripts before data-only extraction.
+Nothing is installed. The unchanged attributed80-file GUI runtime is copied into
+a fresh root-owned private prefix; selected input/Lua directories precede it.
+Actual maps must contain precisely the new Release library and Lua5.5, never
+the old GUI Lua5.4. The original GUI profile/provider stays unchanged.
+
+Preserve all fresh preparation attempts: v1 rejects an uppercase expected signer
+against rpmkeys' lowercase full fingerprint; v2 rejects an incorrectly formatted
+metadata expectation. Both ordinary builders and their original host wrappers
+exit1, before compositor dispatch. Fresh v3 builds but its input-tree check
+rejects an unexpected Python cache before output/session creation. Disable bytecode
+creation in the new helper, retaining that failed tree. Never adopt/rebuild these
+failed artifacts. V4/v5 use distinct fresh inputs.
+
+DRM v4/controller12502 exits0 with actual key/motion/button observations and full
+retirement, but logs missing `/usr/share/libinput` quirks. Treat that as incomplete
+data integration, not a complete accepted input profile. The selected upstream
+`src/libinput.c` constructor uses `LIBINPUT_QUIRKS_DIR` before its compiled paths.
+V5 binds that override to all54 independently checked1.32 source `.quirks` files.
+No library source patch, global directory or test-suite behavior flag is used.
+Two later native negative controls omit the quirks selection or point it at the
+unselected system directory. Both exit1 precisely with `unbound libinput quirks`
+before an output/session is created. Their separate protected record remains at
+`/root/aetheri-compositor-input-controls-8b57ec430bed44bfa90de241deaffc7b`.
+
+DRM v5/controller13708 exits0 without any libinput error. Unit
+`aetheri-input-4b1b1d26a9f247f7a4f2e7929d8e9b3e.service`, invocation
+`3a583370a234469fab7a791ac3386daf`, owns the original ordinary wrapper58918,
+compositor58929 and client58930. Held pidfds, independently checked images,
+cap-zero/NNP context, actual local PAM session and service/scope cgroups remain
+bound through retirement. Virtual-1 runs1280x800 with Pixman. Actual client
+records include key30 press/release producing97 (`a`), pointer enter/motion and
+button272 press/release. A combined QMP mouse make/break produces no guest button
+event; separate press/observation/release succeeds. Never infer input from a QMP
+reply. The primary QMP PNG is actually viewed.
+
+The existing three-output compositor/pixel and input/focus/drag suites also pass
+with the newly built client and selected libraries. Their original runuser host
+wrapper exits0. The complete combined385-file export, including failed builds,
+current GUI inputs, scripts, headers, native logs/receipts and regression captures,
+is checked:19,726,801 bytes, SHA256
+`5c9546062cd218c82738d7853d235b9902babd3601eff03e9e370eb1a3e12665`, protected at
+`/root/aetheri-compositor-input-evidence-962ffb49763545beb71852edb79b0824/export.tar.gz`.
+Every exported original stage input matches its preselected host bundle.
+
+Final independent inspection finds no selected mappings, test unit or PAM profile;
+tty1 is restored, udev remains PID693/original invocation and enforcing remains1.
+Both original DRM fixtures reached retired state with matching device/node/rule/
+udev baselines and independent original cgroup end observations. Selected GUI,
+program, Wacom and full input inventories pass again. Four foreign UI note hashes
+remain unchanged. Runtime directories and failed/ready build inputs remain
+deliberately retained. QEMU5548/controller15559 stays live on the original boot.
+Next review an independently attributed normal runtime/data projection and rebuild
+the current full desktop before release selection. PCRE2, normal device/session
+ownership, physical HP input and the rest of Aetheri remain open. USB is unchanged.

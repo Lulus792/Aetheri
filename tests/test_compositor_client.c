@@ -504,11 +504,12 @@ static void destroy_view(struct view *v) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IOLBF, 0);
-    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--text-input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b") || !strcmp(argv[1],"--clipboard-stall"))) ||
+    CHECK(argc == 1 || (argc == 2 && (!strcmp(argv[1], "--legacy") || !strcmp(argv[1], "--input") || !strcmp(argv[1],"--single-output-input") || !strcmp(argv[1],"--text-input") || !strcmp(argv[1],"--clipboard-a") || !strcmp(argv[1],"--clipboard-b") || !strcmp(argv[1],"--clipboard-stall"))) ||
           (argc==3 && (!strcmp(argv[1],"--clipboard-file") || !strcmp(argv[1],"--clipboard-plain"))));
     CHECK(signal(SIGPIPE,SIG_IGN)!=SIG_ERR); /* Test peer may observe a cancelled receive. */
+    const bool single_output = argc == 2 && !strcmp(argv[1], "--single-output-input");
     struct app a = {.shell_version = argc == 2 && !strcmp(argv[1], "--legacy") ? 3 : 5,
-                    .input = argc == 2 && !strcmp(argv[1], "--input")};
+                    .input = single_output || (argc == 2 && !strcmp(argv[1], "--input"))};
     a.text_mode=argc==2 && !strcmp(argv[1],"--text-input");a.input=a.input || a.text_mode;
 #ifndef AETHERI_TEST_TEXT_INPUT
     CHECK(!a.text_mode);
@@ -529,7 +530,7 @@ int main(int argc, char **argv) {
     CHECK(a.display);
     a.registry = wl_display_get_registry(a.display);
     CHECK(a.registry && wl_registry_add_listener(a.registry, &registry_listener, &a) == 0);
-    CHECK(wl_display_roundtrip(a.display) >= 0 && a.compositor && a.shm && a.shell && a.output_count == 3);
+    CHECK(wl_display_roundtrip(a.display) >= 0 && a.compositor && a.shm && a.shell && a.output_count == (single_output ? 1u : 3u));
 #ifdef AETHERI_TEST_TEXT_INPUT
     if (a.text_mode) { CHECK(a.text_manager && a.seat);create_text(&a,0);create_text(&a,1); }
 #endif
@@ -545,14 +546,14 @@ int main(int argc, char **argv) {
         CHECK(wl_display_flush(a.display) >= 0 || errno == EAGAIN);
         struct pollfd fds[2] = {{wl_display_get_fd(a.display), POLLIN, 0}, {STDIN_FILENO, POLLIN, 0}};
         int r;
-        do { r = poll(fds, 2, 10000); } while (r < 0 && errno == EINTR);
+        do { r = poll(fds, 2, single_output ? -1 : 10000); } while (r < 0 && errno == EINTR);
         CHECK(r > 0);
         if (fds[0].revents) CHECK(wl_display_dispatch(a.display) >= 0);
         if (fds[1].revents) {
             char c;
             CHECK(read(STDIN_FILENO, &c, 1) == 1);
             if (c == 'q') break;
-            if (c == 'f') xdg_toplevel_set_fullscreen(a.views[0].top, a.outputs[2]);
+            if (c == 'f') xdg_toplevel_set_fullscreen(a.views[0].top, a.outputs[a.output_count - 1]);
             else if (c == 'r') xdg_toplevel_unset_fullscreen(a.views[0].top);
             else if (c == 'm') xdg_toplevel_set_maximized(a.views[0].top);
             else if (c == 'n') xdg_toplevel_unset_maximized(a.views[0].top);

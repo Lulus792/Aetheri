@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The private libinput 1.32/Lua 5.5 Release candidate passes four functional groups with 3,647 pass, 731 not applicable, one explained debug-only skip, zero failures. The separate dual-library ASan/UBSan build now also passes all50 Lua virtual-device cases, alongside generic/API/bytecode and memory-fault controls. Complete exports and test retirement are checked. Actual compositor/input integration remains next. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
+9 November 2026 — The private libinput1.32/Lua5.5 candidate now passes actual DRM/logind/PS2/Wayland key, pointer and button input with its explicitly bound quirks data, plus the existing three-output/pixel/focus/drag suites. All385 evidence files and original fixture retirement are checked. Earlier functional and dual-library memory evidence remains scoped as recorded below. Next review the normal runtime/data projection and rebuild the current full desktop before release selection. Normal manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
 
 ## Coordination
 
@@ -59,10 +59,25 @@ not actual compositor/input acceptance or a normal runtime selection.
 Two failed preparation attempts remain preserved after actual original QEMU43164
 exit0. The fresh lab is now QEMU5548/controller15559, boot
 `8b915c0c-ab36-4cce-a8a3-e84e1c12627c`, still enforcing/restricted. All new test
-children and units have retired. Next join actual compositor/input regressions,
-then independently attributed
-runtime selection. Inspect actual state before dispatch. Normal release/PCRE2/
+children and units have retired. The new DRM evidence below now passes. Next
+review independently attributed runtime/data selection and the current full
+desktop rebuild. Inspect actual state before dispatch. Normal release/PCRE2/
 device/ownership work and USB protection continue.
+
+Normal DRM v5/controller13708 exits0 with exact new-library mappings, real local
+PAM/logind seat0/tty8 and actual client key/motion/button observations. The first
+DRM run exposed missing quirks; its retained warning is resolved by the explicit
+process-only selection of all54 version-matched source quirks, with no global
+install or source patch. The normal compositor is the verified keyboard-v3
+artifact; ten of11 current compositor inputs match and main differs only in READY
+diagnostics. Do not describe it as a rebuilt current full desktop. The independent
+client is freshly compiled from current source with an opt-in one-output mode;
+its existing three-output rendering/input/focus/drag suites also pass. All385
+exported files and original stage inputs match. Both DRM fixtures retire their
+original processes/service/scope/session and restore input/udev/VT state; a separate
+audit finds no mapped test code, unit or PAM profile. Runtime/build inputs remain
+retained. See the [device record](journal/2026-11-09-libinput-devices.md) for exact
+artifacts, failed preparations and the original observed-input/retirement boundary.
 
 The [confined/GUI record](journal/2026-11-09-audio-policy-confined.md) establishes
 four completed role runs: 76 services, 16 memory probes, 12 independently recomputed
