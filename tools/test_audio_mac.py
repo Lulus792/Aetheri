@@ -289,13 +289,17 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
 ''')
         return conf
 
-    def policy_lua_ready(self,name):
+    def policy_lua_ready(self,name,*,lua_prefix=None):
         # Re-observe the original actor without invoking UserAudio.image again:
         # that override creates separate once-only actor observers.
         Audio.image(self,name,self.images['policy'])
         unit=self.units[name];maps=(Path('/proc')/str(unit['pid'])/'maps').read_text()
         soname='liblua-5.5.so' if self.policy_profile=='lua55-candidate' else 'liblua-5.4.so'
-        lua=self.policy/'usr/lib64'/soname
+        if lua_prefix is not None:
+            if self.policy_profile!='lua55-candidate':raise ValueError('shared Lua requires explicit candidate policy')
+            import prepare_libinput_runtime as projected
+            projected.check_protected(lua_prefix)
+        lua=(self.policy if lua_prefix is None else Path(lua_prefix))/'usr/lib64'/soname
         scripting=self.policy/'usr/lib64/wireplumber-0.5/libwireplumber-module-lua-scripting.so'
         mapped={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
         mapped_module={line.split()[-1] for line in maps.splitlines() if 'libwireplumber-module-lua-scripting.so' in line}
@@ -307,8 +311,11 @@ context.objects = [ { factory = spa-node-factory args = { factory.name = support
             pins,_=prepare_audio_policy.profile()
             entries={e['path']:e for e in pins['files']}
             entries.update({e['destination'].lstrip('/'):e for e in pins['existing_runtime']['files']})
-        for p in (lua,scripting):assert sha(p)==entries[p.relative_to(self.policy).as_posix()]['sha256']
+        assert sha(lua)==entries['usr/lib64/'+soname]['sha256']
+        assert sha(scripting)==entries[scripting.relative_to(self.policy).as_posix()]['sha256']
         assert not select.select([unit['pin']],[],[],0)[0]
+        if lua_prefix is not None:
+            with (self.output/(name+'.lua-ready-maps.txt')).open('x') as f:f.write(maps)
         self.record['units'][name]['lua_ready']=dict(profile=self.policy_profile,lua=str(lua),lua_sha256=sha(lua),module=str(scripting),module_sha256=sha(scripting));self.save()
 
     def extra_environment(self,root,conf):return {}

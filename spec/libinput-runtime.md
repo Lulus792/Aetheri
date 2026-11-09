@@ -53,6 +53,13 @@ execute its helpers as root or use it to admit a privileged service. A later
 privileged consumer still requires independently checked protected inputs. Copy
 verification is not a power-loss/durable-publication protocol.
 
+Administrative integration tests use a fresh root-created copy of independently
+selected bytes. `check_protected()` repeats the complete profile check and requires
+root ownership and no group/other write access throughout the tree and its parents.
+It does not prove that a user tree has lost previously opened writers: chowning
+an existing user tree is not an admitted preparation. The caller still owes the
+fresh-copy prerequisite. Neither check is volume, app or normal service admission.
+
 ## Explicit desktop selection
 
 ```sh
@@ -83,9 +90,10 @@ ABI other than 5.5 rejects the image; the selected libinput must need the genuin
 exact derived manifest. This is a static compatibility gate, not complete runtime
 dependency resolution, security review or device acceptance.
 
-The component's native static audit and original old-ABI counter pass. The full
-1,434-entry image audit and current complete desktop rebuild remain to execute
-with the required SDK/tool inputs. Do not describe the selection option, manifest
-or component probe as a newly booted desktop image. Test the projected runtime
-with the actual compositor/session and connected Sound before normal selection.
+The protected projection now passes the actual DRM/session and connected Sound
+tests, including shared mapped Lua and a complete unchanged RPM baseline run.
+The component's native static audit and original old-ABI counter also pass. The
+full 1,434-entry image audit and current complete desktop rebuild remain to
+execute with the required SDK/tool inputs. Do not describe these lab sessions,
+the selection option, manifest or component probe as a newly booted desktop image.
 Production device ownership, PCRE2 review and physical HP testing remain separate.

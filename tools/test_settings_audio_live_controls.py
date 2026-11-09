@@ -47,6 +47,20 @@ AUDIO_OUTPUT id=8589934592 default=1 available=1 volume=1.000000000 muted=0
         for rejected in (line.replace('ProcessLatency','Props'),line.replace('id:16','id:2'),line.replace('res:-2','res:-13'),line+'unrelated error\n'):
             self.assertFalse(dump_diagnostics(rejected))
 
+    def test_shared_input_environment_is_explicit(self):
+        env=dict(LD_LIBRARY_PATH='/original/gui/usr/lib64',UNCHANGED='yes')
+        self.view.input_runtime=None
+        self.assertIs(self.view.with_input(env),env)
+        self.view.input_runtime=Path('/protected/input')
+        selected=self.view.with_input(env)
+        self.assertEqual(selected['LD_LIBRARY_PATH'],'/protected/input/usr/lib64:/original/gui/usr/lib64')
+        self.assertEqual(selected['LIBINPUT_QUIRKS_DIR'],'/protected/input/usr/share/libinput')
+        self.assertEqual(selected['UNCHANGED'],'yes');self.assertNotIn('LIBINPUT_QUIRKS_DIR',env)
+
+    def test_shared_input_refuses_original_policy_before_bus_or_effects(self):
+        with self.assertRaisesRegex(ValueError,'candidate policy'):
+            self.view.setup(None,None,None,None,None,None,input_runtime=Path('/unadmitted'))
+
     def test_source_loss_keeps_history_but_removes_current_controls(self):
         self.view.row=8589934592
         old='FRAME 1000 720 1.00\n'+self.view.gui_log()

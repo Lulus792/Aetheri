@@ -120,6 +120,20 @@ def prepare(libinput_build,lua_sdk,archive,output):
     return output
 
 
+def check_protected(prefix):
+    """Administrative lab prerequisite, not volume/app/service admission.
+
+    Caller independently selects a NEW root-created copy. Chowning a user tree
+    cannot retire previously opened writers and is not an admitted preparation.
+    """
+    if os.name!='posix':raise ValueError('native protected input runtime required')
+    value=check(prefix);prefix=Path(prefix).absolute()
+    for p in [prefix,*prefix.parents,*prefix.rglob('*')]:
+        s=p.lstat()
+        if s.st_uid or s.st_gid or not p.is_symlink() and s.st_mode&0o022:raise ValueError('unprotected input runtime or parent')
+    return value
+
+
 def desktop_manifest(prefix):
     """Explicit overlay only; never mutate the normal base or unrelated entries."""
     value=check(prefix);prefix=Path(prefix).absolute();base=json.loads(BASE.read_bytes());desktop_payload.validate(base)

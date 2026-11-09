@@ -1,6 +1,6 @@
 # State
 
-9 November 2026 — The maintained input runtime now has an explicit63-file/1,124,239-byte projection with Lua5.5, matching device data/helpers/rules and notices. All8 native copy/overlay/corruption/ELF controls, selected-loader and Lua probes pass; all314 evidence files/234 original inputs are checked. Image builders have an opt-in selection/static ELF gate; a full new desktop image is not built. Next join the protected projected prefix to actual compositor/Sound tests and rebuild the current complete desktop. Normal defaults/manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
+9 November 2026 — The protected projected input runtime now passes actual DRM input and connected Sound with compositor/policy mapping the same Lua5.5 object. A separate default RPM Sound run also passes; all24 image captures are checked and corresponding pixels match. All727 exported files and both original input inventories are verified; original processes/units/sessions/mounts/policy retire. Next stage full native SDK/tool inputs and rebuild/test the current complete desktop and full image ELF closure. Normal defaults/manifests/carrier/USB stay unchanged; hardware, provisioning and release work remain open.
 
 ## Coordination
 
@@ -23,13 +23,22 @@ byte-identical. All8 native cases pass, including the actual original old-ABI
 counter; the selected loader and C Lua probe also pass. The314-file export and
 all234 input files match. The component's five ELFs are audited; the full image
 ELF gate is wired but not executed. Do not claim a new image/full desktop rebuild.
-The retained user-owned prefix is `/run/a-lrt-cd92722c2cf3/owned/candidate`; protected
-evidence is recorded in the build journal. It is not privileged runtime authority.
-Next independently protect/select the projected prefix for actual DRM/session
-and connected Sound tests, then stage full native SDK/tool inputs and rebuild
-the current whole desktop. Existing actual DRM evidence below uses separately
-selected old GUI/new input trees, not this projected prefix. Full image/PCRE2/
-normal device ownership and physical testing remain open.
+The retained user-owned prefix is `/run/a-lrt-cd92722c2cf3/owned/candidate`; it is
+not privileged runtime authority. A separately selected fresh root-created copy
+at `/run/a-lrp-5c87216edc4e` now passes actual DRM/session and connected Sound.
+The shared Sound copy maps the exact same Lua5.5 file in compositor and policy;
+the default RPM/Lua5.4 Sound run also passes. Native projection9, Sound-control8
+and original-runtime9 cases pass, including user-owned/unknown-profile rejection.
+All727 export files and24 GUI images are checked; matching baseline pixels are
+identical and four shared primary states are actually viewed. Both Sound mounts,
+all original actors/units/cgroups/sessions and temporary MAC policy retire. The
+original GUI80 and artifact prefixes are unchanged; the failed CRLF preparation
+is retained and never adopted. Read the build record's protected-integration
+section for exact controllers, input/source/component locations and evidence.
+Next stage full native SDK/tool inputs and rebuild/test the current whole desktop
+and complete image ELF closure. The reused normal compositor remains the verified
+keyboard-v3 build; no current whole-desktop rebuild/new bootable image is claimed.
+Full image/PCRE2/normal device ownership and physical testing remain open.
 
 The [libinput build record](journal/2026-11-09-libinput-build.md) and
 [build contract](../../spec/libinput-build.md) now establish a private 1.32.0

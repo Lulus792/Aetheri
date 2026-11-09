@@ -209,6 +209,15 @@ for this process only; it also avoids unrelated system overrides. This is not a
 global installation or a reason to omit the data from a future system image.
 Initialization/runtime libinput errors reject the run.
 
+The default `input_profile: "build"` retains this exact earlier selection. The
+explicit `"projected"` mode instead requires `input_runtime` to select a fresh
+protected [runtime component](libinput-runtime.md). Its checker derives bytes and
+origin from the independently reviewed profile, then checks protected ownership/
+parents. Use only that component's library directory before the unchanged GUI
+directory and its own `usr/share/libinput` quirks. Actual mappings must name both
+projected libraries. Unknown modes and user-owned prepared outputs are refused;
+directory names never select a mode. Both input trees are checked again at end.
+
 One temporary PAM profile registers an ordinary cap-zero/NNP local seat0/tty8
 session. Keep original wrapper/compositor/client pidfds, service/scope references,
 invocations and both cgroup readers. Root refuses another local seat session.

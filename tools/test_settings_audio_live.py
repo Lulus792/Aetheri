@@ -21,6 +21,7 @@ import subprocess
 import sys
 import time
 import traceback
+import shutil
 
 from audio_mac_bus import Bus
 from test_audio_mac import Audio, facts, label, run
@@ -71,11 +72,27 @@ class Sound(UserAudio):
         # processes belong to test_audio_user, not this interactive test.
         Audio.image(self,name,path)
 
-    def setup(self,sdk,policy,control,binary,source,gui,policy_profile='rpm'):
+    def setup(self,sdk,policy,control,binary,source,gui,policy_profile='rpm',input_runtime=None):
+        self.input_runtime=None
+        if input_runtime is not None:
+            if policy_profile!='lua55-candidate':raise ValueError('shared input runtime requires candidate policy')
+            import prepare_libinput_runtime as projected
+            projected.check_protected(input_runtime)
         self.gui=gui;self.root_bus=Bus();self.root_create_bus=Bus(private=True);self.gui_pin=None;self.input_fds=[]
         self.server=None;self.server_pin=None;self.server_log=None;self.input=None
         os.environ['LD_LIBRARY_PATH']=':'.join(str(self.root/n/'usr/lib64') for n in ('control','policy','sdk'))
         super().setup(sdk,policy,control,binary,source,policy_profile=policy_profile)
+        if input_runtime is not None:
+            self.input_runtime=self.root/'input'
+            shutil.copytree(input_runtime,self.input_runtime,symlinks=True)
+            projected.check_protected(self.input_runtime)
+            for path in (self.input_runtime,*self.input_runtime.rglob('*')):label(path,'aetheri_audio_library_test_t')
+            self.record['input_runtime']=dict(source=str(input_runtime),profile_sha256=projected.lf_hash(projected.PROFILE),copy=str(self.input_runtime));self.save()
+
+    def with_input(self,env):
+        if self.input_runtime is None:return env
+        return {**env,'LD_LIBRARY_PATH':str(self.input_runtime/'usr/lib64')+':'+env['LD_LIBRARY_PATH'],
+                'LIBINPUT_QUIRKS_DIR':str(self.input_runtime/'usr/share/libinput')}
 
     def original_sources(self):
         self.check_manager()
@@ -108,6 +125,7 @@ class Sound(UserAudio):
             PIPEWIRE_CONFIG_DIR=str(conf),PIPEWIRE_MODULE_DIR=str(conf/'modules'),SPA_PLUGIN_DIR=str(self.sdk/'usr/lib64/spa-0.2'),
             WIREPLUMBER_CONFIG_DIR=str(conf/'wp'),WIREPLUMBER_DATA_DIR=str(self.policy/'usr/share/wireplumber'),
             WIREPLUMBER_MODULE_DIR=str(self.policy/'usr/lib64/wireplumber-0.5'),GIO_USE_VFS='local',GIO_MODULE_DIR='/nonexistent')
+        self.audio_env=self.with_input(self.audio_env)
         def start(role,args):
             name=self.start('sound',role,[str(self.images['gateway']),'exec','none',*map(str,args)],self.audio_env)
             self.release(name);self.image(name,Path(args[0]));return name
@@ -134,7 +152,7 @@ class Sound(UserAudio):
         self.gui_dir=self.root/'gui';self.gui_dir.mkdir(mode=0o755)
         runtime=self.gui_dir/'runtime';runtime.mkdir(mode=0o700);os.chown(runtime,1000,1000)
         self.captures=self.gui_dir/'captures';self.captures.mkdir(mode=0o700);os.chown(self.captures,1000,1000)
-        env={**self.audio_env,'LD_LIBRARY_PATH':str(self.gui/'usr/lib64'),'XDG_RUNTIME_DIR':str(runtime),'WAYLAND_DISPLAY':'aetheri-sound-live','NEXAUI_PLATFORM':'wayland'}
+        env=self.with_input({**self.audio_env,'LD_LIBRARY_PATH':str(self.gui/'usr/lib64'),'XDG_RUNTIME_DIR':str(runtime),'WAYLAND_DISPLAY':'aetheri-sound-live','NEXAUI_PLATFORM':'wayland'})
         self.input,issuer=socket.socketpair(socket.AF_UNIX,socket.SOCK_SEQPACKET|socket.SOCK_CLOEXEC);self.input.settimeout(4)
         self.server_log=(self.output/'compositor.log').open('xb')
         args=[*self.bus.base,str(self.gui/'usr/libexec/aetheri-audio-lab/test_compositor_server'),'--headless',env['WAYLAND_DISPLAY'],str(self.captures),str(issuer.fileno())]
@@ -151,10 +169,13 @@ class Sound(UserAudio):
             maps=(Path('/proc')/str(self.server.pid)/'maps').read_text()
             lua={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
             inputs={line.split()[-1] for line in maps.splitlines() if 'libinput.so.' in line}
-            assert lua=={str(self.gui/'usr/lib64/liblua-5.4.so')} and inputs=={str(self.gui/'usr/lib64/libinput.so.10')},(lua,inputs)
+            expected_lua=self.gui/'usr/lib64/liblua-5.4.so' if self.input_runtime is None else self.input_runtime/'usr/lib64/liblua-5.5.so'
+            expected_input=self.gui/'usr/lib64/libinput.so.10' if self.input_runtime is None else self.input_runtime/'usr/lib64/libinput.so.10.13.0'
+            assert lua=={str(expected_lua)} and inputs=={str(expected_input)},(lua,inputs)
             assert not select.select([self.server_pin],[],[],0)[0]
             (self.output/'compositor-ready-maps.txt').write_text(maps)
-            self.record['gui_compositor']['libinput_lua54_observed']=True;self.save()
+            if self.input_runtime is None:self.record['gui_compositor']['libinput_lua54_observed']=True
+            self.record['gui_compositor']['input_profile']='original-lua54' if self.input_runtime is None else 'projected-lua55';self.save()
         self.gui_unit='aetheri-audio-'+self.token+'-gui.service';self.pam=Path('/etc/pam.d')/('aetheri-audio-gui-'+self.token)
         self.old_vt=Path('/sys/class/tty/tty0/active').read_text().strip();assert re.fullmatch('tty[0-9]+',self.old_vt)
         content=b'auth required pam_permit.so\naccount required pam_permit.so\nsession required pam_systemd.so type=wayland class=user\n'
@@ -171,7 +192,7 @@ class Sound(UserAudio):
         self.input_objects=[(os.fstat(fd).st_dev,os.fstat(fd).st_ino) for fd in self.input_fds]
         self.record['gui']=dict(unit=self.gui_unit,state='prepared',pam=str(self.pam),pam_object=list(self.pam_object),profile_sha256=hashlib.sha256(data).hexdigest(),original_inputs=[list(x) for x in self.input_objects],old_vt=self.old_vt);self.save()
         run('chvt','8');self.original_sources()
-        gui_env={**self.audio_env,'LD_LIBRARY_PATH':str(self.gui/'usr/lib64'),'XDG_RUNTIME_DIR':'/run/user/1000','DBUS_SESSION_BUS_ADDRESS':'unix:path=/run/user/1000/bus','WAYLAND_DISPLAY':str(runtime/'aetheri-sound-live'),'NEXAUI_PLATFORM':'wayland','XDG_SESSION_TYPE':'wayland','XDG_SESSION_CLASS':'user','XDG_SEAT':'seat0','XDG_VTNR':'8'}
+        gui_env=self.with_input({**self.audio_env,'LD_LIBRARY_PATH':str(self.gui/'usr/lib64'),'XDG_RUNTIME_DIR':'/run/user/1000','DBUS_SESSION_BUS_ADDRESS':'unix:path=/run/user/1000/bus','WAYLAND_DISPLAY':str(runtime/'aetheri-sound-live'),'NEXAUI_PLATFORM':'wayland','XDG_SESSION_TYPE':'wayland','XDG_SESSION_CLASS':'user','XDG_SEAT':'seat0','XDG_VTNR':'8'})
         binary=str(self.gui/'usr/libexec/aetheri-audio-lab/probe_settings_audio_live')
         # Use the carrier's existing ordinary unconfined service transition.
         # Only this independently selected disposable ELF is relabelled.
@@ -277,7 +298,7 @@ class Sound(UserAudio):
         if not row[1]:
             self.click(self.row);self.gui_wait(lambda t:self.observed_output()[1]==1,'observed default output')
         self.gui_wait(lambda t:self.enabled(self.row+1),'enabled volume control')
-        self.policy_lua_ready(self.policy_unit)
+        self.policy_lua_ready(self.policy_unit,lua_prefix=self.input_runtime)
         if self.policy_profile=='lua55-candidate':
             # The GUI needs the original C core/APIs, not an embedded Lua engine.
             assert not select.select([self.gui_pin],[],[],0)[0]
@@ -305,6 +326,9 @@ class Sound(UserAudio):
         self.capture('sources-lost');self.record['sources_lost_fenced']=True;self.save()
         self.event('K 29 1');self.key(16);self.event('K 29 0')
         self.finish_gui();self.retire_extra_fds();self.retire_capture()
+        if self.input_runtime is not None:
+            import prepare_libinput_runtime as projected
+            projected.check_protected(self.input_runtime)
 
     def finish_gui(self):
         deadline=time.monotonic()+15
@@ -346,6 +370,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('sdk','policy','control','binary','source','gui','output'):parser.add_argument(name,type=Path)
     parser.add_argument('--policy-profile',choices=('rpm','lua55-candidate'),default='rpm')
+    parser.add_argument('--input-runtime',type=Path)
     args=parser.parse_args()
     if not __debug__ or os.geteuid()!=0 or Path('/sys/class/dmi/id/product_name').read_text().strip()!='Aetheri audio lab VM' or Path('/sys/fs/selinux/enforce').read_text().strip()!='1':raise ValueError('explicit unoptimized root-only enforcing audio lab required')
     if list(Path('/etc/pam.d').glob('aetheri-audio-*')) or run('systemctl','list-units','--all','--plain','--no-legend','aetheri-audio-*'):raise ValueError('foreign/pending test actors; reconcile first')
@@ -353,9 +378,13 @@ def main():
     prepare_audio.check(args.sdk);check_policy(args.policy,args.policy_profile);prepare_audio_control.check(args.control)
     check_binaries(args.binary)
     prepare_settings_audio_lab.check(args.gui,json.loads((args.source/'spec/settings-audio-lab-inputs.json').read_text()))
+    if args.input_runtime is not None:
+        if args.policy_profile!='lua55-candidate':raise ValueError('shared input runtime requires candidate policy')
+        import prepare_libinput_runtime as projected
+        projected.check_protected(args.input_runtime)
     fixture=Sound(args.output)
     try:
-        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,args.gui,policy_profile=args.policy_profile);fixture.exercise();fixture.retire();print(json.dumps(fixture.record),flush=True)
+        fixture.setup(args.sdk,args.policy,args.control,args.binary,args.source,args.gui,policy_profile=args.policy_profile,input_runtime=args.input_runtime);fixture.exercise();fixture.retire();print(json.dumps(fixture.record),flush=True)
     except BaseException as error:
         fixture.record.update(state='needs-inspection',error=repr(error),traceback=traceback.format_exc(),keeper_pid=os.getpid());fixture.save();print(json.dumps(fixture.record),flush=True)
         # Retain original bus/process/cgroup/input handles. No retry, stop,

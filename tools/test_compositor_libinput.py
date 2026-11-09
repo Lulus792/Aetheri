@@ -47,6 +47,25 @@ def verify_programs(root,files):
     if found!=set(files):raise ValueError('incomplete compositor inputs')
 
 
+def verify_input(value):
+    selected=value.get('input_profile','build')
+    if selected=='build':
+        root=Path(value['input']['root']);verify_build(root,value['input']['files'])
+        expected=str(root)+'/release:'+str(root)+'/candidate/sdk/usr/lib64:'+value['gui']+'/usr/lib64'
+        quirks=str(root)+'/candidate/source/quirks'
+        library=str(root)+'/release/libinput.so.10.13.0';lua=str(root)+'/candidate/sdk/usr/lib64/liblua-5.5.so'
+    elif selected=='projected':
+        import prepare_libinput_runtime as projected
+        projected.check_protected(value['input_runtime']);root=Path(value['input_runtime'])
+        expected=str(root/'usr/lib64')+':'+value['gui']+'/usr/lib64';quirks=str(root/'usr/share/libinput')
+        library=str(root/'usr/lib64/libinput.so.10.13.0');lua=str(root/'usr/lib64/liblua-5.5.so')
+    else:raise ValueError('explicit input profile required')
+    if value['library_path']!=expected:raise ValueError('unbound library search')
+    if value.get('quirks_directory')!=quirks:raise ValueError('unbound libinput quirks')
+    if len(list(Path(quirks).glob('*.quirks')))!=54:raise ValueError('incomplete libinput1.32 quirks')
+    return library,lua
+
+
 def session(selection,runtime):
     if os.getuid()!=os.geteuid() or os.getuid()!=1000 or os.getgid()!=os.getegid() or os.getgid()!=1000:
         raise ValueError('ordinary fixture session only')
@@ -101,12 +120,8 @@ class Fixture:
         for p in [Path(v['gui']),*Path(v['gui']).rglob('*')]:
             s=p.lstat()
             if s.st_uid or s.st_gid or s.st_mode&0o022:raise ValueError('unprotected GUI input')
-        verify_build(Path(v['input']['root']),v['input']['files'])
+        self.input_library,self.input_lua=verify_input(v)
         verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
-        expected=v['input']['root']+'/release:'+v['input']['root']+'/candidate/sdk/usr/lib64:'+v['gui']+'/usr/lib64'
-        if v['library_path']!=expected:raise ValueError('unbound library search')
-        if v.get('quirks_directory')!=v['input']['root']+'/candidate/source/quirks':raise ValueError('unbound libinput quirks')
-        if len(list(Path(v['quirks_directory']).glob('*.quirks')))!=54:raise ValueError('incomplete libinput1.32 quirks')
         if v['compositor']!=v['program_root']+'/aetheri-compositor' or v['client']!=v['program_root']+'/test_compositor_client':raise ValueError('foreign selected program')
         if any(Path('/etc/pam.d').glob('aetheri-input-*')):raise RuntimeError('pending/foreign input PAM fixture')
         if any(Path(p).exists() for p in ('/etc/libwacom','/usr/share/libwacom')):raise ValueError('unselected Wacom fallback')
@@ -115,7 +130,7 @@ class Fixture:
         if not Path('/dev/dri/card0').is_char_device():raise ValueError('original DRM card absent')
         self.output=Path(output);self.output.mkdir(mode=0o700)
         self.token=uuid.uuid4().hex;self.unit='aetheri-input-'+self.token+'.service'
-        self.record=dict(state='preparing',boot=v['boot'],unit=self.unit,pending=None,selection_sha256=hashlib.sha256(self.selection.read_bytes()).hexdigest())
+        self.record=dict(state='preparing',boot=v['boot'],unit=self.unit,pending=None,selection_sha256=hashlib.sha256(self.selection.read_bytes()).hexdigest(),input_profile=v.get('input_profile','build'))
         self.bus=Bus();self.private=Bus(private=True);self.pins={};self.groups={};self.refs=[]
         self.save()
 
@@ -197,7 +212,7 @@ class Fixture:
         maps=(Path('/proc')/str(info['compositor'])/'maps').read_text()
         input_paths={line.split()[-1] for line in maps.splitlines() if 'libinput.so.' in line}
         lua_paths={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
-        if input_paths!={v['input']['root']+'/release/libinput.so.10.13.0'} or lua_paths!={v['input']['root']+'/candidate/sdk/usr/lib64/liblua-5.5.so'}:raise RuntimeError('wrong libinput/Lua runtime')
+        if input_paths!={self.input_library} or lua_paths!={self.input_lua}:raise RuntimeError('wrong libinput/Lua runtime')
         (self.output/'compositor-maps.txt').write_text(maps)
         self.wait(lambda:'FRAME 1 ' in (self.runtime/'client.log').read_text(),'actual Wayland frames')
         if 'libinput error:' in (self.runtime/'compositor.log').read_text():raise RuntimeError('libinput initialization/data failure')
@@ -233,7 +248,7 @@ class Fixture:
         s=self.pam.stat()
         if (s.st_dev,s.st_ino)!=self.pam_identity or s.st_uid or self.pam.read_bytes()!=self.pam_content:raise RuntimeError('PAM object changed')
         self.effect('remove-owned-pam',self.pam.unlink);self.effect('restore-original-vt',lambda:run('chvt',self.old_vt[3:]))
-        verify_programs(v['program_root'],v['program_files']);gui.check(v['gui'],self.profile);verify_build(Path(v['input']['root']),v['input']['files']);verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
+        verify_programs(v['program_root'],v['program_files']);gui.check(v['gui'],self.profile);verify_input(v);verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
         for pin in self.pins.values():os.close(pin)
         for path,fd,events,identity in self.groups.values():os.close(events);os.close(fd)
         os.close(self.control);self.bus.close();self.private.close();self.record['state']='retired';self.save();print(json.dumps(dict(output=str(self.output),state='retired')),flush=True)

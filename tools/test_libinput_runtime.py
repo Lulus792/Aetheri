@@ -96,6 +96,10 @@ class Native(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'different selected input'):runtime.prepare(changed,self.lua,self.archive,self.output)
         self.assertFalse(self.output.exists())
 
+    def test_user_owned_output_is_not_protected_admission(self):
+        self.prepare()
+        with self.assertRaisesRegex(ValueError,'unprotected'):runtime.check_protected(self.output)
+
     def test_actual_static_elf_audit_and_old_abi_counter(self):
         self.prepare();v=runtime.check(self.output)
         files=[dict(destination='/'+e['path']) for e in v['files']]

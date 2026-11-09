@@ -191,3 +191,76 @@ stage the full native SDK/tool inputs and rebuild/test the current complete
 desktop. The full image ELF audit, normal device/session ownership, PCRE2 review,
 physical HP and broader OS/app/installer/experiment work remain open. Normal
 manifests, old carrier, physical stick and foreign UI notes remain unchanged.
+
+## Protected projection in actual DRM and shared Sound
+
+The explicit projected input mode now passes actual DRM/PAM/logind input and
+connected Sound. `check_protected` repeats the complete independent profile and
+requires root ownership/non-writable-by-others parents. This is a lab prerequisite,
+not service/volume admission or proof that chown retired old writers. Preparation
+uses fresh root-created copies from the checked artifact export; the previous
+user-owned prefix is never adopted. The original build mode remains supported.
+
+Protected preparation v1 stops before services because raw Windows CRLF profile
+bytes differ from original Linux receipt hashes. The locally normalized LF hash
+matches the original receipt precisely. Preserve that failed tree and output;
+do not relax the checker or alter its receipt. Fresh v2 copies canonical Git LF
+code/profiles and passes all source/runtime checks. Its protected stage is
+`/root/aetheri-projected-integration-5c87216edc4e4248b56169262b5a0b5b`, source
+`/run/a-lrs-5c87216edc4e`, component `/run/a-lrp-5c87216edc4e`. The original GUI80
+and audio artifact bytes remain independently checked and unchanged.
+
+Native projection9, Sound-control8 and original-GUI-runtime9 tests pass without
+skips. Additional actual selector checks accept the projected and legacy-default
+modes, reject an unknown mode and reject the user-owned prepared prefix. The
+default Sound environment/policy rejection controls execute without any bus effect.
+
+Projected DRM controller74904 exits0. Original unit
+`aetheri-input-c1e7eef222744dd9983ff91c3a8ff65a.service`, invocation
+`074792cce7d64ab69c483b473bd7c8ad`, retires its original actors, service/scope/
+session and input baseline. Actual key30 press/release produces97 (`a`); motion
+and button272 press/release arrive through PS2/libinput/Wayland. Actual maps
+select the component's Release input library and Lua5.5, with matching quirks and
+no libinput error. The same independently checked normal keyboard-v3 compositor
+artifact is used; this remains separate from a current full desktop rebuild.
+
+Shared Sound controller26978 exits0. Its fixture root is
+`/run/a-audio-8c4eb56adb7c`; compositor61487 and policy61462/invocation
+`2657514032fa4852bc2b68a600e8ade9` actually map the same
+`input/usr/lib64/liblua-5.5.so` within that root. Both raw mapping records are
+exported and compared independently. The separately checked rebuilt module stays
+in the policy prefix. GUI invocation is `5c9be43b2635457192d49850f0d46414`.
+Pointer/keyboard volume control, raw stereo readback `[0.117649,0.117649]` for
+UI0.489999995, mute/unmute and source-loss fencing pass. Native observer/input-FD,
+original process/unit/cgroup/target/session retirement completes before fixture
+unmount and unchanged temporary policy removal. No new MAC permission is added.
+
+A separate no-option default RPM Sound run/controller48675 also exits0 and
+retires completely. It uses original policy63015/invocation
+`adc1f1dfd5114dfba9cd227670f20083`, GUI invocation
+`591e520b75a444cba746f09c0129855c`, with the original Lua5.4 policy mapping checked
+by the live controller. Its compositor raw maps are not exported by that default
+branch; do not invent such evidence. Shared and default runs have identical
+readback/mute/loss results and all12 corresponding raw capture hashes match.
+These24 files are GUI images, not PCM recordings. All compressed/raw hashes and
+image decoding are checked; the four shared primary states are actually viewed.
+
+The complete727-file export is checked:3,356,270 bytes, SHA256
+`522b4c07a1f4929b384d5b511ef3696aebdde1258aaa87d270d2d765ebcc1b23`, protected at
+`/root/aetheri-projected-input-evidence-ea5f706d11be4bd68c319937b003c28b/export.tar.gz`.
+Both original submitted input inventories match. The first host verifier wrongly
+expects a raw compositor-map file in the default branch; inspect its actual
+contract and verify the immutable existing export without replaying either run.
+The corrected verifier uses the default controller's actual Lua observation and
+the shared raw maps, preserving that evidence distinction.
+
+Independent end inspection finds no selected mapping, test unit or PAM profile;
+tty1 and the original udev PID693/invocation remain, enforcing stays1 and both
+temporary policy modules are absent. The two Sound fixture mounts ended. Failed
+and protected source/component/program inputs deliberately remain; never adopt
+the failed v1 preparation. Four foreign UI note hashes remain unchanged. Original
+QEMU5548/controller15559 stays live on boot8b915c0c-ab36-4cce-a8a3-e84e1c12627c.
+Next stage the required full native SDK/tool inputs and rebuild/test the current
+complete desktop and full image ELF closure. Normal image/provider selection,
+PCRE2, production device/session ownership, physical hardware and broader OS work
+remain open. The USB and old quarantined P0 remain untouched; NexaUI handoff stays closed.

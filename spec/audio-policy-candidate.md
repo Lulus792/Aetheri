@@ -66,3 +66,28 @@ the policy candidate uses Lua5.5 in its own prefix/process. Review libinput's
 binding before claiming a maintained whole-desktop Lua closure or selecting new
 normal manifests. Physical audio, normal session/device ownership and the PCRE2
 release review remain separate work.
+
+## Shared projected input runtime
+
+The explicit live Sound fixture also accepts
+`--policy-profile lua55-candidate --input-runtime PROTECTED_INPUT_RUNTIME`.
+This option never changes the default RPM profile or the original80-file GUI
+checker. It requires a fresh independently selected root-created input component;
+user-owned preparation output is rejected before test setup. See the
+[runtime contract](libinput-runtime.md).
+
+The fixture makes a new copy inside its own temporary mount and uses the existing
+test library type. It adds no policy permission. Compositor, GUI and audio child
+environments put this component first. The actual compositor input/Lua mappings
+and policy Lua/module mappings must select their independently checked files;
+both processes must map the same copied Lua5.5 object. Preserve the policy's raw
+mapping record. The unchanged GUI and policy input prefixes are not rewritten.
+
+After original GUI/compositor/graph/policy/session/target and holder retirement,
+the original fixture mount ends before its existing temporary policy modules
+are removed. Thus shared library labels do not outlive their test mount. Unknown
+effects retain the same original keeper/handles, without replay or automatic
+cleanup. Both the projected shared run and a separate default RPM/Lua5.4 run now
+pass actual controls, readback/source loss and retirement; all24 captures are
+checked and corresponding pixels match. This is synthetic Sound GUI integration,
+not physical playback or a new normal desktop image.
