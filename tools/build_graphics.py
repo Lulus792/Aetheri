@@ -12,6 +12,34 @@ import tarfile
 from prepare_vm import ROOT, verify
 
 
+def private_environment(args):
+    values = [args.common_sdk, args.session_sdk, args.sdl_sdk, args.toolchain, args.original_runtime]
+    if not any(p is not None for p in values):
+        return None, None
+    if not args.session or not all(p is not None for p in values):
+        raise ValueError('private session build requires all five SDK/runtime options and --session')
+    import prepare_desktop_sdk as sdk
+    import prepare_desktop_toolchain as tools
+    import prepare_settings_audio_lab as gui
+    import prepare_wlroots_sdk as session
+    common, selected, sdl, toolchain, original = [sdk.prefix_path(p) for p in values]
+    facts = dict(common=sdk.check(common), session=session.check(selected),
+                 sdl=sdk.check(sdl, 'sdl'), toolchain=tools.check(toolchain))
+    gui.check(original, json.loads((ROOT/'spec/settings-audio-lab-inputs.json').read_bytes()))
+    libs = [selected/'input/usr/lib64', selected/'rpm/usr/lib64', common/'usr/lib64',
+            toolchain/'usr/lib64', original/'usr/lib64']
+    pcs = [selected/'input/usr/lib64/pkgconfig', selected/'rpm/usr/lib64/pkgconfig',
+           selected/'rpm/usr/share/pkgconfig', common/'usr/lib64/pkgconfig', common/'usr/share/pkgconfig']
+    env = dict(HOME='/home/aetheri', LC_ALL='C', PYTHONDONTWRITEBYTECODE='1',
+               PATH=':'.join(map(str, [common/'usr/bin', toolchain/'bin', sdl/'usr/bin']))+':/usr/bin:/usr/sbin:/bin:/sbin',
+               PYTHONPATH=str(sdl/'usr/lib/python3.14/site-packages'),
+               PKG_CONFIG='/usr/bin/pkg-config', PKG_CONFIG_LIBDIR=':'.join(map(str, pcs)),
+               LD_LIBRARY_PATH=':'.join(map(str, libs)), CC='/usr/bin/gcc')
+    return env, dict(checks=facts, rpath=':'.join(map(str, libs)),
+                     prefixes=dict(common=str(common), session=str(selected), sdl=str(sdl),
+                                   toolchain=str(toolchain), original_runtime=str(original)))
+
+
 def apply_reviewed_patch(tree, record):
     """Apply only exact pinned unified hunks; no shell, fuzzy context or offsets."""
     raw = (ROOT / record["path"]).read_bytes()
@@ -69,9 +97,15 @@ def main():
     parser.add_argument("work", type=Path, help="new private directory; never reused or overwritten")
     parser.add_argument("--sanitizers", action="store_true")
     parser.add_argument("--session", action="store_true", help="explicit DRM/libinput/logind development profile")
+    parser.add_argument("--common-sdk", type=Path)
+    parser.add_argument("--session-sdk", type=Path, help="joined package and tested libinput SDK")
+    parser.add_argument("--sdl-sdk", type=Path, help="private Meson modules and executable")
+    parser.add_argument("--toolchain", type=Path)
+    parser.add_argument("--original-runtime", type=Path, help="checked original transitive carrier runtime")
     args = parser.parse_args()
     if sys.platform != "linux" or os.getuid() == 0:
         raise ValueError("use an unprivileged Linux build account")
+    env, private = private_environment(args)
     config = json.loads((ROOT / "spec/graphics-inputs.json").read_text())
     record = next(r for r in config["inputs"] if r["name"] == "wlroots-0.20.2.tar.gz")
     archive = args.cache.resolve() / record["name"]
@@ -116,10 +150,14 @@ def main():
     apply_reviewed_patch(tree, config["clipboard_patch"])
     build, prefix = work / "build", work / "prefix"
     if args.session:
-        expected = {"libinput": "1.31.3", "libseat": "0.9.3", "libdisplay-info": "0.3.0",
+        expected = {"libinput": "1.32.0" if private else "1.31.3", "libseat": "0.9.3", "libdisplay-info": "0.3.0",
                     "hwdata": "0.412", "libudev": "259"}
+        if private:
+            expected.update({'libsystemd': '259', 'wayland-server': '1.26.0', 'wayland-client': '1.26.0',
+                             'wayland-protocols': '1.49', 'xkbcommon': '1.13.1',
+                             'libdrm': '2.4.134', 'pixman-1': '0.46.2'})
         for package, version in expected.items():
-            actual = subprocess.check_output(["pkg-config", "--modversion", package], text=True).strip()
+            actual = subprocess.check_output(["pkg-config", "--modversion", package], env=env, text=True).strip()
             if actual != version:
                 raise ValueError("unreviewed session build dependency: " + package + " " + actual)
     options = ["--libdir=lib", "--wrap-mode=nodownload", "-Dauto_features=disabled", "-Dexamples=false",
@@ -127,11 +165,13 @@ def main():
                "-Drenderers=[]", "-Dallocators=[]", "-Dsession=" + ("enabled" if args.session else "disabled"),
                "-Dlibliftoff=disabled", "-Dxwayland=disabled", "-Dcolor-management=disabled"]
     options += ["--buildtype=debugoptimized", "-Db_sanitize=address,undefined"] if args.sanitizers else ["--buildtype=release"]
+    if private:
+        options.append('-Dc_link_args='+json.dumps(['-Wl,-rpath,'+private['rpath']]))
     commands = [["meson", "setup", str(build), str(tree), "--prefix=" + str(prefix), *options],
                 ["meson", "compile", "-C", str(build), "-j2"], ["meson", "install", "-C", str(build)]]
     with (work / "build.log").open("xb") as log:
         for command in commands:
-            subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+            subprocess.run(command, env=env, check=True, stdout=log, stderr=subprocess.STDOUT)
     license_dir = prefix / "share/licenses/wlroots-0.20.2"
     license_dir.mkdir(parents=True)
     with (license_dir / "LICENSE").open("xb") as output:
@@ -139,6 +179,8 @@ def main():
     report = {"archive_sha256": record["digest"], "patch": patch, "clipboard_patch": config["clipboard_patch"], "commands": commands,
               "session_dependencies": expected if args.session else {},
               "library_sha256": hashlib.sha256((prefix / "lib/libwlroots-0.20.so").read_bytes()).hexdigest()}
+    if private:
+        report['private_sdk'] = private
     (work / "result.json").write_text(json.dumps(report, indent=2) + "\n")
     print("Reviewed private wlroots built at", prefix)
 

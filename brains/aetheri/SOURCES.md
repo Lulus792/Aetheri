@@ -1,5 +1,25 @@
 # Sources
 
+## Current wlroots/input SDK — 10 November 2026
+
+- [Execution record](journal/2026-11-10-wlroots-sdk.md),
+  [SDK contract](../../spec/wlroots-sdk.md) and
+  [exact profile](../../spec/wlroots-sdk-inputs.json): signed original package
+  headers/libraries, genuine libinput 1.32 installed header/generated PC data,
+  Release-v5 receipt and independent runtime pins. The selected original full
+  export has 2,465 checked files. The historical receipt predates later metadata
+  keys; its explicit primary Release command supplies that evidence.
+- Actual complete wlroots Release/instrumented builds keep both original patches
+  and the existing Pixman/session profile. The final consumers exercise real
+  headless output/renderer/allocator and unassigned input teardown. ASan/UBSan and
+  leak detection are enabled without suppression. The 787-file export and both
+  complete 472-file patched source inventories are independently checked.
+- Actual mappings have 30 unique checked files across both consumers, bound to
+  original providers or the new build. The shared unlinked pixel buffer is data;
+  only its exact non-executable class/name is excluded from filesystem-code
+  hashing. No unknown deleted code is admitted. Normal compositor/app integration,
+  device admission, physical graphics and full release acceptance remain work.
+
 ## Actual private Mesa rendering — 10 November 2026
 
 - [Execution record](journal/2026-11-10-graphics-runtime.md),

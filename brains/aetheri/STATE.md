@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The private Mesa/DRI runtime now passes real EGL/GLES shader drawing and all-pixel readback: 1,352 red triangle pixels and 2,744 blue background pixels. The no-draw counter fails precisely. All 400 export files, 52 runtime bodies, 86 aliases, 18 original inputs and 40 actual mappings are independently checked. Carrier packages, udev and enforcing policy remain unchanged. Continue with genuine current wlroots SDK inputs, compositor/apps and normal GUI integration. No complete desktop, hardware acceptance or image is claimed; the agreed first-version gate still forbids the next USB-targeted build/flash.
+10 November 2026 — The current private wlroots SDK and complete Release/ASan/UBSan builds now pass actual headless Pixman/input ABI and lifetime proofs, with leak detection enabled and no suppression. All 787 export files, both 472-file source inventories, 252 submitted inputs, SDK artifacts and 30 actual mapped files are independently checked. The old input/Lua 5.4 is absent. Carrier packages, udev and enforcing policy remain unchanged. Next supply remaining app SDK inputs and rebuild the current Aetheri compositor/desktop/apps together, then normal GUI/native integration. No complete desktop, hardware acceptance or image is claimed; the agreed first-version gate still forbids the next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,35 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Current wlroots SDK and builds — 10 November 2026
+
+Read the [execution record](journal/2026-11-10-wlroots-sdk.md) and
+[SDK contract](../../spec/wlroots-sdk.md). Twelve signed packages provide 94
+original files and 19 aliases; the joined input half uses the original selected
+Release-v5 header/generated metadata/receipt and libinput 1.32/Lua 5.5 bodies.
+The initial debug-runner selection is rejected before effects. Recover the
+original Release inputs from its completely reverified 2,465-file export, retaining
+the legacy receipt and historical profile hash without rewriting either.
+
+Source `/run/a-wlr-8d232f0bfa37`;
+SDK `/home/aetheri/deps/wlroots-session-sdk-8d232f0bfa37`;
+Release `/home/aetheri/deps/wlroots-desktop-release-8d232f0bfa37`;
+memory `/home/aetheri/deps/wlroots-desktop-memory-8d232f0bfa37`.
+Controller 53655 finishes both builds, then fails its first consumer assertion.
+Retain later feature/link/map verifier and host-driver failures separately.
+Final Release `/home/aetheri/deps/wlr-release-proof-88c239187ff3` and memory
+`/home/aetheri/deps/wlr-memory-proof-8e8aeabf5a4b` actually pass all three commands
+each. Wlroots and the memory consumer are instrumented; leak detection stays on.
+
+All 787 exported files, both 472-file source inventories and 252 submitted inputs
+match. The actual 25/28 filesystem mappings have independently checked origins,
+with no old input/Lua 5.4 selection. Host regressions: 45 pass; native controls: 10.
+Packages, original udev 693/invocation and enforcing policy remain unchanged;
+no selected libraries/SDK/final probes remain mapped. This is a headless ABI/
+lifetime proof, not DRM presentation, normal app/session or physical acceptance.
+Revalidate the same restricted audio VM, then continue current apps and normal GUI
+integration. No normal promotion, USB work or new NexaUI handoff.
 
 ## Actual private Mesa rendering — 10 November 2026
 

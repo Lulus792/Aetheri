@@ -19,9 +19,11 @@ from prepare_desktop_toolchain import canonical, select, sha
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'spec/desktop-sdk-inputs.json'
 PROFILES = {'common': (PROFILE, 'private-common-wayland-sdk'),
-            'sdl': (ROOT / 'spec/sdl-sdk-inputs.json', 'private-sdl-build-sdk')}
+            'sdl': (ROOT / 'spec/sdl-sdk-inputs.json', 'private-sdl-build-sdk'),
+            'wlroots': (ROOT / 'spec/wlroots-sdk-inputs.json', 'private-wlroots-package-sdk')}
 LIMITS = {'private-common-wayland-sdk': (10, 512, 2*1024**2),
-          'private-sdl-build-sdk': (5, 1024, 4*1024**2)}
+          'private-sdl-build-sdk': (5, 1024, 4*1024**2),
+          'private-wlroots-package-sdk': (12, 512, 4*1024**2)}
 PATH_KEYS = {'prefix', 'exec_prefix', 'includedir', 'libdir', 'bindir', 'datarootdir'}
 
 

@@ -1,0 +1,921 @@
+{
+  "format": 1,
+  "purpose": "private-wlroots-package-sdk",
+  "reviewed": "2026-11-10",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libdrm-2.4.134-1.fc44.x86_64.rpm",
+      "size": 170660,
+      "sha256": "edd4ba5100079961bb7f9ebcb3efda75dac38f7be79f73e55839c699e236e997",
+      "metadata": [
+        "libdrm 2.4.134-1.fc44.x86_64",
+        "MIT",
+        "libdrm-2.4.134-1.fc44.src.rpm"
+      ],
+      "selected_files": 5
+    },
+    {
+      "name": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/l/libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+      "size": 191426,
+      "sha256": "001b477e68cf8747c7574e9183907d0754c279de43dbc1d672399b548ccb4371",
+      "metadata": [
+        "libdrm-devel 2.4.134-1.fc44.x86_64",
+        "MIT",
+        "libdrm-2.4.134-1.fc44.src.rpm"
+      ],
+      "selected_files": 44
+    },
+    {
+      "name": "pixman-0.46.2-3.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/pixman-0.46.2-3.fc44.x86_64.rpm",
+      "size": 304584,
+      "sha256": "a2647f765cbea1cee0a0472223efd7538676e9272b5e9725dd3e37d44e0d81c6",
+      "metadata": [
+        "pixman 0.46.2-3.fc44.x86_64",
+        "MIT",
+        "pixman-0.46.2-3.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "pixman-devel-0.46.2-3.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/pixman-devel-0.46.2-3.fc44.x86_64.rpm",
+      "size": 18365,
+      "sha256": "b591d838e8514a23793b88135040b397630ed38d3c2e3bf68f084525bf03c910",
+      "metadata": [
+        "pixman-devel 0.46.2-3.fc44.x86_64",
+        "MIT",
+        "pixman-0.46.2-3.fc44.src.rpm"
+      ],
+      "selected_files": 3
+    },
+    {
+      "name": "libseat-0.9.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/seatd/0.9.3/1.fc44/data/signed/6d9f90a6/x86_64/libseat-0.9.3-1.fc44.x86_64.rpm",
+      "size": 31589,
+      "sha256": "63506cb0fd101d4255bb9a4e52dc8e44744dc8b4b2876ea13ce6d4284daaf8f3",
+      "metadata": [
+        "libseat 0.9.3-1.fc44.x86_64",
+        "MIT",
+        "seatd-0.9.3-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "libseat-devel-0.9.3-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/seatd/0.9.3/1.fc44/data/signed/6d9f90a6/x86_64/libseat-devel-0.9.3-1.fc44.x86_64.rpm",
+      "size": 10595,
+      "sha256": "30a4d57d02280340fe10502c8220197315ab9cf84d04c82e8bb78184a9ff2f3e",
+      "metadata": [
+        "libseat-devel 0.9.3-1.fc44.x86_64",
+        "MIT",
+        "seatd-0.9.3-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "libdisplay-info-0.3.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libdisplay-info/0.3.0/1.fc44/data/signed/6d9f90a6/x86_64/libdisplay-info-0.3.0-1.fc44.x86_64.rpm",
+      "size": 91775,
+      "sha256": "375a094eefecdff511111b40bbe4a776218af02051957e82c5a233de6cd30d49",
+      "metadata": [
+        "libdisplay-info 0.3.0-1.fc44.x86_64",
+        "MIT",
+        "libdisplay-info-0.3.0-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libdisplay-info/0.3.0/1.fc44/data/signed/6d9f90a6/x86_64/libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm",
+      "size": 31033,
+      "sha256": "f87296e286c5e4884045d742a740318b732c4082146bd6ee187898e64b817e11",
+      "metadata": [
+        "libdisplay-info-devel 0.3.0-1.fc44.x86_64",
+        "MIT",
+        "libdisplay-info-0.3.0-1.fc44.src.rpm"
+      ],
+      "selected_files": 9
+    },
+    {
+      "name": "hwdata-0.412-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/hwdata/0.412/1.fc44/data/signed/6d9f90a6/noarch/hwdata-0.412-1.fc44.noarch.rpm",
+      "size": 1798675,
+      "sha256": "ffb9a07e488b23a81fc682b9c1acd66be3e5e0839f5199e302440fc7c31f8ecd",
+      "metadata": [
+        "hwdata 0.412-1.fc44.noarch",
+        "GPL-2.0-or-later",
+        "hwdata-0.412-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "hwdata-devel-0.412-1.fc44.noarch.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/hwdata/0.412/1.fc44/data/signed/6d9f90a6/noarch/hwdata-devel-0.412-1.fc44.noarch.rpm",
+      "size": 9234,
+      "sha256": "c927a45c06ceb67579162cd8e6159561a9464c2bd11e4c3da75881161ec187ce",
+      "metadata": [
+        "hwdata-devel 0.412-1.fc44.noarch",
+        "GPL-2.0-or-later",
+        "hwdata-0.412-1.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "systemd-devel-259.10-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/systemd/259.10/1.fc44/data/signed/6d9f90a6/x86_64/systemd-devel-259.10-1.fc44.x86_64.rpm",
+      "size": 718475,
+      "sha256": "5084b02d680e990d022734f8083aa40c5f882ef68d9f8e8710cbaa2eae511711",
+      "metadata": [
+        "systemd-devel 259.10-1.fc44.x86_64",
+        "LGPL-2.1-or-later AND MIT",
+        "systemd-259.10-1.fc44.src.rpm"
+      ],
+      "selected_files": 20
+    },
+    {
+      "name": "systemd-libs-259.10-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/systemd/259.10/1.fc44/data/signed/6d9f90a6/x86_64/systemd-libs-259.10-1.fc44.x86_64.rpm",
+      "size": 890575,
+      "sha256": "45a0271e01ea5e882c0779d897efa56a7a6abc26c76b65b544d608e99a86934f",
+      "metadata": [
+        "systemd-libs 259.10-1.fc44.x86_64",
+        "LGPL-2.1-or-later AND MIT",
+        "systemd-259.10-1.fc44.src.rpm"
+      ],
+      "selected_files": 3
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/include/libdisplay-info/cta.h",
+      "size": 54272,
+      "sha256": "8a75472289bd024b6a970f0289062c13d9f41a9f483b4d86d61f7a9a4bb60c59",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/cvt.h",
+      "size": 2224,
+      "sha256": "dd0d43bd02ca3aefbf8f5946235beca0746bbfe9b2ad9f05ce9dc69ce319bf13",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/displayid.h",
+      "size": 11578,
+      "sha256": "a10011924a43684e7fa44a8fdd277760e8bc3cd15d6921824531d6cc107207e5",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/displayid2.h",
+      "size": 1603,
+      "sha256": "3dfc0bfd70722fe0a16a92a375d7fb48cc5474cd0dc79bd8ae67776014b6d1ad",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/dmt.h",
+      "size": 1061,
+      "sha256": "c68dd6e6c1a86c162231dcf01221de10439fa2574c72c05f5df3574d53532f7a",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/edid.h",
+      "size": 24588,
+      "sha256": "b8d71b2b9f12865344ceec3451daf9e59e981ca25b9cf14c819c549dddc93bcd",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/gtf.h",
+      "size": 1699,
+      "sha256": "0e7fd036e5c48ce2dbc5be68948738faea1cf22731bd6bc184d16a5b0be1efa4",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdisplay-info/info.h",
+      "size": 7533,
+      "sha256": "ec0d5d9867fa0a750ead3c2eb792e5a07bd07cafb6ceff1a61e2bfadd8f010d5",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/amdgpu.h",
+      "size": 64459,
+      "sha256": "83f5e436813f0a886f20943cde8535195c6b79ebc58ba2391bdae27e3d1d35ef",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/amdgpu_drm.h",
+      "size": 49845,
+      "sha256": "2881120496c69fc2154e590d0bc6e615a48adc43df1a658dd8cd8f78ec648557",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/drm.h",
+      "size": 48072,
+      "sha256": "f9eadbfa0f9e1aeacc27f5c931ca3bd7b46974dbad817cd02fe601ccb5cdf08d",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/drm_fourcc.h",
+      "size": 78466,
+      "sha256": "992f33804acda60b0b46f1a272942c3592484ea3217d469239f1cb12249de2eb",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/drm_mode.h",
+      "size": 47922,
+      "sha256": "ee4068c026dfb6c85c668cb4e41ff9cbf30e99c10c5e7ef2ad1c7870d3f9a3bf",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/drm_sarea.h",
+      "size": 2782,
+      "sha256": "fd1a9f523738de090ab5018fc6776b83d18e43ad84f2a0825f6a72d6278c542a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/i915_drm.h",
+      "size": 124881,
+      "sha256": "1eae436196e69c1653004519ec1bc20060959526cf1826f1b60647dc5134cbeb",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/intel_aub.h",
+      "size": 5933,
+      "sha256": "be42118682ea12590531b867a3235f09d752c441b7bd7307fdec0104813a23e0",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/intel_bufmgr.h",
+      "size": 12892,
+      "sha256": "a401fb1fea17600bac38f53de6defbfdda1c40fa05a51adad783cec6613d0a6a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/intel_debug.h",
+      "size": 1585,
+      "sha256": "18a4b2cd7f2d2907fe95f9654e6052f0cf23fc9bded99d6357e761a5b594e1e7",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/mach64_drm.h",
+      "size": 7895,
+      "sha256": "26cc4affc11d34748724a2b619fd166f162c6215837d0660271c56f4b50e44e5",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/mga_drm.h",
+      "size": 13010,
+      "sha256": "20be6c1c32101d66c08a5741dfd7ea834221199a5921ac0e4b4698c432dafc0f",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/msm_drm.h",
+      "size": 12105,
+      "sha256": "90305a6fae34d7d5f7f74d043523aaf5d84c94e4691219166060ad36debb53c0",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nouveau.h",
+      "size": 7902,
+      "sha256": "408d8f7339b0670c339b030d0f1b49e517fc44e81cdc0a949956c0e3c1fd1544",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/cl0080.h",
+      "size": 1785,
+      "sha256": "ed9940a3e58c635980e7c7433b18ae24f079d36453e809eeac102b8c359dcaca",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/cl9097.h",
+      "size": 2062,
+      "sha256": "5c6d3f5b547d179e15a7b7c232abcc4b93fd74fd67d3d52b405131b259520610",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/class.h",
+      "size": 8789,
+      "sha256": "8486732ad1988054b5f2415970111bc19e4ebc8cf4b059288d462699e39e7a2a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/if0002.h",
+      "size": 769,
+      "sha256": "4f24f59677731a71b5de47cd901db5acda2100fed13698f331d36275879d49ee",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/if0003.h",
+      "size": 645,
+      "sha256": "d24b3f3792a44d92a6436d51be99e0b947d9d4673928dda561e9a83540b5e77d",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/ioctl.h",
+      "size": 3174,
+      "sha256": "b1037cfadc5940a837eaea35b50c96aeb5367a5464e15b5f978d31638b4586df",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau/nvif/unpack.h",
+      "size": 1551,
+      "sha256": "0874ec3e02716aa60772acc3d85112bed043b5ecd483464fe39d74cd9dadce3a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/nouveau_drm.h",
+      "size": 7000,
+      "sha256": "7757e4a836b1c6e36944c686477dca664aacb9ca44cc6ce7841bcf2ebfd13cf9",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/qxl_drm.h",
+      "size": 4131,
+      "sha256": "548e963e52309e741c413a2d1918e6f8e31399a350f98b5fd46c38155546ba6e",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/r128_drm.h",
+      "size": 10000,
+      "sha256": "5ee8a4d8dc2f8529bc3082ae99e19b836b9241d3ec8380d6e544165c2468ce2c",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/r600_pci_ids.h",
+      "size": 16388,
+      "sha256": "b40fb4a001e210c3bbd716c518192a2074228a5faec8a1fcc655b112c0c27ee6",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_bo.h",
+      "size": 2813,
+      "sha256": "2f187e74257b23608012e4925b26e3fc7dd9db534a740f2a0a8168b8519d7fb5",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_bo_gem.h",
+      "size": 1991,
+      "sha256": "b2a501afc0b0c78650b11c1bec547dfd7db6f69c2774212468da5eb8902a5fd7",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_bo_int.h",
+      "size": 1678,
+      "sha256": "3d6f947098974af1c4bccb265585ebb623242015b91b833b5c7f35e37b780ede",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_cs.h",
+      "size": 5121,
+      "sha256": "97f44a76aa83dc8a3a2370a29169b1f6b347e60b96e5cd5949c21dbfe382a288",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_cs_gem.h",
+      "size": 1601,
+      "sha256": "3f28f2782a8a0150ad02a6cdcf3056654590b3e779a3d6a5c5eb4bdec9665670",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_cs_int.h",
+      "size": 2179,
+      "sha256": "134a9310cc9d3e7219dc40e59a20ec94e0e64959487297fbd2489c5b71f38d3a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_drm.h",
+      "size": 38317,
+      "sha256": "1dfa3a4185a75b3963eba9e4ba757cdf7aca503bea7708cf301197366faa5b8d",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/radeon_surface.h",
+      "size": 5968,
+      "sha256": "cd2fb7bdd447164495d01acd7ab68ff70794e8b350bd1508be0ed8bc2ee2459a",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/savage_drm.h",
+      "size": 7170,
+      "sha256": "09f5f47769f6365b2e321ece9e83ce1e4d6aef6ae727dacd33d02d2fd64cb26e",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/sis_drm.h",
+      "size": 2633,
+      "sha256": "981da0746aedd980fc2c3bb4357a400ff2b35df2e214a582b58488ffd469fa7c",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/tegra_drm.h",
+      "size": 21651,
+      "sha256": "84969d7efe2d983090d0b4b0f47f0dcf0f5853b830808677005b1af9d1f954c9",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/vc4_drm.h",
+      "size": 14457,
+      "sha256": "f1ffa366621a643e4f81d4b0c15db46a8405a94a45cc08708cc8a702abdb3053",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/via_drm.h",
+      "size": 8372,
+      "sha256": "ace3ddd33488b86f8171b8622762be2816598236777b6a88afd053a89a7e22d7",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/virtgpu_drm.h",
+      "size": 8072,
+      "sha256": "3fb60f5131574dd1fb4aff3e10a45448fa67fe10796e0cf21c6ee583eb996cbd",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libdrm/vmwgfx_drm.h",
+      "size": 32085,
+      "sha256": "b134ec8e4212cda56a57f5eb3de5e43ffa72cd79cf8e5d10a3d33fa8d1eec4ae",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libseat.h",
+      "size": 5777,
+      "sha256": "6dfc615506433098879ec8a9d730cedd95b061fa1f1abb402a2abac19b931411",
+      "mode": 420,
+      "package": "libseat-devel-0.9.3-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libsync.h",
+      "size": 3462,
+      "sha256": "0c681ebeb5ff98b61261a3240baa9cf855efb105231985c5a717d26383fe02fd",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/libudev.h",
+      "size": 9885,
+      "sha256": "836a864c7d45945b8d6c94bb3b79590f785c28562cd510e4328b7161b11b8a53",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/pixman-1/pixman-version.h",
+      "size": 1786,
+      "sha256": "dd49f56c79d419f8830f4de308dba28b37ac5bd507ff3cfd11cb0aff4df42c17",
+      "mode": 420,
+      "package": "pixman-devel-0.46.2-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/pixman-1/pixman.h",
+      "size": 55372,
+      "sha256": "af49363cee8b2340a215e1ea477761c2c867905c17abe129e5778bfc65033f53",
+      "mode": 420,
+      "package": "pixman-devel-0.46.2-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/_sd-common.h",
+      "size": 4273,
+      "sha256": "6853f728e39c464573663b83e6ce142a68fb920f33754693497341a1aa2705b0",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-bus-protocol.h",
+      "size": 9953,
+      "sha256": "83b901c20d90c2a9111a3c3fcd1b06eaef673537ebef841a0505da4419eb4d71",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-bus-vtable.h",
+      "size": 23343,
+      "sha256": "be09a3ff17dc4aaa166f2f8c341c61f2496a7419a256a2f368fc8ac5d911820c",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-bus.h",
+      "size": 26726,
+      "sha256": "a52b187f3c2392b453c87485c66e6974cef15460c00055d09c2f354903fa4242",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-daemon.h",
+      "size": 14202,
+      "sha256": "f0f21b4b6ce6db8fb0c397306c101101cfd1f46fa59d84f6959c34dd1cf566eb",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-device.h",
+      "size": 9109,
+      "sha256": "90594b918d40b8d63f5620f21a0bd60e18e0b7176a8679c2d49cce42fbd55346",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-event.h",
+      "size": 9293,
+      "sha256": "014e80a8bd11578db3776247782da5c7eae0475fb3621722708312108557c881",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-gpt.h",
+      "size": 25695,
+      "sha256": "3ad87981bd1a721d8a9bc6833f12280a8519c1530c3c59d910e617ca4a9b9993",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-hwdb.h",
+      "size": 1611,
+      "sha256": "99bd95a6667df476d11d072fea9f6aa2bdfed31e2ded030abe65fd81430fa185",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-id128.h",
+      "size": 8571,
+      "sha256": "ae18a4b5987f36e3845354a26c1168c0dac7247d675d3c9e2ac84e32ad4a9260",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-journal.h",
+      "size": 8919,
+      "sha256": "98935bf846f014e3c4d20be6e96ed467470db38e5cc9ac5a86486d6c0a555d6e",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-json.h",
+      "size": 22451,
+      "sha256": "af1819dd633b7c9b2fec74633aaaefd6b97c2994386bd989ceba223d325b06ed",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-login.h",
+      "size": 10711,
+      "sha256": "2add3ee839658722f3a9239de0550e6bf651e6f3f4f2fc9c35ed3f68e84fb2ce",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-messages.h",
+      "size": 28638,
+      "sha256": "d08749a2a302f8bd55955685902b809ad7241aa086c459925f7282809c17dffa",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-path.h",
+      "size": 4707,
+      "sha256": "504227751b8edda7d7ed22b097b840cd0ec31d2fad65e29f7d78536ab1fb6d6a",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-varlink-idl.h",
+      "size": 11264,
+      "sha256": "9608b7d9357a4cf38416b087a28f07f37726acd2e926d50d448d103a81de1869",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/systemd/sd-varlink.h",
+      "size": 17151,
+      "sha256": "00463eef7ef7c56d92723f01d034931f2880a6f33d8a3474e455f6c5f82b01c6",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/xf86drm.h",
+      "size": 37616,
+      "sha256": "0ad87131cbdab2761eb267dd363b012b40256b56806608a587b361a8bc3e030f",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/xf86drmMode.h",
+      "size": 16557,
+      "sha256": "96d7da4829bd41f41a3e26011c7cf9a63a597d66407f3348aa9bb2bd3712e2e2",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdisplay-info.so.0.3.0",
+      "size": 224808,
+      "sha256": "2744bd4b6f456e67f24a37f79c43ed2d3fd73b87802ab677dd3a5ad4c5ad5a7d",
+      "mode": 493,
+      "package": "libdisplay-info-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm.so.2.134.0",
+      "size": 91056,
+      "sha256": "e2a416f7b7c9e9e46b5f96bf20be71f146426daa6e1e8438adce2ab8e4c0fc0e",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_amdgpu.so.1.134.0",
+      "size": 52696,
+      "sha256": "a28f07a5f69cd85d5a55b18f436cff5e0e33087181bdc3b8061ac2dec99d1322",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_intel.so.1.134.0",
+      "size": 153984,
+      "sha256": "38fa873e99c904bd072ff58e6dbbc8dfa08b8940010ff135a24b509fc7756ebb",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_nouveau.so.2.134.0",
+      "size": 36480,
+      "sha256": "d62ccd7e424aba47fce6eca1058cb138a737dac890ce15e52cbbc084945688c6",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libdrm_radeon.so.1.134.0",
+      "size": 52968,
+      "sha256": "114e8f319b2960934368b64bd844bc46efceb198f0bf11e49115c41f66e243d5",
+      "mode": 493,
+      "package": "libdrm-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libpixman-1.so.0.46.2",
+      "size": 733240,
+      "sha256": "0af247f5d42793ed0db3295744cbe143bb4fa2f30242a6db734565fe4f876b18",
+      "mode": 493,
+      "package": "pixman-0.46.2-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libseat.so.1",
+      "size": 49184,
+      "sha256": "5c9080c404143590da53ef3e42400db9ae0f666a211d2d6ba94642699e4c26c9",
+      "mode": 493,
+      "package": "libseat-0.9.3-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libsystemd.so.0.42.0",
+      "size": 1304672,
+      "sha256": "f0e7a49adc0c3191c434643d788020fc062d2d1bc1b00db66409a333ab73bf7a",
+      "mode": 493,
+      "package": "systemd-libs-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libudev.so.1.7.12",
+      "size": 320144,
+      "sha256": "22513c89165308495bb0d4e93c4885b52b038920d78856c50d709d908952a9a4",
+      "mode": 493,
+      "package": "systemd-libs-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libdisplay-info.pc",
+      "size": 278,
+      "sha256": "84f450d98ba7dcb3152322717311d601ac9d75a8399a8fb2ebddfc48408a3e65",
+      "mode": 420,
+      "package": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libdrm.pc",
+      "size": 222,
+      "sha256": "adf4ff93758c145ef808d80bfd021ac85c25e3ca95d47dc153416f460217f2f0",
+      "mode": 420,
+      "package": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libseat.pc",
+      "size": 281,
+      "sha256": "cc5e9fc885e8753b565332f479f14f2cb3761df62ffd3771cc46f5ba7421146e",
+      "mode": 420,
+      "package": "libseat-devel-0.9.3-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libsystemd.pc",
+      "size": 545,
+      "sha256": "e1bf8d775f420f7e54b45ea9ffe7af72c1234169b1e353d886f4b2b8ab060383",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libudev.pc",
+      "size": 571,
+      "sha256": "74f0fe707093e93e7b284e2d4e922a7b8398bc3616a2943e61e13911dc1d06ae",
+      "mode": 420,
+      "package": "systemd-devel-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/pixman-1.pc",
+      "size": 227,
+      "sha256": "bf5f8c8a5ad4a9c2932792bb1f6a1626c790dbf454a976fa446398ba792f4092",
+      "mode": 420,
+      "package": "pixman-devel-0.46.2-3.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/hwdata/pnp.ids",
+      "size": 63479,
+      "sha256": "92c667650db4b8762032d9092d8b61420883d42c1d1b6e5f715f5da84c02359e",
+      "mode": 420,
+      "package": "hwdata-0.412-1.fc44.noarch.rpm"
+    },
+    {
+      "path": "usr/share/licenses/hwdata/COPYING",
+      "size": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "mode": 420,
+      "package": "hwdata-0.412-1.fc44.noarch.rpm"
+    },
+    {
+      "path": "usr/share/licenses/libdisplay-info/LICENSE",
+      "size": 1089,
+      "sha256": "15b396244e58830c5614b9394f4deccfe684970cd507f299383ab57ad339eedd",
+      "mode": 420,
+      "package": "libdisplay-info-0.3.0-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/libseat/LICENSE",
+      "size": 1054,
+      "sha256": "282a494803d666616bd726e0279636b5f6a31387ae19a707459074050f2600d3",
+      "mode": 420,
+      "package": "libseat-0.9.3-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/systemd/LICENSE.LGPL2.1",
+      "size": 26518,
+      "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+      "mode": 420,
+      "package": "systemd-libs-259.10-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/pkgconfig/hwdata.pc",
+      "size": 210,
+      "sha256": "26d8c561f32e4b7391c05eb2f08bb1d963236ab5dd8aed29b4ade28e87c0133a",
+      "mode": 420,
+      "package": "hwdata-devel-0.412-1.fc44.noarch.rpm"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libdrm.so.2": "libdrm.so.2.134.0",
+    "usr/lib64/libdrm_amdgpu.so.1": "libdrm_amdgpu.so.1.134.0",
+    "usr/lib64/libdrm_intel.so.1": "libdrm_intel.so.1.134.0",
+    "usr/lib64/libdrm_nouveau.so.2": "libdrm_nouveau.so.2.134.0",
+    "usr/lib64/libdrm_radeon.so.1": "libdrm_radeon.so.1.134.0",
+    "usr/lib64/libdrm.so": "libdrm.so.2",
+    "usr/lib64/libdrm_amdgpu.so": "libdrm_amdgpu.so.1",
+    "usr/lib64/libdrm_intel.so": "libdrm_intel.so.1",
+    "usr/lib64/libdrm_nouveau.so": "libdrm_nouveau.so.2",
+    "usr/lib64/libdrm_radeon.so": "libdrm_radeon.so.1",
+    "usr/lib64/libpixman-1.so.0": "libpixman-1.so.0.46.2",
+    "usr/lib64/libpixman-1.so": "libpixman-1.so.0",
+    "usr/lib64/libseat.so": "libseat.so.1",
+    "usr/lib64/libdisplay-info.so.3": "libdisplay-info.so.0.3.0",
+    "usr/lib64/libdisplay-info.so": "libdisplay-info.so.3",
+    "usr/lib64/libsystemd.so": "libsystemd.so.0",
+    "usr/lib64/libudev.so": "libudev.so.1",
+    "usr/lib64/libsystemd.so.0": "libsystemd.so.0.42.0",
+    "usr/lib64/libudev.so.1": "libudev.so.1.7.12"
+  },
+  "symlink_packages": {
+    "usr/lib64/libdrm.so.2": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_amdgpu.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_intel.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_nouveau.so.2": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_radeon.so.1": "libdrm-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm.so": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_amdgpu.so": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_intel.so": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_nouveau.so": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libdrm_radeon.so": "libdrm-devel-2.4.134-1.fc44.x86_64.rpm",
+    "usr/lib64/libpixman-1.so.0": "pixman-0.46.2-3.fc44.x86_64.rpm",
+    "usr/lib64/libpixman-1.so": "pixman-devel-0.46.2-3.fc44.x86_64.rpm",
+    "usr/lib64/libseat.so": "libseat-devel-0.9.3-1.fc44.x86_64.rpm",
+    "usr/lib64/libdisplay-info.so.3": "libdisplay-info-0.3.0-1.fc44.x86_64.rpm",
+    "usr/lib64/libdisplay-info.so": "libdisplay-info-devel-0.3.0-1.fc44.x86_64.rpm",
+    "usr/lib64/libsystemd.so": "systemd-devel-259.10-1.fc44.x86_64.rpm",
+    "usr/lib64/libudev.so": "systemd-devel-259.10-1.fc44.x86_64.rpm",
+    "usr/lib64/libsystemd.so.0": "systemd-libs-259.10-1.fc44.x86_64.rpm",
+    "usr/lib64/libudev.so.1": "systemd-libs-259.10-1.fc44.x86_64.rpm"
+  },
+  "pkgconfig": {
+    "usr/lib64/pkgconfig/libdrm.pc": "prefix=/usr\nincludedir=${prefix}/include\nlibdir=${prefix}/lib64\n\nName: libdrm\nDescription: Userspace interface to kernel DRM services\nVersion: 2.4.134\nLibs: -L${libdir} -ldrm\nCflags: -I${includedir} -I${includedir}/libdrm\n",
+    "usr/lib64/pkgconfig/pixman-1.pc": "prefix=/usr\nincludedir=${prefix}/include\nlibdir=${prefix}/lib64\n\nName: Pixman\nDescription: The pixman library (version 1)\nVersion: 0.46.2\nLibs: -L${libdir} -lpixman-1\nLibs.private: -lm -pthread\nCflags: -I${includedir}/pixman-1\n",
+    "usr/lib64/pkgconfig/libseat.pc": "prefix=/usr\nincludedir=${prefix}/include\nlibdir=${prefix}/lib64\n\nhave_seatd=true\nhave_logind=true\nhave_builtin=false\n\nName: libseat\nDescription: Seat management library\nVersion: 0.9.3\nRequires.private: libsystemd\nLibs: -L${libdir} -lseat\nLibs.private: -lrt\nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/libdisplay-info.pc": "prefix=/usr\nincludedir=${prefix}/include\nlibdir=${prefix}/lib64\n\nName: libdisplay-info\nDescription: EDID and DisplayID library\nURL: https://gitlab.freedesktop.org/emersion/libdisplay-info\nVersion: 0.3.0\nLibs: -L${libdir} -ldisplay-info\nLibs.private: -lm\nCflags: -I${includedir}\n",
+    "usr/share/pkgconfig/hwdata.pc": "prefix=/usr\ndatadir=${prefix}/share\npkgdatadir=${pc_sysrootdir}${datadir}/hwdata\n\nName: hwdata\nDescription: Hardware identification and configuration data\nVersion: 0.412\nURL: https://github.com/vcrhonek/hwdata\n",
+    "usr/lib64/pkgconfig/libsystemd.pc": "#  SPDX-License-Identifier: LGPL-2.1-or-later\n#\n#  This file is part of systemd.\n#\n#  systemd is free software; you can redistribute it and/or modify it\n#  under the terms of the GNU Lesser General Public License as published by\n#  the Free Software Foundation; either version 2.1 of the License, or\n#  (at your option) any later version.\n\nprefix=/usr\nexec_prefix=/usr\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: systemd\nDescription: systemd Library\nURL: https://systemd.io/\nVersion: 259\nLibs: -L${libdir} -lsystemd\nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/libudev.pc": "#  SPDX-License-Identifier: LGPL-2.1-or-later\n#\n#  This file is part of systemd.\n#\n#  systemd is free software; you can redistribute it and/or modify it\n#  under the terms of the GNU Lesser General Public License as published by\n#  the Free Software Foundation; either version 2.1 of the License, or\n#  (at your option) any later version.\n\nprefix=/usr\nexec_prefix=/usr\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: libudev\nDescription: Library to access udev device information\nVersion: 259\nLibs: -L${libdir} -ludev\nLibs.private: -lrt -pthread\nCflags: -I${includedir}\n"
+  },
+  "versions": {
+    "libdrm": "2.4.134",
+    "pixman-1": "0.46.2",
+    "libseat": "0.9.3",
+    "libdisplay-info": "0.3.0",
+    "hwdata": "0.412",
+    "libudev": "259",
+    "libsystemd": "259"
+  },
+  "input_build": {
+    "version": "1.32.0",
+    "source": {
+      "url": "https://gitlab.freedesktop.org/libinput/libinput/-/archive/1.32.0/libinput-1.32.0.tar.gz",
+      "commit": "5cf833b572f5a33663888da321dce0ba1abd82a2",
+      "size": 1193963,
+      "sha256": "7dd6c1ca964c86eb6810ccd6639cda634e68bdca43bf3afec39e94e942fac8d4"
+    },
+    "files": [
+      {
+        "path": "usr/include/libinput.h",
+        "source_path": "stage/usr/include/libinput.h",
+        "size": 245121,
+        "sha256": "cf36c7eb7dcd784318e0519624d5342c0c828ef32b9478f4f06990822cdbfcd4"
+      },
+      {
+        "path": "usr/lib64/pkgconfig/libinput.pc",
+        "source_path": "stage/usr/lib64/pkgconfig/libinput.pc",
+        "size": 244,
+        "sha256": "d4aab2d8995018a48eeb3e8ee7b153e5098b33a07e32869547c24d5fb72591a2"
+      }
+    ],
+    "record": {
+      "path": "build.json",
+      "source_path": "inputs.json",
+      "size": 8905,
+      "sha256": "5d2b8b85678457175addb48c4f2c551515feaa0f67070edba95afa2bbd555193"
+    },
+    "symlinks": {
+      "usr/lib64/libinput.so": "libinput.so.10",
+      "usr/lib64/libinput.so.10": "libinput.so.10.13.0"
+    },
+    "pkgconfig": "prefix=/usr\nincludedir=${prefix}/include\nlibdir=${prefix}/lib64\n\nplugindir=${libdir}/libinput/plugins\n\nName: Libinput\nDescription: Input device library\nVersion: 1.32.0\nRequires.private: libudev\nLibs: -L${libdir} -linput\nCflags: -I${includedir}\n",
+    "runtime_files": [
+      "usr/lib64/libinput.so.10.13.0",
+      "usr/lib64/liblua-5.5.so",
+      "usr/share/licenses/libinput/COPYING",
+      "usr/share/licenses/lua/COPYRIGHT"
+    ],
+    "build_profile_sha256": "8bc6636ad9aac1e8acdc055e4f964844b93d0203b5d45bb58792a6886736c9d5",
+    "release_export_sha256": "606f70ee8b37909f5ce231d7e70b2dc1dc211782591d88ffbb53f3f075c6a70f"
+  },
+  "upstream_notice": {
+    "url": "https://dri.freedesktop.org/libdrm/libdrm-2.4.134.tar.xz",
+    "size": 437244,
+    "sha256": "ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95",
+    "name": "libdrm-2.4.134.tar.xz",
+    "path": "notices/libdrm-2.4.134.tar.xz"
+  }
+}
