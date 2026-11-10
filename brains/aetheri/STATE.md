@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The C17 login stream adapter now joins the bounded conversation to an original kernel-pinned Unix peer, with mandatory external admission, partial-I/O/ancillary cleanup and permanent loss fences. Standalone analyzer/Release/memory checks and all three CMake login tests pass; a same-UID wrong-process mutant rejects. All 1,572 recorded export files/1,506 submitted inputs match. The offline-built greetd candidate remains runtime-unadmitted; protected daemon/configuration/greeter admission and real PAM/session transitions are next. The broader first-version scope remains open; no next USB-targeted build/flash.
+10 November 2026 — The new C17 socket-service observer now binds an ordinary client's actual Root peer to its original active MainPID/invocation/cgroup, with separately exact socket/current process labels and retained kernel/PID1 pins. Root-child rejection, connection composition, actual memory client and targeted MainPID mutant pass. All 2,432 export files/1,502 final submitted inputs match; all inert fixtures are terminal. Executable/configuration/loaded-policy/greeter admission and real PAM/session transitions remain next. Full first-version scope stays open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,45 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Native login connection — 10 November 2026
+## Original login system service — 10 November 2026
+
+Read [service contract](../../spec/login.md#original-system-service-observation)
+and [execution record](journal/2026-11-10-login-service.md). `login/service.h`
+observes an actual Unix peer without fabricating bus provenance. Independent
+unit/UID/GID and two exact label expectations, retained peer/PID1 pins, trusted
+bus/boot, current credentials, active MainPID/no control/job, invocation and named
+cgroup/kernel inode agreement are checked twice and then against the original
+snapshot. Loss stays fenced. Source/image/config/loaded-policy/greeter checks
+remain separately mandatory; this is not complete login admission or ELF proof.
+
+Release `/var/tmp/a-login-cmake-2175fb289576` and memory
+`/var/tmp/a-login-cmake-9a9198c87a44` build the actual service target and pass the
+existing three login CTests. Explicit inert Root-service fixtures8/10/11 pass
+ordinary client, same-unit non-MainPID child rejection and the actual memory client.
+The connection accepts the service's original peer pin without an auth request.
+Counter12 removes only MainPID matching and fails the exact rejection, exit1;
+only its ordinary client is defective, never the unchanged good Root server.
+Root test images have no RPATH/user-SDK loader path. Administrative enforcing
+domain/socket settings are test-only, not production policy.
+
+The first Root case's stale errno was misleading: the actual ESTALE came from
+equating socket and current process labels. Their observed MLS ranges differ;
+both now have independent exact expectations. There is no confirmed cross-UID
+query permission blocker and no policy/UID/prefix fallback was added. Preserve
+all failed preparations/fixtures, first runtime expiry and explicitly retired
+later attempts. Fixture9 is only a duplicate positive; actual child case is10.
+
+Export `/root/aetheri-login-service-evidence-75f0f214e8df49df9700db136fa9f952`
+independently matches all2,432 regular files including manifest/all1,502 final
+submitted inputs. All12 fixtures are terminal; no selected code remains mapped.
+RPM/udev693/original invocation/enforcing1 and tty1 remain unchanged, no fixture
+PAM or local seat, no real credentials. Revalidate the same restricted audio VM
+before dispatch. Next protected executable/config/unit/loaded-policy source
+verification and original greeter/initial connection, then actual PAM/session
+transitions. Preserve the old quarantine, foreign UI memory, empty public
+lifecycle capabilities, full OS goal, USB gate and NexaUI maintenance-only status.
+
+## Native login connection — earlier 10 November 2026
 
 Read [connection contract](../../spec/login.md#native-connected-stream-adapter)
 and [execution record](journal/2026-11-10-login-connection.md). The library consumes

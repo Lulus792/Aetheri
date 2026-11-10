@@ -183,3 +183,50 @@ faults are confined to the test translation unit. Release/memory builds and the
 independent protocol peer pass; removing the original-pin comparison makes the
 same-UID wrong-process test fail. See the
 [execution record](../brains/aetheri/journal/2026-11-10-login-connection.md).
+
+## Original system-service observation
+
+`src/login/service.h` implements the service-context portion of the connection's
+admission callback. It observes an already connected kernel Unix peer through a
+trusted host system bus, proc/cgroup view and enforcing SELinux. It neither opens
+the bus/socket from an environment address nor fabricates a D-Bus `ae_peer` from
+socket credentials. The selected unit, UID/GID and two exact labels must come from
+an independently admitted deployment selection.
+
+The socket label and current raw process label are separate expectations. They
+can differ: the administrative carrier fixture has a socket MLS range ending in
+`s0-s0:c0.c1023`, while its current process label ends in `s0`. Both must match
+their own full expected value. Matching only a type, UID or label prefix is not
+supported. This fixture's administrative domain is not a proposed greeter policy.
+
+Construction captures the original `SO_PEERPIDFD`, connection credentials and
+socket label. Two complete observations bind the held process to current kernel
+credentials/label/cgroup, the selected active system service, original nonzero
+invocation, actual MainPID, absent ControlPID and absent job. The named cgroup
+directory's inode must agree with the kernel process info and libsystemd path.
+The trusted bus ID/boot and an unaugmented bus-authenticated PID1 process pin are
+retained. No process handle is reconstructed from a supplied numeric PID.
+
+Later checks repeat the observations against that original selection and latch
+the first loss. The service handle exposes a borrowed original peer pin for
+connection construction, owns its PID1/peer descriptors and bus reference, and
+rejects another process/thread or callback reentry. Closing frees only local
+observations; it never stops a service, releases a lease or proves session drain.
+The synchronous read-only bus calls use the caller's configured timeout; there
+are no subscriptions, automatic retries or new background workers in this module.
+
+Build `aetheri_login_service` with both `AETHERI_LOGIN_PROTOCOL` and
+`AETHERI_LINUX_IPC`. Its explicit `test_login_service` program is an inert
+administrative fixture, never installed or registered as a default CTest. The
+ordinary client passes against a real Root MainPID, rejects incorrect unit,
+UID/GID and either label, and keeps terminal observations fenced. A Root child
+with the same UID/domain/unit rejects as non-MainPID. Removing just that check
+causes the targeted test failure. The memory-instrumented ordinary client also
+passes against the uninstrumented Root fixture; Root executes no user-SDK RPATH.
+
+This observer does **not** verify the executable currently running, immutable
+configuration/unit sources, loaded-unit graph, deployment policy or the original
+greeter/account/session context. Those checks must be composed before normal
+login use. The inert fixture alone may use the service check as a connection
+callback; it sends no username, credential or authentication request. See the
+[execution record](../brains/aetheri/journal/2026-11-10-login-service.md).

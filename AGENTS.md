@@ -1,7 +1,15 @@
 # Working on Aetheri
 
 Current continuation: read `brains/aetheri/STATE.md`, spec/login.md and the
-2026-11-10 login-connection journal. The C17 connected-stream adapter now passes
+2026-11-10 login-service journal. The new Unix-peer service observer passes actual
+ordinary-client/Root MainPID, same-unit Root-child rejection, memory-client and
+targeted mutant tests. Socket/current raw process labels are separately exact;
+the first ESTALE was that distinction, not a proven permission blocker. Retain
+both peer/PID1 FDs and original invocation/cgroup/context; never fabricate a bus
+ae_peer from socket data or infer current ELF/config/greeter admission from this.
+Next protected source/loaded-policy and greeter/initial-connection admission, then
+real PAM/session tests. Fixtures are terminal; preserve their failures/evidence.
+The C17 connected-stream adapter also passes
 native analyzer/Release/memory and all three CMake login tests. It requires the
 independently selected original kernel peer/current credentials and a mandatory
 external daemon/config/supervisor/policy/greeter check; the test callback is not

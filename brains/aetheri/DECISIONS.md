@@ -1,5 +1,17 @@
 # Decisions
 
+## Keep socket-service observation distinct from image admission — 10 November 2026
+
+Use a dedicated read-only C17 observer for the actual Unix peer's original active
+system-service instance. Do not fabricate a bus-authenticated ae_peer from socket
+metadata or reopen its PID. Retain kernel peer/PID1 pins, exact UID/GID and two
+separate exact SELinux expectations for socket context and current process label.
+The native administrative fixture proves those labels can differ. Bind MainPID,
+invocation, cgroup and no-job/control state; source/image/loaded-policy/greeter
+admission stays a separate mandatory part of the compiled callback. See
+[contract](../../spec/login.md#original-system-service-observation) and
+[record](journal/2026-11-10-login-service.md).
+
 ## Bind login transport to the original kernel peer — 10 November 2026
 
 Use a bounded C17 connected-stream adapter alongside the existing conversation.

@@ -1,5 +1,11 @@
 # Sources
 
+## Original login service — 10 November 2026
+
+- [systemd259.10 service D-Bus implementation](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c): MainPID/ControlPID properties; no GetMainPIDFD method is assumed. The existing carrier's actual GetUnitByPIDFD/property behavior is tested through the original kernel socket peer.
+- [Linux6.19 pidfs](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/pidfs.c) and the previously reviewed socket/pidfd UAPI: current process info is distinct from namespace-opening ptrace checks. The premature errno-based permission hypothesis is not a verified restriction.
+- [Execution record](journal/2026-11-10-login-service.md): independently exact socket/current label expectations, ordinary client to actual Root MainPID, same-unit Root-child rejection, actual memory client, precise counterexample and independently audited export. Administrative enforcing evidence does not admit production greeter policy or current executable/configuration.
+
 ## Native login connection — 10 November 2026
 
 - [Linux6.19 socket implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/net/core/sock.c) and [pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h): kernel peer pidfd and PID/credential info requirements; actual carrier tests verify matching original objects and loss. No copied kernel implementation or numeric-PID reopening.
