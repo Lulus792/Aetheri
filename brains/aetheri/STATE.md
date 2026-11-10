@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The existing native C desktop owner now passes complete protected-runtime KMS app/save/shutdown workflows and actual active-VT-loss rejection. A shared read-only self-session observer checks the original context before effects and through the existing event loop, without another process/thread. Release/memory standalone and pinned CMake checks pass; native controls pass 55 without skips. All 2,718 export files and 2,510 submitted inputs match. Next connect normal session/service/device integration and complete system runtime closure. Normal login, lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
+10 November 2026 — The opt-in native aetheri-session now consumes an existing local Wayland login, derives the actual account/runtime and passes the full Type=exec KMS workflow without a notify service. Both native profiles build; Release/memory CMake session and entry tests pass. All 1,879 export files/1,740 submitted inputs match. Next finish normal login-manager/authentication/account provisioning, service/device integration and complete runtime packaging. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,36 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Native desktop owner and session boundary — 10 November 2026
+## Post-login session entry — 10 November 2026
+
+Read the [entry contract](../../spec/session.md#entry-from-an-existing-local-login)
+and [execution record](journal/2026-11-10-session-entry.md). `aetheri-session`
+reuses the C owner, admits the existing active local Wayland user scope, derives
+NSS account/home and `/run/user/UID`, rejects root/unequal/saved credentials,
+sets NNP and checks empty capabilities. Caller account/runtime hints are not
+selection. An absent notification socket is allowed for this entry only; a
+supplied failed channel still fails. Fixed development-image behavior remains.
+The Wayland descriptor is emitted, not installed. No authentication, account
+creation, normal app admission, lock/suspend or completed packaging is implied.
+
+Standalone source `/var/tmp/a-session-396d0e6a2289` passes sixteen commands.
+Pinned CMake sources `/var/tmp/a-session-cmake-20d104dc729b` and
+`/var/tmp/a-session-cmake-205022f56f76` pass both targets/tests with actual memory
+instrumentation. Preserve two earlier compile failures; caller-runtime mutant
+fails as expected. Full KMS source `/run/a-ns-f8e93b3f3913`, output
+`/root/aetheri-native-desktop-f8e93b3f39134255981da6654eac5763` reaches `retired`;
+host controller 11603/input 66023 exit 0. Files/editor save, shell and Settings work,
+actual `/run/user/1000` is used, all five direct children/nine original actors and
+groups end, tty1 returns. The fixture is Type=exec/NotifyAccess=none in an existing
+explicit PAM/logind test; it does not test a display manager or password login.
+All 1,879 exported files/1,740 inputs match. Native controls 55 pass, host 71 pass/
+16 platform skips (87 cases); packages, original udev 693 and enforcing 1 unchanged,
+no fixture PAM/local seat or selected code mapped. Revalidate the same restricted
+audio VM before further dispatch. The four foreign UI-memory files stay separate.
+Next complete normal login/account provisioning, service/device integration and
+system packaging. USB and NexaUI maintenance-only gates remain in force.
+
+## Native desktop owner and session boundary — earlier 10 November 2026
 
 The [native owner/session record](journal/2026-11-10-native-session-owner.md)
 reuses the existing C owner instead of retaining a Python product supervisor.

@@ -1,5 +1,11 @@
 # Sources
 
+## Post-login session entry — 10 November 2026
+
+- [systemd v259.10 user-runtime-dir](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/login/user-runtime-dir.c): reviewed actual `/run/user/UID` derivation, Root-owned parent and user mode0700 runtime setup. The entry observes the existing hierarchy; it does not provision or authenticate it. The versioned pam_systemd documentation endpoint timed out; no claim relies on that failed fetch.
+- [Desktop Entry keys](https://specifications.freedesktop.org/desktop-entry/latest/recognized-keys.html): checked Type/Name/Exec/TryExec and session DesktopNames direction. The descriptor is a build artifact, not display-manager installation or acceptance.
+- [Execution record](journal/2026-11-10-session-entry.md): native Release/memory checks, caller-runtime mutant, exact Type=exec KMS workflow and independently verified export. Password login, real display-manager handoff and additional-user live acceptance remain open.
+
 ## Native session owner — 10 November 2026
 
 - [systemd v259.10 sd-login implementation](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/libsystemd/sd-login/sd-login.c): read the pidfd wrappers, session metadata and monitor implementation. The wrappers bracket PID-derived queries with pidfd verification; session lookup derives cgroup context. These observations are not authentication or an atomic future-context lock. Existing reviewed systemd SDK/runtime retained, no dependency upgrade.

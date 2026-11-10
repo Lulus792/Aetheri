@@ -1,5 +1,19 @@
 # Decisions
 
+## Consume an existing login in the native session entry — 10 November 2026
+
+Build `aetheri-session` from the existing C owner as an opt-in post-login entry.
+Account/home come from bounded NSS lookup and actual credentials; derive the
+systemd user runtime from that UID rather than caller environment. Reject root
+and unequal/saved identities, set NNP and retain the original-session guard.
+This avoids both a new privileged password handler and dependence on the fixed
+test account/notify service. Authentication/session creation stay with a reviewed
+maintained login stack; the entry does not implement either. Preserve fixed-image
+behavior, document decisions and production lifecycle boundaries. A descriptor
+is emitted for future complete packaging, with no host installation.
+See [contract](../../spec/session.md#entry-from-an-existing-local-login) and
+[record](journal/2026-11-10-session-entry.md).
+
 ## Reuse the native owner with a self-session observer — 10 November 2026
 
 Keep the existing C17 desktop owner and extract read-only original-session

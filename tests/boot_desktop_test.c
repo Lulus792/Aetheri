@@ -46,7 +46,7 @@ int main(int argc,char **argv) {
     signal(SIGPIPE,SIG_IGN);
     size_t before=fd_count();
     struct child blocked;empty(&blocked);
-    assert(!app_start(&blocked,SETTINGS,"/unused",NULL) && !blocked.pid && blocked.pin==-1 && blocked.output==-1);
+    assert(!app_start(&blocked,SETTINGS,"/unused","/unused",NULL) && !blocked.pid && blocked.pin==-1 && blocked.output==-1);
     char *relative[]={"relative",NULL},*missing[]={NULL};
     assert(!spawn(&blocked,NULL,NULL,0) && !spawn(&blocked,missing,NULL,0) && !spawn(&blocked,relative,NULL,0));
     assert(!blocked.pid && blocked.pin==-1 && blocked.output==-1);

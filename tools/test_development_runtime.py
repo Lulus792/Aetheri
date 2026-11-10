@@ -41,6 +41,11 @@ class Selection(unittest.TestCase):
         for change in (dict(kind='other'),dict(binary='/foreign/owner'),dict(sha256='b'*64),
                        dict(documents='/home/aetheri/Documents'),dict(documents='/run/a-native-doc-012345abcdef/../other'),dict(extra=True)):
             with self.subTest(change=change),self.assertRaises(ValueError):native_owner({**value,'owner_profile':{**selected,**change}})
+        value['program_files']['aetheri-session']=dict(sha256='b'*64)
+        entry={**selected,'kind':'aetheri-native-session-entry-v1','binary':value['program_root']+'/aetheri-session','sha256':'b'*64}
+        self.assertEqual(native_owner({**value,'owner_profile':entry}),entry)
+        for change in (dict(kind=[]),dict(binary=selected['binary']),dict(sha256='a'*64)):
+            with self.subTest(entry_change=change),self.assertRaises(ValueError):native_owner({**value,'owner_profile':{**entry,**change}})
 
     def test_foreign_or_ambiguous_binding_rejects_before_tree_access(self):
         cases = [None, {}, {**self.binding, 'kind':'other'}, {**self.binding, 'extra':True},

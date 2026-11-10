@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <linux/close_range.h>
 #include <limits.h>
+#include <pwd.h>
+#include <sys/prctl.h>
 #include "../linux/session.h"
 
 /* Build-selected paths. The image keeps these defaults; a separate, explicitly
@@ -40,7 +42,7 @@
 #ifndef AETHERI_DESKTOP_LIBRARIES
 #define AETHERI_DESKTOP_LIBRARIES "/usr/lib/aetheri/runtime"
 #endif
-#ifndef AETHERI_DESKTOP_DOCUMENTS
+#if !defined(AETHERI_DESKTOP_DOCUMENTS) && !defined(AETHERI_DESKTOP_SESSION_ENTRY)
 #define AETHERI_DESKTOP_DOCUMENTS "/home/aetheri/Documents"
 #endif
 #define BIN AETHERI_DESKTOP_BIN
@@ -184,10 +186,49 @@ static bool session_live(struct ae_session *session) {
     if(result<0 || loss) {printf("AETHERI_SESSION_LOST result=%d loss=%u\n",result,loss);return false;}
     return true;
 }
-static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,struct ae_session **session) {
+/* This entry consumes an existing local login; it never authenticates a password,
+ * creates an account, selects another UID or opens a privileged PAM session. */
+static bool entry_paths(char **parent,char *documents,size_t size) {
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    uid_t real,effective,saved;gid_t group,egroup,sgroup;
+    if(getresuid(&real,&effective,&saved) || !real || real!=effective || real!=saved ||
+       getresgid(&group,&egroup,&sgroup) || !group || group!=egroup || group!=sgroup)return false;
+    struct passwd account,*found=NULL;char buffer[16384];
+    if(getpwuid_r(real,&account,buffer,sizeof(buffer),&found) || !found || account.pw_uid!=real || account.pw_gid!=group ||
+       !account.pw_dir || account.pw_dir[0]!='/' || !account.pw_name || !*account.pw_name)return false;
+    char path[64];int length=snprintf(path,sizeof(path),"/run/user/%lu",(unsigned long)real);
+    if(length<0 || (size_t)length>=sizeof(path) || !(*parent=strdup(path)))return false;
+    /* NSS and the systemd /run/user hierarchy are trusted host views. Caller
+     * HOME/USER/runtime hints cannot select another account/runtime directory. */
+    if(setenv("HOME",account.pw_dir,1) || setenv("USER",account.pw_name,1) || setenv("LOGNAME",account.pw_name,1))return false;
+#ifdef AETHERI_DESKTOP_DOCUMENTS
+    int n=snprintf(documents,size,"%s",AETHERI_DESKTOP_DOCUMENTS);
+#else
+    int n=snprintf(documents,size,"%s/Documents",account.pw_dir);
+#endif
+    if(n<0 || (size_t)n>=size || prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0))return false;
+    return true;
+#else
     if(getuid()!=1000 || geteuid()!=1000 || getgid()!=1000 || getegid()!=1000)return false;
+    const char *original=getenv("XDG_RUNTIME_DIR");if(!original)return false;
+    *parent=strdup(original);int n=snprintf(documents,size,"%s",AETHERI_DESKTOP_DOCUMENTS);
+    return *parent && n>=0 && (size_t)n<size;
+#endif
+}
+static bool ready_notification(void) {
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    /* A display manager may exec this entry directly, without a notify service.
+     * A supplied notify channel still requires its original acknowledgement. */
+    if(!getenv("NOTIFY_SOCKET"))return true;
+#endif
+    return sd_notify(0,"READY=1\nSTATUS=Aetheri desktop submitted its first frame")>0;
+}
+static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,char *documents,size_t document_size,struct ae_session **session) {
+    char *original=NULL;
+    if(!entry_paths(&original,documents,document_size)){free(original);return false;}
+    uid_t uid=getuid();
     FILE *status=fopen("/proc/self/status","re");char line[256];unsigned caps=0;bool nnp=false;
-    if(!status)return false;
+    if(!status){free(original);return false;}
     while(fgets(line,sizeof(line),status)){
         if(!strcmp(line,"CapEff:\t0000000000000000\n"))caps|=1;
         if(!strcmp(line,"CapPrm:\t0000000000000000\n"))caps|=2;
@@ -195,28 +236,35 @@ static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,
         if(!strcmp(line,"CapAmb:\t0000000000000000\n"))caps|=8;
         if(!strcmp(line,"NoNewPrivs:\t1\n"))nnp=true;
     }
-    if(fclose(status) || caps!=15 || !nnp || ae_session_open(1000,"seat0",session)<0)return false;
-    const char *original=getenv("XDG_RUNTIME_DIR");struct stat info;
-    if(!original || lstat(original,&info) || !S_ISDIR(info.st_mode) || info.st_uid!=1000 || (info.st_mode&07777)!=0700)return false;
+    if(fclose(status) || caps!=15 || !nnp || ae_session_open(uid,"seat0",session)<0){free(original);return false;}
+    struct stat info;
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    const char *parents[]={"/run","/run/user"};
+    for(size_t i=0;i<2;++i)if(lstat(parents[i],&info) || !S_ISDIR(info.st_mode) || info.st_uid || (info.st_mode&0022)){
+        free(original);return false;
+    }
+#endif
+    if(lstat(original,&info) || !S_ISDIR(info.st_mode) || info.st_uid!=uid || (info.st_mode&07777)!=0700){free(original);return false;}
     int n=snprintf(runtime,size,"%s/aetheri-XXXXXX",original);
+    free(original);
     if(n<0 || (size_t)n>=size || !mkdtemp(runtime))return false;
     n=snprintf(cache,cache_size,"%s/cache",runtime);
     if(n<0 || (size_t)n>=cache_size || mkdir(cache,0700))return false;
     printf("AETHERI_RUNTIME path=%s cache=%s\n",runtime,cache);
     return setenv("XDG_RUNTIME_DIR",runtime,1)==0 && setenv("WAYLAND_DISPLAY","aetheri-image",1)==0 && setenv("LIBSEAT_BACKEND","logind",1)==0 && setenv("LIBGL_ALWAYS_SOFTWARE","1",1)==0 && setenv("GALLIUM_DRIVER","llvmpipe",1)==0 && setenv("LP_NUM_THREADS","2",1)==0 && setenv("LD_LIBRARY_PATH",AETHERI_DESKTOP_LIBRARIES,1)==0 && setenv("PATH",BIN ":/usr/bin",1)==0 && unsetenv("DISPLAY")==0 && unsetenv("WAYLAND_SOCKET")==0;
 }
-static bool app_start(struct child *c,enum role role,char *cache,struct ae_session *session) {
+static bool app_start(struct child *c,enum role role,char *cache,char *documents,struct ae_session *session) {
     if(!session_live(session))return false;
     char *settings[]={BIN "aetheri-settings-nexaui","--font",SANS,"--cache",cache,"--diagnostics",NULL};
     char *terminal[]={BIN "aetheri-terminal-nexaui","--shell",BIN "aetheri-shell","--pty-starter",BIN "aetheri-terminal-pty-starter","--font",MONO,"--bold-font",BOLD,"--cache",cache,"--diagnostics",NULL};
-    char *files[]={BIN "aetheri-files-nexaui","--root",AETHERI_DESKTOP_DOCUMENTS,"--font",SANS,"--terminal-font",MONO,"--terminal-bold-font",BOLD,"--cache",cache,"--terminal",BIN "aetheri-terminal-nexaui","--editor",BIN "aetheri-editor","--diagnostics",NULL};
+    char *files[]={BIN "aetheri-files-nexaui","--root",documents,"--font",SANS,"--terminal-font",MONO,"--terminal-bold-font",BOLD,"--cache",cache,"--terminal",BIN "aetheri-terminal-nexaui","--editor",BIN "aetheri-editor","--diagnostics",NULL};
     return spawn_role(c,role,role==SETTINGS?settings:role==TERMINAL?terminal:files,NULL,0);
 }
 
 int main(void) {
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
-    char runtime[512],cache[512];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
-    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
+    char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
+    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),documents,sizeof(documents),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
     sigset_t mask;sigemptyset(&mask);sigaddset(&mask,SIGCHLD);sigaddset(&mask,SIGTERM);sigaddset(&mask,SIGINT);
     if(sigprocmask(SIG_BLOCK,&mask,NULL) || signal(SIGCHLD,SIG_DFL)==SIG_ERR || signal(SIGPIPE,SIG_IGN)==SIG_ERR){ae_session_close(&session);return 1;}
     int signals=signalfd(-1,&mask,SFD_CLOEXEC|SFD_NONBLOCK),shell[2]={-1,-1},launch[2]={-1,-1};
@@ -238,8 +286,8 @@ int main(void) {
             unsetenv("WAYLAND_SOCKET");close_fd(&shell[1]);close_fd(&launch[1]);
         }
         if(!stopping && !notified && children[COMPOSITOR].ready && children[DESKTOP].ready && children[DESKTOP].layout){
-            if(!session_live(session) || sd_notify(0,"READY=1\nSTATUS=Aetheri image desktop submitted its first frame")<=0){failed=true;stopping=true;}
-            else{notified=true;puts("AETHERI_DESKTOP_READY uid=1000 cap_zero=1 seat=seat0");}
+            if(!session_live(session) || !ready_notification()){failed=true;stopping=true;}
+            else{notified=true;printf("AETHERI_DESKTOP_READY uid=%lu cap_zero=1 seat=seat0\n",(unsigned long)getuid());}
         }
         for(size_t i=0;i<ROLE_COUNT;++i){
             struct child *c=&children[i];
@@ -290,7 +338,7 @@ int main(void) {
                     else if(launches[role]>=128){if(!reply(launch[0],'E',role)){failed=true;stopping=true;}}
                     else{
                         ++launches[role];
-                        if(!app_start(&children[role],role,cache,session) || !reply(launch[0],'A',role)){failed=true;stopping=true;}
+                        if(!app_start(&children[role],role,cache,documents,session) || !reply(launch[0],'A',role)){failed=true;stopping=true;}
                     }
                 }
             }else if(!drain_line(&children[roles[i]],names[roles[i]])){failed=true;stopping=true;}

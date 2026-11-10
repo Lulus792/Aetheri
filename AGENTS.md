@@ -1,11 +1,14 @@
 # Working on Aetheri
 
-Current continuation: read `brains/aetheri/STATE.md` and the 2026-11-10
-native-session-owner journal plus spec/session.md. The existing native C owner
-now passes full KMS app/save/shutdown and active-VT-loss tests. The Linux self-
+Current continuation: read `brains/aetheri/STATE.md`, the 2026-11-10 session-entry
+and native-session-owner journals plus spec/session.md. The opt-in aetheri-session
+entry consumes an existing local Wayland login, derives actual NSS account and
+systemd runtime, and passes full Type=exec KMS workflow without notify. It is not
+password authentication or installed display-manager/app admission. The C owner
+also passes full KMS app/save/shutdown and active-VT-loss tests. The Linux self-
 session observer rechecks original context without events and permanently latches
-loss; it adds no process/thread. Run linux.session and native owner tests in the
-ordinary enforcing carrier. Advance normal session/service/device integration and
+loss; it adds no process/thread. Run linux.session, linux.session_entry and owner tests in the
+ordinary enforcing carrier. Advance normal login/account/service/device integration and
 full system runtime closure; this private fixture is not login/app admission.
 Preserve failed attempts and the old quarantine. The user's 9 November gate
 forbids the next USB-targeted image build/flash until the agreed first version is

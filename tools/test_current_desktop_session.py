@@ -43,11 +43,14 @@ class SessionBus(Bus):
 def native_owner(value):
     selected = value.get('owner_profile')
     if selected is None: return None
-    if (not isinstance(selected,dict) or set(selected)!={'kind','binary','sha256','documents'}
-            or selected['kind']!='aetheri-native-desktop-owner-v1'
-            or selected['binary']!=value['program_root']+'/aetheri-desktop-owner'
+    if not isinstance(selected,dict):raise ValueError('different explicit native owner selection')
+    kind=selected.get('kind')
+    program={'aetheri-native-desktop-owner-v1':'aetheri-desktop-owner',
+             'aetheri-native-session-entry-v1':'aetheri-session'}.get(kind) if isinstance(kind,str) else None
+    if (set(selected)!={'kind','binary','sha256','documents'} or not program
+            or selected['binary']!=value['program_root']+'/'+program
             or not isinstance(selected['sha256'],str) or re.fullmatch('[0-9a-f]{64}',selected['sha256']) is None
-            or selected['sha256']!=value['program_files']['aetheri-desktop-owner']['sha256']
+            or selected['sha256']!=value['program_files'][program]['sha256']
             or not isinstance(selected['documents'],str)
             or re.fullmatch('/run/a-native-doc-[0-9a-f]{12}',selected['documents']) is None):
         raise ValueError('different explicit native owner selection')
@@ -191,7 +194,8 @@ class DesktopFixture(Fixture):
         args=['/usr/bin/python3','-I','-B',str(Path(__file__).resolve()),'--session',str(self.selection),str(user_root),self.token]
         env=['XDG_SESSION_TYPE=wayland','XDG_SESSION_CLASS=user','XDG_SEAT=seat0','XDG_VTNR=8',
              'XDG_CONFIG_HOME='+self.value['wacom']['root']+'/usr/share','PATH=/usr/bin:/bin','PYTHONDONTWRITEBYTECODE=1']
-        props=[('Description','s','Aetheri explicit current desktop workflow fixture'),('Type','s','notify'),('NotifyAccess','s','main'),
+        direct_entry=self.native and self.native['kind']=='aetheri-native-session-entry-v1'
+        props=[('Description','s','Aetheri explicit current desktop workflow fixture'),('Type','s','exec' if direct_entry else 'notify'),('NotifyAccess','s','none' if direct_entry else 'main'),
             ('User','s','1000'),('Group','s','1000'),('PAMName','s',self.pam.name),('TTYPath','s','/dev/tty8'),('StandardInput','s','tty'),
             ('NoNewPrivileges','b',True),('CapabilityBoundingSet','t',0),('AmbientCapabilities','t',0),('Restart','s','no'),
             ('KillMode','s','control-group'),('StandardOutput','s','journal'),('StandardError','s','journal'),('SyslogIdentifier','s',self.unit),
@@ -204,7 +208,7 @@ class DesktopFixture(Fixture):
         text=self.journal(); rows=re.findall(r'^SESSION_CONTEXT (.+)$',text,re.M)
         if len(rows)!=1:raise ValueError('ambiguous original session context')
         info=json.loads(rows[0]);original=facts(self.unit)
-        if original['MainPID']!=str(info['pid']) or original['ActiveState']!='activating':raise ValueError('different original starting desktop service')
+        if original['MainPID']!=str(info['pid']) or original['ActiveState']!=('active' if direct_entry else 'activating'):raise ValueError('different original starting desktop service')
         self.record['original']=original
         login=dict(line.split('=',1) for line in info['login'].splitlines())
         if any(login[k]!=v for k,v in dict(User='1000',Active='yes',Remote='no',Seat='seat0',Type='wayland',Class='user',TTY='tty8').items()):
@@ -221,7 +225,8 @@ class DesktopFixture(Fixture):
         if Path('/proc',str(info['pid']),'stat').read_text().rsplit(')',1)[1].split()[0] not in ('T','t'):
             raise ValueError('original session did not retain its test-only start gate')
         self.effect('continue-original-session',lambda:signal.pidfd_send_signal(self.pins['session'],signal.SIGCONT))
-        self.wait(lambda:facts(self.unit)['ActiveState']=='active' and not facts(self.unit)['Job'],'actual full desktop readiness',30)
+        self.wait(lambda:facts(self.unit)['ActiveState']=='active' and not facts(self.unit)['Job'] and
+                  (not self.native or 'AETHERI_DESKTOP_READY uid=1000 cap_zero=1 seat=seat0' in self.journal()),'actual full desktop readiness',30)
         if self.native:
             if select.select([self.pins['session']],[],[],0)[0]:raise ValueError('original native owner process ended')
             actor=self.record['actors']['session'];actual=Path('/proc',str(actor['pid']),'exe').stat();expected=Path(self.native['binary']).stat()

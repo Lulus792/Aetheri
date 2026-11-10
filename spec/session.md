@@ -74,6 +74,55 @@ Root-only disposable-carrier tooling, not product authentication or recovery.
 Its user fixture is populated while parents are protected and handed over from
 leaves upward; document verification reads with the ordinary account's rights.
 
+## Entry from an existing local login
+
+The opt-in `aetheri-session` target reuses the same owner with
+`AETHERI_DESKTOP_SESSION_ENTRY=1`. It is a post-login entry, intended for a login
+manager to execute after establishing the local active seat0 Wayland user session.
+It does not authenticate passwords, create accounts, change UID/GID or open PAM
+sessions. SSH, a plain TTY login and caller-provided session environment variables
+cannot replace the observer's required actual session. Login-manager selection,
+authentication policy and a trusted greeter remain separate work.
+
+The entry rejects root and unequal real/effective/saved user or group IDs. Bounded
+NSS account lookup must return that exact UID and primary GID. It sets HOME, USER
+and LOGNAME from that account and derives `/run/user/UID` from the actual UID,
+ignoring the caller's runtime hint. `/run` and `/run/user` must be real Root-owned
+directories without group/other write access; the runtime must be a real
+mode0700 directory owned by that user. The trusted systemd runtime hierarchy and
+NSS remain prerequisites, not volume authentication or hostile-writer exclusion.
+There is no creation/adoption fallback for an absent runtime.
+
+The default Files development root is `NSS_HOME/Documents`; bounded build-time
+paths may still bind a private test ELF to separate documents. No document
+directory is created and no document grant or app sandbox is implied. Account
+and user-directory provisioning remain distribution responsibilities. The entry
+sets NoNewPrivileges itself, then requires the same observed empty capability
+sets and original-session checks as the fixed owner.
+
+A directly executed session has no systemd notification socket. In that case,
+first-frame readiness is recorded locally without requiring a notify service.
+If a channel is supplied, its notification must still succeed; an empty or
+failed channel is not silently ignored. The original fixed development-image
+owner continues to require its notification acknowledgement and fixed account.
+
+With `AETHERI_DESKTOP_OWNER=ON`, CMake builds both entry profiles and copies
+`data/wayland-sessions/aetheri.desktop` into the build directory. Its literal
+Exec/TryExec path is `/usr/libexec/aetheri/aetheri-session`. It is a packaging
+artifact for the eventual complete system closure; this change installs no
+display manager, service, PAM file, executable or desktop entry on the host.
+The complete selected app/font/library closure must exist before distribution.
+The fixed development app owner is still separate from production app admission.
+
+`linux.session_entry` exercises account/runtime selection, root/unequal/saved-ID
+rejection, bounded paths, NNP failure and absent/supplied/failed notifications
+with controlled adapters. Both it and `linux.session` pass native ordinary-user
+Release and memory CMake runs. An explicit Type=exec/NotifyAccess=none carrier
+case executes a separately hashed entry in an existing PAM/logind fixture and
+passes the full KMS workflow. It uses the actual `/run/user/1000` hierarchy and
+does not test password authentication or a display manager. Read the
+[execution record](../brains/aetheri/journal/2026-11-10-session-entry.md).
+
 4 November 2026. The optional compositor can now use an actual KMS connector and
 evdev input on the dedicated Fedora carrier. This extends the private
 [headless/nested prototype](graphics.md); normal Aetheri session/app admission,

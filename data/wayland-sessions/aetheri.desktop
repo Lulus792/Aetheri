@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Aetheri
+Comment=Start the experimental Aetheri desktop
+Type=Application
+Exec=/usr/libexec/aetheri/aetheri-session
+TryExec=/usr/libexec/aetheri/aetheri-session
+DesktopNames=Aetheri
