@@ -1,7 +1,15 @@
 # Working on Aetheri
 
-Current continuation: read `brains/aetheri/STATE.md`, spec/login.md,
-spec/login-backend.md and the 2026-11-10 login-backend-build journal/pins.
+Current continuation: read `brains/aetheri/STATE.md`, spec/login.md and the
+2026-11-10 login-connection journal. The C17 connected-stream adapter now passes
+native analyzer/Release/memory and all three CMake login tests. It requires the
+independently selected original kernel peer/current credentials and a mandatory
+external daemon/config/supervisor/policy/greeter check; the test callback is not
+deployment admission. Preserve receive-first bounded I/O, ancillary FD cleanup,
+owner/reentry checks and permanent UNKNOWN fences; no reconnect or inferred drain.
+Next implement real protected admission/initial connection, then actual PAM and
+greeter/session transitions. For the built backend read spec/login-backend.md and
+the 2026-11-10 login-backend-build journal/pins.
 The greetd candidate now builds offline with the pinned34-crate graph/Tokio1.53.3;
 upstream tests and source-preparer regressions pass. It is not an admitted daemon,
 Unix peer or PAM/login service. Advance protected original daemon/config/socket

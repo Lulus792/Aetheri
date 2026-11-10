@@ -1,5 +1,11 @@
 # Sources
 
+## Native login connection — 10 November 2026
+
+- [Linux6.19 socket implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/net/core/sock.c) and [pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h): kernel peer pidfd and PID/credential info requirements; actual carrier tests verify matching original objects and loss. No copied kernel implementation or numeric-PID reopening.
+- [unix credentials](https://man7.org/linux/man-pages/man7/unix.7.html) and [recvmsg flags](https://man7.org/linux/man-pages/man2/recvmsg.2.html): connection-time versus current identity, per-call nonblocking behavior, received-FD CLOEXEC and ancillary/truncation handling. Source keeps all received FDs outside its protocol.
+- [Execution record](journal/2026-11-10-login-connection.md): actual Release/memory/analyzer checks, native socket/kernel/FD lifetime cases, independent wire peer, targeted same-UID wrong-process mutant and independently checked export. Protected daemon/config/greeter deployment admission and real PAM transitions remain pending.
+
 ## Offline login backend — 10 November 2026
 
 - [Cargo source replacement](https://doc.rust-lang.org/cargo/reference/source-replacement.html) and [cargo vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html): directory-source consistency files and frozen/offline behavior; checksums do not authenticate a publisher. Native build/tests use the actual generated directory source.

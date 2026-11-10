@@ -1,5 +1,17 @@
 # Decisions
 
+## Bind login transport to the original kernel peer — 10 November 2026
+
+Use a bounded C17 connected-stream adapter alongside the existing conversation.
+Require SO_PEERPIDFD/pidfs/current credential checks against an independently
+selected original pin and a mandatory compiled admission callback. A socket path,
+same UID or connection-time credentials cannot replace current daemon/config/
+supervisor/greeter admission. Receive before sending, reject all ancillary input,
+wipe accepted prefixes and permanently fence loss without reconnect or replay.
+Keep event waits/deadlines in the UI and avoid another thread/daemon/timer. The
+test callback is not deployment admission. See [contract](../../spec/login.md#native-connected-stream-adapter)
+and [record](journal/2026-11-10-login-connection.md).
+
 ## Build the login candidate with a complete pinned graph — 10 November 2026
 
 Keep the reviewed greetd0.10.3 source and independent original C greeter, but build

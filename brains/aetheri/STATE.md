@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The greetd candidate now builds offline as an ordinary user with a complete pinned 34-crate graph and Tokio 1.53.3. Ten upstream tests/one doc test and thirteen source-preparer regressions per platform pass; the digest-bypass mutant rejects. All 2,641 exported files/2,607 prepared source/vendor bodies match. The original C17 conversation and post-login entry remain tested; actual daemon/socket/PAM/greeter/session admission is next. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
+10 November 2026 — The C17 login stream adapter now joins the bounded conversation to an original kernel-pinned Unix peer, with mandatory external admission, partial-I/O/ancillary cleanup and permanent loss fences. Standalone analyzer/Release/memory checks and all three CMake login tests pass; a same-UID wrong-process mutant rejects. All 1,572 recorded export files/1,506 submitted inputs match. The offline-built greetd candidate remains runtime-unadmitted; protected daemon/configuration/greeter admission and real PAM/session transitions are next. The broader first-version scope remains open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,41 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Offline login backend candidate — 10 November 2026
+## Native login connection — 10 November 2026
+
+Read [connection contract](../../spec/login.md#native-connected-stream-adapter)
+and [execution record](journal/2026-11-10-login-connection.md). The library consumes
+one admitted connected AF_UNIX stream and binds SO_PEERPIDFD to an independently
+selected original live pin, current credentials and a mandatory caller-owned
+admission check. It does not implement that daemon/config/service/policy/greeter
+check, choose paths/PIDs, authenticate or install a service. One bounded receive-
+first nonblocking pump, no ancillary FD admission, no replay/reconnect after loss
+and process/thread ownership preserve the model's lifetime. Close is local only.
+
+Standalone `/var/tmp/a-login-connection-1261ddbbb984` passes Release/memory with
+strict warnings/analyzer. Scoped faults, actual kernel pins/253-FD cleanup,
+truncation, partial transmissions, surviving socket after original peer exit and
+owner/reentry checks pass. The wrong-live-process pin-comparison mutation fails
+the expected assertion, exit 134. CMake sources
+`/var/tmp/a-login-cmake-78805bec1b16` and
+`/var/tmp/a-login-cmake-b587031f9946` each build actual connection/protocol targets
+and pass login.protocol/login.wire/login.connection without skips. Actual memory
+instrumentation and independent Python wire peer are checked. Preserve original
+compile failures and the incomplete copied-protocol configure failure.
+
+Protected export
+`/root/aetheri-login-connection-evidence-a4f513a237b04ba9aa8f678dcfbaa79a`
+independently matches all 1,572 recorded files plus manifest/all 1,506 submitted
+inputs. RPM list, original udev693/invocation, enforcing1 and tty1 remain unchanged;
+no selected protected runtime/backend-review mappings or fixture PAM/local seat
+remain. No real credentials or production policy were used. Preserve foreign UI
+memory files. Next real protected daemon/config/socket/greeter admission context,
+bounded initial connection and actual PAM/cancel/session transition, then own UI
+and system packaging. Revalidate the same restricted audio VM before dispatch.
+The old quarantine, empty public lifecycle capabilities, full OS goal, USB gate
+and NexaUI maintenance-only status remain intact.
+
+## Offline login backend candidate — earlier 10 November 2026
 
 Read [build contract](../../spec/login-backend.md),
 [exact graph/tool inputs](../../spec/login-backend-inputs.json) and
