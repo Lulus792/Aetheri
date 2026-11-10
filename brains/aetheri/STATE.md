@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The opt-in native aetheri-session now consumes an existing local Wayland login, derives the actual account/runtime and passes the full Type=exec KMS workflow without a notify service. Both native profiles build; Release/memory CMake session and entry tests pass. All 1,879 export files/1,740 submitted inputs match. Next finish normal login-manager/authentication/account provisioning, service/device integration and complete runtime packaging. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
+10 November 2026 — The optional C17 login conversation model passes Release/memory and independent native JSON-peer tests, with bounded prompts, fixed session command and no unknown-start replay. Exact signed greetd binary/source packages are reviewed as data; that backend runtime remains unadmitted pending current dependency/rebuild/security review. All 1,552 protocol-export files/1,494 submitted inputs and 76 package-review files match. Next finish reviewed backend/connection admission, real PAM/greeter/session transitions and normal login/account/system integration. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,33 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Post-login session entry — 10 November 2026
+## Login conversation and backend review — 10 November 2026
+
+Read [login contract](../../spec/login.md), [exact candidate inputs](../../spec/login-inputs.json)
+and [execution record](journal/2026-11-10-login-protocol.md). The C17 model has no
+socket/PAM/process/account authority. One explicit exchange, bounded strict JSON/
+UTF-8, separate prompt styles, immediate sent-prefix wiping and UNKNOWN fences
+now precede the future own greeter transport. Start uses only the fixed Aetheri
+entry/env; acknowledgement is not exec/readiness. A candidate greetd backend
+keeps maintained PAM handling separate from our UI. Its signed 0.10.3-6.fc44 RPMs
+were read as data, never executed/installed. Tokio 1.49.0 is within the reviewed
+AsyncFd advisory range; reachability and a maintained complete rebuild require
+review before admission. Package defaults/PAM/scripts are not deployment policy.
+
+Final standalone `/var/tmp/a-login-protocol-2df317545be1` passes Release/memory;
+pinned CMake `/var/tmp/a-session-cmake-eeb8476bef13` and
+`/var/tmp/a-session-cmake-837743d5b9d1` pass login.protocol/login.wire without skips.
+The Python peer independently compares native framing/Unicode/fixed command.
+The premature-start mutant fails as expected. All 1,552 export files/1,494 inputs
+match, plus 76 signed-package review files. Host 71 pass/16 skip (87 cases).
+Packages, udev 693/original invocation, enforcing 1, tty1 and absent fixture PAM/
+local seat/selected mappings are checked. Preserve failed preparations/compiles.
+Next finish maintained backend runtime/security and original protected connection
+admission, then actual PAM/login/greeter transition and our graphical greeter.
+No product-choice question blocks that engineering work. The existing entry,
+old quarantine, public lifecycle capabilities, USB and NexaUI gates stay intact.
+
+## Post-login session entry — earlier 10 November 2026
 
 Read the [entry contract](../../spec/session.md#entry-from-an-existing-local-login)
 and [execution record](journal/2026-11-10-session-entry.md). `aetheri-session`

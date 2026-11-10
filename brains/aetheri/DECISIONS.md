@@ -1,5 +1,19 @@
 # Decisions
 
+## Keep greeter conversation separate from backend admission — 10 November 2026
+
+Prefer an original C greeter speaking the maintained greetd conversation over a
+new privileged PAM/account-switching service. Pin and inspect the exact signed
+source/package before adoption. The reviewed 0.10.3-6.fc44 binary remains
+unadmitted pending its current complete dependency/rebuild/security review.
+Implement the bounded protocol independently while that review proceeds.
+Commands/environment are fixed because the backend shell-joins its command.
+Disable source_profile in any future admitted deployment. One request at a time,
+explicit prompt handling/cancellation and no replay after uncertainty are required;
+start acknowledgement is never exec/readiness. No auth service or policy install
+follows merely from adding the model. See [contract](../../spec/login.md) and
+[record](journal/2026-11-10-login-protocol.md).
+
 ## Consume an existing login in the native session entry — 10 November 2026
 
 Build `aetheri-session` from the existing C owner as an opt-in post-login entry.

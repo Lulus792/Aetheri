@@ -1,5 +1,11 @@
 # Sources
 
+## Login protocol/backend review — 10 November 2026
+
+- [Fedora 44 greetd package](https://packages.fedoraproject.org/pkgs/greetd/greetd/fedora-44.html) and the signed binary/source URLs in [input review](../../spec/login-inputs.json): exact signatures/payloads/source worker/codec/config inspected. The static dependency notice, not upstream Cargo.lock, supplies packaged versions. Sourcehut pages were unavailable; original source came from the signed source RPM.
+- [bytes advisory RUSTSEC-2026-0007](https://rustsec.org/advisories/RUSTSEC-2026-0007.html): patched range includes the listed 1.11.1. [Tokio RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386.html): listed 1.49.0 is within the reported range; affected AsyncFd reachability is not established and runtime admission remains pending. [pam-bindings RUSTSEC-2025-0173](https://rustsec.org/advisories/RUSTSEC-2025-0173.html) concerns a different crate from the listed pam-sys. These scoped checks are not complete security clearance.
+- [Protocol contract](../../spec/login.md) and [execution record](journal/2026-11-10-login-protocol.md): actual C17 Release/memory model tests, independent native pipe peer, deliberate premature-start failure and two independently verified exports. No daemon/PAM/authentication/greeter acceptance is claimed.
+
 ## Post-login session entry — 10 November 2026
 
 - [systemd v259.10 user-runtime-dir](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/login/user-runtime-dir.c): reviewed actual `/run/user/UID` derivation, Root-owned parent and user mode0700 runtime setup. The entry observes the existing hierarchy; it does not provision or authenticate it. The versioned pam_systemd documentation endpoint timed out; no claim relies on that failed fetch.

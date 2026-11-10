@@ -1,7 +1,14 @@
 # Working on Aetheri
 
-Current continuation: read `brains/aetheri/STATE.md`, the 2026-11-10 session-entry
-and native-session-owner journals plus spec/session.md. The opt-in aetheri-session
+Current continuation: read `brains/aetheri/STATE.md`, spec/login.md and the
+2026-11-10 login-protocol journal/input review. The optional C17 model passes
+login.protocol/login.wire in Release/memory with no backend execution. It fixes
+command/env, bounds the worker's escaped answer and never replays unknown start.
+The exact greetd candidate is source-reviewed but runtime-unadmitted; inspect
+the recorded Tokio advisory/rebuild/connection/PAM/policy gates before use.
+Advance maintained backend/runtime and protected connection admission, then real
+PAM/greeter/session transitions. For prior evidence read the 2026-11-10
+session-entry/native-session-owner journals and spec/session.md. The opt-in aetheri-session
 entry consumes an existing local Wayland login, derives actual NSS account and
 systemd runtime, and passes full Type=exec KMS workflow without notify. It is not
 password authentication or installed display-manager/app admission. The C owner

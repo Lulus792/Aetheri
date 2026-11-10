@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "purpose": "greetd protocol source and package review; no runtime admission",
+  "reviewed": "2026-11-10",
+  "candidate": {
+    "name": "greetd",
+    "version": "0.10.3-6.fc44",
+    "runtime_admitted": false,
+    "package_code_executed": false
+  },
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": [
+    {
+      "name": "greetd-0.10.3-6.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/greetd/0.10.3/6.fc44/data/signed/6d9f90a6/x86_64/greetd-0.10.3-6.fc44.x86_64.rpm",
+      "size": 465869,
+      "sha256": "d6f3ab7263462e40f96dff09f17a7246fa1e0c0776ad0f4cab728cf62d3145a8",
+      "metadata": [
+        "greetd 0.10.3-6.fc44.x86_64",
+        "GPL-3.0-only AND Apache-2.0 AND (Apache-2.0 OR BSL-1.0) AND (Apache-2.0 OR MIT) AND MIT AND Unlicense",
+        "greetd-0.10.3-6.fc44.src.rpm"
+      ]
+    },
+    {
+      "name": "greetd-0.10.3-6.fc44.src.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/greetd/0.10.3/6.fc44/data/signed/6d9f90a6/src/greetd-0.10.3-6.fc44.src.rpm",
+      "size": 84213,
+      "sha256": "5caf4b69985e4eccce7aa557e2e1de35955926007b27ffef4f14a145ef4ff9e7",
+      "metadata": [
+        "greetd 0.10.3-6.fc44.i686",
+        "GPL-3.0-only AND Apache-2.0 AND (Apache-2.0 OR BSL-1.0) AND (Apache-2.0 OR MIT) AND MIT AND Unlicense",
+        "(none)"
+      ]
+    }
+  ],
+  "protocol": {
+    "version": "0.10",
+    "framing": "native-endian uint32 byte length followed by UTF-8 JSON",
+    "wire_max": 32768,
+    "prompt_utf8_max": 4096,
+    "answer_utf8_max": 1024,
+    "username_utf8_max": 256,
+    "session_command": [
+      "/usr/libexec/aetheri/aetheri-session"
+    ],
+    "session_environment": [
+      "XDG_SESSION_TYPE=wayland",
+      "XDG_CURRENT_DESKTOP=Aetheri",
+      "XDG_SESSION_DESKTOP=Aetheri"
+    ]
+  },
+  "source_files": {
+    "greetd_ipc/src/lib.rs": {
+      "size": 5245,
+      "sha256": "e1142571998189a7ed06a05b453f06a642b2a65c73d79fa3fe3d42e2fd0951ef"
+    },
+    "greetd_ipc/src/codec/sync.rs": {
+      "size": 2618,
+      "sha256": "c5af702ca8451bc525bab6531f56457d4c2c51bcbb67cba441821a7face596c8"
+    },
+    "greetd/src/server.rs": {
+      "size": 10505,
+      "sha256": "3ba5b64b8b3dd14bbce962b7d14db38eaba2bd3b9e75af1a85dccee95c22b13f"
+    },
+    "greetd/src/session/worker.rs": {
+      "size": 10539,
+      "sha256": "70919bbe902b5fdae698f0fee1b6462be8d174f8fe9f3618b0046644eb555fa1"
+    },
+    "greetd/src/session/conv.rs": {
+      "size": 1953,
+      "sha256": "af5b644112ac486ad8b89b88a0f50472aa8d6800d7bbaefdd43c310d8b5a2c65"
+    },
+    "greetd/src/config/mod.rs": {
+      "size": 14416,
+      "sha256": "348a2bf0ace2726c64db7f581185c7f20ca8dc5ef43c1de03a06b4d8acf1c834"
+    }
+  },
+  "licenses": {
+    "original_client": "MIT",
+    "daemon": "GPL-3.0-only",
+    "binary_package": "GPL-3.0-only AND Apache-2.0 AND (Apache-2.0 OR BSL-1.0) AND (Apache-2.0 OR MIT) AND MIT AND Unlicense",
+    "dependency_notice": {
+      "size": 1213,
+      "sha256": "85ffb27b6bec77bc24d41fe0c627dd2f2f2960b9f8f30b1ed8987e76b85afde8",
+      "mode": 420
+    }
+  },
+  "runtime_families": [
+    "existing glibc/libgcc",
+    "existing Linux-PAM",
+    "statically compiled Rust crates listed in LICENSE.dependencies",
+    "reviewed /bin/sh execution boundary",
+    "greetd SELinux/PAM/account/service integration pending"
+  ],
+  "security_reviews": [
+    {
+      "id": "RUSTSEC-2026-0007",
+      "component": "bytes",
+      "observed_version": "1.11.1",
+      "status": "patched version per advisory; not a full crate audit",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0007.html"
+    },
+    {
+      "id": "RUSTSEC-2026-0386",
+      "component": "tokio",
+      "observed_version": "1.49.0",
+      "status": "within advisory version range; affected API reachability and a maintained rebuilt runtime require review before admission",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0386.html"
+    },
+    {
+      "id": "RUSTSEC-2025-0173",
+      "component": "pam-bindings",
+      "status": "not listed by this package; pam-sys is a different crate; no blanket PAM security clearance",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2025-0173.html"
+    }
+  ],
+  "remaining": [
+    "current complete Rust dependency/advisory and reproducible source-build review",
+    "protected backend/connection/greeter identity and lifecycle admission",
+    "local PAM/password/account policy and SELinux integration",
+    "disable source_profile and retain fixed command/environment",
+    "actual daemon/PAM/greeter/session transition and failure tests",
+    "own graphical greeter and trusted lock remain separate"
+  ],
+  "evidence": {
+    "archive_sha256": "7ac8500e59550bfae2c3862ae4167aaf4f4467cd1454a0fc6bd817b8ef4bf23f",
+    "regular_files": 76
+  }
+}
