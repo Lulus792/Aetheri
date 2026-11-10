@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "purpose": "private-current-desktop-build",
+  "reviewed": "2026-11-10",
+  "boundary": "Independent content/link tree pins from verified development exports; not installation, app admission or a USB image.",
+  "components": {
+    "nexaui-release": {
+      "tree_sha256": "01cd57d3393ae36181c545d43874043dae7764c69fc6480c8bcdc8335e7b38f3",
+      "regular_files": 15,
+      "aliases": 2,
+      "max_file_bytes": 920488,
+      "total_bytes": 1100876,
+      "record": "build.json",
+      "record_sha256": "745b3b5cc744d6e412e9ef115ccb7b34938d1b405c37a1695c6cf37232343135",
+      "source_export_sha256": "359dc3f8782f4bf4ffff9bcec08f2c403df53d7c5bee3c66fa2fd4f7456ff794"
+    },
+    "nexaui-memory": {
+      "tree_sha256": "ab428fa1b96d756858657d1bf02d025b9f4fb7dada061295e199935878d2833d",
+      "regular_files": 15,
+      "aliases": 2,
+      "max_file_bytes": 11620640,
+      "total_bytes": 11801018,
+      "record": "build.json",
+      "record_sha256": "c1742844e55c942dcaa4ed375786d290c4465882b05147eb41fd1645b10d6604",
+      "source_export_sha256": "359dc3f8782f4bf4ffff9bcec08f2c403df53d7c5bee3c66fa2fd4f7456ff794"
+    },
+    "ui-release": {
+      "tree_sha256": "99c915560b30d56e408f8b45f14b63667bdfa0dedd2ec574fea7ea15e6cd2397",
+      "regular_files": 200,
+      "aliases": 8,
+      "max_file_bytes": 3254952,
+      "total_bytes": 12163536,
+      "record": "result.json",
+      "record_sha256": "d273bb18f33eb258b3a0779a63e889ec997b7c58e9c7b088bad35de15c4975e3",
+      "source_export_sha256": "64b87d0c66e843bc3a904f55d9b9284299f36e793361be7046669d9a23b3837d"
+    },
+    "ui-memory": {
+      "tree_sha256": "d6e9f0069bb32c4371d8dc697365984c1d8a44c9ad1fae324048cea26b4a0fbf",
+      "regular_files": 200,
+      "aliases": 8,
+      "max_file_bytes": 144648912,
+      "total_bytes": 226330336,
+      "record": "result.json",
+      "record_sha256": "031e4a6d20bb072f4cd7333049c341edd34fadf07997eb77835ba61ab48bd05b",
+      "source_export_sha256": "64b87d0c66e843bc3a904f55d9b9284299f36e793361be7046669d9a23b3837d"
+    },
+    "wlroots-release": {
+      "tree_sha256": "e0e30f1431b94d465a52d4b6c4ddf60345700a4f9fdde90e92f5c93cf3b9cc11",
+      "regular_files": 121,
+      "aliases": 0,
+      "max_file_bytes": 1495816,
+      "total_bytes": 1893479,
+      "record": "result.json",
+      "record_sha256": "21b9e6ae4f300db34fbec850626e2feb838601bfba291897a9faffa304502b9b",
+      "source_export_sha256": "2ab2368fec872b23269178fae3bf91581ddb9d35f2f4cbb456d7e9a5d66bef4e"
+    },
+    "wlroots-memory": {
+      "tree_sha256": "98970af4228dd26adb3544a78c4b9c3ae052c00ab3f165ef74cd9e84a5583f63",
+      "regular_files": 121,
+      "aliases": 0,
+      "max_file_bytes": 18068008,
+      "total_bytes": 18465670,
+      "record": "result.json",
+      "record_sha256": "eafcb1a48eca96f04386622ad30ceaedc50411d49ba6501bce05e8d277e5324f",
+      "source_export_sha256": "2ab2368fec872b23269178fae3bf91581ddb9d35f2f4cbb456d7e9a5d66bef4e"
+    }
+  }
+}

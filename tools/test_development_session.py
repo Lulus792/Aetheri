@@ -15,6 +15,20 @@ from test_development_desktop import artifact_root,control_position,role_output
 
 
 class DevelopmentContracts(unittest.TestCase):
+    def test_sdk_build_shapes_keep_legacy_history_and_reject_profile_or_path_drift(self):
+        for profile in ('release','debug'):
+            for name in ('nexaui-settings-'+profile+'-02', 'nexaui-desktop-'+profile+'-012345abcdef'):
+                value='/home/aetheri/deps/'+name
+                self.assertTrue(session.valid_nexaui_build_path(value,profile))
+                other='debug' if profile=='release' else 'release'
+                self.assertFalse(session.valid_nexaui_build_path(value,other))
+                self.assertFalse(session.valid_nexaui_build_path(value+'/../foreign',profile))
+            for value in (None,{},'/tmp/nexaui-desktop-'+profile+'-012345abcdef',
+                          '/home/aetheri/deps/nexaui-desktop-'+profile+'-not-a-token',
+                          '/home/aetheri/deps/nexaui-desktop-'+profile+'-012345abcdef/extra'):
+                with self.subTest(value=value):self.assertFalse(session.valid_nexaui_build_path(value,profile))
+        self.assertFalse(session.valid_nexaui_build_path('/home/aetheri/deps/nexaui-settings-release-02','future'))
+
     def test_control_observation_waits_for_complete_presented_latest_frame(self):
         old='VIEW 16 output=0 search=0 size=1920x84 query= pending=0\nCONTROL 16 0 5 0 1122.0 42.0\nLAYOUT 16\nDRAWN 16 output=0 search=0\n'
         new='VIEW 19 output=0 search=0 size=1920x84 query= pending=0\nCONTROL 19 0 5 0 1122.0 42.0\nLAYOUT 19\nDRAWN 19 output=0 search=0\n'

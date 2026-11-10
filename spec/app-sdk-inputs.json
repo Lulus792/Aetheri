@@ -1,0 +1,1273 @@
+{
+  "format": 1,
+  "purpose": "private-core-app-sdk",
+  "reviewed": "2026-11-10",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "boundary": "Private dynamic app build inputs. libsepol/PCRE2 provide original Requires.private metadata only; this is not a static-linking SDK or a runtime policy/package installation.",
+  "packages": [
+    {
+      "name": "sqlite-devel-3.51.2-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/sqlite/3.51.2/2.fc44/data/signed/6d9f90a6/x86_64/sqlite-devel-3.51.2-2.fc44.x86_64.rpm",
+      "size": 155653,
+      "sha256": "971078454c407e53bd00c2f23f447214c4118f8678f4c9dd1871312b9ac7d123",
+      "metadata": [
+        "sqlite-devel 3.51.2-2.fc44.x86_64",
+        "blessing",
+        "sqlite-3.51.2-2.fc44.src.rpm"
+      ],
+      "selected_files": 3
+    },
+    {
+      "name": "sqlite-libs-3.51.2-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/sqlite/3.51.2/2.fc44/data/signed/6d9f90a6/x86_64/sqlite-libs-3.51.2-2.fc44.x86_64.rpm",
+      "size": 815700,
+      "sha256": "c1c6c6cb5258e361068379c9eeef6897e256b3d99a8d65cbb9c3cff29d9bf775",
+      "metadata": [
+        "sqlite-libs 3.51.2-2.fc44.x86_64",
+        "blessing",
+        "sqlite-3.51.2-2.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "libselinux-3.11-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libselinux/3.11/2.fc44/data/signed/6d9f90a6/x86_64/libselinux-3.11-2.fc44.x86_64.rpm",
+      "size": 106767,
+      "sha256": "50fc29cc4e31824d87a2a709f4c3e4873fbc1785da333cd05dc5138a8eceea5f",
+      "metadata": [
+        "libselinux 3.11-2.fc44.x86_64",
+        "LicenseRef-Fedora-Public-Domain",
+        "libselinux-3.11-2.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "libselinux-devel-3.11-2.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libselinux/3.11/2.fc44/data/signed/6d9f90a6/x86_64/libselinux-devel-3.11-2.fc44.x86_64.rpm",
+      "size": 155056,
+      "sha256": "9e4a6ab5db594bf468b559227d09ac2ef92a1466a9d7cbaef98d3577a45745af",
+      "metadata": [
+        "libselinux-devel 3.11-2.fc44.x86_64",
+        "LicenseRef-Fedora-Public-Domain",
+        "libselinux-3.11-2.fc44.src.rpm"
+      ],
+      "selected_files": 8
+    },
+    {
+      "name": "openssl-libs-3.5.9-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/o/openssl-libs-3.5.9-1.fc44.x86_64.rpm",
+      "size": 2890271,
+      "sha256": "9b0efe3cf1f2ebaa3dfa0367c0cff4790c6c5d1269f2bcad53d7ace2759e0ede",
+      "metadata": [
+        "openssl-libs 1:3.5.9-1.fc44.x86_64",
+        "Apache-2.0",
+        "openssl-3.5.9-1.fc44.src.rpm"
+      ],
+      "selected_files": 2
+    },
+    {
+      "name": "openssl-devel-3.5.9-1.fc44.x86_64.rpm",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/o/openssl-devel-3.5.9-1.fc44.x86_64.rpm",
+      "size": 3196963,
+      "sha256": "a4b01d7b0751668e8dfbf1f656b36cc7518dab1573b621cad80aac1d42c40e93",
+      "metadata": [
+        "openssl-devel 1:3.5.9-1.fc44.x86_64",
+        "Apache-2.0",
+        "openssl-3.5.9-1.fc44.src.rpm"
+      ],
+      "selected_files": 143
+    },
+    {
+      "name": "pcre2-devel-10.47-1.fc44.1.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/pcre2/10.47/1.fc44.1/data/signed/6d9f90a6/x86_64/pcre2-devel-10.47-1.fc44.1.x86_64.rpm",
+      "size": 564145,
+      "sha256": "592e7c77e1fa9513c1e5f419c2b437a51c1d5f36d12e794844ea3e0a7b33f92e",
+      "metadata": [
+        "pcre2-devel 10.47-1.fc44.1.x86_64",
+        "BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later",
+        "pcre2-10.47-1.fc44.1.src.rpm"
+      ],
+      "selected_files": 1
+    },
+    {
+      "name": "libsepol-devel-3.11-1.fc44.x86_64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/libsepol/3.11/1.fc44/data/signed/6d9f90a6/x86_64/libsepol-devel-3.11-1.fc44.x86_64.rpm",
+      "size": 49341,
+      "sha256": "d3f1a2b9bbd0362cd215b92f92a1d52f8adfb58d222fdead06c3d422e466044e",
+      "metadata": [
+        "libsepol-devel 3.11-1.fc44.x86_64",
+        "LGPL-2.1-or-later",
+        "libsepol-3.11-1.fc44.src.rpm"
+      ],
+      "selected_files": 1
+    }
+  ],
+  "files": [
+    {
+      "path": "usr/include/openssl/aes.h",
+      "size": 3311,
+      "sha256": "130e304c466bda5db6de2fdbca3a970905070ab935d702e61c8371334851ea27",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/asn1.h",
+      "size": 57736,
+      "sha256": "51a457023c28d9a53ae39cadadaab83f23445b69376a212d3d92223373629ff8",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/asn1err.h",
+      "size": 5169,
+      "sha256": "9d60638b3d0c52170d390fe566c0b96a6381590590cc3dd71339eb85140fe1d6",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/asn1t.h",
+      "size": 38601,
+      "sha256": "ff24b48590d0fbc9c352c27caa2245feb9d01829e05c48df69df4217ac869a23",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/async.h",
+      "size": 3019,
+      "sha256": "708d52ecd7bb5ca83d243ddecb132db0693b0809f65c093eabda549156934030",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/asyncerr.h",
+      "size": 739,
+      "sha256": "eb6ea0f0389aa7846ea5b8f5b7b8d2a82a7b52e7dbfa105bc137e52be1399a69",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/bio.h",
+      "size": 41404,
+      "sha256": "4802c60e0dd656a2caed92e8df4867532d5f2cb835bab29b4f0695d2a8509965",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/bioerr.h",
+      "size": 2355,
+      "sha256": "fe1bf57251e4eaab30d2a6aa2048ee93deb1f0f15ef6634f61093b4d405586c6",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/blowfish.h",
+      "size": 2136,
+      "sha256": "97064924914f71425e48f5d53893abca0f07f329dde7a8b93b581dc9ee2e837a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/bn.h",
+      "size": 22309,
+      "sha256": "da179e5d98e8351e3e29f148bd88b42cba84fe60c7927a584f213bf2d09c38ed",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/bnerr.h",
+      "size": 1329,
+      "sha256": "beeb78746fbcc2c09e1f833f4c2ea72e845e757390aad7dc8699f7787b580204",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/buffer.h",
+      "size": 1591,
+      "sha256": "c7b9803f89bb492176a1e2738999dad86195ab8048a26e8ec9ef6948b8882e8a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/buffererr.h",
+      "size": 587,
+      "sha256": "4dea6e8ec7f09bfbdaa85fa3e75572b95d2ea62a813e7420a04f5f56ee7ccdfd",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/byteorder.h",
+      "size": 8444,
+      "sha256": "f062018f5fbe9f8459967dffaaa8e27f34596fb0da21fc011d0d556384a0305c",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/camellia.h",
+      "size": 3266,
+      "sha256": "e03acf0f3406032e5322e4f3368e8e48e5b73e8846955c3bcb3a4f1cb54d2ebc",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cast.h",
+      "size": 1880,
+      "sha256": "4fafc375a53d88fe4c709d8ee5fb74dc0fcaf91915837c3c6b4df0d916b07f0a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cmac.h",
+      "size": 1449,
+      "sha256": "048677b08aab6fd862d2b8b15556db8355d2142b93a9431ffba1d75a25912847",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cmp.h",
+      "size": 48135,
+      "sha256": "1772d6dedb37a7ebb40f21e7b47abb7974603eff8307c99c96456a3e0c762909",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cmp_util.h",
+      "size": 1627,
+      "sha256": "16c51c48c83c930b018ff711553e107f1870f1cedd32d94c06f15709b080c321",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cmperr.h",
+      "size": 4821,
+      "sha256": "220d1a903b66e25fa1de92f3ee8b3f5ef27de6dface0a4ea68e683a19e3549a7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cms.h",
+      "size": 31103,
+      "sha256": "cb46c86ab1ba0a7ea06bd25064e96c5d6d1cd104af1fc450015c15ba70a91de7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cmserr.h",
+      "size": 4547,
+      "sha256": "1cfc091ae52fe85c79bccfe1cc2d0e2979afff511e6a91fd04142596a65ac31a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/comp.h",
+      "size": 4696,
+      "sha256": "3f95492b4054a8064bc75f770766aa6c8c0866cbd267939460786e13092a053e",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/comperr.h",
+      "size": 1002,
+      "sha256": "03faa7ac9cf7ec99350a55758a685056dae8f75992887e0411c23b0d8c5d83b0",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/conf.h",
+      "size": 10387,
+      "sha256": "ba4d4d590f0da539a1380631815373199cd505d8e973c0fedb1d93a56b05d53c",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/conf_api.h",
+      "size": 1328,
+      "sha256": "38dce9e9e0a438fcaf1d173c26e61c821bfd3756e221e3be76cf010580ac52f7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/conferr.h",
+      "size": 1697,
+      "sha256": "ea9346e399d5dd1fbcca4f34078e1acb5039333602ecaf72faa04e32cdd55484",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/configuration-x86_64.h",
+      "size": 4645,
+      "sha256": "084bda0f2fbf8ed8bc9b7de641b8e7520cfa60b7e08767cf39b29affc75b7b0a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/configuration.h",
+      "size": 1584,
+      "sha256": "400439d7e8c551e7d5de8bfc648dcc0ddf6f4a7552750af4813449f68941b928",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/conftypes.h",
+      "size": 1176,
+      "sha256": "496997cc0f4c32b840677eeefd3ecb488453254be6e228b8cd34d4a4061a9e28",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/core.h",
+      "size": 7820,
+      "sha256": "4d4e63e2e01d06530515adbbe3c93601c5f0f5e1a96754d34d3470bccfcbdbc3",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/core_dispatch.h",
+      "size": 46932,
+      "sha256": "877d786bd366e80baa763d2c6c0b94e1d91c92cb0b6fa26d4004e6b0c3e6dd81",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/core_names.h",
+      "size": 29932,
+      "sha256": "42a71b1f749caede67e2edc06309654a0b44c22b8813f33bc035b3b8ebca35cb",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/core_object.h",
+      "size": 1047,
+      "sha256": "e8fa8c62ad1367bd325d59d721214d1a7afd5423205134152f60cc39a8590c8a",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/crmf.h",
+      "size": 19644,
+      "sha256": "65331763ed05e7d6b915d982aa532002230568ad3f300ceb0102704d500b9f72",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/crmferr.h",
+      "size": 1858,
+      "sha256": "9f2ff7a468b5048d543fef0324b39abdea63fa07bc915f62ff42a1937d7258c2",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/crypto.h",
+      "size": 23119,
+      "sha256": "e38926e360184b25b245e694563129c9b7e6aaa9f152e270ab9f3cf4ff1314a3",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cryptoerr.h",
+      "size": 1986,
+      "sha256": "c457c0591449551657a69ff9727784a79cc1afd899ac733c682c1a41fefdaa19",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cryptoerr_legacy.h",
+      "size": 48019,
+      "sha256": "985664cb71a62441b2822028340bb4ad5e3f98d6c74ba4c1bc7c997e188b97d3",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ct.h",
+      "size": 22238,
+      "sha256": "fe294ca4b7d06375f9e8d347e89ab02e8e6b2621efc4e371877f03fcaeb64a13",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/cterr.h",
+      "size": 1241,
+      "sha256": "26d971ab2166ba4473864506dcd933290fa6c321956ef46220eb61fb33a04c89",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/decoder.h",
+      "size": 4907,
+      "sha256": "72dbf52e4dc4efbfaddbf31ab6f2bec3e9a5c22eed865d057b960a014a4b9ec8",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/decodererr.h",
+      "size": 740,
+      "sha256": "c6818c667bdf8c37c5423580e0551359c69efc884198d28675db23e9fc70946e",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/des.h",
+      "size": 7764,
+      "sha256": "420afefcf27f28046912c5f156bc9e93d71a2c8a47bf0f605695a13f391cd5f9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/dh.h",
+      "size": 13025,
+      "sha256": "25080c32c48d5a88053c4b83c326e8f024b68249a0ef65d3c45af4f9aab6e0c6",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/dherr.h",
+      "size": 1702,
+      "sha256": "70f9e260865a9aae4c5f9a72d42d878e4dc216c906709245a8da2cceb79c3a14",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/dsa.h",
+      "size": 10982,
+      "sha256": "dac47d9779f83eb4e5a4f57c234e6eb25277cea68001384360e16c8859c38338",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/dsaerr.h",
+      "size": 1164,
+      "sha256": "b8fb8dae664d18298ae4b0c5444378e3f5c5d095256acb50764230159b1a15d6",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/dtls1.h",
+      "size": 1239,
+      "sha256": "3477022a712ecbb2bfb61b297c57026f1c354d52c638dfb22292183bd68d2e8f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/e_os2.h",
+      "size": 8445,
+      "sha256": "d7300e16ec04f764e8fd45ae5288c37ab5af09dd1ea204d17c54c0155c69921c",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/e_ostime.h",
+      "size": 1147,
+      "sha256": "0528cffa1548778b3ad52d4abb527e5f31590fb1bab4b0f55aad391efd79fd68",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ebcdic.h",
+      "size": 1025,
+      "sha256": "f50d3c91cb24772cf3155fe6464d811219b8f7c65ea3d4f974f58c03c3f27ab5",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ec.h",
+      "size": 62313,
+      "sha256": "2cc0edb6a18c4c1199bfce6799ca56362a6c27d41dfdfee62177a3d53a8c9a65",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ecdh.h",
+      "size": 361,
+      "sha256": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ecdsa.h",
+      "size": 361,
+      "sha256": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ecerr.h",
+      "size": 3359,
+      "sha256": "c072432649cd1e4bd1eb8c1f636bc2b57045d6f620d69d61c85f589d1c6b63e3",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/encoder.h",
+      "size": 4570,
+      "sha256": "73459b25f863cf9bbb3de66f04ffe7ddaf9450f3c26afb1d5827325fa0a89fd9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/encodererr.h",
+      "size": 741,
+      "sha256": "d010ca78b1df89c7fe3410d2aa5674179bf6750a445382ab8a0314c20a5b9799",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/err.h",
+      "size": 20436,
+      "sha256": "0d673984ff62d55d1fb4534d8136b7325e5264efeeb0b911cc94a4922681e080",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ess.h",
+      "size": 8704,
+      "sha256": "ff5fd097ae2df724b1c2dbe5bd3806817bee972c9318d38601dac5288f4b2d81",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/esserr.h",
+      "size": 982,
+      "sha256": "9ab984787cce1224e1426be57987e7726d8c5d38651dd96802a7d433c5288ae4",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/evp.h",
+      "size": 95634,
+      "sha256": "63985659640664eefdbcf3becb6df349d63b69a4f98e1bbe308c4a3660c88438",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/evperr.h",
+      "size": 5528,
+      "sha256": "ee0a462f1985667434a2b8a91d5df67ce2ee74e4ad9246f660dece5fafcf4474",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/fips.h",
+      "size": 601,
+      "sha256": "22f6324bd6f6a828f86fbb2aefdc4cbff874e10cc211f0d10aedec3214eac345",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/fips_names.h",
+      "size": 1638,
+      "sha256": "95f0ddd1271d1bb609acbe42924e903a2dda8e224cced9eb56f5680a6ae75a8e",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/fipskey.h",
+      "size": 1236,
+      "sha256": "9c2626f6f6e1054c2e2eac543fbd3e3dea85e122655e38d0eea41d39c501c2cc",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/hmac.h",
+      "size": 1892,
+      "sha256": "9caf0b993c6ae2b3c75b9b585c8539dd358ca5f4edc42447295f87fc504eb1b9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/hpke.h",
+      "size": 6081,
+      "sha256": "58f81dab37eddc03b86db9dd640980fca872ddf19f4477482826a64f20454cb9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/http.h",
+      "size": 4717,
+      "sha256": "1f8d65d9633d54a74e8477396f2e3d34f5cdafc753fa8d56a5ee31753f5b734f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/httperr.h",
+      "size": 1892,
+      "sha256": "56b740a25198f30d19c8ed57b36679bbb32f8f2d97291155d4b3091c347ae423",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/idea.h",
+      "size": 2285,
+      "sha256": "d114cb69e2e820008c508b7ad9002586806d82e3006e88162bd4a7c2dcd1e801",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/indicator.h",
+      "size": 818,
+      "sha256": "4be987d4fe4a4b39feac27c2ee85000e1b6ca7188d8ca9f75689a8205c2b4563",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/kdf.h",
+      "size": 5101,
+      "sha256": "3c3d76afcb9476c398eafe71c3026022349e63cae661bfd8c7cb14762f1b8f69",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/kdferr.h",
+      "size": 480,
+      "sha256": "cbf4bd667f0a53459163f546920c2c98ce6d10b0db99176c779d8bf32f04e8b7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/lhash.h",
+      "size": 33375,
+      "sha256": "ba50a0dc4caa9662e138f913566c44454a68f6e59c405c761c1f387f58855af4",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/macros.h",
+      "size": 10751,
+      "sha256": "dc27bc9e94abbb9e49bbcb604da5c061a65145586ac388c3fb4fc311daaccf96",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/md2.h",
+      "size": 1336,
+      "sha256": "a8eb0a1cdd0ced053d0f5dc5d1f63fe67f96a83c1cc37b6bf7adde85a567a631",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/md4.h",
+      "size": 1610,
+      "sha256": "75d0ff7b22daa2ab31a0cd03ce9ca10cef64f431d32c49def33d0f0164e36f0d",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/md5.h",
+      "size": 1608,
+      "sha256": "e22e567d09253eebf2c17f620783808f407bc7b969aa90bf3b44ac9001f6d329",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/mdc2.h",
+      "size": 1312,
+      "sha256": "740c2361d9b0ab5330ae0054e368f573416c401cb3855b72323967b29232421f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ml_kem.h",
+      "size": 959,
+      "sha256": "58ecec9d4d95ab5172290a4c5725b7b6940149ecdbff5a33b93cc67ede1b25f7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/modes.h",
+      "size": 8135,
+      "sha256": "8ea97ace0601cdce6a12d0e1e92aefec062c299d0fcb5ff6477e3d752a9b9763",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/obj_mac.h",
+      "size": 289525,
+      "sha256": "d51cb3f619888a0485ba46ad886f76ac605ce78a3cfbc080460947ab2dbb3a02",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/objects.h",
+      "size": 7567,
+      "sha256": "b6227db488aa39ed20a29e67d48fe8fefb2f649a1afcc3149cba22ac26510057",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/objectserr.h",
+      "size": 686,
+      "sha256": "fc14e6c9e71fb550363394f912cb72e6078dd11e300bdddfdd17ec118c88dc4b",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ocsp.h",
+      "size": 27856,
+      "sha256": "92eb69f74980eb03ce60a02be7ccc842a6e04ba1e9d82a94e3158634203aa21d",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ocsperr.h",
+      "size": 1636,
+      "sha256": "51b319980fb406b70ff0aee9c145c260553f4ff6516305b9c2864643096cc30c",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/opensslconf.h",
+      "size": 510,
+      "sha256": "7f4b522c049d0bd0d651e6f6ebe71d6df0c37231a94e32524da3f4642ebda3be",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/opensslv.h",
+      "size": 3449,
+      "sha256": "9647fc99758cf83e3bcf11ae310894fd4911ad62bff22d8213a614df89cfedda",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ossl_typ.h",
+      "size": 561,
+      "sha256": "8d430751bbcd1d9695f3dd85b16958fd6255dfbf55775207923f67cba1754548",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/param_build.h",
+      "size": 2363,
+      "sha256": "f078c5549e172b49da9993ef68c7b7fedafd66b05255c9bf8a37154f0a40bdb7",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/params.h",
+      "size": 7060,
+      "sha256": "b76d73449d8d44d14a7da9918caf3d1feee85b384e2d62ace73a8a1126152702",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pem.h",
+      "size": 22667,
+      "sha256": "9098124ff7a21c8f1db5ddead59b1cf092f88c9f44bf88dacd3c8de9c67ade76",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pem2.h",
+      "size": 523,
+      "sha256": "5bd104c872bbfee2d16f5af88c01b0aeee9f177ecc88c0dd237c9c9948eeedc6",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pemerr.h",
+      "size": 1836,
+      "sha256": "18c1dbdde2452416b1d49c7512b7c4b8bf26ac7b83f5c0ee5e27e9bec454d2fb",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pkcs12.h",
+      "size": 17004,
+      "sha256": "7aa3e49a731845fd325e967af1848fd9616c17d4c8a9b5822e19ae2f86db8a2f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pkcs12err.h",
+      "size": 1427,
+      "sha256": "fbf4142e0ee58b6c6841890d873f07ba0362e21ad74702d70552122e01c096e9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pkcs7.h",
+      "size": 21871,
+      "sha256": "1bf08b1d83ab798b6715f5c42b2bc5a61b5e6c9c17043d441df274e5861aaa03",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/pkcs7err.h",
+      "size": 2242,
+      "sha256": "717e017e7d0981928b33820660e19d5c264a06a5e824b94194036a8be92be07c",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/prov_ssl.h",
+      "size": 969,
+      "sha256": "23b96759ae94e17c7c0e7ee32a531676be2a276a6d9802828e80268e20f224fd",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/proverr.h",
+      "size": 6414,
+      "sha256": "3aaec27b2bf592b5861a3524b6f03a541d7de34e6dfcbcabc2b6bc40221bc743",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/provider.h",
+      "size": 3383,
+      "sha256": "dac4bfad226a8e5513cecf472e41e0b7ed93c95374a0ec3fd56f7b046e0aeff1",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/quic.h",
+      "size": 2101,
+      "sha256": "a80af6c42394132eaad8de7177c6b0b3f747711730e8dd687acdc34284b3c2f8",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rand.h",
+      "size": 4058,
+      "sha256": "cb240ffedfd9516ec7a8cd0796951d46a4707c0460f940371620c83f7bafd037",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/randerr.h",
+      "size": 2486,
+      "sha256": "a6acbb47da2f26fe5e572f232eb9d9ebcd65bb7c01d5984ab26229e5bf0bd45e",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rc2.h",
+      "size": 1771,
+      "sha256": "b86a429de0c73aca6e0504b8833c1dcd9e8c7cdf65c2b31b38d0d0c7b19cc5e9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rc4.h",
+      "size": 1075,
+      "sha256": "1bb4fa9d14861cdcf0a721d8d1026be80ce019da459ffdd8b5c1d12365110e78",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rc5.h",
+      "size": 2146,
+      "sha256": "dd71ab468383a2a8ca4ff34f9273b481c1ed518c380da6d1ab82e9ca6b7edbd9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ripemd.h",
+      "size": 1537,
+      "sha256": "4457b36942bc0e298c993b48468ef8f3f00331a9d67bd0b894dd5bc5f58ab35d",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rsa.h",
+      "size": 22275,
+      "sha256": "2c9780f9b4b35c3f14271962938e16b8505e9f5d38566c104bce9a82be23a0e1",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/rsaerr.h",
+      "size": 3861,
+      "sha256": "b4f87b5dddc672b81de0dfd7f3c4e6409887bd08b286c99ded8f1255e5836804",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/safestack.h",
+      "size": 29154,
+      "sha256": "99c92060bf4abf2a18f7963eafff3692b0823f9132e23fa034eb9a4c199f028f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/seed.h",
+      "size": 3611,
+      "sha256": "75a00b017f40beba051fdaad04876e18d3c80d1b1f1c21d78fafc69ae8e3b034",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/self_test.h",
+      "size": 4720,
+      "sha256": "4bb6ecb6d55e5e1bee6ef79c24bc8691174ad1b5c160f7d3daea150c140d3abb",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/sha.h",
+      "size": 4404,
+      "sha256": "7e006accd6565cc97dee672c097acc5e38482be7cd4fa1e0c316bf466425b895",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/srp.h",
+      "size": 15159,
+      "sha256": "e92c59f7e840fec10da0c68cd3fb566ada249102db56b0275ee0c6e6b5c4b79f",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/srtp.h",
+      "size": 1888,
+      "sha256": "6efa8edb1f040ba35cb05a671efc74c1494b9d4badc32d47cd5bb99e1a9cda38",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ssl.h",
+      "size": 122326,
+      "sha256": "06eceac03f3c3923fabbb8e66055385c50c57962610dec91f3f497ed465ef524",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ssl2.h",
+      "size": 625,
+      "sha256": "d33dc2afbcdee20f20ffcdd5cda6777c5e49a7cc37d513e4618b71a99129af20",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ssl3.h",
+      "size": 12748,
+      "sha256": "f98e0eb1702bf99614e92e2d09f1af5b59309e156441e40ab711df7d661536aa",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/sslerr.h",
+      "size": 15413,
+      "sha256": "7a9dab7a198ea5c17fe5cf8e1905a54ae88c0044a86c1accf1e7cc9e7de374e2",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/sslerr_legacy.h",
+      "size": 18269,
+      "sha256": "988c235994713d83d73ee904804f7edb4f6e321b4ab94c5aa5a9a0c7134fb499",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/stack.h",
+      "size": 3122,
+      "sha256": "c81fbb17b5476dca609b96eb11372d1d246a49096838c2cf7e81ad6b25f69316",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/store.h",
+      "size": 14008,
+      "sha256": "0fd665a474792f49055d7bd6e2bebed1449fb2dfd21ac042aa2cbc4cb6c8c66e",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/storeerr.h",
+      "size": 1702,
+      "sha256": "e13ecdf3c46b4dde5d857f8a7a3e2c0a444e309aa05d789bf99d73ecefab87aa",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/symhacks.h",
+      "size": 1102,
+      "sha256": "2b54552189bfbf4204c28c6a421b21702a3cd3dba37570dbcdadb7ee648f155b",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/thread.h",
+      "size": 865,
+      "sha256": "583716b74d6aa0596c1d1b06cb16f657d4d9fb9c13cf30505ec0327046af6baf",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/tls1.h",
+      "size": 63321,
+      "sha256": "f075f51b48cdc3503e40b8f81fb2b760ba2d4f315d2844759d9089ffb10613dc",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/trace.h",
+      "size": 10823,
+      "sha256": "5b7f86a453e6b404ff019e23e84de856c2a25b8243d4bfb92c92471a3735e332",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ts.h",
+      "size": 19419,
+      "sha256": "3de4eecd9a731d9a05a1b7baab18cb1c62f59f8a9f9e5ed049525a8ada9207b8",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/tserr.h",
+      "size": 2077,
+      "sha256": "27e66bf494926dea06d8c3800823f2485cf1a7f8f41f5628ff4a443f9bcceb87",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/txt_db.h",
+      "size": 1635,
+      "sha256": "cbd03be764d6d12e12895703756fbe5f2b7611d4cd55d343837d48e8e6e60523",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/types.h",
+      "size": 7354,
+      "sha256": "de5422d2e621df11c17ab18473ea4f2368ecc64b1e45311c4890cc62b31f81c5",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/ui.h",
+      "size": 18512,
+      "sha256": "75d4827c0126628779516a2109efd0b5dffcea1fc651740d328fe816af474481",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/uierr.h",
+      "size": 1062,
+      "sha256": "a21be118ee97343a03dc28256370839e5751c82a2a7bcb4c60fcbd97a9e2bef5",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/whrlpool.h",
+      "size": 1681,
+      "sha256": "d38ef40783400956d571e442d4f459e9c611239d719eb128e19bc64982d01922",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509.h",
+      "size": 67489,
+      "sha256": "f8f342cbd87cbfa9ccd40d3389f270b4d3da42fe1586a92e6c217cb0e4dd9550",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509_acert.h",
+      "size": 21988,
+      "sha256": "2bf6ca4775662e88ff5e64c754e04ea78aeec0793c5238483da9982021b3eb99",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509_vfy.h",
+      "size": 47176,
+      "sha256": "daf5959e1336a70321a9ecf7b357a83f5c64749776b7a33ff173eb1287def65d",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509err.h",
+      "size": 2368,
+      "sha256": "be93ee6c9d58aadb5f836d5e293ec93c94ffc603c46a1d8d1c8b31cf83959fb9",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509v3.h",
+      "size": 129347,
+      "sha256": "f51142998519410cae007ad2601cd7a93698d14da625b8110822af23811c9f2d",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/openssl/x509v3err.h",
+      "size": 3578,
+      "sha256": "b9be8b0429bfaefb973531e81d598e40779b3788e129c4cc9e33651d2308b990",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/avc.h",
+      "size": 16786,
+      "sha256": "b8cbacb883bcfd10b5827d24da47d21f1974f4de160b787210d35471a5ebd524",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/context.h",
+      "size": 1456,
+      "sha256": "bba43da28c95e6018673550318a679e501c9e659851ed3ef106337e99bf44827",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/get_context_list.h",
+      "size": 2902,
+      "sha256": "e8d9129bf8fc5bb1cb7df250e684b8116f424a743f76e98a63db880243e73c28",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/get_default_type.h",
+      "size": 638,
+      "sha256": "b41c8ffe702794f3e481e2b9b199ee407fe12102eb1ecab9256dc08865a7982b",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/label.h",
+      "size": 6421,
+      "sha256": "cc6c7ef62dee069d0206f045551e31e884eee1f707de7ca5af8741973313c2c1",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/restorecon.h",
+      "size": 8351,
+      "sha256": "452ba2e89e89397a5388acdf4b83954e9b1b7161a11ed69a14a50304a9512bd8",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/selinux/selinux.h",
+      "size": 29296,
+      "sha256": "7e306b900740bacb51f25228cde66cbed277e196ef561cc1feefbd4ddda86ae5",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/sqlite3.h",
+      "size": 671786,
+      "sha256": "097eca6569f7c50838e0695fac53610d3e779428d49f794cd6541796b169a719",
+      "mode": 420,
+      "package": "sqlite-devel-3.51.2-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/include/sqlite3ext.h",
+      "size": 38632,
+      "sha256": "ea81fb7bd05882e0e0b92c4d60f677b205f7f1fbf085f218b12f0b5b3f0b9e48",
+      "mode": 420,
+      "package": "sqlite-devel-3.51.2-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libcrypto.so.3.5.9",
+      "size": 5783496,
+      "sha256": "695648ac8dc5e6a2b70e5e72399940de0f84bf24fddb7dd18949ba40bc575c72",
+      "mode": 493,
+      "package": "openssl-libs-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libselinux.so.1",
+      "size": 209040,
+      "sha256": "cc9f8b1691e4f8cc807b2d8fe4a1ce2e0bdb96386285fdc7769849ffab0aaa7e",
+      "mode": 493,
+      "package": "libselinux-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/libsqlite3.so.3.51.2",
+      "size": 1641368,
+      "sha256": "f5fc84b48c21889070e3f045fd3c984e51116ccc9765fb98c25a8b933bf3366f",
+      "mode": 493,
+      "package": "sqlite-libs-3.51.2-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libcrypto.pc",
+      "size": 325,
+      "sha256": "6f731f3e38e949b1b153089ef6a872d3dd2542d507a0d766f70ca8aa006c5505",
+      "mode": 420,
+      "package": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libpcre2-8.pc",
+      "size": 377,
+      "sha256": "4916e5ce20682605e162015b06c89aac7fcb229a43dea12768ffcbdaec5938d8",
+      "mode": 420,
+      "package": "pcre2-devel-10.47-1.fc44.1.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libselinux.pc",
+      "size": 296,
+      "sha256": "0ea40205a4a207226fb20af74c40c3e17448c55f3d7db0b4300caf1d8b2880ec",
+      "mode": 420,
+      "package": "libselinux-devel-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/libsepol.pc",
+      "size": 253,
+      "sha256": "ff7373222a75862bc3be9b01076fd75aef1c093a218b860b4429b286c7faf82b",
+      "mode": 420,
+      "package": "libsepol-devel-3.11-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/lib64/pkgconfig/sqlite3.pc",
+      "size": 249,
+      "sha256": "26dadadfe1abca47b85cd2f4e335c06502ce152890aa9b4735a7c50196d05cdd",
+      "mode": 420,
+      "package": "sqlite-devel-3.51.2-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/libselinux/LICENSE",
+      "size": 1034,
+      "sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364",
+      "mode": 420,
+      "package": "libselinux-3.11-2.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/openssl-libs/LICENSE.txt",
+      "size": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "mode": 420,
+      "package": "openssl-libs-3.5.9-1.fc44.x86_64.rpm"
+    },
+    {
+      "path": "usr/share/licenses/sqlite-libs/LICENSE.md",
+      "size": 3850,
+      "sha256": "ee6af51062b30d532991face5164136ae6f84e265ecf8abe89dc69dac45ca1e7",
+      "mode": 420,
+      "package": "sqlite-libs-3.51.2-2.fc44.x86_64.rpm"
+    }
+  ],
+  "symlinks": {
+    "usr/lib64/libsqlite3.so": "libsqlite3.so.3.51.2",
+    "usr/lib64/libsqlite3.so.0": "libsqlite3.so.3.51.2",
+    "usr/lib64/libselinux.so": "libselinux.so.1",
+    "usr/lib64/libcrypto.so.3": "libcrypto.so.3.5.9",
+    "usr/lib64/libcrypto.so": "libcrypto.so.3.5.9"
+  },
+  "symlink_packages": {
+    "usr/lib64/libsqlite3.so": "sqlite-devel-3.51.2-2.fc44.x86_64.rpm",
+    "usr/lib64/libsqlite3.so.0": "sqlite-libs-3.51.2-2.fc44.x86_64.rpm",
+    "usr/lib64/libselinux.so": "libselinux-devel-3.11-2.fc44.x86_64.rpm",
+    "usr/lib64/libcrypto.so.3": "openssl-libs-3.5.9-1.fc44.x86_64.rpm",
+    "usr/lib64/libcrypto.so": "openssl-devel-3.5.9-1.fc44.x86_64.rpm"
+  },
+  "pkgconfig": {
+    "usr/lib64/pkgconfig/sqlite3.pc": "# Package Information for pkg-config\n\nprefix=/usr\nexec_prefix=/usr\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: SQLite\nDescription: SQL database engine\nVersion: 3.51.2\nLibs: -L${libdir} -lsqlite3\nLibs.private: -lm -lz   \nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/libselinux.pc": "prefix=/usr\nexec_prefix=${prefix}\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: libselinux\nDescription: SELinux utility library\nVersion: 3.11\nURL: https://github.com/selinuxproject/selinux/wiki/Releases\nRequires.private: libsepol libpcre2-8\nLibs: -L${libdir} -lselinux\nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/libcrypto.pc": "# \nprefix=/usr\nexec_prefix=${prefix}\nlibdir=${exec_prefix}/lib64\nincludedir=${prefix}/include \nenginesdir=${libdir}/engines-3\nmodulesdir=${libdir}/ossl-modules\n\nName: OpenSSL-libcrypto\nDescription: OpenSSL cryptography library\nVersion: 3.5.9\nLibs: -L${libdir} -lcrypto\nLibs.private: -lz -ldl -pthread\nCflags: -I${includedir}\n",
+    "usr/lib64/pkgconfig/libpcre2-8.pc": "# Package Information for pkg-config\n\nprefix=/usr\nexec_prefix=/usr\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: libpcre2-8\nDescription: PCRE2 - Perl compatible regular expressions C library (2nd API) with 8 bit character support\nVersion: 10.47\nLicense: BSD-3-Clause WITH PCRE2-exception\nLibs: -L${libdir} -lpcre2-8\nLibs.private: -pthread -lpthread\nCflags: -I${includedir} \n",
+    "usr/lib64/pkgconfig/libsepol.pc": "prefix=/usr\nexec_prefix=${prefix}\nlibdir=/usr/lib64\nincludedir=/usr/include\n\nName: libsepol\nDescription: SELinux policy library\nVersion: 3.11\nURL: https://github.com/selinuxproject/selinux/wiki/Releases\nLibs: -L${libdir} -lsepol\nCflags: -I${includedir}\n"
+  },
+  "versions": {
+    "libcrypto": "3.5.9",
+    "sqlite3": "3.51.2",
+    "libselinux": "3.11",
+    "libsepol": "3.11",
+    "libpcre2-8": "10.47"
+  },
+  "metadata_only_packages": [
+    "pcre2-devel-10.47-1.fc44.1.x86_64.rpm",
+    "libsepol-devel-3.11-1.fc44.x86_64.rpm"
+  ]
+}

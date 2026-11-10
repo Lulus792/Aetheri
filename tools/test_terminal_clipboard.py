@@ -249,7 +249,9 @@ def main():
         # A partial-history threshold is not producer completion. Force a
         # finite pause after the first burst so the old early-copy race remains
         # observable. Cursor-home is the terminal-visible final marker; only
-        # the original shell's returned prompt can then reach x=9,y=0.
+        # the original editing shell's returned prompt can then reach x=9,y=1:
+        # readline adds its deliberate LF separator before erasing/drawing the
+        # next prompt. Keep that output-preservation behavior in this real test.
         (root/"large.py").write_text(
             "import os,time\n"
             "def emit(data):\n"
@@ -259,7 +261,7 @@ def main():
             "emit(b'x'*100848+b'\\n\\x1b[H')\n")
         typing("python3 large.py\n")
         wait(lambda:fields("VIEW ").get("history")==1024 and fields("VIEW ").get("x")==9 and
-             fields("VIEW ").get("y")==0,"complete large real PTY output and returned shell prompt")
+             fields("VIEW ").get("y")==1,"complete large real PTY output and returned shell prompt")
         control(30); control(46)
         wait(lambda:fields("CLIPBOARD copy ").get("bytes",0)>65536,"large immutable exported snapshot")
         copied=fields("CLIPBOARD copy ")["bytes"]

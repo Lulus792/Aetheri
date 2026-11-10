@@ -89,12 +89,19 @@ def profile_fingerprint(profile):
 
 settings_fingerprint = profile_fingerprint  # Preserve the existing canonical binding.
 
+def valid_nexaui_build_path(value, build_profile):
+    """Developer directory shape only; selection still checks the SDK and cache."""
+    if build_profile not in PROFILES or not isinstance(value, str): return False
+    return re.fullmatch(r"/home/aetheri/deps/(?:nexaui-settings-" + build_profile +
+                        r"-[0-9]+|nexaui-desktop-" + build_profile + r"-[0-9a-f]{12})", value) is not None
+
+
 def validate_settings_profile(profile, build_profile, owned_view=False):
     keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256"}
     if owned_view: keys.add("presentation")
     if not isinstance(profile, dict) or set(profile) != keys:
         raise RuntimeError("invalid development Settings binding")
-    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+    if not valid_nexaui_build_path(profile["build"], build_profile):
         raise RuntimeError("invalid development Settings build")
     if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
         raise RuntimeError("invalid development Settings revision")
@@ -202,7 +209,7 @@ def settings_selection(build_profile, ui):
 def validate_files_profile(profile, build_profile):
     keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256", "presentation"}
     if not isinstance(profile, dict) or set(profile) != keys: raise RuntimeError("invalid Files profile")
-    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+    if not valid_nexaui_build_path(profile["build"], build_profile):
         raise RuntimeError("invalid Files SDK build")
     if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
         raise RuntimeError("invalid Files SDK revision")
@@ -246,7 +253,7 @@ def validate_terminal_profile(profile, build_profile):
     keys = {"revision", "version", "build", "artifacts", "model", "metadata_sha256", "pin_sha256",
             "presentation", "assets", "ui_pin_sha256"}
     if not isinstance(profile, dict) or set(profile) != keys: raise RuntimeError("invalid Terminal profile")
-    if not isinstance(profile["build"], str) or re.fullmatch("/home/aetheri/deps/nexaui-settings-" + build_profile + "-[0-9]+", profile["build"]) is None:
+    if not valid_nexaui_build_path(profile["build"], build_profile):
         raise RuntimeError("invalid Terminal SDK build")
     if not isinstance(profile["revision"], str) or re.fullmatch("[0-9a-f]{40}", profile["revision"]) is None:
         raise RuntimeError("invalid Terminal SDK revision")

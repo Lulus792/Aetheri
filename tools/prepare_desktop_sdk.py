@@ -20,10 +20,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'spec/desktop-sdk-inputs.json'
 PROFILES = {'common': (PROFILE, 'private-common-wayland-sdk'),
             'sdl': (ROOT / 'spec/sdl-sdk-inputs.json', 'private-sdl-build-sdk'),
-            'wlroots': (ROOT / 'spec/wlroots-sdk-inputs.json', 'private-wlroots-package-sdk')}
+            'wlroots': (ROOT / 'spec/wlroots-sdk-inputs.json', 'private-wlroots-package-sdk'),
+            'apps': (ROOT / 'spec/app-sdk-inputs.json', 'private-core-app-sdk')}
 LIMITS = {'private-common-wayland-sdk': (10, 512, 2*1024**2),
           'private-sdl-build-sdk': (5, 1024, 4*1024**2),
-          'private-wlroots-package-sdk': (12, 512, 4*1024**2)}
+          'private-wlroots-package-sdk': (12, 512, 4*1024**2),
+          'private-core-app-sdk': (8, 512, 4*1024**2)}
 PATH_KEYS = {'prefix', 'exec_prefix', 'includedir', 'libdir', 'bindir', 'datarootdir'}
 
 
@@ -46,6 +48,7 @@ def validate(v):
         raise ValueError('different common SDK profile')
     packages = {p['name']: p for p in v['packages']}
     package_count, file_count, package_bytes = LIMITS[v['purpose']]
+    member_bytes = 8*1024**2 if v['purpose'] == 'private-core-app-sdk' else 2*1024**2
     if len(packages) != package_count or len(v['packages']) != package_count:
         raise ValueError('different common SDK package set')
     for p in packages.values():
@@ -60,7 +63,7 @@ def validate(v):
         n = canonical(e['path'])
         if (not n.startswith('usr/') or n in files or e['package'] not in packages
                 or e['mode'] not in (0o644, 0o755) or type(e['size']) is not int
-                or not 0 <= e['size'] <= 2*1024**2 or not re.fullmatch('[0-9a-f]{64}', e['sha256'])):
+                or not 0 <= e['size'] <= member_bytes or not re.fullmatch('[0-9a-f]{64}', e['sha256'])):
             raise ValueError('invalid common SDK file')
         files[n] = e
     if sum(e['size'] for e in files.values()) > 16*1024**2:

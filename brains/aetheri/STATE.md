@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The current private wlroots SDK and complete Release/ASan/UBSan builds now pass actual headless Pixman/input ABI and lifetime proofs, with leak detection enabled and no suppression. All 787 export files, both 472-file source inventories, 252 submitted inputs, SDK artifacts and 30 actual mapped files are independently checked. The old input/Lua 5.4 is absent. Carrier packages, udev and enforcing policy remain unchanged. Next supply remaining app SDK inputs and rebuild the current Aetheri compositor/desktop/apps together, then normal GUI/native integration. No complete desktop, hardware acceptance or image is claimed; the agreed first-version gate still forbids the next USB-targeted build/flash.
+10 November 2026 — The current compositor/desktop/apps now build together in Release and ASan/UBSan. Both pass 36 ordinary model tests, 29 selected integration cases and three native graphical Editor suites, with leak detection and no suppression. All 4,211 exported files, 721 submitted inputs, SDK bodies, compilation records and 80 loader/actual-map code files are independently checked. The shared desktop start now passes after exact build/test-host corrections. Carrier packages, original udev and enforcing policy remain unchanged. Next prepare a protected current-runtime projection and test the actual DRM development session; normal service/device ownership and full image closure remain open. The agreed first-version gate still forbids the next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,49 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Current compositor, desktop and apps — 10 November 2026
+
+Read the [execution record](journal/2026-11-10-current-desktop.md),
+[build contract](../../spec/current-desktop-build.md),
+[app SDK](../../spec/app-sdk-inputs.json) and
+[independent component pins](../../spec/app-build-inputs.json).
+Eight signed packages supply 162 original files/10,391,401 bytes and five aliases.
+Only Crypto is selected from OpenSSL 3.5.9. The libsepol/PCRE2 additions are original
+private-requirement metadata, not new runtimes or static-linking support.
+Full fresh builds compile 408 steps each; 36 model and 29 selected integration
+cases plus three graphical Editor suites pass in each variant. Host controls:
+88 pass/8 platform skips (96 cases); native controls: 48 pass without skips. Do not
+mistake all compiled/registered tests for executed Root authority acceptance.
+
+Source `/var/tmp/a-da-60817f4c79/repo`;
+SDK `/home/aetheri/deps/app-sdk-3566ad4252`;
+Release `/home/aetheri/ad-60817f4c79-r`;
+memory `/home/aetheri/ad-60817f4c79-m`.
+The final private GUI source context changes only the selected development SDK
+paths and the independently bound clipboard test correction. Normal pins stay
+unchanged. Both 247-command compilation databases and all nine main executables'
+instrumentation are checked. All 4,211 export files/721 submitted inputs and 80
+unique loader/actual-map files match; 17 actual map records are included.
+Actual Editor/dock/Files/Terminal frames are viewed, without final-design or
+physical-monitor acceptance. Preserve all earlier failed attempts and receipts.
+
+The new builder types NexaUI_DIR as PATH; the validator stays strict. Developer
+directory checks retain legacy history and accept the current named layout,
+without selecting or admitting a candidate from its name. The test-only desktop
+host uses its actual reviewed font/source. The clipboard test now follows the
+existing readline LF separator while preserving its complete-output gate.
+Source staging moves to disk after exhausting `/run`; the original mount's
+virtual cap alone is raised from 780 MiB to 1 GiB, with flags/identity preserved.
+The separate Editor tests use new private `/tmp` namespaces, preserving foreign
+temporary state. The detailed resource/failure record is in the journal.
+
+Packages, udev 693/original invocation and enforcing 1 remain unchanged; no
+selected current app/SDK/wlroots/NexaUI code remains mapped. The restricted audio
+VM remains live. Revalidate its actual state, then prepare the protected current
+runtime and exercise DRM/session integration. Full normal service/device/app
+admission, Root administrative suites, image closure and first-version readiness
+remain open. No USB work or new NexaUI handoff.
 
 ## Current wlroots SDK and builds — 10 November 2026
 

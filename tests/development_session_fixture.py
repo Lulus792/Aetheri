@@ -6,8 +6,25 @@ never request a PAM/DRM unit, touch the root controller or install a service.
 """
 import os
 import importlib.util
+import json
 from pathlib import Path
 import sys
+
+def configure_inputs(session, build, source):
+    """Bind this test host to its actual source/font instead of old carrier paths."""
+    lines=(build/'CMakeCache.txt').read_text().splitlines()
+    prefix='AETHERI_SETTINGS_TEST_FONT:FILEPATH='
+    selected=[line[len(prefix):] for line in lines if line.startswith(prefix)]
+    if len(selected)!=1:raise RuntimeError('test host requires one configured font')
+    font=Path(selected[0])
+    pin=json.loads((session.PROJECT/'spec/ui-inputs.json').read_bytes())['font']
+    if (not font.is_absolute() or font.resolve()!=font or
+            font.name!='LiberationSans-Regular.ttf' or font.parent.name!='aetheri-fonts' or
+            font.parent.parent.name!='share' or session.digest(font)!=pin['sha256']):
+        raise RuntimeError('test host font does not match reviewed input')
+    session.SOURCE=source
+    session.UI=font.parents[2]
+
 
 def main():
     build, root, issuer = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
@@ -16,6 +33,7 @@ def main():
     path = Path(sys.argv[4]) if len(sys.argv)>4 else Path(__file__).resolve().parents[1]/"tools/development_session.py"
     spec = importlib.util.spec_from_file_location("development_session_under_test", path)
     session = importlib.util.module_from_spec(spec);spec.loader.exec_module(session)
+    configure_inputs(session,build,path)
     session.terminal_assets()
     session.USER_ROOT = root / "sessions"
     session.build_for = lambda profile: build

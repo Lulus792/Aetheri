@@ -1,5 +1,29 @@
 # Sources
 
+## Current compositor/desktop/apps — 10 November 2026
+
+- [Execution record](journal/2026-11-10-current-desktop.md),
+  [build contract](../../spec/current-desktop-build.md),
+  [app SDK profile](../../spec/app-sdk-inputs.json) and
+  [independent component inventories](../../spec/app-build-inputs.json): original
+  signed development inputs, retained notices/path-only metadata derivations,
+  both fresh 408-step builds, actual model/integration/Editor results and the
+  4,211-file independently checked export. Native maps and loader selections bind
+  80 filesystem code/dependency bodies to original providers or the current build.
+- The native cache proves the first SDK-path type mismatch; the original shared
+  desktop test stops before app effects. Actual failed clipboard output and the
+  compiled readline LF-separator source establish its later test-expectation
+  correction. Both failures remain separately retained; no guard is bypassed.
+- [Linux tmpfs documentation](https://docs.kernel.org/filesystems/tmpfs.html)
+  describes resizing its size limit on remount and allocating pages as used.
+  Consulted 10 November 2026. The separate native mount record proves the actual
+  original mount/flags before and after the carrier's bounded quota adjustment;
+  the documentation alone does not prove that action or resource availability.
+- Three graphical Editor suites per variant run with fresh private temporary
+  backing and original test hooks kept out of the normal executable. Observed
+  frames and process-owned workflow results are scoped development evidence,
+  not normal device/session/app, physical hardware or first-version acceptance.
+
 ## Current wlroots/input SDK — 10 November 2026
 
 - [Execution record](journal/2026-11-10-wlroots-sdk.md),
