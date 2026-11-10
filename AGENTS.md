@@ -1,11 +1,17 @@
 # Working on Aetheri
 
-Current continuation: read `brains/aetheri/STATE.md`, spec/login.md and the
-2026-11-10 login-protocol journal/input review. The optional C17 model passes
+Current continuation: read `brains/aetheri/STATE.md`, spec/login.md,
+spec/login-backend.md and the 2026-11-10 login-backend-build journal/pins.
+The greetd candidate now builds offline with the pinned34-crate graph/Tokio1.53.3;
+upstream tests and source-preparer regressions pass. It is not an admitted daemon,
+Unix peer or PAM/login service. Advance protected original daemon/config/socket
+admission and bounded C transport, then actual PAM/greeter/session transitions.
+Keep build-only Rust/Cargo/LLVM dependencies separate from the daemon footprint.
+The optional C17 model passes
 login.protocol/login.wire in Release/memory with no backend execution. It fixes
 command/env, bounds the worker's escaped answer and never replays unknown start.
-The exact greetd candidate is source-reviewed but runtime-unadmitted; inspect
-the recorded Tokio advisory/rebuild/connection/PAM/policy gates before use.
+The exact greetd candidate is source-reviewed and rebuilt but runtime-unadmitted;
+inspect the recorded connection/PAM/policy gates before use.
 Advance maintained backend/runtime and protected connection admission, then real
 PAM/greeter/session transitions. For prior evidence read the 2026-11-10
 session-entry/native-session-owner journals and spec/session.md. The opt-in aetheri-session

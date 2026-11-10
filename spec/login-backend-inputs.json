@@ -1,0 +1,518 @@
+{
+  "format": 1,
+  "purpose": "Offline greetd candidate build inputs; not login runtime admission",
+  "reviewed": "2026-11-10",
+  "runtime_admitted": false,
+  "source": {
+    "name": "greetd-0.10.3.tar.gz",
+    "size": 49908,
+    "sha256": "ee5cb70e0add4ca9c9fe57e47581ab0002d44c07743fb5492469f3b570db640b",
+    "provenance": "Exact archive from signed source RPM in spec/login-inputs.json; no upstream URL substituted"
+  },
+  "lock": {
+    "size": 8219,
+    "sha256": "bc4cd4a4d652c48375344de60de0b325a86ee0d45099813a90176d8e1252a450"
+  },
+  "crates": [
+    {
+      "name": "async-trait",
+      "version": "0.1.92",
+      "sha256": "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 32039,
+      "url": "https://static.crates.io/crates/async-trait/async-trait-0.1.92.crate"
+    },
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "sha256": "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.56.0",
+      "size": 51678,
+      "url": "https://static.crates.io/crates/bitflags/bitflags-2.13.2.crate"
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "sha256": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "license": "MIT",
+      "notices": [
+        "LICENSE"
+      ],
+      "rust_version": "1.57",
+      "size": 75667,
+      "url": "https://static.crates.io/crates/bytes/bytes-1.12.1.crate"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "sha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.32",
+      "size": 9578,
+      "url": "https://static.crates.io/crates/cfg-if/cfg-if-1.0.5.crate"
+    },
+    {
+      "name": "enquote",
+      "version": "1.1.0",
+      "sha256": "06c36cb11dbde389f4096111698d8b567c0720e3452fd5ac3e6b4e47e1939932",
+      "license": "Unlicense",
+      "notices": [
+        "unlicense"
+      ],
+      "rust_version": null,
+      "size": 3552,
+      "url": "https://static.crates.io/crates/enquote/enquote-1.1.0.crate"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.56",
+      "size": 12002,
+      "url": "https://static.crates.io/crates/errno/errno-0.3.14.crate"
+    },
+    {
+      "name": "getopts",
+      "version": "0.2.24",
+      "sha256": "cfe4fbac503b8d1f88e6676011885f34b7174f46e59956bba534ba83abded4df",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.66",
+      "size": 21467,
+      "url": "https://static.crates.io/crates/getopts/getopts-0.2.24.crate"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.19",
+      "sha256": "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.68",
+      "size": 16014,
+      "url": "https://static.crates.io/crates/itoa/itoa-1.0.19.crate"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.191",
+      "sha256": "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.65",
+      "size": 855401,
+      "url": "https://static.crates.io/crates/libc/libc-0.2.191.crate"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "license": "Unlicense OR MIT",
+      "notices": [
+        "COPYING",
+        "LICENSE-MIT",
+        "UNLICENSE"
+      ],
+      "rust_version": "1.61",
+      "size": 99165,
+      "url": "https://static.crates.io/crates/memchr/memchr-2.8.3.crate"
+    },
+    {
+      "name": "mio",
+      "version": "1.2.4",
+      "sha256": "1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee",
+      "license": "MIT",
+      "notices": [
+        "LICENSE"
+      ],
+      "rust_version": "1.71",
+      "size": 110437,
+      "url": "https://static.crates.io/crates/mio/mio-1.2.4.crate"
+    },
+    {
+      "name": "nix",
+      "version": "0.27.1",
+      "sha256": "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053",
+      "license": "MIT",
+      "notices": [
+        "LICENSE"
+      ],
+      "rust_version": "1.65",
+      "size": 286494,
+      "url": "https://static.crates.io/crates/nix/nix-0.27.1.crate"
+    },
+    {
+      "name": "pam-sys",
+      "version": "0.5.6",
+      "sha256": "cd4858311a097f01a0006ef7d0cd50bca81ec430c949d7bf95cbefd202282434",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": null,
+      "size": 12738,
+      "url": "https://static.crates.io/crates/pam-sys/pam-sys-0.5.6.crate"
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "sha256": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+      "license": "Apache-2.0 OR MIT",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.37",
+      "size": 31034,
+      "url": "https://static.crates.io/crates/pin-project-lite/pin-project-lite-0.2.17.crate"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 59588,
+      "url": "https://static.crates.io/crates/proc-macro2/proc-macro2-1.0.107.crate"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 31622,
+      "url": "https://static.crates.io/crates/quote/quote-1.0.47.crate"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.56",
+      "size": 83669,
+      "url": "https://static.crates.io/crates/serde/serde-1.0.229.crate"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.56",
+      "size": 63100,
+      "url": "https://static.crates.io/crates/serde_core/serde_core-1.0.229.crate"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 59864,
+      "url": "https://static.crates.io/crates/serde_derive/serde_derive-1.0.229.crate"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.154",
+      "sha256": "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 158079,
+      "url": "https://static.crates.io/crates/serde_json/serde_json-1.0.154.crate"
+    },
+    {
+      "name": "signal-hook-registry",
+      "version": "1.4.8",
+      "sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.26",
+      "size": 21668,
+      "url": "https://static.crates.io/crates/signal-hook-registry/signal-hook-registry-1.4.8.crate"
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "sha256": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.70",
+      "size": 60031,
+      "url": "https://static.crates.io/crates/socket2/socket2-0.6.5.crate"
+    },
+    {
+      "name": "syn",
+      "version": "2.0.119",
+      "sha256": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 307407,
+      "url": "https://static.crates.io/crates/syn/syn-2.0.119.crate"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.10",
+      "sha256": "4ae9ccbea3a7b0b09443036490c8f34a8b1b760fd345e5c0dae0aac718faea79",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 314214,
+      "url": "https://static.crates.io/crates/syn/syn-3.0.10.crate"
+    },
+    {
+      "name": "thiserror",
+      "version": "1.0.69",
+      "sha256": "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.61",
+      "size": 22198,
+      "url": "https://static.crates.io/crates/thiserror/thiserror-1.0.69.crate"
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "1.0.69",
+      "sha256": "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.61",
+      "size": 18365,
+      "url": "https://static.crates.io/crates/thiserror-impl/thiserror-impl-1.0.69.crate"
+    },
+    {
+      "name": "tokio",
+      "version": "1.53.3",
+      "sha256": "ce3335fa71841cda333a58d7615b03901380ecf09d59b3296d21f8bbac0dde4e",
+      "license": "MIT",
+      "notices": [
+        "LICENSE"
+      ],
+      "rust_version": "1.71",
+      "size": 933090,
+      "url": "https://static.crates.io/crates/tokio/tokio-1.53.3.crate"
+    },
+    {
+      "name": "tokio-macros",
+      "version": "2.7.2",
+      "sha256": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e",
+      "license": "MIT",
+      "notices": [
+        "LICENSE"
+      ],
+      "rust_version": "1.71",
+      "size": 16081,
+      "url": "https://static.crates.io/crates/tokio-macros/tokio-macros-2.7.2.crate"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.27",
+      "sha256": "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT",
+        "LICENSE-UNICODE"
+      ],
+      "rust_version": "1.71",
+      "size": 48807,
+      "url": "https://static.crates.io/crates/unicode-ident/unicode-ident-1.0.27.crate"
+    },
+    {
+      "name": "unicode-width",
+      "version": "0.2.3",
+      "sha256": "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.66",
+      "size": 209503,
+      "url": "https://static.crates.io/crates/unicode-width/unicode-width-0.2.3.crate"
+    },
+    {
+      "name": "wasi",
+      "version": "0.11.1+wasi-snapshot-preview1",
+      "sha256": "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "notices": [
+        "LICENSE-APACHE",
+        "LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "LICENSE-MIT"
+      ],
+      "rust_version": null,
+      "size": 28477,
+      "url": "https://static.crates.io/crates/wasi/wasi-0.11.1+wasi-snapshot-preview1.crate"
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "license-apache-2.0",
+        "license-mit"
+      ],
+      "rust_version": "1.71",
+      "size": 6133,
+      "url": "https://static.crates.io/crates/windows-link/windows-link-0.2.1.crate"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "license": "MIT OR Apache-2.0",
+      "notices": [
+        "license-apache-2.0",
+        "license-mit",
+        "src/Windows/Win32/Security/LicenseProtection/mod.rs"
+      ],
+      "rust_version": "1.71",
+      "size": 2517186,
+      "url": "https://static.crates.io/crates/windows-sys/windows-sys-0.61.2.crate"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "license": "MIT",
+      "notices": [
+        "LICENSE-MIT"
+      ],
+      "rust_version": "1.71",
+      "size": 28612,
+      "url": "https://static.crates.io/crates/zmij/zmij-1.0.23.crate"
+    }
+  ],
+  "security_review": {
+    "provider": "https://api.osv.dev/v1/querybatch",
+    "packages": 34,
+    "returned_findings": 0,
+    "query_sha256": "71275c86978c6fc4e4002d9400e9bdce6aa422fa72458974b2920e06e3eec92b",
+    "response_sha256": "1d13b1987b3860323c1980bbdb2cdad2402cb3ed2fa020cc92b03a7d2e4584f4",
+    "limits": "Exact-version database lookup only; not source, PAM, policy or runtime acceptance"
+  },
+  "toolchain": {
+    "version": "Fedora Rust/Cargo 1.99.1-2.fc44",
+    "target": "x86_64-unknown-linux-gnu",
+    "cpu": "x86-64",
+    "openssl": "3.5.9",
+    "packages": [
+      {
+        "name": "rust-1.99.1-2.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/rust/1.99.1/2.fc44/data/signed/6d9f90a6/x86_64/rust-1.99.1-2.fc44.x86_64.rpm",
+        "size": 32474748,
+        "sha256": "ede060cf71078d17535deb09616f51bc52b694cab7dc91e4935c24566941ffc8"
+      },
+      {
+        "name": "rust-std-static-1.99.1-2.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/rust/1.99.1/2.fc44/data/signed/6d9f90a6/x86_64/rust-std-static-1.99.1-2.fc44.x86_64.rpm",
+        "size": 42775178,
+        "sha256": "8dd8f28444ec80ec680bc01e514a8210bfcd9ca6dede01f5ab3da6157283476e"
+      },
+      {
+        "name": "cargo-1.99.1-2.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/rust/1.99.1/2.fc44/data/signed/6d9f90a6/x86_64/cargo-1.99.1-2.fc44.x86_64.rpm",
+        "size": 8275739,
+        "sha256": "a531922ce0a276a5ffbea099badd5d21230dec4b463ed93b08a9ce9ec4df89de"
+      }
+    ],
+    "build_library_packages": [
+      {
+        "name": "libgit2-1.9.7-1.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/libgit2/1.9.7/1.fc44/data/signed/6d9f90a6/x86_64/libgit2-1.9.7-1.fc44.x86_64.rpm",
+        "size": 629243,
+        "sha256": "e0ff92caf95a03392aaedfab955b81d2632370a611ff16deda2d822085ac5399"
+      },
+      {
+        "name": "libssh2-1.11.1-9.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/libssh2/1.11.1/9.fc44/data/signed/6d9f90a6/x86_64/libssh2-1.11.1-9.fc44.x86_64.rpm",
+        "size": 152679,
+        "sha256": "16d227aeb7f31ac024645155d6d337a78502070fb97a630deeb654a48af08975"
+      },
+      {
+        "name": "llhttp-9.3.1-1.fc44.x86_64.rpm",
+        "url": "https://kojipkgs.fedoraproject.org/packages/llhttp/9.3.1/1.fc44/data/signed/6d9f90a6/x86_64/llhttp-9.3.1-1.fc44.x86_64.rpm",
+        "size": 38718,
+        "sha256": "06a795e807456d9ad2d8d9e737c35b89f095b1b2e9e635b3e7a749c57bc6a309"
+      },
+      {
+        "name": "openssl-libs-3.5.9-1.fc44.x86_64.rpm",
+        "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/o/openssl-libs-3.5.9-1.fc44.x86_64.rpm",
+        "size": 2890271,
+        "sha256": "9b0efe3cf1f2ebaa3dfa0367c0cff4790c6c5d1269f2bcad53d7ace2759e0ede"
+      }
+    ],
+    "fedora_signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6"
+  }
+}

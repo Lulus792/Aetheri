@@ -1,5 +1,12 @@
 # Sources
 
+## Offline login backend — 10 November 2026
+
+- [Cargo source replacement](https://doc.rust-lang.org/cargo/reference/source-replacement.html) and [cargo vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html): directory-source consistency files and frozen/offline behavior; checksums do not authenticate a publisher. Native build/tests use the actual generated directory source.
+- [Tokio RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386.html): reviewed patched ranges include1.53.3; affected-function reachability is not established here. The34-entry [OSV](https://api.osv.dev/v1/querybatch) exact-version query returns no findings; query/response digests are in [pins](../../spec/login-backend-inputs.json), not a blanket security clearance.
+- [Fedora security keys](https://fedoraproject.org/security/), [libssh2](https://packages.fedoraproject.org/pkgs/libssh2/libssh2/fedora-44-updates.html), [libgit2](https://packages.fedoraproject.org/pkgs/libgit2/libgit2/fedora-44-updates.html), [llhttp](https://packages.fedoraproject.org/pkgs/llhttp/llhttp/) and [Rust](https://packages.fedoraproject.org/pkgs/rust/rust/fedora-44-updates.html): exact signed package data/ELF dependencies independently inspected; no global installation. Actual libssh2/crypto sonames take precedence over inference from its changelog.
+- [Build record](journal/2026-11-10-login-backend-build.md): successful isolated native Release build, ten upstream tests/one doc test, thirteen preparer regressions per platform, rejecting digest mutant and independently checked 2,641-file export. Runtime/PAM/greeter admission remains separate.
+
 ## Login protocol/backend review — 10 November 2026
 
 - [Fedora 44 greetd package](https://packages.fedoraproject.org/pkgs/greetd/greetd/fedora-44.html) and the signed binary/source URLs in [input review](../../spec/login-inputs.json): exact signatures/payloads/source worker/codec/config inspected. The static dependency notice, not upstream Cargo.lock, supplies packaged versions. Sourcehut pages were unavailable; original source came from the signed source RPM.

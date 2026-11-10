@@ -1,5 +1,17 @@
 # Decisions
 
+## Build the login candidate with a complete pinned graph — 10 November 2026
+
+Keep the reviewed greetd0.10.3 source and independent original C greeter, but build
+the backend with Tokio1.53.3 and a complete Cargo lock. The newer signed Fedora45
+binary still lists Tokio1.53.1; adopting another distribution binary does not
+close the reviewed dependency finding. Use an isolated ordinary-user offline
+build and retain all source/licence inputs. Rust/Cargo and their Git/SSH/LLVM
+dependencies remain development tools, not OS services or daemon dependencies.
+Source preparation is separate from privileged runtime/socket/PAM/policy admission.
+See [build contract](../../spec/login-backend.md) and
+[record](journal/2026-11-10-login-backend-build.md).
+
 ## Keep greeter conversation separate from backend admission — 10 November 2026
 
 Prefer an original C greeter speaking the maintained greetd conversation over a

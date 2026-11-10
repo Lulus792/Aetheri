@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The optional C17 login conversation model passes Release/memory and independent native JSON-peer tests, with bounded prompts, fixed session command and no unknown-start replay. Exact signed greetd binary/source packages are reviewed as data; that backend runtime remains unadmitted pending current dependency/rebuild/security review. All 1,552 protocol-export files/1,494 submitted inputs and 76 package-review files match. Next finish reviewed backend/connection admission, real PAM/greeter/session transitions and normal login/account/system integration. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
+10 November 2026 — The greetd candidate now builds offline as an ordinary user with a complete pinned 34-crate graph and Tokio 1.53.3. Ten upstream tests/one doc test and thirteen source-preparer regressions per platform pass; the digest-bypass mutant rejects. All 2,641 exported files/2,607 prepared source/vendor bodies match. The original C17 conversation and post-login entry remain tested; actual daemon/socket/PAM/greeter/session admission is next. Trusted lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,39 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Login conversation and backend review — 10 November 2026
+## Offline login backend candidate — 10 November 2026
+
+Read [build contract](../../spec/login-backend.md),
+[exact graph/tool inputs](../../spec/login-backend-inputs.json) and
+[record](journal/2026-11-10-login-backend-build.md). The newer signed Fedora45
+binary still lists an older Tokio than the reviewed fix; it was inspected as
+data, not adopted. The original source now has a complete Cargo-generated lock,
+bounded fresh offline preparer and retained source/licence notices. The34-entry
+OSV query returns no findings, with explicit source/FFI/PAM/runtime limits.
+
+Private Rust/Cargo1.99.1-2.fc44, existing LLVM22.1.8 and selected signed build
+libraries pass version, compile/run and actual OpenSSL3.5.9 checks. Native input
+`/home/aetheri/login-build-7bd6ff44319a` builds in service
+`aetheri-login-build-2e02d431b725`, exit0; tests
+`aetheri-login-tests-bfd67d0feecb` exit0. Read-only system/SDK, private network/
+temp/devices and ordinary UID1000 remain explicit. The880,048-byte ELF's direct
+dependencies are PAM/PAM-misc, libgcc and glibc, not the Cargo/LLVM toolchain.
+Ordinary `--help` passes; no password/daemon/service/PAM/account install follows.
+
+Final native `/home/aetheri/login-input-tests-eadadb4d1a0f/good` and Windows each
+pass 13 preparer cases; a digest-bypass mutant fails the exact rejection. Export
+`/var/tmp/a-login-backend-evidence-450d1d9f4866` independently matches all 2,641
+files/all2,607 submitted preparation bodies. The126 SDK bodies match signed-header
+records in the guest, not an independent complete SDK export. Preserve failed
+preparations/dispatches/export checks and their actual causes; no build replay
+was needed for export corrections. RPM list/udev693/original invocation/enforcing1
+remain unchanged, tty1, no selected SDK/build code mapped. The four foreign UI
+memory files remain separate. Revalidate the same restricted audio VM before
+further dispatch. Next protected original daemon/config/socket/greeter admission,
+bounded C transport and actual PAM/session tests. Public lifecycle capabilities,
+the old runtime quarantine, USB and NexaUI maintenance-only gates remain intact.
+
+## Login conversation and backend review — earlier 10 November 2026
 
 Read [login contract](../../spec/login.md), [exact candidate inputs](../../spec/login-inputs.json)
 and [execution record](journal/2026-11-10-login-protocol.md). The C17 model has no

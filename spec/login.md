@@ -116,8 +116,10 @@ wiping. A premature-start mutant compiles and fails the authentication gate test
 These are protocol/model tests, not PAM, daemon, trusted greeter, hardware or login
 acceptance. Read the [execution record](../brains/aetheri/journal/2026-11-10-login-protocol.md).
 
-Next establish reviewed backend runtime/build inputs and the protected original
-Unix peer/connection/greeter lifecycle before connecting this model to transport.
+The separate [backend candidate](login-backend.md) now builds offline with pinned
+reviewed inputs and passes upstream tests. It remains runtime-unadmitted. Next
+establish the protected original Unix peer/connection/greeter lifecycle before
+connecting this model to transport.
 Then exercise real PAM rejection/cancellation and the greeter-to-user session
 transition, build the original graphical greeter and complete service/account/
 SELinux/system packaging. Public app lifecycle capabilities and the old runtime
