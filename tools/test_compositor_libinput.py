@@ -59,11 +59,51 @@ def verify_input(value):
         projected.check_protected(value['input_runtime']);root=Path(value['input_runtime'])
         expected=str(root/'usr/lib64')+':'+value['gui']+'/usr/lib64';quirks=str(root/'usr/share/libinput')
         library=str(root/'usr/lib64/libinput.so.10.13.0');lua=str(root/'usr/lib64/liblua-5.5.so')
+    elif selected=='current-desktop':
+        import prepare_current_desktop_runtime as current
+        root=Path(value['gui']);profile=json.loads((Path(value['program_root'])/'gui-profile.json').read_bytes())
+        current.check_protected(root,profile)
+        expected=str(root/'usr/lib64');quirks=str(root/'usr/share/libinput')
+        library=str(root/'usr/lib64/libinput.so.10.13.0');lua=str(root/'usr/lib64/liblua-5.5.so')
     else:raise ValueError('explicit input profile required')
     if value['library_path']!=expected:raise ValueError('unbound library search')
     if value.get('quirks_directory')!=quirks:raise ValueError('unbound libinput quirks')
     if len(list(Path(quirks).glob('*.quirks')))!=54:raise ValueError('incomplete libinput1.32 quirks')
     return library,lua
+
+
+def verify_gui(value,profile):
+    if value.get('input_profile')=='current-desktop':
+        import prepare_current_desktop_runtime as current
+        return current.check_protected(value['gui'],profile)
+    result=gui.check(value['gui'],profile)
+    for p in [Path(value['gui']),*Path(value['gui']).rglob('*')]:
+        s=p.lstat()
+        if s.st_uid or s.st_gid or s.st_mode&0o022:raise ValueError('unprotected GUI input')
+    return result
+
+
+def current_mappings(value,profile,maps):
+    """Current-fixture filesystem code only; no anonymous/JIT or app admission."""
+    expected={str(Path(value['gui'])/e['destination'].lstrip('/')):e
+              for e in profile['files'] if e['role'] in ('program','library')}
+    expected.update({str(Path(value['program_root'])/n):e for n,e in value['program_files'].items()})
+    # The immutable ELF still requests the carrier interpreter. Its exact body
+    # must equal the independently pinned corresponding runtime file.
+    loader=next(e for e in profile['files'] if e['destination']=='/usr/lib64/ld-linux-x86-64.so.2')
+    expected['/usr/lib64/ld-linux-x86-64.so.2']=loader
+    observed={}
+    for line in maps.splitlines():
+        parts=line.split(maxsplit=5)
+        if len(parts)!=6 or 'x' not in parts[1] or not parts[5].startswith('/'):continue
+        name=parts[5]
+        if name.endswith(' (deleted)'):raise ValueError('deleted current runtime code mapping')
+        path=Path(name).resolve();entry=expected.get(str(path))
+        if entry is None or path.stat().st_size!=entry['size'] or hashlib.sha256(path.read_bytes()).hexdigest()!=entry['sha256']:
+            raise ValueError('unselected current runtime code mapping: '+str(path))
+        observed[str(path)]=dict(size=entry['size'],sha256=entry['sha256'])
+    if not observed:raise ValueError('missing current runtime code mappings')
+    return observed
 
 
 def session(selection,runtime):
@@ -116,10 +156,7 @@ class Fixture:
         if Path('/proc/sys/kernel/random/boot_id').read_text().strip()!=v['boot']:raise ValueError('different selected boot')
         verify_programs(v['program_root'],v['program_files'])
         self.profile=json.loads((Path(v['program_root'])/'gui-profile.json').read_bytes())
-        gui.check(v['gui'],self.profile)
-        for p in [Path(v['gui']),*Path(v['gui']).rglob('*')]:
-            s=p.lstat()
-            if s.st_uid or s.st_gid or s.st_mode&0o022:raise ValueError('unprotected GUI input')
+        verify_gui(v,self.profile)
         self.input_library,self.input_lua=verify_input(v)
         verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
         if v['compositor']!=v['program_root']+'/aetheri-compositor' or v['client']!=v['program_root']+'/test_compositor_client':raise ValueError('foreign selected program')
@@ -214,6 +251,8 @@ class Fixture:
         lua_paths={line.split()[-1] for line in maps.splitlines() if 'liblua-' in line}
         if input_paths!={self.input_library} or lua_paths!={self.input_lua}:raise RuntimeError('wrong libinput/Lua runtime')
         (self.output/'compositor-maps.txt').write_text(maps)
+        if v.get('input_profile')=='current-desktop':
+            self.record['current_code_mappings']=current_mappings(v,self.profile,maps);self.save()
         self.wait(lambda:'FRAME 1 ' in (self.runtime/'client.log').read_text(),'actual Wayland frames')
         if 'libinput error:' in (self.runtime/'compositor.log').read_text():raise RuntimeError('libinput initialization/data failure')
         self.record.update(state='awaiting-hardware-input',runtime_bound=True);self.save();print(json.dumps(dict(output=str(self.output),runtime=str(self.runtime),unit=self.unit,state=self.record['state'])),flush=True)
@@ -248,7 +287,7 @@ class Fixture:
         s=self.pam.stat()
         if (s.st_dev,s.st_ino)!=self.pam_identity or s.st_uid or self.pam.read_bytes()!=self.pam_content:raise RuntimeError('PAM object changed')
         self.effect('remove-owned-pam',self.pam.unlink);self.effect('restore-original-vt',lambda:run('chvt',self.old_vt[3:]))
-        verify_programs(v['program_root'],v['program_files']);gui.check(v['gui'],self.profile);verify_input(v);verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
+        verify_programs(v['program_root'],v['program_files']);verify_gui(v,self.profile);verify_input(v);verify_build(Path(v['wacom']['root']),v['wacom']['files'],'a-wacom-')
         for pin in self.pins.values():os.close(pin)
         for path,fd,events,identity in self.groups.values():os.close(events);os.close(fd)
         os.close(self.control);self.bus.close();self.private.close();self.record['state']='retired';self.save();print(json.dumps(dict(output=str(self.output),state='retired')),flush=True)

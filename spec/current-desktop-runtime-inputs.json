@@ -1,0 +1,2422 @@
+{
+  "format": 1,
+  "purpose": "private-current-desktop-runtime",
+  "variant": "release",
+  "reviewed": "2026-11-10",
+  "boundary": "Fresh developer runtime projection, not an image, installed service/app admission or exhaustive release/security/source-distribution acceptance",
+  "files": [
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libffi/LICENSE",
+      "destination": "/usr/share/licenses/libffi/LICENSE",
+      "size": 1132,
+      "sha256": "d5699fa516968e3a1550e6c902b7441c78856f2603d61bedd0b0662a26655366",
+      "mode": 420,
+      "component": "libffi",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libffi.so.8.2.0",
+      "destination": "/usr/lib64/libffi.so.8.2.0",
+      "size": 65584,
+      "sha256": "05bf4048cc0fd016140d7d880c4a4ec402096732f60463c8fb87b98d877d3628",
+      "mode": 493,
+      "component": "libffi",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libwayland-client/COPYING",
+      "destination": "/usr/share/licenses/libwayland-client/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "component": "libwayland-client",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libwayland-client.so.0.26.0",
+      "destination": "/usr/lib64/libwayland-client.so.0.26.0",
+      "size": 66168,
+      "sha256": "cb517c02f6e808257932a4b3f1a4bd1232ce415cdd8e41a854ff0f0e918b51c9",
+      "mode": 493,
+      "component": "libwayland-client",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libwayland-server/COPYING",
+      "destination": "/usr/share/licenses/libwayland-server/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "component": "libwayland-server",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libwayland-server.so.0.26.0",
+      "destination": "/usr/lib64/libwayland-server.so.0.26.0",
+      "size": 87160,
+      "sha256": "6f27c2fc1589f9d8e5525ea7729fbf35cbd27d5501f36b068cad4213a665736d",
+      "mode": 493,
+      "component": "libwayland-server",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libxkbcommon/LICENSE",
+      "destination": "/usr/share/licenses/libxkbcommon/LICENSE",
+      "size": 12820,
+      "sha256": "967e97b28658f0037bbe164a237bdfb0c3ec790e67f6c29372ea5b09306f61f3",
+      "mode": 420,
+      "component": "libxkbcommon",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libxkbcommon.so.0.13.1",
+      "destination": "/usr/lib64/libxkbcommon.so.0.13.1",
+      "size": 388544,
+      "sha256": "4ca0a8544873c3b7feafe4b0086ddf74e389e3a739da1e3a940a2aa15a441819",
+      "mode": 493,
+      "component": "libxkbcommon",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/wlroots/LICENSE",
+      "destination": "/usr/share/licenses/wlroots/LICENSE",
+      "size": 1140,
+      "sha256": "35d427c043dcafe8893b9e7247348f599847c81d9a067703587c80707f3d58df",
+      "mode": 420,
+      "component": "wlroots",
+      "role": "notice"
+    },
+    {
+      "provider": "wlroots",
+      "input": "prefix/lib/libwlroots-0.20.so",
+      "destination": "/usr/lib64/libwlroots-0.20.so",
+      "size": 1495816,
+      "sha256": "f5625f71161f28c2c98a5919ff429f05c72670bf177de807f33853af7b05306f",
+      "mode": 493,
+      "component": "wlroots",
+      "role": "library"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/licenses/libinput/COPYING",
+      "destination": "/usr/share/licenses/libinput/COPYING",
+      "size": 1738,
+      "sha256": "80de50b2022a840db044c56db804ca3565600a692c0714babface587acc6d1b0",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "input/usr/lib64/libinput.so.10.13.0",
+      "destination": "/usr/lib64/libinput.so.10.13.0",
+      "size": 637664,
+      "sha256": "ca4472b257663239f9356e5ec07fcd1983193311cf755d325c7006c94cc69b9b",
+      "mode": 493,
+      "component": "libinput-current",
+      "role": "library"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/licenses/lua/COPYRIGHT",
+      "destination": "/usr/share/licenses/lua55/COPYRIGHT",
+      "size": 1263,
+      "sha256": "fe7591799d3e229b3c9640314215dd085777889df9a35d4ea78d1c7aa5c351c6",
+      "mode": 420,
+      "component": "lua55",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "input/usr/lib64/liblua-5.5.so",
+      "destination": "/usr/lib64/liblua-5.5.so",
+      "size": 335184,
+      "sha256": "ae4c2ba082fcc33a040a7370c4396820a52ecaab72b2a1f8d04f81928409eddd",
+      "mode": 493,
+      "component": "lua55",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libdisplay-info/LICENSE",
+      "destination": "/usr/share/licenses/libdisplay-info/LICENSE",
+      "size": 1089,
+      "sha256": "15b396244e58830c5614b9394f4deccfe684970cd507f299383ab57ad339eedd",
+      "mode": 420,
+      "component": "libdisplay-info",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libdisplay-info.so.0.3.0",
+      "destination": "/usr/lib64/libdisplay-info.so.0.3.0",
+      "size": 224808,
+      "sha256": "2744bd4b6f456e67f24a37f79c43ed2d3fd73b87802ab677dd3a5ad4c5ad5a7d",
+      "mode": 493,
+      "component": "libdisplay-info",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz",
+      "destination": "/usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz",
+      "size": 437244,
+      "sha256": "ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95",
+      "mode": 420,
+      "component": "libdrm",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libdrm.so.2.134.0",
+      "destination": "/usr/lib64/libdrm.so.2.134.0",
+      "size": 91056,
+      "sha256": "e2a416f7b7c9e9e46b5f96bf20be71f146426daa6e1e8438adce2ab8e4c0fc0e",
+      "mode": 493,
+      "component": "libdrm",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/pixman/COPYING",
+      "destination": "/usr/share/licenses/pixman/COPYING",
+      "size": 2087,
+      "sha256": "fac9270f0987b96ff4533fca3548c633e02083cbba4a0172a3b149b2e4019793",
+      "mode": 420,
+      "component": "pixman",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libpixman-1.so.0.46.2",
+      "destination": "/usr/lib64/libpixman-1.so.0.46.2",
+      "size": 733240,
+      "sha256": "0af247f5d42793ed0db3295744cbe143bb4fa2f30242a6db734565fe4f876b18",
+      "mode": 493,
+      "component": "pixman",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libseat/LICENSE",
+      "destination": "/usr/share/licenses/libseat/LICENSE",
+      "size": 1054,
+      "sha256": "282a494803d666616bd726e0279636b5f6a31387ae19a707459074050f2600d3",
+      "mode": 420,
+      "component": "libseat",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libseat.so.1",
+      "destination": "/usr/lib64/libseat.so.1",
+      "size": 49184,
+      "sha256": "5c9080c404143590da53ef3e42400db9ae0f666a211d2d6ba94642699e4c26c9",
+      "mode": 493,
+      "component": "libseat",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/systemd-libs/LICENSE.LGPL2.1",
+      "destination": "/usr/share/licenses/systemd-libs/LICENSE.LGPL2.1",
+      "size": 26518,
+      "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+      "mode": 420,
+      "component": "systemd-libs",
+      "role": "notice"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libsystemd.so.0.42.0",
+      "destination": "/usr/lib64/libsystemd.so.0.42.0",
+      "size": 1304672,
+      "sha256": "f0e7a49adc0c3191c434643d788020fc062d2d1bc1b00db66409a333ab73bf7a",
+      "mode": 493,
+      "component": "systemd-libs",
+      "role": "library"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libudev.so.1.7.12",
+      "destination": "/usr/lib64/libudev.so.1.7.12",
+      "size": 320144,
+      "sha256": "22513c89165308495bb0d4e93c4885b52b038920d78856c50d709d908952a9a4",
+      "mode": 493,
+      "component": "systemd-libs",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glibc/COPYING.LESSERv2",
+      "destination": "/usr/share/licenses/glibc/COPYING.LESSERv2",
+      "size": 26419,
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "mode": 420,
+      "component": "glibc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glibc/COPYING.LIB",
+      "destination": "/usr/share/licenses/glibc/COPYING.LIB",
+      "size": 26419,
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "mode": 420,
+      "component": "glibc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glibc/COPYINGv2",
+      "destination": "/usr/share/licenses/glibc/COPYINGv2",
+      "size": 17984,
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "mode": 420,
+      "component": "glibc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glibc/COPYINGv3",
+      "destination": "/usr/share/licenses/glibc/COPYINGv3",
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "mode": 420,
+      "component": "glibc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glibc/LICENSES",
+      "destination": "/usr/share/licenses/glibc/LICENSES",
+      "size": 19665,
+      "sha256": "b22a69aa3f80a5201818c66cb0df0f25f9fa13cf5861b0093a058dbd12d50dce",
+      "mode": 420,
+      "component": "glibc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libc.so.6",
+      "destination": "/usr/lib64/libc.so.6",
+      "size": 2482096,
+      "sha256": "a5c5ad9d59d3c69eda93aa8f82930ba06cc4e893a113e66c85ad6e96243d53c8",
+      "mode": 493,
+      "component": "glibc",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libevdev/COPYING",
+      "destination": "/usr/share/licenses/libevdev/COPYING",
+      "size": 1499,
+      "sha256": "6f13de7ce28e4948ba95170e0723ee1254c1978ce1f127af82aeca597b567cb9",
+      "mode": 420,
+      "component": "libevdev",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libevdev.so.2",
+      "destination": "/usr/lib64/libevdev.so.2",
+      "size": 90480,
+      "sha256": "2e33ec577983ac245a2672cd03c172a1f4c3f91b4ae1b2c99728fa685d99b469",
+      "mode": 493,
+      "component": "libevdev",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgcc/COPYING",
+      "destination": "/usr/share/licenses/libgcc/COPYING",
+      "size": 18002,
+      "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c",
+      "mode": 420,
+      "component": "libgcc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgcc/COPYING.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING.LIB",
+      "size": 26440,
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b",
+      "mode": 420,
+      "component": "libgcc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "destination": "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+      "size": 3324,
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+      "mode": 420,
+      "component": "libgcc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgcc/COPYING3",
+      "destination": "/usr/share/licenses/libgcc/COPYING3",
+      "size": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "mode": 420,
+      "component": "libgcc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgcc/COPYING3.LIB",
+      "destination": "/usr/share/licenses/libgcc/COPYING3.LIB",
+      "size": 7639,
+      "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+      "mode": 420,
+      "component": "libgcc",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libgcc_s.so.1",
+      "destination": "/usr/lib64/libgcc_s.so.1",
+      "size": 186512,
+      "sha256": "c71a62b5ef442ab8cf4470874dee6f2383d73a744f0006b6d287412f131c2e09",
+      "mode": 493,
+      "component": "libgcc",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libgudev/COPYING",
+      "destination": "/usr/share/licenses/libgudev/COPYING",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "component": "libgudev",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libgudev-1.0.so.0",
+      "destination": "/usr/lib64/libgudev-1.0.so.0",
+      "size": 56824,
+      "sha256": "c0d6fc0655a784a65c229266aaa089096181dc2215e21cff7a3b692fd3db22a0",
+      "mode": 493,
+      "component": "libgudev",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libm.so.6",
+      "destination": "/usr/lib64/libm.so.6",
+      "size": 1153848,
+      "sha256": "16a03ce6d24c8a46742206d4a9c1d35bb6577ae2384f153dc6ef4a4b62b5357f",
+      "mode": 493,
+      "component": "glibc",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/mtdev/COPYING",
+      "destination": "/usr/share/licenses/mtdev/COPYING",
+      "size": 1209,
+      "sha256": "795bfe74daae59a97d3a0c8ec0ba0f08c243adf94a3aa7981a4136fce31d55b4",
+      "mode": 420,
+      "component": "mtdev",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libmtdev.so.1",
+      "destination": "/usr/lib64/libmtdev.so.1",
+      "size": 27968,
+      "sha256": "4cc158116fc64c5d1615584c33c18762f02e9f08032433575de75d135e03e6d0",
+      "mode": 493,
+      "component": "mtdev",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/pcre2/pcre2-10.47-LICENCE.md",
+      "destination": "/usr/share/licenses/pcre2/pcre2-10.47-LICENCE.md",
+      "size": 4011,
+      "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+      "mode": 420,
+      "component": "pcre2",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/pcre2/pcre2-10.47.tar.bz2",
+      "destination": "/usr/share/licenses/pcre2/pcre2-10.47.tar.bz2",
+      "size": 2145789,
+      "sha256": "47fe8c99461250d42f89e6e8fdaeba9da057855d06eb7fc08d9ca03fd08d7bc7",
+      "mode": 420,
+      "component": "pcre2",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/pcre2/SLJIT-LICENSE",
+      "destination": "/usr/share/licenses/pcre2/SLJIT-LICENSE",
+      "size": 1444,
+      "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb",
+      "mode": 420,
+      "component": "pcre2",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libpcre2-8.so.0",
+      "destination": "/usr/lib64/libpcre2-8.so.0",
+      "size": 724280,
+      "sha256": "473aeb0704abc871886650c553b43bb300395d73fe4088620329459b5ddbf4be",
+      "mode": 493,
+      "component": "pcre2",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/libwacom/COPYING",
+      "destination": "/usr/share/licenses/libwacom/COPYING",
+      "size": 1081,
+      "sha256": "65425589a37ca2b3f4c74af5382859112b71a28bfff53d42afea4eaeaa999b5b",
+      "mode": 420,
+      "component": "libwacom",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libwacom.so.9",
+      "destination": "/usr/lib64/libwacom.so.9",
+      "size": 78536,
+      "sha256": "cd40bc3364ea493a515facc71c052c076e4ee1de3c5bcf644f8ad0379ceaad2e",
+      "mode": 493,
+      "component": "libwacom",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+      "destination": "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt",
+      "size": 25967,
+      "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+      "mode": 420,
+      "component": "glib2",
+      "role": "notice"
+    },
+    {
+      "provider": "control",
+      "input": "usr/lib64/libglib-2.0.so.0.8800.0",
+      "destination": "/usr/lib64/libglib-2.0.so.0.8800.0",
+      "size": 1469656,
+      "sha256": "5a83924bca2c3f672d51d4daddb025ce44f5f59bc27efa3139c726a378eb497f",
+      "mode": 493,
+      "component": "glib2",
+      "role": "library"
+    },
+    {
+      "provider": "policy",
+      "input": "usr/lib64/libgobject-2.0.so.0.8800.0",
+      "destination": "/usr/lib64/libgobject-2.0.so.0.8800.0",
+      "size": 405072,
+      "sha256": "0eade7de53e7312959e66af41cd70d8cc1b2d407a7e8023aadc55cfb691c2364",
+      "mode": 493,
+      "component": "glib2",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "ld-linux-x86-64.so.2",
+      "destination": "/usr/lib64/ld-linux-x86-64.so.2",
+      "size": 1002600,
+      "sha256": "4e5d39355699e90fa29313d3100e82af4a23290028c58c364d6a249ef6a78e5e",
+      "mode": 493,
+      "component": "glibc",
+      "role": "library"
+    },
+    {
+      "provider": "common",
+      "input": "usr/share/licenses/libwayland-cursor/COPYING",
+      "destination": "/usr/share/licenses/libwayland-cursor/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "component": "common-libwayland-cursor",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libwayland-cursor.so.0.26.0",
+      "destination": "/usr/lib64/libwayland-cursor.so.0.26.0",
+      "size": 36664,
+      "sha256": "a54964427c68e87ce5efebca336fd6db7dcdff92c875861b1480096080214445",
+      "mode": 493,
+      "component": "common-libwayland-cursor",
+      "role": "library"
+    },
+    {
+      "provider": "common",
+      "input": "usr/share/licenses/libwayland-egl/COPYING",
+      "destination": "/usr/share/licenses/libwayland-egl/COPYING",
+      "size": 1340,
+      "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+      "mode": 420,
+      "component": "common-libwayland-egl",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/lib64/libwayland-egl.so.1.26.0",
+      "destination": "/usr/lib64/libwayland-egl.so.1.26.0",
+      "size": 11176,
+      "sha256": "aadf6a7ce686e3857353f6cc6e4deae84d7907f5afbce3f952593685b0a9196d",
+      "mode": 493,
+      "component": "common-libwayland-egl",
+      "role": "library"
+    },
+    {
+      "provider": "sdl",
+      "input": "usr/share/aetheri-sources/libglvnd-1.7.0-9.fc44.src.rpm",
+      "destination": "/usr/share/aetheri-sources/libglvnd-1.7.0-9.fc44.src.rpm",
+      "size": 876540,
+      "sha256": "e83440deedde996f034ef0f59eae0b10095a1abf197ca6668257c42e61ab3264",
+      "mode": 420,
+      "component": "libglvnd",
+      "role": "notice"
+    },
+    {
+      "provider": "sdl",
+      "input": "usr/lib64/libEGL.so.1.1.0",
+      "destination": "/usr/lib64/libEGL.so.1.1.0",
+      "size": 70184,
+      "sha256": "76ffc090b8990696d028e7d1bc82606c564565fb05d2fa9e5f6122b61e9f1b60",
+      "mode": 493,
+      "component": "libglvnd",
+      "role": "library"
+    },
+    {
+      "provider": "sdl",
+      "input": "usr/lib64/libGLdispatch.so.0.0.0",
+      "destination": "/usr/lib64/libGLdispatch.so.0.0.0",
+      "size": 513088,
+      "sha256": "3c53e14fb731128afe1fa1c88e94944fe9a60cbe170f2e08c1134b709d771ec7",
+      "mode": 493,
+      "component": "libglvnd",
+      "role": "library"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/licenses/SDL3/LICENSE.txt",
+      "destination": "/usr/share/licenses/SDL3/LICENSE.txt",
+      "size": 884,
+      "sha256": "1c040b8271b37e5076359f8fd54240e371114112924d2df81ef87c7d6a1dfdfd",
+      "mode": 420,
+      "component": "sdl3",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/lib/libSDL3.so.0.4.20",
+      "destination": "/usr/lib64/libSDL3.so.0.4.20",
+      "size": 3254952,
+      "sha256": "769f9ab578ac65417892ecf29bf4218cb1512c13539f6e0491c2e961d7f34014",
+      "mode": 493,
+      "component": "sdl3",
+      "role": "library"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/licenses/SDL3_ttf/LICENSE.txt",
+      "destination": "/usr/share/licenses/SDL3_ttf/LICENSE.txt",
+      "size": 878,
+      "sha256": "7826eca0a0f7e591f38dd844e207a200aac81a59b20d8a30c3af8c6282af13e6",
+      "mode": 420,
+      "component": "sdl3-ttf",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/lib/libSDL3_ttf.so.0.2.2",
+      "destination": "/usr/lib64/libSDL3_ttf.so.0.2.2",
+      "size": 184616,
+      "sha256": "7bbb2bbc5b5148dbb4453ceaeda674bf3668979f405da18f489488b11ec4339a",
+      "mode": 493,
+      "component": "sdl3-ttf",
+      "role": "library"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/licenses/freetype-VER-2-15-0/FTL.TXT",
+      "destination": "/usr/share/licenses/freetype-VER-2-15-0/FTL.TXT",
+      "size": 6743,
+      "sha256": "5a5ee54c5001bbad1cdc1a57cc3dd4c42199b2da09d39c7ee41fab002d02967f",
+      "mode": 420,
+      "component": "freetype",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/licenses/freetype-VER-2-15-0/LICENSE.TXT",
+      "destination": "/usr/share/licenses/freetype-VER-2-15-0/LICENSE.TXT",
+      "size": 2149,
+      "sha256": "bd36c8b474855fa294c2ec5c184544478ef3720aad37d65a6296a4f264fd2d3b",
+      "mode": 420,
+      "component": "freetype",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/lib/libfreetype.so.6.20.7",
+      "destination": "/usr/lib64/libfreetype.so.6.20.7",
+      "size": 1049944,
+      "sha256": "96d3595f6097d553bdd71fde6ad26bd04b2c3b048a1e2b9a130f03744a1acc55",
+      "mode": 493,
+      "component": "freetype",
+      "role": "library"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/licenses/harfbuzz-15.0.0/COPYING",
+      "destination": "/usr/share/licenses/harfbuzz-15.0.0/COPYING",
+      "size": 1971,
+      "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
+      "mode": 420,
+      "component": "harfbuzz",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/lib/libharfbuzz.so.0.61500.0",
+      "destination": "/usr/lib64/libharfbuzz.so.0.61500.0",
+      "size": 2251944,
+      "sha256": "5fb8a62d65abb4f931463b4fa592d46871ac27972c4543d90e42e8208f126f33",
+      "mode": 493,
+      "component": "harfbuzz",
+      "role": "library"
+    },
+    {
+      "provider": "nexaui",
+      "input": "prefix/share/licenses/nexaui/LICENSE",
+      "destination": "/usr/share/licenses/nexaui/LICENSE",
+      "size": 1076,
+      "sha256": "e569a5d0fc9485fcc3aeca8f285a0b25ddcf11849254d0eba2bb8efa2d470c2e",
+      "mode": 420,
+      "component": "nexaui-current",
+      "role": "notice"
+    },
+    {
+      "provider": "nexaui",
+      "input": "prefix/share/doc/NexaUI/UNICODE-LICENSE.txt",
+      "destination": "/usr/share/doc/NexaUI/UNICODE-LICENSE.txt",
+      "size": 1995,
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "mode": 420,
+      "component": "nexaui-current",
+      "role": "notice"
+    },
+    {
+      "provider": "nexaui",
+      "input": "prefix/lib/libnexaui.so.0.1.23",
+      "destination": "/usr/lib64/libnexaui.so.0.1.23",
+      "size": 920488,
+      "sha256": "918891d0b9f0089b4a82f1c5ccd038927d451405a4099f79c8bfa6072ddc1272",
+      "mode": 493,
+      "component": "nexaui-current",
+      "role": "library"
+    },
+    {
+      "provider": "repo",
+      "input": "LICENSE",
+      "destination": "/usr/share/licenses/aetheri/LICENSE",
+      "size": 1077,
+      "sha256": "6b160e331afc59e499b71990572b40335fabbe2a16fca939bcc3dd30a678fb3a",
+      "mode": 420,
+      "component": "aetheri",
+      "role": "notice"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-settings-nexaui",
+      "destination": "/usr/libexec/aetheri-development/aetheri-settings-nexaui",
+      "size": 96248,
+      "sha256": "2cc386c4ec35f17a4c16f12b7384bb9e1f34e8d6613624eec65965c832051559",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/dbus-libs/COPYING",
+      "destination": "/usr/share/licenses/dbus-libs/COPYING",
+      "size": 1134,
+      "sha256": "150e5d08e1cb5e62b65967d7931acad2c42d98ec1bbb584bebb01921cbc853c2",
+      "mode": 420,
+      "component": "dbus-libs",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libdbus-1.so.3",
+      "destination": "/usr/lib64/libdbus-1.so.3",
+      "size": 364808,
+      "sha256": "5c6ed93ed3e31e36a45e4e52725355b5e31248bb075d495bea29aa090e5f995f",
+      "mode": 493,
+      "component": "dbus-libs",
+      "role": "library"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-text-editor",
+      "destination": "/usr/libexec/aetheri-development/aetheri-text-editor",
+      "size": 156272,
+      "sha256": "8265bd7c95c56414f9f032a8f765af332016382b8de55fe0aedb76ffae9494d1",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-terminal-nexaui",
+      "destination": "/usr/libexec/aetheri-development/aetheri-terminal-nexaui",
+      "size": 220368,
+      "sha256": "1ace5786951f721088433337c0bd60bff6a2064426fdb8eb472a5636c5439baa",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "tool",
+      "input": "usr/lib64/libstdc++.so.6.0.36",
+      "destination": "/usr/lib64/libstdc++.so.6.0.36",
+      "size": 2884696,
+      "sha256": "fc224ee3cc56b9b3e58453bfb9a0cac3a696e60fd33ba48b6a30eb22b76cc867",
+      "mode": 493,
+      "component": "libgcc",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/llvm-libs/LICENSE.TXT",
+      "destination": "/usr/share/licenses/llvm-libs/LICENSE.TXT",
+      "size": 15141,
+      "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "mode": 420,
+      "component": "graphics-llvm-22.1.8-4.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libLLVM.so.22.1",
+      "destination": "/usr/lib64/libLLVM.so.22.1",
+      "size": 147082848,
+      "sha256": "aec1ccf02e5cc4d161920d76dce31dbbb22efebf62da71ec3180b70ff15d77bb",
+      "mode": 493,
+      "component": "graphics-llvm-22.1.8-4.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "xz-libs/COPYING",
+      "destination": "/usr/share/licenses/xz-libs/COPYING",
+      "size": 3119,
+      "sha256": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+      "mode": 420,
+      "component": "carrier-xz",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "liblzma.so.5.8.2",
+      "destination": "/usr/lib64/liblzma.so.5.8.2",
+      "size": 219768,
+      "sha256": "18b4994cd29a3e39f35ad719702925740703e76057fb2ce8c0eb7c7ce7a3acef",
+      "mode": 493,
+      "component": "carrier-xz",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "ncurses-base/COPYING",
+      "destination": "/usr/share/licenses/ncurses-base/COPYING",
+      "size": 1447,
+      "sha256": "708999f95527e1ffa670c6fce288c6c600cb477dd04afcc1171422b3dd4ee226",
+      "mode": 420,
+      "component": "ncurses",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libtinfo.so.6.6",
+      "destination": "/usr/lib64/libtinfo.so.6.6",
+      "size": 187232,
+      "sha256": "b053da6b12bebc6e239835fbb646d46f26c97942b3098ac7b01604f8ce827679",
+      "mode": 493,
+      "component": "ncurses",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "libpciaccess/COPYING",
+      "destination": "/usr/share/licenses/libpciaccess/COPYING",
+      "size": 4845,
+      "sha256": "47012fd746980d1712ac4f3841ab6164bda1d2b84880760e45dbe1e1dc07f608",
+      "mode": 420,
+      "component": "carrier-libpciaccess",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libpciaccess.so.0.11.1",
+      "destination": "/usr/lib64/libpciaccess.so.0.11.1",
+      "size": 44600,
+      "sha256": "f1e0fd734af39ce0b015028c29708794e25d79022e05028a6e20980afc14762d",
+      "mode": 493,
+      "component": "carrier-libpciaccess",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "libxml2/Copyright",
+      "destination": "/usr/share/licenses/libxml2/Copyright",
+      "size": 1289,
+      "sha256": "7fb0a66f3989f9bd5c7e5438a3de02cd4a7a47dde0aea2f7ea2ba2ff454ee6a4",
+      "mode": 420,
+      "component": "carrier-libxml2",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libxml2.so.2.12.10",
+      "destination": "/usr/lib64/libxml2.so.2.12.10",
+      "size": 1523128,
+      "sha256": "8473a76caaed1e702f5c4f2dfac69b4aa92d2f18217edcf23c73214ea7750ab5",
+      "mode": 493,
+      "component": "carrier-libxml2",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "libedit/COPYING",
+      "destination": "/usr/share/licenses/libedit/COPYING",
+      "size": 1615,
+      "sha256": "9da6c9c74987a36c84302982799d17d2f748ba1c1c0c471425716173c1d07649",
+      "mode": 420,
+      "component": "carrier-libedit",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libedit.so.0.0.76",
+      "destination": "/usr/lib64/libedit.so.0.0.76",
+      "size": 236704,
+      "sha256": "f5a0587ec981b0358ce964f49b2901e6f77a2c231caa27105d1f18466da00840",
+      "mode": 493,
+      "component": "carrier-libedit",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/doc/libXau/COPYING",
+      "destination": "/usr/share/doc/libXau/COPYING",
+      "size": 1148,
+      "sha256": "56abe29bb1d9806a9e04fa9f80fed2c0f18027594df3f098148d814aef6bddfa",
+      "mode": 420,
+      "component": "graphics-libxau-1.0.12-4.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libXau.so.6.0.0",
+      "destination": "/usr/lib64/libXau.so.6.0.0",
+      "size": 19640,
+      "sha256": "78e2e7a514a6844530b099c7dfb184a9992f7b0681c30105281ddb8e48dc8a59",
+      "mode": 493,
+      "component": "graphics-libxau-1.0.12-4.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/spirv-tools-libs/LICENSE",
+      "destination": "/usr/share/licenses/spirv-tools-libs/LICENSE",
+      "size": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "mode": 420,
+      "component": "graphics-spirv-tools-2026.1-1.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libSPIRV-Tools.so",
+      "destination": "/usr/lib64/libSPIRV-Tools.so",
+      "size": 1722808,
+      "sha256": "06897d4ed1051d4e95b1045288d54230564440064fd117965d742267e7f4834e",
+      "mode": 493,
+      "component": "graphics-spirv-tools-2026.1-1.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "libzstd/COPYING",
+      "destination": "/usr/share/licenses/libzstd/COPYING",
+      "size": 18091,
+      "sha256": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
+      "mode": 420,
+      "component": "carrier-libzstd",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "libzstd/LICENSE",
+      "destination": "/usr/share/licenses/libzstd/LICENSE",
+      "size": 1549,
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "mode": 420,
+      "component": "carrier-libzstd",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libzstd.so.1.5.7",
+      "destination": "/usr/lib64/libzstd.so.1.5.7",
+      "size": 959384,
+      "sha256": "70ec54d150f4052f28fb1e8f8a1c6ca35e1a499e4744c6f6d9d783537618f80b",
+      "mode": 493,
+      "component": "carrier-libzstd",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/doc/libX11-common/COPYING",
+      "destination": "/usr/share/doc/libX11-common/COPYING",
+      "size": 45013,
+      "sha256": "eda0c2ed1cae0280c7fe79762eaad8ad31c044afc64e71e92ef2c6f3cd7bc395",
+      "mode": 420,
+      "component": "graphics-libx11-1.8.13-3.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libX11.so.6.4.0",
+      "destination": "/usr/lib64/libX11.so.6.4.0",
+      "size": 1408520,
+      "sha256": "95b9ecfbde1b73c7f7380ae643e8ade9555234607a47d7e131ae6365a9899244",
+      "mode": 493,
+      "component": "graphics-libx11-1.8.13-3.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/doc/mesa-filesystem/Mesa-MLAA-License-Clarification-Email.txt",
+      "destination": "/usr/share/doc/mesa-filesystem/Mesa-MLAA-License-Clarification-Email.txt",
+      "size": 3682,
+      "sha256": "68e7be52203a4457ea97d9c4744661a07fc3d78edb44a86b43349fb66f09147a",
+      "mode": 420,
+      "component": "graphics-mesa-26.2.5-1.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libgallium-26.2.5.so",
+      "destination": "/usr/lib64/libgallium-26.2.5.so",
+      "size": 55510872,
+      "sha256": "13bd40d3f6c91004855a6aab1c54345f12d3e05a3b098a8b2566218426d76737",
+      "mode": 493,
+      "component": "graphics-mesa-26.2.5-1.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libdrm_intel.so.1.134.0",
+      "destination": "/usr/lib64/libdrm_intel.so.1.134.0",
+      "size": 153984,
+      "sha256": "38fa873e99c904bd072ff58e6dbbc8dfa08b8940010ff135a24b509fc7756ebb",
+      "mode": 493,
+      "component": "libdrm",
+      "role": "library"
+    },
+    {
+      "provider": "session",
+      "input": "rpm/usr/lib64/libdrm_amdgpu.so.1.134.0",
+      "destination": "/usr/lib64/libdrm_amdgpu.so.1.134.0",
+      "size": 52696,
+      "sha256": "a28f07a5f69cd85d5a55b18f436cff5e0e33087181bdc3b8061ac2dec99d1322",
+      "mode": 493,
+      "component": "libdrm",
+      "role": "library"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "elfutils-libelf/COPYING-GPLV2",
+      "destination": "/usr/share/licenses/elfutils-libelf/COPYING-GPLV2",
+      "size": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "mode": 420,
+      "component": "carrier-elfutils",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "elfutils-libelf/COPYING-LGPLV3",
+      "destination": "/usr/share/licenses/elfutils-libelf/COPYING-LGPLV3",
+      "size": 7651,
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+      "mode": 420,
+      "component": "carrier-elfutils",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_lib",
+      "input": "libelf-0.194.so",
+      "destination": "/usr/lib64/libelf-0.194.so",
+      "size": 120168,
+      "sha256": "6fe2fab130ee0984439acbefb00569f1e5eb6fac9712a3ea04f01dab10e8cd4e",
+      "mode": 493,
+      "component": "carrier-elfutils",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/libxshmfence/COPYING",
+      "destination": "/usr/share/licenses/libxshmfence/COPYING",
+      "size": 1128,
+      "sha256": "64a579d1a0b3347301d87c94698a58ea7933d0ae6ca7e8fdd702fde2ea376301",
+      "mode": 420,
+      "component": "graphics-libxshmfence-1.3.2-8.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxshmfence.so.1.0.0",
+      "destination": "/usr/lib64/libxshmfence.so.1.0.0",
+      "size": 11424,
+      "sha256": "fa822d052508b66cb80b5fb42d2ad3686dc7cf47b1ef578fad71cf9d3a82576d",
+      "mode": 493,
+      "component": "graphics-libxshmfence-1.3.2-8.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/libxcb/COPYING",
+      "destination": "/usr/share/licenses/libxcb/COPYING",
+      "size": 1337,
+      "sha256": "c5ffbfeaa501071ceeb97b7de2c0d703fdaa35de01c0fb6cbac1c28453a3e9fd",
+      "mode": 420,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-sync.so.1.0.0",
+      "destination": "/usr/lib64/libxcb-sync.so.1.0.0",
+      "size": 31952,
+      "sha256": "70a683c72408b0b2b4c3db6217eafb7e54c6c27659ff09444277586394fe4da8",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/lm_sensors-libs/COPYING.LGPL",
+      "destination": "/usr/share/licenses/lm_sensors-libs/COPYING.LGPL",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "component": "graphics-lm_sensors-3.6.0-24.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libsensors.so.4.5.0",
+      "destination": "/usr/lib64/libsensors.so.4.5.0",
+      "size": 61144,
+      "sha256": "9980bd4d6836c5ebc8f8ea8f7a8858e0d5c355fa38289850470316ed1ee22a21",
+      "mode": 493,
+      "component": "graphics-lm_sensors-3.6.0-24.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+      "destination": "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+      "size": 867,
+      "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+      "mode": 420,
+      "component": "zlib-ng-compat",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3.tar.gz",
+      "destination": "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3.tar.gz",
+      "size": 2447397,
+      "sha256": "f9c65aa9c852eb8255b636fd9f07ce1c406f061ec19a2e7d508b318ca0c907d1",
+      "mode": 420,
+      "component": "zlib-ng-compat",
+      "role": "notice"
+    },
+    {
+      "provider": "original",
+      "input": "usr/lib64/libz.so.1",
+      "destination": "/usr/lib64/libz.so.1",
+      "size": 169544,
+      "sha256": "bbde8faec092a7c67b8bd76bbba4a826e61b05c171b97004ce6b308c5a090351",
+      "mode": 493,
+      "component": "zlib-ng-compat",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-present.so.0.0.0",
+      "destination": "/usr/lib64/libxcb-present.so.0.0.0",
+      "size": 15496,
+      "sha256": "f05943f707a89465291685f539d7b8070fbb630eb518f70c4f14931f6600e211",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-dri3.so.0.1.0",
+      "destination": "/usr/lib64/libxcb-dri3.so.0.1.0",
+      "size": 23704,
+      "sha256": "68618518da296821983f625112923b4c247dd073060508250e73cfd8cada166a",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-shm.so.0.0.0",
+      "destination": "/usr/lib64/libxcb-shm.so.0.0.0",
+      "size": 15544,
+      "sha256": "fe83f32f3c5d3337e2c6c1b36949e4087877697d32317c52611743c70ab7e13c",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-xfixes.so.0.0.0",
+      "destination": "/usr/lib64/libxcb-xfixes.so.0.0.0",
+      "size": 35960,
+      "sha256": "3ba1cf11d47c26f03f2efa573acbdcc71e4a4e95b9438a1958e25b15a0f020fa",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb-randr.so.0.1.0",
+      "destination": "/usr/lib64/libxcb-randr.so.0.1.0",
+      "size": 72896,
+      "sha256": "bd9493e1eaec84ad952388095d5c64165a3b345c342ecacf2dc7fdcc9ddf3abb",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libxcb.so.1.1.0",
+      "destination": "/usr/lib64/libxcb.so.1.1.0",
+      "size": 173424,
+      "sha256": "15fd80f8917a44ec68c17a322648a5c576c3fc3bc7745c691573bd6d24ade7eb",
+      "mode": 493,
+      "component": "graphics-libxcb-1.17.0-7.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/licenses/expat/COPYING",
+      "destination": "/usr/share/licenses/expat/COPYING",
+      "size": 1144,
+      "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
+      "mode": 420,
+      "component": "graphics-expat-2.9.0-1.fc44",
+      "role": "notice"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libexpat.so.1.13.0",
+      "destination": "/usr/lib64/libexpat.so.1.13.0",
+      "size": 195120,
+      "sha256": "9b16cd9bcb8c1b7b037eb01229143b021b6e70572b89478e5294e8448738275e",
+      "mode": 493,
+      "component": "graphics-expat-2.9.0-1.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libgbm.so.1.0.0",
+      "destination": "/usr/lib64/libgbm.so.1.0.0",
+      "size": 19944,
+      "sha256": "fbf42b74fe8927a198956fc46ee5c456b421179ef8d3908f59fc629c2a8a478a",
+      "mode": 493,
+      "component": "graphics-mesa-26.2.5-1.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libEGL_mesa.so.0.0.0",
+      "destination": "/usr/lib64/libEGL_mesa.so.0.0.0",
+      "size": 407840,
+      "sha256": "7b49f73596932edcdbf02b81a424654de5a8edf49da3a210eb417ed4caa92df5",
+      "mode": 493,
+      "component": "graphics-mesa-26.2.5-1.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "sdl",
+      "input": "usr/lib64/libGLESv2.so.2.1.0",
+      "destination": "/usr/lib64/libGLESv2.so.2.1.0",
+      "size": 62648,
+      "sha256": "1935a45182f6a50d88382a31261c322c75adb799b826aaa9afeb52354c210ceb",
+      "mode": 493,
+      "component": "libglvnd",
+      "role": "library"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/lib64/libX11-xcb.so.1.0.0",
+      "destination": "/usr/lib64/libX11-xcb.so.1.0.0",
+      "size": 11016,
+      "sha256": "57cdf71a9b30e068f7b00112b6e879a804fb8d451d351e3dff8260a34718f408",
+      "mode": 493,
+      "component": "graphics-libx11-1.8.13-3.fc44",
+      "role": "library"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-files-nexaui",
+      "destination": "/usr/libexec/aetheri-development/aetheri-files-nexaui",
+      "size": 175184,
+      "sha256": "f845e1bbcaa0b5938007689b408ca66fb6fa06896b89156077672a2c7d81b646",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-compositor",
+      "destination": "/usr/libexec/aetheri-development/aetheri-compositor",
+      "size": 544080,
+      "sha256": "b14e60a42b61357bb61728fe9f06c755aaa2a9f82d057313c775faa2131ae4c2",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-desktop",
+      "destination": "/usr/libexec/aetheri-development/aetheri-desktop",
+      "size": 58752,
+      "sha256": "19e9aa6cab946a6605a99c3cfc350a583c12eb661b1bafb2fdbe3dbc9d0d30e9",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-terminal-pty-starter",
+      "destination": "/usr/libexec/aetheri-development/aetheri-terminal-pty-starter",
+      "size": 13384,
+      "sha256": "a7647c3870fe6ae5cd60ed0e9a2d163c00c2623059a5aa646cf4bcb377a83688",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-shell",
+      "destination": "/usr/libexec/aetheri-development/aetheri-shell",
+      "size": 117832,
+      "sha256": "acfe53006a339df27ba6bccd7c848542544dec8ab9de856bf054d4d10fbd40cd",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/aetheri-editor",
+      "destination": "/usr/libexec/aetheri-development/aetheri-editor",
+      "size": 100896,
+      "sha256": "d6638396851dbb28d6086df270b7e56c1a1171c4e12b81a2197014778a0bd860",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "apps",
+      "input": "build/test_compositor_client",
+      "destination": "/usr/libexec/aetheri-development/test_compositor_client",
+      "size": 52456,
+      "sha256": "da61929b9fb34c76714ed2de997668620ad30b2b14810951d9275e513a449de9",
+      "mode": 493,
+      "component": "aetheri",
+      "role": "program"
+    },
+    {
+      "provider": "repo",
+      "input": "src/text/UNICODE-LICENSE.txt",
+      "destination": "/usr/share/licenses/aetheri/UNICODE-LICENSE.txt",
+      "size": 1995,
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "mode": 420,
+      "component": "aetheri",
+      "role": "notice"
+    },
+    {
+      "provider": "repo",
+      "input": "protocols/wlr-layer-shell-unstable-v1.xml",
+      "destination": "/usr/share/licenses/aetheri/wlr-layer-shell-unstable-v1.xml",
+      "size": 19326,
+      "sha256": "87e0b9c837aecd6977f76f3c47d73088b7159871f5d979dc1840f6cadb5e2ed8",
+      "mode": 420,
+      "component": "aetheri",
+      "role": "notice"
+    },
+    {
+      "provider": "compose_data",
+      "input": "COPYING",
+      "destination": "/usr/share/licenses/aetheri/Compose-COPYING",
+      "size": 45013,
+      "sha256": "eda0c2ed1cae0280c7fe79762eaad8ad31c044afc64e71e92ef2c6f3cd7bc395",
+      "mode": 420,
+      "component": "aetheri",
+      "role": "notice"
+    },
+    {
+      "provider": "common",
+      "input": "usr/share/licenses/wayland-protocols-devel/COPYING",
+      "destination": "/usr/share/licenses/aetheri/wayland-protocols-COPYING",
+      "size": 1502,
+      "sha256": "f1a2b233e8a9a71c40f4aa885be08a0842ac85bb8588703c1dd7e6e6502e3124",
+      "mode": 420,
+      "component": "aetheri",
+      "role": "notice"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/10-generic-keyboard.quirks",
+      "destination": "/usr/share/libinput/10-generic-keyboard.quirks",
+      "size": 1069,
+      "sha256": "9af2309537535ed3c726dc12446b1ab4559fa280934aa5e76a1faf8464e30343",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/10-generic-mouse.quirks",
+      "destination": "/usr/share/libinput/10-generic-mouse.quirks",
+      "size": 197,
+      "sha256": "05e1d4ade23f481b880fa8d87749ada4ab0a58a35f3cce04620591d0dcd9cdfe",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/10-generic-trackball.quirks",
+      "destination": "/usr/share/libinput/10-generic-trackball.quirks",
+      "size": 110,
+      "sha256": "5ca0c549f5dd153825fd175438806341383f0b9c37404c23a34184d11f5fad88",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-a4tech.quirks",
+      "destination": "/usr/share/libinput/30-vendor-a4tech.quirks",
+      "size": 172,
+      "sha256": "e7ad27d823c2d38afef2e734b59fedc5a406211b3193a7b12c516bf82c1290ac",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-aiptek.quirks",
+      "destination": "/usr/share/libinput/30-vendor-aiptek.quirks",
+      "size": 307,
+      "sha256": "a882c9d0e1ec960d2f30a18b477df766719e84f4aadb528112f05aac82409ef5",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-alps.quirks",
+      "destination": "/usr/share/libinput/30-vendor-alps.quirks",
+      "size": 894,
+      "sha256": "7c15f71f6ed2b063b2ef0d106c9dbd6b25952db0b22f8a8a4b71709771f23376",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-clevetura.quirks",
+      "destination": "/usr/share/libinput/30-vendor-clevetura.quirks",
+      "size": 342,
+      "sha256": "e253b208f57f9cbb1b42c30b55a230f27f7668a93999683e425095d96b85fd4c",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-contour.quirks",
+      "destination": "/usr/share/libinput/30-vendor-contour.quirks",
+      "size": 834,
+      "sha256": "9ea061bd08c0067ef2d0c60fac490927a6bdcbc2a65b3da966c50183092311a4",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-cypress.quirks",
+      "destination": "/usr/share/libinput/30-vendor-cypress.quirks",
+      "size": 321,
+      "sha256": "b38f57ae7d06c29e145e989df24aacc430e58da1914deb52e36168039e963707",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-elantech.quirks",
+      "destination": "/usr/share/libinput/30-vendor-elantech.quirks",
+      "size": 447,
+      "sha256": "6cac6f222545bb3da2de5ea72f0970e6f8d9e9957bf9401f6573b720b6480928",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-glorious.quirks",
+      "destination": "/usr/share/libinput/30-vendor-glorious.quirks",
+      "size": 170,
+      "sha256": "6c9c59752eb5fb5e3308904bd40bb0d4c3d8513d557836fa5e34c29d01caa717",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-goodix.quirks",
+      "destination": "/usr/share/libinput/30-vendor-goodix.quirks",
+      "size": 2088,
+      "sha256": "a03851d8c2c8e0116e4afb7c02d663f6181fe0d88e73b1038d0722f987b4709b",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-hantick.quirks",
+      "destination": "/usr/share/libinput/30-vendor-hantick.quirks",
+      "size": 639,
+      "sha256": "90482673b2eb2b058e4117192213293d78c03a86e3e223f098ffc9225e291c9d",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-huion.quirks",
+      "destination": "/usr/share/libinput/30-vendor-huion.quirks",
+      "size": 239,
+      "sha256": "097f132e9675726abee02dbcaf7372bc97ec1aca3a022506b9e57fa7908f6bc8",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-ite.quirks",
+      "destination": "/usr/share/libinput/30-vendor-ite.quirks",
+      "size": 1018,
+      "sha256": "a20592b1a80ae3947ee3cd862bb76d9508739bcdfd934e9bd267f92a6c48fa0e",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-kensington.quirks",
+      "destination": "/usr/share/libinput/30-vendor-kensington.quirks",
+      "size": 246,
+      "sha256": "dbb1701d392db07ed7c591cf7421393d34b4178a96b20ca4d7212e4a585c4b93",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-logitech.quirks",
+      "destination": "/usr/share/libinput/30-vendor-logitech.quirks",
+      "size": 2808,
+      "sha256": "c0c8513bc268435f023b05e6dbe0dadec4d78fc5e986671b2ed80a028db2ff41",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-madcatz.quirks",
+      "destination": "/usr/share/libinput/30-vendor-madcatz.quirks",
+      "size": 1952,
+      "sha256": "4c9f382225bec2f1d4d12668568a5d1d00748bcaa7b6b117a93ed47f7fe4a70f",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-microsoft.quirks",
+      "destination": "/usr/share/libinput/30-vendor-microsoft.quirks",
+      "size": 1045,
+      "sha256": "cb5aba130e70853e2ace0f349320f9b02e894afc6683f23322b204e82eac12fb",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-nulea.quirks",
+      "destination": "/usr/share/libinput/30-vendor-nulea.quirks",
+      "size": 366,
+      "sha256": "1f378a64d96a4e1ac2aa3b4a65e787420f2c5fe7fd610d07b1d4f10367db6014",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-oracle.quirks",
+      "destination": "/usr/share/libinput/30-vendor-oracle.quirks",
+      "size": 147,
+      "sha256": "9cb38507fef7f898be9129c4f72fa381750d49297d010f2261248e8b77a75daa",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-pixart.quirks",
+      "destination": "/usr/share/libinput/30-vendor-pixart.quirks",
+      "size": 1038,
+      "sha256": "0bccba43e8f4e794a520f4f044d066ecd1670520e8d4b4c27adc52c7b21a77f3",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-qemu.quirks",
+      "destination": "/usr/share/libinput/30-vendor-qemu.quirks",
+      "size": 137,
+      "sha256": "6524ffba78b3ce9fcea799b5bb04d9c032c33c550f089a05ac913509338f0acd",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-razer.quirks",
+      "destination": "/usr/share/libinput/30-vendor-razer.quirks",
+      "size": 6800,
+      "sha256": "80a3673a7577d7b03d347c618c557146e97a5cc7903d83c0a83d3164cc5b4f88",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-synaptics.quirks",
+      "destination": "/usr/share/libinput/30-vendor-synaptics.quirks",
+      "size": 937,
+      "sha256": "2dee75231237f4aa31809786494564f7a6e0e234b56f8790a946e9906d933b27",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-trust.quirks",
+      "destination": "/usr/share/libinput/30-vendor-trust.quirks",
+      "size": 179,
+      "sha256": "f348d3af3153f27425f327efaae5b3bba1c2cf280e3950dea604e40ea2941fc4",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-vmware.quirks",
+      "destination": "/usr/share/libinput/30-vendor-vmware.quirks",
+      "size": 237,
+      "sha256": "74919b0292afcaedd40332751af1572dff768c0a85f728fa9bb815fa61b63fe4",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/30-vendor-wacom.quirks",
+      "destination": "/usr/share/libinput/30-vendor-wacom.quirks",
+      "size": 809,
+      "sha256": "bdcc5942b424f1a53e4da4cbdd69edfc7a1499e0cb35d1ad3816858242ee90a2",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-acer.quirks",
+      "destination": "/usr/share/libinput/50-system-acer.quirks",
+      "size": 1102,
+      "sha256": "e74400efc64523b511e6eaaa30a21e401f192fb5af8f85b15854cc933bb24e71",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-apple.quirks",
+      "destination": "/usr/share/libinput/50-system-apple.quirks",
+      "size": 3722,
+      "sha256": "64a5a5f64d1d64506e4cdf05cd8fc5fad2027c57b5890f88a0eaafbf4276e0d7",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-asus.quirks",
+      "destination": "/usr/share/libinput/50-system-asus.quirks",
+      "size": 1775,
+      "sha256": "aa69962627c5bf25c928360ba87955ae2a375c83ca2de2bb62ed0d170cc56e15",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-cyborg.quirks",
+      "destination": "/usr/share/libinput/50-system-cyborg.quirks",
+      "size": 1522,
+      "sha256": "6b9774a5aed1723b30c8e62cbef14d97675e4e56293ed7882beccc34277d7121",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-dell.quirks",
+      "destination": "/usr/share/libinput/50-system-dell.quirks",
+      "size": 5261,
+      "sha256": "8314b90ca4fa5c4d3a2b5de391d9b4e1407470aa5f54db1f0e81382691ed8d5c",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-eaecis.quirks",
+      "destination": "/usr/share/libinput/50-system-eaecis.quirks",
+      "size": 549,
+      "sha256": "e7ca4a095efb988a296f72fdd8f2e2318c74f468e24df5eef6ad0b28dc52fe1b",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-framework.quirks",
+      "destination": "/usr/share/libinput/50-system-framework.quirks",
+      "size": 250,
+      "sha256": "d8f7e3a96568d76e836222fd19d70d774b2b384904a179e0d4b3cafaa9fc4eb9",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-gigabyte.quirks",
+      "destination": "/usr/share/libinput/50-system-gigabyte.quirks",
+      "size": 410,
+      "sha256": "1fcd85dc2f4da4715ee8f8e32e7b533f2108077c7fd7aa76c26ac66f86544106",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-google.quirks",
+      "destination": "/usr/share/libinput/50-system-google.quirks",
+      "size": 4566,
+      "sha256": "b3dccfd119e5d29477d0549c526a246ecea3f772a3563f1e792a6ebfa81bb583",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-gpd.quirks",
+      "destination": "/usr/share/libinput/50-system-gpd.quirks",
+      "size": 227,
+      "sha256": "e9ed54838e1cd012d5d4bddeb98ae40d93dae7cfa1e49b9e20bb834810e36766",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-graviton.quirks",
+      "destination": "/usr/share/libinput/50-system-graviton.quirks",
+      "size": 564,
+      "sha256": "c0f190447e35e291320aab58ddf9899ca1074b7a194ee88beef18bc3a0e39848",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-honor.quirks",
+      "destination": "/usr/share/libinput/50-system-honor.quirks",
+      "size": 320,
+      "sha256": "2dc7130ee107c0453c1716effa8647a5975fdffe4434a4146769c744b5f42e78",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-hp.quirks",
+      "destination": "/usr/share/libinput/50-system-hp.quirks",
+      "size": 3967,
+      "sha256": "b4059e2780526881fd701a17aede6a97a11156fd7856e1edec4e78aa907bc032",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-huawei.quirks",
+      "destination": "/usr/share/libinput/50-system-huawei.quirks",
+      "size": 761,
+      "sha256": "c1524137af4d2a797364cd40b518e197172226abdbf5b856517b3e0b9993213f",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-icl.quirks",
+      "destination": "/usr/share/libinput/50-system-icl.quirks",
+      "size": 329,
+      "sha256": "158d4a469e5076fee6e4ccc5f965d96f197882512a443784c0fd29aee003b883",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-lenovo.quirks",
+      "destination": "/usr/share/libinput/50-system-lenovo.quirks",
+      "size": 15409,
+      "sha256": "ce9ed1c05b28d84cb1da44d00e2a455a7f720b443bf0340a6dc06ab88760dde6",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-lg.quirks",
+      "destination": "/usr/share/libinput/50-system-lg.quirks",
+      "size": 195,
+      "sha256": "360d9d4aa74c533c026c167d755f05a0a9b827332705eda5f9db4db735e3d82c",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-minisforum.quirks",
+      "destination": "/usr/share/libinput/50-system-minisforum.quirks",
+      "size": 351,
+      "sha256": "8b306d4b8a3498d105022fecb49d42695211c7e27c20b075020189f3da7c5678",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-panasonic.quirks",
+      "destination": "/usr/share/libinput/50-system-panasonic.quirks",
+      "size": 252,
+      "sha256": "79613a0d39d58f126b85c9f81fb7e1c40b9be1256e34d0660bdf281baa0bab16",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-pine64.quirks",
+      "destination": "/usr/share/libinput/50-system-pine64.quirks",
+      "size": 191,
+      "sha256": "88623e144558127b68faed1e1c3a2e81addc8e891dc0fd43824cf71087983633",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-positivo.quirks",
+      "destination": "/usr/share/libinput/50-system-positivo.quirks",
+      "size": 777,
+      "sha256": "f8b4340e760c964d0b54b345dd6cef1f7fa86bf70cfd64c5ac4ab7f6be2109e1",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-sony.quirks",
+      "destination": "/usr/share/libinput/50-system-sony.quirks",
+      "size": 249,
+      "sha256": "0398ee5e5a92ea4bb515e4357cc5eb8bd2d5104162681c47c14a1a0abf70f63e",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-starlabs.quirks",
+      "destination": "/usr/share/libinput/50-system-starlabs.quirks",
+      "size": 221,
+      "sha256": "8a6505f65055364e8b2053fe4d52046782dfa5215e8e447e4b57fef74302b298",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-system76.quirks",
+      "destination": "/usr/share/libinput/50-system-system76.quirks",
+      "size": 587,
+      "sha256": "25f019eda0089819d946317bc20f4f7fa56454a4cc0643fb086e41960ed8564a",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-toshiba.quirks",
+      "destination": "/usr/share/libinput/50-system-toshiba.quirks",
+      "size": 264,
+      "sha256": "88b6a3fe4dfad716061b005766962d49628aa8330c9061e99b445227ab8dfca0",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "input_runtime",
+      "input": "usr/share/libinput/50-system-wareus.quirks",
+      "destination": "/usr/share/libinput/50-system-wareus.quirks",
+      "size": 246,
+      "sha256": "531a5bf98f455649c1165b2d45ebe105e311aeb3183f70cff3a89bcf257b29d5",
+      "mode": 420,
+      "component": "libinput-current",
+      "role": "data"
+    },
+    {
+      "provider": "original",
+      "input": "usr/share/licenses/liberation-sans-fonts/LICENSE",
+      "destination": "/usr/share/licenses/liberation-sans-fonts/LICENSE",
+      "size": 4414,
+      "sha256": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b",
+      "mode": 420,
+      "component": "liberation-sans-fonts",
+      "role": "notice"
+    },
+    {
+      "provider": "ui",
+      "input": "prefix/share/aetheri-fonts/LiberationSans-Regular.ttf",
+      "destination": "/usr/share/aetheri-fonts/LiberationSans-Regular.ttf",
+      "size": 410712,
+      "sha256": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+      "mode": 420,
+      "component": "liberation-sans-fonts",
+      "role": "font"
+    },
+    {
+      "provider": "carrier_notices",
+      "input": "liberation-mono-fonts/LICENSE",
+      "destination": "/usr/share/licenses/liberation-mono-fonts/LICENSE",
+      "size": 4414,
+      "sha256": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b",
+      "mode": 420,
+      "component": "liberation-mono-fonts",
+      "role": "notice"
+    },
+    {
+      "provider": "carrier_fonts",
+      "input": "LiberationMono-Regular.ttf",
+      "destination": "/usr/share/aetheri-fonts/LiberationMono-Regular.ttf",
+      "size": 319508,
+      "sha256": "f2b83c763e8afd21709333370bed4774337fae82267937e2b5aea7e2fbd922c1",
+      "mode": 420,
+      "component": "liberation-mono-fonts",
+      "role": "font"
+    },
+    {
+      "provider": "carrier_fonts",
+      "input": "LiberationMono-Bold.ttf",
+      "destination": "/usr/share/aetheri-fonts/LiberationMono-Bold.ttf",
+      "size": 307996,
+      "sha256": "bd62a0672d0b9b6710b01df434c80ad54fa5f0835207eb7b17b7a761463067bb",
+      "mode": 420,
+      "component": "liberation-mono-fonts",
+      "role": "font"
+    },
+    {
+      "provider": "graphics",
+      "input": "usr/share/glvnd/egl_vendor.d/50_mesa.json",
+      "destination": "/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+      "size": 105,
+      "sha256": "cd3881df4227c13ca7f9cfe6c78820f21d5f7a00a41b299214f6f827e63be369",
+      "mode": 420,
+      "component": "graphics-mesa-26.2.5-1.fc44",
+      "role": "data"
+    }
+  ],
+  "symlinks": {
+    "/usr/lib64/libffi.so.8": "libffi.so.8.2.0",
+    "/usr/lib64/libwayland-client.so.0": "libwayland-client.so.0.26.0",
+    "/usr/lib64/libwayland-server.so.0": "libwayland-server.so.0.26.0",
+    "/usr/lib64/libxkbcommon.so.0": "libxkbcommon.so.0.13.1",
+    "/usr/lib64/libinput.so.10": "libinput.so.10.13.0",
+    "/usr/lib64/libdisplay-info.so.3": "libdisplay-info.so.0.3.0",
+    "/usr/lib64/libdrm.so.2": "libdrm.so.2.134.0",
+    "/usr/lib64/libpixman-1.so.0": "libpixman-1.so.0.46.2",
+    "/usr/lib64/libsystemd.so.0": "libsystemd.so.0.42.0",
+    "/usr/lib64/libudev.so.1": "libudev.so.1.7.12",
+    "/usr/lib64/libglib-2.0.so.0": "libglib-2.0.so.0.8800.0",
+    "/usr/lib64/libgobject-2.0.so.0": "libgobject-2.0.so.0.8800.0",
+    "/usr/lib64/libwayland-cursor.so.0": "libwayland-cursor.so.0.26.0",
+    "/usr/lib64/libwayland-egl.so.1": "libwayland-egl.so.1.26.0",
+    "/usr/lib64/libEGL.so.1": "libEGL.so.1.1.0",
+    "/usr/lib64/libGLdispatch.so.0": "libGLdispatch.so.0.0.0",
+    "/usr/lib64/libSDL3.so.0": "libSDL3.so.0.4.20",
+    "/usr/lib64/libSDL3_ttf.so.0": "libSDL3_ttf.so.0.2.2",
+    "/usr/lib64/libfreetype.so.6": "libfreetype.so.6.20.7",
+    "/usr/lib64/libharfbuzz.so.0": "libharfbuzz.so.0.61500.0",
+    "/usr/lib64/libnexaui.so.0": "libnexaui.so.0.1.23",
+    "/usr/lib64/libstdc++.so.6": "libstdc++.so.6.0.36",
+    "/usr/lib64/liblzma.so.5": "liblzma.so.5.8.2",
+    "/usr/lib64/libtinfo.so.6": "libtinfo.so.6.6",
+    "/usr/lib64/libpciaccess.so.0": "libpciaccess.so.0.11.1",
+    "/usr/lib64/libxml2.so.2": "libxml2.so.2.12.10",
+    "/usr/lib64/libedit.so.0": "libedit.so.0.0.76",
+    "/usr/lib64/libXau.so.6": "libXau.so.6.0.0",
+    "/usr/lib64/libzstd.so.1": "libzstd.so.1.5.7",
+    "/usr/lib64/libX11.so.6": "libX11.so.6.4.0",
+    "/usr/lib64/libdrm_intel.so.1": "libdrm_intel.so.1.134.0",
+    "/usr/lib64/libdrm_amdgpu.so.1": "libdrm_amdgpu.so.1.134.0",
+    "/usr/lib64/libelf.so.1": "libelf-0.194.so",
+    "/usr/lib64/libxshmfence.so.1": "libxshmfence.so.1.0.0",
+    "/usr/lib64/libxcb-sync.so.1": "libxcb-sync.so.1.0.0",
+    "/usr/lib64/libsensors.so.4": "libsensors.so.4.5.0",
+    "/usr/lib64/libxcb-present.so.0": "libxcb-present.so.0.0.0",
+    "/usr/lib64/libxcb-dri3.so.0": "libxcb-dri3.so.0.1.0",
+    "/usr/lib64/libxcb-shm.so.0": "libxcb-shm.so.0.0.0",
+    "/usr/lib64/libxcb-xfixes.so.0": "libxcb-xfixes.so.0.0.0",
+    "/usr/lib64/libxcb-randr.so.0": "libxcb-randr.so.0.1.0",
+    "/usr/lib64/libxcb.so.1": "libxcb.so.1.1.0",
+    "/usr/lib64/libexpat.so.1": "libexpat.so.1.13.0",
+    "/usr/lib64/libgbm.so.1": "libgbm.so.1.0.0",
+    "/usr/lib64/libEGL_mesa.so.0": "libEGL_mesa.so.0.0.0",
+    "/usr/lib64/libGLESv2.so.2": "libGLESv2.so.2.1.0",
+    "/usr/lib64/libX11-xcb.so.1": "libX11-xcb.so.1.0.0"
+  },
+  "components": {
+    "libffi": {
+      "origin": "libffi-3.5.2-2.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/libffi/LICENSE"
+      ]
+    },
+    "libwayland-client": {
+      "origin": "libwayland-client-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libwayland-client/COPYING"
+      ]
+    },
+    "libwayland-server": {
+      "origin": "libwayland-server-1.26.0-1.fc44.x86_64; source RPM wayland-1.26.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libwayland-server/COPYING"
+      ]
+    },
+    "libxkbcommon": {
+      "origin": "libxkbcommon-1.13.1-2.fc44.x86_64; source RPM libxkbcommon-1.13.1-2.fc44.src.rpm",
+      "license": "MIT AND X11 AND MIT-CMU",
+      "notices": [
+        "/usr/share/licenses/libxkbcommon/LICENSE"
+      ]
+    },
+    "wlroots": {
+      "origin": "wlroots 0.20.2 reviewed clipboard/input patches; spec/graphics-inputs.json",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/wlroots/LICENSE"
+      ]
+    },
+    "libinput-current": {
+      "origin": "libinput1.32.0/5cf833b572f5a33663888da321dce0ba1abd82a2; reviewed Release v5 source build; MIT",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libinput/COPYING"
+      ]
+    },
+    "lua55": {
+      "origin": "Lua5.5.1 reviewed patched glibc Release SDK; spec/audio-policy-lua-inputs.json; MIT",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/lua55/COPYRIGHT"
+      ]
+    },
+    "libdisplay-info": {
+      "origin": "libdisplay-info-0.3.0-1.fc44.x86_64; source RPM libdisplay-info-0.3.0-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libdisplay-info/LICENSE"
+      ]
+    },
+    "libdrm": {
+      "origin": "libdrm-2.4.134-1.fc44.x86_64; source RPM libdrm-2.4.134-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libdrm/libdrm-2.4.134.tar.xz"
+      ]
+    },
+    "pixman": {
+      "origin": "pixman-0.46.2-3.fc44.x86_64; source RPM pixman-0.46.2-3.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/pixman/COPYING"
+      ]
+    },
+    "libseat": {
+      "origin": "libseat-0.9.3-1.fc44.x86_64; source RPM seatd-0.9.3-1.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libseat/LICENSE"
+      ]
+    },
+    "systemd-libs": {
+      "origin": "systemd-libs-259.10-1.fc44.x86_64; source RPM systemd-259.10-1.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later AND MIT",
+      "notices": [
+        "/usr/share/licenses/systemd-libs/LICENSE.LGPL2.1"
+      ]
+    },
+    "glibc": {
+      "origin": "glibc-2.43-9.fc44.x86_64; source RPM glibc-2.43-9.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.0-or-later AND Unicode-3.0 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception",
+      "notices": [
+        "/usr/share/licenses/glibc/COPYING.LESSERv2",
+        "/usr/share/licenses/glibc/COPYING.LIB",
+        "/usr/share/licenses/glibc/COPYINGv2",
+        "/usr/share/licenses/glibc/COPYINGv3",
+        "/usr/share/licenses/glibc/LICENSES"
+      ]
+    },
+    "libevdev": {
+      "origin": "libevdev-1.13.6-2.fc44.x86_64; source RPM libevdev-1.13.6-2.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/libevdev/COPYING"
+      ]
+    },
+    "libgcc": {
+      "origin": "libgcc and libstdc++ 16.2.1-2.fc44 runtime; gcc-16.2.1-2.fc44.src.rpm; original GPL/LGPL/runtime-exception notices retained",
+      "license": "GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel",
+      "notices": [
+        "/usr/share/licenses/libgcc/COPYING",
+        "/usr/share/licenses/libgcc/COPYING.LIB",
+        "/usr/share/licenses/libgcc/COPYING.RUNTIME",
+        "/usr/share/licenses/libgcc/COPYING3",
+        "/usr/share/licenses/libgcc/COPYING3.LIB"
+      ]
+    },
+    "libgudev": {
+      "origin": "libgudev-238-9.fc44.x86_64; source RPM libgudev-238-9.fc44.src.rpm",
+      "license": "LGPL-2.1-or-later",
+      "notices": [
+        "/usr/share/licenses/libgudev/COPYING"
+      ]
+    },
+    "mtdev": {
+      "origin": "mtdev-1.1.6-12.fc44.x86_64; source RPM mtdev-1.1.6-12.fc44.src.rpm",
+      "license": "MIT",
+      "notices": [
+        "/usr/share/licenses/mtdev/COPYING"
+      ]
+    },
+    "pcre2": {
+      "origin": "pcre2-10.47-1.fc44.1.x86_64; source RPM pcre2-10.47-1.fc44.1.src.rpm",
+      "license": "BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later",
+      "notices": [
+        "/usr/share/licenses/pcre2/pcre2-10.47-LICENCE.md",
+        "/usr/share/licenses/pcre2/pcre2-10.47.tar.bz2",
+        "/usr/share/licenses/pcre2/SLJIT-LICENSE"
+      ]
+    },
+    "libwacom": {
+      "origin": "libwacom-2.19.0-1.fc44.x86_64; source RPM libwacom-2.19.0-1.fc44.src.rpm",
+      "license": "HPND",
+      "notices": [
+        "/usr/share/licenses/libwacom/COPYING"
+      ]
+    },
+    "glib2": {
+      "origin": "glib2-2.88.0-1.fc44.x86_64; reviewed spec/audio-inputs.json, audio-policy-inputs.json and audio-control-inputs.json profiles",
+      "license": "See original package notices",
+      "notices": [
+        "/usr/share/licenses/glib2/LGPL-2.1-or-later.txt"
+      ]
+    },
+    "common-libwayland-cursor": {
+      "origin": "libwayland-cursor 1.26.0-1.fc44.x86_64; MIT; wayland-1.26.0-1.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libwayland-cursor/COPYING"
+      ]
+    },
+    "common-libwayland-egl": {
+      "origin": "libwayland-egl 1.26.0-1.fc44.x86_64; MIT; wayland-1.26.0-1.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libwayland-egl/COPYING"
+      ]
+    },
+    "libglvnd": {
+      "origin": "libglvnd 1.7.0-9.fc44; exact signed original source RPM is notice/source data only",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/aetheri-sources/libglvnd-1.7.0-9.fc44.src.rpm"
+      ]
+    },
+    "sdl3": {
+      "origin": "SDL3 3.4.20 reviewed four-patch current Release build",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/SDL3/LICENSE.txt"
+      ]
+    },
+    "sdl3-ttf": {
+      "origin": "SDL3_ttf 3.2.2 current Release build",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/SDL3_ttf/LICENSE.txt"
+      ]
+    },
+    "freetype": {
+      "origin": "FreeType 2.15.0 current Release build",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/freetype-VER-2-15-0/FTL.TXT",
+        "/usr/share/licenses/freetype-VER-2-15-0/LICENSE.TXT"
+      ]
+    },
+    "harfbuzz": {
+      "origin": "HarfBuzz 15.0.0 current Release build",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/harfbuzz-15.0.0/COPYING"
+      ]
+    },
+    "nexaui-current": {
+      "origin": "NexaUI 0.1.23 current independently checked source/build",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/nexaui/LICENSE",
+        "/usr/share/doc/NexaUI/UNICODE-LICENSE.txt"
+      ]
+    },
+    "aetheri": {
+      "origin": "Aetheri current source-bound Release build; verified export 965a0739b62fdebe41397b0e850c6ea937238070a37f3cc859a834cf64c68111",
+      "license": "Original MIT code plus separately retained Unicode-3.0, Compose and protocol data/code notices",
+      "notices": [
+        "/usr/share/licenses/aetheri/LICENSE",
+        "/usr/share/licenses/aetheri/UNICODE-LICENSE.txt",
+        "/usr/share/licenses/aetheri/wlr-layer-shell-unstable-v1.xml",
+        "/usr/share/licenses/aetheri/Compose-COPYING",
+        "/usr/share/licenses/aetheri/wayland-protocols-COPYING"
+      ]
+    },
+    "dbus-libs": {
+      "origin": "dbus-libs-1:1.16.2-1.fc44.x86_64; source RPM dbus-1.16.2-1.fc44.src.rpm",
+      "license": "(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later",
+      "notices": [
+        "/usr/share/licenses/dbus-libs/COPYING"
+      ]
+    },
+    "graphics-llvm-22.1.8-4.fc44": {
+      "origin": "llvm-libs 22.1.8-4.fc44.x86_64; llvm-22.1.8-4.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/llvm-libs/LICENSE.TXT"
+      ]
+    },
+    "carrier-xz": {
+      "origin": "xz-libs-1:5.8.2-2.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/xz-libs/COPYING"
+      ]
+    },
+    "ncurses": {
+      "origin": "ncurses-base 6.6-1.fc44.noarch; ncurses-6.6-1.fc44.src.rpm; MIT-open-group; installed carrier RPM header digest and actual body; not newly independent RPM signature verification",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/ncurses-base/COPYING"
+      ]
+    },
+    "carrier-libpciaccess": {
+      "origin": "libpciaccess-0.16-17.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libpciaccess/COPYING"
+      ]
+    },
+    "carrier-libxml2": {
+      "origin": "libxml2-2.12.10-6.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libxml2/Copyright"
+      ]
+    },
+    "carrier-libedit": {
+      "origin": "libedit-3.1-58.20251016cvs.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libedit/COPYING"
+      ]
+    },
+    "graphics-libxau-1.0.12-4.fc44": {
+      "origin": "libXau 1.0.12-4.fc44.x86_64; libXau-1.0.12-4.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/doc/libXau/COPYING"
+      ]
+    },
+    "graphics-spirv-tools-2026.1-1.fc44": {
+      "origin": "spirv-tools-libs 2026.1-1.fc44.x86_64; spirv-tools-2026.1-1.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/spirv-tools-libs/LICENSE"
+      ]
+    },
+    "carrier-libzstd": {
+      "origin": "libzstd-1.5.7-5.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libzstd/COPYING",
+        "/usr/share/licenses/libzstd/LICENSE"
+      ]
+    },
+    "graphics-libx11-1.8.13-3.fc44": {
+      "origin": "libX11 1.8.13-3.fc44.x86_64; libX11-1.8.13-3.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/doc/libX11-common/COPYING"
+      ]
+    },
+    "graphics-mesa-26.2.5-1.fc44": {
+      "origin": "mesa-dri-drivers 26.2.5-1.fc44.x86_64; mesa-26.2.5-1.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/doc/mesa-filesystem/Mesa-MLAA-License-Clarification-Email.txt"
+      ]
+    },
+    "carrier-elfutils": {
+      "origin": "elfutils-libelf-0.194-5.fc44.x86_64",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/elfutils-libelf/COPYING-GPLV2",
+        "/usr/share/licenses/elfutils-libelf/COPYING-LGPLV3"
+      ]
+    },
+    "graphics-libxshmfence-1.3.2-8.fc44": {
+      "origin": "libxshmfence 1.3.2-8.fc44.x86_64; libxshmfence-1.3.2-8.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libxshmfence/COPYING"
+      ]
+    },
+    "graphics-libxcb-1.17.0-7.fc44": {
+      "origin": "libxcb 1.17.0-7.fc44.x86_64; libxcb-1.17.0-7.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/libxcb/COPYING"
+      ]
+    },
+    "graphics-lm_sensors-3.6.0-24.fc44": {
+      "origin": "lm_sensors-libs 3.6.0-24.fc44.x86_64; lm_sensors-3.6.0-24.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/lm_sensors-libs/COPYING.LGPL"
+      ]
+    },
+    "zlib-ng-compat": {
+      "origin": "zlib-ng-compat-2.3.3-3.fc44.x86_64; source RPM zlib-ng-2.3.3-3.fc44.src.rpm",
+      "license": "Zlib",
+      "notices": [
+        "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3-LICENSE.md",
+        "/usr/share/licenses/zlib-ng-compat/zlib-ng-2.3.3.tar.gz"
+      ]
+    },
+    "graphics-expat-2.9.0-1.fc44": {
+      "origin": "expat 2.9.0-1.fc44.x86_64; expat-2.9.0-1.fc44.src.rpm",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/expat/COPYING"
+      ]
+    },
+    "liberation-sans-fonts": {
+      "origin": "liberation-sans-fonts-1:2.1.5-15.fc44.noarch; source RPM liberation-fonts-2.1.5-15.fc44.src.rpm",
+      "license": "OFL-1.1-RFN",
+      "notices": [
+        "/usr/share/licenses/liberation-sans-fonts/LICENSE"
+      ]
+    },
+    "liberation-mono-fonts": {
+      "origin": "liberation-mono-fonts 2.1.5-15.fc44; actual carrier font/license pins",
+      "license": "See original retained notices; development projection only",
+      "notices": [
+        "/usr/share/licenses/liberation-mono-fonts/LICENSE"
+      ]
+    }
+  }
+}

@@ -1,5 +1,30 @@
 # Sources
 
+## Protected current runtime and KMS — 10 November 2026
+
+- [Execution record](journal/2026-11-10-current-runtime.md),
+  [runtime contract](../../spec/current-desktop-runtime.md) and
+  [exact inventory](../../spec/current-desktop-runtime-inputs.json): 200 original
+  selected files, 47 direct aliases, retained component notices and actual fresh
+  Root preparation. All 1,017 export files and 250 final submitted inputs match.
+  The two original KMS/input controllers retire and exit 0, with actual original
+  process/session/cgroup observations and subsequent card reacquisition.
+- [Linux symlink handling](https://man7.org/linux/man-pages/man7/symlink.7.html)
+  documents ordinary-link mode 0777 independently of target permissions. The
+  native failed pre-effect constructor and successful exact-target/ownership
+  checks establish the local correction; magic links are outside this profile.
+- [memfd_create](https://man7.org/linux/man-pages/man2/memfd_create.2.html)
+  describes anonymous files/sealing, used to inspect the independently verified
+  ELF bytes without executing candidates. [Dynamic loader behavior](https://man7.org/linux/man-pages/man8/ld.so.8.html)
+  distinguishes RPATH/RUNPATH, library search, secure execution and direct loader
+  invocation. Consulted 10 November 2026. Actual listings and in-effect mappings
+  establish the local runtime choices, not the manuals alone or every future
+  dlopen/app path.
+- The ncurses COPYING file matches its installed carrier RPM header and body;
+  this does not claim a newly independent RPM signature check. The libglvnd
+  source RPM remains opaque source/notice data. Existing PCRE2/release/source
+  obligations remain open. No new MAC permission or normal admission follows.
+
 ## Current compositor/desktop/apps — 10 November 2026
 
 - [Execution record](journal/2026-11-10-current-desktop.md),

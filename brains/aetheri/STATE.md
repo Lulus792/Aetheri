@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The current compositor/desktop/apps now build together in Release and ASan/UBSan. Both pass 36 ordinary model tests, 29 selected integration cases and three native graphical Editor suites, with leak detection and no suppression. All 4,211 exported files, 721 submitted inputs, SDK bodies, compilation records and 80 loader/actual-map code files are independently checked. The shared desktop start now passes after exact build/test-host corrections. Carrier packages, original udev and enforcing policy remain unchanged. Next prepare a protected current-runtime projection and test the actual DRM development session; normal service/device ownership and full image closure remain open. The agreed first-version gate still forbids the next USB-targeted build/flash.
+10 November 2026 — The current Release desktop now has a fresh protected runtime: 200 regular files/244,711,789 bytes, 47 aliases and 49 attributed components. All ten program loader checks pass. Two actual bochs-drm/PAM/logind runs prove current compositor display/input, original retirement and card reacquisition; each has 25 checked executable-file mappings. All 1,017 export files/250 submitted inputs match. Packages, original udev and enforcing policy remain unchanged, tty1 returns and no selected code remains mapped. Next bind the runtime to the complete desktop/app owner and repeat actual graphical app workflows; normal service/device/app admission and full image closure remain open. The agreed first-version gate still forbids the next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -27,6 +27,55 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
+
+## Protected current runtime and actual KMS — 10 November 2026
+
+Read the [execution record](journal/2026-11-10-current-runtime.md),
+[runtime contract](../../spec/current-desktop-runtime.md) and
+[exact inventory](../../spec/current-desktop-runtime-inputs.json).
+The fresh-copy preparer holds hash-checked source FDs before output and repeats
+consumed-byte checks. Existing/partial output is never adopted or cleaned.
+Protected mode requires a new Root-created tree and protected parents; chown is
+not a freshness/writer-retirement proof. The record is not an install authority.
+
+Final source `/run/a-crs-08ad97d0d118`;
+stage `/root/aetheri-current-runtime-08ad97d0d11844aaa5d35c7d1136b30d`;
+runtime `/opt/aetheri-test-runtimes/08ad97d0d11844aaa5d35c7d1136b30d`;
+sealed program inputs `/run/a-ci-08ad97d0d118`.
+The profile has nine main apps plus one separate test client. LLVM/Gallium account
+for 202,593,720 of its 244,711,789 bytes, for the reviewed software graphics path.
+Three fonts, 54 quirks and original/component-specific notices are included;
+Unicode, Compose and protocol notices remain distinct from our MIT code.
+This is a runtime projection on the existing carrier, not a complete OS image.
+
+Eight native controls pass without skips; Windows has six passes/two platform
+skips. All ten program loader listings select protected copies. The original
+all-regular GUI checker remains intact; the new profile correctly checks exact
+owned symlinks instead of treating their 0777 mode as target write access.
+Preserve the first missing-notice preparation and pre-effect alias-check failure.
+
+Original host sessions 72531 and 21542 exit 0. Their actual compositor/client
+runs use bochs-drm Virtual-1 at 1280x800/74.994Hz, ordinary UID1000, zero checked
+capability sets and NoNewPrivileges. Native PS/2 key30/a, mouse motion and both
+button states reach the original Wayland clients. Both runs verify their original
+processes, service/scope/session/cgroup end and return tty1; the second proves
+fresh reacquisition. Each has 25 bound executable-file mappings. The native
+captures show test windows/cursor, not the complete desktop or final design.
+
+All 1,017 export files and 250 submitted inputs match, including all 200 runtime
+bodies and 47 aliases; all 74 code bodies join independent prior inputs. Combined
+host regressions have 24 passes/nine platform skips (33 cases). Native interpreter fallback has an exact body exception;
+unselected carrier code rejects. The old GUI protection still passes. Packages,
+udev 693/original invocation and enforcing 1 remain unchanged; no selected code,
+test PAM fixture or local seat session remains. The restricted audio VM stays
+live. Revalidate actual state before dispatch.
+
+Next integrate this inventory with the existing full desktop owner and exercise
+real graphical app workflows in the KMS session. Existing RUNPATH strings and
+unexecuted future dlopen/app paths are not resolved merely by loader listings.
+Normal service/device/app admission, trusted lock/suspend, image closure and
+physical hardware/first-version acceptance remain open. No USB work or new
+NexaUI handoff.
 
 ## Current compositor, desktop and apps — 10 November 2026
 
