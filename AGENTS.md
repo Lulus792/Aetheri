@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current continuation: read `brains/aetheri/STATE.md` and the 2026-11-10
+current-desktop-owner journal. The protected current runtime now passes a real
+full-owner KMS Files/editor save, own-shell and Settings workflow with original
+process/session/group end. Advance normal session/service/device integration and
+full system runtime closure; this private fixture is not normal app admission.
+Preserve failed attempts and the old quarantine. The user's 9 November gate
+forbids the next USB-targeted image build/flash until the agreed first version is
+implemented and verified. Older next-flash notes below do not override that gate.
+NexaUI handoff remains delivered; catalogue maintenance only.
+
 Latest USB desktop boundary: read `spec/usb-desktop.md` and the 2026-11-08 USB
 desktop journal/STATE. Full-size single-medium two-boot/persistence and independent
 ext4 checks pass. USB2's OBS2 binds the complete root/data profile before handover;

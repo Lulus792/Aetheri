@@ -17,7 +17,7 @@ typedef bool (*ae_files_work_start)(void *,struct ae_files_session *);
 typedef void (*ae_files_work_join)(void *);
 struct ae_files_session {
     struct ae_files *files;struct ae_files_child child;
-    const char *terminal,*editor,*terminal_font,*cache;char message[256];
+    const char *terminal,*editor,*terminal_font,*terminal_bold_font,*cache;char message[256];
     float scale;size_t first,rows;
     bool running,failed,closing,dirty,german,contrast,show_hidden,query_focus,query_bad,diagnostics,external_pending;
     unsigned frames,launches,pressed;size_t pressed_row;

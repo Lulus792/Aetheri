@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The current Release desktop now has a fresh protected runtime: 200 regular files/244,711,789 bytes, 47 aliases and 49 attributed components. All ten program loader checks pass. Two actual bochs-drm/PAM/logind runs prove current compositor display/input, original retirement and card reacquisition; each has 25 checked executable-file mappings. All 1,017 export files/250 submitted inputs match. Packages, original udev and enforcing policy remain unchanged, tty1 returns and no selected code remains mapped. Next bind the runtime to the complete desktop/app owner and repeat actual graphical app workflows; normal service/device/app admission and full image closure remain open. The agreed first-version gate still forbids the next USB-targeted build/flash.
+10 November 2026 — The protected current runtime now works with the real full desktop/app owner in an actual KMS session. Native input opens Files/editor, saves exact text, writes through the own shell and opens Settings; all original actors/session/groups then end and tty1 returns. Fresh Release/memory builds each pass 36 model cases; native controls pass 54 without skips. All 784 build-export and 514 session-export files match. Packages, original udev and enforcing policy remain unchanged; no selected code remains mapped. Next advance normal session/service/device integration and complete system runtime closure. Normal installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,59 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Protected current runtime and actual KMS — 10 November 2026
+## Protected current desktop owner — 10 November 2026
+
+Read the [execution record](journal/2026-11-10-current-desktop-owner.md) and
+[updated runtime contract](../../spec/current-desktop-runtime.md). The private
+`aetheri-current-desktop-v1` binding selects the independent profile/protected root
+and original role fingerprints; it does not fabricate old SDK/CMake receipts.
+Each fresh app attempt rechecks the complete inventory. Normal controller defaults,
+old catalogues/quarantine and public capabilities remain unchanged.
+
+Files now carries its explicitly selected document Terminal bold font through an
+additive literal launch profile; both native views support the option. Existing
+launch/FD/child ownership stays intact. Fresh source `/var/tmp/a-drt-fea20c21da9c`
+builds Release `/home/aetheri/drt-fea20c21da9c-r` and memory
+`/home/aetheri/drt-fea20c21da9c-m`, each with 36 model passes. All 784 export files
+and 728 submitted inputs match. Preserve the first incomplete-protocol-source
+configure failure. Memory checks retain ASan/UBSan and leak detection.
+
+Current protected runtime
+`/opt/aetheri-test-runtimes/f1e806b8f2b74a9e84ca24e8dadafacc` has 200 regular
+files/244,711,837 bytes, 47 aliases and 49 components. Its preparation source is
+`/run/a-crs-f1e806b8f2b7`; all ten loader checks pass. The two changed program bodies
+are Files and the separate test-only Wayland client. Old runtime copies and
+historical receipts remain unchanged.
+
+Final full-session source `/run/a-cds-6a5473a2ca8c`, output
+`/root/aetheri-current-desktop-6a5473a2ca8c4f45af9a3a1c9e9e9dc2`;
+original host controller 21258 exits 0 and reaches `retired`. Actual bochs-drm
+1280×800 output/PAM/logind/ordinary UID1000 input runs the real compositor,
+desktop, Files/document Terminal/editor, normal Terminal/shell and Settings.
+The exact saved file is `hello alpha\n`; the shell creates `desktop` in
+`owner-proof`. Actual app frames are directly viewed. The user-like native
+document close allows Files-first orderly shutdown; no automatic discard follows.
+Nine original actors and eight code-map records (200 mapped-file observations)
+bind to the selected bodies. Original pidfds/service/scope/group end is checked
+before exact fixture cleanup, with no selected code left mapped.
+
+Native control rounds pass 54 cases without skips. Final host regressions pass
+63 with 16 platform skips (79 cases). All 514 session-export files, 253 final
+submitted source inputs, 200 runtime bodies and 47 aliases match. Preserve the
+two failed start attempts and v3's manual retirement after an observation timeout;
+they are not passing automatic controllers or production recovery/drain evidence.
+The final v4 native host-input controller 90159 exits 0 without replay.
+
+Packages, original udev693/invocation, enforcing1 and the four foreign UI-memory
+files remain unchanged. No test PAM/local seat session remains; tty1 is restored.
+The restricted audio VM remains live. Revalidate actual state before dispatch.
+Next advance normal session/service/device integration and full system runtime
+closure from these verified app artifacts. This finite development fixture does
+not provide normal app/document admission, a login manager, trusted lock/suspend,
+external Compose/IME or hardware/first-version acceptance. No USB work or NexaUI
+handoff.
+
+## Protected current runtime and actual KMS — earlier 10 November 2026
 
 Read the [execution record](journal/2026-11-10-current-runtime.md),
 [runtime contract](../../spec/current-desktop-runtime.md) and

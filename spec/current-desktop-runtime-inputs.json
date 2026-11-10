@@ -1299,8 +1299,8 @@
       "provider": "apps",
       "input": "build/aetheri-files-nexaui",
       "destination": "/usr/libexec/aetheri-development/aetheri-files-nexaui",
-      "size": 175184,
-      "sha256": "f845e1bbcaa0b5938007689b408ca66fb6fa06896b89156077672a2c7d81b646",
+      "size": 175232,
+      "sha256": "eadec27f674325585cfc52267ab6dc4bc3d94690b29bad218066e951aebd3dc8",
       "mode": 493,
       "component": "aetheri",
       "role": "program"
@@ -1360,7 +1360,7 @@
       "input": "build/test_compositor_client",
       "destination": "/usr/libexec/aetheri-development/test_compositor_client",
       "size": 52456,
-      "sha256": "da61929b9fb34c76714ed2de997668620ad30b2b14810951d9275e513a449de9",
+      "sha256": "de1d25607357c5272263188e9fca936fd38ec5a0b104b150ea1b46c32855d19f",
       "mode": 493,
       "component": "aetheri",
       "role": "program"

@@ -57,6 +57,15 @@ These are development paths, not installed desktop entries. Root and mismatched
 real/effective user or group IDs are refused. There is no X11/offscreen fallback.
 `--diagnostics` adds view/request/end records; a request record is not readiness.
 
+When selecting a NexaUI Terminal, `--terminal-bold-font /absolute/selected/font.ttf`
+also passes that independently selected font literally to its document window.
+Both Files views accept this optional startup path. The lower
+`ae_files_launch_profile` keeps the original directory/file FD handoff, direct-child
+custody and no-shell argv behavior; a relative/empty bold path rejects before
+spawn. `ae_files_launch` preserves the original command when no bold font is
+selected. These are local development inputs, not font discovery or document
+authority. The selected target Terminal must support `--bold-font`.
+
 ## Application controller and presentation
 
 `src/files/session.h` now defines the per-window application state and commands

@@ -182,12 +182,13 @@ int main(int argc,char **argv) {
     const char *root=NULL,*font_path=NULL;
     for(int i=1;i<argc;++i) {
         const char **slot=!strcmp(argv[i],"--root")?&root:!strcmp(argv[i],"--font")?&font_path:!strcmp(argv[i],"--cache")?&h.s.cache:
-            !strcmp(argv[i],"--terminal")?&h.s.terminal:!strcmp(argv[i],"--editor")?&h.s.editor:!strcmp(argv[i],"--terminal-font")?&h.s.terminal_font:NULL;
+            !strcmp(argv[i],"--terminal")?&h.s.terminal:!strcmp(argv[i],"--editor")?&h.s.editor:!strcmp(argv[i],"--terminal-font")?&h.s.terminal_font:
+            !strcmp(argv[i],"--terminal-bold-font")?&h.s.terminal_bold_font:NULL;
         if(slot && !*slot && i+1<argc) *slot=argv[++i];else if(!strcmp(argv[i],"--diagnostics") && !h.s.diagnostics) h.s.diagnostics=true;else return 2;
     }
     struct stat st;
     if(!root || !font_path || !h.s.cache || !h.s.terminal || !h.s.editor || !h.s.terminal_font || root[0]!='/' || getuid()==0 ||
-       getuid()!=geteuid() || getgid()!=getegid() || lstat(h.s.cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
+       (h.s.terminal_bold_font && h.s.terminal_bold_font[0]!='/') || getuid()!=geteuid() || getgid()!=getegid() || lstat(h.s.cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);int fd=open(root,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);enum ae_files_result result;
     h.s.files=fd>=0?ae_files_create(fd,&result):NULL;if(fd>=0) close(fd);if(!h.s.files) return 1;
     const char *end=root+strlen(root);while(end>root+1 && end[-1]=='/') --end;const char *leaf=end;while(leaf>root && leaf[-1]!='/') --leaf;

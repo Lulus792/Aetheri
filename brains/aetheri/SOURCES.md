@@ -1,5 +1,27 @@
 # Sources
 
+## Protected complete desktop owner — 10 November 2026
+
+- [Execution record](journal/2026-11-10-current-desktop-owner.md),
+  [runtime contract](../../spec/current-desktop-runtime.md),
+  [runtime binding](../../tools/development_runtime.py) and
+  [explicit native fixture](../../tools/test_current_desktop_session.py): actual
+  bochs-drm/PAM/logind full-owner app/save/shell/Settings and original-end proof.
+  The original final controller exits 0; earlier failures/manual retirements keep
+  their separate records. Normal installed admission and hardware remain open.
+- Independent streamed audits verify all 784 build-export files/728 submitted
+  inputs and 514 session-export files/253 final source inputs, all 200 runtime
+  bodies/47 aliases and eight actual executable-file map records. The local
+  `owner-build-audit-v2.json` and `owner-session-audit-v1.json` bind archives and
+  original output. Native controls: 54 without skips; each Release/memory model
+  group: 36 passes; final host controls: 63 pass/16 platform skips.
+- [systemd v262 D-Bus implementation](https://raw.githubusercontent.com/systemd/systemd/v262/src/core/dbus-execute.c)
+  declares and consumes `TemporaryFileSystem` as `a(ss)`, with absolute mount paths
+  and separate option strings. Read 10 November 2026; the manual page fetch timed
+  out, so the tagged primary source was used. Native tmpfs type/flags/size and
+  actual fixture behavior are separately checked; this is not a systemd upgrade
+  or an installed Aetheri sandbox.
+
 ## Protected current runtime and KMS — 10 November 2026
 
 - [Execution record](journal/2026-11-10-current-runtime.md),

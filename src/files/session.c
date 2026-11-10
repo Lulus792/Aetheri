@@ -211,7 +211,7 @@ void ae_files_session_activate(struct ae_files_session *a) {
     if (ae_files_session_busy(a) || a->child.pid>0) { ae_files_session_message(a,ae_files_session_tr(a,"One document window at a time","Nur ein Dokumentfenster gleichzeitig"));return; }
     int directory=-1,witness=-1;char leaf[AE_FILES_NAME+1];enum ae_files_result r=ae_files_open_selected(a->files,&directory,&witness,leaf);
     if (r!=AE_FILES_OK) { ae_files_session_result(a,r);return; }
-    ++a->launches;int spawned=ae_files_launch(&a->child,a->terminal,a->editor,a->terminal_font,a->cache,directory,witness,leaf,a->diagnostics);close(directory);close(witness);
+    ++a->launches;int spawned=ae_files_launch_profile(&a->child,a->terminal,a->editor,a->terminal_font,a->terminal_bold_font,a->cache,directory,witness,leaf,a->diagnostics);close(directory);close(witness);
     if (spawned) ae_files_session_message(a,ae_files_session_tr(a,"Could not start the document window","Dokumentfenster konnte nicht gestartet werden"));
     else { ae_files_session_message(a,ae_files_session_tr(a,"Document window requested","Dokumentfenster angefordert"));if (a->diagnostics) printf("OPEN pid=%d pin=%d\n",a->child.pid,a->child.pin>=0); }
 }

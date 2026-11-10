@@ -322,27 +322,33 @@ def terminal_selection(build_profile, ui):
         raise RuntimeError("Terminal candidate check failed") from error
 
 
-def application_command(role, build, cache, settings_profile=None, files_profile=None, terminal_profile=None):
+def application_command(role, build, cache, settings_profile=None, files_profile=None, terminal_profile=None,
+                        *, ui=None, terminal_font=None, terminal_bold_font=None):
+    ui = UI if ui is None else ui
+    terminal_font = TERMINAL_FONT if terminal_font is None else terminal_font
+    terminal_bold_font = TERMINAL_BOLD_FONT if terminal_bold_font is None else terminal_bold_font
     if role == "settings":
         if settings_profile is not None:
             executable = settings_profile["presentation"]["binary"] if "presentation" in settings_profile else str(Path(settings_profile["build"]) / "consumer-build/aetheri_model_view")
             return [executable,
-                    "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"), "--cache", str(cache), "--diagnostics"]
-        return [str(build / "aetheri-settings"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                    "--font", str(ui / "share/aetheri-fonts/LiberationSans-Regular.ttf"), "--cache", str(cache), "--diagnostics"]
+        return [str(build / "aetheri-settings"), "--font", str(ui / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                 "--cache", str(cache), "--diagnostics"]
     if role == "terminal":
         executable = terminal_profile["presentation"]["binary"] if terminal_profile is not None else str(build / "aetheri-terminal")
-        command = [executable, "--shell", str(build / "aetheri-shell"), "--font", str(TERMINAL_FONT), "--cache", str(cache), "--diagnostics"]
-        if terminal_profile is not None: command += ["--bold-font", str(TERMINAL_BOLD_FONT)]
-        if terminal_profile is not None and terminal_profile["presentation"]["kind"] == "aetheri-terminal-v2":
+        command = [executable, "--shell", str(build / "aetheri-shell"), "--font", str(terminal_font), "--cache", str(cache), "--diagnostics"]
+        if terminal_profile is not None: command += ["--bold-font", str(terminal_bold_font)]
+        if terminal_profile is not None and "starter" in terminal_profile["presentation"]:
             command += ["--pty-starter", terminal_profile["presentation"]["starter"]["binary"]]
         return command
     if role == "files":
         executable = files_profile["presentation"]["binary"] if files_profile is not None else str(build / "aetheri-files")
-        return [executable, "--root", str(cache.parent / "documents"),
-                "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
-                "--terminal-font", str(TERMINAL_FONT), "--cache", str(cache),
+        command = [executable, "--root", str(cache.parent / "documents"),
+                "--font", str(ui / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                "--terminal-font", str(terminal_font), "--cache", str(cache),
                 "--terminal", terminal_profile["presentation"]["binary"] if terminal_profile is not None else str(build / "aetheri-terminal"), "--editor", str(build / "aetheri-editor"), "--diagnostics"]
+        if terminal_profile is not None: command += ["--terminal-bold-font", str(terminal_bold_font)]
+        return command
     raise ValueError("unknown fixed development application")
 
 
@@ -751,39 +757,46 @@ def observation(record):
 
 def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", settings_binding=None,
               files_ui="sdl", files_binding=None, terminal_ui="sdl", terminal_binding=None, temporary_profile=None,
-              keyboard_layout=None, keyboard_binding=None):
+              keyboard_layout=None, keyboard_binding=None, current_runtime=None):
     if os.getuid() != 1000 or os.getuid() != os.geteuid():
         raise RuntimeError("development supervisor requires the ordinary carrier account")
     if keyboard_binding != keyboard_fingerprint(keyboard_layout):
         raise RuntimeError("original keyboard selection changed before supervision")
+    runtime = None
+    if current_runtime is not None:
+        import development_runtime
+        runtime = development_runtime.Runtime(current_runtime, profile, desktop, settings_ui, files_ui, terminal_ui)
     if settings_ui not in SETTINGS_UIS or (settings_ui != "sdl" and not desktop):
         raise RuntimeError("Settings UI requires its selected desktop profile")
     if temporary_profile not in (None, TEMPORARY_PROFILE):
         raise RuntimeError("invalid supervised temporary profile")
     if temporary_profile is not None:
         print("TEMPORARY " + json.dumps(temporary_area()), flush=True)
-    selected = settings_selection(profile, settings_ui)
+    selected = runtime.selection('settings') if runtime else settings_selection(profile, settings_ui)
     expected_binding = settings_fingerprint(selected) if selected is not None else None
     if settings_binding != expected_binding:
         raise RuntimeError("original Settings selection changed before supervision")
     if files_ui not in FILES_UIS or (files_ui != "sdl" and not desktop):
         raise RuntimeError("Files UI requires its selected desktop profile")
-    files_profile = files_selection(profile, files_ui)
+    files_profile = runtime.selection('files') if runtime else files_selection(profile, files_ui)
     expected_files = profile_fingerprint(files_profile) if files_profile is not None else None
     if files_binding != expected_files: raise RuntimeError("original Files selection changed before supervision")
     if terminal_ui not in TERMINAL_UIS or (terminal_ui != "sdl" and not desktop):
         raise RuntimeError("Terminal UI requires its selected desktop profile")
-    terminal_profile = terminal_selection(profile, terminal_ui)
+    terminal_profile = runtime.selection('terminal') if runtime else terminal_selection(profile, terminal_ui)
     expected_terminal = profile_fingerprint(terminal_profile) if terminal_profile is not None else None
     if terminal_binding != expected_terminal: raise RuntimeError("original Terminal selection changed before supervision")
     base = USER_ROOT / token
     for path in (base, base / "runtime", base / "cache"): owned(path, 1000, 0o700, directory=True)
     if desktop: owned(base / "documents", 1000, 0o700, directory=True)
-    build = build_for(profile)
+    build = runtime.build if runtime else build_for(profile)
+    ui = runtime.ui if runtime else UI
+    assets = dict(ui=ui, terminal_font=runtime.font, terminal_bold_font=runtime.bold_font) if runtime else {}
     env = {**os.environ, "XDG_RUNTIME_DIR": str(base / "runtime"), "LIBSEAT_BACKEND": "logind",
            "WAYLAND_DISPLAY": "aetheri-development", "LIBGL_ALWAYS_SOFTWARE": "1",
            "GALLIUM_DRIVER": "llvmpipe", "LP_NUM_THREADS": "2"}
     for key in ("WAYLAND_SOCKET", "DISPLAY", "SDL_VIDEO_DRIVER", "SDL_RENDER_DRIVER"): env.pop(key, None)
+    if runtime: env = runtime.environment(env)
     selector = selectors.DefaultSelector()
     reader, writer = socket.socketpair(); reader.setblocking(False); writer.setblocking(False)
     old_wakeup = signal.set_wakeup_fd(writer.fileno())
@@ -882,21 +895,26 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                     if child and child.poll() is None: reply(b"A" + suffix); continue
                     if child or launches[role] >= 128: reply(b"E" + suffix); continue
                     launches[role] += 1
-                    if role == "settings" and selected is not None:
+                    if runtime:
+                        try: runtime.recheck()
+                        except (OSError, ValueError) as error:
+                            print("CURRENT_RUNTIME_REJECTED " + role + " " + str(error), flush=True)
+                            reply(b"E" + suffix); continue
+                    if not runtime and role == "settings" and selected is not None:
                         try:
                             if settings_selection(profile, settings_ui) != selected:
                                 raise RuntimeError("original Settings selection changed before spawn")
                         except RuntimeError as error:
                             print("SETTINGS_PROFILE_REJECTED " + str(error), flush=True)
                             reply(b"E" + suffix); continue
-                    if role == "files" and files_profile is not None:
+                    if not runtime and role == "files" and files_profile is not None:
                         try:
                             if files_selection(profile, files_ui) != files_profile:
                                 raise RuntimeError("original Files selection changed before spawn")
                         except RuntimeError as error:
                             print("FILES_PROFILE_REJECTED " + str(error), flush=True)
                             reply(b"E" + suffix); continue
-                    if role in ("terminal", "files") and terminal_profile is not None:
+                    if not runtime and role in ("terminal", "files") and terminal_profile is not None:
                         try:
                             if terminal_selection(profile, terminal_ui) != terminal_profile:
                                 raise RuntimeError("original Terminal selection changed before spawn")
@@ -904,7 +922,7 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                             print("TERMINAL_PROFILE_REJECTED " + role + " " + str(error), flush=True)
                             reply(b"E" + suffix); continue
                     try:
-                        spawn(role, application_command(role, build, base / "cache", selected, files_profile, terminal_profile))
+                        spawn(role, application_command(role, build, base / "cache", selected, files_profile, terminal_profile, **assets))
                     except OSError:
                         # Popen reports an exec failure after reaping its failed child.
                         if role in children: raise  # Later pipe setup failed after a real spawn.
@@ -927,7 +945,7 @@ def supervise(profile, token, desktop=False, compose=False, settings_ui="sdl", s
                         ready.add(role)
                         if role == "compositor" and not stopping:
                             if desktop:
-                                spawn("desktop", [str(build / "aetheri-desktop"), "--font", str(UI / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
+                                spawn("desktop", [str(build / "aetheri-desktop"), "--font", str(ui / "share/aetheri-fonts/LiberationSans-Regular.ttf"),
                                                   "--cache", str(base / "cache"), "--launcher-fd", str(launch_client.fileno()), "--diagnostics"],
                                       (shell_client.fileno(), launch_client.fileno()), {**env, "WAYLAND_SOCKET": str(shell_client.fileno())})
                                 shell_client.close(); launch_client.close()

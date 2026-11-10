@@ -6,7 +6,10 @@ compositor/input runs pass actual KMS display, PS/2/Wayland delivery, original
 retirement and card reacquisition with checked code mappings. The older carrier
 dependency/build path below remains historical and available; current runtime
 selection is explicit and does not promote normal source/build/service defaults.
-The complete current desktop/app owner still needs that runtime integration.
+The real desktop/app owner now has an explicit protected-runtime binding and an
+actual one-display KMS app/save/shutdown workflow; read the linked runtime contract
+and [execution record](../brains/aetheri/journal/2026-11-10-current-desktop-owner.md).
+Normal service/device/session admission remains open.
 
 4 November 2026. The optional compositor can now use an actual KMS connector and
 evdev input on the dedicated Fedora carrier. This extends the private

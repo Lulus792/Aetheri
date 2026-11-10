@@ -463,10 +463,10 @@ int main(int argc,char **argv) {
     struct app a={.wake={-1,-1}};const char *root=NULL,*font=NULL;
     ae_files_session_init(&a.session,start_worker,join_worker,&a);
     for (int i=1;i<argc;++i) {
-        const char **slot=!strcmp(argv[i],"--root") ? &root : !strcmp(argv[i],"--font") ? &font : !strcmp(argv[i],"--cache") ? &a.session.cache : !strcmp(argv[i],"--terminal") ? &a.session.terminal : !strcmp(argv[i],"--editor") ? &a.session.editor : !strcmp(argv[i],"--terminal-font") ? &a.session.terminal_font : NULL;
+        const char **slot=!strcmp(argv[i],"--root") ? &root : !strcmp(argv[i],"--font") ? &font : !strcmp(argv[i],"--cache") ? &a.session.cache : !strcmp(argv[i],"--terminal") ? &a.session.terminal : !strcmp(argv[i],"--editor") ? &a.session.editor : !strcmp(argv[i],"--terminal-font") ? &a.session.terminal_font : !strcmp(argv[i],"--terminal-bold-font") ? &a.session.terminal_bold_font : NULL;
         if (slot && !*slot && i+1<argc) *slot=argv[++i];else if (!strcmp(argv[i],"--diagnostics") && !a.session.diagnostics) a.session.diagnostics=true;else return 2;
     }
-    struct stat st;if (!root || !font || !a.session.cache || !a.session.terminal || !a.session.editor || !a.session.terminal_font || root[0]!='/' || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || lstat(a.session.cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
+    struct stat st;if (!root || !font || !a.session.cache || !a.session.terminal || !a.session.editor || !a.session.terminal_font || root[0]!='/' || (a.session.terminal_bold_font && a.session.terminal_bold_font[0]!='/') || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || lstat(a.session.cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
     setvbuf(stdout,NULL,_IOLBF,0);int fd=open(root,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);enum ae_files_result r;a.session.files=fd<0 ? NULL : ae_files_create(fd,&r);if (fd>=0) close(fd);if (!a.session.files) return 1;
     const char *end=root+strlen(root);while (end>root+1 && end[-1]=='/') --end;const char *leaf=end;while (leaf>root && leaf[-1]!='/') --leaf;
     if (leaf==end) snprintf(a.session.root_label,sizeof(a.session.root_label),"%s",ae_files_session_tr(&a.session,"Filesystem","Dateisystem"));

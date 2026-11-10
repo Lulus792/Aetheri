@@ -5,11 +5,16 @@ inventory and a fresh-copy preparer. It supports explicit tests on the existing
 development carrier. Normal installed app/session admission and a new OS image
 remain separate work.
 
+The real development supervisor now accepts an explicit protected-runtime binding.
+The complete desktop/Files/Editor/Terminal/Shell/Settings workflow has passed an
+actual KMS session, including original process/session/group retirement. See the
+[execution record](../brains/aetheri/journal/2026-11-10-current-desktop-owner.md).
+
 ## Contents and footprint
 
 [current-desktop-runtime-inputs.json](current-desktop-runtime-inputs.json) binds
 200 regular files, 47 direct aliases and 49 attributed components. The regular
-payload is 244,711,789 bytes, about 233.4 MiB. It contains:
+payload is 244,711,837 bytes, about 233.4 MiB. It contains:
 
 - The nine current original programs: compositor, desktop, own Settings/Files/
   Terminal views, PTY starter, shell, modal editor and graphical text editor.
@@ -20,7 +25,7 @@ payload is 244,711,789 bytes, about 233.4 MiB. It contains:
 
 LLVM accounts for 147,082,848 bytes and Mesa Gallium for 55,510,872 bytes. They
 provide the reviewed software graphics path; their presence is not evidence of
-hardware acceleration. The remaining payload is 42,118,069 bytes. These are disk
+hardware acceleration. The remaining payload is 42,118,117 bytes. These are disk
 sizes, not a measurement of resident RAM or the future full system footprint.
 Mesa's actual X11-related transitive libraries remain attributed even though the
 apps select Wayland; deleting them does not establish a valid smaller closure.
@@ -98,8 +103,44 @@ reacquisition. Each compositor has 25 checked executable-file mappings. Original
 tty1 and input/udev baselines return. See the
 [execution record](../brains/aetheri/journal/2026-11-10-current-runtime.md).
 
-Next integrate the protected inventory with the existing full desktop/app owner
-and repeat real graphical app workflows in that session. The headless current-app
-tests and this KMS/input proof have different scopes. Normal admission, trusted
-lock/resume, physical laptop/monitor acceptance and the agreed first-version USB
-gate remain open.
+## Explicit desktop owner binding
+
+`development_runtime.Runtime` binds a canonical protected root to the independently
+selected current profile fingerprint. Its `aetheri-current-desktop-v1` projection
+has its own kind; it cannot be interpreted as an old mutable-SDK/CMake receipt.
+Only the complete Release desktop with the three owned app views is accepted.
+`development_session.supervise(..., current_runtime=BINDING)` also requires the
+original per-role fingerprints. This private in-process entry point is not added
+to the normal controller CLI, installed registry or closed historical records.
+
+The supervisor retains its existing launch slots, exact original children/pipes
+and ordered shutdown. It checks the complete protected inventory once before
+startup and before each fresh app launch. A rejected new attempt receives an
+error without spawning; already running children keep their original owners.
+The runtime supplies all program/font paths and explicit flat library/Mesa/quirk
+paths. Inherited library/renderer overrides are removed. SDL's video backend
+remains selected by each app's existing hint; setting `SDL_VIDEO_DRIVER` in the
+environment would make those hint checks fail even for the same backend.
+
+Files passes its selected bold Terminal font through the additive literal launch
+profile. This avoids an implicit carrier font when it opens the editor. Neither
+font selection nor these development FDs imply a document grant or sandbox.
+Rechecks are observations, not atomic executable pins or protection against a
+hostile Root writer. The caller still owes the independently admitted fresh copy.
+
+The explicit `test_current_desktop_session.py` fixture uses the real compositor,
+desktop and native apps in an ordinary UID1000 PAM/logind session, with a private
+1-GiB `/tmp`. A test-only stopped Python supervisor lets Root retain its original
+pidfd/scope/group observations before compositor startup. It adds no input global,
+installed login manager or MAC permission. Actual QMP hardware input selects
+Files, edits/saves its document, writes through the own shell and opens Settings.
+The host explicitly closes the saved document during ordered shutdown; Files
+does not terminate or discard it automatically. Unknown results retain the Root
+keeper and original observations. A timeout does not authorize a new attempt.
+
+The final controller exits zero with all original actors, session and groups
+ended, then removes only its exact PAM fixture and restores tty1. Eight actual
+code-map records cover compositor, desktop, Files, both Terminals, editor, shell
+and Settings. This one-display lab workflow is separate from normal admission,
+trusted lock/resume, three physical monitors, laptop acceptance and full image
+closure. The agreed first-version USB gate remains open.

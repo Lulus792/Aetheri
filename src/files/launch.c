@@ -11,9 +11,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 extern char **environ;
-int ae_files_launch(struct ae_files_child *c,const char *terminal,const char *editor,const char *font,const char *cache,int directory,int witness,const char *leaf,bool diagnostics) {
+int ae_files_launch_profile(struct ae_files_child *c,const char *terminal,const char *editor,const char *font,const char *bold_font,const char *cache,int directory,int witness,const char *leaf,bool diagnostics) {
     struct stat st;
-    if (!c || c->pid>0 || !terminal || terminal[0]!='/' || !editor || editor[0]!='/' || !font || font[0]!='/' || !cache || cache[0]!='/' || !leaf || !*leaf || strlen(leaf)>255 || strchr(leaf,'/') || !strcmp(leaf,".") || !strcmp(leaf,"..") || directory<3 || witness<3 ||
+    if (!c || c->pid>0 || !terminal || terminal[0]!='/' || !editor || editor[0]!='/' || !font || font[0]!='/' || (bold_font && bold_font[0]!='/') || !cache || cache[0]!='/' || !leaf || !*leaf || strlen(leaf)>255 || strchr(leaf,'/') || !strcmp(leaf,".") || !strcmp(leaf,"..") || directory<3 || witness<3 ||
         fstat(directory,&st) || !S_ISDIR(st.st_mode) || fstat(witness,&st) || !S_ISREG(st.st_mode)) { errno=EINVAL;return -1; }
     struct sigaction inherited;if (getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || sigaction(SIGCHLD,NULL,&inherited) || inherited.sa_handler==SIG_IGN || (inherited.sa_flags&SA_NOCLDWAIT)) { errno=EINVAL;return -1; }
     int dir=fcntl(directory,F_DUPFD_CLOEXEC,5),file=fcntl(witness,F_DUPFD_CLOEXEC,5);
@@ -29,13 +29,19 @@ int ae_files_launch(struct ae_files_child *c,const char *terminal,const char *ed
         !(e=posix_spawn_file_actions_addfchdir_np(&actions,3)) && !(e=posix_spawn_file_actions_addclosefrom_np(&actions,5)) &&
         !(e=posix_spawnattr_setpgroup(&attributes,0)) && !(e=posix_spawnattr_setsigmask(&attributes,&empty)) &&
         !(e=posix_spawnattr_setflags(&attributes,POSIX_SPAWN_SETPGROUP|POSIX_SPAWN_SETSIGMASK))) {
-        char *argv[]={(char *)terminal,"--editor",(char *)editor,"--open-leaf",(char *)leaf,"--font",(char *)font,"--cache",(char *)cache,diagnostics ? "--diagnostics" : NULL,NULL};
+        char *argv[13]={(char *)terminal,"--editor",(char *)editor,"--open-leaf",(char *)leaf,"--font",(char *)font,"--cache",(char *)cache};
+        size_t n=9;if (bold_font) { argv[n++]="--bold-font";argv[n++]=(char *)bold_font; }
+        if (diagnostics) argv[n++]="--diagnostics";
+        argv[n]=NULL;
         pid_t pid=-1;e=posix_spawn(&pid,terminal,&actions,&attributes,argv,environment);
         if (!e) { *c=(struct ae_files_child){.pid=pid,.pin=(int)syscall(SYS_pidfd_open,pid,0)}; }
     }
     posix_spawnattr_destroy(&attributes);posix_spawn_file_actions_destroy(&actions);
 done:
     free(environment);close(dir);close(file);if (e) { errno=e;return -1; }return 0;
+}
+int ae_files_launch(struct ae_files_child *c,const char *terminal,const char *editor,const char *font,const char *cache,int directory,int witness,const char *leaf,bool diagnostics) {
+    return ae_files_launch_profile(c,terminal,editor,font,NULL,cache,directory,witness,leaf,diagnostics);
 }
 int ae_files_child_observe(struct ae_files_child *c) {
     if (!c || c->pid<=0) { errno=EINVAL;return -1; }
