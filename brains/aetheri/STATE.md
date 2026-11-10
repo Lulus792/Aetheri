@@ -1,6 +1,6 @@
 # State
 
-10 November 2026 — The protected current runtime now works with the real full desktop/app owner in an actual KMS session. Native input opens Files/editor, saves exact text, writes through the own shell and opens Settings; all original actors/session/groups then end and tty1 returns. Fresh Release/memory builds each pass 36 model cases; native controls pass 54 without skips. All 784 build-export and 514 session-export files match. Packages, original udev and enforcing policy remain unchanged; no selected code remains mapped. Next advance normal session/service/device integration and complete system runtime closure. Normal installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
+10 November 2026 — The existing native C desktop owner now passes complete protected-runtime KMS app/save/shutdown workflows and actual active-VT-loss rejection. A shared read-only self-session observer checks the original context before effects and through the existing event loop, without another process/thread. Release/memory standalone and pinned CMake checks pass; native controls pass 55 without skips. All 2,718 export files and 2,510 submitted inputs match. Next connect normal session/service/device integration and complete system runtime closure. Normal login, lock/suspend, installed app admission and the broader first-version scope remain open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
 
@@ -28,7 +28,32 @@ NexaUI SDK implementation has its own owner; resume the current Aetheri task bel
 Preserve the quarantined old runtime. The UI milestones below do not
 resolve its provenance or lifecycle obligations.
 
-## Protected current desktop owner — 10 November 2026
+## Native desktop owner and session boundary — 10 November 2026
+
+The [native owner/session record](journal/2026-11-10-native-session-owner.md)
+reuses the existing C owner instead of retaining a Python product supervisor.
+Source `src/linux/session.h` binds self pidfd/kernel credentials/cgroup and exact
+original session/scope/cgroup, subscribes before capture, rechecks without events
+and permanently latches observed loss. It does not authenticate a login or grant
+app authority. See [contract](../../spec/session.md#native-desktop-owner-and-original-session-observation).
+
+Final full KMS source `/run/a-ns-ef00c554367c`, output
+`/root/aetheri-native-desktop-ef00c554367c4153a1c5951bbde8ac9f` reaches `retired`;
+host controller 45646/input 69655 exit 0, all five direct children exit 0, nine
+original actors/maps end, tty1 returns. The separate active-seat-loss controller
+also reaches `retired` after the expected native exit 1/loss 2. Preserve the first
+full native workflow's timeout/manual retirement; never replay its effects.
+Standalone source `/var/tmp/a-session-081ce4b2da82` passes ten commands; pinned
+CMake Release/memory each build owner/test and pass `linux.session`. The no-event
+snapshot mutant fails as expected. All 2,718 export files/2,510 submitted inputs
+match; native controls 55 pass, host 71 pass/16 platform skips (87 cases).
+The protected runtime is unchanged and rechecked. Packages, udev693/original
+invocation, enforcing 1, absent fixture PAM/local seat and unmapped selected code
+are verified. The restricted audio VM remains live; revalidate before dispatch.
+Next advance normal session/service provisioning, device integration and full
+system runtime closure. USB release gate and NexaUI maintenance-only rule stand.
+
+## Protected current desktop owner — earlier 10 November 2026
 
 Read the [execution record](journal/2026-11-10-current-desktop-owner.md) and
 [updated runtime contract](../../spec/current-desktop-runtime.md). The private

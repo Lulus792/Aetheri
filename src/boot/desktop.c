@@ -19,11 +19,34 @@
 #include <time.h>
 #include <unistd.h>
 #include <linux/close_range.h>
+#include <limits.h>
+#include "../linux/session.h"
 
-#define BIN "/usr/libexec/aetheri/"
-#define SANS "/usr/share/aetheri/fonts/LiberationSans-Regular.ttf"
-#define MONO "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf"
-#define BOLD "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf"
+/* Build-selected paths. The image keeps these defaults; a separate, explicitly
+   reviewed lab binary can bind the protected runtime without altering the host.
+   These constants are not runtime caller authority or package admission. */
+#ifndef AETHERI_DESKTOP_BIN
+#define AETHERI_DESKTOP_BIN "/usr/libexec/aetheri/"
+#endif
+#ifndef AETHERI_DESKTOP_SANS
+#define AETHERI_DESKTOP_SANS "/usr/share/aetheri/fonts/LiberationSans-Regular.ttf"
+#endif
+#ifndef AETHERI_DESKTOP_MONO
+#define AETHERI_DESKTOP_MONO "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf"
+#endif
+#ifndef AETHERI_DESKTOP_BOLD
+#define AETHERI_DESKTOP_BOLD "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Bold.ttf"
+#endif
+#ifndef AETHERI_DESKTOP_LIBRARIES
+#define AETHERI_DESKTOP_LIBRARIES "/usr/lib/aetheri/runtime"
+#endif
+#ifndef AETHERI_DESKTOP_DOCUMENTS
+#define AETHERI_DESKTOP_DOCUMENTS "/home/aetheri/Documents"
+#endif
+#define BIN AETHERI_DESKTOP_BIN
+#define SANS AETHERI_DESKTOP_SANS
+#define MONO AETHERI_DESKTOP_MONO
+#define BOLD AETHERI_DESKTOP_BOLD
 enum role { COMPOSITOR, DESKTOP, FILES, TERMINAL, SETTINGS, ROLE_COUNT };
 static const char *const names[]={"compositor","desktop","files","terminal","settings"};
 struct child {
@@ -42,7 +65,7 @@ static double now(void) { struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)
  * writer and reaps this known no-exec child; it never signals a numeric PID. */
 static bool spawn(struct child *c,char *const argv[],const int *pass,size_t count) {
     int logs[2],gate[2];
-    if(c->pid || count>2 || (count && !pass))return false;
+    if(!c || !argv || !argv[0] || argv[0][0]!='/' || c->pid || count>2 || (count && !pass))return false;
     for(int fd=0;fd<3;++fd)if(fcntl(fd,F_GETFD)<0)return false;
     for(size_t i=0;i<count;++i)if(pass[i]<3 || fcntl(pass[i],F_GETFD)<0)return false;
     if(pipe2(logs,O_CLOEXEC))return false;
@@ -78,6 +101,11 @@ static bool spawn(struct child *c,char *const argv[],const int *pass,size_t coun
     if(close(gate[1]))ok=false;
     printf("SPAWN pid=%ld\n",(long)pid);
     return ok; /* A later failure retains c and its original pin/output. */
+}
+static bool spawn_role(struct child *c,enum role role,char *const argv[],const int *pass,size_t count) {
+    bool result=spawn(c,argv,pass,count);
+    if(c->pid)printf("SPAWN %s %ld\n",names[role],(long)c->pid);
+    return result;
 }
 
 static int packet(int fd) {
@@ -151,57 +179,66 @@ static bool retire(struct child *children) {
     }
     return true;
 }
-static bool environment(char *runtime,size_t size,char *cache,size_t cache_size) {
+static bool session_live(struct ae_session *session) {
+    unsigned loss=0;int result=ae_session_check(session,&loss);
+    if(result<0 || loss) {printf("AETHERI_SESSION_LOST result=%d loss=%u\n",result,loss);return false;}
+    return true;
+}
+static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,struct ae_session **session) {
     if(getuid()!=1000 || geteuid()!=1000 || getgid()!=1000 || getegid()!=1000)return false;
-    FILE *status=fopen("/proc/self/status","re");char line[256];bool caps=false,nnp=false;
+    FILE *status=fopen("/proc/self/status","re");char line[256];unsigned caps=0;bool nnp=false;
     if(!status)return false;
     while(fgets(line,sizeof(line),status)){
-        if(!strcmp(line,"CapEff:\t0000000000000000\n"))caps=true;
+        if(!strcmp(line,"CapEff:\t0000000000000000\n"))caps|=1;
+        if(!strcmp(line,"CapPrm:\t0000000000000000\n"))caps|=2;
+        if(!strcmp(line,"CapInh:\t0000000000000000\n"))caps|=4;
+        if(!strcmp(line,"CapAmb:\t0000000000000000\n"))caps|=8;
         if(!strcmp(line,"NoNewPrivs:\t1\n"))nnp=true;
     }
-    if(fclose(status) || !caps || !nnp)return false;
-    char *session=NULL,*seat=NULL,*type=NULL,*class=NULL;uid_t uid=0;
-    bool ok=sd_pid_get_session(0,&session)>=0 && sd_session_get_uid(session,&uid)>=0 && uid==1000 && sd_session_get_seat(session,&seat)>=0 && !strcmp(seat,"seat0") && sd_session_get_type(session,&type)>=0 && !strcmp(type,"wayland") && sd_session_get_class(session,&class)>=0 && !strcmp(class,"user");
-    free(session);free(seat);free(type);free(class);
+    if(fclose(status) || caps!=15 || !nnp || ae_session_open(1000,"seat0",session)<0)return false;
     const char *original=getenv("XDG_RUNTIME_DIR");struct stat info;
-    if(!ok || !original || lstat(original,&info) || !S_ISDIR(info.st_mode) || info.st_uid!=1000 || (info.st_mode&07777)!=0700)return false;
-    int n=snprintf(runtime,size,"%s/aetheri",original);
-    if(n<0 || (size_t)n>=size || mkdir(runtime,0700))return false;
+    if(!original || lstat(original,&info) || !S_ISDIR(info.st_mode) || info.st_uid!=1000 || (info.st_mode&07777)!=0700)return false;
+    int n=snprintf(runtime,size,"%s/aetheri-XXXXXX",original);
+    if(n<0 || (size_t)n>=size || !mkdtemp(runtime))return false;
     n=snprintf(cache,cache_size,"%s/cache",runtime);
     if(n<0 || (size_t)n>=cache_size || mkdir(cache,0700))return false;
-    return setenv("XDG_RUNTIME_DIR",runtime,1)==0 && setenv("WAYLAND_DISPLAY","aetheri-image",1)==0 && setenv("LIBSEAT_BACKEND","logind",1)==0 && setenv("LIBGL_ALWAYS_SOFTWARE","1",1)==0 && setenv("GALLIUM_DRIVER","llvmpipe",1)==0 && setenv("LP_NUM_THREADS","2",1)==0 && setenv("LD_LIBRARY_PATH","/usr/lib/aetheri/runtime",1)==0 && setenv("PATH",BIN ":/usr/bin",1)==0 && unsetenv("DISPLAY")==0 && unsetenv("WAYLAND_SOCKET")==0;
+    printf("AETHERI_RUNTIME path=%s cache=%s\n",runtime,cache);
+    return setenv("XDG_RUNTIME_DIR",runtime,1)==0 && setenv("WAYLAND_DISPLAY","aetheri-image",1)==0 && setenv("LIBSEAT_BACKEND","logind",1)==0 && setenv("LIBGL_ALWAYS_SOFTWARE","1",1)==0 && setenv("GALLIUM_DRIVER","llvmpipe",1)==0 && setenv("LP_NUM_THREADS","2",1)==0 && setenv("LD_LIBRARY_PATH",AETHERI_DESKTOP_LIBRARIES,1)==0 && setenv("PATH",BIN ":/usr/bin",1)==0 && unsetenv("DISPLAY")==0 && unsetenv("WAYLAND_SOCKET")==0;
 }
-static bool app_start(struct child *c,enum role role,char *cache) {
+static bool app_start(struct child *c,enum role role,char *cache,struct ae_session *session) {
+    if(!session_live(session))return false;
     char *settings[]={BIN "aetheri-settings-nexaui","--font",SANS,"--cache",cache,"--diagnostics",NULL};
     char *terminal[]={BIN "aetheri-terminal-nexaui","--shell",BIN "aetheri-shell","--pty-starter",BIN "aetheri-terminal-pty-starter","--font",MONO,"--bold-font",BOLD,"--cache",cache,"--diagnostics",NULL};
-    char *files[]={BIN "aetheri-files-nexaui","--root","/home/aetheri/Documents","--font",SANS,"--terminal-font",MONO,"--cache",cache,"--terminal",BIN "aetheri-terminal-nexaui","--editor",BIN "aetheri-editor","--diagnostics",NULL};
-    return spawn(c,role==SETTINGS?settings:role==TERMINAL?terminal:files,NULL,0);
+    char *files[]={BIN "aetheri-files-nexaui","--root",AETHERI_DESKTOP_DOCUMENTS,"--font",SANS,"--terminal-font",MONO,"--terminal-bold-font",BOLD,"--cache",cache,"--terminal",BIN "aetheri-terminal-nexaui","--editor",BIN "aetheri-editor","--diagnostics",NULL};
+    return spawn_role(c,role,role==SETTINGS?settings:role==TERMINAL?terminal:files,NULL,0);
 }
 
 int main(void) {
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
-    char runtime[512],cache[512];setvbuf(stdout,NULL,_IOLBF,0);
-    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache))){fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
+    char runtime[512],cache[512];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
+    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
     sigset_t mask;sigemptyset(&mask);sigaddset(&mask,SIGCHLD);sigaddset(&mask,SIGTERM);sigaddset(&mask,SIGINT);
-    if(sigprocmask(SIG_BLOCK,&mask,NULL) || signal(SIGCHLD,SIG_DFL)==SIG_ERR || signal(SIGPIPE,SIG_IGN)==SIG_ERR)return 1;
+    if(sigprocmask(SIG_BLOCK,&mask,NULL) || signal(SIGCHLD,SIG_DFL)==SIG_ERR || signal(SIGPIPE,SIG_IGN)==SIG_ERR){ae_session_close(&session);return 1;}
     int signals=signalfd(-1,&mask,SFD_CLOEXEC|SFD_NONBLOCK),shell[2]={-1,-1},launch[2]={-1,-1};
-    if(signals<0 || socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,shell) || socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,launch) || !nonblock(launch[0]))return 1;
+    if(signals<0 || socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,shell) || socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,launch) || !nonblock(launch[0])){
+        close_fd(&signals);for(unsigned i=0;i<2;++i){close_fd(&shell[i]);close_fd(&launch[i]);}ae_session_close(&session);return 1;
+    }
     char shell_number[32],launch_number[32];snprintf(shell_number,sizeof(shell_number),"%d",shell[0]);
     char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","auto","--shell-fd",shell_number,"--compose",NULL};
-    bool failed=!spawn(&children[COMPOSITOR],compositor,&shell[0],1),stopping=failed,notified=false;
+    bool failed=!session_live(session) || !spawn_role(&children[COMPOSITOR],COMPOSITOR,compositor,&shell[0],1),stopping=failed,notified=false,fence_logged=false;
     close_fd(&shell[0]);unsigned launches[ROLE_COUNT]={0};double deadline=now()+60;
     while(true){
+        if(!stopping && !session_live(session)){failed=true;stopping=true;}
         for(size_t i=0;i<ROLE_COUNT;++i)if(!reap(&children[i])){failed=true;stopping=true;}
         if(!stopping && children[COMPOSITOR].ready && !children[DESKTOP].pid){
             snprintf(shell_number,sizeof(shell_number),"%d",shell[1]);snprintf(launch_number,sizeof(launch_number),"%d",launch[1]);
             int pass[]={shell[1],launch[1]};
             char *desktop[]={BIN "aetheri-desktop","--font",SANS,"--cache",cache,"--launcher-fd",launch_number,"--diagnostics",NULL};
-            if(setenv("WAYLAND_SOCKET",shell_number,1) || !spawn(&children[DESKTOP],desktop,pass,2)){failed=true;stopping=true;}
+            if(!session_live(session) || setenv("WAYLAND_SOCKET",shell_number,1) || !spawn_role(&children[DESKTOP],DESKTOP,desktop,pass,2)){failed=true;stopping=true;}
             unsetenv("WAYLAND_SOCKET");close_fd(&shell[1]);close_fd(&launch[1]);
         }
         if(!stopping && !notified && children[COMPOSITOR].ready && children[DESKTOP].ready && children[DESKTOP].layout){
-            char *session=NULL;bool active=sd_pid_get_session(0,&session)>=0 && sd_session_is_active(session)>0;free(session);
-            if(!active || sd_notify(0,"READY=1\nSTATUS=Aetheri image desktop submitted its first frame")<=0){failed=true;stopping=true;}
+            if(!session_live(session) || sd_notify(0,"READY=1\nSTATUS=Aetheri image desktop submitted its first frame")<=0){failed=true;stopping=true;}
             else{notified=true;puts("AETHERI_DESKTOP_READY uid=1000 cap_zero=1 seat=seat0");}
         }
         for(size_t i=0;i<ROLE_COUNT;++i){
@@ -217,18 +254,31 @@ int main(void) {
         }
         if(!stopping && !notified && now()>=deadline){failed=true;stopping=true;}
         if(stopping){
+            if(!fence_logged){puts("STOPPING");fence_logged=true;}
             close_fd(&launch[1]);close_fd(&shell[1]);
             if(retire(children))break;
         }
-        struct pollfd fds[ROLE_COUNT+2];int roles[ROLE_COUNT+2];nfds_t count=0;
+        struct pollfd fds[ROLE_COUNT+3];int roles[ROLE_COUNT+3];nfds_t count=0;uint64_t until=UINT64_MAX;
         fds[count]=(struct pollfd){.fd=signals,.events=POLLIN};roles[count++]=-1;
+        if(!stopping){
+            if(ae_session_poll(session,&fds[count],&until)<0){failed=true;stopping=true;continue;}
+            roles[count++]=-3;
+        }
         if(!stopping){fds[count]=(struct pollfd){.fd=launch[0],.events=POLLIN};roles[count++]=-2;}
         for(size_t i=0;i<ROLE_COUNT;++i)if(children[i].output>=0){fds[count]=(struct pollfd){.fd=children[i].output,.events=POLLIN};roles[count++]=(int)i;}
-        int n=poll(fds,count,!notified && !stopping?1000:-1);
+        int timeout=!notified && !stopping?1000:-1;
+        if(until!=UINT64_MAX){
+            double seconds=now();if(seconds<0){failed=true;stopping=true;continue;}
+            double ms=(double)until/1000.0-seconds*1000.0;
+            int due=ms<=0?0:ms>=(double)INT_MAX?INT_MAX:(int)ms+1;
+            if(timeout<0 || due<timeout)timeout=due;
+        }
+        int n=poll(fds,count,timeout);
         if(n<0){if(errno==EINTR)continue;failed=true;stopping=true;continue;}
         for(nfds_t i=0;i<count;++i){
             if(!fds[i].revents)continue;
             if(roles[i]==-1){struct signalfd_siginfo info;while(read(signals,&info,sizeof(info))==(ssize_t)sizeof(info))if(info.ssi_signo!=SIGCHLD)stopping=true;}
+            else if(roles[i]==-3){if(!session_live(session)){failed=true;stopping=true;}}
             else if(roles[i]==-2){
                 int request=packet(launch[0]);
                 if(request==100)stopping=true;
@@ -240,7 +290,7 @@ int main(void) {
                     else if(launches[role]>=128){if(!reply(launch[0],'E',role)){failed=true;stopping=true;}}
                     else{
                         ++launches[role];
-                        if(!app_start(&children[role],role,cache) || !reply(launch[0],'A',role)){failed=true;stopping=true;}
+                        if(!app_start(&children[role],role,cache,session) || !reply(launch[0],'A',role)){failed=true;stopping=true;}
                     }
                 }
             }else if(!drain_line(&children[roles[i]],names[roles[i]])){failed=true;stopping=true;}
@@ -252,6 +302,12 @@ int main(void) {
         close_fd(&c->pin);close_fd(&c->output);
     }
     close_fd(&launch[0]);close_fd(&signals);
-    printf("AETHERI_DESKTOP_END status=%s\n",failed?"failed":"ok");
+    if(ae_session_close(&session)<0)failed=true;
+    printf("NATIVE_SESSION_END {\"children\":{");bool comma=false;
+    for(size_t i=0;i<ROLE_COUNT;++i)if(children[i].pid){
+        int code=WIFEXITED(children[i].status)?WEXITSTATUS(children[i].status):WIFSIGNALED(children[i].status)?128+WTERMSIG(children[i].status):125;
+        printf("%s\"%s\":%d",comma?",":"",names[i],code);comma=true;
+    }
+    puts("}}");printf("AETHERI_DESKTOP_END status=%s\n",failed?"failed":"ok");
     return failed?1:0;
 }

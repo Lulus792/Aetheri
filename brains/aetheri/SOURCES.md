@@ -1,5 +1,10 @@
 # Sources
 
+## Native session owner — 10 November 2026
+
+- [systemd v259.10 sd-login implementation](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/libsystemd/sd-login/sd-login.c): read the pidfd wrappers, session metadata and monitor implementation. The wrappers bracket PID-derived queries with pidfd verification; session lookup derives cgroup context. These observations are not authentication or an atomic future-context lock. Existing reviewed systemd SDK/runtime retained, no dependency upgrade.
+- [Native execution record](journal/2026-11-10-native-session-owner.md): actual Release/memory builds, counterexample, two full KMS workflows, active-VT loss and independently audited archive. Finite carrier evidence; normal login/lock/suspend/app admission remain open.
+
 ## Protected complete desktop owner — 10 November 2026
 
 - [Execution record](journal/2026-11-10-current-desktop-owner.md),

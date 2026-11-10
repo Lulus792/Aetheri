@@ -14,7 +14,7 @@ this is not the production login or app lifecycle service.
 | Separate 256MiB ext4 image | Writable `/var`, with `home/` bound at `/home` |
 | `/home/aetheri/Documents` | Ordinary documents owned by the fixed UID/GID1000 account |
 | `/run/user/1000` | Normal systemd user runtime and user bus |
-| `/run/user/1000/aetheri` | Fresh desktop socket/cache directory; never recovered by name |
+| `/run/user/1000/aetheri-XXXXXX` | Fresh desktop socket/cache directory; never recovered by name |
 | `/tmp` | Bounded 64MiB volatile filesystem |
 | `/run/log/journal` | Volatile diagnostic journal, limited to 16MiB |
 | `/usr/libexec/aetheri` | Fixed development application executables |
@@ -56,6 +56,14 @@ bounded launch sockets connect the compositor, desktop and fixed app roles.
 Unexpected descriptor transfers are closed and rejected. Shutdown retains the
 original child observations and drains their output; it does not settle any
 production catalogue run, lease or delegated holder.
+
+Current source also retains and rechecks the original active session through the
+[native self-session observer](session.md#native-desktop-owner-and-original-session-observation).
+The existing event loop fences new starts after observed session loss and keeps
+the Files-first document-close/shutdown protocol. Release and memory builds and
+a separate protected-runtime KMS fixture test this source; the previously built
+USB image does not acquire these changes retroactively. No new USB-targeted
+build or flash is authorized until the agreed first-version gate is satisfied.
 
 Desktop readiness requires compositor readiness, the desktop's first layout,
 the still-active original session and a successful systemd notification. The

@@ -31,6 +31,17 @@ class Selection(unittest.TestCase):
         args.update(changes)
         return runtime.Runtime(**args)
 
+    def test_native_test_owner_is_explicit_and_cannot_select_foreign_code_or_documents(self):
+        from test_current_desktop_session import native_owner
+        value=dict(program_root='/run/a-ci-012345abcdef',program_files={'aetheri-desktop-owner':dict(sha256='a'*64)})
+        self.assertIsNone(native_owner(value))
+        selected=dict(kind='aetheri-native-desktop-owner-v1',binary=value['program_root']+'/aetheri-desktop-owner',
+                      sha256='a'*64,documents='/run/a-native-doc-012345abcdef')
+        self.assertEqual(native_owner({**value,'owner_profile':selected}),selected)
+        for change in (dict(kind='other'),dict(binary='/foreign/owner'),dict(sha256='b'*64),
+                       dict(documents='/home/aetheri/Documents'),dict(documents='/run/a-native-doc-012345abcdef/../other'),dict(extra=True)):
+            with self.subTest(change=change),self.assertRaises(ValueError):native_owner({**value,'owner_profile':{**selected,**change}})
+
     def test_foreign_or_ambiguous_binding_rejects_before_tree_access(self):
         cases = [None, {}, {**self.binding, 'kind':'other'}, {**self.binding, 'extra':True},
                  {**self.binding, 'profile_sha256':'0'*64}, {**self.binding, 'root':str(self.root/'..')},

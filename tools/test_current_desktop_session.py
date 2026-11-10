@@ -40,6 +40,32 @@ class SessionBus(Bus):
         self.end(message)
 
 
+def native_owner(value):
+    selected = value.get('owner_profile')
+    if selected is None: return None
+    if (not isinstance(selected,dict) or set(selected)!={'kind','binary','sha256','documents'}
+            or selected['kind']!='aetheri-native-desktop-owner-v1'
+            or selected['binary']!=value['program_root']+'/aetheri-desktop-owner'
+            or not isinstance(selected['sha256'],str) or re.fullmatch('[0-9a-f]{64}',selected['sha256']) is None
+            or selected['sha256']!=value['program_files']['aetheri-desktop-owner']['sha256']
+            or not isinstance(selected['documents'],str)
+            or re.fullmatch('/run/a-native-doc-[0-9a-f]{12}',selected['documents']) is None):
+        raise ValueError('different explicit native owner selection')
+    return selected
+
+
+def ordinary_bytes(path):
+    """Never read user-controlled document/cache paths with Root's file rights."""
+    code = ('import os,stat,sys\n'
+            'fd=os.open(sys.argv[1],os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)\n'
+            's=os.fstat(fd)\n'
+            'assert stat.S_ISREG(s.st_mode) and s.st_uid==os.getuid() and s.st_nlink==1 and s.st_size<=4096\n'
+            'data=os.read(fd,4097);os.close(fd)\n'
+            'assert len(data)==s.st_size\n'
+            'sys.stdout.buffer.write(data)\n')
+    return subprocess.check_output(['runuser','-u','aetheri','--','/usr/bin/python3','-I','-B','-c',code,str(path)],timeout=10)
+
+
 def session(selection, user_root, token):
     value = json.loads(Path(selection).read_bytes())
     if os.getuid() != 1000 or os.geteuid() != 1000 or os.getgid() != 1000 or os.getegid() != 1000:
@@ -52,6 +78,15 @@ def session(selection, user_root, token):
     # Test-only start gate: Root retains the actual session/scope before any
     # compositor effect, including a startup failure before READY.
     os.kill(os.getpid(), signal.SIGSTOP)
+    native = native_owner(value)
+    if native:
+        print('TEMPORARY '+json.dumps(development_session.temporary_area()),flush=True)
+        selected = development_runtime.Runtime(value['runtime_binding'],'release',True,*('nexaui-owned',)*3)
+        env = selected.environment(os.environ)
+        env['XDG_RUNTIME_DIR'] = str(Path(user_root)/token/'runtime')
+        # One explicit same-process transition after Root retains the original
+        # stopped wrapper. The product owner itself needs no Python process.
+        os.execve(native['binary'],[native['binary']],env)
     return development_session.supervise('release', token, desktop=True,
         settings_ui='nexaui-owned', settings_binding=value['role_bindings']['settings'],
         files_ui='nexaui-owned', files_binding=value['role_bindings']['files'],
@@ -75,6 +110,12 @@ class DesktopFixture(Fixture):
         if value['role_bindings'] != bindings:
             raise ValueError('different independently selected app bindings')
         self.selected = selected
+        self.native = native_owner(value)
+        self.case = value.get('case_profile','desktop-workflow')
+        if self.case not in ('desktop-workflow','active-seat-loss') or self.case=='active-seat-loss' and not self.native:
+            raise ValueError('explicit native desktop case required')
+        if self.native and Path(self.native['documents']).exists():
+            raise ValueError('native test documents already exist; never adopt')
         self.private.close(); self.private = SessionBus(private=True)
 
     def actors(self, text):
@@ -124,21 +165,28 @@ class DesktopFixture(Fixture):
         if not re.fullmatch('tty[0-9]+',self.old_vt): raise ValueError('unknown original VT')
         # Leave room for the session token and Wayland's 108-byte socket path.
         self.runtime = Path('/run/a-cd-'+self.token[:12])
-        self.effect('create-runtime', lambda:self.runtime.mkdir(mode=0o700)); os.chown(self.runtime,1000,1000)
-        user_root = self.runtime/'sessions'; user_root.mkdir(mode=0o700); os.chown(user_root,1000,1000)
+        self.effect('create-runtime', lambda:self.runtime.mkdir(mode=0o700))
+        user_root = self.runtime/'sessions'; user_root.mkdir(mode=0o700)
         base = user_root/self.token
         for p in (base,base/'runtime',base/'cache',base/'documents'):
-            p.mkdir(mode=0o700); os.chown(p,1000,1000)
-        document = base/'documents/alpha.txt'
+            p.mkdir(mode=0o700)
+        documents = Path(self.native['documents']) if self.native else base/'documents'
+        if self.native:
+            self.effect('create-native-documents',lambda:documents.mkdir(mode=0o700))
+        document = documents/'alpha.txt'
         with document.open('xb') as f: f.write(b'alpha\n')
         document.chmod(0o600); os.chown(document,1000,1000)
+        # Populate while all parents are still protected, then hand over from
+        # leaves upward. No privileged write follows through a user-owned parent.
+        if self.native:os.chown(documents,1000,1000)
+        for p in (base/'documents',base/'cache',base/'runtime',base,user_root,self.runtime):os.chown(p,1000,1000)
         self.pam = Path('/etc/pam.d')/('aetheri-input-'+self.token)
         content = b'auth required pam_permit.so\naccount required pam_permit.so\nsession required pam_systemd.so type=wayland class=user\n'
         def create_pam():
             with self.pam.open('xb') as f: f.write(content); f.flush(); os.fsync(f.fileno())
             self.pam.chmod(0o444); run('restorecon',str(self.pam))
         self.effect('create-pam', create_pam); s=self.pam.stat(); self.pam_identity=(s.st_dev,s.st_ino)
-        self.record.update(runtime=str(self.runtime),base=str(base),old_vt=self.old_vt,pam=str(self.pam),pam_object=list(self.pam_identity));self.save()
+        self.record.update(runtime=str(self.runtime),base=str(base),documents=str(documents),old_vt=self.old_vt,pam=str(self.pam),pam_object=list(self.pam_identity));self.save()
         self.effect('activate-test-vt',lambda:run('chvt','8'))
         args=['/usr/bin/python3','-I','-B',str(Path(__file__).resolve()),'--session',str(self.selection),str(user_root),self.token]
         env=['XDG_SESSION_TYPE=wayland','XDG_SESSION_CLASS=user','XDG_SEAT=seat0','XDG_VTNR=8',
@@ -174,8 +222,17 @@ class DesktopFixture(Fixture):
             raise ValueError('original session did not retain its test-only start gate')
         self.effect('continue-original-session',lambda:signal.pidfd_send_signal(self.pins['session'],signal.SIGCONT))
         self.wait(lambda:facts(self.unit)['ActiveState']=='active' and not facts(self.unit)['Job'],'actual full desktop readiness',30)
+        if self.native:
+            if select.select([self.pins['session']],[],[],0)[0]:raise ValueError('original native owner process ended')
+            actor=self.record['actors']['session'];actual=Path('/proc',str(actor['pid']),'exe').stat();expected=Path(self.native['binary']).stat()
+            if ((actual.st_dev,actual.st_ino)!=(expected.st_dev,expected.st_ino)
+                    or os.fstat(self.pins['session']).st_ino!=actor['pidfd_inode']):
+                raise ValueError('original process did not execute the independently selected native owner')
+            actor['initial_python_image']=actor['image'];actor['image']=[actual.st_dev,actual.st_ino]
+            self.record['native_owner']=self.native
         self.actors(self.journal())
-        self.record['state']='awaiting-desktop-workflow';self.save();self.current()
+        self.record['case_profile']=self.case
+        self.record['state']='awaiting-seat-loss' if self.case=='active-seat-loss' else 'awaiting-desktop-workflow';self.save();self.current()
         print(json.dumps(dict(output=str(self.output),base=str(base),unit=self.unit,state=self.record['state'])),flush=True)
         deadline=time.monotonic()+600
         while not (self.output/'finish').exists():
@@ -185,23 +242,29 @@ class DesktopFixture(Fixture):
         self.actors(self.journal());self.current()
         marker=self.output/'finish';s=marker.lstat()
         if not stat.S_ISREG(s.st_mode) or s.st_uid or s.st_nlink!=1 or marker.read_bytes()!=b'finish\n':raise ValueError('invalid protected finish request')
-        if document.read_bytes()!=b'hello alpha\n' or (base/'owner-proof').read_bytes()!=b'desktop':raise ValueError('actual workflow contents incomplete')
-        required=('files-','terminal-','settings-','document-terminal-','editor-','shell-')
+        seat_loss = self.case=='active-seat-loss'
+        if not seat_loss and (ordinary_bytes(document)!=b'hello alpha\n' or ordinary_bytes(base/'owner-proof')!=b'desktop'):raise ValueError('actual workflow contents incomplete')
+        required=('compositor-','desktop-') if seat_loss else ('files-','terminal-','settings-','document-terminal-','editor-','shell-')
         if any(not any(n.startswith(prefix) for n in self.record['actors']) for prefix in required):raise ValueError('actual workflow actors incomplete')
         self.record['code_mappings']={}
         for name,actor in self.record['actors'].items():
-            if name=='session':continue
+            if name=='session' and not self.native:continue
             maps=Path('/proc',str(actor['pid']),'maps').read_text()
             (self.output/(name+'-maps.txt')).write_text(maps)
             self.record['code_mappings'][name]=current_mappings(self.value,self.profile,maps)
         self.save()
-        self.effect('finish-original-supervisor',lambda:signal.pidfd_send_signal(self.pins['session'],signal.SIGTERM))
-        self.wait(lambda:all(select.select([p],[],[],0)[0] for p in self.pins.values()) and facts(self.unit)['ActiveState']=='inactive' and not facts(self.unit)['Job'],'all original workflow actors end',30)
+        if seat_loss:
+            if self.old_vt=='tty8':raise ValueError('original seat-loss target was the test VT')
+            self.effect('deactivate-original-vt',lambda:run('chvt',self.old_vt[3:]))
+        else:self.effect('finish-original-supervisor',lambda:signal.pidfd_send_signal(self.pins['session'],signal.SIGTERM))
+        self.wait(lambda:all(select.select([p],[],[],0)[0] for p in self.pins.values()) and facts(self.unit)['ActiveState']==('failed' if seat_loss else 'inactive') and not facts(self.unit)['Job'],'all original workflow actors end',30)
         final=facts(self.unit);text=self.journal()
-        rows=re.findall(r'^SESSION_END (.+)$',text,re.M)
-        if final['InvocationID']!=original['InvocationID'] or final['ExecMainStatus']!='0' or len(rows)!=1:raise ValueError('original desktop supervisor failed')
+        rows=re.findall(r'^'+('NATIVE_SESSION_END' if self.native else 'SESSION_END')+r' (.+)$',text,re.M)
+        if final['InvocationID']!=original['InvocationID'] or final['ExecMainStatus']!=('1' if seat_loss else '0') or len(rows)!=1:raise ValueError('original desktop supervisor failed')
         result=json.loads(rows[0])
-        if any(code!=0 for code in result['children'].values()) or re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',text):raise ValueError('workflow cleanup failed')
+        if (not seat_loss and any(code!=0 for code in result['children'].values())) or re.search(r'AddressSanitizer|LeakSanitizer|runtime error:',text):raise ValueError('workflow cleanup failed')
+        if seat_loss and ('AETHERI_SESSION_LOST result=0 loss=2\n' not in text or re.search(r'^SPAWN (files|terminal|settings) ',text,re.M)):
+            raise ValueError('original active-session loss fence was not observed')
         for name,(path,fd,events,identity) in self.groups.items():
             if (os.fstat(fd).st_dev,os.fstat(fd).st_ino)!=identity:raise ValueError('original group handle changed')
             try:

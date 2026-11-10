@@ -11,6 +11,69 @@ actual one-display KMS app/save/shutdown workflow; read the linked runtime contr
 and [execution record](../brains/aetheri/journal/2026-11-10-current-desktop-owner.md).
 Normal service/device/session admission remains open.
 
+## Native desktop owner and original-session observation
+
+10 November 2026. The existing C17 owner in `src/boot/desktop.c` now uses
+`src/linux/session.h`, a read-only self-session observer. An explicit native
+owner passes the full protected-runtime KMS workflow and active-VT-loss test;
+see the [execution record](../brains/aetheri/journal/2026-11-10-native-session-owner.md).
+This does not promote the fixture to a normal login or build a new USB image.
+
+The observer opens only on the main thread of an ordinary equal-real/effective-UID
+process. It retains its self pidfd, mandatory kernel PID/credential/cgroup-ID
+observations and exact original session/scope/cgroup strings. Opening requires
+a local active Wayland `class=user` session on the independently expected seat
+and UID; the scope must be a session scope. Trusted host proc/cgroup/logind views
+and policy excluding context manipulation remain prerequisites. This self pin
+must never substitute for a bus-authenticated caller's ProcessFD.
+
+| Function | Contract |
+| --- | --- |
+| `ae_session_open` | Subscribe before observing; publish only a fully checked handle, leaving the initially null output unchanged on error |
+| `ae_session_check` | Reobserve the original context even without a monitor event; retain the first observed loss permanently |
+| `ae_session_poll` | Borrow the monitor FD/events and absolute monotonic microsecond deadline; a hint is not admission |
+| `ae_session_close` | Release local observations on the creating process/thread; never stop a process or settle a lease |
+
+Thread/fork misuse rejects without changing output or the live pointer. Context
+drift, an inactive/foreign session and failed observation remain distinguishable.
+Returning to the original VT cannot rearm a lost handle. A monitor query failure
+also latches loss. Repeated observations bracket credentials/cgroup identity;
+they do not atomically lock future context or device access. Closing is not
+revocation, process drain or durable recovery.
+
+The desktop owner requires UID/GID1000, observed zero effective/permitted/
+inheritable/ambient capabilities and NoNewPrivileges. It checks its original
+session before compositor/desktop effects, readiness and fresh app starts, and
+on event-loop wakes. The existing poll loop combines the monitor hint/deadline
+with signals, launch messages and child output. No observer thread, daemon or
+new periodic scan is introduced. Session loss fences launches and enters the
+existing Files-first ordered shutdown; document-close decisions remain intact.
+Trusted lock, suspend/resume and normal account/app admission are still work.
+
+Each start creates a fresh `aetheri-XXXXXX` directory beneath the selected
+`XDG_RUNTIME_DIR`, with its own cache; an existing directory is never recovered
+by name. Build-selected path constants retain image defaults and permit an
+explicit private lab ELF to bind a protected runtime. They are not package trust
+or caller authority. Files receives both selected document Terminal font paths.
+
+Build the separate owner with `AETHERI_LINUX_IPC=ON` and
+`AETHERI_DESKTOP_OWNER=ON`; both remain opt-in. It links the small
+`aetheri_linux_session` library and libsystemd. `linux.session` uses controlled
+logind metadata/monitor inputs with real self pidfd, kernel observations,
+eventfd/poll and thread/fork behavior. UID0 returns the explicit skip code 77.
+Native ordinary-user Release and ASan/UBSan/leak checks pass. Real logind/KMS
+evidence is separate from those controlled metadata tests.
+
+`tools/test_current_desktop_session.py` can explicitly select
+`aetheri-native-desktop-owner-v1`. Root retains the stopped original PAM/logind
+wrapper's pidfd/scope before its same-process exec into the independently hashed
+native ELF. There is no resident Python desktop owner after exec. A distinct
+`active-seat-loss` case changes the active VT and expects the native failure/loss
+record, followed by original process/session/group end. The test controller is
+Root-only disposable-carrier tooling, not product authentication or recovery.
+Its user fixture is populated while parents are protected and handed over from
+leaves upward; document verification reads with the ordinary account's rights.
+
 4 November 2026. The optional compositor can now use an actual KMS connector and
 evdev input on the dedicated Fedora carrier. This extends the private
 [headless/nested prototype](graphics.md); normal Aetheri session/app admission,

@@ -1,5 +1,19 @@
 # Decisions
 
+## Reuse the native owner with a self-session observer — 10 November 2026
+
+Keep the existing C17 desktop owner and extract read-only original-session
+observation into a libsystemd-only Linux module. Repeated checks and native
+monitor/deadline integration cover later context loss without another process,
+thread or periodic scanner. A startup-only check misses that loss; the separate
+audio guard carries a different backend/two-process contract and stays unchanged.
+Private protected-runtime tests may bind separate owner ELFs through build-time
+paths; this does not admit caller-selected programs or promote a login service.
+Returning to a VT cannot rearm a lost handle. Preserve document-close decisions
+during ordered shutdown; lock/suspend/resume require their own implementation.
+See [contract](../../spec/session.md#native-desktop-owner-and-original-session-observation)
+and [native execution record](journal/2026-11-10-native-session-owner.md).
+
 ## Hold the next USB build until first-version readiness — 9 November 2026
 
 The user requires the next image intended for the stick to wait until the agreed

@@ -2,13 +2,17 @@
 #include <stdbool.h>
 static bool inject_pin_failure;
 #define pidfd_open ae_test_pin_open
+#define ae_session_check ae_test_session_check
 #define main ae_boot_desktop_main
 #include "../src/boot/desktop.c"
 #undef main
 #undef pidfd_open
+#undef ae_session_check
 #include <assert.h>
 #include <dirent.h>
 #include <sys/syscall.h>
+
+int ae_test_session_check(struct ae_session *s,unsigned *loss) {(void)s;*loss=AE_SESSION_INACTIVE;return 0;}
 
 int ae_test_pin_open(pid_t pid,unsigned int flags) {
     if(inject_pin_failure){errno=EMFILE;return -1;}
@@ -41,6 +45,11 @@ int main(int argc,char **argv) {
     assert(argc==1 && getuid()==1000);
     signal(SIGPIPE,SIG_IGN);
     size_t before=fd_count();
+    struct child blocked;empty(&blocked);
+    assert(!app_start(&blocked,SETTINGS,"/unused",NULL) && !blocked.pid && blocked.pin==-1 && blocked.output==-1);
+    char *relative[]={"relative",NULL},*missing[]={NULL};
+    assert(!spawn(&blocked,NULL,NULL,0) && !spawn(&blocked,missing,NULL,0) && !spawn(&blocked,relative,NULL,0));
+    assert(!blocked.pid && blocked.pin==-1 && blocked.output==-1);
     int pair[2];assert(!socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,pair));
     assert(send(pair[0],"L3S",3,0)==3 && packet(pair[1])==SETTINGS+1);
     assert(send(pair[0],"Q30",3,0)==3 && packet(pair[1])==100);

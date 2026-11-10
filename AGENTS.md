@@ -1,10 +1,12 @@
 # Working on Aetheri
 
 Current continuation: read `brains/aetheri/STATE.md` and the 2026-11-10
-current-desktop-owner journal. The protected current runtime now passes a real
-full-owner KMS Files/editor save, own-shell and Settings workflow with original
-process/session/group end. Advance normal session/service/device integration and
-full system runtime closure; this private fixture is not normal app admission.
+native-session-owner journal plus spec/session.md. The existing native C owner
+now passes full KMS app/save/shutdown and active-VT-loss tests. The Linux self-
+session observer rechecks original context without events and permanently latches
+loss; it adds no process/thread. Run linux.session and native owner tests in the
+ordinary enforcing carrier. Advance normal session/service/device integration and
+full system runtime closure; this private fixture is not login/app admission.
 Preserve failed attempts and the old quarantine. The user's 9 November gate
 forbids the next USB-targeted image build/flash until the agreed first version is
 implemented and verified. Older next-flash notes below do not override that gate.
