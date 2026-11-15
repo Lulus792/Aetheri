@@ -1,5 +1,22 @@
 # Working on Aetheri
 
+Current native startup work: read `spec/login.md#native-startup-coordination` and
+the 2026-11-15 login-startup-coordinator journal. login/startup.h composes the
+original kernel socket service with PIDFD_GET_MNT_NAMESPACE/setns, same-view
+source/loaded/directory observations, mandatory external policy gate and one
+publication attempt. Constructor failure requires process exit; never restore,
+retry, adopt or clean a possible record. Only config-notice absence is pending.
+Final Release/memory CMake profiles pass six CTests/all770 inputs, analyzer and
+namespace-omission counter; final actual authenticated desktop cases use the
+native coordinator without nsenter and finish original entry/worker/PAM/scope
+retirement. All five new cases are terminal; preserve earlier failed holders,
+failed pending-config/analyzer/counter preparations and old quarantine. The
+enforcing-only fixture callback is NOT deployment admission. Next finite installed
+startup executable/selected deployment inputs/service ordering and effective
+dedicated greeter/account/PAM/MAC/device policy, then original graphical greeter.
+No backend ExecStartPost shortcut around active/no-ControlPID/no-job observation.
+Keep foreign UI memory, USB gate and NexaUI maintenance-only state.
+
 Current authenticated desktop work: read
 `spec/login.md#authenticated-desktop-fixture`, `spec/session.md` and the
 2026-11-15 login-desktop journal. Actual private synthetic authentication now

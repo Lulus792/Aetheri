@@ -573,3 +573,67 @@ publisher/controller is still administrative test tooling. Dedicated greeter
 account/UI/confinement, complete effective deployment/device policy, installed
 startup coordination, normal app admission, lock/resume and the full system
 runtime closure remain open. This does not satisfy the first-version USB gate.
+
+## Native startup coordination
+
+`login/startup.h` composes the existing service, protected-source, loaded-image/
+configuration and handoff adapters into one finite native startup context.
+It adds no daemon, thread, new library family or authentication request. The
+caller independently selects the connected socket, Root system service, exact
+sources, publication directory and mandatory compiled deployment-policy check.
+The supplied socket is borrowed during construction without protocol I/O.
+
+Creation requires a fresh single-threaded Root process with equal zero real,
+effective and saved UID/GID values. It captures the actual socket service, asks
+the original peer pidfd for `PIDFD_GET_MNT_NAMESPACE`, verifies nsfs/type and
+retains that namespace FD. It enters only that selected mount namespace with
+`setns(..., CLONE_NEWNS)`. It never accepts a PID, reopens a supplied PID or
+selects `/proc/PEER/ns/mnt` by pathname. Source and loaded guards, and the held
+publication directory, are then constructed in this view. Both the peer's
+current namespace and `/proc/self/ns/mnt` must still match the retained original
+namespace object before success and on later checks.
+
+Namespace entry is a process effect even if a subsequent check fails. After
+any constructor failure the startup caller must exit. Closing a successful
+context never restores an earlier namespace. There is no fallback, reconnect,
+automatic reconstruction or namespace selection through a configuration path.
+Trusted host proc/PID/cgroup/system-bus views and exclusion of privileged
+namespace/exec/source manipulation remain prerequisites. The caller also owns
+the required namespace/proc permissions and bounded system-bus call timeout.
+
+| Function | Result and lifetime |
+| --- | --- |
+| `ae_login_startup_create` | Own the original service/source/loaded/directory/namespace observations; leave an initially null output unchanged on failure, then caller exits |
+| `ae_login_startup_check` | Recheck policy, original namespaces/directory, consumed configuration and current backend ELF; only an initially absent original config notice is pending |
+| `ae_login_startup_publish` | Consume the one publication attempt, repeat readiness, perform create-only handoff publication and recheck namespace/policy afterward |
+| `ae_login_startup_close` | Release local observations; neither restore a namespace nor remove a possible record or stop the backend |
+
+An external gate's EAGAIN is a loss, not permission to wait as though only the
+config notice were absent. Observed losses latch permanently. After a publication
+attempt, any failure preserves possible named output and forbids another attempt,
+including failure before a file effect. A successful attempt cannot be repeated
+either. Thread/fork/reentry rules retain the existing creating-context boundary.
+No raw record, matching filename or new context acknowledges an old outcome.
+
+The mandatory external gate must admit the actual deployment: account/PAM/MAC/
+device policy, trusted views, libraries/runtime and the selected destination with
+protected ancestors. The local directory check supplies original Root-owned
+mode0555/0755 identity, not that complete admission. The gate is called before
+and after namespace entry and around readiness/publication. It must remain valid
+for the context's lifetime and cannot change process/thread/namespace ownership.
+
+`test_login_startup` provides controlled service/policy adapters with actual nsfs
+FDs, threads and fork; it is an ordinary-user CTest. The explicit administrative
+`test_login_loaded ... startup ...` fixture exercises the real kernel peer,
+namespace entry and same-view publication with the actual backend and greeter.
+Its test-only policy callback is not deployment admission. Release and memory
+greeters consume the resulting record and complete the authenticated desktop
+workflow; the privileged publisher remains the selected Release ELF. See the
+[native record](../brains/aetheri/journal/2026-11-15-login-startup-coordinator.md).
+
+An installed finite startup executable, selected deployment metadata, service
+ordering and effective dedicated greeter/account/PAM/SELinux/device policy remain
+work. The existing backend observer requires an active original MainPID with no
+ControlPID/job; adding an unchecked ExecStartPost path to that unit does not meet
+this contract. This library does not install/enable a service or promote the
+carrier's administrative test profile to a product configuration.

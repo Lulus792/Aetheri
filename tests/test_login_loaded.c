@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
 #include "login/loaded.h"
 #include "login/handoff.h"
+#include "login/startup.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <selinux/selinux.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,9 @@
 #include <unistd.h>
 
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"loaded fixture line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
+
+/* Explicit administrative carrier gate only, never deployment policy. */
+static int fixture_policy(void *unused){(void)unused;return security_getenforce()==1?0:-EACCES;}
 
 static void source_args(struct ae_login_source_expect *entry,const char *size,const char *hash)
 {
@@ -51,8 +56,9 @@ int main(int argc,char **argv)
     const char *socket_path=argv[1],*unit=argv[2],*directory=argv[3];
     const char *config_leaf=argv[4],*mode=argv[5];
     bool publish=!strcmp(mode,"publish");
+    bool startup=!strcmp(mode,"startup");
     bool image_notice=!strcmp(mode,"image-notice");
-    bool image_check=publish || image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
+    bool image_check=startup || publish || image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
     if((getuid()==0 || geteuid()==0)!=image_check)return 77;
     struct ae_login_source_expect entries[]={
         {.directory=argv[6],.leaf=unit,.label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
@@ -65,6 +71,26 @@ int main(int argc,char **argv)
     for(size_t i=0;i<3;++i)source_args(&entries[i],argv[7+2*i],argv[8+2*i]);
     source_args(&entries[3],"596","ae6b234f92bc22f1201a7572b59b454c9809f33c80d13f361b9674e1801acc37");
     if(argc==15)source_args(&entries[4],argv[13],argv[14]);
+    if(startup) {
+        CHECK(argc==15);
+        struct sockaddr_un selected={.sun_family=AF_UNIX};CHECK(strlen(socket_path)<sizeof selected.sun_path);
+        strcpy(selected.sun_path,socket_path);int connected=connect_fixture(&selected);
+        sd_bus *system=NULL;CHECK(sd_bus_open_system(&system)>=0 && sd_bus_set_method_call_timeout(system,2000000)>=0);
+        char parent[AE_LOGIN_SOURCE_FULL_PATH_MAX];int n=snprintf(parent,sizeof parent,"%s/runtime",directory);
+        CHECK(n>0 && (size_t)n<sizeof parent);const size_t drop[]={3};
+        struct ae_login_startup_expect expected={
+            .service={.unit=unit,.uid=0,.gid=0,.label="system_u:system_r:unconfined_service_t:s0",
+                .socket_label="system_u:system_r:unconfined_service_t:s0-s0:c0.c1023"},
+            .sources=entries,.source_count=5,.fragment=0,.program=1,.config=2,.dropins=drop,.dropin_count=1,
+            .directory=parent,.leaf="backend-observation",.label="system_u:object_r:var_run_t:s0",.check=fixture_policy};
+        struct ae_login_startup *coordinator=NULL;
+        int result=ae_login_startup_create(connected,system,&expected,&coordinator);
+        if(result)fprintf(stderr,"startup create: %d\n",result);
+        CHECK(!result && coordinator && !ae_login_startup_check(coordinator));
+        CHECK(!ae_login_startup_publish(coordinator) && ae_login_startup_publish(coordinator)==-EALREADY);
+        CHECK(!ae_login_startup_close(&coordinator) && !coordinator);close(connected);sd_bus_unref(system);
+        puts("Native startup published in the original peer mount namespace without replay");return 0;
+    }
     struct ae_login_sources *sources=NULL;
     int r=ae_login_sources_create(entries,argc==15?5:4,&sources);
     if(r)fprintf(stderr,"sources: %d\n",r);

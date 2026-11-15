@@ -1,5 +1,19 @@
 # Decisions
 
+## Bind native startup to the original peer namespace and one publication — 15 November 2026
+
+Use the authenticated service's retained kernel peer pin to capture its mount
+namespace, enter that original view in a fresh single-threaded Root process and
+construct the protected source/loaded/destination observations there. Never use
+a supplied PID or peer namespace pathname. Constructor failure requires exit;
+cleanup cannot restore the old view. Require an external compiled deployment
+gate around entry/readiness/publication. Only an absent original config notice
+is pending; other loss is permanent. Consume one publication attempt and retain
+possible output on failure, including post-publication admission loss. This is
+a native startup component, with no installed service or implicit promotion of
+the test gate. See the [contract](../../spec/login.md#native-startup-coordination)
+and [actual verification](journal/2026-11-15-login-startup-coordinator.md).
+
 ## Exercise the actual authenticated desktop and retain console diagnostics — 15 November 2026
 
 Require open stdio before entry descriptor cleanup; use the existing libsystemd

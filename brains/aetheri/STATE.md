@@ -1,5 +1,18 @@
 # State
 
+15 November 2026 — Native startup coordination now selects the original socket
+peer's mount namespace through its retained kernel pin, builds source/loaded
+guards there and publishes once with permanent failure fences. Final Release/
+memory CMake profiles pass six tests each/all770 inputs; analyzer and namespace-
+omission detection pass. Both final actual desktop sessions use the coordinator
+without nsenter and finish PAM/logind/entry shutdown. All five new session cases
+are terminal; original runtime/RPMs/enforcing1/tty1 are checked. The external
+deployment gate is mandatory; its fixture callback is not production policy.
+Next finite installed startup executable/selected deployment inputs and effective
+dedicated greeter/account/PAM/MAC/device policy, then original graphical greeter.
+See the [native record](journal/2026-11-15-login-startup-coordinator.md). Preserve
+failed fixtures, foreign UI memory, quarantine, USB gate and NexaUI maintenance.
+
 15 November 2026 — Actual private authentication now reaches the selected native
 session entry, active seat0/VT8 Wayland user scope and a visually inspected KMS
 desktop through the reviewed backend's PAM worker. Final Release/memory greeters

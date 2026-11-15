@@ -1,5 +1,11 @@
 # Sources
 
+## Native login startup namespace coordination — 15 November 2026
+
+- The retained [Linux v6.19 pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h) and [pidfs implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/pidfs.c) define PIDFD_GET_MNT_NAMESPACE, selection from the held process, zero ioctl argument and filesystem-credential ptrace checks. The previously hashed local copies were read again; current web refetches timed out. Actual kernel namespace capture is separately verified in the native fixture.
+- [setns](https://man7.org/linux/man-pages/man2/setns.2.html) documents mount-namespace entry and required capabilities; [namespace ioctl operations](https://man7.org/linux/man-pages/man2/ioctl_nsfs.2.html) identifies NS_GET_NSTYPE. The coordinator accepts only an actual nsfs mount namespace, retains its object and compares peer/self observations. Namespace entry is a process effect, not a reversible guard allocation.
+- [Native record](journal/2026-11-15-login-startup-coordinator.md) covers six CTests per profile, exact submitted/native runtime audit, actual same-view handoff and authenticated desktop shutdown, analyzer and detected namespace-omission counterexample. It retains the config-pending correction, defensive syscall-error path and failed Ninja counter preparation, without claiming installed startup or production policy admission.
+
 ## Actual authenticated desktop session — 15 November 2026
 
 - [pam_systemd](https://www.freedesktop.org/software/systemd/man/259/pam_systemd.html) defines session registration, scope and runtime-directory behavior. The actual test observes the resulting user/seat/VT/type/scope and original worker end separately; documentation alone does not prove them.
