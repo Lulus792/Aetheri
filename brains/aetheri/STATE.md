@@ -1,5 +1,15 @@
 # State
 
+15 November 2026 — The original greeter self observer now joins protected ELF,
+account/labels, kernel parent ancestry and original cgroups to the live backend.
+Actual greetd-launched Release/memory test greeters consume the protected handoff
+in the original mount view and pass real PAM secret-prompt cancellation and
+empty-answer authentication rejection. Wrong-context/image/child cases and the
+self-image omission counterexample are verified; explicit LSan reports zero.
+All13 fixtures are terminal. Failed-worker Cancel correctly fences UNKNOWN and
+reveals a backend retry issue to fix next. Dedicated policy/account/startup and
+successful graphical login remain open. See the [native record](journal/2026-11-15-login-greeter.md).
+
 15 November 2026 — A protected observation handoff now joins the administrative
 ELF/config checks to an ordinary client on the actual live greetd instance.
 Release and memory readers pass protected-file, no-replacement, drift/fencing

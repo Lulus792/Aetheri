@@ -426,3 +426,59 @@ original greeter and effective PAM/SELinux policy. The native integration
 currently exercises a short-lived administrative publisher and UID1000 clients
 with the actual greetd and its inert test greeter. See the
 [handoff record](../brains/aetheri/journal/2026-11-15-login-handoff.md).
+
+## Original greeter process
+
+`login/greeter.h` observes the calling greeter on its process leader's thread.
+The caller supplies the independently selected ordinary account, exact raw
+greeter and PAM-worker process labels, original socket-service observer and
+protected greeter ELF source entry. The observer borrows both source/service
+handles until close. It creates a self pidfd and opens only the immediate
+parent reported by that held self's kernel `PIDFD_GET_INFO` observation. The
+self relationship brackets that opening, and the retained live parent must
+itself be a direct child of the original Root backend MainPID. No PID supplied
+by a caller, environment or socket is reopened to manufacture this ancestry.
+
+Each check repeats the actual self ELF, all real/effective/saved/filesystem
+UID/GID values, exact process labels, live pins, original parent relation and
+the original self/parent cgroup IDs. Self must have no effective, permitted or
+inheritable capabilities. Backend and PAM worker must have UID/GID0. PAM can
+move a session into its own scope, so the observer does not require the three
+processes to share a cgroup. No new process/thread, signal or supervisor action
+is added. Owner/thread/reentry rules and a permanent first-loss fence apply;
+closing an observation only releases local FDs and memory.
+
+This is the self-process part of admission. A deployment must separately admit
+the dedicated account and supplementary groups, PAM/backend configuration,
+effective SELinux policy, trusted namespace/proc views, loaded libraries and
+protection against hostile exec/ptrace/injection. The ordinary observer does
+not open the Root worker's executable, prove its PAM session class or establish
+display/seat ownership. The reviewed backend and independently enforced policy
+must give the observed ancestry its intended role. Tests use the carrier's
+existing UID1000 account and administrative domain, not production greeter
+confinement. Compose this check with the loaded configuration, protected
+handoff and remaining policy/device checks before credential transport.
+
+The explicit `test_login_greeter` target runs from the real pinned greetd
+through its Root PAM worker. Its Root-created test profile is not a production
+profile format. The test joins self checks and the protected handoff to the
+native connection, exercises a real `pam_unix` secret prompt and acknowledged
+cancellation, then submits an empty answer for the existing locked account.
+Authentication is denied. A subsequent backend cancellation error fences the
+client UNKNOWN; it cannot silently start another attempt. This exposed a
+remaining backend integration issue: the pinned greetd keeps a failed worker
+in its configuring slot and tries to send Cancel after that worker exited.
+Do not weaken the protocol fence to hide the error. Normal retry handling,
+successful password/session transitions and the graphical greeter remain work.
+
+The publisher and reader must use the same independently admitted source mount
+topology. A private service namespace changes the source fingerprint, even when
+the underlying files have the same bytes. The native fixture enters the held
+original backend mount namespace for administrative publication, checks it
+against the actual greeter namespace and retains the original peer pin around
+that operation. This is disposable test coordination, not an installed startup
+coordinator or automatic namespace-selection API. Likewise greetd starts the
+greeter with its PAM environment; the service's loader environment is not an
+implicit greeter environment. The test command explicitly selects its protected
+crypto library after the account change. Memory-only test DSOs are selected only
+for the ordinary test greeter, never the privileged backend/publisher.

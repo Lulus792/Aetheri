@@ -1,5 +1,17 @@
 # Working on Aetheri
 
+Current original greeter work: read `spec/login.md#original-greeter-process`
+and the 2026-11-15 login-greeter journal. The self-only C observer joins its
+kernel-derived live Root-parent ancestry to the original backend, exact self
+ELF/account/labels/cgroups and absent self capabilities. Actual greetd-launched
+Release/memory greeters consume the same-namespace protected handoff and exercise
+real pam_unix prompt/cancel and empty-answer AUTH_ERR. Failed-worker Cancel stays
+UNKNOWN; do not weaken the fence or infer worker drain. Next fix that backend
+retry path with original-worker lifetime evidence, then effective deployment
+policy and successful authentication/graphical session. The observer alone does
+not admit worker ELF, supplementary groups, greeter class/seat or policy. All13
+fixtures are terminal; preserve failures, old quarantine and the USB gate.
+
 Current protected login handoff work: read `spec/login.md#protected-observation-handoff`
 and the 2026-11-15 login-handoff journal. Root publishes one create-only AETHLGH1
 observation after actual ELF/config checks. The ordinary reader compares original

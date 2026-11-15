@@ -1,5 +1,18 @@
 # Decisions
 
+## Bind the original greeter to self ancestry and selected code — 15 November 2026
+
+Use a self-only C17 observer with original self/parent pidfds, kernel-derived
+ancestry to the original socket service, exact ordinary UID/GID and process
+labels, no self capabilities and the independently selected current ELF. Keep
+parent/self cgroups original without requiring equality to the backend: PAM
+may move sessions. This is an observation, not account/PAM/SELinux/seat policy.
+Compose it with protected same-mount-view handoff and effective policy before
+transport. The actual test's backend may read mode000 shadow through the bounded
+CAP_DAC_READ_SEARCH addition; the ordinary greeter retains no capabilities.
+Keep UNKNOWN on the actual failed-worker cancellation error and repair the
+backend lifecycle before claiming normal retry. See the [record](journal/2026-11-15-login-greeter.md).
+
 ## Hand the administrative observation to the greeter through a protected record — 15 November 2026
 
 Use an independently admitted Root-owned directory and a create-only record

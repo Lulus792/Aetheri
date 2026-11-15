@@ -1,5 +1,11 @@
 # Sources
 
+## Original greeter and PAM conversation — 15 November 2026
+
+- [Linux v6.19 pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h) and [pidfs implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/pidfs.c) define masked kernel credentials/cgroup/PID/PPID observations. Read copies are retained locally: header4692 bytes SHA256 `36821dd42e79f6e638f06e779729eb00ee9f38c70ba7e3527874ef104d6868b7`; implementation29511 bytes SHA256 `83b27c3d51dfa224ea12b4b296c3ece131324db0e9614528132f9af2e30f8611`. These observations remain time-local, with separate held-pin and policy prerequisites.
+- The independently pinned greetd0.10.3 source in [backend inputs](../../spec/login-backend-inputs.json), specifically `session/interface.rs`, `session/worker.rs`, `context.rs` and `server.rs`, supplies the actual worker fork/exec, PAM environment, account change and failed-worker Cancel path. No new backend version or crate was introduced.
+- [Native record](journal/2026-11-15-login-greeter.md) covers actual greeter ancestry/image/account, real PAM prompts/cancel/denial, explicit leak check, targeted omission detection and independent final carrier audit. Production account/MAC/PAM/logind policy remains separate.
+
 ## Protected login observation handoff — 15 November 2026
 
 - [Linux linkat](https://man7.org/linux/man-pages/man2/linkat.2.html) defines creation without replacement and anonymous-file linking. The publication repeats the selected administrative observation before linking.

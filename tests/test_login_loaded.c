@@ -47,7 +47,7 @@ static void fixture_notice(const struct sockaddr_un *address,char command)
 
 int main(int argc,char **argv)
 {
-    if(argc!=13)return 77;
+    if(argc!=13 && argc!=15)return 77;
     const char *socket_path=argv[1],*unit=argv[2],*directory=argv[3];
     const char *config_leaf=argv[4],*mode=argv[5];
     bool publish=!strcmp(mode,"publish");
@@ -59,12 +59,14 @@ int main(int argc,char **argv)
         {.directory=directory,.leaf="backend",.label="system_u:object_r:bin_t:s0",.kind=AE_LOGIN_SOURCE_ELF,.mode=0555},
         {.directory=directory,.leaf=config_leaf,.label="system_u:object_r:etc_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
         {.directory="/usr/lib/systemd/system/service.d",.leaf="10-timeout-abort.conf",
-         .label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0644}
+         .label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0644},
+        {.directory=directory,.leaf="greeter",.label="system_u:object_r:bin_t:s0",.kind=AE_LOGIN_SOURCE_ELF,.mode=0555}
     };
     for(size_t i=0;i<3;++i)source_args(&entries[i],argv[7+2*i],argv[8+2*i]);
     source_args(&entries[3],"596","ae6b234f92bc22f1201a7572b59b454c9809f33c80d13f361b9674e1801acc37");
+    if(argc==15)source_args(&entries[4],argv[13],argv[14]);
     struct ae_login_sources *sources=NULL;
-    int r=ae_login_sources_create(entries,4,&sources);
+    int r=ae_login_sources_create(entries,argc==15?5:4,&sources);
     if(r)fprintf(stderr,"sources: %d\n",r);
     CHECK(!r && sources);
     struct sockaddr_un address={.sun_family=AF_UNIX};
