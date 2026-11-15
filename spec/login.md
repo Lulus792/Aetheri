@@ -3,11 +3,70 @@
 Aetheri's post-login entry is [aetheri-session](session.md#entry-from-an-existing-local-login).
 It consumes an existing local Wayland login. This document covers the next
 boundary: the original greeter's conversation with a maintained PAM backend.
-The C conversation model, bounded native stream adapter and synthetic wire tests
-exist. Deployment admission, an installed authentication service and graphical
-greeter do not yet exist.
-Protected process/source guards and a private successful PAM-authentication
-fixture now join these libraries. That fixture does not start a logged-in desktop.
+The C conversation model, native stream and protected startup components exist.
+Private PAM authentication now reaches the actual graphical desktop and completes
+session shutdown. A candidate SELinux domain confines the finite startup helper
+in that flow. Normal deployment admission, an installed authentication service,
+a dedicated greeter account and the original graphical greeter remain work.
+
+## Candidate startup confinement
+
+[login-startup.cil](../policy/login-startup.cil) defines the short-lived
+publisher's candidate SELinux domain. It is a separately reviewed policy input,
+not an automatically installed policy or a replacement for the deployment gate.
+
+| Type | Responsibility |
+| --- | --- |
+| `aetheri_login_startup_t` | Finite Root startup process |
+| `aetheri_login_startup_exec_t` | Protected executable selected by PID1 |
+| `aetheri_login_runtime_t` | Root-owned publication directory |
+| `aetheri_login_handoff_t` | Create-only, read-only observation record |
+
+The helper can read its selected program/configuration and ancestors, inspect
+the original peer and namespaces, query the host system bus and publish inside
+the dedicated runtime directory. The five bounded capabilities remain those
+required by the existing runner. `CAP_SYS_PTRACE` permits the kernel's privileged
+read-mode inspection; the SELinux policy separately forbids process `ptrace`
+against its selected backend domain. It grants no manager start/stop/reload or
+enable/disable permission. PID1's unit `service:status` permission is required
+in addition to bus messaging and the older system status permission.
+
+No shadow-file or personal-home access, TCP/UDP socket creation, policy mutation,
+handoff unlink or generic runtime-file write is granted. Compile-time
+`neverallow` assertions cover the sensitive account/home/network/policy and
+service-mutation/peer-ptrace boundaries. The existing native guards still select
+the particular unit, invocation, process, objects and publication directory;
+SELinux type permission alone does not select an authorized instance.
+
+`aetheri_login_observed_backend` is deliberately empty in this candidate input.
+A deployment must select its independently admitted dedicated backend type.
+[login-startup-carrier-test.cil](../policy/login-startup-carrier-test.cil) fills
+it with the existing administrative carrier domain **only for disposable tests**.
+Never include that supplement in a normal deployment. Backend/worker/greeter
+confinement, effective account/PAM/device policy and the normal compiled provider
+remain separate admission requirements. The test provider's enforcing-only
+callback does not establish them.
+
+The explicit `probe_login_startup_policy` CMake target is excluded from default
+builds, CTest and installation. A Root controller selects its ordinary-built
+bytes, stages them under protected ownership and supplies synthetic targets.
+The same probe bytes in an administrative control service can open those files
+and create the sockets. With the same Root identity and capability bound in the
+startup domain, six forbidden file opens and two socket creations fail, while
+create-only publication succeeds. No private network, filesystem read-only view
+or address-family filter explains those probe denials. No personal password,
+network connection, policy write or process signal is attempted.
+
+`AE_LOGIN_TEST_CONFINED_STARTUP` selects the dedicated handoff label in the
+existing test greeter only. It does not change the normal greeter contract or
+introduce a runtime label selector. Actual separate-unit Release and memory-client
+tests use that label and the confined publisher, reach the visible desktop and
+complete original entry/worker/PAM/scope shutdown. Both Root helpers and desktop
+runtimes are Release; only the second ordinary greeter is memory-instrumented.
+After all typed processes and attempts are terminal, the test module is removed
+and the complete loaded policy is compared with its pre-test bytes. Failed
+fixtures and their evidence remain preserved. See the
+[native record](../brains/aetheri/journal/2026-11-16-login-startup-policy.md).
 
 ## Backend direction and review
 

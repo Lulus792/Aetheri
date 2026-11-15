@@ -24,6 +24,11 @@
    profile is test infrastructure, not a production deployment/profile parser. */
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"greeter fixture line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static const char *process_label="system_u:system_r:unconfined_service_t:s0";
+#ifdef AE_LOGIN_TEST_CONFINED_STARTUP
+#define AE_LOGIN_TEST_HANDOFF_LABEL "system_u:object_r:aetheri_login_handoff_t:s0"
+#else
+#define AE_LOGIN_TEST_HANDOFF_LABEL "system_u:object_r:var_run_t:s0"
+#endif
 static char test_secret[65];
 static void clear_test_secret(void) {volatile char *p=test_secret;for(size_t i=0;i<sizeof test_secret;++i)p[i]=0;}
 /* Explicit fixture input only: systemd OpenFile passes one Root-owned sealed
@@ -206,7 +211,7 @@ int main(int argc,char **argv)
     }
     CHECK(found);
     struct ae_login_handoff *handoff=NULL;
-    CHECK(!ae_login_handoff_open(loaded,directory_fd,parent,"backend-observation","system_u:object_r:var_run_t:s0",&handoff));
+    CHECK(!ae_login_handoff_open(loaded,directory_fd,parent,"backend-observation",AE_LOGIN_TEST_HANDOFF_LABEL,&handoff));
     struct admission admission={greeter,handoff};
     int pin;CHECK(!ae_login_service_peer(service,&pin));
     struct ae_login_connection_source source={.peer_pidfd=pin,.uid=0,.gid=0,.check=admission_check,.userdata=&admission};

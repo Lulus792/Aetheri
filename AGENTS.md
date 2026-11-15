@@ -1,5 +1,23 @@
 # Working on Aetheri
 
+Current startup confinement: read `spec/login.md#candidate-startup-confinement`
+and the 2026-11-16 login-startup-policy journal. The finite publisher passes both
+actual desktop/PAM shutdown flows as aetheri_login_startup_t, with dedicated
+runtime/handoff labels. The normal backend attribute stays empty; the separate
+carrier-test supplement is never production admission. Retain five capabilities
+but no backend process ptrace or manager mutation; kernel read-mode observation
+uses file-read permission. Eight real probe denials and seven loaded decisions
+pass, plus three security-SID mutation denials after strict assertion review.
+That final source compiles to the identical complete tested policy. Two eight-
+CTest builds/779 inputs and the separately corrected current probe/analyzer pass.
+All six new backend/helper flows and probe services are terminal; preserve four
+new failed holders/fragments and the earlier test/export/comparison failures.
+Both candidate-module runs were retired; exact pre-test policy bytes restored,
+enforcing=1/tty1, original RPM/runtime intact. Next dedicated backend/worker/
+greeter domains and account/PAM/device integration, then normal compiled provider
+and original graphical greeter. No installed production policy/service or USB
+image. Keep foreign UI memory, USB gate and NexaUI maintenance-only state.
+
 Current finite startup executable: read `spec/login.md#finite-startup-executable`
 and the 2026-11-15 login-runner journal. aetheri-login-startup requires an explicit
 build-time deployment C provider; no default/runtime profile/plugin/CLI selector.

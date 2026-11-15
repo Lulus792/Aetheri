@@ -1,5 +1,12 @@
 # Sources
 
+## Finite startup SELinux confinement — 16 November 2026
+
+- SELinux 3.10 [CIL access-vector rules](https://github.com/SELinuxProject/selinux/blob/3.10/secilc/docs/cil_access_vector_rules.md) and [type statements](https://github.com/SELinuxProject/selinux/blob/3.10/secilc/docs/cil_type_statements.md) describe allow/neverallow and explicit type-attribute membership. The separate administrative carrier supplement is not the normal backend membership.
+- [Linux SELinux ptrace hook](https://raw.githubusercontent.com/torvalds/linux/v6.18/security/selinux/hooks.c) distinguishes PTRACE_MODE_READ's file-read decision from process ptrace. Actual kernel 6.19.10 original-peer/namespace and complete desktop flows pass with process ptrace denied. [SELinux filesystem hooks](https://raw.githubusercontent.com/torvalds/linux/v6.18/security/selinux/selinuxfs.c) use SECINITSID_SECURITY for policy/enforcement/boolean changes. The actual initial SID resolves to security_t; final neverallow compilation retains the identical runtime policy and all three decisions deny.
+- [systemd259 execution policy](https://www.freedesktop.org/software/systemd/man/259/systemd.exec.html) describes SELinuxContext, capability bounds and NoNewPrivileges. Actual PID1 audit separately identifies service:status as required for GetUnitByPIDFD; status permission does not imply service mutation.
+- [Native record](journal/2026-11-16-login-startup-policy.md) covers the confined publisher, eight actual denial/control cases, complete Release/memory-client desktop shutdown, source/runtime/policy audit and exact baseline-policy restoration. It preserves four failed integration attempts and the test/export/comparison failures without claiming normal backend/account/PAM/device admission.
+
 ## Finite login startup executable and socket permissions — 15 November 2026
 
 - [systemd259 service execution](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html) documents Type=exec acknowledgement, dependency ordering and runtime limits. The independent protected observation remains the greeter's required handoff; unit activation alone is not its publication result.

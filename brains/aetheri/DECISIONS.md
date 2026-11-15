@@ -1,5 +1,19 @@
 # Decisions
 
+## Confine finite login startup separately from the backend — 16 November 2026
+
+Use a dedicated startup process/executable and runtime/handoff types. Keep the
+native original-instance observations and separate deployment gate; type access
+does not authorize a particular backend. Grant read-mode peer inspection and
+unit status, not process ptrace or manager mutation. Leave the normal observed-
+backend attribute empty until dedicated backend admission; its administrative
+carrier supplement is test-only. Validate both denied and allowed accesses and
+the actual authenticated desktop flow under enforcing policy, then retire the
+owned test module only after terminal processes and exact input checks. See the
+[contract](../../spec/login.md#candidate-startup-confinement) and
+[native evidence](journal/2026-11-16-login-startup-policy.md). This does not admit
+normal account/PAM/greeter/device policy or satisfy the first-version USB gate.
+
 ## Use a finite separately supervised login startup executable — 15 November 2026
 
 Select deployment inputs and the mandatory effective-policy gate as explicit

@@ -1,5 +1,19 @@
 # State
 
+16 November 2026 — The finite startup publisher now completes both actual
+authenticated desktop/PAM shutdown flows in its own enforcing SELinux domain.
+Dedicated runtime/handoff types, eight real probe denials and seven loaded-policy
+decisions pass. Final mutation assertions target the actual security SID; strict
+recompilation gives the identical tested loaded policy and three additional
+denials. Both module runs are retired with the complete pre-test policy restored.
+All six backend/helper flows are terminal, enforcing=1/tty1 and RPM/runtime
+unchanged. Preserve four failed holders/fragments and earlier test failures.
+The administrative backend supplement and enforcing-only provider remain test
+inputs, not normal deployment admission. Next dedicated backend/worker/greeter
+domains and account/PAM/device integration, then the normal provider and original
+graphical greeter. Read the [native record](journal/2026-11-16-login-startup-policy.md).
+USB gate remains closed.
+
 15 November 2026 — The finite aetheri-login-startup executable now uses an
 explicit compiled deployment provider, literal host bus, original self MainPID
 context and frozen backend manager/path/PID/invocation before one connection and
