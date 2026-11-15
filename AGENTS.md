@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current login executable work: read `spec/login.md#running-backend-executable`
+and the 2026-11-15 login-current-image journal. The administrative observer joins
+the original socket peer's actual ELF to the loaded unit and selected source.
+Keep this privileged operation local, with no caller-selected PID or fabricated
+bus peer. The native same-bytes different-object case is rejected and fenced.
+Next bind a protected observation to the original greeter and actual consumed
+config/policy, then verify PAM and session transitions. The USB release gate applies.
+
 Current loaded login unit work: read `spec/login.md#loaded-login-unit` and the
 2026-11-15 login-loaded journal. The protected fragment, backend/config paths
 and ordered drop-ins now join the original active socket service and exact

@@ -136,7 +136,10 @@ static int service_snapshot(struct ae_login_service *s,struct service_observatio
     if(r>0 && (size!=16 || !invocation))r=-EBADMSG;
     if(r>0){memcpy(out->invocation,invocation,16);uint8_t any=0;for(size_t i=0;i<16;++i)any|=out->invocation[i];if(!any)r=-EBADMSG;}
     if(r>0)r=service_properties(s,path,out->invocation,out->group);
-    if(!r && inspect)r=inspect(s->bus,s->manager_name,path,s->credentials.pid,userdata);
+    if(!r && inspect) {
+        const struct ae_image_process process={s->peer,s->credentials.pid,s->credentials.uid,s->credentials.gid,s->label};
+        r=inspect(s->bus,s->manager_name,path,&process,userdata);
+    }
     if(r>0)r=-EINVAL;
     char *group=NULL;if(!r)r=sd_pidfd_get_cgroup(s->peer,&group);
     if(!r && (!group || strcmp(group,out->group)))r=-ESTALE;

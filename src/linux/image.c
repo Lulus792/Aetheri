@@ -1,10 +1,12 @@
 #include "linux/image.h"
+#include "linux/image_internal.h"
 #include "core/digest.h"
 #include <elf.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/magic.h>
+#include <poll.h>
 #include <selinux/selinux.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,29 +88,43 @@ int ae_image_verify(int fd,const uint8_t expected[32],struct ae_image *output)
     if (r==0) *output=first;
     return r;
 }
-static int identity(const struct ae_peer *p,gid_t gid,uint64_t *cgroup)
+static int live(int fd)
+{
+    struct pollfd item={.fd=fd,.events=POLLIN};
+    int result;
+    do {result=poll(&item,1,0);}while(result<0 && errno==EINTR);
+    if(result<0)return -errno;
+    if(item.revents&POLLNVAL)return -EBADF;
+    return result==0?0:-ESRCH;
+}
+static int identity(const struct ae_image_process *p,uint64_t *cgroup)
 {
     struct pidfd_info i={.mask=PIDFD_INFO_PID|PIDFD_INFO_CREDS|PIDFD_INFO_CGROUPID};
     if (ioctl(p->pidfd,PIDFD_GET_INFO,&i)!=0) return -errno;
     uint64_t required=PIDFD_INFO_PID|PIDFD_INFO_CREDS|PIDFD_INFO_CGROUPID;
     if ((i.mask&required)!=required) return -ENODATA;
-    uint32_t uid=(uint32_t)p->connection_uid;
-    if (i.pid!=(uint32_t)p->connection_pid || i.tgid!=i.pid || i.ruid!=uid || i.euid!=uid || i.suid!=uid || i.fsuid!=uid ||
+    uint32_t uid=(uint32_t)p->uid,gid=(uint32_t)p->gid;
+    if (i.pid!=(uint32_t)p->pid || i.tgid!=i.pid || i.ruid!=uid || i.euid!=uid || i.suid!=uid || i.fsuid!=uid ||
         i.rgid!=(uint32_t)gid || i.egid!=(uint32_t)gid || i.sgid!=(uint32_t)gid || i.fsgid!=(uint32_t)gid || i.cgroupid==0) return -EACCES;
-    *cgroup=i.cgroupid; return ae_peer_alive(p);
+    *cgroup=i.cgroupid; return live(p->pidfd);
 }
-static int match_process(const struct ae_peer *p,gid_t gid,const struct ae_image *expected,struct ae_image *output)
+int ae_image_match_pinned(const struct ae_image_process *p,const struct ae_image *expected,struct ae_image *output)
 {
-    uint64_t first=0,last=0; int r=identity(p,gid,&first);
-    char path[64]; int count=snprintf(path,sizeof path,"/proc/%ld",(long)p->connection_pid);
+    if(!p || p->pidfd<0 || p->pid<1 || p->uid==(uid_t)-1 || p->gid==(gid_t)-1 ||
+       !p->label || !*p->label || strnlen(p->label,512)==512 || !expected || !output)return -EINVAL;
+    struct statfs pin_fs;
+    if(fstatfs(p->pidfd,&pin_fs))return -errno;
+    if((unsigned long)pin_fs.f_type!=(unsigned long)PID_FS_MAGIC)return -EPROTO;
+    uint64_t first=0,last=0; int r=identity(p,&first);
+    char path[64]; int count=snprintf(path,sizeof path,"/proc/%ld",(long)p->pid);
     if (r==0 && (count<1 || count>=(int)sizeof path)) r=-EOVERFLOW;
     int process=-1,executable=-1,again=-1; struct statfs fs;
     if (r==0) { process=open(path,O_PATH|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW); if (process<0) r=-errno; }
     if (r==0 && fstatfs(process,&fs)!=0) r=-errno;
     if (r==0 && fs.f_type!=PROC_SUPER_MAGIC) r=-ENOTSUP;
     char *label=NULL;
-    if (r==0 && getpidcon_raw(p->connection_pid,&label)!=0) r=-errno;
-    if (r==0 && strcmp(label,p->connection_label)!=0) r=-ESTALE;
+    if (r==0 && getpidcon_raw(p->pid,&label)!=0) r=-errno;
+    if (r==0 && (!label || strcmp(label,p->label)!=0)) r=-ESTALE;
     freecon(label);
     if (r==0) { executable=openat(process,"exe",O_RDONLY|O_CLOEXEC); if (executable<0) r=-errno; }
     struct ae_image actual,second;
@@ -117,13 +133,13 @@ static int match_process(const struct ae_peer *p,gid_t gid,const struct ae_image
     if (r==0) { again=openat(process,"exe",O_RDONLY|O_CLOEXEC); if (again<0) r=-errno; }
     if (r==0) r=snapshot(again,&second);
     if (r==0) { memcpy(second.digest,actual.digest,32); if (!ae_image_equal(&actual,&second)) r=-ESTALE; }
-    if (r==0) r=identity(p,gid,&last);
+    if (r==0) r=identity(p,&last);
     if (r==0 && first!=last) r=-ESTALE;
     label=NULL;
-    if (r==0 && getpidcon_raw(p->connection_pid,&label)!=0) r=-errno;
-    if (r==0 && strcmp(label,p->connection_label)!=0) r=-ESTALE;
+    if (r==0 && getpidcon_raw(p->pid,&label)!=0) r=-errno;
+    if (r==0 && (!label || strcmp(label,p->label)!=0)) r=-ESTALE;
     freecon(label);
-    if (r==0) r=ae_peer_alive(p);
+    if (r==0) r=live(p->pidfd);
     int fds[]={process,executable,again}; for (size_t n=0;n<3;++n) if (fds[n]>=0) close(fds[n]);
     if (r==0) *output=actual;
     return r;
@@ -132,24 +148,20 @@ int ae_image_match_process(const struct ae_peer *p,gid_t gid,const struct ae_ima
 {
     if (p==NULL || expected==NULL || output==NULL || p->pidfd<0 || p->connection_pid<1 || p->connection_uid==0 || gid==0 ||
         strnlen(p->connection_label,sizeof p->connection_label)==0 || strnlen(p->connection_label,sizeof p->connection_label)>=sizeof p->connection_label) return -EINVAL;
-    return match_process(p,gid,expected,output);
+    const struct ae_image_process selected={p->pidfd,p->connection_pid,p->connection_uid,gid,p->connection_label};
+    return ae_image_match_pinned(&selected,expected,output);
 }
 int ae_image_match_self(uid_t uid,gid_t gid,const struct ae_image *expected,struct ae_image *output)
 {
     uint8_t encoded[AE_IMAGE_BYTES];
     if (uid==(uid_t)-1 || gid==(gid_t)-1 || !expected || !output || ae_image_encode(expected,encoded)) return -EINVAL;
-    struct ae_peer self=AE_PEER_INIT;
-    self.connection_pid=getpid(); self.connection_uid=uid;
-    self.pidfd=(int)syscall(SYS_pidfd_open,self.connection_pid,0);
-    int r=self.pidfd<0 ? -errno : 0;
+    pid_t pid=getpid();
+    int pin=(int)syscall(SYS_pidfd_open,pid,0);
+    if(pin<0)return -errno;
     char *label=NULL;
-    if (r==0 && getcon_raw(&label)<0) r=-errno;
-    if (r==0) {
-        size_t n=strnlen(label,sizeof self.connection_label);
-        if (!n || n>=sizeof self.connection_label) r=-EOVERFLOW;
-        else memcpy(self.connection_label,label,n+1);
-    }
+    int r=getcon_raw(&label)<0?-errno:0;
+    const struct ae_image_process self={pin,pid,uid,gid,label};
+    if(!r)r=ae_image_match_pinned(&self,expected,output);
     freecon(label);
-    if (r==0) r=match_process(&self,gid,expected,output);
-    ae_peer_clear(&self); return r;
+    close(pin);return r;
 }

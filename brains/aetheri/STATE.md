@@ -1,5 +1,13 @@
 # State
 
+15 November 2026 — A local administrative observer can now check the running
+root backend's executable against the ELF selected by the original loaded
+service. The exact running file passed and the separate identical-byte object
+was rejected; ten original self-image regressions also passed. The greeter
+still needs a protected way to receive the observation together with evidence
+for the consumed configuration and effective policy. See the
+[native record](journal/2026-11-15-login-current-image.md).
+
 15 November 2026 — The loaded login unit observer joins independently checked
 files to the original active socket service. Both native build profiles accept
 the exact loaded command and reject a different configuration path, omitted

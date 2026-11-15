@@ -21,5 +21,11 @@ int ae_login_loaded_create(struct ae_login_service *,struct ae_login_sources *,
    The caller still needs independent current ELF, actually consumed config,
    loaded policy and greeter admission before sending credentials. */
 int ae_login_loaded_check(void *);
+/* Administrative observer in trusted host proc/PID/mount views. Recheck the
+   complete loaded/source selection and compare the running peer executable
+   with the original PROGRAM object. The selected authenticated peer must be
+   UID/GID 0 and the caller must already hold the required proc access. Output
+   unchanged on error. This observes the current executed ELF only. */
+int ae_login_loaded_match_image(struct ae_login_loaded *,struct ae_image *out);
 int ae_login_loaded_close(struct ae_login_loaded **);
 #endif

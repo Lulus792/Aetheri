@@ -1,5 +1,10 @@
 # Sources
 
+## Running login executable — 15 November 2026
+
+- [Linux proc_pid_exe](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html) describes current executable access and the ptrace read check. The administrative fixture observes the executable through the original live socket peer.
+- [Native record](journal/2026-11-15-login-current-image.md) covers the original file, a distinct same-byte object, confirmed ordinary-caller rejection and the existing image self-tests. The crypto library used by the administrative fixture came from the pinned Fedora RPM listed in [VM inputs](../../spec/vm-inputs.json).
+
 ## Loaded login unit — 15 November 2026
 
 - [systemd v259.10 service properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c), [unit properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-unit.c), and [unique connection lookup](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/libsystemd/sd-bus/bus-control.c) define the read-only properties and unique manager name selection. The exact signature and command status were observed in the carrier.

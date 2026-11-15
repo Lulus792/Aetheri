@@ -353,6 +353,7 @@ if(AETHERI_LOGIN_PROTOCOL)
         set_tests_properties(login.connection PROPERTIES TIMEOUT 20 SKIP_RETURN_CODE 77)
         if(TARGET aetheri_login_service)
             add_executable(test_login_loaded tests/test_login_loaded.c)
+            set_target_properties(test_login_loaded PROPERTIES SKIP_BUILD_RPATH TRUE)
             target_compile_options(test_login_loaded PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
             target_link_libraries(test_login_loaded PRIVATE aetheri_login_loaded)
             # Explicit protected-source integration fixture, no automatic Root setup.

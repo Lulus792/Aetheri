@@ -25,6 +25,7 @@ struct ae_login_loaded {
     char config[AE_LOGIN_SOURCE_FULL_PATH_MAX];
     char dropins[MAX_DROPINS][AE_LOGIN_SOURCE_FULL_PATH_MAX];
     size_t dropin_count;
+    size_t program_index;
     struct command_record original;
     pid_t owner,thread;
     int error;
@@ -139,9 +140,17 @@ static int start_command(const struct selected_unit *unit,const struct ae_login_
     return 0;
 }
 
-static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,pid_t main_pid,void *data)
+struct observation {
+    struct ae_login_loaded *loaded;
+    const struct ae_image *expected_image;
+    struct ae_image image;
+};
+
+static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
+                          const struct ae_image_process *process,void *data)
 {
-    struct ae_login_loaded *loaded=data;
+    struct observation *observation=data;
+    struct ae_login_loaded *loaded=observation->loaded;
     const struct selected_unit unit={bus,manager,path};
     int r=string_property(&unit,UNIT,"LoadState","loaded");
     if(!r)r=string_property(&unit,UNIT,"FragmentPath",loaded->fragment);
@@ -157,27 +166,45 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,pid_t
     for(size_t i=0;!r && i<sizeof extra_commands/sizeof extra_commands[0];++i)
         r=empty_property(&unit,SERVICE,extra_commands[i],"a(" COMMAND ")","(" COMMAND ")");
     struct command_record record={0};
-    if(!r)r=start_command(&unit,loaded,main_pid,&record);
+    if(!r)r=start_command(&unit,loaded,process->pid,&record);
     if(!r && loaded->original.start_monotonic &&
        (record.start_monotonic!=loaded->original.start_monotonic ||
         record.start_realtime!=loaded->original.start_realtime))r=-ESTALE;
+    if(!r && observation->expected_image) {
+        if(process->uid || process->gid)r=-EACCES;
+        else r=ae_image_match_pinned(process,observation->expected_image,&observation->image);
+    }
     if(!r)loaded->original=record;
     return r;
 }
 
-int ae_login_loaded_check(void *value)
+static int check(struct ae_login_loaded *loaded,struct ae_image *image)
 {
-    struct ae_login_loaded *loaded=value;
     int r=owner(loaded);
     if(r)return r;
     if(loaded->error)return loaded->error;
     loaded->busy=true;
-    r=ae_login_sources_check(loaded->sources);
-    if(!r)r=ae_login_service_inspect(loaded->service,inspect_loaded,loaded);
+    struct observation observation={.loaded=loaded};
+    struct ae_image expected;
+    if(image) {
+        r=ae_login_sources_image(loaded->sources,loaded->program_index,&expected);
+        if(!r)observation.expected_image=&expected;
+    } else r=ae_login_sources_check(loaded->sources);
+    if(!r)r=ae_login_service_inspect(loaded->service,inspect_loaded,&observation);
     if(!r)r=ae_login_sources_check(loaded->sources);
     loaded->busy=false;
     if(r)loaded->error=r;
+    else if(image)*image=observation.image;
     return r;
+}
+
+int ae_login_loaded_check(void *value) {return check(value,NULL);}
+
+int ae_login_loaded_match_image(struct ae_login_loaded *loaded,struct ae_image *out)
+{
+    if(!out)return -EINVAL;
+    if(getuid() || geteuid() || getgid() || getegid())return -EACCES;
+    return check(loaded,out);
 }
 
 int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sources *sources,
@@ -198,6 +225,7 @@ int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sour
     loaded->service=service;
     loaded->sources=sources;
     loaded->dropin_count=dropin_count;
+    loaded->program_index=program;
     int r=ae_login_sources_path(sources,fragment,AE_LOGIN_SOURCE_DATA,loaded->fragment);
     if(!r)r=ae_login_sources_path(sources,program,AE_LOGIN_SOURCE_ELF,loaded->program);
     if(!r)r=ae_login_sources_path(sources,config,AE_LOGIN_SOURCE_DATA,loaded->config);

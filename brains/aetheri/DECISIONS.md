@@ -1,5 +1,14 @@
 # Decisions
 
+## Observe the actual login ELF through the original service pin — 15 November 2026
+
+Reuse the Linux ELF verifier for an administrative observation of the original
+loaded service. Select its expected image from the same protected `PROGRAM`
+entry and pass the original socket peer pin internally. The greeter stays
+unprivileged and needs a separate protected handoff. The bus-peer API keeps its
+existing rejection of root peers. See the
+[executable contract](../../spec/login.md#running-backend-executable).
+
 ## Join protected login files to the original loaded unit — 15 November 2026
 
 Match the loaded primary fragment and ordered drop-ins against the independently

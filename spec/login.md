@@ -312,3 +312,25 @@ carrier's ordinary client gets `EACCES` opening the fixture Root process's
 `/proc/PID/exe`. Linux applies a ptrace access check to that path. The fixture
 controller independently identified the running executable as Root before
 retirement. See the [execution record](../brains/aetheri/journal/2026-11-15-login-loaded.md).
+
+## Running backend executable
+
+`ae_login_loaded_match_image` serves a trusted administrative observer with
+UID/GID 0 and existing host `/proc` access. It takes an existing loaded-unit
+handle. The expected ELF comes from the same source entry selected as `PROGRAM`.
+The current executable is opened in the observer's trusted host PID namespace
+while the service holds the original kernel socket peer pin. No numeric PID
+from a caller enters the check. The kernel PID, credentials, cgroup, label and
+peer liveness are checked around repeated references to the process executable.
+The ELF verifier checks ownership, mode, capabilities, format and SHA-256.
+Object identity and metadata also have to agree, including for byte-identical
+files. The service and source checks complete before returning the observation.
+
+Only administrative callers can request this operation. The ordinary greeter
+will need a way to consume a protected observation tied to its original backend
+instance. The current result is local to the administrative process and carries
+no authorization for a future process. A same-PID image change after observation,
+the configuration read by greetd, effective policy and original greeter identity
+remain separate admission concerns. The existing public bus-peer image check
+continues to reject UID/GID 0. See the
+[native record](../brains/aetheri/journal/2026-11-15-login-current-image.md).
