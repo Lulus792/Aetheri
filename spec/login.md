@@ -464,12 +464,17 @@ through its Root PAM worker. Its Root-created test profile is not a production
 profile format. The test joins self checks and the protected handoff to the
 native connection, exercises a real `pam_unix` secret prompt and acknowledged
 cancellation, then submits an empty answer for the existing locked account.
-Authentication is denied. A subsequent backend cancellation error fences the
-client UNKNOWN; it cannot silently start another attempt. This exposed a
-remaining backend integration issue: the pinned greetd keeps a failed worker
-in its configuring slot and tries to send Cancel after that worker exited.
-Do not weaken the protocol fence to hide the error. Normal retry handling,
-successful password/session transitions and the graphical greeter remain work.
+Authentication is denied. With the original backend, a subsequent cancellation
+error fences the client UNKNOWN; it cannot silently start another attempt.
+The optional [worker integration](login-backend.md#configuring-worker-cancellation)
+now confirms the original configuring worker's end before cancellation succeeds.
+The test's `retry` mode exercises the acknowledged cancellation after denial
+and two further explicit prompt/cancel attempts. An administrative observer
+independently pins the actual user-authentication worker during the first secret
+prompt and checks that it exited before the Cancel ACK. No C protocol fence was
+weakened. The default fixture retains its old UNKNOWN check for the original
+candidate. Successful password/session transitions and the graphical greeter
+remain work.
 
 The publisher and reader must use the same independently admitted source mount
 topology. A private service namespace changes the source fingerprint, even when

@@ -85,6 +85,9 @@ static void finish_reply(struct ae_login_connection *connection,enum ae_login_ph
 int main(int argc,char **argv)
 {
     if((argc!=2 && argc!=3) || getuid()!=1000 || geteuid()!=1000)return 77;
+    bool retry=argc==3 && !strcmp(argv[2],"retry");
+    bool outsider=argc==3 && !strcmp(argv[2],"outsider");
+    if(argc==3 && !retry && !outsider)return 77;
     setvbuf(stdout,NULL,_IOLBF,0);
     int profile=open(argv[1],O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
     struct stat st;
@@ -122,8 +125,8 @@ int main(int argc,char **argv)
     struct ae_login_service *service=service_test(fd,bus,unit);
     struct ae_login_greeter *greeter=NULL;
     int r=ae_login_greeter_create(service,sources,&expected,&greeter);
-    if(argc==3) {
-        CHECK(!strcmp(argv[2],"outsider") && r<0 && !greeter);
+    if(outsider) {
+        CHECK(r<0 && !greeter);
         puts("GREETER_OUTSIDER_REJECTED");
         close(fd);CHECK(!ae_login_service_close(&service) && !ae_login_sources_close(&sources));sd_bus_unref(bus);return 0;
     }
@@ -180,6 +183,14 @@ int main(int argc,char **argv)
     CHECK(!ae_login_connection_begin(connection,"aetheri",7));finish_reply(connection,AE_LOGIN_PROMPT);
     struct ae_login_status prompt;
     CHECK(!ae_login_connection_status(connection,&prompt) && prompt.prompt==AE_LOGIN_SECRET);
+    if(retry) {
+        puts("GREETER_PROMPT_WAIT");found=false;
+        for(size_t i=0;i<150;++i) {
+            if(!fstatat(directory_fd,"prompt-inspected",&st,AT_SYMLINK_NOFOLLOW)){found=true;break;}
+            CHECK(errno==ENOENT && !admission_check(&admission));pause_test();
+        }
+        CHECK(found);
+    }
     CHECK(!ae_login_connection_cancel(connection));finish_reply(connection,AE_LOGIN_IDLE);
     puts("GREETER_CANCEL_ACK");
     CHECK(!ae_login_connection_begin(connection,"aetheri",7));finish_reply(connection,AE_LOGIN_PROMPT);
@@ -189,8 +200,20 @@ int main(int argc,char **argv)
     /* The pinned backend can fail sending Cancel to a worker that already
        exited after denial. Preserve the model's UNKNOWN fence on that error;
        do not turn a failed cancellation into a retry or an implied drain. */
-    CHECK(!ae_login_connection_cancel(connection));finish_reply(connection,AE_LOGIN_UNKNOWN);
-    puts("GREETER_CANCEL_UNKNOWN");
+    CHECK(!ae_login_connection_cancel(connection));
+    if(retry) {
+        finish_reply(connection,AE_LOGIN_IDLE);
+        puts("GREETER_RETRY_ACK");
+        for(size_t attempt=0;attempt<2;++attempt) {
+            CHECK(!ae_login_connection_begin(connection,"aetheri",7));finish_reply(connection,AE_LOGIN_PROMPT);
+            CHECK(!ae_login_connection_status(connection,&prompt) && prompt.prompt==AE_LOGIN_SECRET);
+            CHECK(!ae_login_connection_cancel(connection));finish_reply(connection,AE_LOGIN_IDLE);
+            puts("GREETER_RETRY_PROMPT");
+        }
+    } else {
+        finish_reply(connection,AE_LOGIN_UNKNOWN);
+        puts("GREETER_CANCEL_UNKNOWN");
+    }
     CHECK(!ae_login_connection_close(&connection));
     puts("GREETER_WAIT_DRIFT");found=false;
     for(size_t i=0;i<150;++i){CHECK(!stat(program,&st));if((st.st_mode&07777)==0755){found=true;break;}pause_test();}

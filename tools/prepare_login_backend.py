@@ -109,6 +109,137 @@ def startup_notice(source):
     if path in source:
         raise ValueError('unexpected startup integration file')
     source[path] = (ROOT / 'patches/greetd/aetheri_startup.rs').read_bytes().replace(b'\r\n', b'\n')
+    worker_lifetime(source)
+
+
+def worker_lifetime(source):
+    """Keep configuring-worker cancellation and the sole reaper serialized."""
+    def replace(path, original, replacement):
+        if source[path].count(original) != 1:
+            raise ValueError('unexpected greetd worker integration site: ' + path)
+        source[path] = source[path].replace(original, replacement)
+
+    main = 'greetd/src/main.rs'
+    interface = 'greetd/src/session/interface.rs'
+    context = 'greetd/src/context.rs'
+    replace(main, b'mod context;\n', b'#[cfg(feature = "aetheri-startup")]\nmod aetheri_worker;\nmod context;\n')
+    replace(interface, b'        let raw_child = childfd.as_raw_fd();', b'''        // Only the parent endpoint enters Tokio; the worker keeps blocking I/O.
+        // Set this before fork so a failed setup has created no child.
+        #[cfg(feature = "aetheri-startup")]
+        parentfd.set_nonblocking(true)?;
+        let raw_child = childfd.as_raw_fd();''')
+    replace(interface, b'pub struct Session {\n    task: Pid,', b'''pub struct Session {
+    #[cfg(feature = "aetheri-startup")]
+    worker: crate::aetheri_worker::Worker,
+    task: Pid,''')
+    replace(interface, b'        Ok(Session {\n            task: child,', b'''        Ok(Session {
+            #[cfg(feature = "aetheri-startup")]
+            worker: crate::aetheri_worker::Worker::new(child),
+            task: child,''')
+    replace(interface, b'''        self.last_msg = None;
+        ParentToSessionChild::Cancel.send(&mut self.sock).await?;
+        Ok(())''', b'''        #[cfg(feature = "aetheri-startup")]
+        {
+            let sock = &mut self.sock;
+            self.worker.cancel(|| ParentToSessionChild::Cancel.send(sock)).await?;
+            self.last_msg = None;
+            Ok(())
+        }
+        #[cfg(not(feature = "aetheri-startup"))]
+        {
+            self.last_msg = None;
+            ParentToSessionChild::Cancel.send(&mut self.sock).await?;
+            Ok(())
+        }''')
+    replace(interface, b'    /// Send a response to an authentication question,', b'''    #[cfg(feature = "aetheri-startup")]
+    pub(crate) fn record_worker_exit(&mut self, status: nix::sys::wait::WaitStatus) {
+        self.worker.reaped(status);
+    }
+
+    /// Send a response to an authentication question,''')
+
+    # The same lock must cover creation/initial admission as well as every wait.
+    # Otherwise a reaper can consume a child status before its slot is recorded.
+    start = b'    pub async fn create_session(&self, username: String) -> Result<(), Error> {\n'
+    end = b'    /// Cancel the session being configured.\n'
+    if source[context].count(start) != 1 or source[context].count(end) != 1:
+        raise ValueError('unexpected greetd create integration site')
+    begin = source[context].index(start)
+    finish = source[context].index(end, begin)
+    original = source[context][begin:finish]
+    body = original[len(start):]
+    if not body.endswith(b'    }\n\n'):
+        raise ValueError('unexpected greetd create function ending')
+    replacement = start + b'''        #[cfg(feature = "aetheri-startup")]
+        {
+            let mut inner = self.inner.write().await;
+            if inner.current.is_none() {
+                return Err("session not active".into());
+            }
+            if inner.configuring.is_some() || inner.scheduled.is_some() {
+                return Err("a session is already being configured or scheduled".into());
+            }
+            let session_set = SessionSet {
+                session: Session::new_external()?,
+                time: Instant::now(),
+            };
+            // Retain the original slot before the first fallible async send.
+            inner.configuring = Some(session_set);
+            let session_set = inner.configuring.as_mut().unwrap();
+            session_set.session.initiate(
+                &self.pam_service, SessionClass::User, &username, true,
+                &self.term_mode, self.source_profile, &self.listener_path,
+            ).await?;
+            Ok(())
+        }
+        #[cfg(not(feature = "aetheri-startup"))]
+        {
+''' + body[:-len(b'    }\n\n')] + b'        }\n    }\n\n'
+    replace(context, original, replacement)
+    replace(context, b'''        if let Some(mut s) = inner.configuring.take() {
+            s.session.cancel().await?;
+        }
+        Ok(())
+    }
+
+    /// Retrieve a question''', b'''        #[cfg(feature = "aetheri-startup")]
+        {
+            if let Some(s) = inner.configuring.as_mut() {
+                s.session.cancel().await?;
+            }
+            inner.configuring.take();
+        }
+        #[cfg(not(feature = "aetheri-startup"))]
+        if let Some(mut s) = inner.configuring.take() {
+            s.session.cancel().await?;
+        }
+        Ok(())
+    }
+
+    /// Retrieve a question''')
+    replace(context, b'''        loop {
+            match waitpid(None, Some(WaitPidFlag::WNOHANG)) {''', b'''        loop {
+            // Exclusive with configuring-worker observation and cancellation.
+            #[cfg(feature = "aetheri-startup")]
+            let mut inner = self.inner.write().await;
+            match waitpid(None, Some(WaitPidFlag::WNOHANG)) {''')
+    replace(context, b'''                Ok(WaitStatus::Exited(pid, ..)) | Ok(WaitStatus::Signaled(pid, ..)) => {
+                    let mut inner = self.inner.write().await;''', b'''                Ok(_status @ WaitStatus::Exited(pid, ..)) | Ok(_status @ WaitStatus::Signaled(pid, ..)) => {
+                    #[cfg(not(feature = "aetheri-startup"))]
+                    let mut inner = self.inner.write().await;
+                    #[cfg(feature = "aetheri-startup")]
+                    {
+                        if let Some(s) = inner.configuring.as_mut() {
+                            s.session.record_worker_exit(_status);
+                        }
+                        if let Some(s) = inner.scheduled.as_mut() {
+                            s.session.record_worker_exit(_status);
+                        }
+                    }''')
+    path = 'greetd/src/aetheri_worker.rs'
+    if path in source:
+        raise ValueError('unexpected worker integration file')
+    source[path] = (ROOT / 'patches/greetd/aetheri_worker.rs').read_bytes().replace(b'\r\n', b'\n')
 
 
 def plan(source_archive, crate_cache, lockfile, pins, *, notice=False):

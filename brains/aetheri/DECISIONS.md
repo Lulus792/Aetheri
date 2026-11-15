@@ -1,5 +1,17 @@
 # Decisions
 
+## Confirm the original configuring worker before cancellation succeeds — 15 November 2026
+
+Retain each original fork child under the same Context lock as creation,
+cancellation and the sole waitpid reaper. Record terminal results before unlock
+or observe the original still-unreaped child with WNOWAIT. Keep the configuring
+slot through failed admission/cancellation. A single send and original end wait
+share a bounded deadline; unknown send, ECHILD or timeout never mean completion
+or permit replay. Preserve the existing C UNKNOWN contract. Scope this to
+pre-Start authentication workers, with no app/descendant drain inference. The
+[actual old/new regression](journal/2026-11-15-login-worker.md) verifies retry
+without introducing another process, thread, crate or library.
+
 ## Bind the original greeter to self ancestry and selected code — 15 November 2026
 
 Use a self-only C17 observer with original self/parent pidfds, kernel-derived

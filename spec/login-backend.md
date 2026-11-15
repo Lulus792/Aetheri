@@ -97,7 +97,7 @@ policy was installed in this build work. Read the
 
 ## Optional startup notice
 
-The Aetheri integration build adds a small GPL-3.0-only module to the pinned
+The Aetheri integration build adds GPL-3.0-only modules to the pinned
 greetd source. Prepare a fresh tree with `--startup-notice`, then use
 `cargo build --frozen --offline --release -p greetd --features aetheri-startup`.
 The preparer checks the original archive and each integration site. The same
@@ -132,3 +132,38 @@ preflight that stopped at the intentionally absent PAM service. See the
 The [configuration reader](login.md#configuration-read-by-the-backend) also
 matches the notice of a live greetd after an inert test greeter starts. The
 private test configuration supplies no ordinary-user authentication path.
+
+## Configuring-worker cancellation
+
+The optional `aetheri-startup` integration also fixes cancellation after a PAM
+authentication failure. Upstream keeps a configuring session whose worker can
+already have exited. Sending Cancel to that socket can fail, leaving the C
+client correctly fenced UNKNOWN. The integration preserves the client's strict
+protocol behavior and makes the backend confirm its original worker's end.
+
+`aetheri_worker::Worker` belongs to one original direct child returned by the
+backend's fork. Creation/enrollment, cancellation and the sole backend child
+reaper share `Context::inner`. The reaper now takes that lock before waitpid,
+and records a matching terminal result in configuring/scheduled sessions before
+releasing it. While the original child is unreaped, cancellation can observe
+its terminal state with `waitid(P_PID, WEXITED|WNOHANG|WNOWAIT)` under that same
+lock. This original-child/exclusive-reaper invariant prevents PID reuse from
+substituting another process. It is not an interface accepting a caller PID.
+An unrecorded `ECHILD` is lost evidence and permanently fences the worker.
+
+Cancellation observes first, attempts at most one Cancel send and waits for
+the original worker's end. The send and wait share one five-second deadline,
+retained across a dropped future. The parent datagram is explicitly nonblocking
+before fork; the worker endpoint keeps its existing blocking behavior. A send
+error alone neither proves completion nor permits replay. A timeout or lost
+observation retains the configuring slot and its failure. Reaping later cannot
+clear that failure. Successful confirmed cancellation clears the original slot,
+so the same admitted greeter can explicitly begin another authentication.
+No new daemon, thread, external library or crate is added.
+
+This observer applies before target Start. Worker exit is not descendant drain,
+lease settlement or proof of an executed user's session ending. General PAM
+deadlines, startup/shutdown recovery, successful authentication, PAM/logind
+session transitions and production account/MAC/device policy remain separate.
+The original build without the feature remains available. The old failing
+candidate and its C client's UNKNOWN evidence remain preserved.

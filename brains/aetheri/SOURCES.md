@@ -1,5 +1,11 @@
 # Sources
 
+## Original configuring-worker cancellation — 15 November 2026
+
+- [Linux wait semantics](https://man7.org/linux/man-pages/man2/waitpid.2.html), read WEXITED/WNOHANG/WNOWAIT and ECHILD: a still-unreaped direct child's terminal state can be observed without reaping. The integration also requires exclusive backend reaper ownership and exact cached terminal results; PID values alone do not supply that invariant.
+- Pinned nix0.27.1 `src/sys/wait.rs` uses zeroed siginfo for waitid and exposes terminal/StillAlive results. Pinned Tokio1.53.3 `src/net/unix/datagram/socket.rs` requires a nonblocking socket for `from_std`; only the parent endpoint is changed before fork. Both are in the independently verified existing [backend graph](../../spec/login-backend-inputs.json).
+- [Native record](journal/2026-11-15-login-worker.md) covers six real-child lifetime tests, old/new actual PAM retry, an independent authentication-worker pin, C memory/leak checks, unchanged dependency graph and terminal carrier audit.
+
 ## Original greeter and PAM conversation — 15 November 2026
 
 - [Linux v6.19 pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h) and [pidfs implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/pidfs.c) define masked kernel credentials/cgroup/PID/PPID observations. Read copies are retained locally: header4692 bytes SHA256 `36821dd42e79f6e638f06e779729eb00ee9f38c70ba7e3527874ef104d6868b7`; implementation29511 bytes SHA256 `83b27c3d51dfa224ea12b4b296c3ece131324db0e9614528132f9af2e30f8611`. These observations remain time-local, with separate held-pin and policy prerequisites.

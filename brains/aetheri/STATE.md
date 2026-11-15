@@ -1,5 +1,15 @@
 # State
 
+15 November 2026 — Failed-authentication cancellation now confirms the original
+configuring worker's end under the exclusive Context/reaper lock. The old actual
+backend fails the retry regression; the corrected pinned backend passes with
+Release/memory greeters and repeated real PAM prompt/cancel attempts. Original
+worker exit is independently pinned, C UNKNOWN fences stay intact and LSan is
+zero. Offline17 unit/one doc test and the no-feature check pass. All16 live
+fixtures and final build units are terminal. Next successful authentication and
+actual user-session transitions, protected startup and effective deployment
+policy. See the [native record](journal/2026-11-15-login-worker.md).
+
 15 November 2026 — The original greeter self observer now joins protected ELF,
 account/labels, kernel parent ancestry and original cgroups to the live backend.
 Actual greetd-launched Release/memory test greeters consume the protected handoff

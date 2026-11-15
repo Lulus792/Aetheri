@@ -1,5 +1,17 @@
 # Working on Aetheri
 
+Current login-worker cancellation: read
+`spec/login-backend.md#configuring-worker-cancellation` and the 2026-11-15
+login-worker journal. Optional integration now serializes original direct-child
+observation with the sole reaper, retains the configuring slot through failure,
+and acknowledges Cancel only after original worker end. No socket-error/ECHILD
+shortcut, repeated send or C UNKNOWN weakening. Native old-backend regression
+fails; corrected Release/memory greeters pass actual prompt/deny/retry, with an
+independent original-worker pin and explicit LSan. Keep the reaper lock before
+waitpid and enrollment before initiation; do not reuse this proof after Start.
+Next actual successful authentication/user-session transitions plus protected
+startup and effective account/PAM/SELinux/logind/device policy. USB gate applies.
+
 Current original greeter work: read `spec/login.md#original-greeter-process`
 and the 2026-11-15 login-greeter journal. The self-only C observer joins its
 kernel-derived live Root-parent ancestry to the original backend, exact self
