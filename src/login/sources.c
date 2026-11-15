@@ -229,3 +229,56 @@ int ae_login_sources_data_digest(struct ae_login_sources *s,size_t index,uint8_t
     if(!r)memcpy(out,s->sources[index].expect.digest,32);
     return r;
 }
+
+struct fingerprint_bytes {
+    uint8_t bytes[32768];
+    size_t used;
+};
+
+static void fingerprint_number(struct fingerprint_bytes *buffer,uint64_t number)
+{
+    for(size_t n=0;n<8;++n)buffer->bytes[buffer->used++]=(uint8_t)(number>>(56U-(unsigned)n*8U));
+}
+
+static void fingerprint_text(struct fingerprint_bytes *buffer,const char *text)
+{
+    size_t size=strlen(text)+1;
+    memcpy(buffer->bytes+buffer->used,text,size);
+    buffer->used+=size;
+}
+
+int ae_login_sources_fingerprint(struct ae_login_sources *s,uint8_t out[32])
+{
+    if(!out)return -EINVAL;
+    int r=ae_login_sources_check(s);
+    if(r)return r;
+    /* At most 8 entries, each with 1536 string bytes, 32 digest bytes,
+       19 numbers and 17 ancestor records of 96 bytes: less than 32768. */
+    struct fingerprint_bytes buffer={.bytes="AETHLGS1",.used=8};
+    fingerprint_number(&buffer,s->count);
+    for(size_t i=0;i<s->count;++i) {
+        const struct source *source=&s->sources[i];
+        const struct statx *object=&source->object;
+        fingerprint_text(&buffer,source->path);
+        fingerprint_text(&buffer,source->leaf);
+        fingerprint_text(&buffer,source->label);
+        memcpy(buffer.bytes+buffer.used,source->expect.digest,32);buffer.used+=32;
+        const uint64_t numbers[]={source->expect.kind,source->expect.mode,source->expect.size,source->depth,
+            object->stx_mnt_id,object->stx_ino,object->stx_dev_major,object->stx_dev_minor,
+            object->stx_uid,object->stx_gid,object->stx_mode,object->stx_nlink,object->stx_size,
+            (uint64_t)object->stx_btime.tv_sec,object->stx_btime.tv_nsec,
+            (uint64_t)object->stx_mtime.tv_sec,object->stx_mtime.tv_nsec,
+            (uint64_t)object->stx_ctime.tv_sec,object->stx_ctime.tv_nsec};
+        for(size_t k=0;k<sizeof numbers/sizeof numbers[0];++k)fingerprint_number(&buffer,numbers[k]);
+        for(size_t j=0;j<=source->depth;++j) {
+            const struct ae_root_identity *root=&source->ancestors[j];
+            const uint64_t fields[]={root->mount_id,root->inode,root->device_major,root->device_minor,
+                root->uid,root->gid,root->mode,(uint64_t)root->filesystem_type,(uint64_t)root->birth_present,
+                (uint64_t)root->birth_seconds,root->birth_nanoseconds};
+            for(size_t k=0;k<sizeof fields/sizeof fields[0];++k)fingerprint_number(&buffer,fields[k]);
+            memcpy(buffer.bytes+buffer.used,root->filesystem_id,8);buffer.used+=8;
+        }
+    }
+    r=ae_login_sources_check(s);
+    return r?r:ae_sha256_bytes(buffer.bytes,buffer.used,out);
+}

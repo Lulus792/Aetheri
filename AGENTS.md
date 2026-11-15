@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current protected login handoff work: read `spec/login.md#protected-observation-handoff`
+and the 2026-11-15 login-handoff journal. Root publishes one create-only AETHLGH1
+observation after actual ELF/config checks. The ordinary reader compares original
+boot/invocation/pidfd/cgroup/image/source and manager/process context while the
+same service is live. Keep directory/path/ancestor and exact MAC admission with
+the caller. Preserve possible named files after uncertain publication and never
+adopt an EEXIST entry. Release/memory clients and the targeted omission mutant
+are verified. Next wire publication/consumption to the original greeter and
+effective policy, then actual credential and graphical session transitions.
+
 Current consumed login config work: read `spec/login.md#configuration-read-by-the-backend`
 and the 2026-11-15 login-config-reader journal. C now requires the exact PID1
 invocation/digest and NotifyAccess=main. Once requested, all checks require the

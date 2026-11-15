@@ -7,6 +7,6 @@
    are borrowed for this call. Read-only operations on the selected PID1 only. */
 typedef int (*ae_login_service_inspector)(sd_bus *,const char *manager,const char *unit_path,
                                           const struct ae_image_process *,const uint8_t invocation[16],
-                                          void *userdata);
+                                          const uint8_t boot[16],uint64_t cgroup,void *userdata);
 int ae_login_service_inspect(struct ae_login_service *,ae_login_service_inspector,void *userdata);
 #endif

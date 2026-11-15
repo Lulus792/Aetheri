@@ -1,5 +1,14 @@
 # Decisions
 
+## Hand the administrative observation to the greeter through a protected record — 15 November 2026
+
+Use an independently admitted Root-owned directory and a create-only record
+with exact MAC/ownership/mode checks. Include the original boot, invocation,
+kernel peer, executable, configuration, source set and manager/process context.
+The ordinary reader reconstructs the observation against its live loaded guard.
+Keep the publication and reader as bounded C libraries for startup integration.
+See the [handoff contract](../../spec/login.md#protected-observation-handoff).
+
 ## Require the exact consumed config notice from the original service — 15 November 2026
 
 Use the original PID1 connection, invocation and live socket service to read

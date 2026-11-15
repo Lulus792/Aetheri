@@ -1,10 +1,12 @@
 #define _GNU_SOURCE
-#include "login/loaded.h"
+#include "login/loaded_internal.h"
 #include "login/service_internal.h"
+#include "core/digest.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define UNIT "org.freedesktop.systemd1.Unit"
@@ -149,6 +151,7 @@ struct observation {
     struct ae_image image;
     const uint8_t *expected_config;
     bool config_matches;
+    uint8_t *record;
 };
 
 static void hex_encode(char *out,const uint8_t *bytes,size_t size)
@@ -184,8 +187,31 @@ static int config_notice(const struct selected_unit *unit,const uint8_t invocati
     return r;
 }
 
+static void put64(uint8_t *out,uint64_t value)
+{
+    for(size_t i=0;i<8;++i)out[i]=(uint8_t)(value>>(56U-(unsigned)i*8U));
+}
+
+static int context_digest(sd_bus *bus,const char *manager,const struct ae_image_process *process,
+                           uint8_t out[32])
+{
+    sd_id128_t bus_id;
+    int r=sd_bus_get_bus_id(bus,&bus_id);
+    if(r<0)return r;
+    uint8_t bytes[1024]="AETHLGC1";
+    memcpy(bytes+8,bus_id.bytes,16);
+    put64(bytes+24,(uint64_t)process->uid);
+    put64(bytes+32,(uint64_t)process->gid);
+    size_t label=strnlen(process->label,512),name=strnlen(manager,256);
+    if(!label || label==512 || !name || name==256)return -EBADMSG;
+    memcpy(bytes+40,process->label,label+1);
+    memcpy(bytes+41+label,manager,name+1);
+    return ae_sha256_bytes(bytes,42+label+name,out);
+}
+
 static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
-                          const struct ae_image_process *process,const uint8_t invocation[16],void *data)
+                          const struct ae_image_process *process,const uint8_t invocation[16],
+                          const uint8_t boot[16],uint64_t cgroup,void *data)
 {
     struct observation *observation=data;
     struct ae_login_loaded *loaded=observation->loaded;
@@ -213,11 +239,29 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
         if(process->uid || process->gid)r=-EACCES;
         else r=ae_image_match_pinned(process,observation->expected_image,&observation->image);
     }
+    if(!r && observation->record) {
+        struct stat peer;
+        if(fstat(process->pidfd,&peer))r=-errno;
+        else {
+            uint8_t *bytes=observation->record;
+            memcpy(bytes,"AETHLGH1",8);
+            memcpy(bytes+8,boot,16);
+            memcpy(bytes+24,invocation,16);
+            put64(bytes+40,(uint64_t)peer.st_dev);
+            put64(bytes+48,(uint64_t)peer.st_ino);
+            put64(bytes+56,cgroup);
+            put64(bytes+64,(uint64_t)process->pid);
+            put64(bytes+248,record.start_monotonic);
+            put64(bytes+256,record.start_realtime);
+            r=context_digest(bus,manager,process,bytes+264);
+        }
+    }
     if(!r)loaded->original=record;
     return r;
 }
 
-static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool require_config)
+static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool require_config,
+                  uint8_t *capture,const uint8_t *compare)
 {
     int r=owner(loaded);
     if(r)return r;
@@ -225,6 +269,8 @@ static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool requ
     if(require_config)loaded->config_required=true;
     loaded->busy=true;
     struct observation observation={.loaded=loaded};
+    uint8_t record[AE_LOGIN_OBSERVATION_BYTES]={0};
+    if(capture || compare)observation.record=record;
     struct ae_image expected;
     uint8_t expected_config[32];
     if(image) {
@@ -242,19 +288,44 @@ static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool requ
     else {
         if(observation.expected_config && !observation.config_matches)return -EAGAIN;
         if(observation.config_matches)loaded->config_seen=true;
+        if(observation.record) {
+            struct ae_image selected;
+            if(!image)r=ae_login_sources_image(loaded->sources,loaded->program_index,&selected);
+            else selected=observation.image;
+            if(!r)r=ae_image_encode(&selected,record+72);
+            if(!r)memcpy(record+184,expected_config,32);
+            if(!r)r=ae_login_sources_fingerprint(loaded->sources,record+216);
+            if(!r && compare && memcmp(record,compare,sizeof record))r=-ESTALE;
+            if(r){loaded->error=r;return r;}
+            if(capture)memcpy(capture,record,sizeof record);
+        }
         if(image)*image=observation.image;
     }
     return r;
 }
 
-int ae_login_loaded_check(void *value) {return check(value,NULL,false);}
-int ae_login_loaded_check_config(void *value) {return check(value,NULL,true);}
+int ae_login_loaded_check(void *value) {return check(value,NULL,false,NULL,NULL);}
+int ae_login_loaded_check_config(void *value) {return check(value,NULL,true,NULL,NULL);}
 
 int ae_login_loaded_match_image(struct ae_login_loaded *loaded,struct ae_image *out)
 {
     if(!out)return -EINVAL;
     if(getuid() || geteuid() || getgid() || getegid())return -EACCES;
-    return check(loaded,out,false);
+    return check(loaded,out,false,NULL,NULL);
+}
+
+int ae_login_loaded_capture(struct ae_login_loaded *loaded,uint8_t out[AE_LOGIN_OBSERVATION_BYTES])
+{
+    if(!out)return -EINVAL;
+    if(getuid() || geteuid() || getgid() || getegid())return -EACCES;
+    struct ae_image image;
+    return check(loaded,&image,true,out,NULL);
+}
+
+int ae_login_loaded_compare(struct ae_login_loaded *loaded,const uint8_t bytes[AE_LOGIN_OBSERVATION_BYTES])
+{
+    if(!bytes)return -EINVAL;
+    return check(loaded,NULL,true,NULL,bytes);
 }
 
 int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sources *sources,

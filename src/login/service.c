@@ -138,7 +138,7 @@ static int service_snapshot(struct ae_login_service *s,struct service_observatio
     if(r>0)r=service_properties(s,path,out->invocation,out->group);
     if(!r && inspect) {
         const struct ae_image_process process={s->peer,s->credentials.pid,s->credentials.uid,s->credentials.gid,s->label};
-        r=inspect(s->bus,s->manager_name,path,&process,out->invocation,userdata);
+        r=inspect(s->bus,s->manager_name,path,&process,out->invocation,s->boot.bytes,first,userdata);
     }
     if(r>0)r=-EINVAL;
     char *group=NULL;if(!r)r=sd_pidfd_get_cgroup(s->peer,&group);

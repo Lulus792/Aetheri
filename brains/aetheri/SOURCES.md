@@ -1,5 +1,11 @@
 # Sources
 
+## Protected login observation handoff — 15 November 2026
+
+- [Linux linkat](https://man7.org/linux/man-pages/man2/linkat.2.html) defines creation without replacement and anonymous-file linking. The publication repeats the selected administrative observation before linking.
+- [systemd v259.10 sd_bus_get_bus_id](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/libsystemd/sd-bus/sd-bus.c) returns the authentication server ID. The independent audit uses `busctl status` for that value, which differs from `org.freedesktop.DBus.GetId` in the carrier.
+- [Native record](journal/2026-11-15-login-handoff.md) covers the actual backend, administrative publisher, ordinary Release/memory readers, targeted omission counterexample and byte-format audit.
+
 ## Consumed config reader and live backend — 15 November 2026
 
 - [systemd v259.10 service state](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/service.c) checks the main-process identity for notifications. Its [D-Bus service properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c) expose effective notify access and status.

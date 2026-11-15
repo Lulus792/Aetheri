@@ -357,3 +357,72 @@ configuration and the administrative observer verifies its ELF while the same
 service is live. A production deployment still needs the protected handoff to
 the original greeter, effective PAM/SELinux policy and user-session admission.
 See the [native record](../brains/aetheri/journal/2026-11-15-login-config-reader.md).
+
+## Protected observation handoff
+
+`login/handoff.h` transfers an administrative observation to an ordinary client
+through an independently selected protected directory. The caller admits that
+directory, its absolute path, ancestors and mount topology. The directory is
+UID0/GID0, mode0755 or0555. The reader requires a regular UID0/GID0 file with
+one hard link, mode0444, the exact selected raw SELinux label and no file
+capabilities. Its mount must match the held directory. Both retained and named
+objects and the original directory path are checked on use.
+
+Publication captures the current executed ELF and consumed configuration on the
+same loaded-service guard. It writes an anonymous file, sets its MAC label and
+mode, flushes it, repeats the administrative observation and links the file
+without replacement. Directory flush completes publication. An existing name
+returns `EEXIST`. A failed link/flush/close can leave a named file, so the caller
+retains that possibility for explicit reconciliation. The current adapter has
+local observation and publication semantics. Installed startup coordination
+and restart reconciliation remain part of the login integration.
+
+The reader obtains the expected ELF, configuration digest and source selection
+from its own admitted loaded guard. It reconstructs the complete observation
+against the original live socket peer and compares all bytes. A protected file
+from a different boot, invocation, process, image, source selection or manager
+context fails. The handle holds its original FDs and fences on observed drift.
+Replaced bytes or restored rights cannot reopen a fenced handle. It belongs
+to the original process/thread, with callback-time use/close returning `EBUSY`.
+Close releases its local FDs and memory. The loaded guard must outlive it.
+
+`AETHLGH1` is a 296-byte canonical observation. All integers are unsigned
+big-endian. The existing `AETHIMG1` image encoding retains its signed timestamp
+convention.
+
+| Offset | Bytes | Value |
+| --- | --- | --- |
+| 0 | 8 | `AETHLGH1` |
+| 8 | 16 | Boot ID |
+| 24 | 16 | Original service invocation ID |
+| 40 | 8 | Held peer pidfd device |
+| 48 | 8 | Held peer pidfd inode |
+| 56 | 8 | Kernel cgroup ID |
+| 64 | 8 | Peer PID |
+| 72 | 112 | `AETHIMG1` current executable observation |
+| 184 | 32 | Consumed configuration SHA-256 |
+| 216 | 32 | Ordered protected source observation SHA-256 |
+| 248 | 8 | Original command monotonic start timestamp |
+| 256 | 8 | Original command realtime start timestamp |
+| 264 | 32 | Original manager/process context SHA-256 |
+
+The context hash covers `AETHLGC1`, the bus authentication server ID, UID and GID
+as u64, raw process label plus NUL, and the original unique PID1 bus name plus
+NUL. The source hash covers `AETHLGS1` and the u64 source count. Each ordered
+entry contributes NUL-terminated parent path, leaf and label, then its expected
+digest and ordered u64 values for kind, mode, size, ancestor depth, file
+mount ID, inode, device major/minor, UID/GID, mode, link count, size and birth,
+modification and change times as seconds/nanoseconds. Each original ancestor
+including `/` contributes u64 mount ID, inode, device major/minor, UID/GID,
+mode, filesystem type, birth-present flag, birth seconds/nanoseconds and eight
+filesystem-ID bytes. Signed values use their two's-complement u64 encoding.
+The source count, path sizes and depth retain the existing bounded profile.
+
+The protection of the selected file and parent supplies authenticity. The hash
+values identify the captured context. The administrative observation remains
+local to its boot and process lifetimes. The complete deployment must exclude
+privileged executable/source/namespace mutation after observation and admit the
+original greeter and effective PAM/SELinux policy. The native integration
+currently exercises a short-lived administrative publisher and UID1000 clients
+with the actual greetd and its inert test greeter. See the
+[handoff record](../brains/aetheri/journal/2026-11-15-login-handoff.md).

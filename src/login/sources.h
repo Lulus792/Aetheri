@@ -48,6 +48,10 @@ int ae_login_sources_path(struct ae_login_sources *,size_t index,enum ae_login_s
                           char out[AE_LOGIN_SOURCE_FULL_PATH_MAX]);
 /* Copy the independently expected digest of a currently verified DATA source. */
 int ae_login_sources_data_digest(struct ae_login_sources *,size_t index,uint8_t out[32]);
+/* Hash the ordered original selection, including exact expected paths/labels/
+   digests and boot-local file/ancestor identities. Recheck before returning.
+   This fingerprints a held observation, with no durable volume identity. */
+int ae_login_sources_fingerprint(struct ae_login_sources *,uint8_t out[32]);
 /* Local FD/memory cleanup only. A fork child may close its local copy. */
 int ae_login_sources_close(struct ae_login_sources **);
 #endif

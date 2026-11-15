@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "login/loaded.h"
+#include "login/handoff.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -49,8 +50,9 @@ int main(int argc,char **argv)
     if(argc!=13)return 77;
     const char *socket_path=argv[1],*unit=argv[2],*directory=argv[3];
     const char *config_leaf=argv[4],*mode=argv[5];
+    bool publish=!strcmp(mode,"publish");
     bool image_notice=!strcmp(mode,"image-notice");
-    bool image_check=image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
+    bool image_check=publish || image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
     if((getuid()==0 || geteuid()==0)!=image_check)return 77;
     struct ae_login_source_expect entries[]={
         {.directory=argv[6],.leaf=unit,.label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
@@ -85,7 +87,46 @@ int main(int argc,char **argv)
     CHECK(ae_login_loaded_create(service,sources,0,1,0,dropin,1,&loaded)==-EINVAL && !loaded);
     bool omit_dropin=!strcmp(mode,"reject-dropins");
     r=ae_login_loaded_create(service,sources,0,1,2,dropin,omit_dropin?0:1,&loaded);
-    if(!strcmp(mode,"notice-real")) {
+    if(publish || !strncmp(mode,"handoff",7)) {
+        CHECK(!r && loaded);
+        char parent[AE_LOGIN_SOURCE_FULL_PATH_MAX];
+        int length=snprintf(parent,sizeof parent,"%s/runtime",directory);
+        CHECK(length>0 && (size_t)length<sizeof parent);
+        int directory_fd=open(parent,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+        CHECK(directory_fd>=0);
+        const char *leaf="backend-observation",*label="system_u:object_r:var_run_t:s0";
+        if(publish) {
+            CHECK(!ae_login_handoff_publish(loaded,directory_fd,parent,leaf,label));
+            CHECK(ae_login_handoff_publish(loaded,directory_fd,parent,leaf,label)==-EEXIST);
+            puts("Protected backend observation published without replacement");
+        } else {
+            struct ae_login_handoff *handoff=NULL;
+            CHECK(ae_login_handoff_publish(loaded,directory_fd,parent,leaf,label)==-EACCES);
+            CHECK(ae_login_handoff_open(loaded,directory_fd,parent,leaf,
+                  "system_u:object_r:etc_t:s0",&handoff)==-EACCES && !handoff);
+            int opened=ae_login_handoff_open(loaded,directory_fd,parent,leaf,label,&handoff);
+            if(!strcmp(mode,"handoff-reject")) {
+                CHECK(opened==-ESTALE && !handoff);
+                puts("Different protected observation rejected");
+            } else {
+                if(opened)fprintf(stderr,"handoff: %d\n",opened);
+                CHECK(!opened && handoff && !ae_login_handoff_check(handoff));
+                CHECK(openat(directory_fd,leaf,O_WRONLY|O_CLOEXEC|O_NOFOLLOW)<0 && errno==EACCES);
+                CHECK(unlinkat(directory_fd,leaf,0)<0 && errno==EACCES);
+                if(!strcmp(mode,"handoff-hold")) {
+                    puts("HANDOFF_READY");fflush(stdout);
+                    CHECK(getchar()=='x');
+                    int lost=ae_login_handoff_check(handoff);
+                    CHECK(lost<0);
+                    puts("HANDOFF_FENCED");fflush(stdout);
+                    CHECK(getchar()=='y' && ae_login_handoff_check(handoff)==lost);
+                } else CHECK(!strcmp(mode,"handoff"));
+                CHECK(!ae_login_handoff_close(&handoff) && !handoff);
+                puts("Protected backend observation consumed");
+            }
+        }
+        close(directory_fd);
+    } else if(!strcmp(mode,"notice-real")) {
         CHECK(!r && loaded);
         CHECK(ae_login_loaded_check_config(loaded)==0 && ae_login_loaded_check(loaded)==0);
         puts("Running backend configuration notice matched");

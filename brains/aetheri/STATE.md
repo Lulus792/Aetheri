@@ -1,5 +1,13 @@
 # State
 
+15 November 2026 — A protected observation handoff now joins the administrative
+ELF/config checks to an ordinary client on the actual live greetd instance.
+Release and memory readers pass protected-file, no-replacement, drift/fencing
+and wrong-boot checks. The omitted live-comparison counterexample fails as
+expected. The startup coordinator, original greeter admission and effective
+policy remain the next integration work before credentials and desktop login.
+See the [native record](journal/2026-11-15-login-handoff.md).
+
 15 November 2026 — The C reader now matches the exact consumed config notice
 from the original live PID1 service with NotifyAccess=main. Release and memory
 clients pass with the actual pinned greetd and an inert UID1000 greeter. Root
