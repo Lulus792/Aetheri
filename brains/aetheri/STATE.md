@@ -1,5 +1,13 @@
 # State
 
+15 November 2026 — The loaded login unit observer joins independently checked
+files to the original active socket service. Both native build profiles accept
+the exact loaded command and reject a different configuration path, omitted
+drop-in, command flag and pre-start command. The ordinary client cannot open
+the tested Root executable through `/proc` (EACCES). Current executable, consumed
+configuration/policy and original greeter still precede PAM and graphical login.
+See the [execution record](journal/2026-11-15-login-loaded.md).
+
 15 November 2026 — The C17 login source verifier now checks independently
 selected protected paths, exact metadata/labels and hashes, and fences an
 original selection on observed change. Both final Release and ASan/UBSan pass

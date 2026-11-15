@@ -79,6 +79,16 @@ static int child_client(const char *path,const char *unit) {
 }
 int main(int argc,char **argv) {
     if(argc==3 && !strcmp(argv[1],"--server"))return server(argv[2]);
+    if(argc==3 && !strcmp(argv[1],"--config")) {
+        /* The inert loaded-unit fixture reads only its socket path. */
+        char path[sizeof(((struct sockaddr_un *)0)->sun_path)];
+        CHECK(!getuid());
+        FILE *config=fopen(argv[2],"re");CHECK(config);
+        CHECK(fgets(path,sizeof path,config) && path[0]=='/');
+        char *newline=strchr(path,'\n');CHECK(newline && fgetc(config)==EOF && !ferror(config));
+        *newline=0;CHECK(fclose(config)==0);
+        return server(path);
+    }
     if(argc==4 && !strcmp(argv[1],"--client"))return client(argv[2],argv[3]);
     if(argc==3 && !strcmp(argv[1],"--server-child")) {
         CHECK(!getuid());pid_t child=fork();CHECK(child>=0);if(!child)_exit(server(argv[2]));

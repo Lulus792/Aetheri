@@ -283,3 +283,32 @@ ordinary-user control directory and `normal`, `reject` or `change` test mode.
 The test backend file is observed as data, never executed. See the
 [native execution record](../brains/aetheri/journal/2026-11-10-login-sources.md)
 for concrete inputs, tests, counterexample and remaining admission work.
+
+## Loaded login unit
+
+`login/loaded.h` joins the retained socket service to the protected fragment,
+backend ELF, backend configuration and ordered drop-ins. The caller selects
+distinct entries in the existing protected source set. Both underlying guards
+must outlive the loaded-unit handle. The service observer binds the original
+PID1 bus connection's unique name and uses it for all unit reads. The loaded
+properties are read inside that observer, with the original peer, invocation,
+cgroup and PID1 verified around the read. The source set is checked again after
+the call.
+
+The selected non-transient unit must be loaded with the exact primary fragment,
+an empty `SourcePath`, the exact ordered `DropInPaths`, and `NeedDaemonReload`
+false. It must use `Type=exec`. The single `ExecStartEx` record must contain the
+protected executable and exactly `PROGRAM --config CONFIG`. The checker admits
+no command flags or condition, pre-start, post-start, reload or stop commands.
+It verifies the command record's PID and original real and monotonic start
+timestamps. The backend and configuration arguments use a restricted literal
+path alphabet to exclude systemd variable or specifier syntax. A changed or
+unavailable observation fences the loaded handle. Close releases local memory.
+
+These reads describe the properties that PID1 currently holds. The complete
+login path also needs evidence of the current backend executable, the settings
+greetd actually consumed, effective policy and the original greeter. The current
+carrier's ordinary client gets `EACCES` opening the fixture Root process's
+`/proc/PID/exe`. Linux applies a ptrace access check to that path. The fixture
+controller independently identified the running executable as Root before
+retirement. See the [execution record](../brains/aetheri/journal/2026-11-15-login-loaded.md).

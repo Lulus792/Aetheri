@@ -1,5 +1,14 @@
 # Decisions
 
+## Join protected login files to the original loaded unit — 15 November 2026
+
+Match the loaded primary fragment and ordered drop-ins against the independently
+checked source set. Observe one literal unflagged `PROGRAM --config CONFIG`
+issued by the original active Type=exec unit. Compare its original PID and start
+record and address PID1 by its bound unique bus name. Retain a separate check
+for the actual running executable and for effective backend configuration and
+policy. See the [loaded-unit contract](../../spec/login.md#loaded-login-unit).
+
 ## Verify the selected login deployment files separately — 15 November 2026
 
 Keep the file selection bounded and independent of the files being checked.

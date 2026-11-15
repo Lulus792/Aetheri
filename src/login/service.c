@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include "login/service.h"
+#include "login/service_internal.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/magic.h>
@@ -28,7 +28,7 @@ struct ae_login_service {
     struct stat peer_object,manager_object;
     struct ucred credentials;
     struct service_observation original;
-    char unit[256],label[512];
+    char unit[256],label[512],manager_name[256];
     int peer,manager,error;
     pid_t owner,thread;
     bool busy;
@@ -57,12 +57,17 @@ static int service_manager(struct ae_login_service *s,bool capture) {
     if(r<0)return r;
     r=sd_id128_get_boot(&boot);if(r<0)return r;
     if(!capture && (!sd_id128_equal(id,s->bus_id) || !sd_id128_equal(boot,s->boot)))return -ESTALE;
-    uint64_t mask=SD_BUS_CREDS_PID|SD_BUS_CREDS_EUID|SD_BUS_CREDS_PIDFD;sd_bus_creds *creds=NULL;
+    uint64_t mask=SD_BUS_CREDS_PID|SD_BUS_CREDS_EUID|SD_BUS_CREDS_PIDFD|SD_BUS_CREDS_UNIQUE_NAME;sd_bus_creds *creds=NULL;
     r=sd_bus_get_name_creds(s->bus,"org.freedesktop.systemd1",mask,&creds);
     int fd=-1;uid_t uid=0;pid_t pid=0;struct stat object;struct pidfd_info info;
     if(r>=0 && ((sd_bus_creds_get_mask(creds)&mask)!=mask || (sd_bus_creds_get_augmented_mask(creds)&mask)))r=-ENODATA;
     if(r>=0)r=sd_bus_creds_get_pid(creds,&pid);
     if(r>=0)r=sd_bus_creds_get_euid(creds,&uid);
+    const char *unique=NULL;
+    if(r>=0)r=sd_bus_creds_get_unique_name(creds,&unique);
+    if(r>=0 && (!unique || unique[0]!=':'))r=-EPROTO;
+    if(r>=0 && capture)r=service_text(s->manager_name,sizeof s->manager_name,unique);
+    if(r>=0 && !capture && strcmp(unique,s->manager_name))r=-ESTALE;
     if(r>=0 && (pid!=1 || uid!=0))r=-EACCES;
     if(r>=0)r=sd_bus_creds_get_pidfd_dup(creds,&fd);
     if(r>=0)r=service_info(fd,&info);
@@ -86,22 +91,22 @@ static int service_identity(struct ae_login_service *s,uint64_t *group) {
 }
 static int service_properties(struct ae_login_service *s,const char *path,const uint8_t invocation[16],char group[1024]) {
     char *state=NULL,*id=NULL;sd_bus_message *job=NULL,*receipt=NULL;uint32_t main=0,control=0,number=0;const char *job_path=NULL;int r;
-    r=sd_bus_get_property_string(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Unit","ActiveState",NULL,&state);
-    if(r>=0)r=sd_bus_get_property_string(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Unit","Id",NULL,&id);
+    r=sd_bus_get_property_string(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Unit","ActiveState",NULL,&state);
+    if(r>=0)r=sd_bus_get_property_string(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Unit","Id",NULL,&id);
     if(r>=0 && (!state || strcmp(state,"active") || !id || strcmp(id,s->unit)))r=-ESTALE;
-    if(r>=0)r=sd_bus_get_property(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Unit","InvocationID",NULL,&receipt,"ay");
+    if(r>=0)r=sd_bus_get_property(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Unit","InvocationID",NULL,&receipt,"ay");
     const void *bytes=NULL;size_t size=0;
     if(r>=0)r=sd_bus_message_read_array(receipt,'y',&bytes,&size);
     if(r>=0 && (size!=16 || !bytes || memcmp(bytes,invocation,16)))r=-ESTALE;
-    if(r>=0)r=sd_bus_get_property(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Unit","Job",NULL,&job,"(uo)");
+    if(r>=0)r=sd_bus_get_property(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Unit","Job",NULL,&job,"(uo)");
     if(r>=0)r=sd_bus_message_read(job,"(uo)",&number,&job_path);
     if(r==0)r=-EBADMSG;
     if(r>0 && (number || !job_path || strcmp(job_path,"/")))r=-EAGAIN;
-    if(r>=0)r=sd_bus_get_property_trivial(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","MainPID",NULL,'u',&main);
-    if(r>=0)r=sd_bus_get_property_trivial(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","ControlPID",NULL,'u',&control);
+    if(r>=0)r=sd_bus_get_property_trivial(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Service","MainPID",NULL,'u',&main);
+    if(r>=0)r=sd_bus_get_property_trivial(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Service","ControlPID",NULL,'u',&control);
     if(r>=0 && (main!=(uint32_t)s->credentials.pid || control))r=-EACCES;
     char *value=NULL;
-    if(r>=0)r=sd_bus_get_property_string(s->bus,"org.freedesktop.systemd1",path,"org.freedesktop.systemd1.Service","ControlGroup",NULL,&value);
+    if(r>=0)r=sd_bus_get_property_string(s->bus,s->manager_name,path,"org.freedesktop.systemd1.Service","ControlGroup",NULL,&value);
     if(r>=0)r=service_text(group,1024,value);
     free(value);free(state);free(id);sd_bus_message_unref(job);sd_bus_message_unref(receipt);return r<0?r:0;
 }
@@ -116,11 +121,12 @@ static int service_group(const char *path,uint64_t expected) {
     if(fd>=0)close(fd);
     close(root);return r;
 }
-static int service_snapshot(struct ae_login_service *s,struct service_observation *out) {
+static int service_snapshot(struct ae_login_service *s,struct service_observation *out,
+                            ae_login_service_inspector inspect,void *userdata) {
     int r=security_getenforce()==1?service_manager(s,false):-EACCES;
     uint64_t first=0,last=0;if(!r)r=service_identity(s,&first);
     sd_bus_message *reply=NULL;const char *path=NULL,*unit=NULL;const void *invocation=NULL;size_t size=0;
-    if(!r)r=sd_bus_call_method(s->bus,"org.freedesktop.systemd1","/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnitByPIDFD",NULL,&reply,"h",s->peer);
+    if(!r)r=sd_bus_call_method(s->bus,s->manager_name,"/org/freedesktop/systemd1","org.freedesktop.systemd1.Manager","GetUnitByPIDFD",NULL,&reply,"h",s->peer);
     if(r>=0 && !sd_bus_message_has_signature(reply,"osay"))r=-EBADMSG;
     if(r>=0)r=sd_bus_message_read(reply,"os",&path,&unit);
     if(r==0)r=-EBADMSG;
@@ -130,6 +136,8 @@ static int service_snapshot(struct ae_login_service *s,struct service_observatio
     if(r>0 && (size!=16 || !invocation))r=-EBADMSG;
     if(r>0){memcpy(out->invocation,invocation,16);uint8_t any=0;for(size_t i=0;i<16;++i)any|=out->invocation[i];if(!any)r=-EBADMSG;}
     if(r>0)r=service_properties(s,path,out->invocation,out->group);
+    if(!r && inspect)r=inspect(s->bus,s->manager_name,path,s->credentials.pid,userdata);
+    if(r>0)r=-EINVAL;
     char *group=NULL;if(!r)r=sd_pidfd_get_cgroup(s->peer,&group);
     if(!r && (!group || strcmp(group,out->group)))r=-ESTALE;
     if(!r)r=service_group(out->group,first);
@@ -140,14 +148,15 @@ static int service_snapshot(struct ae_login_service *s,struct service_observatio
 }
 static bool service_same(const struct service_observation *a,const struct service_observation *b) {return a->cgroup==b->cgroup && !memcmp(a->invocation,b->invocation,16) && !strcmp(a->group,b->group);}
 static int service_owner(struct ae_login_service *s) {return !s?-EINVAL:getpid()!=s->owner?-ECHILD:gettid()!=s->thread?-EXDEV:s->busy?-EBUSY:0;}
-int ae_login_service_check(void *data) {
-    struct ae_login_service *s=data;int r=service_owner(s);if(r<0)return r;
+int ae_login_service_inspect(struct ae_login_service *s,ae_login_service_inspector inspect,void *userdata) {
+    int r=service_owner(s);if(r<0)return r;
     if(s->error)return s->error;
-    s->busy=true;struct service_observation a={0},b={0};r=service_snapshot(s,&a);
-    if(!r)r=service_snapshot(s,&b);
+    s->busy=true;struct service_observation a={0},b={0};r=service_snapshot(s,&a,inspect,userdata);
+    if(!r)r=service_snapshot(s,&b,NULL,NULL);
     if(!r && (!service_same(&a,&b) || !service_same(&a,&s->original)))r=-ESTALE;
     s->busy=false;if(r<0)s->error=r;return r;
 }
+int ae_login_service_check(void *data) {return ae_login_service_inspect(data,NULL,NULL);}
 int ae_login_service_peer(struct ae_login_service *s,int *out) {if(!out)return -EINVAL;int r=ae_login_service_check(s);if(!r)*out=s->peer;return r;}
 int ae_login_service_close(struct ae_login_service **out) {
     if(!out)return -EINVAL;
@@ -177,8 +186,8 @@ int ae_login_service_create(int fd,sd_bus *bus,const struct ae_login_service_exp
     if(size!=sizeof(s->peer) || s->peer<0 || fcntl(s->peer,F_GETFD)<0 || !(fcntl(s->peer,F_GETFD)&FD_CLOEXEC)){r=-EPROTO;goto failed;}
     if(fstat(s->peer,&s->peer_object)){r=-errno;goto failed;}
     r=service_manager(s,true);struct service_observation a={0},b={0};
-    if(!r)r=service_snapshot(s,&a);
-    if(!r)r=service_snapshot(s,&b);
+    if(!r)r=service_snapshot(s,&a,NULL,NULL);
+    if(!r)r=service_snapshot(s,&b,NULL,NULL);
     if(!r && !service_same(&a,&b))r=-ESTALE;
     if(r<0)goto failed;
     s->original=a;*out=s;return 0;

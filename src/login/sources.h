@@ -6,7 +6,8 @@
 #include <sys/types.h>
 
 enum { AE_LOGIN_SOURCES_MAX=8, AE_LOGIN_SOURCE_PATH_MAX=1024,
-       AE_LOGIN_SOURCE_LABEL_MAX=256, AE_LOGIN_SOURCE_DATA_MAX=65536 };
+       AE_LOGIN_SOURCE_LABEL_MAX=256, AE_LOGIN_SOURCE_DATA_MAX=65536,
+       AE_LOGIN_SOURCE_FULL_PATH_MAX=1280 };
 enum ae_login_source_kind { AE_LOGIN_SOURCE_DATA=1, AE_LOGIN_SOURCE_ELF=2 };
 struct ae_login_source_expect {
     /* Independently admitted canonical absolute parent and literal leaf. Never
@@ -41,6 +42,10 @@ int ae_login_sources_check(void *sources);
    No exported FD, execution/readiness/current-process proof or loaded-DSO proof.
    Output unchanged on failure, including DATA entries and invalid indices. */
 int ae_login_sources_image(struct ae_login_sources *,size_t index,struct ae_image *);
+/* Copy one exact selected absolute path, requiring the stated kind and a
+   current complete source check. On failure leave output unchanged. */
+int ae_login_sources_path(struct ae_login_sources *,size_t index,enum ae_login_source_kind,
+                          char out[AE_LOGIN_SOURCE_FULL_PATH_MAX]);
 /* Local FD/memory cleanup only. A fork child may close its local copy. */
 int ae_login_sources_close(struct ae_login_sources **);
 #endif

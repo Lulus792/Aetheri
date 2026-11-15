@@ -1,5 +1,12 @@
 # Sources
 
+## Loaded login unit — 15 November 2026
+
+- [systemd v259.10 service properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c), [unit properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-unit.c), and [unique connection lookup](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/libsystemd/sd-bus/bus-control.c) define the read-only properties and unique manager name selection. The exact signature and command status were observed in the carrier.
+- The pinned greetd 0.10.3 `greetd/src/config/mod.rs` from the existing [backend source review](../../spec/login-backend.md) reads the explicit `--config` path and permits separate argv overrides. This check selects an exact three-argument command.
+- [Linux proc_pid_exe](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html) describes the access check applied when opening the executable of a running process.
+- [Execution record](journal/2026-11-15-login-loaded.md) covers the actual supervised fixture, exact command and protected sources, rejected variants and cross-UID executable-open result.
+
 ## Protected login sources — 15 November 2026
 
 - [Linux openat2](https://man7.org/linux/man-pages/man2/openat2.2.html) defines the component resolution flags and mount crossing restrictions used by the verifier. [Linux statx](https://man7.org/linux/man-pages/man2/statx.2.html) describes the returned metadata and unique mount identifiers.

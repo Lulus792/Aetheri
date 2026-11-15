@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current loaded login unit work: read `spec/login.md#loaded-login-unit` and the
+2026-11-15 login-loaded journal. The protected fragment, backend/config paths
+and ordered drop-ins now join the original active socket service and exact
+loaded ExecStartEx record. PID1 reads use its original unique bus name. The
+ordinary client got EACCES opening the inert Root peer's `/proc/PID/exe` in both
+native profiles. Establish current-image and loaded-config/policy evidence before
+credential transport, then admit the original greeter and exercise PAM/session.
+
 Current login source work: read `spec/login.md#protected-deployment-source-observations`
 and the login-sources journal. `login/sources.h` verifies a separately selected
 Root-owned source set and retains original ancestry and file identities. Keep

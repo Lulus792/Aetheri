@@ -193,6 +193,21 @@ int ae_login_sources_image(struct ae_login_sources *s,size_t index,struct ae_ima
     if(!out || index>=s->count || s->sources[index].expect.kind!=AE_LOGIN_SOURCE_ELF)return -EINVAL;
     r=ae_login_sources_check(s);if(!r)*out=s->sources[index].image;return r;
 }
+int ae_login_sources_path(struct ae_login_sources *s,size_t index,
+                          enum ae_login_source_kind kind,char out[AE_LOGIN_SOURCE_FULL_PATH_MAX])
+{
+    int r=owner(s);
+    if(r)return r;
+    if(!out || index>=s->count || s->sources[index].expect.kind!=kind)return -EINVAL;
+    r=ae_login_sources_check(s);
+    if(r)return r;
+    const struct source *source=&s->sources[index];
+    size_t size=strlen(source->path);
+    memcpy(out,source->path,size);
+    if(size>1)out[size++]='/';
+    strcpy(out+size,source->leaf);
+    return 0;
+}
 int ae_login_sources_close(struct ae_login_sources **value)
 {
     if(!value)return -EINVAL;
