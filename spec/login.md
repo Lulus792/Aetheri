@@ -6,6 +6,8 @@ boundary: the original greeter's conversation with a maintained PAM backend.
 The C conversation model, bounded native stream adapter and synthetic wire tests
 exist. Deployment admission, an installed authentication service and graphical
 greeter do not yet exist.
+Protected process/source guards and a private successful PAM-authentication
+fixture now join these libraries. That fixture does not start a logged-in desktop.
 
 ## Backend direction and review
 
@@ -487,3 +489,40 @@ greeter with its PAM environment; the service's loader environment is not an
 implicit greeter environment. The test command explicitly selects its protected
 crypto library after the account change. Memory-only test DSOs are selected only
 for the ordinary test greeter, never the privileged backend/publisher.
+
+## Successful authentication fixture
+
+The explicit C test greeter's `authenticate` mode exercises real `pam_unix`
+authentication and account checks, followed by confirmed cancellation. It first
+submits an empty answer and requires rejection, then supplies a fresh synthetic
+password and requires AUTHENTICATED. The account keeps its actual NSS UID/GID;
+its host password is unchanged. This response precedes user PAM open_session,
+logind registration and target Start. None of those later transitions is implied.
+
+The administrative fixture generates a random test password and a yescrypt
+setting with the carrier's existing libxcrypt. It supplies the plaintext only
+through a Root-owned sealed anonymous memory FD opened read-only by PID1 and
+inherited as fd3. The test checks regular-file ownership/mode, zero links, size,
+access flags and seals, closes the FD and wipes its local answer after queuing.
+No password enters argv, environment, profile JSON or test output. This is an
+explicit test input provider, not a production greeter credential-input API.
+
+A Root-only holder on guest `/run` tmpfs contains a private `/etc` projection:
+selected unchanged public NSS/loader files, the original SELinux configuration,
+the fixture PAM directory and a mode000 test Shadow file. Only that unit sees
+the projection. Auth/account use pam_unix; session/password remain deny-only.
+The controller checks the actual backend's bound Shadow and inherited secret
+FD against its independently created original objects. Global Shadow bytes are
+compared before/after, and the secret/hash are checked absent from the journal.
+The plaintext FD closes after exact unit retirement. The original named test
+hash is removed only after held/named identity and terminal-unit checks. Failed
+preparations remain separate protected evidence. This supplies no general
+allocation/removal protocol, volume authentication or system-wide erasure/swap
+guarantee. No personal password or new library/package was used.
+
+Release and ASan/UBSan/explicit-LSan clients pass this actual backend flow.
+The [session entry](session.md#entry-from-an-existing-local-login) separately
+rejects inherited extra descriptors before creating its own channels. Complete
+PAM/logind/VT transitions, protected startup, dedicated greeter/account/MAC policy,
+the selected runtime closure and graphical login remain required before normal
+user authentication. See the [native record](../brains/aetheri/journal/2026-11-15-login-authentication.md).

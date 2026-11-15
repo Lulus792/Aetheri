@@ -1,5 +1,14 @@
 # State
 
+15 November 2026 — Actual private pam_unix authentication/account checks now
+accept a fresh synthetic password and reject an empty answer through the original
+C greeter and protected backend. Confirmed cancellation follows success. Final
+Release/memory clients, explicit LSan, five CTests each and native owner regression
+pass. The session entry now closes inherited extra FDs before its own channels;
+an omission counterexample fails. No Start, user PAM session or graphical login
+is claimed. Next full entry/runtime view and actual PAM/logind/VT/desktop handoff.
+See the [native record](journal/2026-11-15-login-authentication.md).
+
 15 November 2026 — Failed-authentication cancellation now confirms the original
 configuring worker's end under the exclusive Context/reaper lock. The old actual
 backend fails the retry regression; the corrected pinned backend passes with

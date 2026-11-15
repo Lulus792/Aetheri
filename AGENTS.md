@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current successful-authentication work: read
+`spec/login.md#successful-authentication-fixture`, `spec/session.md` and the
+2026-11-15 login-authentication journal. Actual private pam_unix auth/account
+accepts a fresh synthetic secret after rejecting empty input; confirmed Cancel
+ends the original worker. No Start, PAM open_session or desktop login is proven.
+The test uses PID1 OpenFile/sealed input plus a private `/etc` projection on guest
+tmpfs, with no host password/PAM change. Keep failed memory holders separate.
+The session entry now closes extra inherited FDs before its own observers; native
+fork/failure/counter tests and Release/memory owner regressions pass. Next verify
+the full selected entry/runtime at the fixed path, then actual PAM/logind/VT and
+KMS desktop transitions. Keep ACK distinct from exec/readiness, existing policy
+requirements, old quarantine, USB gate and NexaUI maintenance-only state.
+
 Current login-worker cancellation: read
 `spec/login-backend.md#configuring-worker-cancellation` and the 2026-11-15
 login-worker journal. Optional integration now serializes original direct-child

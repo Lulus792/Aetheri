@@ -93,6 +93,15 @@ mode0700 directory owned by that user. The trusted systemd runtime hierarchy and
 NSS remain prerequisites, not volume authentication or hostile-writer exclusion.
 There is no creation/adoption fallback for an absent runtime.
 
+Before account/session lookup the entry closes every inherited descriptor above
+stderr with `close_range(..., CLOSE_RANGE_UNSHARE)`. It accepts no activation,
+document or credential FD from its parent. Standard input/output/error remain;
+new session observers and desktop channels are opened afterward. Failure ends
+the entry before any child starts. The fixed development owner's invocation is
+unchanged. This local descriptor cleanup is not document revocation or session/
+app/lease drain. Native fork tests check actual closure, preserved parent and
+stdio descriptors, and a failed syscall; an omitted-cleanup counterexample fails.
+
 The default Files development root is `NSS_HOME/Documents`; bounded build-time
 paths may still bind a private test ELF to separate documents. No document
 directory is created and no document grant or app sandbox is implied. Account

@@ -1,5 +1,12 @@
 # Sources
 
+## Successful private authentication and entry descriptors — 15 November 2026
+
+- [Linux close_range](https://man7.org/linux/man-pages/man2/close_range.2.html) defines immediate closure and UNSHARE, distinct from CLOEXEC. Actual fork/failure and omission tests verify the entry's local descriptor behavior; no file-commit or revocation acknowledgement follows from closing an inherited FD.
+- [systemd259 OpenFile](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html#OpenFile=) supplies a named read-only inherited FD. [Unit-private bind paths](https://www.freedesktop.org/software/systemd/man/259/systemd.exec.html#BindPaths=) explain the selected private `/etc` view. Actual namespace and original-object checks remain separately tested; this is not production policy admission.
+- [libxcrypt salt API](https://raw.githubusercontent.com/besser82/libxcrypt/develop/doc/crypt_gensalt.3), read bounded output, explicit method and entropy parameters; actual carrier libxcrypt4.5.2 exports the used ABI. [Shadow format](https://man7.org/linux/man-pages/man5/shadow.5.html) defines the private account/hash/age fields and protection requirement. No host password/hash is reused.
+- [Native record](journal/2026-11-15-login-authentication.md) covers actual empty/synthetic-secret PAM results, the original worker pin, explicit leak check, entry descriptor/failure tests and detected omission, unchanged host Shadow and final carrier audit. Successful auth remains distinct from PAM open_session/logind/target readiness.
+
 ## Original configuring-worker cancellation — 15 November 2026
 
 - [Linux wait semantics](https://man7.org/linux/man-pages/man2/waitpid.2.html), read WEXITED/WNOHANG/WNOWAIT and ECHILD: a still-unreaped direct child's terminal state can be observed without reaping. The integration also requires exclusive backend reaper ownership and exact cached terminal results; PID values alone do not supply that invariant.

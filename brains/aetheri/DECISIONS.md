@@ -1,5 +1,16 @@
 # Decisions
 
+## Keep successful-authentication fixtures private and sanitize session-entry FDs — 15 November 2026
+
+Test actual pam_unix with a fresh synthetic credential in an explicit private
+carrier view, preserving host passwords/accounts/PAM and enforcing policy. Pass
+the test answer through a sealed anonymous read-only FD, not argv/environment
+or recorded profile data. Bound and wipe the C answer; treat AUTHENTICATED as
+pre-session evidence. The actual session entry accepts no inherited extra FDs
+and closes them before its own observers/channels; failure ends startup. This
+adds no general file grant, revocation/drain proof or complete desktop login.
+See the [executed boundary](journal/2026-11-15-login-authentication.md).
+
 ## Confirm the original configuring worker before cancellation succeeds — 15 November 2026
 
 Retain each original fork child under the same Context lock as creation,

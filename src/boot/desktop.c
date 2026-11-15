@@ -223,6 +223,16 @@ static bool ready_notification(void) {
 #endif
     return sd_notify(0,"READY=1\nSTATUS=Aetheri desktop submitted its first frame")>0;
 }
+/* The post-login entry accepts no inherited activation/document/credential FDs.
+ * Drop them before opening our own session observers or spawning any child.
+ * The fixed development owner retains its separate invocation contract. */
+static bool entry_descriptors(void) {
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    return close_range(3,~0u,CLOSE_RANGE_UNSHARE)==0;
+#else
+    return true;
+#endif
+}
 static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,char *documents,size_t document_size,struct ae_session **session) {
     char *original=NULL;
     if(!entry_paths(&original,documents,document_size)){free(original);return false;}
@@ -262,6 +272,7 @@ static bool app_start(struct child *c,enum role role,char *cache,char *documents
 }
 
 int main(void) {
+    if(!entry_descriptors()){fputs("AETHERI_DESKTOP_FAIL descriptors\n",stderr);return 1;}
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
     if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),documents,sizeof(documents),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}

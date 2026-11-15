@@ -8,6 +8,7 @@
 #define getpwuid_r ae_test_getpwuid_r
 #define prctl ae_test_prctl
 #define sd_notify ae_test_notify
+#define close_range ae_test_close_range
 #define main ae_session_entry_main
 #include "../src/boot/desktop.c"
 #undef main
@@ -16,13 +17,40 @@
 #undef getpwuid_r
 #undef prctl
 #undef sd_notify
+#undef close_range
 #include <stdarg.h>
+#include <sys/syscall.h>
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"entry check %d: %s\n",__LINE__,#x);abort();}} while(0)
 static uid_t model_uid=1201,model_euid=1201,model_suid=1201;
 static gid_t model_gid=1301,model_egid=1301,model_sgid=1301;
 static int account_error,nnp_error,notify_result,notifications,nnp_calls;
 static bool missing_account,wrong_account;
 static const char *home="/home/original";
+static bool descriptor_failure;
+int ae_test_close_range(unsigned int first,unsigned int last,int flags) {
+    CHECK(first==3 && last==~0u && flags==CLOSE_RANGE_UNSHARE);
+    if(descriptor_failure){errno=EPERM;return -1;}
+    return (int)syscall(SYS_close_range,first,last,flags);
+}
+static void descriptor_test(bool failure) {
+    int pipe_fds[2];CHECK(!pipe2(pipe_fds,O_CLOEXEC));
+    int canary=open("/dev/null",O_RDONLY|O_CLOEXEC);CHECK(canary>=3);
+    pid_t pid=fork();CHECK(pid>=0);
+    if(!pid) {
+        if(dup2(pipe_fds[1],1)!=1)_exit(2);
+        descriptor_failure=failure;
+        bool result=entry_descriptors();
+        int observed=fcntl(canary,F_GETFD);
+        bool correct=failure?(!result && observed>=0):(result && observed<0 && errno==EBADF);
+        for(int fd=0;fd<3;++fd)if(fcntl(fd,F_GETFD)<0)correct=false;
+        char answer=correct?'y':'n';
+        _exit(write(1,&answer,1)==1?0:3);
+    }
+    close(pipe_fds[1]);char answer=0;
+    CHECK(read(pipe_fds[0],&answer,1)==1 && answer=='y');close(pipe_fds[0]);
+    int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
+    CHECK(fcntl(canary,F_GETFD)>=0);close(canary);
+}
 int ae_test_getresuid(uid_t *r,uid_t *e,uid_t *s) {*r=model_uid;*e=model_euid;*s=model_suid;return 0;}
 int ae_test_getresgid(gid_t *r,gid_t *e,gid_t *s) {*r=model_gid;*e=model_egid;*s=model_sgid;return 0;}
 int ae_test_getpwuid_r(uid_t uid,struct passwd *p,char *buffer,size_t size,struct passwd **out) {
@@ -39,6 +67,7 @@ int ae_test_prctl(int option,...) {
 int ae_test_notify(int unset,const char *text) {CHECK(!unset && text && strstr(text,"READY=1\n"));++notifications;return notify_result;}
 static void rejected(void) {char *parent=NULL,documents[4096];int before=nnp_calls;CHECK(!entry_paths(&parent,documents,sizeof(documents)));free(parent);CHECK(nnp_calls==before);}
 int main(void) {
+    descriptor_test(false);descriptor_test(true);
     char *parent=NULL,documents[4096];
     CHECK(!setenv("HOME","/forged/home",1) && !setenv("USER","forged",1) && !setenv("LOGNAME","forged",1) && !setenv("XDG_RUNTIME_DIR","/forged/runtime",1));
     CHECK(entry_paths(&parent,documents,sizeof(documents)) && !strcmp(parent,"/run/user/1201") && !strcmp(documents,"/home/original/Documents"));free(parent);parent=NULL;
