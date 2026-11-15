@@ -526,3 +526,50 @@ rejects inherited extra descriptors before creating its own channels. Complete
 PAM/logind/VT transitions, protected startup, dedicated greeter/account/MAC policy,
 the selected runtime closure and graphical login remain required before normal
 user authentication. See the [native record](../brains/aetheri/journal/2026-11-15-login-authentication.md).
+
+## Authenticated desktop fixture
+
+The explicit C greeter's `start` mode extends the synthetic-authentication test
+to the fixed session command. It consumes the original inherited credential
+OFD once, waits for the controller's protected start marker, submits Start,
+observes its scheduling acknowledgement and exits normally. A replacement
+fixture greeter sees EOF and waits without submitting another authentication.
+This one-use input is test coordination, not a production credential provider
+or durable replay defence. The immutable command/environment and UNKNOWN fences
+are unchanged. A separate Root-created append-mode test FD supplies
+greeter diagnostics after the backend connects standard streams to the VT;
+it is not a trusted audit-log API.
+
+Only the selected unit sees the private `/etc` projection and a read-only
+`/usr/libexec` projection containing `/usr/libexec/aetheri/aetheri-session`.
+The global executable path remains absent. Its private user PAM service uses
+actual pam_unix authentication/account checks, pam_systemd, pam_unix session
+open/close and a final pam_env entry with fixed protected runtime paths. The
+runtime selects its library, EGL vendor, DRI driver and libinput data paths;
+these data inputs are needed in addition to its executable/library files. No
+user environment file is read. Password changes stay denied; the greeter PAM
+service remains an explicit permit-only fixture, without greeter logind policy.
+
+VT8 is independently checked free before dispatch. The disposable unit retains
+the carrier devices and adds only CAP_SYS_TTY_CONFIG to its prior bounded Root
+capabilities for the backend's actual VT handling. Enforcing SELinux stays on;
+no carrier device mode or existing SELinux policy/label is changed. The existing
+administrative service domain and UID1000 test account are not production policy.
+
+The controller retains the original user PAM worker's pidfd before Start and
+separately observes the actual executed entry, ordinary credentials, absent
+capabilities, active local Wayland user session, original seat/VT/scope and
+selected compositor/desktop images. Actual first-frame diagnostics and a viewed
+QMP screenshot establish the tested display. The scheduling ACK alone proves
+none of these. After visual observation, the held entry pin receives SIGTERM;
+its own ordered shutdown precedes original worker end, PAM close and inactive
+session scope. Only then is the original backend stopped and tty1 restored.
+
+Release and ASan/UBSan/explicit-LSan greeters pass this complete private flow.
+Both use the same independently hashed Release session entry and runtime;
+no Root process loads user-writable sanitizer libraries. See the
+[native record](../brains/aetheri/journal/2026-11-15-login-desktop.md). The startup
+publisher/controller is still administrative test tooling. Dedicated greeter
+account/UI/confinement, complete effective deployment/device policy, installed
+startup coordination, normal app admission, lock/resume and the full system
+runtime closure remain open. This does not satisfy the first-version USB gate.

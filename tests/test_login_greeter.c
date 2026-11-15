@@ -29,15 +29,24 @@ static void clear_test_secret(void) {volatile char *p=test_secret;for(size_t i=0
 /* Explicit fixture input only: systemd OpenFile passes one Root-owned sealed
    anonymous read-only file as fd3. Never read a password from argv/environment,
    print it, or use this test provider as a production credential-input API. */
-static void load_test_secret(void) {
+static bool load_test_secret(bool once) {
     CHECK(!atexit(clear_test_secret));
     struct stat st;int flags=fcntl(3,F_GETFL),seals=fcntl(3,F_GET_SEALS);
     CHECK(!fstat(3,&st) && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
         st.st_nlink==0 && (st.st_mode&07777)==0600 && st.st_size==64 && flags>=0 &&
         (flags&O_ACCMODE)==O_RDONLY && seals==(F_SEAL_WRITE|F_SEAL_SHRINK|F_SEAL_GROW|F_SEAL_SEAL));
-    CHECK(pread(3,test_secret,64,0)==64);
+    ssize_t size=once?read(3,test_secret,64):pread(3,test_secret,64,0);
+    if(once && size==0){CHECK(!close(3));return false;}
+    CHECK(size==64);
     for(size_t i=0;i<64;++i)CHECK((test_secret[i]>='0' && test_secret[i]<='9') || (test_secret[i]>='a' && test_secret[i]<='f'));
     CHECK(!close(3));
+    return true;
+}
+static void test_log(void) {
+    struct stat st;int flags=fcntl(4,F_GETFL);
+    CHECK(!fstat(4,&st) && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
+        st.st_nlink==1 && (st.st_mode&07777)==0600 && flags>=0 && (flags&O_APPEND) &&
+        (flags&O_ACCMODE)==O_RDWR && dup2(4,1)==1 && dup2(4,2)==2 && !close(4));
 }
 static void pause_test(void) {struct timespec t={.tv_nsec=100000000};while(nanosleep(&t,&t) && errno==EINTR){}}
 static int connect_test(void)
@@ -101,10 +110,16 @@ int main(int argc,char **argv)
 {
     if((argc!=2 && argc!=3) || getuid()!=1000 || geteuid()!=1000)return 77;
     bool retry=argc==3 && !strcmp(argv[2],"retry");
-    bool authenticate=argc==3 && !strcmp(argv[2],"authenticate");
+    bool start=argc==3 && !strcmp(argv[2],"start");
+    bool authenticate=argc==3 && (!strcmp(argv[2],"authenticate") || start);
     bool outsider=argc==3 && !strcmp(argv[2],"outsider");
     if(argc==3 && !retry && !outsider && !authenticate)return 77;
-    if(authenticate)load_test_secret();
+    if(start)test_log();
+    if(authenticate && !load_test_secret(start)) {
+        puts("GREETER_NO_INPUT");fflush(stdout);
+        for(size_t i=0;i<300;++i)pause_test();
+        return 0;
+    }
     setvbuf(stdout,NULL,_IOLBF,0);
     int profile=open(argv[1],O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
     struct stat st;
@@ -237,16 +252,28 @@ int main(int argc,char **argv)
         int answered=ae_login_connection_answer(connection,test_secret,64);
         clear_test_secret();CHECK(!answered);finish_reply(connection,AE_LOGIN_AUTHENTICATED);
         puts("GREETER_AUTHENTICATED");
-        CHECK(!ae_login_connection_cancel(connection));finish_reply(connection,AE_LOGIN_IDLE);
-        puts("GREETER_AUTH_CANCEL_ACK");
+        if(start) {
+            puts("GREETER_START_WAIT");found=false;
+            for(size_t i=0;i<150;++i) {
+                if(!fstatat(directory_fd,"start-approved",&st,AT_SYMLINK_NOFOLLOW)){found=true;break;}
+                CHECK(errno==ENOENT && !admission_check(&admission));pause_test();
+            }
+            CHECK(found && !ae_login_connection_start(connection));finish_reply(connection,AE_LOGIN_START_ACKNOWLEDGED);
+            puts("GREETER_START_ACK");
+        } else {
+            CHECK(!ae_login_connection_cancel(connection));finish_reply(connection,AE_LOGIN_IDLE);
+            puts("GREETER_AUTH_CANCEL_ACK");
+        }
     }
     CHECK(!ae_login_connection_close(&connection));
+    if(start)goto cleanup;
     puts("GREETER_WAIT_DRIFT");found=false;
     for(size_t i=0;i<150;++i){CHECK(!stat(program,&st));if((st.st_mode&07777)==0755){found=true;break;}pause_test();}
     CHECK(found);int loss=ae_login_greeter_check(greeter);CHECK(loss<0);
     puts("GREETER_FENCED");found=false;
     for(size_t i=0;i<150;++i){CHECK(!stat(program,&st));if((st.st_mode&07777)==0555){found=true;break;}pause_test();}
     CHECK(found && ae_login_greeter_check(greeter)==loss);
+cleanup:
     CHECK(!ae_login_handoff_close(&handoff) && !ae_login_loaded_close(&loaded) && !ae_login_greeter_close(&greeter));
     CHECK(!ae_login_service_close(&service) && !ae_login_sources_close(&sources));sd_bus_unref(bus);close(directory_fd);
 #if defined(__SANITIZE_ADDRESS__)
@@ -254,6 +281,7 @@ int main(int argc,char **argv)
     puts("GREETER_LEAK_CHECKED");
 #endif
     puts("GREETER_DONE");
+    if(start)return 0;
     /* Keep the original test greeter alive until the controller stops exactly
        its original service; do not provoke an automatic greeter replacement. */
     for(size_t i=0;i<300;++i)pause_test();

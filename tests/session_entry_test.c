@@ -9,6 +9,8 @@
 #define prctl ae_test_prctl
 #define sd_notify ae_test_notify
 #define close_range ae_test_close_range
+#define isatty ae_test_isatty
+#define sd_journal_stream_fd ae_test_stream_fd
 #define main ae_session_entry_main
 #include "../src/boot/desktop.c"
 #undef main
@@ -18,6 +20,8 @@
 #undef prctl
 #undef sd_notify
 #undef close_range
+#undef isatty
+#undef sd_journal_stream_fd
 #include <stdarg.h>
 #include <sys/syscall.h>
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"entry check %d: %s\n",__LINE__,#x);abort();}} while(0)
@@ -27,6 +31,34 @@ static int account_error,nnp_error,notify_result,notifications,nnp_calls;
 static bool missing_account,wrong_account;
 static const char *home="/home/original";
 static bool descriptor_failure;
+static bool model_tty;
+static int stream_source=-1,stream_calls,stream_return=-1;
+int ae_test_isatty(int fd) {CHECK(fd==1 || fd==2);return model_tty?1:0;}
+int ae_test_stream_fd(const char *name,int priority,int prefix) {
+    CHECK(!strcmp(name,"aetheri-session") && priority==LOG_INFO && prefix==0);
+    ++stream_calls;
+    if(stream_source<0)return -EIO;
+    stream_return=fcntl(stream_source,F_DUPFD_CLOEXEC,3);return stream_return;
+}
+static void logging_test(unsigned mode) {
+    int pipes[2];CHECK(!pipe2(pipes,O_CLOEXEC));
+    pid_t pid=fork();CHECK(pid>=0);
+    if(!pid) {
+        struct stat first[3],last;
+        for(int fd=0;fd<3;++fd)if(fstat(fd,&first[fd]))_exit(2);
+        model_tty=mode!=0;stream_source=mode==2?pipes[1]:-1;stream_calls=0;
+        if(!entry_logging() || stream_calls!=(mode==0?0:1))_exit(3);
+        if(mode==2) {
+            if(fcntl(stream_return,F_GETFD)>=0 || errno!=EBADF)_exit(4);
+            if(fstat(pipes[1],&last))_exit(5);
+            for(int fd=1;fd<3;++fd){struct stat s;if(fstat(fd,&s) || s.st_dev!=last.st_dev || s.st_ino!=last.st_ino)_exit(6);}
+        } else for(int fd=1;fd<3;++fd)if(fstat(fd,&last) || last.st_dev!=first[fd].st_dev || last.st_ino!=first[fd].st_ino)_exit(7);
+        if(fstat(0,&last) || last.st_dev!=first[0].st_dev || last.st_ino!=first[0].st_ino)_exit(8);
+        _exit(write(pipes[1],"y",1)==1?0:9);
+    }
+    close(pipes[1]);char answer=0;CHECK(read(pipes[0],&answer,1)==1 && answer=='y');close(pipes[0]);
+    int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
+}
 int ae_test_close_range(unsigned int first,unsigned int last,int flags) {
     CHECK(first==3 && last==~0u && flags==CLOSE_RANGE_UNSHARE);
     if(descriptor_failure){errno=EPERM;return -1;}
@@ -51,6 +83,11 @@ static void descriptor_test(bool failure) {
     int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
     CHECK(fcntl(canary,F_GETFD)>=0);close(canary);
 }
+static void missing_stdio_test(void) {
+    pid_t pid=fork();CHECK(pid>=0);
+    if(!pid){if(close(0))_exit(2);_exit(entry_descriptors()?3:0);}
+    int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
+}
 int ae_test_getresuid(uid_t *r,uid_t *e,uid_t *s) {*r=model_uid;*e=model_euid;*s=model_suid;return 0;}
 int ae_test_getresgid(gid_t *r,gid_t *e,gid_t *s) {*r=model_gid;*e=model_egid;*s=model_sgid;return 0;}
 int ae_test_getpwuid_r(uid_t uid,struct passwd *p,char *buffer,size_t size,struct passwd **out) {
@@ -68,6 +105,8 @@ int ae_test_notify(int unset,const char *text) {CHECK(!unset && text && strstr(t
 static void rejected(void) {char *parent=NULL,documents[4096];int before=nnp_calls;CHECK(!entry_paths(&parent,documents,sizeof(documents)));free(parent);CHECK(nnp_calls==before);}
 int main(void) {
     descriptor_test(false);descriptor_test(true);
+    missing_stdio_test();
+    logging_test(0);logging_test(1);logging_test(2);
     char *parent=NULL,documents[4096];
     CHECK(!setenv("HOME","/forged/home",1) && !setenv("USER","forged",1) && !setenv("LOGNAME","forged",1) && !setenv("XDG_RUNTIME_DIR","/forged/runtime",1));
     CHECK(entry_paths(&parent,documents,sizeof(documents)) && !strcmp(parent,"/run/user/1201") && !strcmp(documents,"/home/original/Documents"));free(parent);parent=NULL;

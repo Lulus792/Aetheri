@@ -102,6 +102,19 @@ unchanged. This local descriptor cleanup is not document revocation or session/
 app/lease drain. Native fork tests check actual closure, preserved parent and
 stdio descriptors, and a failed syscall; an omitted-cleanup counterexample fails.
 
+All three standard descriptors must already be open. Missing stdio rejects
+startup, preventing a later diagnostic socket from occupying a standard slot.
+After extra-FD cleanup, an entry attached to a console opens a local
+`sd_journal_stream_fd("aetheri-session", LOG_INFO, 0)` and duplicates it onto
+stdout/stderr. The process owns these standard-stream duplicates until exit;
+the auxiliary descriptor closes before account/session work or child creation.
+A failed stream connection preserves the original console. A failed duplicate
+or close ends startup. Existing non-console output is preserved. This uses the
+existing libsystemd and adds no resident logger process or thread. Native fork
+tests cover console redirection, missing-journal fallback, non-console output,
+auxiliary closure and missing stdio; an omitted-stdout-duplication counterexample
+fails. This diagnostic stream is not a trusted readiness or lifecycle API.
+
 The default Files development root is `NSS_HOME/Documents`; bounded build-time
 paths may still bind a private test ELF to separate documents. No document
 directory is created and no document grant or app sandbox is implied. Account
@@ -131,6 +144,14 @@ case executes a separately hashed entry in an existing PAM/logind fixture and
 passes the full KMS workflow. It uses the actual `/run/user/1000` hierarchy and
 does not test password authentication or a display manager. Read the
 [execution record](../brains/aetheri/journal/2026-11-10-session-entry.md).
+
+The separate [authenticated session test](login.md#authenticated-desktop-fixture)
+now executes the current entry through the pinned backend's actual PAM worker,
+with an independently selected protected runtime and local VT8/logind session.
+Both Release and memory-instrumented test greeters reach a visually inspected
+desktop and actual PAM close. The selected entry and desktop runtime are Release
+code in both cases. This does not install a display manager, establish production
+account/device/MAC policy or admit normal app lifecycle operations.
 
 4 November 2026. The optional compositor can now use an actual KMS connector and
 evdev input on the dedicated Fedora carrier. This extends the private

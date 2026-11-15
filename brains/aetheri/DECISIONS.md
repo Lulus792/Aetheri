@@ -1,5 +1,19 @@
 # Decisions
 
+## Exercise the actual authenticated desktop and retain console diagnostics — 15 November 2026
+
+Require open stdio before entry descriptor cleanup; use the existing libsystemd
+journal stream for console diagnostics before session observers/children, with
+console fallback only for absent stream and no new logging process. Test the
+real backend/PAM/logind/VT/entry/first-frame chain using an independently selected
+complete development runtime view and one-use synthetic credential OFD. Retain
+the original worker/entry pins through shutdown and PAM close before backend
+retirement; Start ACK is scheduling only. Keep the successful administrative
+fixture distinct from dedicated greeter/account/MAC/device policy, installed
+startup coordination and normal app admission. The
+[execution record](journal/2026-11-15-login-desktop.md) preserves failed fixtures,
+the new-pin administrative retirement and the remaining first-version scope.
+
 ## Keep successful-authentication fixtures private and sanitize session-entry FDs — 15 November 2026
 
 Test actual pam_unix with a fresh synthetic credential in an explicit private

@@ -1,5 +1,13 @@
 # Sources
 
+## Actual authenticated desktop session — 15 November 2026
+
+- [pam_systemd](https://www.freedesktop.org/software/systemd/man/259/pam_systemd.html) defines session registration, scope and runtime-directory behavior. The actual test observes the resulting user/seat/VT/type/scope and original worker end separately; documentation alone does not prove them.
+- [sd_journal_stream_fd](https://www.freedesktop.org/software/systemd/man/259/sd_journal_stream_fd.html) defines a writable local journal stream and negative errors. The entry duplicates the successful FD onto its process-owned standard streams and closes the auxiliary descriptor. Native tests and the omission counterexample cover that behavior.
+- [Linux-PAM1.7.2 pam_env configuration](https://raw.githubusercontent.com/linux-pam/linux-pam/v1.7.2/modules/pam_env/pam_env.conf) defines DEFAULT/OVERRIDE values. The [pam_env manual](https://man7.org/linux/man-pages/man8/pam_env.8.html) recommends final-stack placement and documents environment-file controls. The private test supplies only selected protected runtime paths, disabling user/environment-file reads.
+- [systemd259 OpenFile](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html#OpenFile=) documents inherited descriptors and append access. Actual fd4 is checked Root0600/O_RDWR/O_APPEND by the ordinary test greeter; it is test output authority, not a trustworthy audit service.
+- [Native record](journal/2026-11-15-login-desktop.md) covers actual private authenticated desktop entry, visual evidence, original-pin retirement/PAM close, Release/memory tests, exact runtime/source audit and preserved failed preparations. Production startup/account/greeter/MAC/device policy remains open.
+
 ## Successful private authentication and entry descriptors — 15 November 2026
 
 - [Linux close_range](https://man7.org/linux/man-pages/man2/close_range.2.html) defines immediate closure and UNSHARE, distinct from CLOEXEC. Actual fork/failure and omission tests verify the entry's local descriptor behavior; no file-commit or revocation acknowledgement follows from closing an inherited FD.

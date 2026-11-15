@@ -1,5 +1,17 @@
 # State
 
+15 November 2026 — Actual private authentication now reaches the selected native
+session entry, active seat0/VT8 Wayland user scope and a visually inspected KMS
+desktop through the reviewed backend's PAM worker. Final Release/memory greeters
+pass original entry/worker end, PAM close, inactive scope and no credential replay.
+Both use the same checked Release desktop runtime. Five CTests per profile,
+all767 inputs each, all200 runtime files, analyzer and logging-omission detection
+pass. All four actual fixtures are terminal; preserve two new failed holders
+and the separate administrative retirement evidence. No installed coordinator,
+dedicated greeter/account/MAC policy or normal app login is claimed. Next protected
+startup/policy and graphical greeter/account integration. See the
+[native record](journal/2026-11-15-login-desktop.md). USB gate remains closed.
+
 15 November 2026 — Actual private pam_unix authentication/account checks now
 accept a fresh synthetic password and reject an empty answer through the original
 C greeter and protected backend. Confirmed cancellation follows success. Final

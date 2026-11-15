@@ -16,6 +16,8 @@
 #include <sys/wait.h>
 #include <systemd/sd-daemon.h>
 #include <systemd/sd-login.h>
+#include <systemd/sd-journal.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 #include <linux/close_range.h>
@@ -228,7 +230,29 @@ static bool ready_notification(void) {
  * The fixed development owner retains its separate invocation contract. */
 static bool entry_descriptors(void) {
 #ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    for(int fd=0;fd<3;++fd)if(fcntl(fd,F_GETFD)<0)return false;
     return close_range(3,~0u,CLOSE_RANGE_UNSHARE)==0;
+#else
+    return true;
+#endif
+}
+/* greetd connects the session's stdio to its VT. Keep diagnostics in the local
+ * journal when available; an absent journal leaves the original console usable.
+ * This runs after dropping inherited extra FDs and before any child starts. */
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+/* The process standard streams own these duplicates until normal process exit. */
+static int entry_log_output=-1,entry_log_error=-1;
+#endif
+static bool entry_logging(void) {
+#ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    if(!isatty(1) && !isatty(2))return true;
+    int fd=sd_journal_stream_fd("aetheri-session",LOG_INFO,0);
+    if(fd<0)return true;
+    entry_log_output=dup2(fd,1);
+    entry_log_error=dup2(fd,2);
+    bool ok=entry_log_output==1 && entry_log_error==2;
+    if(close(fd))ok=false;
+    return ok;
 #else
     return true;
 #endif
@@ -273,6 +297,7 @@ static bool app_start(struct child *c,enum role role,char *cache,char *documents
 
 int main(void) {
     if(!entry_descriptors()){fputs("AETHERI_DESKTOP_FAIL descriptors\n",stderr);return 1;}
+    if(!entry_logging()){fputs("AETHERI_DESKTOP_FAIL logging\n",stderr);return 1;}
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
     if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),documents,sizeof(documents),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}

@@ -1,5 +1,21 @@
 # Working on Aetheri
 
+Current authenticated desktop work: read
+`spec/login.md#authenticated-desktop-fixture`, `spec/session.md` and the
+2026-11-15 login-desktop journal. Actual private synthetic authentication now
+reaches the selected entry, seat0/VT8 Wayland user scope and visually inspected
+KMS desktop. Release/memory greeters pass original entry/worker end, actual PAM
+close and inactive scope before backend stop; the replacement does not replay
+the consumed credential OFD. Both desktop runtimes are Release. Final CMake
+profiles pass five tests each/all767 inputs; all200 protected runtime files,
+analyzer and logging-omission detection pass. All four live attempts are terminal.
+Preserve both new failed holders and the explicit new-pin administrative
+retirement; it is not recovery of original pins. Entry console diagnostics now
+use existing libsystemd after stdio checks/extra-FD cleanup. Next protected
+installed startup coordination, effective dedicated greeter/account/PAM/MAC/
+device policy and original graphical greeter, then normal app/account transitions.
+Keep the quarantine, foreign UI memory, USB gate and NexaUI maintenance-only state.
+
 Current successful-authentication work: read
 `spec/login.md#successful-authentication-fixture`, `spec/session.md` and the
 2026-11-15 login-authentication journal. Actual private pam_unix auth/account
