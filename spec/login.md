@@ -334,3 +334,8 @@ the configuration read by greetd, effective policy and original greeter identity
 remain separate admission concerns. The existing public bus-peer image check
 continues to reject UID/GID 0. See the
 [native record](../brains/aetheri/journal/2026-11-15-login-current-image.md).
+
+The optional [greetd startup notice](login-backend.md#optional-startup-notice)
+now supplies the sender side of the consumed-configuration check. The greeter
+integration still needs to compare the digest and invocation from the original
+PID1 unit with its independently selected protected configuration.

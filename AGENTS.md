@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current login startup configuration work: read `spec/login-backend.md` and the
+2026-11-15 login-startup-notice journal. The optional pinned greetd build emits
+`AETHERI_CONFIG_V1` through `NotifyAccess=main` from the same bytes its parser
+used. Native systemd status and input rejection passed. Next join that status
+to the exact original live PID1 service invocation and expected source digest,
+then integrate the protected executable observation and original greeter before
+real PAM/local session tests. The first-version USB gate still applies.
+
 Current login executable work: read `spec/login.md#running-backend-executable`
 and the 2026-11-15 login-current-image journal. The administrative observer joins
 the original socket peer's actual ELF to the loaded unit and selected source.

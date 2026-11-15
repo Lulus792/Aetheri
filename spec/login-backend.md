@@ -94,3 +94,37 @@ keep the fixed command/environment and UNKNOWN fences from the conversation
 contract. No real password, login service, PAM/account configuration or production
 policy was installed in this build work. Read the
 [execution record](../brains/aetheri/journal/2026-11-10-login-backend-build.md).
+
+## Optional startup notice
+
+The Aetheri integration build adds a small GPL-3.0-only module to the pinned
+greetd source. Prepare a fresh tree with `--startup-notice`, then use
+`cargo build --frozen --offline --release -p greetd --features aetheri-startup`.
+The preparer checks the original archive and each integration site. The same
+Cargo lock and vendor tree apply. The feature links to the reviewed libcrypto
+3.5 LTS, with a build-time native linker name and the 3.5.9 runtime floor.
+The original candidate remains available without this feature.
+
+The backend takes the exact command `greetd --config PATH`. It reads the
+absolute path once, rejects a final symlink, and checks for stable regular
+UID0/GID0 file metadata, one hard link and exact mode 0444 or 0644. The read is
+limited to 64 KiB and requires nonempty UTF-8 without NUL. The caller supplies
+the independently protected parent, file labels and immutable deployment.
+The integration requires `source_profile = false` and rejects an initial
+automatic login. The upstream `--help` and internal session-worker paths retain
+their separate behavior.
+
+The same byte string feeds the existing greetd parser and the SHA-256 operation
+in a private OpenSSL context. After validation, the backend sends one status
+datagram to the systemd notification socket. `StatusText` then contains
+`AETHERI_CONFIG_V1 INVOCATION_ID SHA256`, with canonical lowercase hex. The
+deployment must verify `NotifyAccess=main`, the original live service invocation,
+the expected config digest and the admitted running backend before relying on
+the status. A failed send aborts this startup path. The status reports parsed
+configuration before the backend enters PAM or the server loop. Login readiness,
+effective policy and the original greeter remain separately checked milestones.
+
+The candidate passed an offline native build and its workspace tests. The
+actual backend sent the expected byte digest to systemd in an ordinary-user
+preflight that stopped at the intentionally absent PAM service. See the
+[native record](../brains/aetheri/journal/2026-11-15-login-startup-notice.md).

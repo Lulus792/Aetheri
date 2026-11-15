@@ -1,5 +1,12 @@
 # State
 
+15 November 2026 — The optional pinned greetd build now publishes a SHA-256
+notice for the exact bytes it parsed. The actual backend's start was observed
+through PID1 `StatusText` and matched the real invocation and expected digest.
+The test ended before PAM because it selected an absent service. The C reader,
+original greeter and protected running-image handoff remain next. See the
+[native record](journal/2026-11-15-login-startup-notice.md).
+
 15 November 2026 — A local administrative observer can now check the running
 root backend's executable against the ELF selected by the original loaded
 service. The exact running file passed and the separate identical-byte object

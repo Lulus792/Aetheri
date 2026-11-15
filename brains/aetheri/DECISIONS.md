@@ -1,5 +1,15 @@
 # Decisions
 
+## Report the configuration greetd actually parsed — 15 November 2026
+
+Use a small opt-in patch in the pinned backend to identify the consumed bytes.
+Hash the one bounded snapshot used by greetd's
+parser with the existing OpenSSL family and send its digest and invocation ID
+to the manager as a status notice. The receiver will bind the notice to the
+original live PID1 service with `NotifyAccess=main`. The backend retains its
+PAM implementation and the greeter keeps its existing privileges. See the
+[startup notice contract](../../spec/login-backend.md#optional-startup-notice).
+
 ## Observe the actual login ELF through the original service pin — 15 November 2026
 
 Reuse the Linux ELF verifier for an administrative observation of the original

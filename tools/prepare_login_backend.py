@@ -73,7 +73,45 @@ def unpack(body, prefix, license_alias=False):
     return files
 
 
-def plan(source_archive, crate_cache, lockfile, pins):
+def startup_notice(source):
+    """Project the optional integration code into exactly the pinned source."""
+    def replace(path, original, replacement):
+        if source[path].count(original) != 1:
+            raise ValueError('unexpected greetd integration site: ' + path)
+        source[path] = source[path].replace(original, replacement)
+
+    cargo = 'greetd/Cargo.toml'
+    main = 'greetd/src/main.rs'
+    config = 'greetd/src/config/mod.rs'
+    replace(cargo, b'debug = []\n', b'debug = []\naetheri-startup = []\n')
+    replace(main, b'mod config;\n', b'#[cfg(feature = "aetheri-startup")]\nmod aetheri_startup;\nmod config;\n')
+    replace(config, b'env, fs::read_to_string,', b'env,')
+    replace(config, b'use enquote::unquote;', b'#[cfg(not(feature = "aetheri-startup"))]\nuse std::fs::read_to_string;\n\nuse enquote::unquote;')
+    replace(config, b'    let config_str = match matches.opt_str("config") {', b'''    #[cfg(feature = "aetheri-startup")]
+    let config_str = {
+        if args.len() != 3 || args[1] != "--config" {
+            return Err(Error::ConfigError("expected exactly --config PATH".into()));
+        }
+        crate::aetheri_startup::read_config(&args[2])?
+    };
+    #[cfg(not(feature = "aetheri-startup"))]
+    let config_str = match matches.opt_str("config") {''')
+    replace(config, b'    Ok(Config { file, internal })\n}', b'''    #[cfg(feature = "aetheri-startup")]
+    {
+        if file.general.source_profile || file.initial_session.is_some() {
+            return Err(Error::ConfigError("startup profile forbids profiles and automatic login".into()));
+        }
+        crate::aetheri_startup::publish(config_str.as_bytes())?;
+    }
+    Ok(Config { file, internal })
+}''')
+    path = 'greetd/src/aetheri_startup.rs'
+    if path in source:
+        raise ValueError('unexpected startup integration file')
+    source[path] = (ROOT / 'patches/greetd/aetheri_startup.rs').read_bytes().replace(b'\r\n', b'\n')
+
+
+def plan(source_archive, crate_cache, lockfile, pins, *, notice=False):
     lock_body = input_bytes(lockfile, pins['lock'])
     lock = tomllib.loads(lock_body.decode('utf-8'))
     locked = {(e['name'], e['version']): e['checksum'] for e in lock['package'] if 'source' in e}
@@ -93,6 +131,8 @@ def plan(source_archive, crate_cache, lockfile, pins):
         raise ValueError('unexpected Tokio dependency')
     source['greetd/Cargo.toml'] = source['greetd/Cargo.toml'].replace(original, b'tokio = { version = "=1.53.3",')
     source['Cargo.lock'] = lock_body
+    if notice:
+        startup_notice(source)
     if any(name.startswith('.cargo/') for name in source):
         raise ValueError('unexpected source Cargo configuration')
     source['.cargo/config.toml'] = (
@@ -119,9 +159,9 @@ def plan(source_archive, crate_cache, lockfile, pins):
     return output
 
 
-def prepare(source_archive, crate_cache, lockfile, output, pins):
+def prepare(source_archive, crate_cache, lockfile, output, pins, *, notice=False):
     output = Path(output)
-    files = plan(source_archive, crate_cache, lockfile, pins)
+    files = plan(source_archive, crate_cache, lockfile, pins, notice=notice)
     output.mkdir(mode=0o700)  # Existing output, including a failed attempt, refuses.
     for name, body in files.items():
         path = output / name
@@ -140,9 +180,11 @@ def main():
     parser.add_argument('--source-archive', required=True, type=Path)
     parser.add_argument('--crate-cache', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--startup-notice', action='store_true')
     args = parser.parse_args()
     pins = json.loads((ROOT / 'spec/login-backend-inputs.json').read_bytes())
-    receipt = prepare(args.source_archive, args.crate_cache, ROOT / 'spec/login-backend.Cargo.lock', args.output, pins)
+    receipt = prepare(args.source_archive, args.crate_cache, ROOT / 'spec/login-backend.Cargo.lock', args.output, pins,
+                      notice=args.startup_notice)
     print(json.dumps({'files': len(receipt['files']), 'output': str(args.output), 'runtime_admitted': False}))
 
 

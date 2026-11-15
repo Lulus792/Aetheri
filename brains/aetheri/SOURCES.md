@@ -1,5 +1,11 @@
 # Sources
 
+## Consumed login configuration — 15 November 2026
+
+- [systemd notification protocol](https://www.freedesktop.org/software/systemd/man/latest/sd_notify.html) defines `STATUS` and sender restrictions. The [pinned manager source](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/service.c) resets status when it acquires a new service invocation.
+- [OpenSSL 3.5 EVP digest API](https://docs.openssl.org/3.5/man3/EVP_DigestInit/) specifies the private context argument, output bound and result convention used by `EVP_Q_digest`.
+- [Native record](journal/2026-11-15-login-startup-notice.md) documents the pinned backend build, actual systemd notification, unchanged Cargo graph and exact rejected inputs.
+
 ## Running login executable — 15 November 2026
 
 - [Linux proc_pid_exe](https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html) describes current executable access and the ptrace read check. The administrative fixture observes the executable through the original live socket peer.
