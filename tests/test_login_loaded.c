@@ -2,6 +2,7 @@
 #include "login/loaded.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,12 +26,31 @@ static void source_args(struct ae_login_source_expect *entry,const char *size,co
     }
 }
 
+static int connect_fixture(const struct sockaddr_un *address)
+{
+    int fd=socket(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0);
+    CHECK(fd>=0 && !connect(fd,(const struct sockaddr *)address,sizeof *address));
+    return fd;
+}
+
+static void fixture_notice(const struct sockaddr_un *address,char command)
+{
+    int fd=connect_fixture(address);
+    CHECK(send(fd,&command,1,MSG_NOSIGNAL)==1);
+    struct pollfd item={.fd=fd,.events=POLLIN};
+    CHECK(poll(&item,1,5000)==1);
+    char answer=0;
+    CHECK(recv(fd,&answer,1,0)==1 && answer=='y');
+    close(fd);
+}
+
 int main(int argc,char **argv)
 {
     if(argc!=13)return 77;
     const char *socket_path=argv[1],*unit=argv[2],*directory=argv[3];
     const char *config_leaf=argv[4],*mode=argv[5];
-    bool image_check=!strcmp(mode,"image") || !strcmp(mode,"reject-image");
+    bool image_notice=!strcmp(mode,"image-notice");
+    bool image_check=image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
     if((getuid()==0 || geteuid()==0)!=image_check)return 77;
     struct ae_login_source_expect entries[]={
         {.directory=argv[6],.leaf=unit,.label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
@@ -48,8 +68,9 @@ int main(int argc,char **argv)
     struct sockaddr_un address={.sun_family=AF_UNIX};
     CHECK(strlen(socket_path)<sizeof address.sun_path);
     strcpy(address.sun_path,socket_path);
-    int fd=socket(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0);
-    CHECK(fd>=0 && !connect(fd,(struct sockaddr *)&address,sizeof address));
+    int fd=connect_fixture(&address);
+    /* The inert fixture read loop is sequential. Keep the peer pin for the
+       guard but release this connection so the next test control can run. */
     sd_bus *bus=NULL;
     CHECK(sd_bus_open_system(&bus)>=0 && sd_bus_set_method_call_timeout(bus,2000000)>=0);
     struct ae_login_service_expect expected={.unit=unit,.uid=0,.gid=0,
@@ -64,7 +85,36 @@ int main(int argc,char **argv)
     CHECK(ae_login_loaded_create(service,sources,0,1,0,dropin,1,&loaded)==-EINVAL && !loaded);
     bool omit_dropin=!strcmp(mode,"reject-dropins");
     r=ae_login_loaded_create(service,sources,0,1,2,dropin,omit_dropin?0:1,&loaded);
-    if(!strcmp(mode,"reject") || omit_dropin) {
+    if(!strcmp(mode,"notice-real")) {
+        CHECK(!r && loaded);
+        CHECK(ae_login_loaded_check_config(loaded)==0 && ae_login_loaded_check(loaded)==0);
+        puts("Running backend configuration notice matched");
+    } else if(!strncmp(mode,"notice-",7)) {
+        CHECK(!r && loaded);
+        close(fd);fd=-1;
+        if(!strcmp(mode,"notice-policy")) {
+            CHECK(ae_login_loaded_check_config(loaded)==-ESTALE);
+        } else {
+            CHECK(ae_login_loaded_check_config(loaded)==-EAGAIN);
+            CHECK(ae_login_loaded_check(loaded)==-EAGAIN);
+            if(!strcmp(mode,"notice-digest"))fixture_notice(&address,'d');
+            else if(!strcmp(mode,"notice-invocation"))fixture_notice(&address,'i');
+            else {
+                CHECK(!strcmp(mode,"notice-loss"));
+                CHECK(ae_login_loaded_check_config(loaded)==-EAGAIN);
+                fixture_notice(&address,'n');
+                CHECK(ae_login_loaded_check_config(loaded)==0);
+                CHECK(ae_login_loaded_check(loaded)==0);
+                fixture_notice(&address,'e');
+                CHECK(ae_login_loaded_check(loaded)==-ESTALE);
+            }
+            CHECK(ae_login_loaded_check_config(loaded)==-ESTALE);
+        }
+        fixture_notice(&address,'n');
+        CHECK(ae_login_loaded_check_config(loaded)==-ESTALE);
+        CHECK(ae_login_loaded_check(loaded)==-ESTALE);
+        puts("Consumed configuration checks passed");
+    } else if(!strcmp(mode,"reject") || omit_dropin) {
         CHECK(r==-ESTALE && !loaded);
         puts("Loaded command rejection passed");
     } else if(image_check) {
@@ -74,8 +124,9 @@ int main(int argc,char **argv)
         memset(&marker,0xa5,sizeof marker);
         image=marker;
         CHECK(!ae_login_sources_image(sources,1,&expected_image));
+        if(image_notice)CHECK(ae_login_loaded_check_config(loaded)==0);
         int result=ae_login_loaded_match_image(loaded,&image);
-        if(!strcmp(mode,"image")) {
+        if(image_notice || !strcmp(mode,"image")) {
             if(result)fprintf(stderr,"image: %d\n",result);
             CHECK(!result && ae_image_equal(&image,&expected_image));
             puts("Original running Root executable matched");
@@ -105,7 +156,7 @@ int main(int argc,char **argv)
     CHECK(!ae_login_loaded_close(&loaded) && !loaded);
     CHECK(!ae_login_service_close(&service) && !service);
     CHECK(!ae_login_sources_close(&sources) && !sources);
-    close(fd);
+    if(fd>=0)close(fd);
     sd_bus_unref(bus);
     return 0;
 }

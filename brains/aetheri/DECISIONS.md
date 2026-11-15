@@ -1,5 +1,14 @@
 # Decisions
 
+## Require the exact consumed config notice from the original service — 15 November 2026
+
+Use the original PID1 connection, invocation and live socket service to read
+`StatusText`. The exact expected digest comes from the protected configuration
+entry. Once requested, all checks on that guard require the notice. Startup
+may wait for initial absence within the caller's deadline. Drift after a match
+or an incorrect notice fences the guard. See the
+[configuration reader contract](../../spec/login.md#configuration-read-by-the-backend).
+
 ## Report the configuration greetd actually parsed — 15 November 2026
 
 Use a small opt-in patch in the pinned backend to identify the consumed bytes.

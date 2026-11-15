@@ -46,6 +46,8 @@ int ae_login_sources_image(struct ae_login_sources *,size_t index,struct ae_imag
    current complete source check. On failure leave output unchanged. */
 int ae_login_sources_path(struct ae_login_sources *,size_t index,enum ae_login_source_kind,
                           char out[AE_LOGIN_SOURCE_FULL_PATH_MAX]);
+/* Copy the independently expected digest of a currently verified DATA source. */
+int ae_login_sources_data_digest(struct ae_login_sources *,size_t index,uint8_t out[32]);
 /* Local FD/memory cleanup only. A fork child may close its local copy. */
 int ae_login_sources_close(struct ae_login_sources **);
 #endif

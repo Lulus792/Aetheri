@@ -219,3 +219,13 @@ int ae_login_sources_close(struct ae_login_sources **value)
     }
     free(s);*value=NULL;return 0;
 }
+
+int ae_login_sources_data_digest(struct ae_login_sources *s,size_t index,uint8_t out[32])
+{
+    int r=owner(s);
+    if(r)return r;
+    if(!out || index>=s->count || s->sources[index].expect.kind!=AE_LOGIN_SOURCE_DATA)return -EINVAL;
+    r=ae_login_sources_check(s);
+    if(!r)memcpy(out,s->sources[index].expect.digest,32);
+    return r;
+}

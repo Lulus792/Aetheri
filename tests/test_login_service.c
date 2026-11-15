@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 #define CHECK(x) do{if(!(x)){fprintf(stderr,"service check %d: %s errno=%d\n",__LINE__,#x,errno);exit(1);}}while(0)
 int __real_ioctl(int,unsigned long,...);
@@ -42,11 +43,26 @@ static int connect_fixture(const char *path) {
     CHECK(strlen(path)<sizeof(((struct sockaddr_un *)0)->sun_path));int fd=socket(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0);CHECK(fd>=0);
     struct sockaddr_un a={.sun_family=AF_UNIX};memcpy(a.sun_path,path,strlen(path)+1);CHECK(!connect(fd,(struct sockaddr *)&a,sizeof(a)));return fd;
 }
+static void notice_fixture(int fd,char command)
+{
+    const char *digest=getenv("AETHERI_LOGIN_NOTICE_DIGEST");
+    const char *invocation=getenv("INVOCATION_ID");
+    CHECK(digest && strlen(digest)==64 && invocation && strlen(invocation)==32);
+    char status[160];
+    int count=snprintf(status,sizeof status,"STATUS=AETHERI_CONFIG_V1 %s %s",invocation,digest);
+    CHECK(count>1 && (size_t)count<sizeof status);
+    if(command=='d')status[count-1]=status[count-1]=='0'?'1':'0';
+    else if(command=='i')status[count-66]=status[count-66]=='0'?'1':'0';
+    else if(command=='e')strcpy(status,"STATUS=");
+    else CHECK(command=='n');
+    CHECK(sd_notify(0,status)>0 && sd_notify_barrier(0,2000000)>0);
+    CHECK(send(fd,"y",1,MSG_NOSIGNAL)==1);
+}
 static int server(const char *path) {
     CHECK(!getuid() && !geteuid());CHECK(strlen(path)<sizeof(((struct sockaddr_un *)0)->sun_path));int listener=socket(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0);CHECK(listener>=0);
     struct sockaddr_un a={.sun_family=AF_UNIX};memcpy(a.sun_path,path,strlen(path)+1);CHECK(!bind(listener,(struct sockaddr *)&a,sizeof(a)));CHECK(!chmod(path,0666) && !listen(listener,8));
     puts("AETHERI_LOGIN_SERVICE_FIXTURE_LISTENING");fflush(stdout);
-    bool quit=false;while(!quit){int fd=accept4(listener,NULL,NULL,SOCK_CLOEXEC);CHECK(fd>=0);char byte;ssize_t n=recv(fd,&byte,1,0);CHECK(n==0 || n==1);quit=n==1 && byte=='q';close(fd);}
+    bool quit=false;while(!quit){int fd=accept4(listener,NULL,NULL,SOCK_CLOEXEC);CHECK(fd>=0);char byte;ssize_t n=recv(fd,&byte,1,0);CHECK(n==0 || n==1);quit=n==1 && byte=='q';if(n==1 && !quit && getenv("AETHERI_LOGIN_NOTICE_DIGEST"))notice_fixture(fd,byte);close(fd);}
     close(listener);puts("AETHERI_LOGIN_SERVICE_FIXTURE_ENDED");return 0;
 }
 static void *wrong_thread(void *data) {struct ae_login_service *s=data;CHECK(ae_login_service_check(s)==-EXDEV);struct ae_login_service *copy=s;CHECK(ae_login_service_close(&copy)==-EXDEV && copy==s);return NULL;}

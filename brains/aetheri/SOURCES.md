@@ -1,5 +1,11 @@
 # Sources
 
+## Consumed config reader and live backend — 15 November 2026
+
+- [systemd v259.10 service state](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/service.c) checks the main-process identity for notifications. Its [D-Bus service properties](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c) expose effective notify access and status.
+- [systemd v259.10 exec invocation](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/exec-invoke.c) can drop `CAP_SETUID` after explicit UID setup for a sandboxed unit. Separate carrier commands and process observations verified the effect in this profile.
+- [Native record](journal/2026-11-15-login-config-reader.md) identifies the guarded input, actual patched backend and UID1000 greeter fixture, varied notices, and terminal unit and cgroup evidence.
+
 ## Consumed login configuration — 15 November 2026
 
 - [systemd notification protocol](https://www.freedesktop.org/software/systemd/man/latest/sd_notify.html) defines `STATUS` and sender restrictions. The [pinned manager source](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/service.c) resets status when it acquires a new service invocation.

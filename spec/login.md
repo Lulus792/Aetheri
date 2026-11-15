@@ -335,7 +335,25 @@ remain separate admission concerns. The existing public bus-peer image check
 continues to reject UID/GID 0. See the
 [native record](../brains/aetheri/journal/2026-11-15-login-current-image.md).
 
-The optional [greetd startup notice](login-backend.md#optional-startup-notice)
-now supplies the sender side of the consumed-configuration check. The greeter
-integration still needs to compare the digest and invocation from the original
-PID1 unit with its independently selected protected configuration.
+## Configuration read by the backend
+
+`ae_login_loaded_check_config` reads the [greetd startup notice](login-backend.md#optional-startup-notice)
+from the original PID1 connection and unit object. It compares the complete
+`StatusText` with the original invocation's lowercase hex ID and the digest of
+the selected protected configuration. `NotifyAccess` must be `main` around
+the read. The deployment must hold the reviewed sender policy throughout the
+invocation and independently trust the current executable and its environment.
+The source and process checks complete before a result is accepted.
+
+Until the first match, an empty status returns `-EAGAIN`. The caller owns the
+startup deadline and can repeat the read on the same handle. Once requested,
+plain loaded and executable checks also wait for the notice. A wrong nonempty
+status, wrong sender policy, or loss after a match fences the handle. A later
+matching status cannot reopen it.
+
+The native tests include the actual pinned greetd with an inert unprivileged
+test greeter and unit-private PAM files. The ordinary reader accepts its
+configuration and the administrative observer verifies its ELF while the same
+service is live. A production deployment still needs the protected handoff to
+the original greeter, effective PAM/SELinux policy and user-session admission.
+See the [native record](../brains/aetheri/journal/2026-11-15-login-config-reader.md).

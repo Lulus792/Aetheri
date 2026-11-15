@@ -128,3 +128,7 @@ The candidate passed an offline native build and its workspace tests. The
 actual backend sent the expected byte digest to systemd in an ordinary-user
 preflight that stopped at the intentionally absent PAM service. See the
 [native record](../brains/aetheri/journal/2026-11-15-login-startup-notice.md).
+
+The [configuration reader](login.md#configuration-read-by-the-backend) also
+matches the notice of a live greetd after an inert test greeter starts. The
+private test configuration supplies no ordinary-user authentication path.

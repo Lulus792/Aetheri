@@ -21,6 +21,14 @@ int ae_login_loaded_create(struct ae_login_service *,struct ae_login_sources *,
    The caller still needs independent current ELF, actually consumed config,
    loaded policy and greeter admission before sending credentials. */
 int ae_login_loaded_check(void *);
+/* Require the consumed-config notice from the original PID1 service, with
+   effective NotifyAccess=main and exact invocation and selected config digest.
+   An empty notice before first observation returns -EAGAIN after the complete
+   service/source recheck. Caller owns startup deadline. A nonempty mismatch,
+   observed loss or wrong sender policy fences the handle. Once requested,
+   ordinary and image checks also require the notice. This is one
+   component of admission and requires a separately trusted running backend. */
+int ae_login_loaded_check_config(void *);
 /* Administrative observer in trusted host proc/PID/mount views. Recheck the
    complete loaded/source selection and compare the running peer executable
    with the original PROGRAM object. The selected authenticated peer must be

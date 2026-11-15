@@ -26,10 +26,13 @@ struct ae_login_loaded {
     char dropins[MAX_DROPINS][AE_LOGIN_SOURCE_FULL_PATH_MAX];
     size_t dropin_count;
     size_t program_index;
+    size_t config_index;
     struct command_record original;
     pid_t owner,thread;
     int error;
     bool busy;
+    bool config_required;
+    bool config_seen;
 };
 
 struct selected_unit {
@@ -144,10 +147,45 @@ struct observation {
     struct ae_login_loaded *loaded;
     const struct ae_image *expected_image;
     struct ae_image image;
+    const uint8_t *expected_config;
+    bool config_matches;
 };
 
+static void hex_encode(char *out,const uint8_t *bytes,size_t size)
+{
+    static const char alphabet[]="0123456789abcdef";
+    for(size_t i=0;i<size;++i) {
+        out[i*2]=alphabet[bytes[i]>>4];
+        out[i*2+1]=alphabet[bytes[i]&0xf];
+    }
+}
+
+static int config_notice(const struct selected_unit *unit,const uint8_t invocation[16],
+                         struct observation *observation)
+{
+    int r=string_property(unit,SERVICE,"NotifyAccess","main");
+    if(r)return r;
+    char *status=NULL;
+    r=sd_bus_get_property_string(unit->bus,unit->manager,unit->path,SERVICE,"StatusText",NULL,&status);
+    if(r<0)return r;
+    static const char prefix[]="AETHERI_CONFIG_V1 ";
+    char expected[sizeof prefix+32+1+64];
+    memcpy(expected,prefix,sizeof prefix-1);
+    hex_encode(expected+sizeof prefix-1,invocation,16);
+    expected[sizeof prefix-1+32]=' ';
+    hex_encode(expected+sizeof prefix+32,observation->expected_config,32);
+    expected[sizeof expected-1]=0;
+    if(!status)r=-EBADMSG;
+    else if(!*status)r=observation->loaded->config_seen?-ESTALE:0;
+    else if(strcmp(status,expected))r=-ESTALE;
+    else {observation->config_matches=true;r=0;}
+    free(status);
+    if(!r)r=string_property(unit,SERVICE,"NotifyAccess","main");
+    return r;
+}
+
 static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
-                          const struct ae_image_process *process,void *data)
+                          const struct ae_image_process *process,const uint8_t invocation[16],void *data)
 {
     struct observation *observation=data;
     struct ae_login_loaded *loaded=observation->loaded;
@@ -170,6 +208,7 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
     if(!r && loaded->original.start_monotonic &&
        (record.start_monotonic!=loaded->original.start_monotonic ||
         record.start_realtime!=loaded->original.start_realtime))r=-ESTALE;
+    if(!r && observation->expected_config)r=config_notice(&unit,invocation,observation);
     if(!r && observation->expected_image) {
         if(process->uid || process->gid)r=-EACCES;
         else r=ae_image_match_pinned(process,observation->expected_image,&observation->image);
@@ -178,33 +217,44 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
     return r;
 }
 
-static int check(struct ae_login_loaded *loaded,struct ae_image *image)
+static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool require_config)
 {
     int r=owner(loaded);
     if(r)return r;
     if(loaded->error)return loaded->error;
+    if(require_config)loaded->config_required=true;
     loaded->busy=true;
     struct observation observation={.loaded=loaded};
     struct ae_image expected;
+    uint8_t expected_config[32];
     if(image) {
         r=ae_login_sources_image(loaded->sources,loaded->program_index,&expected);
         if(!r)observation.expected_image=&expected;
     } else r=ae_login_sources_check(loaded->sources);
+    if(!r && loaded->config_required) {
+        r=ae_login_sources_data_digest(loaded->sources,loaded->config_index,expected_config);
+        if(!r)observation.expected_config=expected_config;
+    }
     if(!r)r=ae_login_service_inspect(loaded->service,inspect_loaded,&observation);
     if(!r)r=ae_login_sources_check(loaded->sources);
     loaded->busy=false;
     if(r)loaded->error=r;
-    else if(image)*image=observation.image;
+    else {
+        if(observation.expected_config && !observation.config_matches)return -EAGAIN;
+        if(observation.config_matches)loaded->config_seen=true;
+        if(image)*image=observation.image;
+    }
     return r;
 }
 
-int ae_login_loaded_check(void *value) {return check(value,NULL);}
+int ae_login_loaded_check(void *value) {return check(value,NULL,false);}
+int ae_login_loaded_check_config(void *value) {return check(value,NULL,true);}
 
 int ae_login_loaded_match_image(struct ae_login_loaded *loaded,struct ae_image *out)
 {
     if(!out)return -EINVAL;
     if(getuid() || geteuid() || getgid() || getegid())return -EACCES;
-    return check(loaded,out);
+    return check(loaded,out,false);
 }
 
 int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sources *sources,
@@ -226,6 +276,7 @@ int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sour
     loaded->sources=sources;
     loaded->dropin_count=dropin_count;
     loaded->program_index=program;
+    loaded->config_index=config;
     int r=ae_login_sources_path(sources,fragment,AE_LOGIN_SOURCE_DATA,loaded->fragment);
     if(!r)r=ae_login_sources_path(sources,program,AE_LOGIN_SOURCE_ELF,loaded->program);
     if(!r)r=ae_login_sources_path(sources,config,AE_LOGIN_SOURCE_DATA,loaded->config);

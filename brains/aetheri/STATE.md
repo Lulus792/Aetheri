@@ -1,5 +1,13 @@
 # State
 
+15 November 2026 — The C reader now matches the exact consumed config notice
+from the original live PID1 service with NotifyAccess=main. Release and memory
+clients pass with the actual pinned greetd and an inert UID1000 greeter. Root
+also matched the running ELF and startup notice in the same loaded guard. The
+private PAM setup allowed only the test greeter and no user credentials were
+sent. Production greeter handoff and PAM/session acceptance remain open. See
+the [native record](journal/2026-11-15-login-config-reader.md).
+
 15 November 2026 — The optional pinned greetd build now publishes a SHA-256
 notice for the exact bytes it parsed. The actual backend's start was observed
 through PID1 `StatusText` and matched the real invocation and expected digest.

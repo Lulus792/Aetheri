@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current consumed login config work: read `spec/login.md#configuration-read-by-the-backend`
+and the 2026-11-15 login-config-reader journal. C now requires the exact PID1
+invocation/digest and NotifyAccess=main. Once requested, all checks require the
+notice. Only initial absence is pending. Release/memory and the actual protected
+greetd with an inert UID1000 greeter passed. Explicit `User=root` in this VM
+profile dropped CAP_SETUID. The tested system-default Root identity preserves
+the bounded capability set. Next protect the handoff to the original greeter
+and finish policy and real authentication/session tests. The USB gate applies.
+
 Current login startup configuration work: read `spec/login-backend.md` and the
 2026-11-15 login-startup-notice journal. The optional pinned greetd build emits
 `AETHERI_CONFIG_V1` through `NotifyAccess=main` from the same bytes its parser
