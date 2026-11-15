@@ -1,5 +1,15 @@
 # Decisions
 
+## Verify the selected login deployment files separately — 15 November 2026
+
+Keep the file selection bounded and independent of the files being checked.
+Use the existing SHA-256 and ELF verifiers, capture the protected ancestry
+and mount/file identities, and recheck them without hashing the ELF on each
+input pump. A handle remains fenced after observed loss. The complete login
+check still requires the original service, its current executable and loaded
+configuration/policy, and the original greeter. See the
+[source contract](../../spec/login.md#protected-deployment-source-observations).
+
 ## Keep socket-service observation distinct from image admission — 10 November 2026
 
 Use a dedicated read-only C17 observer for the actual Unix peer's original active

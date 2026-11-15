@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current login source work: read `spec/login.md#protected-deployment-source-observations`
+and the login-sources journal. `login/sources.h` verifies a separately selected
+Root-owned source set and retains original ancestry and file identities. Keep
+exact file labels/digests, leaf mount checks and permanent fencing after observed
+loss. Join this with current executable, loaded configuration/policy and original
+greeter admission before credential transport. Verify actual PAM/session transitions
+after that integration. The existing first-version USB gate still governs release.
+
 Current continuation: read `brains/aetheri/STATE.md`, spec/login.md and the
 2026-11-10 login-service journal. The new Unix-peer service observer passes actual
 ordinary-client/Root MainPID, same-unit Root-child rejection, memory-client and

@@ -230,3 +230,56 @@ greeter/account/session context. Those checks must be composed before normal
 login use. The inert fixture alone may use the service check as a connection
 callback; it sends no username, credential or authentication request. See the
 [execution record](../brains/aetheri/journal/2026-11-10-login-service.md).
+## Protected deployment source observations
+
+`login/sources.h` supplies the separate read-only file portion of login admission.
+It does not decide which deployment is trusted. Its caller must independently
+select each canonical parent/literal leaf, exact file label, kind, mode, size and
+SHA-256. Do not derive that selection from a candidate's own manifest/header and
+then call the candidate trusted. The existing maintained crypto/image verifier
+is reused; this adds no language, crypto provider or resident process.
+
+The bounded selection has at most eight entries. Parent paths are at most 1,023
+bytes/depth16, leaves at most255 bytes and raw labels at most255 bytes. Absolute
+canonical paths only: no empty components, trailing slash, `.` or `..`. Every
+ancestor, including `/`, is observed through held directory FDs, must be UID0/
+GID0, owner-searchable, without special mode bits or group/other write access.
+Unique mount IDs and original directory objects are retained as observations;
+symlinks/magic links are rejected. Ancestor mount boundaries may be selected
+explicitly (for example a separate `/usr`); crossing a mount at the literal file
+is forbidden, including same-filesystem bind mounts.
+
+Files must be regular, UID0/GID0, exactly one hard link, with the selected raw
+SELinux file label, no file capabilities and exact size/mode. Data is nonempty,
+at most64KiB, mode0444 or0644; ELF is nonempty, at most16MiB, mode0555. ELF also
+passes the existing x86-64/interpreter/segment/stack/SHA-256 verifier. Required
+birth/mtime/ctime, device/inode and non-recycled mount observations bind the
+original file. Duplicate underlying files cannot impersonate multiple sources.
+Construction checks the complete selection again before publishing the handle.
+
+Later checks repeat ancestor, held/named file, metadata, capability and exact
+label observations. Content hashes are checked at construction; they are not
+recomputed on every input pump. This requires independently protected immutable
+deployment backing and exclusion of privileged filesystem/mount manipulation.
+It is not an atomic multi-file snapshot or historical mutation detector. First
+observed loss permanently fences that handle even if an original path/object is
+restored. The original process/thread owns it; fork copies may only close locally.
+Close frees local FDs/memory without changing files, services or session state.
+
+`ae_login_sources_image` copies a selected captured ELF observation after checking
+the entire selection. It exports no FD. File verification does not prove which
+ELF a Root peer currently executes, which configuration it actually loaded,
+loaded DSOs/PAM modules, active systemd unit/policy, or original greeter identity.
+Those remain separate required admission checks alongside `login/service.h` and
+before credential transport. No source checker is installed as a sufficient
+`connection_source.check` callback. Root-owned test data/configuration is not a
+production login deployment or PAM configuration.
+
+The opt-in `aetheri_login_sources` target requires `AETHERI_LOGIN_PROTOCOL` and
+`AETHERI_LINUX_IPC`. `test_login_sources` is an explicit ordinary-user integration
+fixture, never installed and not an automatic privileged CTest. It takes an
+independently prepared protected directory, expected backend SHA-256/size, an
+ordinary-user control directory and `normal`, `reject` or `change` test mode.
+The test backend file is observed as data, never executed. See the
+[native execution record](../brains/aetheri/journal/2026-11-10-login-sources.md)
+for concrete inputs, tests, counterexample and remaining admission work.

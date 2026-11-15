@@ -1,5 +1,10 @@
 # Sources
 
+## Protected login sources — 15 November 2026
+
+- [Linux openat2](https://man7.org/linux/man-pages/man2/openat2.2.html) defines the component resolution flags and mount crossing restrictions used by the verifier. [Linux statx](https://man7.org/linux/man-pages/man2/statx.2.html) describes the returned metadata and unique mount identifiers.
+- [Execution record](journal/2026-11-10-login-sources.md) records native observation of the rebuilt backend file, source drift and a private bind mount. The retained output identifies the exact build and test stages.
+
 ## Original login service — 10 November 2026
 
 - [systemd259.10 service D-Bus implementation](https://raw.githubusercontent.com/systemd/systemd/v259.10/src/core/dbus-service.c): MainPID/ControlPID properties; no GetMainPIDFD method is assumed. The existing carrier's actual GetUnitByPIDFD/property behavior is tested through the original kernel socket peer.

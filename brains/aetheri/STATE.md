@@ -1,5 +1,14 @@
 # State
 
+15 November 2026 — The C17 login source verifier now checks independently
+selected protected paths, exact metadata/labels and hashes, and fences an
+original selection on observed change. Both final Release and ASan/UBSan pass
+16 native cases and three CTests each. Private same-filesystem bind rejection,
+the digest omission counterexample and static analysis also pass. See the
+[execution record](journal/2026-11-10-login-sources.md). Current executable,
+loaded configuration/policy and greeter admission still precede real PAM and
+graphical session tests. The agreed first-version USB release gate applies.
+
 10 November 2026 — The new C17 socket-service observer now binds an ordinary client's actual Root peer to its original active MainPID/invocation/cgroup, with separately exact socket/current process labels and retained kernel/PID1 pins. Root-child rejection, connection composition, actual memory client and targeted MainPID mutant pass. All 2,432 export files/1,502 final submitted inputs match; all inert fixtures are terminal. Executable/configuration/loaded-policy/greeter admission and real PAM/session transitions remain next. Full first-version scope stays open; no next USB-targeted build/flash.
 
 ## Confirmed USB release gate — 9 November 2026
