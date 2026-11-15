@@ -1,0 +1,25 @@
+# Packaging template: select deployment inputs and effective MAC policy first.
+# Type=exec permits the helper's active MainPID/no-job check. Greeter admission
+# still waits for and verifies the protected observation; unit active is not it.
+[Unit]
+Description=Aetheri login startup verification
+Requires=aetheri-login.service
+After=aetheri-login.service
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/aetheri/aetheri-login-startup
+Restart=no
+RuntimeMaxSec=30
+TimeoutStopSec=5
+NoNewPrivileges=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/aetheri/login
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_SYS_ADMIN CAP_SYS_CHROOT CAP_SYS_PTRACE
+SELinuxContext=@AETHERI_LOGIN_STARTUP_CONTEXT@
+UMask=0077
+LimitCORE=0

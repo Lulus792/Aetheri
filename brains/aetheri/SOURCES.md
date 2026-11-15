@@ -1,5 +1,12 @@
 # Sources
 
+## Finite login startup executable and socket permissions — 15 November 2026
+
+- [systemd259 service execution](https://www.freedesktop.org/software/systemd/man/259/systemd.service.html) documents Type=exec acknowledgement, dependency ordering and runtime limits. The independent protected observation remains the greeter's required handoff; unit activation alone is not its publication result.
+- [Explicit bus addressing](https://www.freedesktop.org/software/systemd/man/259/sd_bus_set_address.html) distinguishes selected addresses from open helpers' environment/default selection. Actual helper units contain a deliberately wrong ambient address and still pass the literal host-bus path.
+- [Linux pathname socket permissions](https://man7.org/linux/man-pages/man7/unix.7.html) require write access for a stream connection; the actual greeter-owned0755 socket and the pinned greetd server's chown match this case. [Capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html) distinguishes DAC_OVERRIDE from DAC_READ_SEARCH and describes privileged peer inspection/namespace operations. The successful bounded helper adds only the missing write override; no socket mode change or production policy admission follows.
+- [Native record](journal/2026-11-15-login-runner.md) covers final eight-test profiles, exact source/runtime/provider/program audit, actual finite separate-unit startup and complete desktop/PAM shutdown, analyzer, invocation counterexample, configure/role refusals and preserved failed fixtures.
+
 ## Native login startup namespace coordination — 15 November 2026
 
 - The retained [Linux v6.19 pidfd UAPI](https://raw.githubusercontent.com/torvalds/linux/v6.19/include/uapi/linux/pidfd.h) and [pidfs implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/fs/pidfs.c) define PIDFD_GET_MNT_NAMESPACE, selection from the held process, zero ioctl argument and filesystem-credential ptrace checks. The previously hashed local copies were read again; current web refetches timed out. Actual kernel namespace capture is separately verified in the native fixture.

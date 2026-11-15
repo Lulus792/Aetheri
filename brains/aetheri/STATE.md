@@ -1,5 +1,19 @@
 # State
 
+15 November 2026 — The finite aetheri-login-startup executable now uses an
+explicit compiled deployment provider, literal host bus, original self MainPID
+context and frozen backend manager/path/PID/invocation before one connection and
+publication. Both final separate-unit desktop flows pass full original-pin PAM/
+session shutdown. Final Release/memory profiles pass eight CTests/all776 inputs;
+analyzer, invocation-omission counter, four configure refusals and two actual
+outside-supervisor rejections pass. All five new backend/helper attempts are
+terminal; preserve three failed holders and explicit new-pin retirement evidence.
+The socket-owner write check explains the required DAC_OVERRIDE addition. The
+template/provider remain uninstalled carrier evidence, not effective dedicated
+greeter/account/PAM/MAC/device policy. Next normal policy/provider and original
+graphical greeter/account integration. Read the
+[native record](journal/2026-11-15-login-runner.md). USB gate remains closed.
+
 15 November 2026 — Native startup coordination now selects the original socket
 peer's mount namespace through its retained kernel pin, builds source/loaded
 guards there and publishes once with permanent failure fences. Final Release/

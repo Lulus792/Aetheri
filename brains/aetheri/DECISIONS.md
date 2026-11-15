@@ -1,5 +1,20 @@
 # Decisions
 
+## Use a finite separately supervised login startup executable — 15 November 2026
+
+Select deployment inputs and the mandatory effective-policy gate as explicit
+build-time C code; provide no default, runtime plugin/profile path or CLI selector.
+Bind the helper's authenticated original self context to its active MainPID,
+then freeze backend manager/path/PID/invocation before initial connection and
+kernel-peer comparison. Use a literal host bus, finite readiness waits and one
+publication, then exit. Separate Type=exec supervision keeps backend admission's
+no-ControlPID/no-job condition intact. Retain significant required capabilities
+only in the short helper and require dedicated effective MAC/device/account/PAM
+policy before product admission. The actual greeter-owned pathname socket needs
+a write override; do not change its ownership/modes as a workaround. See the
+[contract](../../spec/login.md#finite-startup-executable) and
+[native evidence](journal/2026-11-15-login-runner.md).
+
 ## Bind native startup to the original peer namespace and one publication — 15 November 2026
 
 Use the authenticated service's retained kernel peer pin to capture its mount

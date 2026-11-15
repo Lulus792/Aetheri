@@ -1,5 +1,23 @@
 # Working on Aetheri
 
+Current finite startup executable: read `spec/login.md#finite-startup-executable`
+and the 2026-11-15 login-runner journal. aetheri-login-startup requires an explicit
+build-time deployment C provider; no default/runtime profile/plugin/CLI selector.
+It drops extra inherited FDs, uses the literal host bus, binds its original self
+service MainPID, freezes backend manager/path/PID/invocation and compares the real
+kernel peer before coordinator entry/publication. Final separate-unit Release/
+memory greeter desktop flows pass original entry/worker/PAM/scope end; helpers
+are Release only and exit before the user desktop. Eight CTests/all776 inputs,
+analyzer/invocation counter, configure guards and outside-supervisor refusals pass.
+All five new cases are terminal. Preserve the two connection failures, the third
+visual-timeout holder/new-pin administrative retirement and older quarantine.
+The greeter-owned0755 socket requires DAC_OVERRIDE in addition to the previous
+four capabilities. No socket mode/policy loosening; the unconfined carrier role
+and enforcing-only provider are NOT production admission. Next effective dedicated
+startup/backend/greeter/account/PAM/MAC/device policy and normal provider, then
+original graphical greeter/account integration. Keep foreign UI memory, USB gate
+and NexaUI maintenance-only state. No installed service or USB image is implied.
+
 Current native startup work: read `spec/login.md#native-startup-coordination` and
 the 2026-11-15 login-startup-coordinator journal. login/startup.h composes the
 original kernel socket service with PIDFD_GET_MNT_NAMESPACE/setns, same-view

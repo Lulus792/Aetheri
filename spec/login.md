@@ -637,3 +637,71 @@ work. The existing backend observer requires an active original MainPID with no
 ControlPID/job; adding an unchecked ExecStartPost path to that unit does not meet
 this contract. This library does not install/enable a service or promote the
 carrier's administrative test profile to a product configuration.
+
+## Finite startup executable
+
+`aetheri-login-startup` now supplies the finite executable around the coordinator.
+Build it explicitly with AETHERI_LOGIN_STARTUP, AETHERI_LOGIN_PROTOCOL and
+AETHERI_LINUX_IPC enabled, and AETHERI_LOGIN_DEPLOYMENT_SOURCE set to an absolute
+C source implementing `ae_login_deployment_select` from `login/runner.h`.
+There is no default provider or runtime profile/plugin loader. The selected
+provider supplies immutable service/source/destination expectations and the
+mandatory effective deployment-policy gate. Compiling a carrier fixture provider
+does not admit it for normal credentials. Packaging must independently verify
+the provider, resulting ELF, runtime and effective policy.
+
+The executable accepts no arguments. It requires open stdio and closes extra
+inherited descriptors before invoking the provider. Failed cleanup ends startup.
+The runner requires Root real/effective/saved user and group IDs and main-thread
+entry; the coordinator also checks the actual single-threaded setup. It opens
+the literal host system-bus socket, without using DBUS_SYSTEM_BUS_ADDRESS, then
+captures its own actual bus credentials and original service context. Its
+compiled startup unit/label must match, and its retained self pin must be that
+unit's active MainPID with no ControlPID or pending job. An initial activation
+wait rechecks the original self context; it cannot select a replacement.
+
+Before waiting for the backend socket, the runner freezes the original manager
+unique name, unit path, MainPID and nonzero invocation. The numeric PID constructs
+only the reviewed socket pathname, never a process pin or admission result.
+While waiting for initial socket appearance it rechecks that selection and its
+own context. It makes one nonblocking connection, then composes the actual kernel
+socket-service observer with the frozen manager/path/PID/invocation comparison
+before namespace entry. No stream protocol data or credential request is sent.
+There is no reconnect after a connection attempt. The existing coordinator then
+owns same-view source/config/image checks and the single publication attempt.
+
+One monotonic budget of100ms..15s bounds initial readiness waits; each synchronous
+system-bus call has a separate one-second bound. Kernel file operations are not
+preempted by this budget. The unit template also bounds process lifetime. Every
+return from the runner requires immediate caller exit: its mount namespace may
+have changed. Cleanup never restores a view, removes possible output or controls
+another service. Local journal diagnostics distinguish selection, completion and
+the failing phase. They are not readiness or lifecycle capabilities.
+
+The [systemd template](../data/systemd/aetheri-login-startup.service.in) uses a
+separate Type=exec service ordered after the backend. The greeter still waits for
+and verifies the protected observation; an active startup unit alone is not
+publication readiness. The helper exits after publication and does not remain
+as a background process. Restart stays disabled. The template is not installed,
+enabled or assigned an implicit MAC role by CMake; its context placeholder must
+be selected together with the admitted deployment.
+
+The tested capability set has distinct purposes: SYS_ADMIN/SYS_CHROOT for the
+selected mount-namespace entry, SYS_PTRACE for kernel-gated inspection of the
+privileged peer, DAC_READ_SEARCH for protected reads and AT_EMPTY_PATH linking,
+and DAC_OVERRIDE for connecting to the greeter-owned pathname socket without
+changing its modes/ownership. These are substantial Root privileges. Effective
+dedicated MAC/device/account/PAM policy remains mandatory; the administrative
+carrier domain and enforcing-only fixture gate are not that policy. The helper
+does not gain the backend's setuid, setgid, kill or VT capabilities.
+
+The final ordinary Release/memory profiles each pass eight selected CTests,
+including frozen-selection/deadline/preflight and actual fork/descriptor-entry
+tests. An invocation-comparison omission is detected. Two actual separate-unit
+flows with compiled carrier providers reach the visible desktop and original
+PAM/session shutdown. Both privileged helpers are Release binaries; only the
+second greeter is memory-instrumented. Native execution outside the selected
+startup supervisor is rejected without changing its runtime tree. See the
+[native record](../brains/aetheri/journal/2026-11-15-login-runner.md). Normal
+deployment inputs, effective confinement, a dedicated greeter account/UI and
+full installed-system packaging remain open. No USB release is implied.
