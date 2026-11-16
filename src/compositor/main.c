@@ -41,6 +41,10 @@
 #include "input.h"
 #include "desktop.h"
 #include "text_input.h"
+#ifdef AETHERI_GREETER_DISPLAY
+#include "login/display_channel.h"
+#include <sys/socket.h>
+#endif
 #ifdef AETHERI_INPUT_TEST
 #include "compositor_input_driver.h"
 #endif
@@ -460,6 +464,43 @@ static int private_directory(const char *path) {
     return fd;
 }
 
+static int descriptor_argument(const char *value) {
+    if (!*value || strspn(value, "0123456789") != strlen(value)) return -1;
+    errno = 0;
+    long parsed = strtol(value, NULL, 10);
+    return errno || parsed < 3 || parsed > INT32_MAX ? -1 : (int)parsed;
+}
+
+#ifdef AETHERI_GREETER_DISPLAY
+struct greeter_client {
+    struct wl_listener destroyed;
+    struct server *server;
+};
+
+static void greeter_client_destroyed(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct greeter_client *client = wl_container_of(listener, client, destroyed);
+    wl_list_remove(&client->destroyed.link);
+    if (!client->server->shutting_down) wl_display_terminate(client->server->display);
+}
+
+static int offer_greeter_client(struct server *s, int control, struct greeter_client *lifetime) {
+    int stream[2];
+    if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, stream)) return -errno;
+    struct wl_client *client = wl_client_create(s->display, stream[0]);
+    int result = client ? ae_login_display_offer(control, stream[1]) : -errno;
+    close(stream[1]);
+    if (!client) close(stream[0]);
+    else if (result) wl_client_destroy(client);
+    else {
+        lifetime->server = s;
+        lifetime->destroyed.notify = greeter_client_destroyed;
+        wl_client_add_destroy_listener(client, &lifetime->destroyed);
+    }
+    return result;
+}
+#endif
+
 int main(int argc, char **argv) {
     bool nested = argc > 1 && !strcmp(argv[1], "--nested");
     bool drm = false;
@@ -472,14 +513,19 @@ int main(int argc, char **argv) {
     expected_argc = 5;
     struct input_driver *driver = NULL;
 #endif
-    int shell_fd = -1;bool compose=false,options_valid=true;
+    int shell_fd = -1, greeter_fd = -1;bool compose=false,options_valid=true;
     const char *keyboard_layout = NULL;
     for (int at=expected_argc;at<argc;++at) {
         if (!strcmp(argv[at],"--shell-fd") && shell_fd<0 && at+1<argc) {
-            const char *value=argv[++at];char *end=NULL;errno=0;long parsed=strtol(value,&end,10);
-            if (!*value || strspn(value,"0123456789")!=strlen(value) || errno || !end || *end || parsed<3 || parsed>INT32_MAX) { options_valid=false;break; }
-            shell_fd=(int)parsed;
+            shell_fd = descriptor_argument(argv[++at]);
+            if (shell_fd < 0) { options_valid=false;break; }
         }
+#ifdef AETHERI_GREETER_DISPLAY
+        else if (!strcmp(argv[at],"--greeter-fd") && greeter_fd<0 && at+1<argc) {
+            greeter_fd = descriptor_argument(argv[++at]);
+            if (greeter_fd < 0) { options_valid=false;break; }
+        }
+#endif
         else if (!strcmp(argv[at],"--keyboard-layout") && !keyboard_layout && !nested && at+1<argc) {
             const char *value=argv[++at];
             if (!strcmp(value,"us")) keyboard_layout="us";
@@ -499,10 +545,18 @@ int main(int argc, char **argv) {
                         "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
                         "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- auto|/dev/dri/cardN\n"
                         "  optional private desktop connection: --shell-fd FD\n"
+#ifdef AETHERI_GREETER_DISPLAY
+                        "  single-client DRM login output: --greeter-fd FD\n"
+#endif
                         "  headless/session startup layout: --keyboard-layout us|de\n"
                         "  reviewed Compose build only: --compose\n");
         return 2;
     }
+    if (greeter_fd >= 0 && (!drm || shell_fd >= 0 || strcmp(argv[3], "-"))) return 2;
+#ifdef AETHERI_GREETER_DISPLAY
+    if (greeter_fd >= 0 && ae_login_display_channel_check(greeter_fd, SOCK_SEQPACKET)) return 2;
+    struct greeter_client greeter_lifetime = {0};
+#endif
     if (nested && (getenv("WAYLAND_SOCKET") || strlen(argv[4]) > 48 || !argv[4][0] ||
             strspn(argv[4], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_") != strlen(argv[4]) ||
             !strcmp(argv[2], argv[4]))) return 2;
@@ -552,7 +606,8 @@ int main(int argc, char **argv) {
     s.layout = wlr_output_layout_create(s.display);
     if (!s.allocator || !s.scene || !s.layout || !wlr_renderer_init_wl_display(s.renderer, s.display) ||
             !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display) ||
-            !wlr_data_device_manager_create(s.display) || !wlr_viewporter_create(s.display)) goto done;
+            (greeter_fd < 0 && !wlr_data_device_manager_create(s.display)) ||
+            !wlr_viewporter_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
     if (!wlr_scene_rect_create(&s.scene->tree, drm ? 11520 : 8320, 2160, background)) goto done;
@@ -612,8 +667,20 @@ int main(int argc, char **argv) {
         if (!s.desktop) goto done;
         shell_fd = -1;
     }
-    if (wl_display_add_socket(s.display, argv[2]) != 0 || (!nested && !wlr_backend_start(s.backend))) goto done;
+    if ((greeter_fd < 0 && wl_display_add_socket(s.display, argv[2]) != 0) ||
+            (!nested && !wlr_backend_start(s.backend))) goto done;
     if (s.failed || !s.output_count) goto done;
+#ifdef AETHERI_GREETER_DISPLAY
+    if (greeter_fd >= 0) {
+        int offered = offer_greeter_client(&s, greeter_fd, &greeter_lifetime);
+        close(greeter_fd);
+        greeter_fd = -1;
+        if (offered) {
+            fprintf(stderr, "compositor: login display offer failed: %s\n", strerror(-offered));
+            goto done;
+        }
+    }
+#endif
     printf("READY %s outputs=%u renderer=pixman keyboard_layout=%s\n", argv[2], s.output_count,
         s.keyboard_layout ? s.keyboard_layout : "backend");
     wl_display_run(s.display);
@@ -625,6 +692,7 @@ done:
     ae_desktop_destroy(s.desktop);
     s.desktop = NULL;
     if (shell_fd >= 0) close(shell_fd);
+    if (greeter_fd >= 0) close(greeter_fd);
 #ifdef AETHERI_INPUT_TEST
     input_driver_close(driver);
 #endif

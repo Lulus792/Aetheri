@@ -1,5 +1,15 @@
 # State
 
+17 November 2026 — The greeter display channel now verifies a compositor-created
+Wayland endpoint against the original direct child and independent executable
+selection. The DRM compositor's opt-in single-client mode has no pathname
+listener or clipboard global. The protected image probe and native VM case
+5725b9cfc293 pass. The latter exercises real Wayland requests on seat0/VT8
+and observes entry, child and scope retirement in the ordinary carrier
+session. Next connect this channel and the original backend to the native
+greeter host, with active greeter-seat and focus/frame checks. See the
+[record](journal/2026-11-17-login-display.md).
+
 17 November 2026 — The original greeter connection owner now waits for the
 protected handoff on its held directory before exposing the borrowed
 conversation. Real split-role case 3f90cdbdeffe reaches idle. Case

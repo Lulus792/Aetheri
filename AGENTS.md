@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current private greeter display checkpoint: read spec/login.md and the 2026-11-17
+login-display journal. The compositor creates the only client stream after
+DRM startup and passes it through a one-off unnamed seqpacket channel. The
+receiver verifies the original launch pidfd, child ancestry, socket/process
+labels and actual ELF. No listener, clipboard global, capture or desktop
+shell in the login mode. Native 5725b9cfc293 passes real DRM/Wayland and
+same-image verification separately. Retain failed artifacts and independent
+VT restoration. Next native UI host with original greeter seat, focus/frame
+and normal deployment admission. USB and NexaUI maintenance gates apply.
+
 Current greeter connection/view checkpoint: read spec/login.md and the
 2026-11-17 login-client-view journal. The owner waits only for a missing leaf
 in its held original directory. Native 3f90cdbdeffe admits an idle connection,

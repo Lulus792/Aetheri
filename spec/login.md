@@ -142,6 +142,32 @@ records that the backend accepted a session request. Desktop readiness comes
 from the independent session lifecycle. See the
 [integration record](../brains/aetheri/journal/2026-11-17-login-client-view.md).
 
+### Private Wayland connection for the greeter
+
+In the combined DRM and native login build, the compositor accepts
+`--greeter-fd` with one inherited, unnamed Unix seqpacket endpoint. This
+mode starts the DRM backend before offering a client connection. It serves
+one client, skips the pathname listener and omits the clipboard global.
+Dropping the client ends the compositor. The existing session listener also
+ends it on observed seat deactivation. Capture and the desktop-shell channel
+are unavailable in this mode.
+
+The compositor creates the Wayland stream itself after exec and sends the
+client endpoint in one bounded offer. [`login/display.h`](../src/login/display.h)
+joins the returned kernel peer pidfd to the direct child pinned by the
+launching owner. Its Unix IDs, process and socket labels, and current ELF must
+match the independent expectation. The owner checks the child again before
+returning the descriptor. The receiver rejects additional rights or malformed
+packets and closes delivered descriptors on failure. Peer loss or mismatch
+fences the owner. It never adopts a later offer.
+
+The graphical host will own the returned native endpoint, active greeter
+session, input focus and frame readiness. It must include those observations
+in the host gate before enabling login controls and sending credential
+traffic. The descriptor guard establishes who serves this stream. The
+[VM record](../brains/aetheri/journal/2026-11-17-login-display.md) checks the
+original protected ELF and the single-client DRM path separately.
+
 ## Dedicated greeter account and supplementary groups
 
 [The sysusers recipe](../data/sysusers.d/aetheri-login.conf) reserves
