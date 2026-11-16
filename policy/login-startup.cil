@@ -71,7 +71,6 @@
 (allow aetheri_login_startup_t aetheri_login_observed_backend (fd (use)))
 (allow aetheri_login_startup_t aetheri_login_observed_backend (unix_stream_socket (connectto)))
 (allow aetheri_login_startup_t self (unix_stream_socket (create connect read write getattr getopt setopt shutdown)))
-(allow aetheri_login_startup_t var_run_t (sock_file (write getattr)))
 (allow aetheri_login_startup_t system_dbusd_var_run_t (dir (search getattr)))
 (allow aetheri_login_startup_t system_dbusd_var_run_t (sock_file (write getattr)))
 (allow aetheri_login_startup_t system_dbusd_t (unix_stream_socket (connectto)))

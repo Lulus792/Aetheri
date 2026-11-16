@@ -1,3 +1,4 @@
 ; MIT. Disposable-carrier supplement ONLY; never ship with a normal deployment.
 ; The existing administrative backend is not the production login domain.
 (typeattributeset aetheri_login_observed_backend (unconfined_service_t))
+(allow aetheri_login_startup_t var_run_t (sock_file (write getattr)))

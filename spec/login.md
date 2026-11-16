@@ -31,6 +31,13 @@ process labels, device bindings, writable runtime paths and unit settings.
 The test log type supports the inherited `OpenFile` diagnostic descriptor.
 The probe writes only synthetic access results and lifecycle markers.
 
+The finite startup publisher can open the selected backend executable and
+configuration for verification, connect through the dedicated login socket type,
+and read the loaded policy for the compiled provider's digest check. It cannot
+execute the backend, modify those sources or create, relabel or unlink the
+socket. The general `var_run_t` pathname socket grant belongs to the older
+administrative carrier supplement. The split deployment denies that grant.
+
 The explicit `probe_login_roles` build target exercises synthetic file and
 socket access. The read-only `tools/check_login_policy.py` checks selected
 access decisions against an independently supplied loaded-policy digest. The
@@ -38,9 +45,14 @@ native test starts an actual internal greeter PAM session on seat0/VT8 with an
 inert greeter. It observes the three labels and the greeter's exact UID, GID,
 groups and empty capability sets. Stopping the original backend leads to the
 original greeter and worker's normal exits, PAM close and the inactive session
-scope. The remaining integration joins the finite publisher, protected greeter
-connection and trusted display on the same selected deployment. Human password
-authentication and the user desktop under this policy require their own run.
+scope. On the split carrier, a separate finite publisher now writes the
+protected `AETHLGH1` record
+while the original backend and internal greeter are live. The controller verifies
+its boot, invocation and pidfd object before the original PAM shutdown. The
+compiled carrier provider compares the loaded policy with its selected digest.
+The greeter still needs to consume the record and admit its own native connection.
+Human password authentication and the user desktop under this policy require
+their own run.
 See the [native record](../brains/aetheri/journal/2026-11-16-login-roles.md).
 
 ## Dedicated greeter account and supplementary groups

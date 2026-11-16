@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current split publisher checkpoint: the finite startup service publishes a
+protected AETHLGH1 for the original confined backend in 867a85c110ea and exits.
+The original internal greeter/PAM worker also close normally. The split policy
+uses typed socket access and read-only backend/config/policy observation. The
+older administrative supplement alone carries the generic runtime socket rule.
+Strict 426-module compilation and five negative inputs pass, as do 130 loaded
+decisions. Preserve the EACCES and concurrent EBUSY evidence and the retired
+module receipts. Read spec/login.md and the login-roles journal. Next align
+ordered source selections and test the original confined greeter's actual
+handoff consumption and initial connection, then normal credentials and UI.
+
 Current login role checkpoint: read spec/login.md's candidate login roles and
 the 2026-11-16 login-roles journal. The separate backend, PAM worker and UID992
 greeter pass actual enforcing SELinux access and internal PAM open/close.

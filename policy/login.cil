@@ -24,6 +24,18 @@
 (roletype system_r aetheri_greeter_t)
 (typeattributeset aetheri_login_observed_backend (aetheri_login_backend_t))
 
+; The finite publisher verifies the selected backend sources and connects to
+; the typed listener to pin its original service. Only the backend owns them.
+(allow aetheri_login_startup_t aetheri_login_backend_exec_t (file (read open getattr)))
+(allow aetheri_login_startup_t aetheri_login_config_t (file (read open getattr)))
+(allow aetheri_login_startup_t aetheri_login_socket_t (sock_file (write getattr)))
+; The compiled admission gate can bind the current effective policy digest.
+(allow aetheri_login_startup_t security_t (security (read_policy)))
+(neverallow aetheri_login_startup_t aetheri_login_backend_exec_t (file (write execute execute_no_trans)))
+(neverallow aetheri_login_startup_t aetheri_login_config_t (file (write create unlink)))
+(neverallow aetheri_login_startup_t aetheri_login_socket_t (sock_file (create setattr unlink)))
+(neverallow aetheri_login_startup_t var_run_t (sock_file (write)))
+
 ; PID1 starts only the backend. Its self-exec creates the external PAM worker;
 ; the unprivileged worker child transitions on the selected greeter executable.
 (allow init_t aetheri_login_backend_t (process (transition)))

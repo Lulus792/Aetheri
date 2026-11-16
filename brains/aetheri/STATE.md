@@ -1,5 +1,19 @@
 # State
 
+16 November 2026 — The finite startup publisher now writes the protected
+handoff for the actual separate-role login backend. Final case 867a85c110ea
+checks the record against the original live backend boot, invocation and pidfd,
+then confirms publisher exit and original PAM/greeter/worker closure. The
+publisher's generic pathname socket grant stays inside the older administrative
+test supplement. The split policy permits the typed socket, read-only selected
+sources and the loaded-policy digest read. Strict compile passes 426 inputs
+and five rejected additions. 130 effective decisions pass in 34f1eda96d5f.
+Preserve the first EACCES run and concurrent EBUSY checker. Exact retired
+modules leave the baseline restored. Next align the publisher and greeter's
+ordered source selections, verify the actual greeter's receipt and connection,
+then normal PAM authentication and trusted graphical handoff. See the
+[native record](journal/2026-11-16-login-roles.md#publication-with-the-split-backend).
+
 16 November 2026 — The split login SELinux candidate passes native access
 controls and an actual internal greeter PAM open/close under the three domains.
 The final C probe observes the locked UID/GID 992 greeter with only group 992

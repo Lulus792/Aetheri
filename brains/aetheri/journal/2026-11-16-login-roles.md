@@ -77,3 +77,43 @@ See [PAM 1.7.2 audit handling](https://github.com/linux-pam/linux-pam/blob/v1.7.
 Next join the separate-role service to the finite startup publisher and actual
 protected greeter connection. Then verify normal PAM authentication, trusted
 graphical display and session handoff under the selected deployment policy.
+
+## Publication with the split backend
+
+The publisher now reads the dedicated backend executable and configuration
+types. Its connection is authorized only through the dedicated socket type.
+The generic `var_run_t` socket rule moved to the older administrative fixture
+supplement. The split candidate requires that generic socket write stay denied.
+The publisher's compiled carrier gate compares the complete loaded policy digest
+under enforcing SELinux. The first case `175fa2734777` failed at that read with
+`EACCES`. A Linux SELinux hook checks `security:read_policy` separately from
+the backing file's read permission. The candidate now grants that operation to
+the publisher and retains the policy mutation denials. See the [Linux 6.19 SELinux filesystem implementation](https://raw.githubusercontent.com/torvalds/linux/v6.19/security/selinux/selinuxfs.c).
+
+Case `fa0c59b38d10` passed with the dedicated roles and both socket grants.
+Final case `867a85c110ea` passed with access narrowed to the dedicated socket.
+The ordinary-built and independently staged publisher is 135,024 bytes with
+SHA-256 `987ba5fc67d50f71d4ac60d920b56a9e0371cd3748d4ef5d687e94853371208a`.
+PID1 started it under its own label and it published a 296-byte Root-owned
+`AETHLGH1` record labeled `aetheri_login_handoff_t`. The controller matches the
+record's boot, backend invocation, backend PID and pidfd object to the same
+live process, then observes publisher exit 0. The original greeter and worker
+both exit 0 after stopping the backend. The original PAM session closes and
+its scope becomes inactive. The inert greeter performs no authentication.
+
+Final candidate `ff8e0be45c5e` was loaded in boot `342ed7a6`. Its effective hash
+is `925a298adf338137c0a214f44a2d5eb535e38efa0c3e0090f05131234b84e106`.
+Strict compilation `40f7c46c9097` includes 426 module inputs and rejects all five
+disallowed additions. The runtime checker `34f1eda96d5f` verifies 130 policy
+decisions and rejects four wrong expectations or selections. The concurrent
+checker `19f14b5b7545` failed closed with `EBUSY` during its final policy read.
+The kernel allows one open policy snapshot at a time. The final checker ran
+after the other readers ended. All three exact candidate modules were retired.
+The baseline hash is restored and the VM remains enforcing.
+
+The publisher's four source entries cover the unit, backend ELF, configuration
+and drop-in. The next integration must align those ordered entries with the
+original greeter's independent source selection and verify greeter-side
+consumption and connection admission. The tested provider belongs to the
+isolated carrier. Production still needs its selected deployment inputs,
+device rights and trusted graphical path.
