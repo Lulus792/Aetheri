@@ -1,5 +1,53 @@
 # Login roles in the enforcing carrier
 
+## Confined user-session handoff
+
+The registered Fedora carrier remained in boot `342ed7a6` after Codex resumed.
+Its pre-test policy matched the original enforcing baseline and no local seat
+session was active. Fresh Release `b23e0439d42e` and memory `7f7d1c96cc0c`
+builds of the Start fixture each pass all nine selected CTests. These C builds
+predate the follow-up SELinux source edits and were reused unchanged.
+
+Both live tests reject the empty password, accept the synthetic account and
+observe a Start acknowledgement. The controller keeps the original user
+worker's pidfd, binds the protected selected entry object and observes PAM
+open and close. The replacement greeter consumes the protected handoff and
+sees the original sealed descriptor at EOF. It does not resubmit the credential.
+Original and replacement greeters end normally. The backend ends with
+MainPID and ControlPID zero. The failures and private input holders remain
+under the named fixture roots in the disposable guest.
+
+Case `e14fdfe2dadb` executes the selected entry in `aetheri_session_t`. It
+ends before the controller observes the live process. Audit shows the new
+domain denied search of `/proc/1` and denied connection to the carrier's
+early-boot journal stream. libsystemd derives its cgroup root from PID1.
+The follow-up allows PID1 proc reads for session observation and gives only
+the carrier supplement the early-boot stream allowance. Session access to the
+inherited synthetic input and greeter log stays denied. The observed optional
+PAM ambient capability operation stays denied and PAM still opens the session.
+[systemd cgroup source](https://github.com/systemd/systemd/blob/main/src/basic/cgroup-util.c)
+
+Case `05f87c3c78b6` observes the actual selected entry PID 29081
+as UID/GID 1000, NoNewPrivileges and four empty capability sets. The entry is
+the original worker's direct child in active Wayland session 208 on seat0/VT8.
+It creates a typed runtime directory and starts the original protected
+compositor. The compositor reports `Failed to create udev monitor: Permission
+denied`. Audit shows denial on the `udev_var_run_t` directory and netlink
+kobject uevent socket creation. The compositor exits before desktop readiness.
+The same worker reports PAM close and scope `session-208.scope` is inactive.
+Worker exit zero records worker termination even when the desktop did not start.
+The case receipts and diagnostics remain in `/var/tmp/a-login-roles-pam-05f87c3c78b6`.
+
+Loaded decision check `1c42fb3f01df` verifies 188 decisions against the selected
+digest, with two wrong-access and two wrong-policy controls. Strict check
+`eb13d5974de7` compiles 426 inputs and rejects 12 added rules, including session
+shadow reads, SYS_ADMIN and signals to the worker. The selected policy modules
+`a66da058b8e6` and `e6a5f019b041` are retired to the exact enforcing baseline.
+Next check constrained udev observation, logind-brokered DRM/input and actual
+visual readiness. The fixture did not build or flash a USB image.
+
+## Separate worker and greeter domains
+
 16 November 2026. The candidate uses separate SELinux domains for PID1's
 selected login backend, its external PAM worker and the ordinary greeter. The
 worker alone declares shadow-reader membership and uses local audit reporting.

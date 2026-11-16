@@ -6,6 +6,8 @@
 ; The carrier's pre-policy journal receiver likewise retains kernel_t. PAM's
 ; ordinary session-open/close messages are not visible without this send right.
 (allow aetheri_login_worker_t kernel_t (unix_dgram_socket (sendto)))
+; The session diagnostics use the early-boot journal stream.
+(allow aetheri_session_t kernel_t (unix_stream_socket (connectto)))
 
 ; Sealed descriptor for one synthetic password in the disposable VM.
 ; PID1 opens it and the test greeter inherits it through the original worker.

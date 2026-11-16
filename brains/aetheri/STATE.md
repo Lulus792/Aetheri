@@ -1,5 +1,16 @@
 # State
 
+16 November 2026 — The split policy now reaches successful PAM Start and the
+fixed `aetheri-session` executable as UID/GID1000 with zero effective,
+permitted, inheritable and ambient capabilities. Case 05f87c3c78b6 observes
+active Wayland seat0/VT8, a private typed runtime directory and the original
+compositor exec. udev monitor creation is denied before desktop readiness.
+Both attempts close PAM and the backend. The replacement greeter remains
+idle on the consumed input. The failed private fixtures remain available.
+The next test needs constrained udev observation and logind-brokered DRM/input
+access, then visual readiness and original-session shutdown. See the
+[record](journal/2026-11-16-login-roles.md#confined-user-session-handoff).
+
 16 November 2026 — The split login worker now authenticates a synthetic test
 account through real PAM following native greeter admission. The distro
 `unix_chkpwd` helper runs through its existing confined transition and worker

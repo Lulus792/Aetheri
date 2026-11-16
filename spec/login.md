@@ -66,10 +66,36 @@ login roles cannot execute the password update program. The carrier supplement
 labels a sealed descriptor for the synthetic test password. The greeter reads
 it after the protected connection and PAM prompt checks and clears its copy
 after submission. An empty answer fails, the selected password succeeds, and
-the test waits for acknowledged cancellation. The next integration opens a
-user session under the split policy and hands off to the desktop. The eventual
+the authentication test waits for acknowledged cancellation. The eventual
 graphical host keeps this admission step ahead of input and authentication.
 See the [native record](../brains/aetheri/journal/2026-11-16-login-roles.md).
+
+### User-session handoff under the split policy
+
+The explicit Start fixture consumes the sealed test input through the original
+open file description. It sends the fixed session command after the controller
+pins the authenticated worker and publishes a create-only test marker. A Start
+acknowledgement records scheduling. The controller separately observes the
+selected entry object, process credentials, SELinux domain and active logind
+scope. After the session closes, the replacement greeter admits its own
+connection and observes the already consumed input without starting PAM again.
+
+The authenticated worker can exec the separately labeled session entry into
+`aetheri_session_t`. The entry uses the ordinary UID and GID with zero effective,
+permitted, inheritable and ambient capabilities and with NoNewPrivileges set.
+The selected core program type executes in the same domain. The desktop entry
+reads logind's session metadata and the PID1 cgroup path used by libsystemd. It
+creates a private labeled runtime directory under the user's systemd runtime
+directory. The candidate denies shadow reads, signals to the login worker and
+changes to the published login handoff. The early-boot journal stream allowance
+belongs to the disposable carrier supplement.
+
+The split carrier reaches an active local Wayland user session and runs the
+selected compositor executable. The compositor stops at udev monitor creation
+under the candidate policy. The test records PAM close, inactive user scope and
+the replacement greeter's normal shutdown. Device access and desktop readiness
+remain open under this policy. See the
+[handoff record](../brains/aetheri/journal/2026-11-16-login-roles.md#confined-user-session-handoff).
 
 ## Dedicated greeter account and supplementary groups
 

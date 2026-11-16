@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current split user-session checkpoint: read spec/login.md and the 2026-11-16
+login-roles journal. 05f87c3c78b6 verifies the original selected unprivileged
+entry, active Wayland seat0/VT8, typed runtime and compositor exec. Compositor
+startup stops at the actual udev monitor denial. Both attempts are terminal
+with PAM close; preserve the private input holders and failed fixtures. An ACK
+and worker exit 0 do not prove a successful desktop. Next constrained udev and
+logind-brokered DRM/input, full visual readiness and original shutdown. Keep
+the USB gate and NexaUI catalogue maintenance only.
+
 Current split authentication checkpoint: the actual confined PAM worker passes
 empty-answer AUTH_ERR, synthetic authentication/account success and acknowledged
 cancel in f2e5e69a75f2. The distro unix_chkpwd transition and worker pipes are

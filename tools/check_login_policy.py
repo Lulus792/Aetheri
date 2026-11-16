@@ -137,6 +137,30 @@ def inspect(expected: str) -> dict:
     for peer in (backend, worker):
         for permission in ("ptrace", "signal", "sigkill"):
             check(greeter, peer, "process", permission, False)
+    session = process("aetheri_session_t")
+    entry = obj("aetheri_session_exec_t")
+    core = obj("aetheri_session_core_exec_t")
+    check(worker, session, "process", "transition", True)
+    check(worker, session, "process2", "nnp_transition", True)
+    check(worker, entry, "file", "execute", True)
+    check(worker, entry, "file", "execute_no_trans", False)
+    check(session, entry, "file", "entrypoint", True)
+    check(session, core, "file", "execute_no_trans", True)
+    for role in (backend, greeter, publisher):
+        check(role, session, "process", "transition", False)
+        check(role, entry, "file", "execute", False)
+    for role in (backend, worker, greeter, session):
+        check(role, entry, "file", "write", False)
+        check(role, core, "file", "write", False)
+    check(session, obj("aetheri_session_runtime_t"), "dir", "create", True)
+    check(session, process("init_t"), "file", "read", True)
+    check(session, process("init_t"), "process", "ptrace", False)
+    check(session, obj("bin_t"), "file", "execute", False)
+    check(session, obj("shadow_t"), "file", "read", False)
+    check(session, obj("aetheri_login_handoff_t"), "file", "write", False)
+    check(session, session, "capability", "sys_admin", False)
+    for peer in (backend, worker):
+        check(session, peer, "process", "signal", False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:

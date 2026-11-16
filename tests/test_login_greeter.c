@@ -59,12 +59,15 @@ static void clear_test_secret(void) {volatile char *p=test_secret;for(size_t i=0
 /* Explicit fixture input only: systemd OpenFile passes one Root-owned sealed
    anonymous read-only file as fd3. Never read a password from argv/environment,
    print it, or use this test provider as a production credential-input API. */
-static bool load_test_secret(bool once) {
-    CHECK(!atexit(clear_test_secret));
+static void check_test_secret_fd(void) {
     struct stat st;int flags=fcntl(3,F_GETFL),seals=fcntl(3,F_GET_SEALS);
     CHECK(!fstat(3,&st) && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
         st.st_nlink==0 && (st.st_mode&07777)==0600 && st.st_size==64 && flags>=0 &&
         (flags&O_ACCMODE)==O_RDONLY && seals==(F_SEAL_WRITE|F_SEAL_SHRINK|F_SEAL_GROW|F_SEAL_SEAL));
+}
+static bool load_test_secret(bool once) {
+    CHECK(!atexit(clear_test_secret));
+    check_test_secret_fd();
     ssize_t size=once?read(3,test_secret,64):pread(3,test_secret,64,0);
     if(once && size==0){CHECK(!close(3));return false;}
     CHECK(size==64);
@@ -147,10 +150,12 @@ int main(int argc,char **argv)
     bool idle=false;
     bool wrong_sources=false;
     bool split_auth=false;
+    bool split_start=false;
     sigset_t termination;
 #ifdef AE_LOGIN_TEST_SPLIT_ROLES
     wrong_sources=argc==3 && !strcmp(argv[2],"handoff-mismatch");
-    split_auth=argc==3 && !strcmp(argv[2],"handoff-authenticate");
+    split_start=argc==3 && !strcmp(argv[2],"handoff-start");
+    split_auth=split_start || (argc==3 && !strcmp(argv[2],"handoff-authenticate"));
     idle=wrong_sources || split_auth || (argc==3 && !strcmp(argv[2],"handoff"));
     if(!idle)return 77;
 #endif
@@ -339,6 +344,18 @@ int main(int argc,char **argv)
         CHECK(!admission_check(&admission));
         puts("GREETER_HANDOFF_ACCEPTED");
         if(split_auth) {
+            if(split_start) {
+                check_test_secret_fd();
+                off_t offset=lseek(3,0,SEEK_CUR);
+                CHECK(offset==0 || offset==64);
+                if(offset==64) {
+                    CHECK(!close(3) && !ae_login_connection_close(&connection));
+                    puts("GREETER_REPLACEMENT_IDLE");
+                    struct timespec deadline={.tv_sec=30};
+                    CHECK(sigtimedwait(&termination,NULL,&deadline)==SIGTERM);
+                    goto cleanup;
+                }
+            }
             CHECK(!ae_login_connection_begin(connection,"aetheri",7));
             finish_reply(connection,AE_LOGIN_PROMPT);
             CHECK(!ae_login_connection_status(connection,&state) && state.prompt==AE_LOGIN_SECRET);
@@ -351,11 +368,30 @@ int main(int argc,char **argv)
             CHECK(!ae_login_connection_begin(connection,"aetheri",7));
             finish_reply(connection,AE_LOGIN_PROMPT);
             CHECK(!ae_login_connection_status(connection,&state) && state.prompt==AE_LOGIN_SECRET);
-            CHECK(load_test_secret(false));
+            CHECK(load_test_secret(split_start));
             int answer=ae_login_connection_answer(connection,test_secret,64);
             clear_test_secret();
             CHECK(!answer);
             finish_reply(connection,AE_LOGIN_AUTHENTICATED);
+            if(split_start) {
+                puts("GREETER_START_WAIT");
+                found=false;
+                for(size_t i=0;i<150;++i) {
+                    if(!fstatat(directory_fd,"start-approved",&st,AT_SYMLINK_NOFOLLOW)) {
+                        CHECK(S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
+                              (st.st_mode&07777)==0444 && st.st_nlink==1);
+                        found=true;
+                        break;
+                    }
+                    CHECK(errno==ENOENT && !admission_check(&admission));
+                    pause_test();
+                }
+                CHECK(found && !ae_login_connection_start(connection));
+                finish_reply(connection,AE_LOGIN_START_ACKNOWLEDGED);
+                puts("GREETER_START_ACK");
+                CHECK(!ae_login_connection_close(&connection));
+                goto cleanup;
+            }
             CHECK(!ae_login_connection_cancel(connection));
             finish_reply(connection,AE_LOGIN_IDLE);
             puts("GREETER_AUTH_CANCEL_ACK");
