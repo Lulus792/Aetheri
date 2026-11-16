@@ -83,19 +83,35 @@ connection and observes the already consumed input without starting PAM again.
 The authenticated worker can exec the separately labeled session entry into
 `aetheri_session_t`. The entry uses the ordinary UID and GID with zero effective,
 permitted, inheritable and ambient capabilities and with NoNewPrivileges set.
-The selected core program type executes in the same domain. The desktop entry
+The selected compositor executes in the same domain. The desktop entry
 reads logind's session metadata and the PID1 cgroup path used by libsystemd. It
 creates a private labeled runtime directory under the user's systemd runtime
 directory. The candidate denies shadow reads, signals to the login worker and
 changes to the published login handoff. The early-boot journal stream allowance
 belongs to the disposable carrier supplement.
 
-The split carrier reaches an active local Wayland user session and runs the
-selected compositor executable. The compositor stops at udev monitor creation
-under the candidate policy. The test records PAM close, inactive user scope and
-the replacement greeter's normal shutdown. Device access and desktop readiness
-remain open under this policy. See the
-[handoff record](../brains/aetheri/journal/2026-11-16-login-roles.md#confined-user-session-handoff).
+The compositor reads udev and sysfs metadata and binds a receive-only uevent
+socket for device notifications. Libseat uses logind to obtain selected seat
+device descriptors over the system bus. The session can use these descriptors.
+Direct opens of the tested DRM and input device types are denied. The login
+roles and the graphical shell cannot use those device types.
+
+The separately labeled graphical shell enters `aetheri_desktop_shell_t` and
+uses the Wayland and control channels passed by the session entry. The disposable
+VM gives this domain executable-memory access for LLVMpipe's shader compilation.
+The compositor and entry remain subject to the executable-memory denial. The VM
+binds a typed private directory over `/dev/shm` for POSIX shared memory. Anonymous
+Mesa buffers receive a separate type through the carrier's tmpfs transition.
+The unit-private loader cache selects the verified SDL and Mesa libraries across
+the protected exec transition.
+
+Two full tests reach a visible local Wayland desktop at 1280×800. The controller
+observes the compositor's DRM and input descriptors. In the keyboard test,
+Super+Space and `files` reach the original search surface and its rendered
+result. Both tests verify the original entry and PAM worker exit, PAM close,
+inactive scope and the replacement greeter's shutdown. The normal provider,
+graphical login screen and managed application starts are still pending.
+See the [native record](../brains/aetheri/journal/2026-11-17-login-desktop-policy.md).
 
 ## Dedicated greeter account and supplementary groups
 

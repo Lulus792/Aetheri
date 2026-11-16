@@ -161,6 +161,31 @@ def inspect(expected: str) -> dict:
     check(session, session, "capability", "sys_admin", False)
     for peer in (backend, worker):
         check(session, peer, "process", "signal", False)
+    shell = process("aetheri_desktop_shell_t")
+    shell_exec = obj("aetheri_desktop_shell_exec_t")
+    check(session, shell, "process", "transition", True)
+    check(session, shell, "process2", "nnp_transition", True)
+    check(session, shell_exec, "file", "execute_no_trans", False)
+    check(shell, shell_exec, "file", "entrypoint", True)
+    check(session, session, "process", "execmem", False)
+    check(shell, session, "process", "signal", False)
+    check(shell, obj("shadow_t"), "file", "read", False)
+    for device in ("dri_device_t", "event_device_t"):
+        check(session, obj(device), "chr_file", "read", True)
+        check(session, obj(device), "chr_file", "open", False)
+        for role in (backend, worker, greeter, shell):
+            check(role, obj(device), "chr_file", "read", False)
+            check(role, obj(device), "chr_file", "open", False)
+    for target in ("udev_var_run_t", "sysfs_t"):
+        check(session, obj(target), "file", "read", True)
+        check(session, obj(target), "file", "write", False)
+    check(session, session, "netlink_kobject_uevent_socket", "read", True)
+    check(session, session, "netlink_kobject_uevent_socket", "write", False)
+    check(shell, shell, "netlink_kobject_uevent_socket", "create", False)
+    for role in (session, shell):
+        check(role, obj("aetheri_session_shm_t"), "file", "create", True)
+        check(role, obj("aetheri_session_memfd_t"), "file", "write", True)
+        check(role, obj("tmpfs_t"), "file", "write", False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:

@@ -1,5 +1,15 @@
 # State
 
+17 November 2026 — Two confined synthetic login flows reach the visible
+1280×800 desktop and retire the original entry, worker and PAM scope. The
+compositor holds one DRM card and three input device identities through logind.
+Case 36ea39e113cc sends Super+Space and types `files`; the actual search frame
+shows the expected result. The shell runs in its own SELinux domain with the
+LLVMpipe executable-memory permission isolated in the disposable carrier
+supplement. Preserve the failed device, mount, Mesa and loader cases. Next
+advance the normal protected provider and original graphical greeter, then
+managed apps. See the [record](journal/2026-11-17-login-desktop-policy.md).
+
 16 November 2026 — The split policy now reaches successful PAM Start and the
 fixed `aetheri-session` executable as UID/GID1000 with zero effective,
 permitted, inheritable and ambient capabilities. Case 05f87c3c78b6 observes

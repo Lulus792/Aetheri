@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current confined desktop checkpoint: read spec/login.md and the 2026-11-17
+login-desktop-policy journal. Final Release ff65b1671440/36ea39e113cc visibly
+start the desktop after real PAM and retire the original entry/worker/PAM
+scope. The second verifies native Super+Space/files, a settled drawn frame
+and virtual DRM/input descriptors. Only the split desktop-shell carrier role
+gets LLVMpipe execmem. Preserve failed fixtures and independent VT
+retirements. Next normal protected provider and original graphical greeter,
+then managed app admission. USB gate and NexaUI catalogue maintenance apply.
+
 Current split user-session checkpoint: read spec/login.md and the 2026-11-16
 login-roles journal. 05f87c3c78b6 verifies the original selected unprivileged
 entry, active Wayland seat0/VT8, typed runtime and compositor exec. Compositor
