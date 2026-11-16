@@ -113,6 +113,35 @@ inactive scope and the replacement greeter's shutdown. The normal provider,
 graphical login screen and managed application starts are still pending.
 See the [native record](../brains/aetheri/journal/2026-11-17-login-desktop-policy.md).
 
+### Greeter connection owner and graphical view
+
+[`login/client.h`](../src/login/client.h) joins the original connected stream,
+system service, selected sources and loaded unit to the original greeter
+process. The caller supplies an independent host gate for runtime, effective
+policy and display/input placement. The owner holds the protected handoff
+directory before exposing a conversation. Only absence of the selected leaf in
+that same directory is pending. A mismatched record or failing check fences the
+admission and never reconnects or retries it. Once the original handoff is
+verified, one borrowed conversation becomes available. Its operations recheck
+the host, original greeter and handoff. Closing the owner only releases local
+observations and the socket.
+
+`AETHERI_LOGIN_VIEW` builds the existing NexaUI Example37 view and the bounded
+window/socket/pidfd poll adapter from
+[revision 014449f](https://github.com/Lulus792/NexaUI/tree/014449f6682b97bc9b0d559c669aa1c8477f2b60/examples/37_aetheri_login).
+The import retains the [NexaUI MIT license](../src/login/ui/LICENSE).
+The target requires the native login libraries and the already selected
+NexaUI SDK from `spec/nexaui-inputs.json`. It links the current Aetheri protocol
+and transport rather than compiling a second copy.
+
+The view borrows one conversation. Password, visible response and information
+prompts use separate input paths. The native host must bind it only once it has
+admitted the original connection and its display/input placement. It owns the
+request deadline, native event buffers and view/watch lifetime. A Start ACK
+records that the backend accepted a session request. Desktop readiness comes
+from the independent session lifecycle. See the
+[integration record](../brains/aetheri/journal/2026-11-17-login-client-view.md).
+
 ## Dedicated greeter account and supplementary groups
 
 [The sysusers recipe](../data/sysusers.d/aetheri-login.conf) reserves

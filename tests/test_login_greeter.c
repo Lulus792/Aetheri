@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include "login/client.h"
 #include "login/greeter.h"
 #include "login/handoff.h"
 #include "login/connection.h"
@@ -6,6 +7,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
+#include <selinux/selinux.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -139,6 +141,67 @@ static void finish_reply(struct ae_login_connection *connection,enum ae_login_ph
     }
     CHECK(0);
 }
+#ifdef AE_LOGIN_TEST_SPLIT_ROLES
+static int fixture_client_gate(void *state)
+{
+    struct ae_login_client **client=state;
+    /* The native fixture admits only the observed enforcing VM context. An
+       actual host must separately admit its runtime and display/input path. */
+    if(*client)CHECK(ae_login_client_close(client)==-EBUSY);
+    return security_getenforce()==1?0:-EACCES;
+}
+
+static int run_client_fixture(sd_bus *bus,int fd,const char *unit,const char *directory,
+    const struct ae_login_source_expect *entries,struct ae_login_greeter_expect greeter,
+    bool mismatch,const sigset_t *termination)
+{
+    char runtime[AE_LOGIN_SOURCE_PATH_MAX];
+    int length=snprintf(runtime,sizeof runtime,"%s/runtime",directory);
+    CHECK(length>0 && (size_t)length<sizeof runtime);
+    const size_t dropin[]={3};
+    struct ae_login_client *client=NULL;
+    const struct ae_login_client_expect select={
+        .service={.unit=unit,.label=BACKEND_LABEL,.socket_label=BACKEND_LABEL},
+        .greeter=greeter,.sources=entries,.source_count=5,.fragment=0,.program=1,.config=2,
+        .dropins=dropin,.dropin_count=1,.directory=runtime,.leaf="backend-observation",
+        .label=AE_LOGIN_TEST_HANDOFF_LABEL,.check=fixture_client_gate,.userdata=&client
+    };
+    int result=ae_login_client_create(&fd,bus,&select,&client);
+    if(result)fprintf(stderr,"greeter client create: %d\n",result);
+    CHECK(!result && fd==-1);
+    struct ae_login_connection *connection=NULL;
+    CHECK(ae_login_client_admit(client,&connection)==-EAGAIN && !connection);
+    puts("GREETER_CLIENT_PENDING");
+    puts("GREETER_READY");
+    for(size_t i=0;i<150;++i) {
+        result=ae_login_client_admit(client,&connection);
+        if(result!=-EAGAIN)break;
+        pause_test();
+    }
+    if(mismatch) {
+        if(result)fprintf(stderr,"greeter handoff: %d\n",result);
+        CHECK(result==-ESTALE && !connection);
+        CHECK(ae_login_client_admit(client,&connection)==result && !connection);
+        puts("GREETER_HANDOFF_REJECTED");
+    } else {
+        if(result)fprintf(stderr,"greeter client admit: %d\n",result);
+        struct ae_login_status status;
+        CHECK(!result && connection && !ae_login_connection_status(connection,&status) && status.phase==AE_LOGIN_IDLE);
+        struct ae_login_connection *other=NULL;
+        CHECK(ae_login_client_admit(client,&other)==-EALREADY && !other);
+        puts("GREETER_HANDOFF_ACCEPTED");
+    }
+    struct timespec deadline={.tv_sec=30};
+    CHECK(sigtimedwait(termination,NULL,&deadline)==SIGTERM);
+    CHECK(!ae_login_client_close(&client) && !client);
+#if defined(__SANITIZE_ADDRESS__)
+    CHECK(!__lsan_do_recoverable_leak_check());puts("GREETER_LEAK_CHECKED");
+#endif
+    puts("GREETER_DONE");
+    return 0;
+}
+#endif
+
 int main(int argc,char **argv)
 {
     if((argc!=2 && argc!=3) || getuid()!=AE_LOGIN_TEST_GREETER_UID || geteuid()!=AE_LOGIN_TEST_GREETER_UID)return 77;
@@ -151,12 +214,15 @@ int main(int argc,char **argv)
     bool wrong_sources=false;
     bool split_auth=false;
     bool split_start=false;
+    bool own_client=false;
     sigset_t termination;
 #ifdef AE_LOGIN_TEST_SPLIT_ROLES
+    bool client_mismatch=argc==3 && !strcmp(argv[2],"handoff-client-mismatch");
+    own_client=client_mismatch || (argc==3 && !strcmp(argv[2],"handoff-client"));
     wrong_sources=argc==3 && !strcmp(argv[2],"handoff-mismatch");
     split_start=argc==3 && !strcmp(argv[2],"handoff-start");
     split_auth=split_start || (argc==3 && !strcmp(argv[2],"handoff-authenticate"));
-    idle=wrong_sources || split_auth || (argc==3 && !strcmp(argv[2],"handoff"));
+    idle=own_client || wrong_sources || split_auth || (argc==3 && !strcmp(argv[2],"handoff"));
     if(!idle)return 77;
 #endif
     if(argc==3 && !retry && !outsider && !authenticate && !groups && !idle)return 77;
@@ -203,15 +269,24 @@ int main(int argc,char **argv)
         for(size_t j=0;j<32;++j){unsigned int byte;CHECK(sscanf(hashes[i]+2*j,"%2x",&byte)==1);entries[i].digest[j]=(uint8_t)byte;}
     }
     struct ae_login_sources *sources=NULL;
-    int source_result=ae_login_sources_create(entries,5,&sources);
-    if(source_result)fprintf(stderr,"greeter sources: %d\n",source_result);
-    CHECK(!source_result);
+    if(!own_client) {
+        int source_result=ae_login_sources_create(entries,5,&sources);
+        if(source_result)fprintf(stderr,"greeter sources: %d\n",source_result);
+        CHECK(!source_result);
+    }
     sd_bus *bus=NULL;
     CHECK(sd_bus_open_system(&bus)>=0 && sd_bus_set_method_call_timeout(bus,2000000)>=0);
     struct ae_login_greeter_expect expected={.uid=AE_LOGIN_TEST_GREETER_UID,.gid=AE_LOGIN_TEST_GREETER_GID,
         .groups=selected_groups,.group_count=sizeof(selected_groups)/sizeof(selected_groups[0]),
         .label=GREETER_LABEL,.worker_label=WORKER_LABEL,.program=4};
     int fd=connect_test();
+#ifdef AE_LOGIN_TEST_SPLIT_ROLES
+    if(own_client) {
+        int status=run_client_fixture(bus,fd,unit,directory,entries,expected,client_mismatch,&termination);
+        sd_bus_unref(bus);
+        return status;
+    }
+#endif
     struct ae_login_service *service=service_test(fd,bus,unit);
     struct ae_login_greeter *greeter=NULL;
     int original_peer=-1;

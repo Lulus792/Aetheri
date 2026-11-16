@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current greeter connection/view checkpoint: read spec/login.md and the
+2026-11-17 login-client-view journal. The owner waits only for a missing leaf
+in its held original directory. Native 3f90cdbdeffe admits an idle connection,
+14164e2cff55 permanently rejects reordered published sources. Both preserve
+original worker/PAM closure. Example37 view/poll source is imported with license,
+uses the existing 0.1.23 pin and passes five borrowed-view tests. Next bind it
+to a graphical host on an independently admitted original display/input path
+and advance the normal compiled provider. Keep the USB gate and NexaUI
+catalogue maintenance only.
+
 Current confined desktop checkpoint: read spec/login.md and the 2026-11-17
 login-desktop-policy journal. Final Release ff65b1671440/36ea39e113cc visibly
 start the desktop after real PAM and retire the original entry/worker/PAM

@@ -1,5 +1,15 @@
 # State
 
+17 November 2026 — The original greeter connection owner now waits for the
+protected handoff on its held directory before exposing the borrowed
+conversation. Real split-role case 3f90cdbdeffe reaches idle. Case
+14164e2cff55 rejects the intentionally reordered source set with permanent
+ESTALE. Both close the original greeter and PAM worker. The imported NexaUI
+view and poller compile on the existing 0.1.23 pin and pass five headless
+consumer tests. Next bind this view to a native greeter host on the original
+trusted display/input path and complete normal deployment selection.
+See the [record](journal/2026-11-17-login-client-view.md).
+
 17 November 2026 — Two confined synthetic login flows reach the visible
 1280×800 desktop and retire the original entry, worker and PAM scope. The
 compositor holds one DRM card and three input device identities through logind.
