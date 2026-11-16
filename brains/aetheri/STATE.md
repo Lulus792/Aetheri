@@ -1,5 +1,34 @@
 # State
 
+16 November 2026 — Dedicated greeter identity and PAM shutdown now have native
+evidence. The carrier reserves locked/expired aetheri-greeter UID/GID992, with
+unchanged unrelated accounts; never delete/recreate/reuse it implicitly.
+Greeter admission copies and repeatedly checks independently selected exact
+supplementary groups. The internal named PAM profile rejects human/unknown
+accounts and opens actual class=greeter Wayland seat0/VT8 sessions. Three
+nine-CTest C profiles independently match 784 inputs each; analyzer and the
+group-comparison omission counter pass. Final greetd /opt/aetheri-worker-test-
+b8d0e86e07bb is 895896 bytes, SHA
+ceff41c3a0b869b18b15f1c7a386526d54fd30cee7fc71a21d96596c168a61e7.
+Its 2610-input offline build passes 21 unit/one doc test and no-feature check.
+Worker-owned signal waiting closes PAM before normal worker end; shutdown AND
+the ordinary current-worker reaper retain abnormal/lost closure under the original
+Context lock. Worker errors propagate as nonzero; an ordinary counter observes
+preceding zero versus corrected one. Five full desktop flows across three builds
+prove ten normal greeter worker ends. Final memory b4b8ecb620ef passes; abnormal
+worker5a3136001428 uses preceding a835, parent-death/pending use preceding2ae.
+Final audit a52adef6ccc5 checks source/runtime/account/receipts and no selected
+mappings/local seat, unchanged RPMs and enforcing1/tty1. Candidate module runs
+1be/78c/942 are retired with exact baseline policy restored. The98 flow's premature
+EXIT-mask assertion is preserved, with separate fresh-pin administrative closure.
+The corrected controller waits boundedly on the same original pidfd; a32-child
+probe distinguishes exit readiness from cached status availability. Preserve
+failed43b/410/98 and expected-abnormal5a3 holders/fragments, two known stale sockets,
+e3d's missing PAM close, provisional beb and all earlier failures/quarantine.
+Next actual extra-membership rejection, dedicated backend/worker/greeter
+confinement and normal account/device/provider integration, then graphical greeter.
+Read the [native record](journal/2026-11-16-login-account.md). No USB build/flash.
+
 16 November 2026 — The finite startup publisher now completes both actual
 authenticated desktop/PAM shutdown flows in its own enforcing SELinux domain.
 Dedicated runtime/handoff types, eight real probe denials and seven loaded-policy

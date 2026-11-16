@@ -1,5 +1,31 @@
 # Decisions
 
+## Dedicated greeter identity and original PAM closure — 16 November 2026
+
+Reserve a locked/expired service account through the reviewed sysusers recipe;
+independently validate its actual identity, supplementary memberships and home.
+Do not adopt/recreate an existing account by name. The internal PAM service gates
+the exact greeter name before permitting its expired service identity, denies
+password changes and registers a real greeter session. It never replaces human
+password/account authentication. Native admission copies an independent bounded
+group set and compares it on every identity check.
+
+The optional greetd integration lets the Root PAM worker own its original
+still-unreaped child's termination and complete PAM teardown. The daemon retains
+its Context lock and current slot until the original worker exits normally.
+Its ordinary reaper also fences abnormal/lost current-worker results before
+starting another session. Never signal an already reaped numeric PID. The
+feature build must propagate worker errors as nonzero process status, so a
+logged error cannot masquerade as normal completion. The
+companion service has process-only killing, no forced stop deadline and no
+automatic restart. Unknown closure remains pending for explicit reconciliation;
+it is not descendant drain, lease release or durable recovery.
+
+The library graph is unchanged; the integration source keeps GPL-3.0-only.
+Account/PAM/session tests do not admit production backend/greeter MAC or device
+policy. Preserve failed and expected-abnormal fixtures. See the
+[execution record](journal/2026-11-16-login-account.md).
+
 ## Confine finite login startup separately from the backend — 16 November 2026
 
 Use a dedicated startup process/executable and runtime/handoff types. Keep the

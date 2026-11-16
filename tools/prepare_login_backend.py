@@ -110,6 +110,7 @@ def startup_notice(source):
         raise ValueError('unexpected startup integration file')
     source[path] = (ROOT / 'patches/greetd/aetheri_startup.rs').read_bytes().replace(b'\r\n', b'\n')
     worker_lifetime(source)
+    session_close(source)
 
 
 def worker_lifetime(source):
@@ -240,6 +241,151 @@ def worker_lifetime(source):
     if path in source:
         raise ValueError('unexpected worker integration file')
     source[path] = (ROOT / 'patches/greetd/aetheri_worker.rs').read_bytes().replace(b'\r\n', b'\n')
+
+
+def session_close(source):
+    """Keep the original PAM worker alive through supervised session shutdown."""
+    def replace(path, original, replacement):
+        if source[path].count(original) != 1:
+            raise ValueError('unexpected greetd session-close integration site: ' + path)
+        source[path] = source[path].replace(original, replacement)
+    main = 'greetd/src/main.rs'
+    worker = 'greetd/src/session/worker.rs'
+    interface = 'greetd/src/session/interface.rs'
+    context = 'greetd/src/context.rs'
+    replace(worker, b'    sys::wait::waitpid,\n', b'')
+    replace(worker, b'use nix::{\n', b'#[cfg(not(feature = "aetheri-startup"))]\nuse nix::sys::wait::waitpid;\nuse nix::{\n')
+    replace(worker, b'pub fn main(sock: &UnixDatagram) -> Result<(), Error> {', b'''pub fn main(sock: &UnixDatagram) -> Result<(), Error> {
+    #[cfg(feature = "aetheri-startup")]
+    {
+        use std::os::fd::AsRawFd;
+        use nix::fcntl::{fcntl, FcntlArg, FdFlag};
+        // The first external worker exec required this FD. Later ordinary
+        // shell/greeter/session execs must never inherit its privileged channel.
+        let fd = sock.as_raw_fd();
+        let mut flags = FdFlag::from_bits_retain(fcntl(fd, FcntlArg::F_GETFD)?);
+        flags.insert(FdFlag::FD_CLOEXEC);
+        fcntl(fd, FcntlArg::F_SETFD(flags))?;
+    }''')
+    replace(main, b'mod aetheri_worker;\n', b'mod aetheri_worker;\n#[cfg(feature = "aetheri-startup")]\nmod aetheri_close;\n')
+    replace(main, b'''    if let Err(e) = res {
+        eprintln!("error: {}", e);
+    }''', b'''    if let Err(e) = res {
+        eprintln!("error: {}", e);
+        // A worker error must never look like successful PAM teardown to the
+        // original parent. Upstream otherwise returns zero after logging it.
+        #[cfg(feature = "aetheri-startup")]
+        std::process::exit(1);
+    }''')
+    replace(interface, b'pub struct SessionChild {\n    pub task: Pid,', b'''pub struct SessionChild {
+    #[cfg(feature = "aetheri-startup")]
+    pub(crate) shutdown_sent: bool,
+    pub task: Pid,''')
+    replace(interface, b'        Ok(SessionChild {\n            task: self.task,', b'''        Ok(SessionChild {
+            #[cfg(feature = "aetheri-startup")]
+            shutdown_sent: false,
+            task: self.task,''')
+    replace(interface, b'    pub sub_task: Pid,', b'    #[cfg(not(feature = "aetheri-startup"))]\n    pub sub_task: Pid,')
+    replace(interface, b'        let sub_task = loop {', b'        let _sub_task = loop {')
+    replace(interface, b'            sub_task,\n', b'            #[cfg(not(feature = "aetheri-startup"))]\n            sub_task: _sub_task,\n')
+    replace(interface, b'''        let _ = nix::sys::signal::kill(self.sub_task, Signal::SIGTERM);''', b'''        #[cfg(feature = "aetheri-startup")]
+        let _ = nix::sys::signal::kill(self.task, Signal::SIGTERM);
+        #[cfg(not(feature = "aetheri-startup"))]
+        let _ = nix::sys::signal::kill(self.sub_task, Signal::SIGTERM);''')
+    replace(interface, b'''        let _ = nix::sys::signal::kill(self.sub_task, Signal::SIGKILL);
+        let _ = nix::sys::signal::kill(self.task, Signal::SIGKILL);''', b'''        #[cfg(feature = "aetheri-startup")]
+        let _ = nix::sys::signal::kill(self.task, Signal::SIGUSR1);
+        #[cfg(not(feature = "aetheri-startup"))]
+        {
+            let _ = nix::sys::signal::kill(self.sub_task, Signal::SIGKILL);
+            let _ = nix::sys::signal::kill(self.task, Signal::SIGKILL);
+        }''')
+    replace(worker, b'    let pam_username = pam.get_user()?;', b'''    #[cfg(feature = "aetheri-startup")]
+    let mut close_signals = crate::aetheri_close::Signals::prepare()?;
+    let pam_username = pam.get_user()?;''')
+    replace(worker, b'''            prctl(PrctlOption::SET_PDEATHSIG(libc::SIGTERM)).expect("unable to set death signal");''', b'''            prctl(PrctlOption::SET_PDEATHSIG(libc::SIGTERM)).expect("unable to set death signal");
+            #[cfg(feature = "aetheri-startup")]
+            close_signals.child().expect("original PAM parent/signal setup lost");''')
+    replace(worker, b'''    // Wait for process to terminate, handling EINTR as necessary.
+    loop {''', b'''    #[cfg(feature = "aetheri-startup")]
+    {
+        close_signals.activate();
+        close_signals.wait(child);
+    }
+    // The ordinary upstream profile keeps its original wait implementation.
+    #[cfg(not(feature = "aetheri-startup"))]
+    loop {''')
+    # Keep scheduled start and current-slot enrollment under the same reaper lock.
+    replace(context, b'''                            drop(inner);
+                            let s = match scheduled.session.start().await {''', b'''                            #[cfg(not(feature = "aetheri-startup"))]
+                            drop(inner);
+                            let s = match scheduled.session.start().await {''')
+    replace(context, b'''                            let mut inner = self.inner.write().await;
+                            inner.current = Some(SessionChildSet {''', b'''                            #[cfg(not(feature = "aetheri-startup"))]
+                            let mut inner = self.inner.write().await;
+                            inner.current = Some(SessionChildSet {''')
+    replace(context, b'''                    let (was_greeter, sesion_length) = match &inner.current {''', b'''                    #[cfg(feature = "aetheri-startup")]
+                    if let Some(current) = inner.current.as_ref() {
+                        if current.child.owns_pid(pid) && !crate::aetheri_close::completed(current.child.task, _status) {
+                            // Already reaped, so never signal that numeric PID.
+                            // Preserve the original slot and reaper lock; a
+                            // replacement greeter/session would hide lost close.
+                            eprintln!("AETHERI_PAM_SHUTDOWN_PENDING abnormal current worker end");
+                            std::future::pending::<()>().await;
+                        }
+                    }
+                    let (was_greeter, sesion_length) = match &inner.current {''')
+    replace(context, b'''                Err(nix::errno::Errno::ECHILD) => break Ok(()),''', b'''                Err(nix::errno::Errno::ECHILD) => {
+                    #[cfg(feature = "aetheri-startup")]
+                    if inner.current.is_some() {
+                        eprintln!("AETHERI_PAM_SHUTDOWN_PENDING current worker observation lost");
+                        std::future::pending::<()>().await;
+                    }
+                    break Ok(())
+                },''')
+    original = b'''        let mut inner = self.inner.write().await;
+        if let Some(mut sess) = inner.configuring.take() {
+            let _ = sess.session.cancel().await;
+        }
+        if let Some(mut sess) = inner.scheduled.take() {
+            let _ = sess.session.cancel().await;
+        }
+        if let Some(sess) = inner.current.take() {
+            sess.child.term();
+        }
+        Ok(())'''
+    replacement = b'''        let mut inner = self.inner.write().await;
+        #[cfg(feature = "aetheri-startup")]
+        {
+            // Keep every original slot and the exclusive reaper lock until its
+            // own evidence completes. No ACK/exit/timeout substitutes for close.
+            let result = async {
+                if let Some(sess) = inner.configuring.as_mut() { sess.session.cancel().await?; }
+                inner.configuring.take();
+                if let Some(sess) = inner.scheduled.as_mut() { sess.session.cancel().await?; }
+                inner.scheduled.take();
+                if let Some(sess) = inner.current.as_mut() {
+                    crate::aetheri_close::finish(sess.child.task, &mut sess.child.shutdown_sent).await?;
+                }
+                inner.current.take();
+                Ok::<(), Error>(())
+            }.await;
+            if let Err(error) = result {
+                eprintln!("AETHERI_PAM_SHUTDOWN_PENDING {}", error);
+                // Keep the daemon, original slots and lock. No service-manager
+                // forced-kill deadline is permitted for this deployment.
+                std::future::pending::<()>().await;
+            }
+            Ok(())
+        }
+        #[cfg(not(feature = "aetheri-startup"))]
+        {
+''' + original[len(b'        let mut inner = self.inner.write().await;\n'):] + b'\n        }'
+    replace(context, original, replacement)
+    path = 'greetd/src/aetheri_close.rs'
+    if path in source:
+        raise ValueError('unexpected session-close integration file')
+    source[path] = (ROOT / 'patches/greetd/aetheri_close.rs').read_bytes().replace(b'\r\n', b'\n')
 
 
 def plan(source_archive, crate_cache, lockfile, pins, *, notice=False):

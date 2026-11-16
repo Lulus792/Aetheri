@@ -1,0 +1,12 @@
+# Internal display-manager session only; never a human authentication profile.
+auth requisite pam_succeed_if.so user = aetheri-greeter quiet
+auth required pam_permit.so
+account requisite pam_succeed_if.so user = aetheri-greeter quiet
+# u! intentionally expires normal logins. Only this named internal session is
+# admitted; the deployment separately verifies its locked service identity.
+account required pam_permit.so
+password required pam_deny.so
+session requisite pam_succeed_if.so user = aetheri-greeter quiet
+session required pam_loginuid.so
+session required pam_systemd.so class=greeter type=wayland desktop=aetheri
+session required pam_unix.so

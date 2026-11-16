@@ -26,6 +26,8 @@ struct ae_login_greeter {
     uint64_t self_group,parent_group;
     uid_t uid;
     gid_t gid;
+    gid_t groups[AE_LOGIN_GREETER_GROUPS_MAX];
+    size_t group_count;
     char label[AE_LOGIN_SOURCE_LABEL_MAX],worker_label[AE_LOGIN_SOURCE_LABEL_MAX];
     bool busy;
 };
@@ -66,6 +68,19 @@ static int greeter_caps(void)
     for(size_t i=0;i<2;++i)if(data[i].effective || data[i].permitted || data[i].inheritable)return -EACCES;
     return 0;
 }
+static int greeter_groups(const struct ae_login_greeter *g)
+{
+    gid_t groups[AE_LOGIN_GREETER_GROUPS_MAX];
+    int count=getgroups(AE_LOGIN_GREETER_GROUPS_MAX,groups);
+    if(count<0)return -errno;
+    if((size_t)count!=g->group_count)return -EACCES;
+    for(size_t i=1;i<(size_t)count;++i) {
+        gid_t value=groups[i];size_t j=i;
+        while(j && groups[j-1]>value){groups[j]=groups[j-1];--j;}
+        groups[j]=value;
+    }
+    return memcmp(groups,g->groups,g->group_count*sizeof(gid_t))?-EACCES:0;
+}
 static int greeter_identity(struct ae_login_greeter *g,const struct ae_image_process *backend)
 {
     if(backend->uid || backend->gid || backend->pid<=1 || security_getenforce()!=1)return -EACCES;
@@ -78,6 +93,7 @@ static int greeter_identity(struct ae_login_greeter *g,const struct ae_image_pro
     if(!r)r=greeter_label(g->owner,g->label);
     if(!r)r=greeter_label((pid_t)g->parent_pid,g->worker_label);
     if(!r)r=greeter_caps();
+    if(!r)r=greeter_groups(g);
     return r;
 }
 static int greeter_inspect(sd_bus *bus,const char *manager,const char *path,
@@ -127,10 +143,15 @@ int ae_login_greeter_create(struct ae_login_service *service,struct ae_login_sou
         expected->uid==(uid_t)-1 || expected->gid==(gid_t)-1 || !expected->label || !*expected->label ||
         strnlen(expected->label,AE_LOGIN_SOURCE_LABEL_MAX)==AE_LOGIN_SOURCE_LABEL_MAX || !expected->worker_label ||
         !*expected->worker_label || strnlen(expected->worker_label,AE_LOGIN_SOURCE_LABEL_MAX)==AE_LOGIN_SOURCE_LABEL_MAX)return -EINVAL;
+    if(expected->group_count>AE_LOGIN_GREETER_GROUPS_MAX || (expected->group_count && !expected->groups))return -EINVAL;
+    for(size_t i=0;i<expected->group_count;++i)
+        if(!expected->groups[i] || expected->groups[i]==(gid_t)-1 || (i && expected->groups[i]<=expected->groups[i-1]))return -EINVAL;
     if(gettid()!=getpid())return -EXDEV;
     struct ae_login_greeter *g=calloc(1,sizeof(*g));if(!g)return -ENOMEM;
     g->self=g->parent=-1;g->owner=getpid();g->thread=gettid();g->service=service;g->sources=sources;
     g->uid=expected->uid;g->gid=expected->gid;
+    g->group_count=expected->group_count;
+    if(g->group_count)memcpy(g->groups,expected->groups,g->group_count*sizeof(gid_t));
     strcpy(g->label,expected->label);strcpy(g->worker_label,expected->worker_label);
     int r=ae_login_sources_image(sources,expected->program,&g->image);
     if(!r){g->self=(int)syscall(SYS_pidfd_open,g->owner,0);if(g->self<0)r=-errno;}

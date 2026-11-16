@@ -4,9 +4,15 @@
 #include "login/sources.h"
 
 struct ae_login_greeter;
+enum { AE_LOGIN_GREETER_GROUPS_MAX=16 };
 struct ae_login_greeter_expect {
     uid_t uid; /* Independently selected dedicated, non-Root greeter account. */
     gid_t gid;
+    /* Independently selected supplementary groups, strictly increasing and
+       nonzero. Empty is permitted; never derive this list from the candidate.
+       Copied at construction and compared as a set on every identity check. */
+    const gid_t *groups;
+    size_t group_count;
     const char *label; /* Exact current raw greeter process label. */
     const char *worker_label; /* Exact raw Root PAM-worker process label. */
     size_t program; /* Independently selected ELF in the original source set. */
@@ -15,7 +21,8 @@ struct ae_login_greeter_expect {
    and protected source set until close. Pin self, then ONLY its kernel-observed
    immediate parent. Require that live Root parent's own kernel parent to be the
    original Root service MainPID. Recheck all UID/GID values, labels, original
-   parent relationship/cgroups, no self capabilities, and the actual self ELF.
+   parent relationship/cgroups, exact supplementary groups, no self capabilities,
+   and the actual self ELF.
    The reviewed backend/PAM/SELinux policy must independently establish that this
    ancestry is its intended greeter, exclude hostile exec/ptrace/code injection,
    and admit host proc/PID/mount views and loaded DSOs. Ancestry alone neither

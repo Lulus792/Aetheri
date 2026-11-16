@@ -167,3 +167,55 @@ deadlines, startup/shutdown recovery, successful authentication, PAM/logind
 session transitions and production account/MAC/device policy remain separate.
 The original build without the feature remains available. The old failing
 candidate and its C client's UNKNOWN evidence remain preserved.
+
+## Original session-worker shutdown
+
+The optional integration now includes
+[`aetheri_close.rs`](../patches/greetd/aetheri_close.rs), GPL-3.0-only.
+The crate graph and toolchain stay unchanged. It addresses an actual carrier
+failure: the daemon could exit after signaling the greeter child, causing the
+PAM worker's parent-death signal to terminate it before session teardown.
+
+The fresh external worker blocks TERM/USR1/CHLD before opening PAM and forking.
+Its sole child checks its original parent after arming its own parent-death
+signal, then restores the original signal mask before ordinary exec. The worker
+checks its original daemon parent around its late parent-death setup. While its
+original child is unreaped, it handles TERM by sending one TERM to that child;
+USR1 requests one forced child termination. Only the worker signals this
+still-unreaped child. The daemon no longer stores/signals the child's numeric PID
+in this profile and never uses that force path to kill the Root PAM worker.
+
+The waiting worker uses synchronous signal waiting, with no signal handler,
+idle polling timer or added thread. After it reaps the original child, TERM and
+USR1 remain blocked through PAM close, credential deletion and PAM end; the old
+CHLD mask is restored for PAM teardown helpers. Lost child/signal evidence
+retains the worker with one diagnostic instead of reporting closure.
+The privileged worker-control socket is marked close-on-exec after the first
+external worker exec, preventing inheritance into the later ordinary session.
+
+The daemon keeps scheduled start/current-slot enrollment and its sole reaper
+under the original Context lock. Shutdown signals the original direct worker at
+most once and waits for its normal zero exit under that lock, observing without
+reaping. The shutdown-only wait checks at 10 ms intervals; there is no idle
+session polling. Dropping the future does not authorize another signal. Abnormal
+or lost results retain the original slot, lock and daemon. The ordinary child
+reaper likewise requires the exact current worker's zero exit before starting
+a scheduled session or replacement greeter; ECHILD with a current slot fences
+it. A reaped worker's numeric PID is never signaled.
+
+The feature build also returns a nonzero process status after a worker/main
+error. Upstream logs that error and then returns zero; zero would otherwise be
+insufficient evidence for the new completion check. An ordinary-user actual
+counterexample with the same closed worker descriptor returns zero from the
+preceding candidate and one from the corrected candidate, without opening PAM.
+This does not turn exit status alone into proof of all session or descendant
+cleanup; the protected source/PAM configuration and independent observations
+remain required.
+
+[The reviewed service drop-in](../data/systemd/aetheri-login.service.d/20-session-shutdown.conf)
+uses `KillMode=process`, `SendSIGKILL=no`, `TimeoutStopSec=infinity` and
+`Restart=no`. It is a required deployment companion to the integration, not an
+automatically installed service. Pending teardown must remain visible for
+diagnosis and explicit reconciliation. No elapsed timeout, successful signal,
+EOF, worker exit or inactive scope proves descendant drain, lease release,
+durable recovery or complete application removal.

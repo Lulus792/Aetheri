@@ -5,9 +5,53 @@ It consumes an existing local Wayland login. This document covers the next
 boundary: the original greeter's conversation with a maintained PAM backend.
 The C conversation model, native stream and protected startup components exist.
 Private PAM authentication now reaches the actual graphical desktop and completes
-session shutdown. A candidate SELinux domain confines the finite startup helper
-in that flow. Normal deployment admission, an installed authentication service,
-a dedicated greeter account and the original graphical greeter remain work.
+session shutdown. A candidate SELinux domain confines the finite startup helper.
+A locked dedicated greeter account and internal PAM profile now have actual
+carrier session evidence. Normal deployment admission, dedicated backend/greeter
+confinement and the original graphical greeter remain work.
+
+## Dedicated greeter account and supplementary groups
+
+[The sysusers recipe](../data/sysusers.d/aetheri-login.conf) reserves
+`aetheri-greeter` with a locked/expired normal login, no login shell and
+`/var/empty` as its home. Its numeric UID/GID is selected and independently
+validated at enrollment; 992 is the tested carrier allocation, not a portable
+fixed product UID. Existing accounts must not be deleted/recreated, rebound or
+accepted merely because their name matches. Validate the actual account, group
+memberships, protected home and shell separately. The recipe is not automatically
+installed by CMake.
+
+`ae_login_greeter_expect` now includes a separately selected supplementary-group
+set. It contains at most 16 strictly increasing, unique, nonzero GIDs; an empty
+set is valid. The constructor copies it. Every identity check obtains the
+calling greeter's actual groups, sorts the bounded local copy and requires exact
+equality. Missing, extra or duplicated actual groups fail. Primary GID,
+capabilities, original ancestry/cgroups, labels and executable remain separately
+checked. Observed loss permanently fences the observer. Do not derive the
+expected set from the candidate process or current NSS result.
+
+[The internal PAM profile](../data/pam.d/aetheri-greeter) admits only the named
+display-manager identity, denies password changes and opens a real
+`class=greeter type=wayland desktop=aetheri` session. `pam_loginuid` precedes
+`pam_systemd`. The name gate deliberately permits this internal service despite
+the account's expired normal-login state; it does not unlock the account.
+Independent protected account/backend admission is mandatory. Never use this
+profile for authenticating human users, whose password/account checks belong to
+the separate selected PAM service.
+
+Actual tests use a unit-private PAM/account view, a fresh synthetic user secret
+and the locked carrier greeter identity. They observe UID/GID/groups, zero
+capabilities, audit loginuid, logind class/seat/VT/scope, runtime-directory
+ownership and the original worker/child pins. A regular user desktop follows
+successful authentication. Normal worker exit, PAM close and inactive scope are
+checked independently. Model tests cover wrong/extra/missing/duplicate groups;
+the actual admitted client also rejects an incorrect empty expectation. A
+separate actual extra-membership injection is not yet demonstrated.
+
+See [backend session closure](login-backend.md#original-session-worker-shutdown)
+for shutdown and retained-failure rules. These account/session fixtures do not
+establish normal account enrollment, production MAC/device policy, general
+application admission or a finished graphical login screen.
 
 ## Candidate startup confinement
 

@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,16 @@
    profile is test infrastructure, not a production deployment/profile parser. */
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"greeter fixture line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static const char *process_label="system_u:system_r:unconfined_service_t:s0";
+#ifndef AE_LOGIN_TEST_GREETER_UID
+#define AE_LOGIN_TEST_GREETER_UID 1000
+#define AE_LOGIN_TEST_GREETER_GID 1000
+#endif
+#ifdef AE_LOGIN_TEST_DEDICATED_GREETER
+static const gid_t selected_groups[]={AE_LOGIN_TEST_GREETER_GID};
+#else
+/* Existing carrier account, independently selected fixture membership only. */
+static const gid_t selected_groups[]={10,1000};
+#endif
 #ifdef AE_LOGIN_TEST_CONFINED_STARTUP
 #define AE_LOGIN_TEST_HANDOFF_LABEL "system_u:object_r:aetheri_login_handoff_t:s0"
 #else
@@ -113,7 +124,7 @@ static void finish_reply(struct ae_login_connection *connection,enum ae_login_ph
 }
 int main(int argc,char **argv)
 {
-    if((argc!=2 && argc!=3) || getuid()!=1000 || geteuid()!=1000)return 77;
+    if((argc!=2 && argc!=3) || getuid()!=AE_LOGIN_TEST_GREETER_UID || geteuid()!=AE_LOGIN_TEST_GREETER_UID)return 77;
     bool retry=argc==3 && !strcmp(argv[2],"retry");
     bool start=argc==3 && !strcmp(argv[2],"start");
     bool authenticate=argc==3 && (!strcmp(argv[2],"authenticate") || start);
@@ -121,6 +132,11 @@ int main(int argc,char **argv)
     if(argc==3 && !retry && !outsider && !authenticate)return 77;
     if(start)test_log();
     if(authenticate && !load_test_secret(start)) {
+#ifdef AE_LOGIN_TEST_IGNORE_TERM
+        /* Explicit pending-shutdown fixture only; never a production greeter. */
+        struct sigaction action={.sa_handler=SIG_IGN};
+        CHECK(!sigemptyset(&action.sa_mask) && !sigaction(SIGTERM,&action,NULL));
+#endif
         puts("GREETER_NO_INPUT");fflush(stdout);
         for(size_t i=0;i<300;++i)pause_test();
         return 0;
@@ -157,7 +173,9 @@ int main(int argc,char **argv)
     CHECK(!source_result);
     sd_bus *bus=NULL;
     CHECK(sd_bus_open_system(&bus)>=0 && sd_bus_set_method_call_timeout(bus,2000000)>=0);
-    struct ae_login_greeter_expect expected={.uid=1000,.gid=1000,.label=process_label,.worker_label=process_label,.program=4};
+    struct ae_login_greeter_expect expected={.uid=AE_LOGIN_TEST_GREETER_UID,.gid=AE_LOGIN_TEST_GREETER_GID,
+        .groups=selected_groups,.group_count=sizeof(selected_groups)/sizeof(selected_groups[0]),
+        .label=process_label,.worker_label=process_label,.program=4};
     int fd=connect_test();
     struct ae_login_service *service=service_test(fd,bus,unit);
     struct ae_login_greeter *greeter=NULL;
@@ -186,13 +204,14 @@ int main(int argc,char **argv)
         _exit(0);
     }
     int status;CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && !WEXITSTATUS(status));
-    for(size_t i=0;i<4;++i) {
+    for(size_t i=0;i<5;++i) {
         int negative_fd=connect_test();struct ae_login_service *negative_service=service_test(negative_fd,bus,unit);
         struct ae_login_greeter_expect bad=expected;
         if(i==0)bad.uid=1001;
         if(i==1)bad.label="system_u:system_r:unconfined_t:s0";
         if(i==2)bad.worker_label="system_u:system_r:unconfined_t:s0";
         if(i==3)bad.program=1;
+        if(i==4){bad.groups=NULL;bad.group_count=0;}
         struct ae_login_greeter *wrong=NULL;
         CHECK(ae_login_greeter_create(negative_service,sources,&bad,&wrong)<0 && !wrong);
         CHECK(!ae_login_service_close(&negative_service));close(negative_fd);

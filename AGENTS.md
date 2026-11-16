@@ -1,5 +1,27 @@
 # Working on Aetheri
 
+Current continuation: read spec/login.md's dedicated greeter account section,
+spec/login-backend.md's original-session-worker shutdown and the 2026-11-16
+login-account journal. Locked carrier UID/GID992 aetheri-greeter is reserved;
+never delete/recreate/reuse it implicitly. Native supplementary groups are exact
+independently selected copied expectations. Final backend /opt/aetheri-worker-
+test-b8d0e86e07bb (SHA ceff41c3…68a61e7) adds worker-owned signal waiting, normal
+PAM-worker shutdown, abnormal/lost-current-worker reaper fences and nonzero
+worker-error propagation. Keep the
+original Context/reaper lock and KillMode=process/SendSIGKILL=no/infinite stop.
+Five full desktop flows span three candidates; final memory b4b8ecb620ef and
+preceding a835 actual abnormal-worker refusal pass. Do not claim every case used
+the latest backend. Three nine-CTest C profiles/784 inputs each, final 21 Rust
+unit/one doc test, no-feature check and audit a52adef6ccc5 pass. Candidate modules
+1be/78c/942 are retired with exact baseline restored. Preserve abnormal5a3136
+inputs/socket, failed43b/410/98 holders/fragments and earlier failures/quarantine.
+The98 case queried exit information too early; fresh-pin administrative
+retirement never restores its controller's lost original pins. Require the EXIT
+mask with bounded observation on the original pidfd; readiness alone is insufficient.
+Next actual extra-membership refusal and dedicated backend/worker/greeter
+MAC/device admission, then normal provider and graphical greeter. USB gate and
+NexaUI maintenance-only state remain.
+
 Current startup confinement: read `spec/login.md#candidate-startup-confinement`
 and the 2026-11-16 login-startup-policy journal. The finite publisher passes both
 actual desktop/PAM shutdown flows as aetheri_login_startup_t, with dedicated
