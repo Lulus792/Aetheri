@@ -1,5 +1,18 @@
 # State
 
+16 November 2026 — The original confined greeter now consumes the startup
+record and creates an idle connection to the same live backend in aab9fa4a3505.
+The five selected sources and their order agree. Actual mismatch 8784cfa4b31d
+rejects the reordered publisher record with ESTALE before connection admission.
+Both have original worker/greeter exit 0 and PAM close. Preserve the earlier
+source ancestor denial and the mismatch that ended the greeter before the
+publisher's post-check. 146 loaded decisions and strict 426-input build with
+seven negative cases pass. Release passes nine CTests. The memory profile's
+first run failed unchanged startup model line 137. The exact binary passed
+nine in recheck 6f31b2dbd0ae. Cause remains unproven. The candidate is retired
+to the exact baseline. Next verify normal PAM authentication and graphical
+session handoff under the selected split policy. See the [record](journal/2026-11-16-login-roles.md#confined-greeter-consumes-the-publication).
+
 16 November 2026 — The finite startup publisher now writes the protected
 handoff for the actual separate-role login backend. Final case 867a85c110ea
 checks the record against the original live backend boot, invocation and pidfd,

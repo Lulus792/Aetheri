@@ -50,9 +50,16 @@ protected `AETHLGH1` record
 while the original backend and internal greeter are live. The controller verifies
 its boot, invocation and pidfd object before the original PAM shutdown. The
 compiled carrier provider compares the loaded policy with its selected digest.
-The greeter still needs to consume the record and admit its own native connection.
+The confined greeter now consumes the record using the same ordered five
+sources as the publisher. It verifies its own identity and ancestry, the
+original live backend, and the published bytes before handing the socket to
+the connection model. The native test observes `AE_LOGIN_IDLE` after those
+checks. A second real publisher uses a different source order and the greeter
+rejects its record with `ESTALE`. The test greeter waits for the original PAM
+worker's shutdown signal after rejecting the record.
 Human password authentication and the user desktop under this policy require
-their own run.
+their own run. The eventual graphical host should keep this admission step
+ahead of input and authentication.
 See the [native record](../brains/aetheri/journal/2026-11-16-login-roles.md).
 
 ## Dedicated greeter account and supplementary groups

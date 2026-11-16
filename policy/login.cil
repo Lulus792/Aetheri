@@ -28,6 +28,7 @@
 ; the typed listener to pin its original service. Only the backend owns them.
 (allow aetheri_login_startup_t aetheri_login_backend_exec_t (file (read open getattr)))
 (allow aetheri_login_startup_t aetheri_login_config_t (file (read open getattr)))
+(allow aetheri_login_startup_t aetheri_greeter_exec_t (file (read open getattr)))
 (allow aetheri_login_startup_t aetheri_login_socket_t (sock_file (write getattr)))
 ; The compiled admission gate can bind the current effective policy digest.
 (allow aetheri_login_startup_t security_t (security (read_policy)))
@@ -150,8 +151,38 @@
 (allow aetheri_greeter_t self (unix_stream_socket (create connect read write getattr getopt setopt shutdown)))
 (allow aetheri_greeter_t aetheri_login_backend_t (unix_stream_socket (connectto)))
 (allow aetheri_greeter_t aetheri_login_socket_t (sock_file (write getattr)))
-(allow aetheri_greeter_t aetheri_login_runtime_t (dir (search getattr)))
+(allow aetheri_greeter_t aetheri_login_runtime_t (dir (search read open getattr)))
 (allow aetheri_greeter_t aetheri_login_handoff_t (file (read open getattr)))
+
+; Match the live backend's invocation and source files through the existing
+; system manager. Do not grant execution, signalling or control of the backend.
+(allow aetheri_greeter_t system_dbusd_var_run_t (dir (search getattr)))
+(allow aetheri_greeter_t system_dbusd_var_run_t (sock_file (write getattr)))
+(allow aetheri_greeter_t system_dbusd_t (unix_stream_socket (connectto)))
+(allow aetheri_greeter_t system_dbusd_t (dbus (send_msg)))
+(allow system_dbusd_t aetheri_greeter_t (dbus (send_msg)))
+(allow aetheri_greeter_t system_dbusd_t (fd (use)))
+(allow aetheri_greeter_t init_t (dbus (send_msg)))
+(allow init_t aetheri_greeter_t (dbus (send_msg)))
+(allow aetheri_greeter_t init_t (system (status)))
+(allow aetheri_greeter_t init_t (unix_stream_socket (read)))
+(allow aetheri_greeter_t init_var_run_t (dir (read open)))
+(allow aetheri_greeter_t systemd_unit_file_t (dir (search read open getattr)))
+(allow aetheri_greeter_t systemd_unit_file_t (file (read open getattr)))
+(allow aetheri_greeter_t systemd_unit_file_t (service (status)))
+(allow aetheri_greeter_t sysfs_t (dir (search getattr)))
+(allow aetheri_greeter_t cgroup_t (dir (search read open getattr)))
+(allow aetheri_greeter_t cgroup_t (filesystem (getattr)))
+(allow aetheri_greeter_t fs_t (filesystem (getattr)))
+(allow aetheri_greeter_t tmpfs_t (filesystem (getattr)))
+(allow aetheri_greeter_t aetheri_login_backend_t (process (getattr)))
+(allow aetheri_greeter_t aetheri_login_backend_t (dir (search getattr)))
+(allow aetheri_greeter_t aetheri_login_backend_t (file (read open getattr)))
+(allow aetheri_greeter_t aetheri_login_worker_t (dir (search getattr)))
+(allow aetheri_greeter_t aetheri_login_worker_t (file (read open getattr)))
+(neverallow aetheri_greeter_t aetheri_login_backend_t (process (ptrace signal sigkill)))
+(neverallow aetheri_greeter_t aetheri_login_worker_t (process (ptrace signal sigkill)))
+(neverallow aetheri_greeter_t aetheri_login_handoff_t (file (write create unlink)))
 
 ; These compile-time boundaries are not replaced by systemd/DAC restrictions.
 (neverallow aetheri_login_backend_t shadow_t (file (read open write)))

@@ -117,3 +117,51 @@ original greeter's independent source selection and verify greeter-side
 consumption and connection admission. The tested provider belongs to the
 isolated carrier. Production still needs its selected deployment inputs,
 device rights and trusted graphical path.
+
+## Confined greeter consumes the publication
+
+The carrier publisher and original greeter select the same five protected
+sources in order. The unit fragment, backend ELF, configuration, effective
+drop-in and greeter ELF bind the native handoff. The greeter uses its own
+ordinary process, original worker ancestry, held live service and handoff
+checks before creating an idle connection. The test sends no credential or
+session request. The policy adds system manager status and read-only source,
+cgroup and selected process observations. `init_var_run_t` directory open and
+read are needed because the source walker opens each original ancestor before
+comparing it. The first native case `fe3f6be3e765` stopped on that SELinux
+denial and preserved its diagnostic log.
+
+Candidate `376ad756c10d` has loaded SHA-256
+`a4e1473ea7677f20420dcaa52a4ec491405f4372764cadeb93c925cd362cbc2a`.
+Case `aab9fa4a3505` created the idle native connection and closed it on the
+original worker's shutdown signal. Case `8784cfa4b31d` ran the same compiled
+greeter with the explicit mismatch-test mode. Its publisher swapped the
+greeter and drop-in entries and adjusted the selected drop-in index. The
+publisher still wrote an independently observed record for the real backend.
+The greeter returned `ESTALE` and reached the rejection marker before any
+connection admission. It stayed alive until the ordinary shutdown signal.
+Both cases observed publisher exit 0, original greeter and worker exit 0,
+PAM close and an inactive scope. Their source profiles and receipts remain
+under `/var/tmp/a-login-roles-pam-*` and the protected fixture roots.
+
+The earlier mismatch `31841678a0ac` also returned `ESTALE`. Its greeter exited
+before the publisher's post-publication check, so the publisher reported
+`-ESRCH` with a possible published record. The controller retained the failed
+fixture, including the record. Separate administrative observation verified
+terminal unit/scope and restored tty1. The controlled mismatch now waits for
+the original worker instead of ending the live observation early.
+
+Final Release `6396287d0665` passed all nine selected CTests. Memory
+`f7bd1764b427` built the targets but the first suite failed the existing
+`login.startup` model assertion at line 137. The unchanged test binary passed
+all nine in `6f31b2dbd0ae`. The original failure remains available and its
+cause is unproven. Live authentication and the graphical greeter still need
+their own integrated tests under the selected deployment policy.
+
+The loaded-policy checker `af5fbe0754cc` verifies 146 decisions and rejects
+four wrong expectations or digest selections. Strict compilation
+`856aafd75b1b` checks 426 inputs and detects seven forbidden rule additions,
+including a greeter write to the handoff and a signal to the original worker.
+The selected candidate was retired after all typed tasks ended. The loaded
+policy again matches the enforcing baseline hash
+`a1c128d0e25d64cac9cdc811b5857852ba310b4313813c0762367f3024b1e4f6`.

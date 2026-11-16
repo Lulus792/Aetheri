@@ -24,7 +24,21 @@
 /* Explicit disposable-carrier fixture only. Its independently Root-created
    profile is test infrastructure, not a production deployment/profile parser. */
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"greeter fixture line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
-static const char *process_label="system_u:system_r:unconfined_service_t:s0";
+#ifdef AE_LOGIN_TEST_SPLIT_ROLES
+#define BACKEND_LABEL "system_u:system_r:aetheri_login_backend_t:s0"
+#define WORKER_LABEL "system_u:system_r:aetheri_login_worker_t:s0"
+#define GREETER_LABEL "system_u:system_r:aetheri_greeter_t:s0"
+#define BACKEND_FILE_LABEL "system_u:object_r:aetheri_login_backend_exec_t:s0"
+#define CONFIG_FILE_LABEL "system_u:object_r:aetheri_login_config_t:s0"
+#define GREETER_FILE_LABEL "system_u:object_r:aetheri_greeter_exec_t:s0"
+#else
+#define BACKEND_LABEL "system_u:system_r:unconfined_service_t:s0"
+#define WORKER_LABEL BACKEND_LABEL
+#define GREETER_LABEL BACKEND_LABEL
+#define BACKEND_FILE_LABEL "system_u:object_r:bin_t:s0"
+#define CONFIG_FILE_LABEL "system_u:object_r:etc_t:s0"
+#define GREETER_FILE_LABEL BACKEND_FILE_LABEL
+#endif
 #ifndef AE_LOGIN_TEST_GREETER_UID
 #define AE_LOGIN_TEST_GREETER_UID 1000
 #define AE_LOGIN_TEST_GREETER_GID 1000
@@ -77,8 +91,8 @@ static int connect_test(void)
 }
 static struct ae_login_service *service_test(int fd,sd_bus *bus,const char *unit)
 {
-    struct ae_login_service_expect expected={.unit=unit,.uid=0,.gid=0,.label=process_label,
-        .socket_label="system_u:system_r:unconfined_service_t:s0"};
+    struct ae_login_service_expect expected={.unit=unit,.uid=0,.gid=0,.label=BACKEND_LABEL,
+        .socket_label=BACKEND_LABEL};
     struct ae_login_service *service=NULL;
     int r=ae_login_service_create(fd,bus,&expected,&service);
     if(r) {
@@ -130,9 +144,21 @@ int main(int argc,char **argv)
     bool authenticate=argc==3 && (!strcmp(argv[2],"authenticate") || start);
     bool outsider=argc==3 && !strcmp(argv[2],"outsider");
     bool groups=argc==3 && !strcmp(argv[2],"groups");
-    if(argc==3 && !retry && !outsider && !authenticate && !groups)return 77;
+    bool idle=false;
+    bool wrong_sources=false;
+    sigset_t termination;
+#ifdef AE_LOGIN_TEST_SPLIT_ROLES
+    wrong_sources=argc==3 && !strcmp(argv[2],"handoff-mismatch");
+    idle=wrong_sources || (argc==3 && !strcmp(argv[2],"handoff"));
+    if(!idle)return 77;
+#endif
+    if(argc==3 && !retry && !outsider && !authenticate && !groups && !idle)return 77;
     if(start)test_log(4);
-    if(groups)test_log(3);
+    if(groups || idle)test_log(3);
+    if(idle) {
+        CHECK(!sigemptyset(&termination) && !sigaddset(&termination,SIGTERM));
+        CHECK(!sigprocmask(SIG_BLOCK,&termination,NULL));
+    }
     if(authenticate && !load_test_secret(start)) {
 #ifdef AE_LOGIN_TEST_IGNORE_TERM
         /* Explicit pending-shutdown fixture only; never a production greeter. */
@@ -156,10 +182,10 @@ int main(int argc,char **argv)
     const char *unit=lines[0],*directory=lines[1];
     struct ae_login_source_expect entries[]={
         {.directory="/run/systemd/system",.leaf=unit,.label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
-        {.directory=directory,.leaf="backend",.label="system_u:object_r:bin_t:s0",.kind=AE_LOGIN_SOURCE_ELF,.mode=0555},
-        {.directory=directory,.leaf="config",.label="system_u:object_r:etc_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
+        {.directory=directory,.leaf="backend",.label=BACKEND_FILE_LABEL,.kind=AE_LOGIN_SOURCE_ELF,.mode=0555},
+        {.directory=directory,.leaf="config",.label=CONFIG_FILE_LABEL,.kind=AE_LOGIN_SOURCE_DATA,.mode=0444},
         {.directory="/usr/lib/systemd/system/service.d",.leaf="10-timeout-abort.conf",.label="system_u:object_r:systemd_unit_file_t:s0",.kind=AE_LOGIN_SOURCE_DATA,.mode=0644},
-        {.directory=directory,.leaf="greeter",.label="system_u:object_r:bin_t:s0",.kind=AE_LOGIN_SOURCE_ELF,.mode=0555}
+        {.directory=directory,.leaf="greeter",.label=GREETER_FILE_LABEL,.kind=AE_LOGIN_SOURCE_ELF,.mode=0555}
     };
     const char *sizes[]={lines[2],lines[4],lines[6],"596",lines[8]};
     const char *hashes[]={lines[3],lines[5],lines[7],"ae6b234f92bc22f1201a7572b59b454c9809f33c80d13f361b9674e1801acc37",lines[9]};
@@ -177,7 +203,7 @@ int main(int argc,char **argv)
     CHECK(sd_bus_open_system(&bus)>=0 && sd_bus_set_method_call_timeout(bus,2000000)>=0);
     struct ae_login_greeter_expect expected={.uid=AE_LOGIN_TEST_GREETER_UID,.gid=AE_LOGIN_TEST_GREETER_GID,
         .groups=selected_groups,.group_count=sizeof(selected_groups)/sizeof(selected_groups[0]),
-        .label=process_label,.worker_label=process_label,.program=4};
+        .label=GREETER_LABEL,.worker_label=WORKER_LABEL,.program=4};
     int fd=connect_test();
     struct ae_login_service *service=service_test(fd,bus,unit);
     struct ae_login_greeter *greeter=NULL;
@@ -240,6 +266,7 @@ int main(int argc,char **argv)
     }
     if(r)fprintf(stderr,"greeter: %d\n",r);
     CHECK(!r && greeter && !ae_login_greeter_check(greeter));
+    if(!idle) {
     pthread_t thread;CHECK(!pthread_create(&thread,NULL,other_thread,greeter) && !pthread_join(thread,NULL));
     pid_t child=fork();CHECK(child>=0);
     if(!child) {
@@ -269,8 +296,11 @@ int main(int argc,char **argv)
         CHECK(ae_login_greeter_create(negative_service,sources,&bad,&wrong)<0 && !wrong);
         CHECK(!ae_login_service_close(&negative_service));close(negative_fd);
     }
+    }
     struct ae_login_loaded *loaded=NULL;const size_t dropin[]={3};
-    CHECK(!ae_login_loaded_create(service,sources,0,1,2,dropin,1,&loaded));
+    r=ae_login_loaded_create(service,sources,0,1,2,dropin,1,&loaded);
+    if(r)fprintf(stderr,"greeter loaded unit: %d\n",r);
+    CHECK(!r);
     char parent[AE_LOGIN_SOURCE_FULL_PATH_MAX],program[AE_LOGIN_SOURCE_FULL_PATH_MAX];
     CHECK(snprintf(parent,sizeof parent,"%s/runtime",directory)>0 && snprintf(program,sizeof program,"%s/greeter",directory)>0);
     int directory_fd=open(parent,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
@@ -283,12 +313,34 @@ int main(int argc,char **argv)
     }
     CHECK(found);
     struct ae_login_handoff *handoff=NULL;
-    CHECK(!ae_login_handoff_open(loaded,directory_fd,parent,"backend-observation",AE_LOGIN_TEST_HANDOFF_LABEL,&handoff));
+    r=ae_login_handoff_open(loaded,directory_fd,parent,"backend-observation",AE_LOGIN_TEST_HANDOFF_LABEL,&handoff);
+    if(r)fprintf(stderr,"greeter handoff: %d\n",r);
+    if(wrong_sources) {
+        CHECK(r==-ESTALE && !handoff);
+        puts("GREETER_HANDOFF_REJECTED");
+        struct timespec deadline={.tv_sec=30};
+        CHECK(sigtimedwait(&termination,NULL,&deadline)==SIGTERM);
+        CHECK(!close(fd));
+        goto cleanup;
+    }
+    CHECK(!r);
     struct admission admission={greeter,handoff};
     int pin;CHECK(!ae_login_service_peer(service,&pin));
     struct ae_login_connection_source source={.peer_pidfd=pin,.uid=0,.gid=0,.check=admission_check,.userdata=&admission};
     struct ae_login_connection *connection=NULL;
-    CHECK(!ae_login_connection_create(&connection,&fd,&source) && fd==-1);
+    r=ae_login_connection_create(&connection,&fd,&source);
+    if(r)fprintf(stderr,"greeter connection: %d\n",r);
+    CHECK(!r && fd==-1);
+    if(idle) {
+        struct ae_login_status state;
+        CHECK(!ae_login_connection_status(connection,&state) && state.phase==AE_LOGIN_IDLE);
+        CHECK(!admission_check(&admission));
+        puts("GREETER_HANDOFF_ACCEPTED");
+        struct timespec deadline={.tv_sec=30};
+        CHECK(sigtimedwait(&termination,NULL,&deadline)==SIGTERM);
+        CHECK(!ae_login_connection_close(&connection));
+        goto cleanup;
+    }
     CHECK(!ae_login_connection_begin(connection,"aetheri",7));finish_reply(connection,AE_LOGIN_PROMPT);
     struct ae_login_status prompt;
     CHECK(!ae_login_connection_status(connection,&prompt) && prompt.prompt==AE_LOGIN_SECRET);
@@ -358,7 +410,7 @@ cleanup:
     puts("GREETER_LEAK_CHECKED");
 #endif
     puts("GREETER_DONE");
-    if(start)return 0;
+    if(start || idle)return 0;
     /* Keep the original test greeter alive until the controller stops exactly
        its original service; do not provoke an automatic greeter replacement. */
     for(size_t i=0;i<300;++i)pause_test();

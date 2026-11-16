@@ -105,7 +105,7 @@ def inspect(expected: str) -> dict:
     check(greeter, obj("aetheri_login_backend_exec_t"), "file", "execute", False)
     check(greeter, obj("bin_t"), "file", "execute", False)
     publisher = process("aetheri_login_startup_t")
-    for target in ("aetheri_login_backend_exec_t", "aetheri_login_config_t"):
+    for target in ("aetheri_login_backend_exec_t", "aetheri_login_config_t", "aetheri_greeter_exec_t"):
         for permission in ("read", "open", "getattr"):
             check(publisher, obj(target), "file", permission, True)
         check(publisher, obj(target), "file", "write", False)
@@ -120,6 +120,14 @@ def inspect(expected: str) -> dict:
     check(publisher, obj("security_t"), "security", "read_policy", True)
     for permission in ("load_policy", "setenforce", "setbool"):
         check(publisher, obj("security_t"), "security", permission, False)
+    check(greeter, backend, "unix_stream_socket", "connectto", True)
+    check(greeter, obj("aetheri_login_handoff_t"), "file", "read", True)
+    for permission in ("write", "create", "unlink"):
+        check(greeter, obj("aetheri_login_handoff_t"), "file", permission, False)
+    check(greeter, obj("systemd_unit_file_t"), "service", "status", True)
+    for peer in (backend, worker):
+        for permission in ("ptrace", "signal", "sigkill"):
+            check(greeter, peer, "process", permission, False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:

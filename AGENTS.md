@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current confined greeter checkpoint: matched live source/worker/backend and
+handoff checks create an idle connection in aab9fa4a3505. The real reordered
+publisher record is rejected before admission in 8784cfa4b31d. Both retain
+original PAM close and greeter/worker exit0. Preserve the early source denial
+and mismatch/post-publication ESRCH evidence. The Release suite passes nine.
+The memory suite's first startup model line137 failure stays unexplained and
+its exact binary recheck passes nine. Loaded 146 decisions and strict 426 inputs
+with seven forbidden additions pass. Candidate retired to exact baseline.
+Read spec/login.md and the login-roles journal. Next admit human PAM and the
+trusted graphical/session path under the selected policy, with the USB gate.
+
 Current split publisher checkpoint: the finite startup service publishes a
 protected AETHLGH1 for the original confined backend in 867a85c110ea and exits.
 The original internal greeter/PAM worker also close normally. The split policy
