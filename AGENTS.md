@@ -1,5 +1,23 @@
 # Working on Aetheri
 
+Current extra-group checkpoint: read spec/login.md and the follow-up in the
+2026-11-16 login-account journal. Actual Release/memory greeters with private
+NSS groups 992/60000 reject expected 992, keep the failed guard fenced, then pass
+a fresh guard against the same held live kernel peer and literal control set.
+No credential/Start request or global account change. Both original worker ends
+and PAM closes pass; new memory desktop 83d69fec21ca also completes normal login/
+shutdown. Audit 35e92aa3eab1 checks both 784-input profiles and 200 runtime files.
+The memory suite's original startup-model failure stays unexplained: unchanged
+binary rerun passes 9; diagnostic 128 runs do not reproduce. Never claim a thread
+cause or a production fix. Preserve failed4471's partial-marker fixture and
+original memory output. Candidate module d00 is retired to the exact baseline.
+Next dedicated backend/worker/greeter MAC/device admission and normal provider.
+NexaUI snapshot 014449f is SDK 0.1.33, while Aetheri remains 0.1.23. Review/reuse its
+existing Example37 login view/connection glue for the graphical greeter; imported
+protocol/connection/grapheme files are unchanged from7d5fa47. This is not a pin
+upgrade or trusted-host admission. Example39 now supplies an initial original
+Physim model seam, not full app migration. Catalogue maintained; no new chat message.
+
 Current continuation: read spec/login.md's dedicated greeter account section,
 spec/login-backend.md's original-session-worker shutdown and the 2026-11-16
 login-account journal. Locked carrier UID/GID992 aetheri-greeter is reserved;
@@ -18,7 +36,7 @@ inputs/socket, failed43b/410/98 holders/fragments and earlier failures/quarantin
 The98 case queried exit information too early; fresh-pin administrative
 retirement never restores its controller's lost original pins. Require the EXIT
 mask with bounded observation on the original pidfd; readiness alone is insufficient.
-Next actual extra-membership refusal and dedicated backend/worker/greeter
+Next dedicated backend/worker/greeter
 MAC/device admission, then normal provider and graphical greeter. USB gate and
 NexaUI maintenance-only state remain.
 

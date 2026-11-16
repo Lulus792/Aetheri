@@ -58,11 +58,11 @@ static bool load_test_secret(bool once) {
     CHECK(!close(3));
     return true;
 }
-static void test_log(void) {
-    struct stat st;int flags=fcntl(4,F_GETFL);
-    CHECK(!fstat(4,&st) && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
+static void test_log(int fd) {
+    struct stat st;int flags=fcntl(fd,F_GETFL);
+    CHECK(!fstat(fd,&st) && S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
         st.st_nlink==1 && (st.st_mode&07777)==0600 && flags>=0 && (flags&O_APPEND) &&
-        (flags&O_ACCMODE)==O_RDWR && dup2(4,1)==1 && dup2(4,2)==2 && !close(4));
+        (flags&O_ACCMODE)==O_RDWR && dup2(fd,1)==1 && dup2(fd,2)==2 && !close(fd));
 }
 static void pause_test(void) {struct timespec t={.tv_nsec=100000000};while(nanosleep(&t,&t) && errno==EINTR){}}
 static int connect_test(void)
@@ -129,8 +129,10 @@ int main(int argc,char **argv)
     bool start=argc==3 && !strcmp(argv[2],"start");
     bool authenticate=argc==3 && (!strcmp(argv[2],"authenticate") || start);
     bool outsider=argc==3 && !strcmp(argv[2],"outsider");
-    if(argc==3 && !retry && !outsider && !authenticate)return 77;
-    if(start)test_log();
+    bool groups=argc==3 && !strcmp(argv[2],"groups");
+    if(argc==3 && !retry && !outsider && !authenticate && !groups)return 77;
+    if(start)test_log(4);
+    if(groups)test_log(3);
     if(authenticate && !load_test_secret(start)) {
 #ifdef AE_LOGIN_TEST_IGNORE_TERM
         /* Explicit pending-shutdown fixture only; never a production greeter. */
@@ -179,7 +181,58 @@ int main(int argc,char **argv)
     int fd=connect_test();
     struct ae_login_service *service=service_test(fd,bus,unit);
     struct ae_login_greeter *greeter=NULL;
+    int original_peer=-1;
+    if(groups) {
+        /* Private NSS fixture only. The controller independently checks the
+           actual original worker/child before permitting this test to run.
+           No credential conversation, handoff publication or Start occurs. */
+        char parent[AE_LOGIN_SOURCE_FULL_PATH_MAX];
+        int length=snprintf(parent,sizeof parent,"%s/runtime",directory);
+        CHECK(length>0 && (size_t)length<sizeof parent &&
+            !ae_login_service_peer(service,&original_peer));
+        int dir=open(parent,O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+        CHECK(dir>=0);puts("GREETER_GROUP_WAIT");
+        bool approved=false;
+        for(size_t i=0;i<150;++i) {
+            if(!fstatat(dir,"groups-approved",&st,AT_SYMLINK_NOFOLLOW)) {
+                CHECK(S_ISREG(st.st_mode) && st.st_uid==0 && st.st_gid==0 &&
+                    (st.st_mode&07777)==0444 && st.st_nlink==1);
+                approved=true;break;
+            }
+            CHECK(errno==ENOENT && !ae_login_sources_check(sources) &&
+                !ae_login_service_check(service));pause_test();
+        }
+        CHECK(approved && !close(dir));
+        gid_t actual[2];CHECK(getgroups(2,actual)==2);
+        if(actual[0]>actual[1]){gid_t swap=actual[0];actual[0]=actual[1];actual[1]=swap;}
+        CHECK(actual[0]==992 && actual[1]==60000);
+    }
     int r=ae_login_greeter_create(service,sources,&expected,&greeter);
+    if(groups) {
+        CHECK(r==-EACCES && !greeter && ae_login_service_check(service)==r);
+        /* Only this independently selected fixture expectation changes.
+           Keep the failed observer fenced. A fresh guard must still select
+           the same live kernel peer; never rearm/adopt a failed guard. */
+        int next_fd=connect_test(),next_peer;
+        struct ae_login_service *next=service_test(next_fd,bus,unit);
+        struct stat original_object,next_object;
+        struct pollfd original_live={.fd=original_peer,.events=POLLIN};
+        CHECK(!ae_login_service_peer(next,&next_peer) &&
+            !fstat(original_peer,&original_object) && !fstat(next_peer,&next_object) &&
+            original_object.st_dev==next_object.st_dev &&
+            original_object.st_ino==next_object.st_ino && !poll(&original_live,1,0));
+        CHECK(!ae_login_service_close(&service) && !close(fd));service=next;fd=next_fd;
+        const gid_t control[]={992,60000};
+        expected.groups=control;expected.group_count=2;
+        CHECK(!ae_login_greeter_create(service,sources,&expected,&greeter) &&
+            greeter && !ae_login_greeter_check(greeter));
+        CHECK(!ae_login_greeter_close(&greeter) && !ae_login_service_close(&service) &&
+            !ae_login_sources_close(&sources) && !close(fd));sd_bus_unref(bus);
+#if defined(__SANITIZE_ADDRESS__)
+        CHECK(!__lsan_do_recoverable_leak_check());puts("GREETER_GROUP_LEAK_CHECKED");
+#endif
+        puts("GREETER_GROUP_EXTRA_REJECTED same_context_control=1");return 0;
+    }
     if(outsider) {
         CHECK(r<0 && !greeter);
         puts("GREETER_OUTSIDER_REJECTED");

@@ -1,5 +1,24 @@
 # State
 
+16 November 2026 — Actual extra-group refusal now passes. Release cc9fe0ee35a1
+and memory d8b1bec26af4 observe the original greeter's real groups 992/60000 through
+a unit-private group file, reject the independent 992-only expectation, retain
+its failed service guard, and admit a fresh guard against the same held original
+kernel peer with the literal control set. No credential/Start is sent and host
+accounts stay unchanged. Original greeter/worker exit0 and PAM close pass.
+Normal memory desktop 83d69fec21ca also passes complete authentication/desktop/
+shutdown. Audit 35e92aa3eab1 matches 784 inputs per build and 200 runtime files.
+Release 9 CTests pass; the original memory run fails unchanged startup model line137,
+while the exact-binary rerun passes 9. Diagnostic 128 runs do not reproduce; cause
+remains unproven. Preserve that original output and failed4471 partial-marker
+fixture. Candidate startup module d00 is retired to the exact baseline.
+Next dedicated backend/worker/greeter MAC/device admission and normal provider,
+then reuse/review NexaUI's existing Example37 for graphical login. Read-only
+current-main snapshots find SDK 0.1.33/cc5f674 then 014449f, whose Example39 adds
+an initial original Physim model seam, not full native migration. Aetheri's pin stays 0.1.23.
+Imported protocol/connection/grapheme inputs are unchanged from7d5fa47. The
+catalogue receives only this evidence delta; no new handoff/chat or USB work.
+
 16 November 2026 — Dedicated greeter identity and PAM shutdown now have native
 evidence. The carrier reserves locked/expired aetheri-greeter UID/GID992, with
 unchanged unrelated accounts; never delete/recreate/reuse it implicitly.
@@ -25,7 +44,7 @@ The corrected controller waits boundedly on the same original pidfd; a32-child
 probe distinguishes exit readiness from cached status availability. Preserve
 failed43b/410/98 and expected-abnormal5a3 holders/fragments, two known stale sockets,
 e3d's missing PAM close, provisional beb and all earlier failures/quarantine.
-Next actual extra-membership rejection, dedicated backend/worker/greeter
+The later extra-group checkpoint above supersedes that test gap. Next dedicated backend/worker/greeter
 confinement and normal account/device/provider integration, then graphical greeter.
 Read the [native record](journal/2026-11-16-login-account.md). No USB build/flash.
 

@@ -45,8 +45,20 @@ capabilities, audit loginuid, logind class/seat/VT/scope, runtime-directory
 ownership and the original worker/child pins. A regular user desktop follows
 successful authentication. Normal worker exit, PAM close and inactive scope are
 checked independently. Model tests cover wrong/extra/missing/duplicate groups;
-the actual admitted client also rejects an incorrect empty expectation. A
-separate actual extra-membership injection is not yet demonstrated.
+the actual admitted client also rejects an incorrect empty expectation.
+
+The test-only `groups` mode now exercises a real extra membership. The original
+backend's initgroups reads a unit-private group file adding unused fixture
+GID 60000; the global group/account files remain unchanged. Its original greeter
+actually has groups 992/60000 and zero capabilities. The independent 992-only
+expectation rejects with EACCES and permanently fences that service observer.
+A separate fresh observer must select the same still-held live kernel peer
+before the literal 992/60000 positive control can succeed. It never rearms the
+failed guard. No password, conversation begin, publication or user-session
+Start is performed. Both Release and memory clients pass with normal original
+greeter/worker exit, PAM close and inactive scope. The full normal memory login
+also passes after the test-log FD refactor. These remain explicit administrative
+carrier fixtures, not an installed greeter or normal deployment admission.
 
 See [backend session closure](login-backend.md#original-session-worker-shutdown)
 for shutdown and retained-failure rules. These account/session fixtures do not

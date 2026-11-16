@@ -1,5 +1,44 @@
 # NexaUI suitability
 
+## Current source review — 16 November 2026
+
+The initial read-only remote main query resolved to
+`cc5f674c3fbb60d90e133b2f699c21d608fc5d66`, whose CMake/README SDK version is
+0.1.33. The primary D:/NexaUI checkout still selects its older independent
+development branch; do not reset it or infer current main from that checkout.
+Aetheri's admitted development pin remains 0.1.23/97a4264.
+
+A final follow-up query resolves to 014449f6682b97bc9b0d559c669aa1c8477f2b60,
+still SDK 0.1.33. Its new [Physim consumer report](https://github.com/Lulus792/NexaUI/blob/014449f6682b97bc9b0d559c669aa1c8477f2b60/docs/quality/physim-model-report.md)
+composes 27 unchanged original Physim inputs, numeric fields, the original plot
+model and a bounded CPU viewport. It reports 12 CTests across three Linux
+profiles and comparison of all 241 times/nine channels with the original run.
+This is an initial model/presentation seam, not migration of the native Physim
+application, its full 3D/camera/picking, workers or accepted design. Preserve the
+separate project owners and review those remaining consumer gates.
+
+The current [requirement map](https://github.com/Lulus792/NexaUI/blob/cc5f674c3fbb60d90e133b2f699c21d608fc5d66/docs/quality/aetheri-requirement-map.md)
+retains all 103 IDs and now lists all thirteen application surfaces. Its
+[login consumer](https://github.com/Lulus792/NexaUI/blob/cc5f674c3fbb60d90e133b2f699c21d608fc5d66/examples/37_aetheri_login/README.md)
+already supplies a standalone C17 view, optional borrowed original connection,
+bounded watch/deadline glue, native password/IME/AT-SPI and peer-loss fixtures.
+Reuse/review that work when building the original graphical greeter instead of
+starting a duplicate UI. Its recorded Aetheri source inputs predate the current
+protected service/account admission; real daemon, trusted placement and normal
+session integration remain Aetheri gates.
+
+The imported protocol.c/.h, connection.c/.h and grapheme.c/.h/data.h are unchanged
+between the example's recorded Aetheri 7d5fa47 source and current 23d137a. This is
+source compatibility evidence only; it does not build the consumer, upgrade the
+SDK or supply trusted compositor/service admission.
+
+The current external-content example adds scoped CPU frame and normalized
+key/pointer input/host-release handling. It is not a selected browser/PDF/VM
+engine, GPU import or complete text/IME/accessibility integration. Reports are
+upstream candidate evidence, not new independent native acceptance in Aetheri.
+No SDK pin, application build/process or toolkit source is changed by this review.
+Handoff delivered; catalogue maintenance only; no pending chat message.
+
 ## Maintenance rule — confirmed 5 November 2026
 
 | Item | Status | Next action |

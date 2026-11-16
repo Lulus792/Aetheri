@@ -175,3 +175,69 @@ Next prove actual extra-membership refusal and supply dedicated backend/worker/
 greeter MAC/device policy, then a normal deployment provider and the original
 graphical greeter. General app lifecycle/recovery/removal, hardware and the full
 first-version scope remain open. No USB image/flash or NexaUI handoff occurred.
+
+## Actual extra-group refusal follow-up
+
+The existing test client now has a groups mode. The independent Root controller
+adds an unused60000 group membership only to the backend's private /etc/group
+view. Global passwd/group/shadow/gshadow bytes are compared in memory and remain
+unchanged; no account is enrolled or unlocked. The actual original greeter has
+UID/GID992, supplementary992/60000, no capabilities, the selected ELF and original
+Root worker ancestry in a real greeter Wayland seat0/VT8 session.
+
+The compiled992-only expectation fails with EACCES and leaves its service guard
+permanently fenced. A fresh guard first compares its kernel peer object with
+the still-held original live peer. The literal992/60000 control then succeeds
+with unchanged process, sources, image and actual memberships. It never rearms
+the failed observer or sends a credential, conversation begin or user Start.
+Test-log fd3 is separate from the normal start fixture's fd4/secret fd3.
+
+Release /var/tmp/a-extra-group-cc9fe0ee35a1 and memory
+/var/tmp/a-extra-group-d8b1bec26af4 pass that native negative/control pair,
+original client/worker exit0, PAM open/close and inactive scope. The memory
+client's explicit LSan check passes. The backend deliberately returns1 because
+its test greeter exits without requesting a user session; this expected service
+exit is distinct from its original worker's successful PAM teardown.
+
+The first case4471f2009536 failed before the admission probe because the
+controller exposed its marker before chmod completed. Its C metadata check
+correctly rejected that partial object. All its recorded actors/scopes are
+independently terminal; the fixture, fragment and vt-retired.json remain.
+Later controllers prepare the stage fully and publish with RENAME_NOREPLACE.
+No source guard, metadata check or production policy was weakened.
+
+The final784-input C profiles are /var/tmp/a-login-cmake-6e4716ec86fb (Release)
+and /var/tmp/a-login-cmake-89232e1ca75e (memory). Release passes9 CTests. The
+initial memory run fails unchanged startup model137, at its wrong-namespace
+expectation after a thread join. A diagnostic copy records unexpected return
+values without changing that assertion;128 runs do not reproduce the failure.
+No thread-lifecycle cause is established and no production fix is claimed.
+The exact original memory binary/suite rerun passes9 at
+/var/tmp/a-extra-group-recheck-98f58e462cd9. Its hash stays unchanged and the
+first failing output is retained. Do not overwrite it or call it diagnosed.
+
+Normal memory desktop83d69fec21ca then passes the original fd4 logging,
+authentication/retry/Start, visible desktop, user PAM close, both original
+greeter worker exit0/PAM closes and scope retirement. Its ordinary-built,
+host-selected Root helper package is2dacb44af474. No Root code executes from
+a user-writable build or sanitizer SDK.
+
+Audit35e92aa3eab1 checks both784-file inputs, actual compile instrumentation,
+the native receipts and control groups, all200 protected runtime files, no
+selected mappings/local seat, unchanged account membership/RPMs and enforcing1/
+tty1. Candidate module d00e3fb37382 is retired afterward with the exact complete
+baseline policy restored. Post-retirement audit d78856a8dedc verifies the four
+retired module runs, no active login/extra-group actor or local seat, exact
+baseline policy, unchanged RPMs and enforcing1/tty1. Earlier failed sockets and
+quarantine remain.
+
+The user's NexaUI status question prompted a read-only current-main review:
+cc5f674/SDK0.1.33 now supplies the existing Example37 login view and Example38
+scoped content/input host. All103 catalogue IDs remain, including thirteen
+ownership rows. The in-place catalogue receives this evidence delta only.
+A final query resolves to014449f, still SDK0.1.33, adding an initial original
+Physim model/numeric/plot/CPU-viewport consumer. Its report records12 CTests;
+full native Physim adoption stays open. Aetheri stays on0.1.23; no toolkit source,
+app pin, independent native acceptance,
+new chat message or USB image/flash follows. Review/reuse Example37 after the
+dedicated backend/worker/greeter MAC/device and normal-provider gates.
