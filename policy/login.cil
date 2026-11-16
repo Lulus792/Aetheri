@@ -118,6 +118,18 @@
 ; permission to control/read privileged audit configuration and records.
 (allow aetheri_login_worker_t self (netlink_audit_socket (create read write getattr nlmsg_relay)))
 (allow aetheri_login_worker_t shadow_t (file (read open getattr)))
+; The distribution PAM can delegate shadow authentication and expiry checks to
+; unix_chkpwd. Keep its existing confined domain and the worker-owned pipes.
+(allow aetheri_login_worker_t chkpwd_exec_t (file (read open getattr execute map)))
+(typetransition aetheri_login_worker_t chkpwd_exec_t process chkpwd_t)
+(allow aetheri_login_worker_t chkpwd_t (process (transition)))
+(allow aetheri_login_worker_t chkpwd_t (process2 (nnp_transition)))
+(allow chkpwd_t aetheri_login_worker_t (process (sigchld)))
+(allow chkpwd_t aetheri_login_worker_t (fd (use)))
+(allow chkpwd_t aetheri_login_worker_t (fifo_file (read write append getattr ioctl)))
+(neverallow aetheri_login_worker_t chkpwd_exec_t (file (execute_no_trans write)))
+(neverallow aetheri_login_backend_t chkpwd_exec_t (file (execute)))
+(neverallow aetheri_greeter_t chkpwd_exec_t (file (execute)))
 (allow aetheri_login_worker_t self (file (write)))
 (allow aetheri_login_worker_t self (unix_stream_socket (create connect read write getattr getopt setopt shutdown)))
 (allow aetheri_login_worker_t self (unix_dgram_socket (create connect read write getattr getopt setopt sendto shutdown)))

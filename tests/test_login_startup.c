@@ -126,19 +126,24 @@ static void *held_thread(void *unused) {
     (void)unused;int r=pthread_barrier_wait(&barrier);CHECK(!r || r==PTHREAD_BARRIER_SERIAL_THREAD);
     r=pthread_barrier_wait(&barrier);CHECK(!r || r==PTHREAD_BARRIER_SERIAL_THREAD);return NULL;
 }
-static void constructor_context(void) {
+static void wrong_namespace(void) {
+    reset();struct ae_login_startup_expect e=expectation();
+    int original=space;space=open("/proc/self/ns/net",O_RDONLY|O_CLOEXEC);CHECK(space>=0);
+    CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EPROTO && !active && !enter_calls);
+    close(space);space=original;
+}
+static void threaded_constructor(void) {
     reset();struct ae_login_startup_expect e=expectation();pthread_t thread;
     CHECK(!pthread_barrier_init(&barrier,NULL,2) && !pthread_create(&thread,NULL,held_thread,NULL));
     int r=pthread_barrier_wait(&barrier);CHECK(!r || r==PTHREAD_BARRIER_SERIAL_THREAD);
     CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EBUSY && !active && !enter_calls);
     r=pthread_barrier_wait(&barrier);CHECK(!r || r==PTHREAD_BARRIER_SERIAL_THREAD);
     CHECK(!pthread_join(thread,NULL) && !pthread_barrier_destroy(&barrier));
-    int original=space;space=open("/proc/self/ns/net",O_RDONLY|O_CLOEXEC);CHECK(space>=0);
-    CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EPROTO && !active && !enter_calls);
-    close(space);space=original;
 }
 int main(void) {
     space=open("/proc/self/ns/mnt",O_RDONLY|O_CLOEXEC);socket_fd=open("/dev/null",O_RDONLY|O_CLOEXEC);CHECK(space>=0 && socket_fd>=0);
-    lifecycle();failures();constructor_context();close(socket_fd);close(space);
+    /* Keep single-threaded constructor cases independent of earlier thread
+       lifetimes by running them all before the first pthread. */
+    wrong_namespace();failures();lifecycle();threaded_constructor();close(socket_fd);close(space);
     puts("Startup coordinator model: namespace binding, policy/notice distinction, one publication, permanent fences, thread/fork and cleanup passed");return 0;
 }

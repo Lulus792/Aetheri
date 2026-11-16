@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current split authentication checkpoint: the actual confined PAM worker passes
+empty-answer AUTH_ERR, synthetic authentication/account success and acknowledged
+cancel in f2e5e69a75f2. The distro unix_chkpwd transition and worker pipes are
+checked. The sealed synthetic input type belongs to the carrier supplement.
+Keep first helper-denial fixture and original test outputs. All single-threaded
+startup constructor cases now precede the first pthread. Release/memory nine
+tests each, 159 loaded decisions and strict 426 modules with nine negative cases
+pass. Temporary policy retired. Read spec/login.md and the login-roles journal.
+Next admit the fixed user command, PAM session and desktop under split policy.
+
 Current confined greeter checkpoint: matched live source/worker/backend and
 handoff checks create an idle connection in aab9fa4a3505. The real reordered
 publisher record is rejected before admission in 8784cfa4b31d. Both retain

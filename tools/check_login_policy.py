@@ -99,6 +99,15 @@ def inspect(expected: str) -> dict:
             check(role, obj(target), "file", "write", False)
     check(backend, worker, "process", "transition", True)
     check(worker, greeter, "process", "transition", True)
+    password_helper = process("chkpwd_t")
+    check(worker, password_helper, "process", "transition", True)
+    check(worker, password_helper, "process2", "nnp_transition", True)
+    for role in (backend, worker, greeter):
+        check(role, obj("chkpwd_exec_t"), "file", "execute", role == worker)
+        check(role, obj("chkpwd_exec_t"), "file", "execute_no_trans", False)
+        check(role, obj("updpwd_exec_t"), "file", "execute", False)
+    for permission in ("read", "write"):
+        check(password_helper, worker, "fifo_file", permission, True)
     for target in (worker, greeter):
         check(process("init_t"), target, "process", "transition", False)
     check(greeter, backend, "process", "transition", False)

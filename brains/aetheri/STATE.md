@@ -1,5 +1,20 @@
 # State
 
+16 November 2026 — The split login worker now authenticates a synthetic test
+account through real PAM following native greeter admission. The distro
+`unix_chkpwd` helper runs through its existing confined transition and worker
+pipes. Final f2e5e69a75f2 observes AUTH_ERR for an empty answer, separate PAM
+authentication/account success, confirmed cancellation, original greeter PAM
+close and retirement of the private test input. Preserve first blocked helper
+case 7b24269add98 and the independent VT retirement. 159 loaded decisions and
+strict 426-module compile with nine negative cases pass. The startup fixture
+now runs all single-threaded constructor cases before its first pthread.
+Release and memory each pass nine tests. Keep both prior failing memory outputs
+and distinguish their unrecorded return values from the corrected test order.
+The temporary policy is retired. Next wire the fixed user session command and
+PAM/logind/device handoff under the split policy, then trusted graphical login.
+See the [record](journal/2026-11-16-login-roles.md#pam-authentication-with-the-split-worker).
+
 16 November 2026 — The original confined greeter now consumes the startup
 record and creates an idle connection to the same live backend in aab9fa4a3505.
 The five selected sources and their order agree. Actual mismatch 8784cfa4b31d

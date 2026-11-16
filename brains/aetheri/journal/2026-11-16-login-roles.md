@@ -61,6 +61,56 @@ RPM inventory.
 Retirement of the exact candidate in the new boot restores the complete
 3,689,381-byte baseline policy, SHA-256
 `a1c128d0e25d64cac9cdc811b5857852ba310b4313813c0762367f3024b1e4f6`.
+
+## PAM authentication with the split worker
+
+The test greeter's `handoff-authenticate` mode waits for source, ancestry,
+backend and record admission before sending the first PAM request. It receives
+a real secret prompt, rejects an empty answer and confirms cancellation. A
+fresh prompt precedes the sole read from the sealed synthetic input descriptor.
+The greeter clears its copy after submission and confirms authenticated state
+and cancellation. The disposable service sees a private `/etc` projection
+containing the synthetic UID 1000 shadow hash and the unchanged locked greeter
+entry. The controller compares the actual private shadow and inherited input
+objects. It checks host account bytes, checks captured logs for the synthetic
+input and retires the private holder after the original greeter and worker end.
+
+Case `7b24269add98` reached a real prompt but had `AUTHINFO_UNAVAIL` for both
+answers. The kernel denied `unix_chkpwd` execution by its PAM worker. This
+failure exposed the distribution PAM's use of the helper for shadow accounts.
+The standard helper receives its input through a pipe and returns its exit
+status to PAM. Fedora's existing `chkpwd_t` domain owns its file access. The
+candidate grants a transition from the PAM worker and access to its inherited
+pipes. The worker cannot execute the helper without transitioning. The
+backend and greeter cannot execute it. See [Linux-PAM's password helper invocation](https://github.com/linux-pam/linux-pam/blob/v1.7.2/modules/pam_unix/support.c)
+and [the SELinux reference transition](https://github.com/SELinuxProject/refpolicy/blob/master/policy/modules/system/authlogin.if).
+
+Case `f2e5e69a75f2` passes with loaded candidate `326bc9984595`, SHA-256
+`7facb1bcb22ddec1505a099604d5d1d4c44603233e86169e68a4153203fad04a`. The
+backend reports `AUTH_ERR` for the empty answer. Kernel audit shows the
+failed authentication and a separate successful `pam_unix` authentication and
+account check in `aetheri_login_worker_t`. The acknowledged cancel leaves the
+connection idle. The original greeter session closes when the caller stops
+the backend, and the private synthetic holder is retired. The failed case's
+available logs and protected inputs remain. Its VT retirement uses separate
+terminal observation.
+
+The loaded-policy checker `57e23606342a` verifies 159 decisions, including
+helper execution and transition, pipe use and the absence of password updater
+execution. Strict compilation `6a23bccd857f` checks 426 inputs and rejects nine
+forbidden rule additions, including helper execution by the greeter and an
+attempt to let the worker execute the helper without a domain transition.
+
+The first memory test build `73d43487d0e2` failed the existing wrong-namespace
+assertion. Moving the combined namespace/thread cases to the front shifted the
+failure to the next otherwise single-threaded constructor in `d0ce4c3a00bb`.
+The final fixture runs every single-threaded constructor before creating its
+first pthread. The explicit live-thread check still requires `EBUSY` and the
+namespace check still requires `EPROTO`. Final Release `a7e047c9e8e3` and memory
+`2a88fc73ecaf` pass nine CTests each. Preserve the original outputs. The revised
+order isolates the intended cases. The original unexpected return values were
+not captured. The separate graphical and PAM session transition for the
+admitted user still needs native evidence under the split policy.
 The receipt is `/var/tmp/a-login-policy-b491c9ffa6f8/retirement.json`.
 
 Initial test failures identify the invalid `sigterm` SELinux permission, an

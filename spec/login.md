@@ -57,9 +57,18 @@ the connection model. The native test observes `AE_LOGIN_IDLE` after those
 checks. A second real publisher uses a different source order and the greeter
 rejects its record with `ESTALE`. The test greeter waits for the original PAM
 worker's shutdown signal after rejecting the record.
-Human password authentication and the user desktop under this policy require
-their own run. The eventual graphical host should keep this admission step
-ahead of input and authentication.
+After the same admission step, the split carrier now verifies a real PAM
+password conversation and account check with a synthetic credential. The
+worker can start the distribution's `unix_chkpwd` only in its existing
+`chkpwd_t` domain. It exchanges password input and results over the PAM
+helper's pipes. The backend and greeter cannot execute the helper, and the
+login roles cannot execute the password update program. The carrier supplement
+labels a sealed descriptor for the synthetic test password. The greeter reads
+it after the protected connection and PAM prompt checks and clears its copy
+after submission. An empty answer fails, the selected password succeeds, and
+the test waits for acknowledged cancellation. The next integration opens a
+user session under the split policy and hands off to the desktop. The eventual
+graphical host keeps this admission step ahead of input and authentication.
 See the [native record](../brains/aetheri/journal/2026-11-16-login-roles.md).
 
 ## Dedicated greeter account and supplementary groups

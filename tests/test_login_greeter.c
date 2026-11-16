@@ -146,15 +146,17 @@ int main(int argc,char **argv)
     bool groups=argc==3 && !strcmp(argv[2],"groups");
     bool idle=false;
     bool wrong_sources=false;
+    bool split_auth=false;
     sigset_t termination;
 #ifdef AE_LOGIN_TEST_SPLIT_ROLES
     wrong_sources=argc==3 && !strcmp(argv[2],"handoff-mismatch");
-    idle=wrong_sources || (argc==3 && !strcmp(argv[2],"handoff"));
+    split_auth=argc==3 && !strcmp(argv[2],"handoff-authenticate");
+    idle=wrong_sources || split_auth || (argc==3 && !strcmp(argv[2],"handoff"));
     if(!idle)return 77;
 #endif
     if(argc==3 && !retry && !outsider && !authenticate && !groups && !idle)return 77;
-    if(start)test_log(4);
-    if(groups || idle)test_log(3);
+    if(start || split_auth)test_log(4);
+    if(groups || (idle && !split_auth))test_log(3);
     if(idle) {
         CHECK(!sigemptyset(&termination) && !sigaddset(&termination,SIGTERM));
         CHECK(!sigprocmask(SIG_BLOCK,&termination,NULL));
@@ -336,6 +338,28 @@ int main(int argc,char **argv)
         CHECK(!ae_login_connection_status(connection,&state) && state.phase==AE_LOGIN_IDLE);
         CHECK(!admission_check(&admission));
         puts("GREETER_HANDOFF_ACCEPTED");
+        if(split_auth) {
+            CHECK(!ae_login_connection_begin(connection,"aetheri",7));
+            finish_reply(connection,AE_LOGIN_PROMPT);
+            CHECK(!ae_login_connection_status(connection,&state) && state.prompt==AE_LOGIN_SECRET);
+            CHECK(!ae_login_connection_answer(connection,"",0));
+            finish_reply(connection,AE_LOGIN_DENIED);
+            CHECK(!ae_login_connection_cancel(connection));
+            finish_reply(connection,AE_LOGIN_IDLE);
+            puts("GREETER_EMPTY_ANSWER_DENIED");
+
+            CHECK(!ae_login_connection_begin(connection,"aetheri",7));
+            finish_reply(connection,AE_LOGIN_PROMPT);
+            CHECK(!ae_login_connection_status(connection,&state) && state.prompt==AE_LOGIN_SECRET);
+            CHECK(load_test_secret(false));
+            int answer=ae_login_connection_answer(connection,test_secret,64);
+            clear_test_secret();
+            CHECK(!answer);
+            finish_reply(connection,AE_LOGIN_AUTHENTICATED);
+            CHECK(!ae_login_connection_cancel(connection));
+            finish_reply(connection,AE_LOGIN_IDLE);
+            puts("GREETER_AUTH_CANCEL_ACK");
+        }
         struct timespec deadline={.tv_sec=30};
         CHECK(sigtimedwait(&termination,NULL,&deadline)==SIGTERM);
         CHECK(!ae_login_connection_close(&connection));
