@@ -21,6 +21,12 @@ enum ae_session_loss {
    ProcessFD admission, an app grant, durable identity or a process/lease drain.
    *out starts NULL and stays unchanged on error. No thread or daemon is added. */
 int ae_session_open(uid_t expected_uid,const char *expected_seat,struct ae_session **out);
+/* Same self-only observer for the internal greeter's active local Wayland
+   session. Require the independently selected VT on every observation. */
+int ae_session_open_greeter(uid_t expected_uid,const char *expected_seat,
+                            unsigned expected_vt,struct ae_session **out);
+/* A greeter-only current observation for credential presentation. */
+int ae_session_check_greeter(struct ae_session *);
 /* Rechecks even with no monitor event. The first observed loss is immutable;
    returning to the VT never rearms this handle. 0 writes the observed mask;
    negative errno (invalid arguments/thread/fork) leaves output/state unchanged.

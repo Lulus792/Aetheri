@@ -26,5 +26,11 @@ nx_result aetheri_login_poll_time(uint64_t *nanoseconds);
    watchers and leave native UI polling usable; caller drains its wake fd. */
 nx_result aetheri_login_poll_step(aetheri_login_poll *poller, nx_window *window,
     uint32_t timeout_ms, uint64_t deadline, aetheri_login_poll_outcome *out);
+/* The native host examines focus and seat events after the window poll and
+   before any service pump. A nonzero gate permanently interrupts the model
+   and suppresses that pump. The callback cannot access or reenter the poller. */
+nx_result aetheri_login_poll_step_guarded(aetheri_login_poll *poller, nx_window *window,
+    uint32_t timeout_ms, uint64_t deadline, int (*gate)(void *), void *userdata,
+    aetheri_login_poll_outcome *out);
 #endif
 #endif

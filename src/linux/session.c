@@ -20,7 +20,7 @@ struct ae_session {
     uid_t uid;
     int pin;
     uint64_t group_id;
-    unsigned loss;
+    unsigned loss,vt;
 };
 static bool owner(const struct ae_session *s) {return s && s->pid==getpid() && s->tid==gettid();}
 static bool bounded(const char *s,size_t limit) {return s && *s && strnlen(s,limit)<limit;}
@@ -49,7 +49,10 @@ static unsigned snapshot(struct ae_session *s) {
     if(active<0 || remote<0 || sd_session_get_uid(s->session,&uid)<0 || sd_session_get_seat(s->session,&seat)<0 ||
        sd_session_get_type(s->session,&type)<0 || sd_session_get_class(s->session,&class)<0 ||
        !bounded(seat,129) || !bounded(type,32) || !bounded(class,32)) goto done;
-    loss=active>0 && remote==0 && uid==s->uid && !strcmp(seat,s->seat) && !strcmp(type,"wayland") && !strcmp(class,"user") ?
+    unsigned vt=0;
+    if(s->vt && sd_session_get_vt(s->session,&vt)<0) goto done;
+    loss=active>0 && remote==0 && uid==s->uid && !strcmp(seat,s->seat) &&
+        !strcmp(type,"wayland") && !strcmp(class,s->vt?"greeter":"user") && vt==s->vt ?
         AE_SESSION_LIVE:AE_SESSION_INACTIVE;
     if(!identity(s,false)) loss=AE_SESSION_CONTEXT_LOST;
 done:
@@ -90,13 +93,13 @@ int ae_session_close(struct ae_session **pointer) {
     if(!owner(s)) return -EPERM;
     *pointer=NULL;destroy(s);return 0;
 }
-int ae_session_open(uid_t uid,const char *seat,struct ae_session **out) {
+static int open_local_session(uid_t uid,const char *seat,unsigned vt,struct ae_session **out) {
     if(!out || *out || !uid || uid!=getuid() || uid!=geteuid() || !bounded(seat,129)) return -EINVAL;
     if(getpid()!=gettid()) return -EPERM;
     for(const unsigned char *p=(const unsigned char *)seat;*p;++p)
         if(!((*p>='a' && *p<='z') || (*p>='A' && *p<='Z') || (*p>='0' && *p<='9') || *p=='_' || *p=='-' || *p=='.')) return -EINVAL;
     struct ae_session *s=calloc(1,sizeof(*s));if(!s) return -ENOMEM;
-    s->pin=-1;s->pid=getpid();s->tid=gettid();s->uid=uid;s->seat=strdup(seat);
+    s->pin=-1;s->pid=getpid();s->tid=gettid();s->uid=uid;s->vt=vt;s->seat=strdup(seat);
     /* Self only: never substitute this pin for a bus-authenticated caller FD. */
     s->pin=pidfd_open(s->pid,0);
     if(!s->seat || s->pin<0 || !identity(s,true) || sd_login_monitor_new("session",&s->monitor)<0 ||
@@ -108,4 +111,17 @@ int ae_session_open(uid_t uid,const char *seat,struct ae_session **out) {
     *out=s;return 0;
 failed:
     destroy(s);return -EACCES;
+}
+int ae_session_open(uid_t uid,const char *seat,struct ae_session **out) {
+    return open_local_session(uid,seat,0,out);
+}
+int ae_session_open_greeter(uid_t uid,const char *seat,unsigned vt,struct ae_session **out) {
+    if(!vt || vt>63)return -EINVAL;
+    return open_local_session(uid,seat,vt,out);
+}
+int ae_session_check_greeter(struct ae_session *s) {
+    if(!s || !s->vt)return -EINVAL;
+    unsigned loss;
+    int result=ae_session_check(s,&loss);
+    return result?result:loss?-ESTALE:0;
 }

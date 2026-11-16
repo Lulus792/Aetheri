@@ -1,5 +1,16 @@
 # State
 
+17 November 2026 — The native NexaUI host consumes the private Wayland
+endpoint, requires the active greeter class and selected VT, and checks
+native focus before routing input or pumping the conversation. Actual
+greetd/PAM greeter-seat cases 91305d9c9368 and ba8e5bfce7ad visibly reach
+the view on the DRM compositor. Synthetic protocol success reaches Start
+ACK. A masked draft followed by actual VT loss ends without an answer sent.
+The native poll ordering regression passes Release and memory. Next replace
+the fixture peer with the original protected deployment and verify the full
+password-to-desktop lifecycle. See the
+[record](journal/2026-11-17-login-ui-host.md).
+
 17 November 2026 — The greeter display channel now verifies a compositor-created
 Wayland endpoint against the original direct child and independent executable
 selection. The DRM compositor's opt-in single-client mode has no pathname

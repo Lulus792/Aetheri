@@ -161,12 +161,34 @@ returning the descriptor. The receiver rejects additional rights or malformed
 packets and closes delivered descriptors on failure. Peer loss or mismatch
 fences the owner. It never adopts a later offer.
 
-The graphical host will own the returned native endpoint, active greeter
-session, input focus and frame readiness. It must include those observations
-in the host gate before enabling login controls and sending credential
-traffic. The descriptor guard establishes who serves this stream. The
+The descriptor guard establishes who serves this stream. The
 [VM record](../brains/aetheri/journal/2026-11-17-login-display.md) checks the
 original protected ELF and the single-client DRM path separately.
+
+### Native greeter window and input admission
+
+`login/ui/host.h` runs one NexaUI window on the original private display
+endpoint. The host takes the sole offer from the original display guard and
+uses it for the pinned Wayland adapter. It requires the active local
+`greeter` Wayland class on the independently selected seat and VT. It
+submits a passive window before accepting native keyboard focus. Only after
+the backend handoff and first interactive frame are ready does it route
+credentials to the view.
+
+The host drains native events after each window poll and before any protocol
+pump. Closing the window or losing focus, seat or compositor retires the
+local conversation. A pending request uses a single deadline and a fenced
+connection clears its queued bytes. The view and its input storage are
+destroyed at teardown. The host reports Start acknowledgement separately
+from desktop readiness. It does not publish an external accessibility action
+bridge in this profile.
+
+The caller still owns the compiled deployment selection, the original
+compositor and seat lifetimes, and the supervisor bound for synchronous
+Wayland bootstrap. The VM uses the actual greeter seat and private DRM
+compositor with a synthetic conversation peer. The native host has yet to
+run with the protected production backend configuration. See the
+[native UI record](../brains/aetheri/journal/2026-11-17-login-ui-host.md).
 
 ## Dedicated greeter account and supplementary groups
 

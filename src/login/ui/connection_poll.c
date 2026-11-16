@@ -87,8 +87,9 @@ static nx_result track(aetheri_login_poll *poller, unsigned index, int fd, uint3
     return NX_OK;
 }
 
-nx_result aetheri_login_poll_step(aetheri_login_poll *poller, nx_window *window,
-    uint32_t timeout_ms, uint64_t deadline, aetheri_login_poll_outcome *out) {
+nx_result aetheri_login_poll_step_guarded(aetheri_login_poll *poller, nx_window *window,
+    uint32_t timeout_ms, uint64_t deadline, int (*gate)(void *), void *userdata,
+    aetheri_login_poll_outcome *out) {
     if (!out) return NX_ERROR_ARGUMENT;
     *out = (aetheri_login_poll_outcome){0};
     if (!poller || !window) return NX_ERROR_ARGUMENT;
@@ -122,6 +123,14 @@ nx_result aetheri_login_poll_step(aetheri_login_poll *poller, nx_window *window,
     nx_result native = nx_window_poll_with_fd_events(window, timeout_ms,
         poller->descriptor, NX_WINDOW_FD_READABLE, &ready);
     if (native != NX_OK) return native;
+    if (gate) {
+        int allowed = gate(userdata);
+        if (allowed) {
+            (void)ae_login_connection_interrupt(poller->connection);
+            fence(poller, allowed < 0 ? allowed : -EACCES, out);
+            return NX_OK;
+        }
+    }
     if (!poller->error && deadline) {
         uint64_t now = 0;
         nx_result clock = aetheri_login_poll_time(&now);
@@ -155,4 +164,9 @@ nx_result aetheri_login_poll_step(aetheri_login_poll *poller, nx_window *window,
         }
     }
     return NX_OK;
+}
+
+nx_result aetheri_login_poll_step(aetheri_login_poll *poller, nx_window *window,
+    uint32_t timeout_ms, uint64_t deadline, aetheri_login_poll_outcome *out) {
+    return aetheri_login_poll_step_guarded(poller, window, timeout_ms, deadline, NULL, NULL, out);
 }

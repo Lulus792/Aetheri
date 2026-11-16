@@ -26,6 +26,7 @@ static int model_active=1,model_remote=0,query_error,monitor_error,flush_error;
 static bool group_changed,uid_changed;
 static const char *current_session="original",*current_scope="session-original.scope",*current_group="/user.slice/session-original.scope";
 static const char *current_seat="seat0",*current_type="wayland",*current_class="user";
+static unsigned current_vt=8;
 static uint64_t monitor_deadline=UINT64_MAX;
 static unsigned snapshots,flushes;
 static pid_t creator_pid;
@@ -49,6 +50,7 @@ static int session_remote(const char *s) {(void)s;return model_remote;}
 static int session_seat(const char *s,char **out) {(void)s;return text(current_seat,out);}
 static int session_type(const char *s,char **out) {(void)s;return text(current_type,out);}
 static int session_class(const char *s,char **out) {(void)s;return text(current_class,out);}
+static int session_vt(const char *s,unsigned *out) {(void)s;*out=current_vt;return 0;}
 struct pidfd_info;
 static int subject_ioctl(int fd,unsigned long request,struct pidfd_info *out);
 static uid_t subject_uid(void) {return uid_changed?0:getuid();}
@@ -67,6 +69,7 @@ static uid_t subject_uid(void) {return uid_changed?0:getuid();}
 #define sd_session_get_seat session_seat
 #define sd_session_get_type session_type
 #define sd_session_get_class session_class
+#define sd_session_get_vt session_vt
 #define ioctl subject_ioctl
 #define getuid subject_uid
 #include "../src/linux/session.c"
@@ -119,5 +122,12 @@ int main(void) {
     s=open_session();current_group="/foreign";CHECK(!ae_session_check(s,&loss) && loss==AE_SESSION_CONTEXT_LOST);current_group="/user.slice/session-original.scope";clean(&s);
     s=open_session();current_seat="seat1";CHECK(!ae_session_check(s,&loss) && loss==AE_SESSION_INACTIVE);current_seat="seat0";clean(&s);
     s=open_session();query_error=1;CHECK(!ae_session_check(s,&loss) && loss==AE_SESSION_OBSERVATION_FAILED);query_error=0;clean(&s);
+    CHECK(ae_session_open_greeter(getuid(),"seat0",8,&s)==-EACCES && !s);
+    current_class="greeter";
+    CHECK(ae_session_open_greeter(getuid(),"seat0",7,&s)==-EACCES && !s);
+    CHECK(!ae_session_open_greeter(getuid(),"seat0",8,&s) && !ae_session_check_greeter(s));
+    current_vt=9;CHECK(ae_session_check_greeter(s)==-ESTALE);
+    current_vt=8;CHECK(ae_session_check_greeter(s)==-ESTALE);clean(&s);
+    current_class="user";s=open_session();CHECK(ae_session_check_greeter(s)==-EINVAL);clean(&s);
     CHECK(fd_count()==before);puts("Session: real self pidfd, original metadata/loss latch, native hints and thread/fork boundaries passed");return 0;
 }

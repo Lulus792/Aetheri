@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current native greeter UI checkpoint: read spec/login.md and the 2026-11-17
+login-ui-host journal. Host takes the only private Wayland endpoint, gates
+input on active greeter seat/VT, submitted frame and keyboard focus, and
+drains native events before pumping requests. Actual greeter-seat fixtures
+91305d9c9368/ba8e5bfce7ad show native UI, synthetic ACK and masked draft loss
+without an answer. Keep dummy peer distinct from the protected backend.
+Next compiled deployment, exact normal provider and full authenticated UI
+transition. Preserve failures and the USB/NexaUI maintenance gates.
+
 Current private greeter display checkpoint: read spec/login.md and the 2026-11-17
 login-display journal. The compositor creates the only client stream after
 DRM startup and passes it through a one-off unnamed seqpacket channel. The
