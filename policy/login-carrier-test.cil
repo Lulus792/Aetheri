@@ -1,0 +1,8 @@
+; MIT. Disposable-carrier compatibility ONLY. Do not ship this supplement.
+; PID1 retains an early-boot kernel_t notification socket on this carrier.
+; The bounded startup notice still names the exact original MainPID/invocation;
+; this type allowance is not socket identity or deployment admission.
+(allow aetheri_login_backend_t kernel_t (unix_dgram_socket (sendto)))
+; The carrier's pre-policy journal receiver likewise retains kernel_t. PAM's
+; ordinary session-open/close messages are not visible without this send right.
+(allow aetheri_login_worker_t kernel_t (unix_dgram_socket (sendto)))

@@ -7,8 +7,41 @@ The C conversation model, native stream and protected startup components exist.
 Private PAM authentication now reaches the actual graphical desktop and completes
 session shutdown. A candidate SELinux domain confines the finite startup helper.
 A locked dedicated greeter account and internal PAM profile now have actual
-carrier session evidence. Normal deployment admission, dedicated backend/greeter
-confinement and the original graphical greeter remain work.
+carrier session evidence, including a split SELinux profile. Normal deployment
+admission and the original graphical greeter remain work.
+
+## Candidate login roles
+
+The candidate policy assigns separate SELinux domains to the protocol backend,
+its privileged PAM worker and the greeter. The finite startup publisher remains
+in its own domain. PID1 starts the selected backend. The backend's self-exec
+enters the worker domain, and the worker's child drops its Unix credentials
+before the selected executable enters the greeter domain. Fedora's authlogin
+policy requires explicit membership in `can_read_shadow_passwords`. Only the
+worker has it, and it has read-only shadow access. Its audit netlink access
+allows reporting PAM events. The backend and worker retain the TTY operations
+needed by the pinned backend's VT handling. The greeter has no direct TTY
+rights or account-changing capabilities.
+
+The carrier supplement allows the backend's startup notice and the worker's
+PAM log messages to reach the existing early-boot `kernel_t` datagram sockets
+that PID1 and journald hold on this Fedora carrier. Package only the policy
+selected for the normal deployment and independently verify its socket and
+process labels, device bindings, writable runtime paths and unit settings.
+The test log type supports the inherited `OpenFile` diagnostic descriptor.
+The probe writes only synthetic access results and lifecycle markers.
+
+The explicit `probe_login_roles` build target exercises synthetic file and
+socket access. The read-only `tools/check_login_policy.py` checks selected
+access decisions against an independently supplied loaded-policy digest. The
+native test starts an actual internal greeter PAM session on seat0/VT8 with an
+inert greeter. It observes the three labels and the greeter's exact UID, GID,
+groups and empty capability sets. Stopping the original backend leads to the
+original greeter and worker's normal exits, PAM close and the inactive session
+scope. The remaining integration joins the finite publisher, protected greeter
+connection and trusted display on the same selected deployment. Human password
+authentication and the user desktop under this policy require their own run.
+See the [native record](../brains/aetheri/journal/2026-11-16-login-roles.md).
 
 ## Dedicated greeter account and supplementary groups
 

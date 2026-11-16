@@ -1,5 +1,20 @@
 # State
 
+16 November 2026 — The split login SELinux candidate passes native access
+controls and an actual internal greeter PAM open/close under the three domains.
+The final C probe observes the locked UID/GID 992 greeter with only group 992
+and zero capabilities. Original worker and greeter exit 0, the PAM scope becomes
+inactive, and the backend stops successfully. The final matched policy passes
+109 loaded decisions and strict compilation of 426 selected modules with three
+rejected counterexamples. Release and memory pass nine CTests each. Audit
+bb6680aed1db verifies their 788 inputs, analyzer and ordinary memory control.
+After the host reboot the qcow2 passed its read-only integrity check, fresh native
+cases passed in the same registered VM, and exact policy retirement restored the
+complete baseline. Keep the carrier-specific supplement separate. The next step
+joins the finite publisher and original protected greeter connection to the split
+policy, then verifies normal PAM authentication and graphical session handoff.
+See the [native record](journal/2026-11-16-login-roles.md).
+
 16 November 2026 — Actual extra-group refusal now passes. Release cc9fe0ee35a1
 and memory d8b1bec26af4 observe the original greeter's real groups 992/60000 through
 a unit-private group file, reject the independent 992-only expectation, retain

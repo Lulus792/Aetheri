@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current login role checkpoint: read spec/login.md's candidate login roles and
+the 2026-11-16 login-roles journal. The separate backend, PAM worker and UID992
+greeter pass actual enforcing SELinux access and internal PAM open/close.
+Independent strict compilation checks all 426 module inputs and three rejected
+counterexamples. Keep the Fedora shadow-reader attribute worker-only and the
+early-boot kernel_t datagram supplement carrier-only. Release/memory nine tests
+each, GCC analyzer and ordinary instrumented probe pass. The host reboot ended
+PID16628, the qcow2 check passed, and new VM boot 342ed7a6 observed fresh role and
+PAM cases with the final probe. Exact module retirement restores the baseline.
+Next integrate the finite publisher and protected greeter connection in the split
+policy, then verify normal PAM authentication and trusted graphical handoff.
+The USB gate and existing NexaUI catalogue maintenance continue to apply.
+
 Current extra-group checkpoint: read spec/login.md and the follow-up in the
 2026-11-16 login-account journal. Actual Release/memory greeters with private
 NSS groups 992/60000 reject expected 992, keep the failed guard fenced, then pass
