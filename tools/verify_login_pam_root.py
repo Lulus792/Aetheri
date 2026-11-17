@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 import desktop_payload
-from prepare_login_pam_runtime import HELPER, INTERPRETER, SPEC, elf_references, load
+from prepare_login_pam_runtime import HELPER, INTERPRETER, PROGRAMS, SPEC, elf_references, load
 
 
 PAM_DIR = "/etc/pam.d/"
@@ -60,7 +60,7 @@ def file(root: Path, name: str, entry: dict, context: str | None = None) -> Path
     return path
 
 
-def verify(root: Path) -> dict:
+def offline_root(root: Path) -> None:
     if sys.platform != "linux":
         raise ValueError("inspect the assembled root on Linux")
     if root.resolve() == Path("/"):
@@ -69,6 +69,9 @@ def verify(root: Path) -> dict:
     if not stat.S_ISDIR(root_info.st_mode) or root_info.st_uid or root_info.st_gid or root_info.st_mode & 0o022:
         raise ValueError("expected a protected root directory")
 
+
+def verify(root: Path) -> dict:
+    offline_root(root)
     supplement, supplement_sha = load("login-pam-runtime-inputs.json")
     desktop, desktop_sha = load("desktop-image-inputs.json")
     boot, boot_sha = load("boot-probe-inputs.json")
@@ -118,7 +121,7 @@ def verify(root: Path) -> dict:
             raise ValueError(f"ELF dependency is absent from the image inventory: {name}")
         path = file(root, name, files[name], metadata["selinux"] if name == HELPER else None)
         needed, interpreter = elf_references(path)
-        if interpreter not in (None, INTERPRETER) or (name == HELPER and interpreter is None):
+        if interpreter not in (None, INTERPRETER) or (name in PROGRAMS and interpreter is None):
             raise ValueError(f"unexpected interpreter: {name}")
         checked[name] = {"sha256": files[name]["sha256"], "needed": needed, "interpreter": interpreter}
         pending.update(needed)

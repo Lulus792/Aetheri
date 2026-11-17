@@ -11,6 +11,7 @@ deployment provider can bind them to independently selected release inputs.
 | `/etc/pam.d/aetheri-login` | Local human authentication and session setup through PAM |
 | `/etc/pam.d/aetheri-greeter` | Internal PAM session for the locked display account |
 | `/etc/pam.d/other` | Deny authentication, account, password and session requests for unknown PAM services |
+| `/etc/nsswitch.conf` | Local account and group lookup, with DNS available for host names |
 | `/usr/lib/systemd/system/` | Backend service, ordered startup verifier and worker shutdown drop-in |
 | `/usr/lib/sysusers.d/` and `/usr/lib/tmpfiles.d/` | Display account and per-boot directory recipes |
 | `/usr/share/wayland-sessions/aetheri.desktop` | Entry from an existing local Wayland login |
@@ -85,7 +86,8 @@ python tools/prepare_login_pam_runtime.py --output login-pam-stage
 Run this as an ordinary Linux build user with the exact source files listed
 in [the PAM runtime inventory](login-pam-runtime-inputs.json) and `readelf`
 available. It stages three additional PAM modules, the password helper,
-their additional libraries and notices. It verifies hashes during copying
+the locked account's `nologin` shell, and their additional libraries and
+notices. It verifies hashes during copying
 and checks the staged ELF references against the supplement and the selected
 desktop and boot inventories. The receipt records the required base paths
 and the final image metadata for the password helper. The staged helper
@@ -109,6 +111,28 @@ gates and full PAM session creation. The
 loads the selected modules with the image's own libraries and checks the
 default service inside a private test root.
 
+### Local account data
+
+During assembly of a fresh image, select the greeter UID and GID against its
+base account inventory. Preview and apply the staged sysusers recipe to that
+root. Verify the result against the independently selected IDs before signing.
+Keep an already enrolled greeter reserved across updates. [systemd-sysusers](https://www.freedesktop.org/software/systemd/man/259/systemd-sysusers.html)
+
+```sh
+systemd-sysusers --root="$IMAGE_ROOT" --dry-run - < "$IMAGE_ROOT/usr/lib/sysusers.d/aetheri-login.conf"
+systemd-sysusers --root="$IMAGE_ROOT" - < "$IMAGE_ROOT/usr/lib/sysusers.d/aetheri-login.conf"
+systemd-tmpfiles --root="$IMAGE_ROOT" --create - < "$IMAGE_ROOT/usr/lib/tmpfiles.d/aetheri-login.conf"
+python tools/verify_login_accounts.py --root "$IMAGE_ROOT" \
+  --greeter-uid "$LOGIN_UID" --greeter-gid "$LOGIN_GID"
+```
+
+The verifier checks the local NSS policy, the exact enrolled identity and
+fully locked password and account, and rejects shared IDs and extra group
+memberships. It checks the Root-owned empty home and pinned `nologin` shell.
+For this recipe, `initgroups` sets the primary GID as the sole kernel
+supplementary group. Pass that GID once as `--group` when preparing the
+normal signed selection. The tool reports IDs and groups only.
+
 ### Signed login selection
 
 The startup verifier and greeter need the same independently selected
@@ -124,11 +148,12 @@ Prepare an unsigned record from an already reviewed staging receipt. Supply
 the actual distribution-wide systemd service drop-in and a separately
 reviewed snapshot of the effective kernel policy bytes as ordinary files.
 Use the image's reserved greeter UID/GID and exact supplementary groups, one
-`--group` argument per group in ascending order. An empty group set uses no
-`--group` arguments.
+`--group` argument per group in ascending order. With `--account-root`,
+selection preparation verifies the offline account against those expectations.
 
 ```sh
 python tools/prepare_login_selection.py --stage login-stage \
+  --account-root "$IMAGE_ROOT" --group "$LOGIN_GID" \
   --release "$LOGIN_RELEASE_ID" --greeter-uid "$LOGIN_UID" --greeter-gid "$LOGIN_GID" \
   --systemd-dropin selected-timeout-abort.conf --effective-policy selected-policy.bin \
   --output login.body

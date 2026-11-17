@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The login image stages local NSS, a pinned nologin shell
+and the empty greeter home recipe. A private composed-root fixture enrolls
+the locked account, checks actual NSS and kernel groups, and exercises
+the named PAM account guards. Signing preparation can check the same
+enrolled identity. Next connect the installed platform gates and exercise
+the full booted login. See the
+[image account record](journal/2026-11-17-login-image-accounts.md).
+
 17 November 2026 — The assembled PAM root verifier checks all three profiles,
 the actual ELF dependency closure and the password helper metadata. In the
 isolated root, all six selected modules load, including the exact archived

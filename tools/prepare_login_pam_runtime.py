@@ -15,6 +15,8 @@ import desktop_payload
 
 SPEC = Path(__file__).resolve().parents[1] / "spec"
 HELPER = "/usr/bin/unix_chkpwd"
+NOLOGIN = "/usr/bin/nologin"
+PROGRAMS = {HELPER, NOLOGIN}
 INTERPRETER = "/lib64/ld-linux-x86-64.so.2"
 BASE_MODULES = {"/usr/lib64/security/" + name + ".so"
                 for name in ("pam_deny", "pam_permit", "pam_systemd")}
@@ -53,6 +55,8 @@ def stage(output: Path) -> dict:
     additions, base = names(supplement), names(desktop)
     if additions & base or not BASE_MODULES <= base:
         raise ValueError("PAM supplement conflicts with or lacks the selected desktop base")
+    if not PROGRAMS <= additions:
+        raise ValueError("missing a required login program")
     if not any(entry["source"] == INTERPRETER and entry["canonical"] == "/usr" + INTERPRETER
                for entry in boot["files"]):
         raise ValueError("missing password helper interpreter in the boot inventory")
@@ -76,7 +80,7 @@ def stage(output: Path) -> dict:
         missing = set(needed) - additions - base
         if missing:
             raise ValueError(f"unpinned dependencies for {name}: {', '.join(sorted(missing))}")
-        if interpreter != (INTERPRETER if name == HELPER else None):
+        if interpreter != (INTERPRETER if name in PROGRAMS else None):
             raise ValueError(f"unexpected interpreter for {name}")
         required_base.update(set(needed) & base)
         references[name] = {"needed": needed, "interpreter": interpreter}

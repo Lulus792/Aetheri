@@ -61,6 +61,10 @@ class LoginDeploymentTests(unittest.TestCase):
         self.assertEqual((tree / "etc/pam.d/other").read_bytes(),
                          b"auth required pam_deny.so\naccount required pam_deny.so\n"
                          b"password required pam_deny.so\nsession required pam_deny.so\n")
+        nss = (tree / "etc/nsswitch.conf").read_bytes()
+        self.assertEqual(nss.splitlines()[1:],
+                         [b"passwd: files", b"group: files", b"shadow: files", b"gshadow: files",
+                          b"initgroups: files", b"hosts: files dns"])
         conf = tomllib.loads((tree / deployment.DATA / "greetd.toml").read_text())
         self.assertIs(conf["general"]["source_profile"], False)
         self.assertEqual(conf["general"]["service"], "aetheri-login")

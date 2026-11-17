@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current image account work: read spec/login-deployment.md and the 2026-11-17
+login-image-accounts journal. The staged NSS file uses local account sources;
+the supplement pins nologin. The composed verifier checks the locked greeter
+against independent UID/GID expectations and reports the sole kernel group.
+Pass --account-root in the normal signing flow. The exact 259.10 PAM files
+pass named account gates in the fresh private image root. Next connect these
+image inputs and the remaining installed platform gates to a booted graphical
+login. Preserve the protected carrier account and the first-version USB gate.
+
 Current composed PAM root work: read spec/login-deployment.md and the
 2026-11-17 login-pam-root journal. The offline verifier checks the three
 configuration files, 30 ELF objects, 18 library aliases and helper metadata

@@ -10,6 +10,7 @@ import struct
 import sys
 
 from prepare_login_deployment import DATA, LIBEXEC, MAX_INPUT, UNITS, digest, unique_object
+from verify_login_accounts import verify as verify_accounts
 
 
 # Wire order matches enum ae_login_selection_role. Only these fixed image
@@ -46,13 +47,15 @@ def read_regular(path: Path, limit: int) -> bytes:
 
 
 def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
-            gid: int, groups: list[int]) -> bytes:
+            gid: int, groups: list[int], account_root: Path | None = None) -> bytes:
     if not re.fullmatch("[0-9a-f]{64}", release) or not any(bytes.fromhex(release)):
         raise ValueError("deployment release must be a nonzero 32-byte lowercase hex value")
     if any(type(value) is not int or not 0 < value < 0xffffffff for value in (uid, gid, *groups)):
         raise ValueError("account and supplementary group IDs must be nonzero Linux IDs")
     if len(groups) > 16 or sorted(set(groups)) != groups:
         raise ValueError("expected up to 16 strictly increasing supplementary groups")
+    if account_root is not None and verify_accounts(account_root, uid, gid)["groups"] != groups:
+        raise ValueError("selected groups differ from the enrolled greeter")
     selection = json.loads(read_regular(stage / "receipt.json", 65536), object_pairs_hook=unique_object)
     if (not isinstance(selection, dict) or set(selection) != {"format", "files"}
             or type(selection["format"]) is not int or selection["format"] != 1
@@ -91,12 +94,13 @@ def main() -> int:
     parser.add_argument("--greeter-uid", type=int, required=True)
     parser.add_argument("--greeter-gid", type=int, required=True)
     parser.add_argument("--group", action="append", type=int, default=[])
+    parser.add_argument("--account-root", type=Path, help="verify this assembled image's enrolled greeter")
     parser.add_argument("--signature", type=Path, help="append the offline signer’s raw Ed25519 signature")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         body = payload(args.stage, args.systemd_dropin, args.effective_policy,
-                       args.release, args.greeter_uid, args.greeter_gid, args.group)
+                       args.release, args.greeter_uid, args.greeter_gid, args.group, args.account_root)
         if args.signature is not None:
             signature = read_regular(args.signature, 64)
             if len(signature) != 64:
