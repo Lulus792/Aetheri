@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — An explicit CMake image profile builds the startup and
+greeter with one release anchor. Its runtime check verifies the selected
+ext4 mount views and rejects read-only views of writable storage. The
+offline library cache works with the installed search path. Next compose
+the standalone VM boot with the selected account, policy and units. See the
+[image provider record](journal/2026-11-17-login-image-provider.md).
+
 17 November 2026 — The installed login startup checks the signed startup unit
 and executable, session entry, compositor and desktop in both namespace views.
 It joins its current executable to the captured file and fences observed

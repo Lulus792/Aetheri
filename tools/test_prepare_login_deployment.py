@@ -65,6 +65,7 @@ class LoginDeploymentTests(unittest.TestCase):
         self.assertEqual(nss.splitlines()[1:],
                          [b"passwd: files", b"group: files", b"shadow: files", b"gshadow: files",
                           b"initgroups: files", b"hosts: files dns"])
+        self.assertEqual((tree / "etc/ld.so.conf").read_bytes(), b"/usr/lib/aetheri/runtime\n")
         conf = tomllib.loads((tree / deployment.DATA / "greetd.toml").read_text())
         self.assertIs(conf["general"]["source_profile"], False)
         self.assertEqual(conf["general"]["service"], "aetheri-login")

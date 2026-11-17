@@ -32,6 +32,7 @@ ARTIFACTS.update({
 
 SUPPORT = {
     "data/login/greetd.toml": f"{DATA}/greetd.toml",
+    "data/login/ld.so.conf": "etc/ld.so.conf",
     "data/login/nsswitch.conf": "etc/nsswitch.conf",
     "data/pam.d/aetheri-login": "etc/pam.d/aetheri-login",
     "data/pam.d/aetheri-greeter": "etc/pam.d/aetheri-greeter",

@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current installed image provider: read spec/login-deployment.md and the
+2026-11-17 login-image-provider journal. Explicit CMake image mode compiles
+the same key/release into startup and greeter. Keep the kernel statmount
+unique-ID request on 6.19. Use the offline ldconfig cache for the fixed
+runtime directory. The two build profiles and six native mount cases pass;
+the actual startup rejects the writable carrier in its intended SELinux
+domain. Next compose a standalone VM boot with these artifacts, the final
+policy and installed services. The USB gate applies.
+
 Current signed desktop startup work: read spec/login-deployment.md and the
 2026-11-17 login-startup-runtime journal. The installed helper observes its
 signed unit and its actual executed image plus session/compositor/desktop

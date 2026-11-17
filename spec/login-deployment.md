@@ -12,6 +12,7 @@ deployment provider can bind them to independently selected release inputs.
 | `/etc/pam.d/aetheri-greeter` | Internal PAM session for the locked display account |
 | `/etc/pam.d/other` | Deny authentication, account, password and session requests for unknown PAM services |
 | `/etc/nsswitch.conf` | Local account and group lookup, with DNS available for host names |
+| `/etc/ld.so.conf` | Search path for the image's reviewed desktop libraries |
 | `/usr/lib/systemd/system/` | Backend service, ordered startup verifier and worker shutdown drop-in |
 | `/usr/lib/sysusers.d/` and `/usr/lib/tmpfiles.d/` | Display account and per-boot directory recipes |
 | `/usr/share/wayland-sessions/aetheri.desktop` | Entry from an existing local Wayland login |
@@ -76,6 +77,42 @@ no completion receipt until all files are written. Use a fresh tree for a new
 attempt.
 
 ## Image integration
+
+### Installed image provider
+
+Build the startup executable and greeter with the same selected Ed25519
+public key and release ID. Add these options to the normal Linux build
+configuration with the reviewed dependencies.
+
+```sh
+cmake -S . -B build-login \
+  -DAETHERI_LINUX_IPC=ON -DAETHERI_LOGIN_PROTOCOL=ON \
+  -DAETHERI_LOGIN_STARTUP=ON -DAETHERI_LOGIN_VIEW=ON -DAETHERI_LOGIN_GREETER=ON \
+  -DAETHERI_LOGIN_IMAGE=ON -DAETHERI_NEXAUI_PREFIX="$NEXAUI_PREFIX" \
+  -DAETHERI_LOGIN_IMAGE_PUBLIC_KEY="$LOGIN_PUBLIC_KEY" \
+  -DAETHERI_LOGIN_IMAGE_RELEASE="$LOGIN_RELEASE_ID"
+cmake --build build-login --target aetheri-login-startup aetheri-login-greeter
+```
+
+Supply 64 lowercase hexadecimal digits for each anchor. Both programs get
+the same generated header. Image mode and explicit custom provider sources
+are mutually exclusive. The fixed image provider checks the program's
+expected SELinux domain and no-new-privileges before invoking the installed
+adapter. It verifies a read-only ext4 superblock, read-only current mounts,
+and the selected system and runtime directories. A service bind mount may
+project a directory at its original image path. A different subtree or a
+read-only bind onto a writable superblock fails. Linux provides the mount
+identity and superblock attributes through `statmount`.
+[Linux mount UAPI](https://github.com/torvalds/linux/blob/v6.19/include/uapi/linux/mount.h)
+
+After placing the pinned libraries, generate the loader cache within the
+offline assembly using the selected glibc's `ldconfig -r "$IMAGE_ROOT"`.
+The installed provider uses the image cache and selects
+`/usr/share/libinput` for input quirks. It does not pass a library path in
+the greeter's child environment. Review the cache entries and retain the
+protected root and mount layout from boot. Boot and image assembly still
+own provenance, the account and PAM inputs, runtime library closure and
+the effective device policy.
 
 ### PAM runtime supplement
 
