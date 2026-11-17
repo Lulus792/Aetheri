@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The installed login startup checks the signed startup unit
+and executable, session entry, compositor and desktop in both namespace views.
+It joins its current executable to the captured file and fences observed
+runtime loss. A private service under the intended SELinux type passes the
+file gate with the selected crypto library. Next test the normal platform
+provider and installed units through a booted login. See the
+[startup runtime record](journal/2026-11-17-login-startup-runtime.md).
+
 17 November 2026 — The login image stages local NSS, a pinned nologin shell
 and the empty greeter home recipe. A private composed-root fixture enrolls
 the locked account, checks actual NSS and kernel groups, and exercises

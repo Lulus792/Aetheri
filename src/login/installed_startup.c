@@ -2,6 +2,7 @@
 #include "login/installed.h"
 #include "login/policy_status.h"
 #include "login/runner.h"
+#include "linux/image.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/magic.h>
@@ -12,12 +13,25 @@
 struct deployment {
     const struct ae_login_release_anchor *trust;
     struct ae_login_installed *original, *backend;
+    struct ae_login_sources *original_runtime, *backend_runtime;
     struct ae_login_policy_status *status;
     struct ae_login_selected_file policy;
     uint8_t record_digest[AE_SHA256_BYTES];
     int (*platform_check)(void *);
     void *userdata;
 };
+
+static int observe_runtime(struct ae_login_installed *installed, struct ae_login_sources **out)
+{
+    struct ae_login_source_expect runtime[AE_LOGIN_INSTALLED_RUNTIME_COUNT];
+    int result = ae_login_installed_runtime(installed, runtime);
+    if (!result) result = ae_login_sources_create(runtime, AE_LOGIN_INSTALLED_RUNTIME_COUNT, out);
+    struct ae_image expected, current;
+    if (!result) result = ae_login_sources_image(*out, AE_LOGIN_INSTALLED_STARTUP_PROGRAM, &expected);
+    if (!result) result = ae_image_match_self(0, 0, &expected, &current);
+    if (result) ae_login_sources_close(out);
+    return result;
+}
 
 static int policy_sequence(void *value,uint32_t *out)
 {
@@ -46,6 +60,8 @@ static int check(void *value)
     if (result > 0) return -EINVAL;
     if (!result)
         result = ae_login_installed_check(deployment->backend ? deployment->backend : deployment->original);
+    if (!result)
+        result = ae_login_sources_check(deployment->backend ? deployment->backend_runtime : deployment->original_runtime);
     uint32_t sequence;
     if (!result) result = policy_sequence(deployment,&sequence);
     if (!result) result = check_policy(&deployment->policy);
@@ -62,6 +78,7 @@ static int enter_view(void *value)
     uint8_t digest[AE_SHA256_BYTES];
     if (!result) result = ae_login_installed_digest(backend, digest);
     if (!result && memcmp(digest, deployment->record_digest, sizeof digest)) result = -ESTALE;
+    if (!result) result = observe_runtime(backend, &deployment->backend_runtime);
     if (result) {
         ae_login_installed_close(&backend);
         return result;
@@ -86,6 +103,7 @@ int ae_login_installed_startup_run(const struct ae_login_release_anchor *trust,
     if (!result) result = ae_login_installed_read(deployment.original, &selection);
     if (!result) deployment.policy = selection.files[AE_LOGIN_SELECT_KERNEL_POLICY];
     if (!result) result = ae_login_installed_digest(deployment.original, deployment.record_digest);
+    if (!result) result = observe_runtime(deployment.original, &deployment.original_runtime);
     struct ae_login_source_expect sources[AE_LOGIN_INSTALLED_BACKEND_COUNT];
     if (!result) result = ae_login_installed_backend(deployment.original, sources);
     static const size_t dropins[] = {
@@ -113,7 +131,11 @@ int ae_login_installed_startup_run(const struct ae_login_release_anchor *trust,
         },
     };
     if (!result) result = ae_login_startup_run(&profile);
-    int closed = ae_login_installed_close(&deployment.backend);
+    int closed = ae_login_sources_close(&deployment.backend_runtime);
+    if (!result) result = closed;
+    closed = ae_login_sources_close(&deployment.original_runtime);
+    if (!result) result = closed;
+    closed = ae_login_installed_close(&deployment.backend);
     if (!result) result = closed;
     closed = ae_login_installed_close(&deployment.original);
     ae_login_policy_status_close(&deployment.status);

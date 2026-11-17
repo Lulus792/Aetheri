@@ -220,9 +220,21 @@ check. The native startup coordinator enters the original backend's namespace
 and verifies it before calling the one-time view hook. That hook opens a
 second protected selection and requires the same authenticated record digest.
 It keeps the second selection pinned during backend source capture, readiness
-and publication. The adapter also compares the signed policy size and SHA-256
-with the actual policy read from selinuxfs in each gate invocation. Changes
-or unreadable selections cause the startup attempt to fail.
+and publication.
+
+The installed startup path observes five additional signed files in each
+view. These are its unit fragment, its executable, the session executable,
+the compositor and the desktop shell. It checks the actual running startup
+executable against the same held file object, including when it enters the
+backend view. Subsequent checks revalidate the retained files in the current
+view. An observed loss fences the attempt. The ten-entry backend handoff
+fingerprint retains its existing form. SELinux grants the startup domain
+read-only access to the three selected desktop executable types.
+
+The adapter compares the signed policy size and SHA-256 with the actual
+policy read from selinuxfs in each gate invocation. The loaded service checks,
+future user-session transitions, actual DSO loading and image admission still
+require their respective runtime proofs.
 
 The [startup adapter verification](../brains/aetheri/journal/2026-11-17-login-installed-startup.md)
 covers the native entry, real private mount views and effective policy checks.

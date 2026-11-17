@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current signed desktop startup work: read spec/login-deployment.md and the
+2026-11-17 login-startup-runtime journal. The installed helper observes its
+signed unit and its actual executed image plus session/compositor/desktop
+files in both views. Keep the original per-view handles, fixed ten-source
+handoff and read-only startup policy. Native Release and memory fixtures
+reject changed or lost desktop files and a byte-identical foreign startup
+inode. The typed test with the selected libcrypto reaches the expected
+policy rejection after runtime capture. Next boot the selected image with
+the installed provider and actual units. The USB gate applies.
+
 Current image account work: read spec/login-deployment.md and the 2026-11-17
 login-image-accounts journal. The staged NSS file uses local account sources;
 the supplement pins nologin. The composed verifier checks the locked greeter

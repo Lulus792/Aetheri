@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <openssl/evp.h>
 #include <sched.h>
+#include <selinux/selinux.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -25,6 +27,12 @@ static int platform_calls, runner_calls;
 static int platform(void *context)
 {
     CHECK(context == &trust && !getuid() && !geteuid());
+    if (!strcmp(scenario, "typed-policy")) {
+        char *label = NULL;
+        CHECK(!getcon_raw(&label));
+        CHECK(label && !strcmp(label, "system_u:system_r:aetheri_login_startup_t:s0"));
+        freecon(label);
+    }
     ++platform_calls;
     return strcmp(scenario, "platform") ? 0 : -EACCES;
 }
@@ -56,11 +64,21 @@ int __wrap_ae_login_startup_run(const struct ae_login_run_profile *p)
     CHECK(!strcmp(p->startup.sources[AE_LOGIN_INSTALLED_GREETER_PAM].leaf, "aetheri-greeter"));
     int result = p->startup.check(p->startup.userdata);
     if (result) fprintf(stderr, "initial gate: %d\n", result);
-    if (!strcmp(scenario, "policy")) {
+    if (!strcmp(scenario, "policy") || !strcmp(scenario, "typed-policy")) {
         CHECK(result == -EKEYREJECTED);
         return result;
     }
     CHECK(!result);
+    if (!strcmp(scenario, "lost-runtime")) {
+        const char *path = "/usr/libexec/aetheri/aetheri-desktop";
+        const char *held = "/usr/libexec/aetheri/aetheri-desktop-held";
+        CHECK(!rename(path, held));
+        result = p->startup.check(p->startup.userdata);
+        CHECK(result == -ESTALE);
+        CHECK(!rename(held, path));
+        CHECK(p->startup.check(p->startup.userdata) == result);
+        return result;
+    }
     CHECK(!unshare(CLONE_NEWNS));
     CHECK(!mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL));
     CHECK(!mount(next_share, "/usr/share", NULL, MS_BIND, NULL));
@@ -80,10 +98,13 @@ int main(int argc, char **argv)
     CHECK(argc == 3 && !getuid());
     next_share = argv[1];
     scenario = argv[2];
+    bool early = !strcmp(scenario, "platform") || !strcmp(scenario, "other-image") ||
+        !strcmp(scenario, "wrong-runtime");
     CHECK(!strcmp(scenario, "same") || !strcmp(scenario, "different") ||
-          !strcmp(scenario, "policy") || !strcmp(scenario, "platform"));
+          !strcmp(scenario, "policy") || !strcmp(scenario, "typed-policy") ||
+          !strcmp(scenario, "lost-runtime") || early);
     int expected = strcmp(scenario, "same") ? 1 : 0;
     CHECK(ae_test_startup_main(1, argv) == expected);
-    CHECK(runner_calls == (strcmp(scenario, "platform") ? 1 : 0));
+    CHECK(runner_calls == (early ? 0 : 1));
     return 0;
 }

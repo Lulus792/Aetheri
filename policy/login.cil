@@ -314,6 +314,14 @@
 (typeattributeset file_type (aetheri_desktop_shell_exec_t))
 (typeattributeset exec_type (aetheri_desktop_shell_exec_t))
 (typeattributeset entry_type (aetheri_desktop_shell_exec_t))
+
+; The finite startup verifier reads the three signed desktop program files.
+(allow aetheri_login_startup_t aetheri_session_exec_t (file (read open getattr)))
+(allow aetheri_login_startup_t aetheri_session_core_exec_t (file (read open getattr)))
+(allow aetheri_login_startup_t aetheri_desktop_shell_exec_t (file (read open getattr)))
+(neverallow aetheri_login_startup_t aetheri_session_exec_t (file (write create unlink execute execute_no_trans)))
+(neverallow aetheri_login_startup_t aetheri_session_core_exec_t (file (write create unlink execute execute_no_trans)))
+(neverallow aetheri_login_startup_t aetheri_desktop_shell_exec_t (file (write create unlink execute execute_no_trans)))
 (roletype system_r aetheri_desktop_shell_t)
 (typetransition aetheri_session_t aetheri_desktop_shell_exec_t process aetheri_desktop_shell_t)
 (allow aetheri_session_t aetheri_desktop_shell_exec_t (file (read open getattr execute map)))

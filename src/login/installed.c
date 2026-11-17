@@ -176,6 +176,41 @@ int ae_login_installed_font(struct ae_login_installed *installed, struct ae_logi
     return 0;
 }
 
+int ae_login_installed_runtime(struct ae_login_installed *installed,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_RUNTIME_COUNT])
+{
+    if (!out) return -EINVAL;
+    int result = ae_login_installed_check(installed);
+    if (result) return result;
+    struct ae_login_source_expect runtime[AE_LOGIN_INSTALLED_RUNTIME_COUNT] = {
+        [AE_LOGIN_INSTALLED_STARTUP_PROGRAM] =
+            {LOGIN_EXEC, "aetheri-login-startup", "system_u:object_r:aetheri_login_startup_exec_t:s0",
+                AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        [AE_LOGIN_INSTALLED_STARTUP_UNIT] =
+            {SYSTEMD_UNITS, "aetheri-login-startup.service", unit_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        [AE_LOGIN_INSTALLED_SESSION_PROGRAM] =
+            {LOGIN_EXEC, "aetheri-session", "system_u:object_r:aetheri_session_exec_t:s0",
+                AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        [AE_LOGIN_INSTALLED_COMPOSITOR_PROGRAM] =
+            {LOGIN_EXEC, "aetheri-compositor", "system_u:object_r:aetheri_session_core_exec_t:s0",
+                AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        [AE_LOGIN_INSTALLED_DESKTOP_PROGRAM] =
+            {LOGIN_EXEC, "aetheri-desktop", "system_u:object_r:aetheri_desktop_shell_exec_t:s0",
+                AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+    };
+    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_RUNTIME_COUNT] = {
+        [AE_LOGIN_INSTALLED_STARTUP_PROGRAM] = AE_LOGIN_SELECT_STARTUP,
+        [AE_LOGIN_INSTALLED_STARTUP_UNIT] = AE_LOGIN_SELECT_STARTUP_UNIT,
+        [AE_LOGIN_INSTALLED_SESSION_PROGRAM] = AE_LOGIN_SELECT_SESSION,
+        [AE_LOGIN_INSTALLED_COMPOSITOR_PROGRAM] = AE_LOGIN_SELECT_COMPOSITOR,
+        [AE_LOGIN_INSTALLED_DESKTOP_PROGRAM] = AE_LOGIN_SELECT_DESKTOP,
+    };
+    for (size_t index = 0; index < AE_LOGIN_INSTALLED_RUNTIME_COUNT; ++index)
+        selected_file(installed, roles[index], &runtime[index]);
+    memcpy(out, runtime, sizeof runtime);
+    return 0;
+}
+
 int ae_login_installed_display(struct ae_login_installed *installed, struct ae_login_source_expect *out)
 {
     if (!out) return -EINVAL;
