@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <spawn.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -11,13 +12,37 @@
 #include <sys/wait.h>
 #include <unistd.h>
 extern char **environ;
+
+/* SELinux checks descriptor access across exec. Carry a readable handle to the
+   pinned inode instead of handing the next domain an O_PATH descriptor. */
+static int readable_witness(int witness,const struct stat *selected) {
+    char path[64];
+    int length=snprintf(path,sizeof(path),"/proc/self/fd/%d",witness);
+    if (length<0 || (size_t)length>=sizeof(path)) { errno=EINVAL;return -1; }
+    int readable=open(path,O_RDONLY|O_NONBLOCK|O_CLOEXEC);
+    if (readable<0) return -1;
+    struct stat actual;
+    int fd=-1;
+    if (!fstat(readable,&actual)) {
+        if (S_ISREG(actual.st_mode) && actual.st_dev==selected->st_dev && actual.st_ino==selected->st_ino)
+            fd=fcntl(readable,F_DUPFD_CLOEXEC,5);
+        else errno=ESTALE;
+    }
+    int saved=errno;
+    close(readable);
+    if (fd<0) errno=saved;
+    return fd;
+}
+
 int ae_files_launch_profile(struct ae_files_child *c,const char *terminal,const char *editor,const char *font,const char *bold_font,const char *cache,int directory,int witness,const char *leaf,bool diagnostics) {
     struct stat st;
     if (!c || c->pid>0 || !terminal || terminal[0]!='/' || !editor || editor[0]!='/' || !font || font[0]!='/' || (bold_font && bold_font[0]!='/') || !cache || cache[0]!='/' || !leaf || !*leaf || strlen(leaf)>255 || strchr(leaf,'/') || !strcmp(leaf,".") || !strcmp(leaf,"..") || directory<3 || witness<3 ||
         fstat(directory,&st) || !S_ISDIR(st.st_mode) || fstat(witness,&st) || !S_ISREG(st.st_mode)) { errno=EINVAL;return -1; }
     struct sigaction inherited;if (getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || sigaction(SIGCHLD,NULL,&inherited) || inherited.sa_handler==SIG_IGN || (inherited.sa_flags&SA_NOCLDWAIT)) { errno=EINVAL;return -1; }
-    int dir=fcntl(directory,F_DUPFD_CLOEXEC,5),file=fcntl(witness,F_DUPFD_CLOEXEC,5);
-    if (dir<0 || file<0) { int e=errno;if (dir>=0) close(dir);if (file>=0) close(file);errno=e;return -1; }
+    int dir=fcntl(directory,F_DUPFD_CLOEXEC,5);
+    if (dir<0) return -1;
+    int file=readable_witness(witness,&st);
+    if (file<0) { int saved=errno;close(dir);errno=saved;return -1; }
     size_t count=0;while (environ[count]) ++count;char **environment=calloc(count+1,sizeof(*environment));
     if (!environment) { close(dir);close(file);return -1; }
     size_t used=0;for (size_t i=0;i<count;++i) if (strncmp(environ[i],"WAYLAND_SOCKET=",15)) environment[used++]=environ[i];

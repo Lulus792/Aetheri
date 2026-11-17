@@ -20,7 +20,10 @@ static int child(int argc,char **argv) {
     CHECK(!getenv("WAYLAND_SOCKET") && getpgrp()==getpid());
     sigset_t mask;CHECK(!sigprocmask(SIG_SETMASK,NULL,&mask) && !sigismember(&mask,SIGINT));
     struct stat cwd,dir,file;CHECK(!stat(".",&cwd) && !fstat(3,&dir) && S_ISDIR(dir.st_mode) && cwd.st_dev==dir.st_dev && cwd.st_ino==dir.st_ino);
-    CHECK(!fstat(4,&file) && S_ISREG(file.st_mode) && (fcntl(4,F_GETFL)&O_PATH));
+    int flags=fcntl(4,F_GETFL);char original[5];
+    CHECK(!fstat(4,&file) && S_ISREG(file.st_mode) && flags>=0 && !(flags&O_PATH) &&
+        (flags&O_ACCMODE)==O_RDONLY && pread(4,original,sizeof(original),0)==(ssize_t)sizeof(original) &&
+        !memcmp(original,"hello",sizeof(original)));
     errno=0;CHECK(fcntl(100,F_GETFD)<0 && errno==EBADF);
     int proof=openat(3,argc==9?"child-proof":"profile-proof",O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC,0600);CHECK(proof>=5);
     CHECK(write(proof,leaf,sizeof(leaf))==(ssize_t)sizeof(leaf) && !close(proof));
@@ -46,6 +49,9 @@ int main(int argc,char **argv) {
     int proof=openat(dir,"child-proof",O_RDONLY|O_NOFOLLOW|O_CLOEXEC);char result[sizeof(leaf)];CHECK(proof>=3 && read(proof,result,sizeof(result))==(ssize_t)sizeof(result) && !memcmp(result,leaf,sizeof(result)) && !close(proof));
     CHECK(!ae_files_child_close(&c) && c.pid==-1 && c.pin==-1);
     CHECK(ae_files_launch_profile(&c,"/proc/self/exe","/independent-editor","/independent-font","relative","/independent-cache",dir,witness,leaf,true)<0 && errno==EINVAL && c.pid==-1);
+    CHECK(!renameat(dir,leaf,dir,"original"));
+    fd=openat(dir,leaf,O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC,0600);
+    CHECK(fd>=3 && write(fd,"other",5)==5 && !close(fd));
     CHECK(!ae_files_launch_profile(&c,"/proc/self/exe","/independent-editor","/independent-font",bold,"/independent-cache",dir,witness,leaf,true));
     CHECK(c.pid>0 && c.pin>=0 && !c.ended && ae_files_child_close(&c)<0 && errno==EBUSY);
     CHECK(write(release,"q",1)==1);pending=(struct pollfd){c.pin,POLLIN,0};CHECK(poll(&pending,1,5000)==1);

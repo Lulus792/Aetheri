@@ -1,13 +1,13 @@
 # State
 
-17 November 2026 — The signed installed Terminal presents correctly
-through Wayland shared memory and closes normally. The actual shell
-receives `pwd` and fails job selection, which uses a denied
-`process/getpgid` decision. The targeted offline correction compiles
-and passes the decision checks. Files starts its pinned document
-child, which exits two before an editor window. Next boot the policy
-candidate and diagnose the document preflight. See the
-[Terminal VM record](journal/2026-11-17-login-image-boot.md#installed-terminal-presentation).
+17 November 2026 — Signed VM Terminal executes `pwd` and reprompts
+with the corrected job-lookup permission. Files now opens the exact
+selected document in the editor, saves text, and reopens it after a
+separate cold boot on a copy of the saved data disk. The handoff
+uses a read-only descriptor for the pinned original without a new
+SELinux permission. Next admit the required shell utilities, including
+`cat`, and integrate the fixed apps into public image assembly.
+See the [VM record](journal/2026-11-17-login-image-boot.md#shell-job-selection-and-document-handoff).
 
 17 November 2026 — Separate app SELinux domains pass the offline
 policy checks and boot enforcing. Settings shows display status,

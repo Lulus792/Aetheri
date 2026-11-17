@@ -507,9 +507,12 @@ keeps the old snapshot; an explicit refresh is needed after external changes.
 There is no watcher daemon, recursive scanner or background indexer.
 
 For a regular file, Files obtains a parent-directory descriptor and an `O_PATH`
-file witness. The separately configured Terminal receives them as descriptors
-3/4 with the exact leaf as one literal argument. Files uses `posix_spawn` and file
-actions after SDL has started threads, closes other extra descriptors in the child,
+file witness. It reopens the held object read-only through its own descriptor
+and checks device, inode and type before spawning. The readable descriptor
+survives the installed SELinux transition using the existing document read
+permission. Terminal receives the parent and readable original witness as
+descriptors 3/4 with the exact leaf as one literal argument. Files uses
+`posix_spawn` and file actions after SDL has started threads, closes other extra descriptors in the child,
 removes inherited `WAYLAND_SOCKET` and starts a separate process group. It never
 constructs a shell command from the selected filename.
 

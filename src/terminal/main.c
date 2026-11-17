@@ -1447,8 +1447,39 @@ int main(int argc,char **argv) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     if(starter && (a.editor || starter[0]!='/')) return 2;
 #endif
-    struct stat st;if (!font || !cache || !program || program[0]!='/' || (a.editor ? shell!=NULL || leaf==NULL : leaf!=NULL) || cache[0]!='/' || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid() || lstat(cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) return 2;
-    if (a.editor && (fstat(3,&st) || !S_ISDIR(st.st_mode) || fstat(4,&st) || !S_ISREG(st.st_mode))) return 2;
+    if (!font || !cache || !program || program[0]!='/' ||
+        (a.editor ? shell!=NULL || leaf==NULL : leaf!=NULL) || cache[0]!='/' ||
+        getuid()==0 || getuid()!=geteuid() || getgid()!=getegid()) {
+        if (a.diagnostics) fputs("terminal: invalid launch arguments or credentials\n",stderr);
+        return 2;
+    }
+    struct stat st;
+    if (lstat(cache,&st)) {
+        if (a.diagnostics) fprintf(stderr,"terminal: cache stat errno=%d\n",errno);
+        return 2;
+    }
+    if (!S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700) {
+        if (a.diagnostics) fputs("terminal: invalid cache ownership or mode\n",stderr);
+        return 2;
+    }
+    if (a.editor) {
+        if (fstat(3,&st)) {
+            if (a.diagnostics) fprintf(stderr,"terminal: document directory stat errno=%d\n",errno);
+            return 2;
+        }
+        if (!S_ISDIR(st.st_mode)) {
+            if (a.diagnostics) fputs("terminal: invalid document directory descriptor\n",stderr);
+            return 2;
+        }
+        if (fstat(4,&st)) {
+            if (a.diagnostics) fprintf(stderr,"terminal: document file stat errno=%d\n",errno);
+            return 2;
+        }
+        if (!S_ISREG(st.st_mode)) {
+            if (a.diagnostics) fputs("terminal: invalid document file descriptor\n",stderr);
+            return 2;
+        }
+    }
     setvbuf(stdout,NULL,_IOLBF,0);
     struct sigaction child={.sa_handler=SIG_DFL};sigemptyset(&child.sa_mask);
     if (sigaction(SIGCHLD,&child,NULL) || !setlocale(LC_CTYPE,"C.UTF-8") || setenv("TERM","dumb",1) || unsetenv("COLORTERM") || setenv("MESA_SHADER_CACHE_DIR",cache,1) || setenv("MESA_SHADER_CACHE_MAX_SIZE","32M",1)) return 1;

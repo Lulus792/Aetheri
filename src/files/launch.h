@@ -5,7 +5,8 @@
 struct ae_files_child { pid_t pid;int pin,status;bool ended; };
 /* Explicit local development profile, one direct Terminal child at a time.
    Fixed independent absolute program/font/cache inputs; literal leaf + directory/
-   regular-file witness copied to 3/4, all other extra FDs closed. No shell text,
+   read-only FD for the original regular-file witness copied to 3/4, all other
+   extra FDs closed. No shell text,
    authority admission or descendant drain. Preserve a live/unknown child slot. */
 int ae_files_launch(struct ae_files_child *child,const char *terminal,const char *editor,
     const char *font,const char *cache,int directory,int witness,const char *leaf,bool diagnostics);

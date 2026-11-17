@@ -334,3 +334,55 @@ archives. The compressed artifacts and Windows test images retain the
 root contents. Failed raw fixtures remain available. Next boot the
 job-control candidate, test actual output, and localize the document
 preflight before testing save and reopen.
+
+## Shell job selection and document handoff
+
+Policy probe `75803813ed08` boots twice in `82f5f59b4c41`. Both
+enforcing reads produce the same effective SHA-256
+`1a48acc071186fecc2c4b96f2c15a4c5c149b3c5cc896579d0e2d5bd3d5d8a08`.
+The readback passes 35 decisions, including the Terminal-only process
+group lookup and the generic executable denials. The lab prepares the
+image roots on tmpfs to fit the remaining disk space. Verified archives,
+readbacks and boot logs are exported to the Windows workspace.
+
+Signed image `5c0b5e09cd37` starts normally. In session `3dd8c5e6`,
+the Terminal's actual shell runs `pwd`. The inspected frame contains
+`/` and a fresh prompt. The current installed working directory is
+`/`. Terminal closes with `failed=0` and the desktop logs out
+normally. This check covers the built-in command; the generic external
+execution policy still denies `bin_t`.
+
+Session `a8b36713` reproduces the Files-created document start failure.
+Terminal's preflight identifies a non-regular descriptor 4 and the
+kernel audit denies `file/ioctl` on the held `O_PATH` document during
+the Files-to-Terminal exec transition. Files now reopens the exact
+pinned object as a read-only FD and compares type, device and inode.
+The editor still checks the final leaf against that original witness
+before reading. The policy still grants document reads without adding
+file ioctls. The launch test replaces the named file and verifies that
+the exec child receives the original readable object.
+
+Release `8b1290550c8f` passes 18 installed-profile and seven additional
+Files CTests. The corrected Files ELF is
+`2686702c9b23f835ed455ef545244b02787a83ce8c1450aa1fc7cece1a10f482`.
+The document VM uses a separate copy of the existing labelled data
+fixture. Keep the original failed preflight case and data for comparison.
+
+Signed image `a2906a8c4658` boots and opens the Files-created `vmprobe`
+in the actual editor in session `4febad72`. Enter opens the original
+pinned child, insert mode takes `validated`, and Ctrl+S displays
+`Saved` and a clean buffer. The editor and Files both close with status
+zero. Offline ext4 verification replays the journal on a memory copy
+only and confirms the exact nine bytes `validated`, a regular mode
+0600 file and the original SELinux document type. Original data SHA-256
+`44febdbba9c0ca63a655b8b429f031ed4aa57d9af3e170c1d4fe4ed79cbb12bb`
+remains unchanged during that inspection.
+
+A separate cold boot `a63a9dbc` runs against another copy of that
+original data disk. Files shows the existing entry immediately and the
+editor displays `validated` in a clean buffer. The original editor
+child and Files both exit with status zero. Desktop logout closes PAM
+and logind removes the session. The two full images retain their
+read-only boot digests and all new QEMU processes terminated. Next
+admit the required shell utilities through the fixed release selection
+and integrate the fixed apps into the public image assembly.

@@ -1,15 +1,17 @@
 # Working on Aetheri
 
-Current installed Terminal: read the installed Terminal presentation
-section in the 2026-11-17 login-image-boot journal. Shared Wayland
-buffer ownership passes signed a63130f871f1 with visible Terminal,
-input, close and normal session end. ba38f908c8d0 passes 18 CTests.
-Actual pwd reaches the shell but foreground job selection returns
-125. The deployed policy denies same-domain process/getpgid, the
-offline 7a795650f9d0 correction passes 35 decisions, and a signed
-boot still must verify the correction. Files opens/pins original
-document child, which exits two before a window; localize its
-preflight. All VMs terminal. Preserve failure images/data and USB gate.
+Current shell and document handoff: read the shell job selection section
+in the 2026-11-17 login-image-boot journal and spec/files.md. The two
+enforcing policy reads and 35 decisions pass. Signed 5c0b5e09cd37
+executes pwd in the actual shell and shows / and a fresh prompt.
+Original document FD 4 fails the SELinux exec transition ioctl check.
+Files reopens the same pinned inode read-only before spawning. Keep
+the editor's leaf identity checks and the policy boundary. Release
+8b1290550c8f passes 18+7 CTests. Signed a2906a8c4658 passes create,
+open, save, copy-only disk inspection, cold reopen and normal logout.
+Next fixed shell utilities including cat and public app assembly.
+Preserve failed images and original data. All new VMs are terminal.
+The USB gate and NexaUI maintenance-only state apply.
 
 Current fixed app roles: read the fixed app entrypoints section of
 the 2026-11-17 login-image-boot journal and spec/session.md. Offline
