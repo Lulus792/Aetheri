@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current live Sound mediator: read spec/audio-session.md#desktop-sound-mediator
+and the 2026-11-17 live Sound record. Opt-in owner passes FD 3 to Settings,
+and the channel and three original pins on FDs 3–6 to a finite audio
+mediator. Release 96a8f8690897 passes four CTests. Native f3d0924ca9/session
+165 joins the real Settings view and live graph with a software sink,
+confirms mute and handles original routing loss. All fixture children exit
+zero. Preserve first module, capture-mode and compositor-stop failures.
+Next signed image selection, dedicated mediator policy and installed HDA.
+USB gate remains.
+
 Current native Sound entry: read spec/settings.md#private-sound-channel and
 the 2026-11-17 native Settings entry record. The NexaUI executable admits
 the direct launcher's unnamed seqpacket FD 3 and combines bounded audio

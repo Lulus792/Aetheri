@@ -54,11 +54,17 @@
 enum role { COMPOSITOR, DESKTOP, FILES, TERMINAL, SETTINGS,
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
     PIPEWIRE, WIREPLUMBER,
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+    SOUND_CONTROL,
+#endif
 #endif
     ROLE_COUNT };
 static const char *const names[]={"compositor","desktop","files","terminal","settings",
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
     "pipewire","wireplumber",
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+    "sound-control",
+#endif
 #endif
 };
 struct child {
@@ -75,9 +81,12 @@ static double now(void) { struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)
 
 /* The child waits before target exec. Failed pin capture closes the sole release
  * writer and reaps this known no-exec child; it never signals a numeric PID. */
-static bool spawn(struct child *c,char *const argv[],const int *pass,size_t count,char *const audio_env[]) {
+static bool spawn(struct child *c,char *const argv[],const int *pass,size_t count,
+                  bool fixed,char *const audio_env[]) {
+    enum { FIRST_HANDOFF_FD=3, MAX_HANDOFF_FDS=4 };
     int logs[2],gate[2];
-    if(!c || !argv || !argv[0] || argv[0][0]!='/' || c->pid || count>2 || (count && !pass))return false;
+    if(!c || !argv || !argv[0] || argv[0][0]!='/' || c->pid ||
+       count>MAX_HANDOFF_FDS || (count && !pass))return false;
     for(int fd=0;fd<3;++fd)if(fcntl(fd,F_GETFD)<0)return false;
     for(size_t i=0;i<count;++i)if(pass[i]<3 || fcntl(pass[i],F_GETFD)<0)return false;
     if(pipe2(logs,O_CLOEXEC))return false;
@@ -92,12 +101,20 @@ static bool spawn(struct child *c,char *const argv[],const int *pass,size_t coun
         if(null<0)_exit(125);
         int input=dup2(null,0),output=dup2(logs[1],1),error=dup2(logs[1],2);
         if(input<0 || output<0 || error<0 || close_range(3,~0u,CLOSE_RANGE_CLOEXEC))_exit(125);
-        for(size_t i=0;i<count;++i)if(fcntl(pass[i],F_SETFD,0))_exit(125);
+        if(!fixed)for(size_t i=0;i<count;++i)if(fcntl(pass[i],F_SETFD,0))_exit(125);
         char release=0,extra=0;ssize_t got;
         do{got=read(gate[0],&release,1);}while(got<0 && errno==EINTR);
         if(got!=1 || release!='A')_exit(125);
         do{got=read(gate[0],&extra,1);}while(got<0 && errno==EINTR);
         if(got!=0)_exit(125);
+        if(fixed) {
+            int saved[MAX_HANDOFF_FDS];
+            for(size_t i=0;i<count;++i) {
+                saved[i]=fcntl(pass[i],F_DUPFD_CLOEXEC,FIRST_HANDOFF_FD+MAX_HANDOFF_FDS);
+                if(saved[i]<0)_exit(125);
+            }
+            for(size_t i=0;i<count;++i)if(dup2(saved[i],FIRST_HANDOFF_FD+(int)i)<0)_exit(125);
+        }
         sigset_t mask;sigemptyset(&mask);
         if(sigprocmask(SIG_SETMASK,&mask,NULL) || signal(SIGPIPE,audio_env?SIG_IGN:SIG_DFL)==SIG_ERR)_exit(125);
         execve(argv[0],argv,audio_env?audio_env:environ);
@@ -120,7 +137,7 @@ static bool spawn(struct child *c,char *const argv[],const int *pass,size_t coun
     return ok; /* A later failure retains c and its original pin/output. */
 }
 static bool spawn_role(struct child *c,enum role role,char *const argv[],const int *pass,size_t count) {
-    bool result=spawn(c,argv,pass,count,NULL);
+    bool result=spawn(c,argv,pass,count,false,NULL);
     if(c->pid)printf("SPAWN %s %ld\n",names[role],(long)c->pid);
     return result;
 }
@@ -363,7 +380,7 @@ static bool audio_spawn(struct child *c, enum role role, const char *runtime)
         "ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf","GIO_USE_VFS=local",NULL};
     char *graph[]={BIN "aetheri-pipewire","-c","pipewire.conf",NULL};
     char *policy[]={BIN "aetheri-wireplumber","-p","aetheri-desktop",NULL};
-    bool ok=spawn(c,role==PIPEWIRE?graph:policy,NULL,0,env);
+    bool ok=spawn(c,role==PIPEWIRE?graph:policy,NULL,0,false,env);
     if(c->pid)printf("SPAWN %s %ld\n",names[role],(long)c->pid);
     return ok;
 }
@@ -407,8 +424,8 @@ unavailable:
 static bool audio_retire(struct session_audio *audio, struct child *children, const struct session_runtime *owned)
 {
     if(audio->disabled)return true;
-    /* Let the routing process detach first, then retire the original graph. */
-    for(enum role role=WIREPLUMBER;role>=PIPEWIRE;role--){
+    /* Retire the control connection, then routing, then the original graph. */
+    for(enum role role=ROLE_COUNT-1;role>=PIPEWIRE;role--){
         struct child *c=&children[role];
         if(!c->pid)continue;
         if(!c->reaped){
@@ -417,6 +434,9 @@ static bool audio_retire(struct session_audio *audio, struct child *children, co
                 if(pidfd_send_signal(c->pin,SIGTERM,NULL,0) && errno!=ESRCH)return false;
                 c->signalled=true;
                 audio->deadline=time+4;
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+                if(role==SOUND_CONTROL)audio->deadline=time+8;
+#endif
             }else if(!c->killed && (time<0 || time>=audio->deadline)){
                 if(pidfd_send_signal(c->pin,SIGKILL,NULL,0) && errno!=ESRCH)return false;
                 c->killed=true;
@@ -486,6 +506,43 @@ static bool app_start(struct child *c,enum role role,char *cache,char *documents
     return spawn_role(c,role,role==SETTINGS?settings:role==TERMINAL?terminal:files,NULL,0);
 }
 
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+static bool settings_start(struct child *children,const struct session_audio *audio,
+                           const char *runtime,char *cache,char *documents,struct ae_session *session)
+{
+    struct child *graph=&children[PIPEWIRE],*policy=&children[WIREPLUMBER];
+    struct child *settings=&children[SETTINGS],*broker=&children[SOUND_CONTROL];
+    if(audio->stopping || audio->disabled || !graph->pid || graph->reaped ||
+       !policy->pid || policy->reaped || broker->pid)
+        return app_start(settings,SETTINGS,cache,documents,session);
+    if(!session_live(session))return false;
+    char remote[512+sizeof "/audio/aetheri-audio"];
+    int length=snprintf(remote,sizeof remote,"%s/audio/aetheri-audio",runtime);
+    if(length<0 || (size_t)length>=sizeof remote)return false;
+
+    int channel[2];
+    if(socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,channel))
+        return app_start(settings,SETTINGS,cache,documents,session);
+    char *view[]={BIN "aetheri-settings-nexaui","--sound-channel","--font",SANS,
+                  "--cache",cache,"--diagnostics",NULL};
+    bool started=spawn(settings,view,&channel[1],1,true,NULL);
+    close(channel[1]);
+    if(settings->pid)printf("SPAWN settings %ld\n",(long)settings->pid);
+    if(started && session_live(session)) {
+        char *command[]={BIN "aetheri-audio-desktop-control",remote,NULL};
+        char *environment[]={"LANG=C","HOME=/nonexistent","PIPEWIRE_CONFIG_DIR=/usr/share/aetheri/audio",
+            "PIPEWIRE_MODULE_DIR=/usr/lib64/pipewire-0.3","SPA_PLUGIN_DIR=/usr/lib64/spa-0.2",
+            "WIREPLUMBER_MODULE_DIR=/usr/lib64/wireplumber-0.5","GIO_USE_VFS=local",NULL};
+        int pass[]={channel[0],graph->pin,policy->pin,settings->pin};
+        if(!spawn(broker,command,pass,sizeof pass/sizeof pass[0],true,environment))
+            puts("AETHERI_SOUND_UNAVAILABLE launch");
+        if(broker->pid)printf("SPAWN sound-control %ld\n",(long)broker->pid);
+    }
+    close(channel[0]);
+    return started;
+}
+#endif
+
 int main(void) {
     if(!entry_descriptors()){fputs("AETHERI_DESKTOP_FAIL descriptors\n",stderr);return 1;}
     if(!entry_logging()){fputs("AETHERI_DESKTOP_FAIL logging\n",stderr);return 1;}
@@ -523,10 +580,20 @@ int main(void) {
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
         if(!stopping && notified)audio_step(&audio,children,&owned,runtime);
 #endif
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+        struct child *broker=&children[SOUND_CONTROL];
+        if(broker->pid && broker->reaped && broker->output<0) {
+            close_fd(&broker->pin);
+            empty(broker);
+        }
+#endif
         for(size_t i=0;i<ROLE_COUNT;++i){
             struct child *c=&children[i];
             if(i>SETTINGS || !c->pid || !c->reaped)continue;
             if(!stopping && i>=FILES && success(c) && c->eof){
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+                if(i==SETTINGS && broker->pid)continue;
+#endif
                 if(!reply(launch[0],'X',(enum role)i)){failed=true;stopping=true;}
                 close_fd(&c->pin);empty(c);
             }else if(!stopping && (i<FILES || !success(c))){
@@ -583,7 +650,13 @@ int main(void) {
                     else if(launches[role]>=128){if(!reply(launch[0],'E',role)){failed=true;stopping=true;}}
                     else{
                         ++launches[role];
-                        if(!app_start(&children[role],role,cache,documents,session) || !reply(launch[0],'A',role)){failed=true;stopping=true;}
+                        bool started;
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+                        if(role==SETTINGS)started=settings_start(children,&audio,runtime,cache,documents,session);
+                        else
+#endif
+                        started=app_start(&children[role],role,cache,documents,session);
+                        if(!started || !reply(launch[0],'A',role)){failed=true;stopping=true;}
                     }
                 }
             }else if(!drain_line(&children[roles[i]],names[roles[i]])){
@@ -591,6 +664,13 @@ int main(void) {
                 if(roles[i]>=PIPEWIRE){
                     struct child *child=&children[roles[i]];
                     close_fd(&child->output);
+#ifdef AETHERI_DESKTOP_SESSION_SOUND
+                    if(roles[i]==SOUND_CONTROL) {
+                        puts("AETHERI_SOUND_UNAVAILABLE log");
+                        if(!child->reaped)(void)pidfd_send_signal(child->pin,SIGTERM,NULL,0);
+                        continue;
+                    }
+#endif
                     puts("AETHERI_AUDIO_UNAVAILABLE");
                     audio.stopping=true;
                     continue;

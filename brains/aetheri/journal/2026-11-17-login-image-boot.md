@@ -996,3 +996,46 @@ launch, bind the original live graph and audio authority, and exercise
 the complete path on a signed HDA image. The private fixture uses a
 synthetic owner. Physical audio, Bluetooth, WLAN, suspend and the USB gate
 remain open.
+
+## Live desktop Sound mediator
+
+`AETHERI_DESKTOP_SESSION_SOUND` adds a fixed private Settings launch and
+one mediator for the lifetime of that window. The desktop owner stays
+single-threaded. It captures the original child PIDFD, remaps its
+inherited descriptors after the launch gate and leaves unrelated
+descriptors close-on-exec. The mediator opens the live graph through the
+original-listener check. It rechecks the local session and the graph,
+routing and Settings process descriptors on publication and submission.
+The mediator retires first on desktop shutdown.
+
+Release `96a8f8690897` builds the owner, mediator, Settings and private
+compositor against the checked PipeWire 1.6.11, WirePlumber 0.5.19 and
+GLib 2.88 profiles. Four CTests pass. The session-entry test exercises a
+real gated exec with reversed overlapping descriptors 3–6 and an
+additional close-on-exec descriptor. The preceding strict compile caught
+the signed complement of the GLib event flag and was preserved.
+
+Carrier case `8a4c67bbf1` uses a controlled wire client in an actual
+PAM/logind Wayland scope. It observes live mute readback and channel
+retirement on original routing loss. Final case `f3d0924ca9` uses the
+actual Settings executable and a private Wayland compositor in session
+`165`. The software sink reports mute off. A real click changes the
+observed value to on in revision 4. Ending the original WirePlumber child
+fences Sound while PipeWire remains live, and the user can still navigate
+to Displays and close Settings. All five children exit zero. The
+carrier returns to VT1 and the test seat session is absent.
+
+The first live case lacks `libpipewire-module-client-device` in its
+fixture search path. The first GUI case gives the capture directory
+the wrong mode. Two later cases pass the Sound workflow and record a
+compositor exit of 1 after premature closure of its test input controller.
+The final run stops the compositor while retaining that controller.
+The carrier's PAM configuration reports its existing `pam_lastlog2`
+loader warning during each login. The retained evidence includes those
+cases and the final ELF hashes in
+`local/login-review-2026-11-10/settings-live-sound-96a8f8690897-evidence.tar.gz`.
+
+The active test scope uses the carrier's unconfined user domain and a
+software sink. Next sign and stage the mediator, admit its dedicated
+SELinux role, and verify the ordinary authenticated desktop path on
+virtual HDA. Physical audio, Bluetooth, suspend and the USB gate remain.

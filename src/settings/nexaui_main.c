@@ -7,6 +7,7 @@
 #include "settings/nexaui_view.h"
 #include "settings/nexaui_main.h"
 #include "settings/sound_channel.h"
+#include "audio/control_wire.h"
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
 #include "settings/audio_host.h"
 #endif
@@ -452,7 +453,7 @@ int ae_settings_nexaui_run(int argc,char **argv,struct ae_settings_audio_host *a
 int main(int argc,char **argv) {
     if(argc>1 && !strcmp(argv[1],"--sound-channel")) {
         int fd=3;
-        if(!ae_settings_sound_channel_admit(fd)) return 2;
+        if(!ae_audio_wire_admit_parent(fd)) return 2;
         int status=run(argc-1,argv+1,NULL,&fd);
         if(fd>=0) close(fd);
         return status;

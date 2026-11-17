@@ -22,6 +22,10 @@ struct ae_audio_message {
     };
 };
 
+/* Check an inherited, unnamed endpoint created by the current launcher
+ * parent, and mark it close-on-exec. The deployment admits the launcher. */
+bool ae_audio_wire_admit_parent(int fd);
+
 /* Version 1 on a connected, unnamed AF_UNIX SOCK_SEQPACKET pair selected by
  * the session owner. The caller owns the descriptors and admits each peer.
  * Only -EAGAIN is a would-block result. Receive preserves the output on

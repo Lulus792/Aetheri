@@ -86,6 +86,30 @@ pass the complete private session/playback/stop/logout flow and full PCM checks.
 The [executed record](../brains/aetheri/journal/2026-11-08-audio-session.md) keeps
 actual results and failures. It does not install normal audio in the USB desktop.
 
+## Desktop Sound mediator
+
+`AETHERI_DESKTOP_SESSION_SOUND` enables the optional direct-child Settings
+integration. The desktop owner creates one unnamed packet pair per window.
+It transfers FD 3 to the fixed Settings executable and passes the other
+endpoint plus the original PipeWire, WirePlumber and Settings pidfds to
+`aetheri-audio-desktop-control` on FDs 3–6. The launcher retains the
+original process pins for teardown and starts the mediator only when the
+two audio children exist.
+
+The mediator has its own GLib context. It checks the original launcher,
+active local Wayland session and the process pins before publishing or
+submitting. It connects to the original PipeWire listener using the
+transport's strict peer check. Scope loss, the end of an original child,
+an invalid request or a failed snapshot/result delivery ends the channel.
+It retires the connection before the owner stops routing and the graph.
+When audio is unavailable, the desktop can open Settings without a channel.
+
+The private Wayland test joins the actual mediator and Settings executable
+to PipeWire and WirePlumber with a software sink. Image assembly, a
+dedicated mediator SELinux transition and signed HDA verification are
+still required. See the
+[live test record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#live-desktop-sound-mediator).
+
 ## Shared session control handle
 
 [`audio/session_control.h`](../src/audio/session_control.h) now joins the existing

@@ -23,6 +23,7 @@
 #undef isatty
 #undef sd_journal_stream_fd
 #include <stdarg.h>
+#include <sys/eventfd.h>
 #include <sys/syscall.h>
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"entry check %d: %s\n",__LINE__,#x);abort();}} while(0)
 static uid_t model_uid=1201,model_euid=1201,model_suid=1201;
@@ -60,9 +61,38 @@ static void logging_test(unsigned mode) {
     int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
 }
 int ae_test_close_range(unsigned int first,unsigned int last,int flags) {
-    CHECK(first==3 && last==~0u && flags==CLOSE_RANGE_UNSHARE);
+    CHECK(first==3 && last==~0u &&
+          (flags==CLOSE_RANGE_UNSHARE || flags==CLOSE_RANGE_CLOEXEC));
     if(descriptor_failure){errno=EPERM;return -1;}
     return (int)syscall(SYS_close_range,first,last,flags);
+}
+static int remapped_child(void)
+{
+    for(int fd=3;fd<7;++fd) {
+        eventfd_t value;
+        if(eventfd_read(fd,&value) || value!=(eventfd_t)(7-fd))return 4;
+    }
+    for(int fd=7;fd<24;++fd)if(fcntl(fd,F_GETFD)>=0 || errno!=EBADF)return 5;
+    return 0;
+}
+static void fixed_handoff_test(void)
+{
+    pid_t fixture=fork();
+    CHECK(fixture>=0);
+    if(!fixture) {
+        CHECK(!syscall(SYS_close_range,3u,~0u,0));
+        for(unsigned i=0;i<5;++i)CHECK(eventfd(i+1,EFD_CLOEXEC)==(int)i+3);
+        int pass[]={6,5,4,3};
+        char *command[]={"/proc/self/exe","--remapped-child",NULL};
+        struct child child;
+        empty(&child);
+        CHECK(spawn(&child,command,pass,sizeof pass/sizeof pass[0],true,NULL));
+        int status;
+        CHECK(waitpid(child.pid,&status,0)==child.pid && WIFEXITED(status) && !WEXITSTATUS(status));
+        _exit(0);
+    }
+    int status;
+    CHECK(waitpid(fixture,&status,0)==fixture && WIFEXITED(status) && !WEXITSTATUS(status));
 }
 static void descriptor_test(bool failure) {
     int pipe_fds[2];CHECK(!pipe2(pipe_fds,O_CLOEXEC));
@@ -150,7 +180,10 @@ int ae_test_prctl(int option,...) {
 }
 int ae_test_notify(int unset,const char *text) {CHECK(!unset && text && strstr(text,"READY=1\n"));++notifications;return notify_result;}
 static void rejected(void) {char *parent=NULL,documents[4096];int before=nnp_calls;CHECK(!entry_paths(&parent,documents,sizeof(documents)));free(parent);CHECK(nnp_calls==before);}
-int main(void) {
+int main(int argc,char **argv) {
+    if(argc==2 && !strcmp(argv[1],"--remapped-child"))return remapped_child();
+    CHECK(argc==1);
+    fixed_handoff_test();
     descriptor_test(false);descriptor_test(true);
     missing_stdio_test();
     logging_test(0);logging_test(1);logging_test(2);

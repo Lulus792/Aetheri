@@ -29,16 +29,16 @@ static void launcher_admission(void)
     int sound[2],stream[2];
     CHECK(!socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,sound));
     CHECK(!socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,stream));
-    CHECK(!ae_settings_sound_channel_admit(sound[0]));
+    CHECK(!ae_audio_wire_admit_parent(sound[0]));
 
     pid_t child=fork();
     CHECK(child>=0);
     if(!child) {
         close(sound[0]);
         close(stream[0]);
-        CHECK(!ae_settings_sound_channel_admit(stream[1]));
+        CHECK(!ae_audio_wire_admit_parent(stream[1]));
         CHECK(!fcntl(sound[1],F_SETFD,0));
-        CHECK(ae_settings_sound_channel_admit(sound[1]));
+        CHECK(ae_audio_wire_admit_parent(sound[1]));
         CHECK(fcntl(sound[1],F_GETFD)==FD_CLOEXEC);
         _exit(0);
     }

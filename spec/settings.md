@@ -92,9 +92,20 @@ Settings waits for sound, window and quit events together, processes at
 most eight sound packets per turn, and closes the channel on retirement.
 Its other pages remain usable after sound loss.
 
-The model, both endpoints and the native Sound page pass a private Wayland
-test with a controlled launcher. Provisioning descriptor 3 in the original
-desktop owner and binding its live audio backend are pending.
+The optional desktop Sound profile provisions descriptor 3 from the fixed
+Settings launch. For the matching lifetime it starts a separate mediator
+with the other endpoint and the original graph, routing and Settings
+process descriptors. The mediator checks its active local session and the
+original processes before publishing observations or submitting changes.
+It exits when the window or one of those authorities ends. Settings keeps
+its connection to the compositor and has no direct PipeWire or device
+access.
+
+The native Sound page passes a private Wayland test with a live PipeWire
+graph, WirePlumber and a software sink in a PAM/logind test session. The
+signed image still needs to supply the mediator under its own SELinux
+role and exercise the same path with HDA. See the
+[live test record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#live-desktop-sound-mediator).
 
 The view exposes radio, slider and switch semantics, keyboard focus and
 English/German labels. Both raster densities, dark/light/high contrast,

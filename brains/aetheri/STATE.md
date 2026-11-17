@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The opt-in desktop Sound profile provisions the fixed
+Settings socket and launches a per-window mediator with original process
+pins. Four Release CTests pass. Carrier case `f3d0924ca9` confirms live
+mute readback in the real Settings window, Sound retirement when routing
+ends and navigation afterward. Next admit the mediator in the signed
+image and test HDA with the installed policy. See the
+[live record](journal/2026-11-17-login-image-boot.md#live-desktop-sound-mediator).
+
 17 November 2026 — The native Settings entry admits the inherited Sound
 descriptor, wakes the idle window on updates and keeps Displays usable on
 loss. Six Release CTests pass on the enforcing carrier, including a real

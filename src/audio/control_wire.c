@@ -2,10 +2,13 @@
 #include "audio/control_wire.h"
 #include "text/grapheme.h"
 #include <errno.h>
+#include <fcntl.h>
 #include <float.h>
 #include <math.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 
 enum { HEADER=16, SNAPSHOT=48, OUTPUT=800, COMMAND=40,
        WIRE_MAX=HEADER+SNAPSHOT+AE_AUDIO_OUTPUTS_MAX*OUTPUT };
@@ -14,6 +17,28 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 &&
 _Static_assert(AE_AUDIO_CONNECTING==0 && AE_AUDIO_DISCONNECTED==3 &&
                AE_AUDIO_ERROR_ENDPOINT==11 && AE_AUDIO_COMMAND_UNKNOWN==3 &&
                AE_AUDIO_DEFAULT==2 && AE_AUDIO_BUSY==4,"audio wire v1 values");
+
+bool ae_audio_wire_admit_parent(int fd)
+{
+    pid_t parent=getppid();
+    if(fd<3 || parent<=1 || getuid()!=geteuid() || getgid()!=getegid()) return false;
+    int type;
+    socklen_t size=sizeof type;
+    if(getsockopt(fd,SOL_SOCKET,SO_TYPE,&type,&size) || size!=sizeof type ||
+       type!=SOCK_SEQPACKET) return false;
+    struct sockaddr_un name;
+    size=sizeof name;
+    if(getsockname(fd,(struct sockaddr *)&name,&size) || size!=sizeof name.sun_family ||
+       name.sun_family!=AF_UNIX) return false;
+    size=sizeof name;
+    if(getpeername(fd,(struct sockaddr *)&name,&size) || size!=sizeof name.sun_family ||
+       name.sun_family!=AF_UNIX) return false;
+    struct ucred peer;
+    size=sizeof peer;
+    return !getsockopt(fd,SOL_SOCKET,SO_PEERCRED,&peer,&size) && size==sizeof peer &&
+        peer.pid==parent && peer.uid==getuid() && peer.gid==getgid() &&
+        getppid()==parent && fcntl(fd,F_SETFD,FD_CLOEXEC)==0;
+}
 
 static void put(uint8_t *dst,size_t size,uint64_t value)
 {
