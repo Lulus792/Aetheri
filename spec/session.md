@@ -224,6 +224,14 @@ suspend/resume acceptance. After losing DRM master, wlroots may also report that
 it could not disable the old CRTC; actual process/session exit and a new successful
 acquisition must be checked separately.
 
+The [suspend VM profile](login-deployment.md#suspend-runtime-files) preserves
+these checks. It exercises kernel sleep and return to the original desktop.
+Release suspend requires every active output to present a covered frame and
+ordinary applications to lose input focus before sleep. After waking, a
+trusted unlock can restore application input and content to that session.
+Loss of the lock client keeps the display covered. Laptop and workstation
+hardware must each pass device recovery and unlock. [Wayland session-lock protocol](https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/1.49/staging/ext-session-lock/ext-session-lock-v1.xml)
+
 ## Dependency review and build
 
 [session-inputs.json](session-inputs.json) adds eleven exact signed Fedora RPMs:

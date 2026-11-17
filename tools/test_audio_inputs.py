@@ -61,6 +61,18 @@ class Inputs(unittest.TestCase):
             with self.subTest(entries=entries), self.assertRaises(ValueError):
                 list(audio.cpio_members(archive(entries)))
 
+    def test_selection_skips_systemd_escape_names_and_checks_selected_duplicates(self):
+        ignored = (r"./usr/lib/systemd/system/system-systemd\x2dcryptsetup.slice", stat.S_IFREG, b"slice")
+        selected = ("./usr/lib/systemd/system/suspend.target", stat.S_IFREG, b"target")
+        wanted = {selected[0].removeprefix("./")}
+        raw = archive([ignored, selected])
+        with self.assertRaises(ValueError):
+            list(audio.cpio_members(raw))
+        rows = [(name, mode, bytes(data)) for name, mode, data in audio.cpio_members(raw, selected=wanted)]
+        self.assertEqual(rows, [(selected[0].removeprefix("./"), selected[1], selected[2])])
+        with self.assertRaises(ValueError):
+            list(audio.cpio_members(archive([ignored, selected, selected]), selected=wanted))
+
     def test_missing_trailer_truncation_and_nonzero_suffix_fail(self):
         raw = archive([('usr/a', stat.S_IFREG, b'abc')])
         for value in (raw[:30], raw[:117], raw[:116] + b'x', raw + b'junk'):

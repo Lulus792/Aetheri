@@ -88,8 +88,8 @@ def profile():
     return value, sha(raw)
 
 
-def cpio_members(raw):
-    """Bounded newc data iterator. No member ever selects an extraction path."""
+def cpio_members(raw, *, selected=None):
+    """Bounded newc data iterator. With a selection, validate names of selected members only."""
     if len(raw) > 64 * 1024**2:
         raise ValueError("audio archive budget")
     at = 0
@@ -121,6 +121,8 @@ def cpio_members(raw):
             return
         if name.startswith("./"):
             name = name[2:]
+        if selected is not None and name not in selected:
+            continue
         if name == "." and stat.S_ISDIR(mode):
             continue
         path = PurePosixPath(name)

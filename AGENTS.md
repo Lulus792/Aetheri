@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current suspend VM: read spec/login-deployment.md#suspend-runtime-files
+and the 2026-11-18 desktop-suspend record. Keep the four exact Fedora 259.10
+members, original signed login selection and native deactivation fences.
+WHPX 3658ab4d enters S3 and reports a VP fault after wake. TCG 34ee4fad
+passes one cycle and b0cbc1e5 passes two in the same login with the original
+Settings and mediator, live volume/mute and normal logout/power-down.
+Preserve the archive/label/focus failures. All four QEMUs are terminal.
+Next trusted lock before sleep and physical device recovery. USB gate applies.
+
 Current installed HDA Sound: read spec/audio-session.md#desktop-sound-mediator
 and the 2026-11-18 installed HDA record. Signed VM 659ead1f authenticates
 and confirms 40% to 39% and mute via native keyboard input. Original app

@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "rpm_profile": "audio-udev-inputs.json",
+  "package": "systemd-udev-259.10-1.fc44.x86_64",
+  "source_package": "systemd-259.10-1.fc44.src.rpm",
+  "license": "LGPL-2.1-or-later",
+  "files": [
+    {
+      "destination": "/usr/lib/systemd/system/sleep.target",
+      "size": 468,
+      "mode": 420,
+      "sha256": "6cf261d12b6c673c330380be393f2ca17e98575accceca5f7c1f57339064299f",
+      "selinux": "system_u:object_r:power_unit_file_t:s0"
+    },
+    {
+      "destination": "/usr/lib/systemd/system/suspend.target",
+      "size": 511,
+      "mode": 420,
+      "sha256": "173f4a87e1dab4263c919400dc77b32e3f5913ee72b8cbd37cbe024b768b5fd0",
+      "selinux": "system_u:object_r:power_unit_file_t:s0"
+    },
+    {
+      "destination": "/usr/lib/systemd/system/systemd-suspend.service",
+      "size": 556,
+      "mode": 420,
+      "sha256": "88dbd011c595467b21ea0d69c9f78b2c5060809edba44f121fd77a192d5a4591",
+      "selinux": "system_u:object_r:power_unit_file_t:s0"
+    },
+    {
+      "destination": "/usr/lib/systemd/systemd-sleep",
+      "size": 48848,
+      "mode": 493,
+      "sha256": "c5e1e01f3c855d112ddcb7a40d4b549aef5d54ded8c3a2e265c1d95e758c5121",
+      "selinux": "system_u:object_r:systemd_sleep_exec_t:s0"
+    }
+  ]
+}

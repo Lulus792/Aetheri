@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — A VM-only Fedora 259.10 suspend supplement exercises
+the installed sleep key. TCG case `b0cbc1e5` enters and leaves deep suspend
+twice in the same login. The original Settings and Sound mediator confirm
+volume and mute after wake, then normal logout and power-down pass. WHPX
+reaches S3 and times out on resume after a hypervisor error. Next cover
+outputs and gate sleep on the trusted lock, then verify device recovery on
+both physical target profiles. See the [suspend record](journal/2026-11-18-desktop-suspend.md).
+
 18 November 2026 — Signed HDA VM `659ead1f` authenticates and exposes
 its analog stereo output in Settings. Keyboard actions confirm volume
 and mute readback, then close the original app and mediator before normal

@@ -155,6 +155,30 @@ effective policy from that image in the signed selection. For the
 login artifact manifest. Install it as Root-owned mode 0555 at
 `/usr/libexec/aetheri/aetheri-audio-desktop-control`.
 
+### Suspend runtime files
+
+Use [the suspend payload](desktop-suspend-inputs.json) in a dedicated VM image.
+It contains the three systemd units and the helper that requests sleep from the
+kernel. The stager reads the same signed systemd-udev 259.10 RPM used for the
+sound rule. It verifies the package signature and digest, then checks the four
+members before writing them to a fresh tree. The optional base check verifies
+the existing PID 1, logind, shared systemd library and LGPL notice against the
+desktop image's pins.
+
+```sh
+python3 tools/prepare_desktop_suspend.py --rpm "$UDEV_RPM" \
+  --base-root "$IMAGE_ROOT" --output "$SUSPEND_STAGE"
+```
+
+Apply the modes, root ownership and SELinux contexts in `inputs.json` when
+assembling the test image. The three units use `power_unit_file_t`. The helper
+uses `systemd_sleep_exec_t` so the distribution policy can assign the dedicated
+domain. The Aetheri signer's login selection has its own file inventory. Keep
+the separate payload receipt and verify the final image bytes.
+
+Physical suspend and a trusted lock that protects a resumed session remain
+release requirements. [Upstream sleep unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-suspend.service.in)
+
 ### Compile the image policy
 
 ```sh
