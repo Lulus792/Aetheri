@@ -12,6 +12,14 @@ enum ae_audio_error {AE_AUDIO_ERROR_NONE,AE_AUDIO_ERROR_PLUGINS,AE_AUDIO_ERROR_D
 enum ae_audio_command_state {AE_AUDIO_COMMAND_NONE,AE_AUDIO_COMMAND_PENDING,AE_AUDIO_COMMAND_OBSERVED,AE_AUDIO_COMMAND_UNKNOWN};
 enum ae_audio_command_kind {AE_AUDIO_VOLUME,AE_AUDIO_MUTE,AE_AUDIO_DEFAULT};
 enum ae_audio_submit {AE_AUDIO_SUBMITTED,AE_AUDIO_INVALID,AE_AUDIO_STALE,AE_AUDIO_UNAVAILABLE,AE_AUDIO_BUSY};
+enum ae_audio_control_loss {
+    AE_AUDIO_CONTROL_LIVE=0,
+    AE_AUDIO_CONTROL_MANAGER_LOST=1,
+    AE_AUDIO_CONTROL_GRAPH_LOST=2,
+    AE_AUDIO_CONTROL_POLICY_LOST=4,
+    AE_AUDIO_CONTROL_SESSION_LOST=8,
+    AE_AUDIO_CONTROL_BACKEND_LOST=16
+};
 struct ae_audio_output_ref {uint64_t connection,serial;uint32_t id;};
 struct ae_audio_output {
     struct ae_audio_output_ref ref;
@@ -29,5 +37,9 @@ struct ae_audio_snapshot {
     enum ae_audio_command_state command_state;
     enum ae_audio_command_kind command_kind;
     struct ae_audio_output_ref command_target;
+};
+struct ae_audio_session_snapshot {
+    unsigned loss;
+    struct ae_audio_snapshot audio;
 };
 #endif

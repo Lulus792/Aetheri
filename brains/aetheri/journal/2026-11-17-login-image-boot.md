@@ -931,3 +931,32 @@ on identical media, so the remaining repeatability question is open.
 Next connect the authenticated session owner's audio mediation to the
 normal Sound page. The playback button and settings need their own native
 acceptance. Physical HDA and Bluetooth have yet to be measured.
+
+## Sound settings channel
+
+The existing Sound model now has a separate client adapter for a private
+Unix seqpacket pair. The versioned codec carries a bounded device snapshot,
+the exact expected revision and output reference for an intent, and the
+original request's submission result. It uses explicit field sizes and
+validates texts, numbers, packet lengths and reserved fields on receive.
+It rejects ancillary truncation. A pipe-lifetime test confirms that Linux
+discards the sent ancillary FD on that path.
+
+The owner-side dispatcher consumes increasing request numbers and calls
+the authority callback once for each admitted request. A repeated request
+retires the channel. If a completed dispatch cannot send its result, the
+owner marks the channel retired. The Settings adapter consumes one local
+intent at a time, rejects mismatched replies and retains unknown feedback
+when the authority may have acted before disconnect. The existing model
+still requires a matching observed command to confirm the value.
+
+Native CMake builds in `5b6fdf4e0032` pass `settings.sound_channel` in
+Release and ASan/UBSan. The test uses real Linux sockets and the existing
+Settings model with a controlled owner callback. It covers the maximum
+64-output snapshot, volume submission and readback, stale responses,
+duplicate handling, full reply queue, invalid input, unintended descriptor
+delivery and peer loss. The existing native `test_settings_sound` also
+passes a strict Release compile and execution in the same carrier.
+The normal desktop still needs to provision these endpoints and bind the
+live owner. That step includes original child and session admission, the
+Settings native event loop and a joined HDA test.

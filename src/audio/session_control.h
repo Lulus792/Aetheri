@@ -6,24 +6,12 @@
 #include <sys/types.h>
 #include <poll.h>
 
-enum ae_audio_control_loss {
-    AE_AUDIO_CONTROL_LIVE=0,
-    AE_AUDIO_CONTROL_MANAGER_LOST=1,
-    AE_AUDIO_CONTROL_GRAPH_LOST=2,
-    AE_AUDIO_CONTROL_POLICY_LOST=4,
-    AE_AUDIO_CONTROL_SESSION_LOST=8,
-    AE_AUDIO_CONTROL_BACKEND_LOST=16
-};
 struct ae_audio_session_profile {
     sd_bus *user_bus,*system_bus;
     uid_t uid;
     const char *seat,*remote,*graph_unit,*policy_unit;
     const char *graph_context,*policy_context;
     int manager_image,graph_image,policy_image,graph_pidfd,policy_pidfd;
-};
-struct ae_audio_session_snapshot {
-    unsigned loss; /* First nonzero check is immutable, even after recovery. */
-    struct ae_audio_snapshot audio;
 };
 struct ae_audio_session_control;
 

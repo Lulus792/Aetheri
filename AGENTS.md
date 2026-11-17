@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current Sound channel: read spec/settings.md#private-sound-channel and the
+2026-11-17 Sound settings channel record. Version 1 has bounded native
+snapshot/intent/result packets. The owner dispatcher consumes each request
+once. The Settings adapter reuses model readback and unknown feedback.
+5b6fdf4e0032 passes native Release and ASan/UBSan. Next admit and provision
+original endpoints, join the live broker and verify the normal Sound page.
+USB gate remains.
+
 Current desktop tone: read the request-sized final buffer section in the
 2026-11-17 login-image boot journal and spec/audio-session.md. The finite
 client prepends 24,000 silent frames and pads only the bounded requested

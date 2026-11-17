@@ -57,6 +57,36 @@ lab client now passes the separate joined live test described in the
 [connected record](../brains/aetheri/journal/2026-11-09-settings-audio-live.md).
 Normal session/service/device provisioning remains separate work.
 
+#### Private sound channel
+
+The session owner can hand Settings one end of an unnamed Linux Unix
+seqpacket pair when launching the original app. The owner retains the
+other end and the audio authority. The channel carries device snapshots,
+volume, mute and default-output intents, and submission results. Its
+endpoints are admitted by the caller before any exchange. Graph socket
+paths, process IDs and additional descriptors have no place in the wire
+format. [Linux Unix sockets](https://man7.org/linux/man-pages/man7/unix.7.html)
+
+The [version-1 format](../src/audio/control_wire.h) gives each packet a
+16-byte header with the `ASND` signature, version, kind and request number.
+A snapshot has request number zero and up to 64 outputs. Commands and
+results share a nonzero request number. Integers use big endian and volume
+uses finite binary64. Text is bounded UTF-8 with zero-filled unused bytes.
+The largest packet is 51,264 bytes.
+
+The owner dispatches a strictly increasing request number once and sends
+its result before publishing the ensuing snapshot. A submitted command
+still needs the matching graph observation before Settings marks the change
+confirmed. The application adapter permits one pending intent. Invalid or
+out-of-order packets and connection loss fence that Settings lifetime. If
+the owner's result cannot be delivered after dispatch, the owner retires
+the pair and Settings reports an unknown outcome. A locally busy send
+allows a fresh user action.
+
+The affected model and both endpoints pass native seqpacket tests. Wiring
+the original app launcher and desktop audio backend into this channel is
+pending.
+
 The view exposes radio, slider and switch semantics, keyboard focus and
 English/German labels. Both raster densities, dark/light/high contrast,
 100/150/200% text, narrow layouts, actual native window/navigation and stale

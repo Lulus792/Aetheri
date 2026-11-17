@@ -1,5 +1,11 @@
 # State
 
+17 November 2026 — Settings sound messages now have a versioned private
+seqpacket codec, an owner request dispatcher and a client model adapter.
+Release and ASan/UBSan tests join both endpoints and the existing model.
+Next provision the pair on the original app launch and bind the actual
+session audio authority. See the [channel record](journal/2026-11-17-login-image-boot.md#sound-settings-channel).
+
 17 November 2026 — The desktop tone client now has a half-second silent
 lead and pads the final buffer to the bounded PipeWire request. Its final
 CMake ELF produces the byte-identical reference WAV in the instruction-clock
