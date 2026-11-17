@@ -14,11 +14,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#ifdef AETHERI_DESKTOP_SHM
+#include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wayland-client.h>
 
 struct app;
+#ifdef AETHERI_DESKTOP_SHM
+struct view;
+struct desktop_buffer {
+    struct view *view;
+    struct wl_buffer *object;
+    SDL_Surface *image;
+    SDL_Renderer *renderer;
+    void *pixels;
+    size_t size;
+    int width, height;
+    bool busy;
+};
+#endif
 struct output { struct wl_output *object; char name[128]; };
 struct control { unsigned kind; uint32_t window; SDL_FRect rect; };
 struct view {
@@ -32,11 +48,18 @@ struct view {
     unsigned settling;
     struct control controls[16]; size_t count;
     unsigned pressed; uint32_t pressed_window;
+#ifdef AETHERI_DESKTOP_SHM
+    struct desktop_buffer buffers[2];
+#endif
 };
 struct app {
     struct ae_desktop_model model;
     struct wl_display *display; struct wl_registry *registry;
     struct aetheri_development_desktop_v1 *control; struct zwlr_layer_shell_v1 *layers;
+#ifdef AETHERI_DESKTOP_SHM
+    struct wl_shm *shm;
+    bool argb8888;
+#endif
     struct output outputs[3]; char output_names[3][128];
     unsigned output_count, observed_count;
     struct view views[3];
@@ -154,13 +177,88 @@ static void frame_done(void *data,struct wl_callback *callback,uint32_t time) {
     wl_callback_destroy(callback);
 }
 static const struct wl_callback_listener frame_listener={.done=frame_done};
+#ifdef AETHERI_DESKTOP_SHM
+static void buffer_release(void *data, struct wl_buffer *object)
+{
+    struct desktop_buffer *buffer = data;
+    (void)object;
+    buffer->busy = false;
+    if (buffer->view->dirty) wake(buffer->view->app, 0);
+}
+static const struct wl_buffer_listener buffer_listener = {.release = buffer_release};
+
+static void buffer_close(struct desktop_buffer *buffer)
+{
+    if (buffer->object) wl_buffer_destroy(buffer->object);
+    if (buffer->renderer) SDL_DestroyRenderer(buffer->renderer);
+    if (buffer->image) SDL_DestroySurface(buffer->image);
+    if (buffer->size) (void)munmap(buffer->pixels, buffer->size);
+    *buffer = (struct desktop_buffer){0};
+}
+
+static bool buffer_open(struct desktop_buffer *buffer, struct view *view, int width, int height)
+{
+    if (width <= 0 || height <= 0 || width > 7680 || height > 4320)
+        return SDL_SetError("Invalid shared buffer size");
+    int pitch = width * 4;
+    int size = pitch * height;
+    int fd = open("/dev/shm", O_TMPFILE | O_RDWR | O_CLOEXEC, 0600);
+    if (fd < 0) return SDL_SetError("Cannot open shared buffer: %s", strerror(errno));
+    int allocated = posix_fallocate(fd, 0, size);
+    void *pixels = allocated ? MAP_FAILED : mmap(NULL, (size_t)size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (pixels == MAP_FAILED) {
+        int failure = allocated ? allocated : errno;
+        close(fd);
+        return SDL_SetError("Cannot allocate shared buffer: %s", strerror(failure));
+    }
+    *buffer = (struct desktop_buffer){.view = view, .pixels = pixels, .size = (size_t)size,
+        .width = width, .height = height};
+    struct wl_shm_pool *pool = wl_shm_create_pool(view->app->shm, fd, size);
+    close(fd);
+    if (pool) {
+        buffer->object = wl_shm_pool_create_buffer(pool, 0, width, height, pitch, WL_SHM_FORMAT_ARGB8888);
+        wl_shm_pool_destroy(pool);
+    }
+    if (!buffer->object || wl_buffer_add_listener(buffer->object, &buffer_listener, buffer))
+        return SDL_SetError("Unable to create Wayland buffer");
+    buffer->image = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, pitch);
+    if (buffer->image) buffer->renderer = SDL_CreateSoftwareRenderer(buffer->image);
+    return buffer->renderer && SDL_SetRenderDrawBlendMode(buffer->renderer, SDL_BLENDMODE_BLEND);
+}
+
+static struct desktop_buffer *buffer_available(struct view *view, int width, int height)
+{
+    struct desktop_buffer *selected = NULL;
+    for (size_t i = 0; i < SDL_arraysize(view->buffers); ++i) {
+        struct desktop_buffer *buffer = &view->buffers[i];
+        if (buffer->busy) continue;
+        if (buffer->width == width && buffer->height == height && buffer->renderer) return buffer;
+        if (!selected) selected = buffer;
+    }
+    if (!selected) return NULL;
+    buffer_close(selected);
+    if (buffer_open(selected, view, width, height)) return selected;
+    error(view->app, "shared desktop buffer");
+    return NULL;
+}
+#endif
+
 static void draw(struct view *v) {
     struct app *a = v->app;
     if (!v->configured || (v->expanded ? v->height < 320 : v->height != 84)) return;
     int pixels_w, pixels_h;
-    if (!SDL_GetWindowSizeInPixels(v->window,&pixels_w,&pixels_h) ||
-            !SDL_SetRenderScale(v->renderer,(float)pixels_w/(float)v->width,(float)pixels_h/(float)v->height) ||
-            !SDL_SetRenderDrawColor(v->renderer,v->expanded ? 14 : 0,v->expanded ? 18 : 0,v->expanded ? 25 : 0,v->expanded ? 224 : 0) ||
+    if (!SDL_GetWindowSizeInPixels(v->window, &pixels_w, &pixels_h)) { error(a, "frame pixel size"); return; }
+#ifdef AETHERI_DESKTOP_SHM
+    struct desktop_buffer *buffer = buffer_available(v, pixels_w, pixels_h);
+    if (!buffer) return;
+    v->renderer = buffer->renderer;
+    const SDL_Color clear = {12, 16, 22, 224}; /* Premultiplied ARGB for Wayland. */
+#else
+    const SDL_Color clear = {14, 18, 25, 224};
+#endif
+    if (!SDL_SetRenderScale(v->renderer,(float)pixels_w/(float)v->width,(float)pixels_h/(float)v->height) ||
+            !SDL_SetRenderDrawColor(v->renderer,v->expanded ? clear.r : 0,v->expanded ? clear.g : 0,
+                                    v->expanded ? clear.b : 0,v->expanded ? clear.a : 0) ||
             !SDL_RenderClear(v->renderer)) { error(a,"frame setup"); return; }
     v->count = 0;
     float w = (float)v->width, h = (float)v->height;
@@ -216,6 +314,12 @@ static void draw(struct view *v) {
             a->frames+1,v->index,v->expanded,v->width,v->height,a->model.german,a->model.contrast,ae_desktop_model_pending(&a->model),a->model.count,v->settling<=1,a->model.query);
     }
     if (!SDL_RenderPresent(v->renderer)) { error(a,"present"); return; }
+#ifdef AETHERI_DESKTOP_SHM
+    buffer->busy = true;
+    wl_surface_attach(v->surface, buffer->object, 0, 0);
+    wl_surface_damage(v->surface, 0, 0, v->width, v->height);
+    wl_surface_commit(v->surface);
+#endif
     v->dirty = false; ++a->frames;
     /* Wayland EGL can submit the previous allocation once after a native
        resize. The viewport preserves logical geometry; one bounded follow-up
@@ -280,7 +384,13 @@ static void configured(void *data, struct zwlr_layer_surface_v1 *layer, uint32_t
     zwlr_layer_surface_v1_ack_configure(layer,serial);
     v->width = (int)width; v->height = (int)height;
     if (!SDL_SetWindowSize(v->window,v->width,v->height)) error(v->app,"custom surface size");
-    v->configured = true; v->dirty = true; v->settling=2; wake(v->app,0);
+    v->configured = true; v->dirty = true;
+#ifdef AETHERI_DESKTOP_SHM
+    v->settling = 1;
+#else
+    v->settling = 2;
+#endif
+    wake(v->app,0);
 }
 static void layer_closed(void *data, struct zwlr_layer_surface_v1 *layer) { (void)layer; struct view *v = data; error(v->app,"desktop surface closed"); }
 static const struct zwlr_layer_surface_v1_listener layer_listener = {.configure=configured,.closed=layer_closed};
@@ -327,6 +437,15 @@ static void desktop_retired(void *data,struct aetheri_development_desktop_v1 *co
 static void desktop_done(void *data,struct aetheri_development_desktop_v1 *control) {(void)control;struct app *a=data;a->snapshot=true;}
 static const struct aetheri_development_desktop_v1_listener desktop_listener={.output=desktop_output,.window=desktop_window,.closed=desktop_closed,
     .toggle=desktop_toggle,.activated=desktop_activated,.retired=desktop_retired,.done=desktop_done};
+#ifdef AETHERI_DESKTOP_SHM
+static void shm_format(void *data, struct wl_shm *shm, uint32_t format)
+{
+    (void)shm;
+    struct app *a = data;
+    if (format == WL_SHM_FORMAT_ARGB8888) a->argb8888 = true;
+}
+static const struct wl_shm_listener shm_listener = {.format = shm_format};
+#endif
 static void global(void *data,struct wl_registry *registry,uint32_t name,const char *interface,uint32_t version) {
     struct app *a=data;
     if (!strcmp(interface,"aetheri_development_desktop_v1")) {
@@ -335,6 +454,12 @@ static void global(void *data,struct wl_registry *registry,uint32_t name,const c
     } else if (!strcmp(interface,"zwlr_layer_shell_v1")) {
         if (version < 5) { error(a,"layer protocol version"); return; }
         a->layers=wl_registry_bind(registry,name,&zwlr_layer_shell_v1_interface,5);
+#ifdef AETHERI_DESKTOP_SHM
+    } else if (!strcmp(interface,"wl_shm")) {
+        if (a->shm) { error(a, "duplicate shared memory global"); return; }
+        a->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
+        if (!a->shm || wl_shm_add_listener(a->shm, &shm_listener, a)) error(a, "shared memory binding");
+#endif
     } else if (!strcmp(interface,"wl_output")) {
         if (version < 4 || a->output_count >= 3) { error(a,"output protocol profile"); return; }
         struct output *out=&a->outputs[a->output_count++]; out->object=wl_registry_bind(registry,name,&wl_output_interface,4);
@@ -347,7 +472,9 @@ static bool create_window(struct app *a,unsigned index) {
     struct view *v=&a->views[index];v->app=a;v->index=index;
     SDL_PropertiesID p=SDL_CreateProperties();
     bool ok=p && SDL_SetBooleanProperty(p,SDL_PROP_WINDOW_CREATE_WAYLAND_SURFACE_ROLE_CUSTOM_BOOLEAN,true) &&
+#ifndef AETHERI_DESKTOP_SHM
         SDL_SetBooleanProperty(p,SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN,true) &&
+#endif
         SDL_SetBooleanProperty(p,SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN,true) &&
         SDL_SetBooleanProperty(p,SDL_PROP_WINDOW_CREATE_TRANSPARENT_BOOLEAN,true) &&
         SDL_SetNumberProperty(p,SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER,640) && SDL_SetNumberProperty(p,SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER,84) &&
@@ -445,7 +572,9 @@ int main(int argc,char **argv) {
             lstat(cache,&st) || !S_ISDIR(st.st_mode) || st.st_uid!=getuid() || (st.st_mode&07777)!=0700 ||
             getsockopt(a.launcher,SOL_SOCKET,SO_TYPE,&type,&size) || type!=SOCK_SEQPACKET ||
             getpeername(a.launcher,(struct sockaddr *)&peer,&peer_size) || peer.ss_family!=AF_UNIX || fcntl(a.launcher,F_SETFD,FD_CLOEXEC)) return 2;
+#ifndef AETHERI_DESKTOP_SHM
     if (setenv("MESA_SHADER_CACHE_DIR",cache,1) || setenv("MESA_SHADER_CACHE_MAX_SIZE","32M",1)) return 1;
+#endif
     setvbuf(stdout,NULL,_IOLBF,0);ae_desktop_model_init(&a.model);
     if (!SDL_SetHint(SDL_HINT_VIDEO_DRIVER,"wayland") || !SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) { fprintf(stderr,"desktop initialization: %s\n",SDL_GetError());SDL_Quit();return 1; }
     a.event_type=SDL_RegisterEvents(1);
@@ -458,6 +587,9 @@ int main(int argc,char **argv) {
         a.registry=a.display ? wl_display_get_registry(a.display) : NULL;
         if (!a.registry || wl_registry_add_listener(a.registry,&registry_listener,&a) || wl_display_roundtrip(a.display)<0 || wl_display_roundtrip(a.display)<0 ||
                 !a.control || !a.layers || !a.snapshot || !a.observed_count || a.observed_count!=a.output_count) error(&a,"private desktop discovery");
+#ifdef AETHERI_DESKTOP_SHM
+        if (!a.shm || !a.argb8888) error(&a, "shared memory ARGB8888");
+#endif
     }
     for (unsigned i=0;!a.failed && i<a.observed_count;++i) {
         if (i && !create_window(&a,i)) { error(&a,"output window");break; }
@@ -474,8 +606,10 @@ int main(int argc,char **argv) {
     for (unsigned i=0;!a.failed && i<a.observed_count;++i) {
         struct view *v=&a.views[i];
         if (!v->configured) { error(&a,"missing initial configure");break; }
+#ifndef AETHERI_DESKTOP_SHM
         v->renderer=SDL_CreateRenderer(v->window,"opengles2");
         if (!v->renderer || !SDL_SetRenderDrawBlendMode(v->renderer,SDL_BLENDMODE_BLEND)) error(&a,"configured renderer");
+#endif
     }
     if (!a.failed) {
         struct sigaction action={.sa_handler=signalled};sigemptyset(&action.sa_mask);signal_writer=a.signals[1];
@@ -487,7 +621,11 @@ int main(int argc,char **argv) {
     if (!a.failed) {
         a.ui_ready=true;
         if (a.pending_toggle) search(&a,a.pending_output,true);
+#ifdef AETHERI_DESKTOP_SHM
+        printf("READY wayland shm outputs=%u\n",a.observed_count);
+#else
         printf("READY wayland opengles2 outputs=%u\n",a.observed_count);
+#endif
         while (a.running) {
             for (unsigned i=0;i<a.observed_count && a.running;++i) if (a.views[i].dirty) draw(&a.views[i]);
             if (!a.running) break;
@@ -506,11 +644,20 @@ int main(int argc,char **argv) {
     for (unsigned i=0;i<3;++i) {
         if (a.views[i].frame) { wl_callback_destroy(a.views[i].frame);a.views[i].frame=NULL; }
         if (a.views[i].layer) zwlr_layer_surface_v1_destroy(a.views[i].layer);
-        SDL_DestroyRenderer(a.views[i].renderer);SDL_DestroyWindow(a.views[i].window);
+#ifdef AETHERI_DESKTOP_SHM
+        for (size_t j = 0; j < SDL_arraysize(a.views[i].buffers); ++j)
+            buffer_close(&a.views[i].buffers[j]);
+#else
+        SDL_DestroyRenderer(a.views[i].renderer);
+#endif
+        SDL_DestroyWindow(a.views[i].window);
         if (a.outputs[i].object) wl_output_release(a.outputs[i].object);
     }
     if (a.control) aetheri_development_desktop_v1_destroy(a.control);
     if (a.layers) zwlr_layer_shell_v1_destroy(a.layers);
+#ifdef AETHERI_DESKTOP_SHM
+    if (a.shm) wl_shm_destroy(a.shm);
+#endif
     if (a.registry) wl_registry_destroy(a.registry);
     TTF_CloseFont(a.font);TTF_Quit();SDL_Quit();printf("CLOSED frames=%u failed=%d\n",a.frames,a.failed);
     return a.failed ? 1 : 0;

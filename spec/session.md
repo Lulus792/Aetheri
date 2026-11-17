@@ -325,6 +325,28 @@ development probe records exact live invocations/processes, then checks original
 PID1 success events and the app's orderly-close output, actual process absence and
 session removal. A journal receipt is historical, not a production drain proof.
 
+## Installed desktop presentation
+
+The login image builds the desktop shell with SDL software drawing into
+Wayland shared-memory buffers. SDL still owns the custom-role windows, input
+and format-aware text drawing. The desktop selects advertised ARGB8888
+and presents its premultiplied pixels on the existing layer surfaces. The
+development profile retains OpenGL ES.
+
+Each view has up to two buffers. The client reserves storage on the private
+`/dev/shm` before drawing, attaches a completed buffer, and waits for its
+`wl_buffer.release` before reuse. Resize can replace an idle buffer while
+the compositor retains the other. If both are busy, the next release wakes
+the pending redraw. Geometry is limited to 7680 by 4320 pixels per buffer.
+Teardown destroys the client objects without reusing their storage.
+
+The signed VM test verifies the visible dock, keyboard-driven search
+resize, deliberate logout, PAM close and replacement greeter. The VM
+uses one virtual display. The test covers the desktop shell's renderer.
+The signed application's own renderer and hardware paths have separate
+acceptance work. See the
+[installed VM record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#wayland-shared-memory-desktop).
+
 The carrier's optional pam_lastlog2 module reports an unresolved pam_syslog symbol
 under the systemd PAM service. Required PAM session setup succeeds and logind
 reports the actual seat/VT/leader. Preserve that carrier warning; it is not proof

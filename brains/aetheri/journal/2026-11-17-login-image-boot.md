@@ -143,3 +143,36 @@ software surface for the confined desktop. Retain buffer ownership
 through compositor release and verify first frame, normal logout
 and the new greeter in a signed VM. Keep the user app renderer and
 the original crash evidence separate.
+
+## Wayland shared-memory desktop
+
+The installed desktop uses SDL software surfaces backed by anonymous
+files from the private login `/dev/shm`. It attaches the finished pixels
+directly to the custom-role Wayland window. Each view waits for original
+buffer release before reuse, has a second slot for an in-flight frame
+or resize, and reserves the bounded pixel storage before drawing.
+The development renderer stays on OpenGL ES.
+
+Build `d159781eb1fd` passes all 13 selected Linux CTests across 841
+source inputs. A separate compile check exercises the development
+translation unit. The compositor, startup, greeter and session entry
+match the preceding signed binaries byte for byte. The desktop's ELF
+SHA-256 is `d14a65defb4946287d2f912341f7ff4f64893402d708f58865ff7a60ae5df686`.
+Image `b0bfb4471e8b` uses the same selected effective enforcing policy.
+
+Two VM cold boots reach the startup handoff. In session
+`5ac700d0`, actual keyboard login opens UID 1000's original Wayland
+session. The owner reports desktop readiness, the compositor
+confirms presentation, and the inspected frame shows the dock at
+1280 by 800. The keyboard opens search and changes the surface
+from 1280 by 84 to 1280 by 800. The desktop presents six frames
+with two buffer slots. The close action reports `CLOSED frames=6
+failed=0`, and the session owner reports `AETHERI_DESKTOP_END status=ok`.
+PAM closes the user session, logind removes session 2, and the
+replacement greeter in session 3 visibly matches the account prompt.
+
+Both original VMs exited. Each run rechecks system image SHA-256
+`52351566b82a66fc32d1cbd12b9e68e0b18b0adf78f7d9c590112163c87ffe42`.
+The VM test is single-output desktop evidence. Terminal, Files and
+Settings launches in the installed profile and hardware validation
+remain open. The USB release gate still applies.

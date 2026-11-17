@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current signed desktop VM: read the shared-memory desktop section of
+the 2026-11-17 login-image-boot journal and spec/session.md. Signed
+image b0bfb4471e8b reaches visible user desktop after actual password
+and Start, draws six dock/search frames with two release-tracked buffers,
+then closes normally and displays replacement greeter in session 3.
+Release d159781eb1fd passes 13 tests (841 source inputs); both original
+VMs ended. Next verify installed apps, then broader first-version
+requirements. The existing user app renderers and USB gate are separate.
+
 Current installed desktop fault: read the desktop fault section of
 the 2026-11-17 login-image-boot journal. Two signed diagnostic VMs
 reproduce authenticated desktop status 139. The second shows

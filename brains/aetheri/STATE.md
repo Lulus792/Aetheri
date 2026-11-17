@@ -1,5 +1,11 @@
 # State
 
+17 November 2026 — The signed VM logs in to the visible desktop,
+draws the dock and expanded search through Wayland shared memory,
+and logs out normally. PAM closes session 2 and a new greeter
+displays the account prompt. Next verify the installed Terminal,
+Files and Settings path. See the [renderer record](journal/2026-11-17-login-image-boot.md#wayland-shared-memory-desktop).
+
 17 November 2026 — The signed desktop diagnostic reproduces the Mesa
 crash. The instruction fetch hits an anonymous non-executable
 mapping with a return address in libgallium. SDL's window software
