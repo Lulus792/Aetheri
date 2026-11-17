@@ -175,8 +175,23 @@ policy and protected host admission.
 Both installed adapters include `selection.bin` in the common source set
 used by the protected handoff. That binds the handoff to the signed selection
 observed in the backend mount view, including its release, account, policy
-and asset rows. The existing handoff wire format and custom provider source
-lists keep their existing contracts.
+and asset rows.
+
+The installed adapters use the `AETHLGH2` handoff profile. The startup helper
+pins the enforcing kernel's status sequence and brackets its checks of the
+signed policy digest with that original sequence. The ordinary greeter maps
+the read-only status page and uses its own observed sequence to verify the
+handoff. Policy reload or an enforcing-mode transition changes that sequence.
+An existing attempt stays fenced after a change. The custom provider profile
+can select the original handoff contract. The two formats are selected
+explicitly and use separate context hash domains.
+[Linux selinuxfs](https://raw.githubusercontent.com/torvalds/linux/master/security/selinux/selinuxfs.c)
+
+The greeter has read-only access to the status page. The full loaded policy
+read and digest comparison remain in the Root startup domain. The platform
+gate still admits the protected boot and host kernel view, account, PAM,
+runtime and devices. See the
+[policy handoff verification](../brains/aetheri/journal/2026-11-17-login-policy-handoff.md).
 
 See the [installed greeter check](../brains/aetheri/journal/2026-11-17-login-installed-greeter.md)
 for the native entry and protected-font tests.

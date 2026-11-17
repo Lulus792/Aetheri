@@ -54,7 +54,7 @@
 (allow aetheri_login_startup_t sysctl_kernel_t (file (read open getattr)))
 (allow aetheri_login_startup_t sysfs_t (dir (search getattr)))
 (allow aetheri_login_startup_t security_t (dir (search getattr)))
-(allow aetheri_login_startup_t security_t (file (read open getattr)))
+(allow aetheri_login_startup_t security_t (file (read open getattr map)))
 (allow aetheri_login_startup_t cgroup_t (dir (search read open getattr)))
 (allow aetheri_login_startup_t cgroup_t (filesystem (getattr)))
 (allow aetheri_login_startup_t fs_t (filesystem (getattr)))

@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "login/loaded.h"
 #include "login/handoff.h"
+#include "login/policy_status.h"
 #include "login/startup.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -55,7 +56,9 @@ int main(int argc,char **argv)
     if(argc!=13 && argc!=15)return 77;
     const char *socket_path=argv[1],*unit=argv[2],*directory=argv[3];
     const char *config_leaf=argv[4],*mode=argv[5];
-    bool publish=!strcmp(mode,"publish");
+    bool publish=!strcmp(mode,"publish") || !strcmp(mode,"publish-policy");
+    bool policy_handoff=!strcmp(mode,"publish-policy") || !strcmp(mode,"handoff-policy") ||
+                        !strcmp(mode,"handoff-policy-hold") || !strcmp(mode,"handoff-policy-reject");
     bool startup=!strcmp(mode,"startup");
     bool image_notice=!strcmp(mode,"image-notice");
     bool image_check=startup || publish || image_notice || !strcmp(mode,"image") || !strcmp(mode,"reject-image");
@@ -117,6 +120,11 @@ int main(int argc,char **argv)
     r=ae_login_loaded_create(service,sources,0,1,2,dropin,omit_dropin?0:1,&loaded);
     if(publish || !strncmp(mode,"handoff",7)) {
         CHECK(!r && loaded);
+        struct ae_login_policy_status *status=NULL;
+        if(policy_handoff) {
+            CHECK(!ae_login_policy_status_open(&status));
+            CHECK(!ae_login_loaded_bind_policy(loaded,ae_login_policy_status_sequence,status));
+        }
         char parent[AE_LOGIN_SOURCE_FULL_PATH_MAX];
         int length=snprintf(parent,sizeof parent,"%s/runtime",directory);
         CHECK(length>0 && (size_t)length<sizeof parent);
@@ -133,7 +141,7 @@ int main(int argc,char **argv)
             CHECK(ae_login_handoff_open(loaded,directory_fd,parent,leaf,
                   "system_u:object_r:etc_t:s0",&handoff)==-EACCES && !handoff);
             int opened=ae_login_handoff_open(loaded,directory_fd,parent,leaf,label,&handoff);
-            if(!strcmp(mode,"handoff-reject")) {
+            if(!strcmp(mode,"handoff-reject") || !strcmp(mode,"handoff-policy-reject")) {
                 CHECK(opened==-ESTALE && !handoff);
                 puts("Different protected observation rejected");
             } else {
@@ -141,19 +149,21 @@ int main(int argc,char **argv)
                 CHECK(!opened && handoff && !ae_login_handoff_check(handoff));
                 CHECK(openat(directory_fd,leaf,O_WRONLY|O_CLOEXEC|O_NOFOLLOW)<0 && errno==EACCES);
                 CHECK(unlinkat(directory_fd,leaf,0)<0 && errno==EACCES);
-                if(!strcmp(mode,"handoff-hold")) {
+                if(!strcmp(mode,"handoff-hold") || !strcmp(mode,"handoff-policy-hold")) {
                     puts("HANDOFF_READY");fflush(stdout);
                     CHECK(getchar()=='x');
                     int lost=ae_login_handoff_check(handoff);
-                    CHECK(lost<0);
+                    CHECK(policy_handoff?lost==-ESTALE:lost<0);
                     puts("HANDOFF_FENCED");fflush(stdout);
                     CHECK(getchar()=='y' && ae_login_handoff_check(handoff)==lost);
-                } else CHECK(!strcmp(mode,"handoff"));
+                } else CHECK(!strcmp(mode,"handoff") || !strcmp(mode,"handoff-policy"));
                 CHECK(!ae_login_handoff_close(&handoff) && !handoff);
                 puts("Protected backend observation consumed");
             }
         }
         close(directory_fd);
+        ae_login_loaded_close(&loaded);
+        ae_login_policy_status_close(&status);
     } else if(!strcmp(mode,"notice-real")) {
         CHECK(!r && loaded);
         CHECK(ae_login_loaded_check_config(loaded)==0 && ae_login_loaded_check(loaded)==0);

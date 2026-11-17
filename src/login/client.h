@@ -19,6 +19,9 @@ struct ae_login_client_expect {
        while waiting and before each transport action. No I/O to the login
        socket, reentry, process creation or mutation of the observed inputs. */
     int (*check)(void *);
+    /* If set, the peer must present a version-2 handoff for the observed
+       enforcing kernel policy status sequence. No version fallback. */
+    int (*policy_sequence)(void *,uint32_t *);
     void *userdata;
 };
 

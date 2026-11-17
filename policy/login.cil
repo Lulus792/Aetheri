@@ -81,6 +81,9 @@
 (allow aetheri_login_roles aetheri_login_config_t (file (read open getattr)))
 (allow aetheri_login_roles security_t (dir (search getattr)))
 (allow aetheri_login_roles security_t (file (read open getattr)))
+; The protected installed handoff refers to the shared enforcing status page.
+(allow aetheri_greeter_t security_t (file (map)))
+(neverallow aetheri_greeter_t security_t (security (read_policy)))
 (allow aetheri_login_roles proc_t (dir (search read open getattr)))
 (allow aetheri_login_roles proc_t (file (read open getattr)))
 (allow aetheri_login_roles proc_t (lnk_file (read getattr)))

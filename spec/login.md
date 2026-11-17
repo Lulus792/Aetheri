@@ -788,7 +788,14 @@ convention.
 
 The context hash covers `AETHLGC1`, the bus authentication server ID, UID and GID
 as u64, raw process label plus NUL, and the original unique PID1 bus name plus
-NUL. The source hash covers `AETHLGS1` and the u64 source count. Each ordered
+NUL. The policy-bound installed profile uses `AETHLGH2` at offset 0 and
+`AETHLGC2` for the context hash. It appends the stable, even sequence from the
+enforcing kernel's SELinux status page as one u64 after the NUL-terminated
+manager name. All record lengths and offsets stay the same. Each provider
+selects one version before creating its original loaded guard. The version
+and sequence must both match when the greeter checks the protected handoff.
+
+The source hash covers `AETHLGS1` and the u64 source count. Each ordered
 entry contributes NUL-terminated parent path, leaf and label, then its expected
 digest and ordered u64 values for kind, mode, size, ancestor depth, file
 mount ID, inode, device major/minor, UID/GID, mode, link count, size and birth,

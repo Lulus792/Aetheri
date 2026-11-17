@@ -127,6 +127,10 @@ def inspect(expected: str, graphical: bool = False) -> dict:
     check(publisher, backend, "unix_stream_socket", "connectto", True)
     check(publisher, backend, "process", "ptrace", False)
     check(publisher, obj("security_t"), "security", "read_policy", True)
+    for role in (publisher, greeter):
+        check(role, obj("security_t"), "file", "map", True)
+        check(role, obj("security_t"), "file", "write", False)
+    check(greeter, obj("security_t"), "security", "read_policy", False)
     for permission in ("load_policy", "setenforce", "setbool"):
         check(publisher, obj("security_t"), "security", permission, False)
     check(greeter, backend, "unix_stream_socket", "connectto", True)

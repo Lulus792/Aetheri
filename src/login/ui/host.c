@@ -74,6 +74,13 @@ static int admission(void *pointer)
     return result > 0 ? -EACCES : result;
 }
 
+static int policy_sequence(void *pointer,uint32_t *out)
+{
+    const struct host *host=pointer;
+    const struct ae_login_client_expect *backend=host->profile->backend;
+    return backend->policy_sequence(backend->userdata,out);
+}
+
 static int set_deadline(uint64_t *out, unsigned milliseconds)
 {
     if (aetheri_login_poll_time(out) != NX_OK) return -EIO;
@@ -217,6 +224,7 @@ int ae_login_ui_run(const struct ae_login_ui_profile *profile, sd_bus *bus, int 
     aetheri_login_poll *poller = NULL;
     struct ae_login_client_expect expected = *profile->backend;
     expected.check = admission;
+    if(expected.policy_sequence)expected.policy_sequence=policy_sequence;
     expected.userdata = &host;
     uint64_t startup_deadline, request_deadline = 0;
     bool submitted = false;

@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current login policy handoff: read the version-2 profile in `spec/login.md`
+and the 2026-11-17 login-policy-handoff journal. Both installed adapters pin
+the enforcing selinuxfs sequence. The startup digest comparison and the
+graphical callback forwarding must retain the original sequence and context.
+Preserve the failed graphical fixtures. Same-byte kernel reload rejects the
+old handoff and fences the original reader. Next admit the signed PAM profiles,
+remaining image platform inputs and full installed lifecycle. Keep the USB gate.
+
 Current installed greeter adapter: read `spec/login-deployment.md` and the
 2026-11-17 login-installed-greeter journal. Both installed adapters bind
 `selection.bin` in the common handoff source set. The greeter checks actual

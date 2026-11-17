@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — The policy-bound login handoff pins the enforcing SELinux
+status sequence alongside the signed selection. A byte-identical policy
+reload fences the original reader and rejects fresh use of its handoff.
+The graphical host forwards the original policy callback context. Next admit
+signed PAM profiles and the remaining platform inputs in the fixed-path
+system image. See the [policy handoff record](journal/2026-11-17-login-policy-handoff.md).
+
 17 November 2026 — The installed greeter entry consumes the signed selection
 and pins its font while checking its real account and groups. Both installed
 adapters include the selection in the handoff's source fingerprint. Two

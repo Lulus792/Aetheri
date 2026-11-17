@@ -15,6 +15,11 @@ int ae_login_loaded_create(struct ae_login_service *,struct ae_login_sources *,
                            size_t fragment,size_t program,size_t config,
                            const size_t *dropins,size_t dropin_count,
                            struct ae_login_loaded **out);
+/* Before any config or handoff observation, require the original enforcing
+   boot-local policy sequence and include it in the version-2 handoff context.
+   A provider selects this mode explicitly. Callback is read-only and held
+   through close. An observed change permanently fences the loaded guard. */
+int ae_login_loaded_bind_policy(struct ae_login_loaded *,int (*sequence)(void *,uint32_t *),void *);
 /* Read-only callback component. Checks source identity, the same supervised
    socket peer and its loaded command record. Permanently fences on observed
    drift. Loaded metadata can describe a configuration reloaded after launch.

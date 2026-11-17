@@ -68,6 +68,10 @@ static int enter_view(void *value) {
     struct runner *r=value;
     return r->profile->startup.enter_view(r->profile->startup.userdata);
 }
+static int policy_sequence(void *value,uint32_t *out) {
+    struct runner *r=value;
+    return r->profile->startup.policy_sequence(r->profile->startup.userdata,out);
+}
 static int pause_initial(struct runner *r) {
     int ms=remaining(r,25);if(ms<0)return ms;
     struct timespec t={.tv_nsec=(long)ms*1000000};
@@ -193,6 +197,7 @@ int ae_login_startup_run(const struct ae_login_run_profile *p) {
     struct ae_login_startup *startup=NULL;
     struct ae_login_startup_expect expected=p->startup;expected.check=gate;expected.userdata=&r;
     if(expected.enter_view)expected.enter_view=enter_view;
+    if(expected.policy_sequence)expected.policy_sequence=policy_sequence;
     if(!result){phase="namespace";result=ae_login_startup_create(fd,r.bus,&expected,&startup);}
     while(!result) {
         phase="readiness";

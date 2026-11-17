@@ -90,6 +90,8 @@ int ae_login_client_create(int *socket_fd, sd_bus *bus,
     if (!result) result = ae_login_loaded_create(client->service, client->sources,
         expected->fragment, expected->program, expected->config, expected->dropins,
         expected->dropin_count, &client->loaded);
+    if (!result && expected->policy_sequence)
+        result = ae_login_loaded_bind_policy(client->loaded, expected->policy_sequence, expected->userdata);
     if (!result) result = check_original(client);
     if (!result) {
         client->socket = fcntl(*socket_fd, F_DUPFD_CLOEXEC, 3);

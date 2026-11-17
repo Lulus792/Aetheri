@@ -32,6 +32,9 @@ struct ae_login_loaded {
     struct command_record original;
     pid_t owner,thread;
     int error;
+    int (*policy_status)(void *,uint32_t *);
+    void *policy_userdata;
+    uint32_t policy_sequence;
     bool busy;
     bool config_required;
     bool config_seen;
@@ -49,6 +52,32 @@ static int owner(const struct ae_login_loaded *loaded)
     if(getpid()!=loaded->owner)return -ECHILD;
     if(gettid()!=loaded->thread)return -EXDEV;
     return loaded->busy?-EBUSY:0;
+}
+
+int ae_login_loaded_bind_policy(struct ae_login_loaded *loaded,int (*sequence)(void *,uint32_t *),void *value)
+{
+    int r=owner(loaded);if(r)return r;
+    if(loaded->error)return loaded->error;
+    if(!sequence || loaded->policy_status || loaded->config_required)return -EINVAL;
+    loaded->busy=true;
+    loaded->policy_sequence=UINT32_MAX;
+    r=sequence(value,&loaded->policy_sequence);
+    loaded->busy=false;
+    if(r==-EAGAIN)r=-ESTALE;
+    if(r>0 || (!r && (loaded->policy_sequence&1U)))r=-EINVAL;
+    if(r){loaded->error=r;return r;}
+    loaded->policy_status=sequence;
+    loaded->policy_userdata=value;
+    return 0;
+}
+
+static int check_policy(struct ae_login_loaded *loaded)
+{
+    if(!loaded->policy_status)return 0;
+    uint32_t current=UINT32_MAX;
+    int r=loaded->policy_status(loaded->policy_userdata,&current);
+    if(r==-EAGAIN)r=-ESTALE;
+    return r<0?r:r>0?-EINVAL:current==loaded->policy_sequence?0:-ESTALE;
 }
 
 static bool literal_path(const char *path)
@@ -193,7 +222,7 @@ static void put64(uint8_t *out,uint64_t value)
 }
 
 static int context_digest(sd_bus *bus,const char *manager,const struct ae_image_process *process,
-                           uint8_t out[32])
+                           const struct ae_login_loaded *loaded,uint8_t out[32])
 {
     sd_id128_t bus_id;
     int r=sd_bus_get_bus_id(bus,&bus_id);
@@ -206,7 +235,13 @@ static int context_digest(sd_bus *bus,const char *manager,const struct ae_image_
     if(!label || label==512 || !name || name==256)return -EBADMSG;
     memcpy(bytes+40,process->label,label+1);
     memcpy(bytes+41+label,manager,name+1);
-    return ae_sha256_bytes(bytes,42+label+name,out);
+    size_t size=42+label+name;
+    if(loaded->policy_status) {
+        memcpy(bytes,"AETHLGC2",8);
+        put64(bytes+size,loaded->policy_sequence);
+        size+=8;
+    }
+    return ae_sha256_bytes(bytes,size,out);
 }
 
 static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
@@ -244,7 +279,7 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
         if(fstat(process->pidfd,&peer))r=-errno;
         else {
             uint8_t *bytes=observation->record;
-            memcpy(bytes,"AETHLGH1",8);
+            memcpy(bytes,loaded->policy_status?"AETHLGH2":"AETHLGH1",8);
             memcpy(bytes+8,boot,16);
             memcpy(bytes+24,invocation,16);
             put64(bytes+40,(uint64_t)peer.st_dev);
@@ -253,7 +288,7 @@ static int inspect_loaded(sd_bus *bus,const char *manager,const char *path,
             put64(bytes+64,(uint64_t)process->pid);
             put64(bytes+248,record.start_monotonic);
             put64(bytes+256,record.start_realtime);
-            r=context_digest(bus,manager,process,bytes+264);
+            r=context_digest(bus,manager,process,loaded,bytes+264);
         }
     }
     if(!r)loaded->original=record;
@@ -273,20 +308,23 @@ static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool requ
     if(capture || compare)observation.record=record;
     struct ae_image expected;
     uint8_t expected_config[32];
-    if(image) {
+    r=check_policy(loaded);
+    if(!r && image) {
         r=ae_login_sources_image(loaded->sources,loaded->program_index,&expected);
         if(!r)observation.expected_image=&expected;
-    } else r=ae_login_sources_check(loaded->sources);
+    } else if(!r)r=ae_login_sources_check(loaded->sources);
     if(!r && loaded->config_required) {
         r=ae_login_sources_data_digest(loaded->sources,loaded->config_index,expected_config);
         if(!r)observation.expected_config=expected_config;
     }
     if(!r)r=ae_login_service_inspect(loaded->service,inspect_loaded,&observation);
     if(!r)r=ae_login_sources_check(loaded->sources);
-    loaded->busy=false;
-    if(r)loaded->error=r;
-    else {
-        if(observation.expected_config && !observation.config_matches)return -EAGAIN;
+    if(!r)r=check_policy(loaded);
+    if(!r && observation.expected_config && !observation.config_matches) {
+        loaded->busy=false;
+        return -EAGAIN;
+    }
+    if(!r) {
         if(observation.config_matches)loaded->config_seen=true;
         if(observation.record) {
             struct ae_image selected;
@@ -295,12 +333,14 @@ static int check(struct ae_login_loaded *loaded,struct ae_image *image,bool requ
             if(!r)r=ae_image_encode(&selected,record+72);
             if(!r)memcpy(record+184,expected_config,32);
             if(!r)r=ae_login_sources_fingerprint(loaded->sources,record+216);
+            if(!r)r=check_policy(loaded);
             if(!r && compare && memcmp(record,compare,sizeof record))r=-ESTALE;
-            if(r){loaded->error=r;return r;}
-            if(capture)memcpy(capture,record,sizeof record);
+            if(!r && capture)memcpy(capture,record,sizeof record);
         }
-        if(image)*image=observation.image;
+        if(!r && image)*image=observation.image;
     }
+    loaded->busy=false;
+    if(r)loaded->error=r;
     return r;
 }
 

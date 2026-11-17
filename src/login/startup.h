@@ -21,6 +21,8 @@ struct ae_login_startup_expect {
        before any source capture there. The callback may not enter another
        namespace or publish. The same check() remains mandatory in both views. */
     int (*enter_view)(void *userdata);
+    /* Optional enforcing kernel status bound into the published observation. */
+    int (*policy_sequence)(void *userdata,uint32_t *);
     void *userdata;
 };
 /* Fresh single-threaded Root startup only. Observe the connected stream's actual

@@ -162,6 +162,7 @@ int ae_login_startup_create(int fd,sd_bus *bus,const struct ae_login_startup_exp
     if(!r)r=ae_login_sources_create(e->sources,e->source_count,&s->sources);
     if(!r)r=ae_login_loaded_create(s->service,s->sources,e->fragment,e->program,e->config,
                                   e->dropins,e->dropin_count,&s->loaded);
+    if(!r && e->policy_sequence)r=ae_login_loaded_bind_policy(s->loaded,e->policy_sequence,e->userdata);
     if(!r)r=destination(s);
     if(!r)r=namespace_check(s);
     if(!r)r=external(s);

@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "login/greeter_runner.h"
 #include "login/installed.h"
+#include "login/policy_status.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,7 +10,14 @@ struct deployment {
     const struct ae_login_greeter_profile *provider;
     struct ae_login_installed *installed;
     struct ae_login_sources *font;
+    struct ae_login_policy_status *status;
 };
+
+static int policy_sequence(void *value,uint32_t *out)
+{
+    struct deployment *deployment=value;
+    return ae_login_policy_status_sequence(deployment->status,out);
+}
 
 static int platform(const struct ae_login_greeter_profile *provider)
 {
@@ -23,6 +31,8 @@ static int check(void *value)
     int result = platform(deployment->provider);
     if (!result) result = ae_login_installed_check(deployment->installed);
     if (!result) result = ae_login_sources_check(deployment->font);
+    uint32_t sequence;
+    if (!result) result = policy_sequence(deployment,&sequence);
     return result;
 }
 
@@ -47,7 +57,8 @@ int ae_login_installed_greeter_run(const struct ae_login_greeter_profile *p, enu
     if (result) return result;
     struct deployment deployment = {.provider = p};
     const struct ae_login_release_anchor *trust = p->installed_release;
-    result = ae_login_installed_open(trust->key, trust->release, &deployment.installed);
+    result = ae_login_policy_status_open(&deployment.status);
+    if (!result) result = ae_login_installed_open(trust->key, trust->release, &deployment.installed);
     struct ae_login_selection selection;
     if (!result) result = ae_login_installed_read(deployment.installed, &selection);
 
@@ -72,7 +83,7 @@ int ae_login_installed_greeter_run(const struct ae_login_greeter_profile *p, enu
             .dropins = dropins, .dropin_count = sizeof dropins / sizeof dropins[0],
             .directory = "/run/aetheri/login", .leaf = "backend-observation",
             .label = "system_u:object_r:aetheri_login_handoff_t:s0",
-            .check = check, .userdata = &deployment,
+            .check = check, .policy_sequence = policy_sequence, .userdata = &deployment,
         },
         .compositor_label = "system_u:system_r:aetheri_greeter_display_t:s0",
         .compositor_socket_label = "system_u:system_r:aetheri_greeter_display_t:s0",
@@ -101,6 +112,7 @@ int ae_login_installed_greeter_run(const struct ae_login_greeter_profile *p, enu
     int closed = ae_login_sources_close(&deployment.font);
     if (!result) result = closed;
     closed = ae_login_installed_close(&deployment.installed);
+    ae_login_policy_status_close(&deployment.status);
     if (!result) result = closed;
     if (!result) *out = end;
     return result;
