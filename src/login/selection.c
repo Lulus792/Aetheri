@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-static const uint8_t magic[] = "AETHLS01";
+static const uint8_t magic[] = "AETHLS02";
 
 static const uint32_t limits[AE_LOGIN_SELECT_COUNT] = {
     [AE_LOGIN_SELECT_UNIT] = 65536,
@@ -25,6 +25,12 @@ static const uint32_t limits[AE_LOGIN_SELECT_COUNT] = {
     [AE_LOGIN_SELECT_DESKTOP] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_STARTUP] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_KERNEL_POLICY] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_SETTINGS] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_FILES] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_TERMINAL] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_PTY_STARTER] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_SHELL] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_EDITOR] = AE_DIGEST_MAX_BYTES,
 };
 
 static uint32_t read_u32(const uint8_t *p)

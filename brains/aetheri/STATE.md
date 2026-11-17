@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The public image preparation steps stage and sign
+all six fixed desktop application executables in format 2. The signed
+VM verifies both namespace views, rejects a missing or changed editor,
+and passes Settings refresh, Terminal `cat` and Files-to-editor save.
+Next integrate the first-version hardware services with the installed
+Settings and image. See the
+[release app record](journal/2026-11-17-login-image-boot.md#fixed-desktop-apps-in-release-selection).
+
 17 November 2026 — The signed VM powers off cleanly with the
 corrected PAM worker, including from an active user session, during
 replacement greeter startup and at its visible prompt. The original

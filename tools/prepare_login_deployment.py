@@ -16,11 +16,17 @@ LIBEXEC = "usr/libexec/aetheri"
 DATA = "usr/share/aetheri/login"
 UNITS = "usr/lib/systemd/system"
 MAX_INPUT = 16 * 1024 * 1024
+FORMAT = 2
+
+DESKTOP_EXECUTABLES = (
+    "aetheri-settings-nexaui", "aetheri-files-nexaui", "aetheri-terminal-nexaui",
+    "aetheri-terminal-pty-starter", "aetheri-shell", "aetheri-editor",
+)
 
 EXECUTABLES = (
     "aetheri-login-backend", "aetheri-login-startup", "aetheri-login-greeter",
     "aetheri-login-display", "aetheri-session", "aetheri-compositor",
-    "aetheri-desktop",
+    "aetheri-desktop", *DESKTOP_EXECUTABLES,
 )
 ARTIFACTS = {name: (f"{LIBEXEC}/{name}", 0o555) for name in EXECUTABLES}
 ARTIFACTS.update({
@@ -97,10 +103,10 @@ def stage(manifest: Path, destination: Path) -> dict:
         raise ValueError("login artifact selection exceeds 64 KiB")
     selected = json.loads(data, object_pairs_hook=unique_object)
     if (not isinstance(selected, dict) or set(selected) != {"format", "artifacts"}
-            or type(selected["format"]) is not int or selected["format"] != 1
+            or type(selected["format"]) is not int or selected["format"] != FORMAT
             or not isinstance(selected["artifacts"], dict)
             or set(selected["artifacts"]) != set(ARTIFACTS)):
-        raise ValueError("expected the complete format-1 login artifact selection")
+        raise ValueError("expected the complete format-2 login artifact selection")
     payload = {
         target: (read_artifact(manifest, name, selected["artifacts"][name]), mode)
         for name, (target, mode) in ARTIFACTS.items()
@@ -114,7 +120,7 @@ def stage(manifest: Path, destination: Path) -> dict:
             body = body.replace(placeholder, b"system_u:system_r:aetheri_login_startup_t:s0")
         payload[target] = body, 0o444
 
-    record = {"format": 1, "files": [
+    record = {"format": FORMAT, "files": [
         {"path": "/" + target, "mode": mode, "size": len(body), "sha256": digest(body)}
         for target, (body, mode) in sorted(payload.items())]}
     destination.mkdir()

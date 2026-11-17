@@ -9,7 +9,9 @@ import stat
 import struct
 import sys
 
-from prepare_login_deployment import DATA, LIBEXEC, MAX_INPUT, UNITS, digest, unique_object
+from prepare_login_deployment import (
+    DATA, DESKTOP_EXECUTABLES, FORMAT, LIBEXEC, MAX_INPUT, UNITS, digest, unique_object,
+)
 from verify_login_accounts import verify as verify_accounts
 
 
@@ -32,6 +34,7 @@ ROLES = (
     (f"/{LIBEXEC}/aetheri-desktop", MAX_INPUT),
     (f"/{LIBEXEC}/aetheri-login-startup", MAX_INPUT),
     (None, MAX_INPUT),  # independently selected effective kernel policy bytes
+    *((f"/{LIBEXEC}/{name}", MAX_INPUT) for name in DESKTOP_EXECUTABLES),
 )
 
 
@@ -58,9 +61,9 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
         raise ValueError("selected groups differ from the enrolled greeter")
     selection = json.loads(read_regular(stage / "receipt.json", 65536), object_pairs_hook=unique_object)
     if (not isinstance(selection, dict) or set(selection) != {"format", "files"}
-            or type(selection["format"]) is not int or selection["format"] != 1
+            or type(selection["format"]) is not int or selection["format"] != FORMAT
             or not isinstance(selection["files"], list)):
-        raise ValueError("expected the format-1 login staging receipt")
+        raise ValueError("expected the format-2 login staging receipt")
     files = {}
     for entry in selection["files"]:
         if (not isinstance(entry, dict) or set(entry) != {"path", "mode", "size", "sha256"}
@@ -68,7 +71,7 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
             raise ValueError("invalid or duplicate login receipt file")
         files[entry["path"]] = entry
 
-    body = bytearray(b"AETHLS01" + bytes.fromhex(release))
+    body = bytearray(b"AETHLS02" + bytes.fromhex(release))
     body.extend(struct.pack(">IIB2x16I", uid, gid, len(groups), *groups, *([0] * (16 - len(groups)))))
     external = iter((dropin, policy))
     for name, limit in ROLES:

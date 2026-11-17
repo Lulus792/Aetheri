@@ -56,15 +56,21 @@ at boot keeps those contexts, including on both scratch directories.
 
 ## Stage selected inputs
 
+With the installed startup, greeter and desktop profiles configured, use
+`cmake --build BUILD --target aetheri-login-image-artifacts` to build the
+native executables. Build the selected greetd backend separately.
+
 ```sh
 python tools/prepare_login_deployment.py --inputs login-inputs.json --output login-stage
 ```
 
 Use a fresh destination with an existing parent. The JSON object has `format`
-set to `1` and an `artifacts` object with exactly these keys.
+set to `2` and an `artifacts` object with exactly these keys.
 
 - `aetheri-login-backend`, `aetheri-login-startup`, `aetheri-login-greeter`,
   `aetheri-login-display`, `aetheri-session`, `aetheri-compositor`, `aetheri-desktop`
+- `aetheri-settings-nexaui`, `aetheri-files-nexaui`, `aetheri-terminal-nexaui`,
+  `aetheri-terminal-pty-starter`, `aetheri-shell`, `aetheri-editor`
 - `greeter-font`, `greeter-font-license`, `backend-license`, `backend-dependency-notices`
 
 Each value contains `path`, `size` in bytes, and `sha256` as 64 lowercase hex
@@ -228,17 +234,23 @@ SELinux file context. Signing and verification cover the final bytes
 even if two preparation runs use different inputs.
 [OpenSSL Ed25519 signing and verification](https://docs.openssl.org/3.5/man7/EVP_SIGNATURE-ED25519/)
 
-The 755-byte version-1 record uses big-endian integers. It contains the
-eight-byte magic `AETHLS01`, the 32-byte release identifier, the 32-bit UID
+The 971-byte version-2 record uses big-endian integers. It contains the
+eight-byte magic `AETHLS02`, the 32-byte release identifier, the 32-bit UID
 and GID, the one-byte supplementary group count, two zero reserved bytes,
 and sixteen 32-bit group slots, padded with zeros. Each file row contains a
 32-bit nonzero size and its 32-byte SHA-256 digest. The Ed25519 signature
-covers the whole 691-byte body. File rows have this fixed order.
+covers the whole 907-byte body. File rows have this fixed order.
 
 1. Backend unit, startup unit, distribution service drop-in, worker shutdown drop-in
 2. Backend executable, backend configuration, greeter executable, greeter display executable
 3. Greeter font, human PAM profile, greeter PAM profile
 4. Session entry, compositor, desktop, startup executable, effective kernel policy
+5. Settings, Files, Terminal, PTY starter, shell, editor
+
+Use a new release identifier when producing the version-2 image and rebuild
+both entry points against its selected anchor. The version-2 reader requires
+all 22 records, so updating an older test image requires staging and signing
+the complete selection.
 
 The native verifier checks the exact record size, release identifier,
 signature, account IDs, group ordering, reserved fields, and the size bounds
@@ -279,14 +291,16 @@ second protected selection and requires the same authenticated record digest.
 It keeps the second selection pinned during backend source capture, readiness
 and publication.
 
-The installed startup path observes five additional signed files in each
-view. These are its unit fragment, its executable, the session executable,
-the compositor and the desktop shell. It checks the actual running startup
+The installed startup path observes eleven additional signed files in each
+view. These include its unit fragment, its executable, the session executable,
+the compositor, the desktop shell, and the six fixed application executables.
+It checks the actual running startup
 executable against the same held file object, including when it enters the
 backend view. Subsequent checks revalidate the retained files in the current
 view. An observed loss fences the attempt. The ten-entry backend handoff
 fingerprint retains its existing form. SELinux grants the startup domain
-read-only access to the three selected desktop executable types.
+read access to the selected desktop and app executable types while prohibiting
+execution and mutation.
 
 The adapter compares the signed policy size and SHA-256 with the actual
 policy read from selinuxfs in each gate invocation. The loaded service checks,

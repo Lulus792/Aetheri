@@ -10,8 +10,13 @@
 (type aetheri_documents_t)
 (typeattribute aetheri_desktop_apps)
 (typeattribute aetheri_document_apps)
+(typeattribute aetheri_fixed_app_elf)
 (typeattributeset aetheri_desktop_apps (aetheri_settings_t aetheri_files_t aetheri_terminal_t))
 (typeattributeset aetheri_document_apps (aetheri_files_t aetheri_terminal_t))
+(typeattributeset aetheri_fixed_app_elf (aetheri_settings_exec_t aetheri_files_exec_t
+    aetheri_terminal_exec_t aetheri_terminal_helper_exec_t))
+(allow aetheri_login_startup_t aetheri_fixed_app_elf (file (read open getattr)))
+(neverallow aetheri_login_startup_t aetheri_fixed_app_elf (file (write create unlink execute execute_no_trans)))
 (typeattributeset domain (aetheri_settings_t aetheri_files_t aetheri_terminal_t))
 (typeattributeset file_type (aetheri_settings_exec_t aetheri_files_exec_t aetheri_terminal_exec_t
     aetheri_terminal_helper_exec_t aetheri_terminal_pty_t aetheri_documents_t))

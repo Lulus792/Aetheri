@@ -20,7 +20,7 @@ class LoginDeploymentTests(unittest.TestCase):
         self.addCleanup(work.cleanup)
         self.root = Path(work.name)
         self.manifest = self.root / "selected.json"
-        self.selection = {"format": 1, "artifacts": {}}
+        self.selection = {"format": 2, "artifacts": {}}
         for name in deployment.ARTIFACTS:
             if name in deployment.EXECUTABLES:
                 elf = bytearray(64)
@@ -113,9 +113,9 @@ class LoginDeploymentTests(unittest.TestCase):
         self.manifest.write_text('{"format": 1, "format": 1, "artifacts": {}}', encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "duplicate manifest field"):
             deployment.stage(self.manifest, self.root / "out")
-        del self.selection["artifacts"]["aetheri-session"]
+        del self.selection["artifacts"]["aetheri-files-nexaui"]
         self.save()
-        with self.assertRaisesRegex(ValueError, "complete format-1"):
+        with self.assertRaisesRegex(ValueError, "complete format-2"):
             deployment.stage(self.manifest, self.root / "out")
         self.assertFalse((self.root / "out").exists())
 
@@ -129,7 +129,21 @@ class LoginDeploymentTests(unittest.TestCase):
         release = "2a" + "00" * 31
         args = (stage, dropin, policy, release, 992, 993, [993, 60000])
         result = selection.payload(*args)
-        self.assertEqual(len(result), 691)
+        self.assertEqual(len(result), 907)
+        self.assertEqual(result[:8], b"AETHLS02")
+        for index, name in enumerate(deployment.DESKTOP_EXECUTABLES, start=16):
+            with self.subTest(name=name):
+                candidate = stage / "root" / deployment.LIBEXEC / name
+                original = candidate.read_bytes()
+                offset = 115 + 36 * index
+                self.assertEqual(int.from_bytes(result[offset:offset + 4], "big"), len(original))
+                self.assertEqual(result[offset + 4:offset + 36].hex(), deployment.digest(original))
+                candidate.chmod(0o755)
+                candidate.write_bytes(original[:-1] + b"!")
+                with self.assertRaisesRegex(ValueError, f"staged file differs.*{name}"):
+                    selection.payload(*args)
+                candidate.write_bytes(original)
+                candidate.chmod(0o555)
         signature = self.root / "signature"
         signature.write_bytes(bytes(63))
         destination = stage / "root" / deployment.DATA / "selection.bin"

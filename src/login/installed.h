@@ -34,6 +34,8 @@ enum {
     AE_LOGIN_INSTALLED_RUNTIME_COUNT
 };
 
+enum { AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT = 6 };
+
 /* Providers supply independent build-selected trust anchors. Open the literal
  * installed selection path, authenticate the bytes, then retain and observe the
  * protected file and ancestry. The caller admits the original host view and
@@ -56,6 +58,8 @@ int ae_login_installed_backend(struct ae_login_installed *,
  * This is a separate source set from the common backend handoff fingerprint. */
 int ae_login_installed_runtime(struct ae_login_installed *,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_RUNTIME_COUNT]);
+int ae_login_installed_desktop_apps(struct ae_login_installed *,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT]);
 int ae_login_installed_display(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_font(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_close(struct ae_login_installed **);

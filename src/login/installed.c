@@ -211,6 +211,37 @@ int ae_login_installed_runtime(struct ae_login_installed *installed,
     return 0;
 }
 
+int ae_login_installed_desktop_apps(struct ae_login_installed *installed,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT])
+{
+    if (!out) return -EINVAL;
+    int result = ae_login_installed_check(installed);
+    if (result) return result;
+    static const struct {
+        const char *leaf;
+        const char *label;
+        enum ae_login_selection_role role;
+    } apps[] = {
+        {"aetheri-settings-nexaui", "system_u:object_r:aetheri_settings_exec_t:s0", AE_LOGIN_SELECT_SETTINGS},
+        {"aetheri-files-nexaui", "system_u:object_r:aetheri_files_exec_t:s0", AE_LOGIN_SELECT_FILES},
+        {"aetheri-terminal-nexaui", "system_u:object_r:aetheri_terminal_exec_t:s0", AE_LOGIN_SELECT_TERMINAL},
+        {"aetheri-terminal-pty-starter", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_PTY_STARTER},
+        {"aetheri-shell", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_SHELL},
+        {"aetheri-editor", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_EDITOR},
+    };
+    _Static_assert(sizeof apps / sizeof apps[0] == AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT,
+        "complete installed desktop application selection");
+    for (size_t index = 0; index < AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT; ++index) {
+        struct ae_login_source_expect expected = {
+            .directory = LOGIN_EXEC, .leaf = apps[index].leaf, .label = apps[index].label,
+            .kind = AE_LOGIN_SOURCE_ELF, .mode = 0555,
+        };
+        selected_file(installed, apps[index].role, &expected);
+        out[index] = expected;
+    }
+    return 0;
+}
+
 int ae_login_installed_display(struct ae_login_installed *installed, struct ae_login_source_expect *out)
 {
     if (!out) return -EINVAL;

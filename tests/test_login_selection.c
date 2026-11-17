@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     CHECK(EVP_PKEY_get_raw_public_key(key, public_key, &key_size) == 1);
     CHECK(key_size == sizeof public_key);
 
-    uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS01";
+    uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS02";
     if (argc >= 2 && argc <= 4) {
         int offset = argc == 4 ? 2 : 1;
         if (argc == 4) CHECK(!strcmp(argv[1], "--sign-body"));
@@ -59,6 +59,8 @@ int main(int argc, char **argv)
             CHECK(selected.groups[0] == 993 && selected.groups[1] == 60000);
             CHECK(selected.files[AE_LOGIN_SELECT_SYSTEMD_DROPIN].size == 21);
             CHECK(selected.files[AE_LOGIN_SELECT_KERNEL_POLICY].size == 2);
+            CHECK(selected.files[AE_LOGIN_SELECT_SETTINGS].size == 64 + sizeof("aetheri-settings-nexaui") - 1);
+            CHECK(selected.files[AE_LOGIN_SELECT_EDITOR].size == 64 + sizeof("aetheri-editor") - 1);
         }
         if (argc >= 3) {
             file = fopen(argv[offset + 1], "wbx");
@@ -92,6 +94,10 @@ int main(int argc, char **argv)
     refused(record, sizeof record, public_key, another_release, -EKEYREJECTED);
     refused(record, sizeof record - 1, public_key, release, -EBADMSG);
     refused(record, sizeof record + 1, public_key, release, -EBADMSG);
+    record[7] = '1';
+    sign_record(key, record);
+    refused(record, sizeof record, public_key, release, -EBADMSG);
+    record[7] = '2';
     seed[0] = 12;
     EVP_PKEY *other = EVP_PKEY_new_raw_private_key_ex(NULL, "ED25519", NULL, seed, sizeof seed);
     CHECK(other);
@@ -99,9 +105,9 @@ int main(int argc, char **argv)
     EVP_PKEY_free(other);
     refused(record, sizeof record, public_key, release, -EKEYREJECTED);
     sign_record(key, record);
-    record[115 + 36 * AE_LOGIN_SELECT_GREETER + 4] ^= 1;
+    record[115 + 36 * AE_LOGIN_SELECT_EDITOR + 4] ^= 1;
     refused(record, sizeof record, public_key, release, -EKEYREJECTED);
-    record[115 + 36 * AE_LOGIN_SELECT_GREETER + 4] ^= 1;
+    record[115 + 36 * AE_LOGIN_SELECT_EDITOR + 4] ^= 1;
 
     const struct { size_t offset; uint8_t value; } invalid[] = {
         {43, 0}, {47, 0}, {48, 17}, {49, 1}, {54, 0}, {58, 43}, {62, 1},

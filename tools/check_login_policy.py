@@ -232,6 +232,12 @@ def inspect(expected: str, graphical: bool = False, applications: bool = False) 
     if applications:
         helper = obj("aetheri_terminal_helper_exec_t")
         documents = obj("aetheri_documents_t")
+        for name in ("settings", "files", "terminal", "terminal_helper"):
+            entry = obj(f"aetheri_{name}_exec_t")
+            for permission in ("read", "open", "getattr"):
+                check(publisher, entry, "file", permission, True)
+            for permission in ("execute", "execute_no_trans", "write", "create", "unlink"):
+                check(publisher, entry, "file", permission, False)
         for name in ("settings", "files", "terminal"):
             app = process(f"aetheri_{name}_t")
             entry = obj(f"aetheri_{name}_exec_t")

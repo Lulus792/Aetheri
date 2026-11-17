@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current release app assembly: read spec/login-deployment.md and the
+fixed-desktop-apps section of the 2026-11-17 login-image-boot journal.
+Format 2 stages six fixed ELFs and signs them in AETHLS02. Startup retains
+separate core/apps guards in both views. Keep read-only app observation,
+the ten-entry handoff shape and rejection of v1 records by the v2 reader.
+Release 8b66d256141c passes 18 CTests. Signed f6d7bcad58f5 passes Settings
+refresh, Terminal cat and Files-editor save/power-off. The original Files
+VM was resumed after QMP timeout. Signed-byte-preserving missing and
+mutated editor counters fail. Next installed hardware service integration
+and Settings. Preserve counter and data evidence. USB/NexaUI gates apply.
+
 Current installed power-off: read the PAM worker hangup section of the
 2026-11-17 login-image-boot journal and spec/login-backend.md. Diagnostic
 f2d08a75 pins and observes the original replacement worker, greeter and

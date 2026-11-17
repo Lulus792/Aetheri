@@ -488,3 +488,41 @@ exported on Windows. Redundant unmounted copies of their roots
 were reclaimed after checking both compressed and decompressed hashes.
 
 [pidfs-release]: https://github.com/torvalds/linux/blob/v6.19/kernel/exit.c
+
+## Fixed desktop apps in release selection
+
+`AETHLS02` appends Settings, Files, Terminal, PTY starter, shell and editor
+to the original signed layout. The format-2 staging tool requires all
+six x86-64 inputs. The installed startup retains their protected source
+objects in both mount views independently of the core runtime and
+ten-entry backend handoff fingerprint. The policy grants the startup
+domain read access to the four app executable types and forbids execution
+and mutation.
+
+Release `8b66d256141c` uses the public
+`aetheri-login-image-artifacts` target and passes 18 selected CTests,
+including the Python/C signature round trip. The Python staging suite
+rejects a missing input and mutation of each of the six staged ELFs.
+Offline policy build `06decdb9490a` passes 32 app observation decisions.
+Both cold boots of `63aff78237c6` give the same enforcing policy readback,
+SHA-256
+`134ef9bb6b880b3211420a4b9032bf843e39ccb071a57b0bdd5bbe070cb496de`.
+
+Signed image `f6d7bcad58f5` composes the six ELFs through the public
+stage and selection tools. It verifies their loader closure in the
+composed image. The test keeps the existing lab release anchor, while
+the production recipe requires a fresh release identifier. The base
+image starts successfully. Its one-byte editor counter `ebaacb5e5591`
+fails startup with `-EBADMSG`. The missing editor counter
+`a911e718c475` fails with `-ENOENT`. Both retain the original signed
+selection and their serial traces contain no startup completion.
+
+Terminal `3a9b431b` shows the saved file with `cat` and powers off
+normally after logout. Settings `a54d20bb` refreshes display information
+on F5 and closes. In `28872687` the original QMP connection times out
+with the new-file dialog open. The original VM and its QMP UUID are
+verified again. The test cancels the partial draft, resumes on that VM,
+creates the file, opens and saves it in the editor, and powers off cleanly.
+The inspected editor shows `Saved`. Read-only ext4 checking of a separate
+copy confirms all nine bytes on disk. All new QEMU instances are terminal.
+The two refused images and all original data disks are preserved.

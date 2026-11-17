@@ -956,6 +956,9 @@ if(AETHERI_SETTINGS)
         target_compile_options(aetheri_settings_view PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
         add_executable(aetheri-settings-nexaui src/settings/nexaui_main.c)
         target_link_libraries(aetheri-settings-nexaui PRIVATE aetheri_settings_view)
+        if(AETHERI_LOGIN_IMAGE)
+            set_target_properties(aetheri-settings-nexaui PROPERTIES SKIP_BUILD_RPATH TRUE)
+        endif()
         if(BUILD_TESTING AND TARGET aetheri_settings_audio_host)
             add_library(aetheri_settings_audio_entry STATIC src/settings/nexaui_main.c)
             target_compile_definitions(aetheri_settings_audio_entry PRIVATE AETHERI_SETTINGS_AUDIO_HOST AETHERI_SETTINGS_NO_MAIN)
@@ -1980,4 +1983,15 @@ if(BUILD_TESTING)
                  $<TARGET_FILE:test_core> mount "${CMAKE_CURRENT_BINARY_DIR}")
         set_tests_properties(core.mount_containment PROPERTIES TIMEOUT 10)
     endif()
+endif()
+
+if(AETHERI_LOGIN_IMAGE AND TARGET aetheri-login-greeter AND TARGET aetheri-login-startup
+   AND TARGET aetheri-session AND TARGET aetheri-compositor AND TARGET aetheri-desktop
+   AND TARGET aetheri-settings-nexaui AND TARGET aetheri-files-nexaui
+   AND TARGET aetheri-terminal-nexaui AND TARGET aetheri-terminal-pty-starter
+   AND TARGET aetheri-shell AND TARGET aetheri-editor)
+    add_custom_target(aetheri-login-image-artifacts DEPENDS
+        aetheri-login-greeter aetheri-login-startup aetheri-session aetheri-compositor aetheri-desktop
+        aetheri-settings-nexaui aetheri-files-nexaui aetheri-terminal-nexaui
+        aetheri-terminal-pty-starter aetheri-shell aetheri-editor)
 endif()
