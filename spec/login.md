@@ -183,12 +183,11 @@ destroyed at teardown. The host reports Start acknowledgement separately
 from desktop readiness. It does not publish an external accessibility action
 bridge in this profile.
 
-The caller still owns the compiled deployment selection, the original
-compositor and seat lifetimes, and the supervisor bound for synchronous
-Wayland bootstrap. The VM uses the actual greeter seat and private DRM
-compositor with a synthetic conversation peer. The native host has yet to
-run with the protected production backend configuration. See the
-[native UI record](../brains/aetheri/journal/2026-11-17-login-ui-host.md).
+The caller owns the compiled deployment selection, the original compositor
+and seat lifetimes, and the supervisor bound for synchronous Wayland
+bootstrap. The original [native UI checks](../brains/aetheri/journal/2026-11-17-login-ui-host.md)
+use a synthetic conversation peer. The later graphical executable check
+below uses the real backend and PAM.
 
 ### Graphical greeter executable
 
@@ -213,10 +212,18 @@ before it can send credentials.
 The runner closes the local display and observes its original direct child's
 exit. If the child needs a stop request, it sends SIGTERM through the held
 pidfd and checks for exit within the bounded retirement window. The launcher
-reports Start acknowledgement separately from the desktop lifecycle.
-The [build and refusal checks](../brains/aetheri/journal/2026-11-17-login-greeter-entry.md)
-use a provider that denies admission. A selected deployment and the complete
-graphical PAM-to-desktop test are pending.
+reports Start acknowledgement separately from the desktop lifecycle and uses
+the local journal for stderr diagnostics when greetd attaches a VT and the
+journal is available.
+
+An [isolated VM deployment](../brains/aetheri/journal/2026-11-17-graphical-login-desktop.md)
+exercises the native graphical entry, original greetd peer, protected
+handoff and real PAM authentication. Login opens the visible user desktop.
+Ending the desktop closes the user PAM session and returns to the empty
+greeter. A subsequent administrative backend stop ends the replacement
+processes. The replacement greeter returns `EAGAIN` in that stop sequence.
+Dedicated confinement for the graphical deployment and normal installation
+remain pending.
 
 ## Dedicated greeter account and supplementary groups
 

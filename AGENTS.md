@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current graphical login VM milestone: read spec/login.md and the 2026-11-17
+graphical-login-desktop journal. Real protected handoff + graphical keyboard
+input + private PAM reach Start ACK, the visible DRM user desktop, original
+entry/worker exit and PAM close, then a fresh empty greeter. Final
+58a9b0d7f26d uses an administrative unconfined_service_t test role. Backend
+stop after the replacement frame leaves the greeter exit 1/EAGAIN, with its
+compositor/worker and backend terminal at zero. Preserve both prior fixture
+failures and this stop outcome. Separate service-job observation from a
+confirmed local stop before changing the fence. Next stop sequencing and
+dedicated graphical policy/normal deployment. No USB image.
+
 Current graphical greeter executable: read spec/login.md and the 2026-11-17
 login-greeter-entry journal. AETHERI_LOGIN_GREETER requires an explicit compiled
 provider. The ordinary entry closes inherited FDs, selects its original seat,

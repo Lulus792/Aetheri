@@ -1,5 +1,16 @@
 # State
 
+17 November 2026 — Real graphical login case 58a9b0d7f26d uses the original
+greetd peer and published handoff with isolated PAM and the native executable.
+The test keyboard enters the password, receives Start ACK, reaches the
+visible desktop and returns to a fresh empty greeter after the original
+user entry and worker exit and PAM closes. A subsequent backend stop leaves
+the replacement greeter at exit 1 with EAGAIN while its compositor, worker
+and backend exit zero. The VM returns to the original enforcing policy and
+tty1. Next isolate stop sequencing, then verify the full graphical chain in
+the dedicated policy and normal deployment. See the
+[VM record](journal/2026-11-17-graphical-login-desktop.md).
+
 17 November 2026 — The opt-in graphical greeter now has a native executable,
 an explicit build-selected deployment interface and a runner for its original
 private compositor child. Final Release and memory builds each pass ten
