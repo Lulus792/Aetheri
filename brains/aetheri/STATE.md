@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The direct-exec greetd build boots the signed VM
+through protected startup and the visible Wayland account prompt.
+Actual password authentication and Start open the UID 1000 Wayland
+session. The compositor starts, then the desktop process exits with
+status 139 before desktop readiness. PAM closes and the greeter
+returns. Next diagnose the desktop crash in the identical runtime
+profile and repeat authenticated start and intentional logout. See the
+[standalone login record](journal/2026-11-17-login-image-boot.md#direct-session-execution).
+
 17 November 2026 — The standalone signed UEFI VM passes root/data
 checks. The tmpfiles correction admits just the private login
 directories and the corrected boot reaches the original greeter PAM

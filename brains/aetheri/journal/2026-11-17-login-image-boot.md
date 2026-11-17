@@ -69,3 +69,40 @@ Next verify direct execution of the exact configured greeter and
 literal Start arguments in the installed backend profile. Retain the
 original PAM child ownership and shutdown behavior. Rebuild and
 re-sign the backend selection before the next standalone test.
+
+## Direct session execution
+
+The new `aetheri-direct-exec` backend feature prepares literal, absolute
+argv before acknowledging session arguments. It executes the selected
+program after dropping to the session identity. The startup-only
+carrier retains the upstream behavior. Linux Release build
+`d1a75296af9f` passes 23 Rust unit tests and one documentation test.
+The startup-only and no-feature profiles also compile. The 13 source
+preparer checks pass on Windows. The selected backend ELF SHA-256 is
+`923a6690b9b13a711b750f3de36652b3a1c9d11005405d0214e7e98a8f6139a8`.
+
+Signed image `7b1412821e82` boots enforcing with the same selected
+policy and an unchanged archived base. The startup helper reaches
+`AETHERI_LOGIN_STARTUP_COMPLETE`. VT8 shows the real Wayland account
+prompt. A second cold boot with fresh VM state and the same system
+medium reaches the same account prompt. The QMP driver checks the
+original VM identity and takes screenshots before account input,
+the synthetic password and the Start action. The UI confirms the
+password and reports `start_ack=1`. logind opens session 2 as Wayland
+class user and PAM opens the session for UID 1000.
+
+The session entry starts the user compositor, which gets a Bochs DRM
+output. The desktop process logs `READY wayland opengles2 outputs=1`
+then exits with status 139 before the session owner reports desktop
+readiness. The original worker closes PAM, session 2 is removed, and
+the new greeter session 3 displays the account prompt. No usable user
+desktop was observed. The shader-cache warning occurred before the
+crash. Its causal role is unverified. Next localize the desktop
+fault in a diagnostic copy of the same image and repeat the
+authenticated start, desktop readiness and intentional logout.
+
+Both original QEMU processes terminated. The read-only system image
+keeps SHA-256
+`85a05b531e9d46dacccc1d7a2c1b677826a0b91016e29358dc1b4cb584d59892`.
+The local case preserves the serial output, screenshots and distinct
+data disks. The synthetic secret and signing key stay in the lab.

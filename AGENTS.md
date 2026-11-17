@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current installed direct-exec VM: read spec/login-backend.md and the
+direct session execution section in the 2026-11-17 login-image-boot
+journal. Backend d1a75296af9f passes 23 Rust unit/one doc test and
+startup-only/default compile checks. Signed 7b1412821e82 reaches the
+protected handoff and visible greeter twice. Actual synthetic auth
+and Start open UID1000 Wayland session 2. User compositor reaches
+KMS output, desktop logs SDL ready then exits 139 before owner ready,
+PAM closes and greeter session 3 displays the account prompt. The
+shader-cache warning is separate evidence. Next localize the desktop
+fault in the exact installed profile, then test readiness and normal
+logout. Both QEMU attempts are terminal. Preserve images/logs and
+the USB gate.
+
 Current standalone signed login VM: read `brains/aetheri/STATE.md` and
 the 2026-11-17 login-image-boot journal. Final Release profile passes
 13 CTests and package suite passes four. The original root/data checks

@@ -111,6 +111,7 @@ def startup_notice(source):
     source[path] = (ROOT / 'patches/greetd/aetheri_startup.rs').read_bytes().replace(b'\r\n', b'\n')
     worker_lifetime(source)
     session_close(source)
+    direct_exec(source)
 
 
 def worker_lifetime(source):
@@ -386,6 +387,78 @@ def session_close(source):
     if path in source:
         raise ValueError('unexpected session-close integration file')
     source[path] = (ROOT / 'patches/greetd/aetheri_close.rs').read_bytes().replace(b'\r\n', b'\n')
+
+
+def direct_exec(source):
+    """Build the installed profile with literal argv and no shell dependency."""
+    def replace(path, original, replacement):
+        if source[path].count(original) != 1:
+            raise ValueError('unexpected direct exec integration site: ' + path)
+        source[path] = source[path].replace(original, replacement)
+
+    cargo = 'greetd/Cargo.toml'
+    main = 'greetd/src/main.rs'
+    worker = 'greetd/src/session/worker.rs'
+    replace(cargo, b'aetheri-startup = []\n',
+            b'aetheri-startup = []\naetheri-direct-exec = ["aetheri-startup"]\n')
+    replace(main, b'mod aetheri_startup;\n',
+            b'mod aetheri_startup;\n#[cfg(feature = "aetheri-direct-exec")]\nmod aetheri_exec;\n')
+    replace(worker, b'''    SessionChildToParent::Success.send(sock)?;
+
+    // Await start request from our parent.''', b'''    #[cfg(feature = "aetheri-direct-exec")]
+    let command = {
+        if source_profile {
+            return Err("direct exec forbids shell profiles".into());
+        }
+        crate::aetheri_exec::arguments(&cmd)?
+    };
+    SessionChildToParent::Success.send(sock)?;
+
+    // Await start request from our parent.''')
+    replace(worker, b'    let command = if source_profile {', b'''    #[cfg(not(feature = "aetheri-direct-exec"))]
+    let command = if source_profile {''')
+    replace(worker, b'''            // Run
+            let cpath = CString::new("/bin/sh").unwrap();
+            execve(
+                &cpath,
+                &[
+                    &cpath,
+                    &CString::new("-c").unwrap(),
+                    &CString::new(command).unwrap(),
+                ],
+                &envvec,
+            )
+            .expect("unable to exec");
+
+            unreachable!("after exec")''', b'''            #[cfg(feature = "aetheri-direct-exec")]
+            {
+                // The nonempty argv was prepared before Start. Only the
+                // forked, unprivileged child reaches execve.
+                let error = execve(&command[0], &command, &envvec).unwrap_err();
+                eprintln!("session: unable to exec selected program: {error}");
+                // Exit this fork without running the parent's teardown.
+                unsafe { libc::_exit(126) }
+            }
+            #[cfg(not(feature = "aetheri-direct-exec"))]
+            {
+                let cpath = CString::new("/bin/sh").unwrap();
+                execve(
+                    &cpath,
+                    &[
+                        &cpath,
+                        &CString::new("-c").unwrap(),
+                        &CString::new(command).unwrap(),
+                    ],
+                    &envvec,
+                )
+                .expect("unable to exec");
+
+                unreachable!("after exec")
+            }''')
+    path = 'greetd/src/aetheri_exec.rs'
+    if path in source:
+        raise ValueError('unexpected direct exec integration file')
+    source[path] = (ROOT / 'patches/greetd/aetheri_exec.rs').read_bytes().replace(b'\r\n', b'\n')
 
 
 def plan(source_archive, crate_cache, lockfile, pins, *, notice=False):

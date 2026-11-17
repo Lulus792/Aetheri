@@ -219,3 +219,23 @@ automatically installed service. Pending teardown must remain visible for
 diagnosis and explicit reconciliation. No elapsed timeout, successful signal,
 EOF, worker exit or inactive scope proves descendant drain, lease release,
 durable recovery or complete application removal.
+
+## Installed image execution
+
+Build the image backend with `--features aetheri-direct-exec`. This
+enables the startup integration and uses Linux `execve` for the final
+session process. The greeter command from the protected configuration
+is one absolute executable pathname. Authenticated Start supplies a
+vector whose first element is an absolute pathname. The worker
+converts this vector into literal arguments and rejects an empty
+vector, a relative executable or an embedded NUL before acknowledging
+the arguments. The signed deployment and the existing peer, PAM and
+policy checks still govern the selected programs.
+
+Only the final forked child executes the program, after dropping to
+the selected account and applying the existing parent-death checks.
+A failed exec writes its errno to the existing session diagnostics
+and terminates that child. The original worker still owns PAM
+teardown, with Start acknowledgement distinct from exec or
+graphical readiness. The startup-only carrier profile retains
+greetd's upstream shell execution.
