@@ -21,6 +21,14 @@ option(AETHERI_PRIVILEGED_TESTS "Run privileged probes in the disposable guest" 
 option(AETHERI_LINUX_IPC "Build the native sd-bus peer integration" OFF)
 option(AETHERI_LOGIN_PROTOCOL "Build the bounded greeter conversation and local transport" OFF)
 option(AETHERI_LOGIN_VIEW "Build the NexaUI view and readiness adapter for an admitted greeter" OFF)
+option(AETHERI_LOGIN_GREETER "Build the original graphical greeter with a selected deployment" OFF)
+set(AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE "" CACHE FILEPATH "Explicit greeter deployment C source")
+if(AETHERI_LOGIN_GREETER AND (NOT AETHERI_LOGIN_VIEW OR
+    NOT IS_ABSOLUTE "${AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE}" OR
+    NOT EXISTS "${AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE}" OR
+    IS_DIRECTORY "${AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE}"))
+    message(FATAL_ERROR "The graphical greeter requires the login view and an explicit absolute deployment C source")
+endif()
 option(AETHERI_LOGIN_STARTUP "Build the finite login startup executable with an admitted deployment provider" OFF)
 set(AETHERI_LOGIN_DEPLOYMENT_SOURCE "" CACHE FILEPATH "Explicit selected C deployment provider for the login startup executable")
 if(AETHERI_LOGIN_STARTUP AND NOT (AETHERI_LOGIN_PROTOCOL AND AETHERI_LINUX_IPC))
@@ -382,6 +390,16 @@ if(AETHERI_LOGIN_PROTOCOL)
             target_compile_options(aetheri_login_ui_host PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
             target_link_libraries(aetheri_login_ui_host PUBLIC aetheri_login_view
                 aetheri_login_client aetheri_login_display aetheri_linux_session)
+            if(AETHERI_LOGIN_GREETER)
+                add_library(aetheri_login_greeter_runner STATIC src/login/greeter_runner.c)
+                target_compile_options(aetheri_login_greeter_runner PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+                target_link_libraries(aetheri_login_greeter_runner PUBLIC aetheri_login_ui_host)
+                add_executable(aetheri-login-greeter src/login/greeter_main.c
+                    "${AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE}")
+                set_target_properties(aetheri-login-greeter PROPERTIES SKIP_BUILD_RPATH TRUE)
+                target_compile_options(aetheri-login-greeter PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+                target_link_libraries(aetheri-login-greeter PRIVATE aetheri_login_greeter_runner)
+            endif()
             if(BUILD_TESTING)
                 add_executable(test_login_ui_poll tests/test_login_ui_poll.c)
                 target_compile_options(test_login_ui_poll PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)

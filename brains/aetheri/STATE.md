@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The opt-in graphical greeter now has a native executable,
+an explicit build-selected deployment interface and a runner for its original
+private compositor child. Final Release and memory builds each pass ten
+selected tests. A deliberately rejecting provider verifies the executable's
+entrance, and the build rejects a missing provider. Next run the graphical
+entry on the original greetd/PAM deployment through visible desktop and
+shutdown. The [entry record](journal/2026-11-17-login-greeter-entry.md) records
+the exact boundary.
+
 17 November 2026 — The native NexaUI host consumes the private Wayland
 endpoint, requires the active greeter class and selected VT, and checks
 native focus before routing input or pumping the conversation. Actual

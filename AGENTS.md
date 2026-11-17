@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current graphical greeter executable: read spec/login.md and the 2026-11-17
+login-greeter-entry journal. AETHERI_LOGIN_GREETER requires an explicit compiled
+provider. The ordinary entry closes inherited FDs, selects its original seat,
+checks the compositor image and pins its child before descriptor exec. The
+socket hint does not admit the backend. Both build profiles pass ten selected
+tests and reject with the deliberately denying provider. The VM retains the
+enforcing baseline. Next actual graphical login with the protected greetd/PAM
+deployment through visible desktop and original shutdown. USB gate and NexaUI
+maintenance-only state apply.
+
 Current native greeter UI checkpoint: read spec/login.md and the 2026-11-17
 login-ui-host journal. Host takes the only private Wayland endpoint, gates
 input on active greeter seat/VT, submitted frame and keyboard focus, and

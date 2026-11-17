@@ -190,6 +190,34 @@ compositor with a synthetic conversation peer. The native host has yet to
 run with the protected production backend configuration. See the
 [native UI record](../brains/aetheri/journal/2026-11-17-login-ui-host.md).
 
+### Graphical greeter executable
+
+`AETHERI_LOGIN_GREETER` builds `aetheri-login-greeter` with the login view and
+one explicit `AETHERI_LOGIN_GREETER_DEPLOYMENT_SOURCE` C file. That provider
+selects the protected sources and backend gate, greeter account and seat,
+compositor, runtime directories and font. The executable accepts no
+arguments. It requires an ordinary account with matching real and effective
+IDs and `NoNewPrivileges`, then closes inherited descriptors above stderr.
+
+The runner observes its active greeter session and opens the selected
+compositor image. It checks the opened image against the protected source
+and forks one child. A private pipe holds the child before exec while the
+runner retains its pidfd and the display control endpoint. The child then
+executes that image descriptor with the selected DRM and private display
+options. It receives a small environment selected by the deployment. The
+runner connects to the literal system bus and uses a bounded `GREETD_SOCK`
+path only to locate the backend candidate. The native host still requires
+the original backend peer, protected handoff and active input admission
+before it can send credentials.
+
+The runner closes the local display and observes its original direct child's
+exit. If the child needs a stop request, it sends SIGTERM through the held
+pidfd and checks for exit within the bounded retirement window. The launcher
+reports Start acknowledgement separately from the desktop lifecycle.
+The [build and refusal checks](../brains/aetheri/journal/2026-11-17-login-greeter-entry.md)
+use a provider that denies admission. A selected deployment and the complete
+graphical PAM-to-desktop test are pending.
+
 ## Dedicated greeter account and supplementary groups
 
 [The sysusers recipe](../data/sysusers.d/aetheri-login.conf) reserves
