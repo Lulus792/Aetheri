@@ -86,7 +86,7 @@ class LoginDeploymentTests(unittest.TestCase):
                       (units / "aetheri-login-startup.service").read_text())
         self.assertFalse((units / "display-manager.service").exists())
         self.assertEqual(sorted(p.name for p in (tree / deployment.DATA / "policy").iterdir()),
-                         ["login-graphical.cil", "login-startup.cil", "login.cil", "login.fc"])
+                         ["login-apps.cil", "login-graphical.cil", "login-startup.cil", "login.cil", "login.fc"])
         with self.assertRaises(FileExistsError):
             deployment.stage(self.manifest, first)
 

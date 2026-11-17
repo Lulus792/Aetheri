@@ -1,5 +1,19 @@
 # Working on Aetheri
 
+Current fixed app roles: read the fixed app entrypoints section of
+the 2026-11-17 login-image-boot journal and spec/session.md. Offline
+74712fbbc0d2 and two boot reads produce effective 78e5a894…b82f.
+Never widen generic bin_t. Signed 140c4d10fc7f with data 6ef800c75f25
+passes visible Settings, F5, Escape and logout. The first data root
+var_t fixture blocks PID1 and is retired. Archived Files lacks the
+current bold-font argument; new a9cfe52b0b1d passes 15 tests and
+signed 0f697ed804cd passes actual Files create, immediate display,
+close and offline copied-journal verification. Preserve original
+data bytes. Terminal starts its PTY shell and logs renderer ready
+then exits 139. Its fault address is unobserved. Next Terminal
+presentation/PTY input and document opening, then exact public app
+release assembly. All new VMs are terminal. USB gate remains.
+
 Current signed app launch: read the installed app execution boundary
 in the 2026-11-17 login-image-boot journal. The three ordinary app
 search launches reach original fork in signed b0bfb4471e8b and

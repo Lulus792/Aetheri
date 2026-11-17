@@ -213,3 +213,73 @@ actual app readiness, input and shutdown after the targeted
 admission. All seven new VMs are terminal and the USB gate applies.
 Four older unmounted fixture ext4 files were made sparse, reclaiming
 1,017,806,848 allocated bytes with their full SHA-256 values preserved.
+
+## Fixed app entrypoints and Settings
+
+The installed policy now declares separate Settings, Files and Terminal
+domains. It selects the fixed executables and the Terminal-only helper
+type. The shared permits cover the private Wayland connection and session
+buffers. Files and Terminal can work with an explicitly labelled
+document tree. Settings has no document permission. App packages and
+durable lifecycle remain covered by the authority contracts.
+
+Offline policy build `74712fbbc0d2` compiles to `policy.35` SHA-256
+`f0a8b5c92a5ded235f807102c5773754fa4ee5cbf2ebcb2be26a475eea4373d1`.
+Two cold boots of `173ef9f34d53` return exact enforcing policy SHA-256
+`78e5a89462bdc3941ba741e36cd777d0a83e175605591af4a4f774fe7ef7b82f`.
+Thirty-four decisions pass against both the compiled and kernel-read
+policy bytes. The public live checker now has an opt-in app matrix.
+Release `c80bb696b0ad` passes 13 Linux CTests from 842 inputs. The
+four packaging controls pass.
+
+The first labelled data copy `3ab1db227712` assigned `var_t` to
+the volume root. Three independent VM attempts failed before login
+because PID 1 could not rename its service directories there. A
+fresh copy `6ef800c75f25` preserves the base volume root and applies
+labels only to the three home/document paths. The original data
+volume, the failed data copy and the carrier policy are preserved.
+The corrected test volume SHA-256 before use is
+`ed6eb9f15634008852e1121ea7b15a79631b16c11c6cb533c9350448f31d44a0`.
+
+Signed image `140c4d10fc7f` labels the six exact archived app/helper
+executables, with their SHA-256 values checked during image assembly.
+These file hashes are assembly inputs. The existing signed login
+record verifies the effective policy and its previous file roles.
+
+On the corrected data volume, Settings starts normally in
+`ce82361b`. The inspected frame shows Virtual-1 at 1280 by 800, and
+F5 produces another display observation. Escape ends the original app
+with status zero. The desktop then logs out normally, PAM closes and
+logind removes the user session.
+
+The original Files process in `cfd876a8` ends with status two after
+successful exec. Its exact archived ELF contains the older argument
+list without `--terminal-bold-font`, which the current launcher supplies.
+Release `a9cfe52b0b1d` builds the current Files source with no build RPATH
+and passes 15 tests, including normal and high-DPI Files view checks.
+Its ELF digest is
+`29e088fe3048ddf2dc896bfe54473cb360ad98f09c373e757eb97f392bd6245f`.
+
+Terminal in `6b2cf1d5` starts its shell and reaches the SDL/NexaUI
+renderer-ready marker. The process ends with status 139 before a
+visible app frame. The prior desktop renderer failure makes a
+similar Mesa path a diagnostic lead. The Terminal fault address is
+still unobserved. Its cache warning does not establish the cause.
+
+Signed image `0f697ed804cd` overlays the current Files ELF while
+keeping the selected policy and other login executables. The Files
+process in `8da33030` opens Documents and accepts Ctrl+N, the literal
+name `vmprobe`, and Enter. The create result is confirmed, the next
+view displays the entry immediately, and Ctrl+Q returns status zero.
+The file was verified afterward via journal replay on an isolated
+memory copy of the terminated VM's data disk: regular, 0600, size
+zero, UID/GID 1000, `aetheri_documents_t`. The original captured
+disk bytes were left intact. Guest normal shutdown and reboot
+persistence are separate from this acknowledgement check.
+
+Both signed images retain their read-only media digests. All new
+QEMU instances terminated. Next diagnose and replace the Terminal
+presentation path as needed, test shell output and file viewing,
+and add release selection for the fixed apps to the public
+assembly flow. The two confirmed apps run only in the selected
+single-output VM. The hardware and USB gates remain.

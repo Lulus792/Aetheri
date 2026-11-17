@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — Separate app SELinux domains pass the offline
+policy checks and boot enforcing. Settings shows display status,
+handles F5 and closes, followed by normal logout. Rebuilding Files
+against the current launcher arguments makes its window, immediate
+file creation and close work. Terminal reaches SDL/NexaUI readiness
+with a shell PID and then exits 139. Next diagnose Terminal
+presentation and test the file-to-editor path. See the
+[installed app record](journal/2026-11-17-login-image-boot.md#fixed-app-entrypoints-and-settings).
+
 17 November 2026 — Actual Terminal, Files and Settings launch
 requests reach the session owner in the signed VM. The child
 `execv` returns EACCES for all three. Their archived ELF closure

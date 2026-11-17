@@ -347,6 +347,23 @@ The signed application's own renderer and hardware paths have separate
 acceptance work. See the
 [installed VM record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#wayland-shared-memory-desktop).
 
+### Fixed desktop app entrypoints
+
+The installed policy assigns separate process and executable types to
+Settings, Files and Terminal. The session owner can start the three fixed
+entrypoints through domain transitions with `NoNewPrivileges` in effect.
+Files can also start the fixed Terminal entrypoint for its document flow.
+Only the Terminal domain receives execution rights for the packaged PTY
+starter, shell and editor files. The roles use the private compositor
+connection and separate shared-memory and document labels.
+
+For this policy, verify the current loaded decisions with
+`tools/check_login_policy.py --applications --expected-policy-sha256 SHA256`.
+The three roles have no generic executable, graphics device, or
+executable anonymous-memory permission. Settings has no document access.
+The role policy assumes labelled installed objects. App ownership, updates
+and removal continue to use their separate authority contracts.
+
 The carrier's optional pam_lastlog2 module reports an unresolved pam_syslog symbol
 under the systemd PAM service. Required PAM session setup succeeds and logind
 reports the actual seat/VT/leader. Preserve that carrier warning; it is not proof

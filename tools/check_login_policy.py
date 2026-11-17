@@ -20,7 +20,7 @@ class Decision(ctypes.Structure):
                 ("allowed", "decided", "auditallow", "auditdeny", "seqno", "flags")]
 
 
-def inspect(expected: str, graphical: bool = False) -> dict:
+def inspect(expected: str, graphical: bool = False, applications: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -229,6 +229,25 @@ def inspect(expected: str, graphical: bool = False) -> dict:
         for role in (session, shell):
             for name in ("aetheri_greeter_shm_t", "aetheri_greeter_keymap_t"):
                 check(role, obj(name), "file", "read", False)
+    if applications:
+        helper = obj("aetheri_terminal_helper_exec_t")
+        documents = obj("aetheri_documents_t")
+        for name in ("settings", "files", "terminal"):
+            app = process(f"aetheri_{name}_t")
+            entry = obj(f"aetheri_{name}_exec_t")
+            check(session, entry, "file", "execute", True)
+            check(session, entry, "file", "execute_no_trans", False)
+            check(session, app, "process2", "nnp_transition", True)
+            check(app, entry, "file", "entrypoint", True)
+            check(app, session, "unix_stream_socket", "connectto", True)
+            check(app, obj("bin_t"), "file", "execute", False)
+            check(app, app, "process", "execmem", False)
+            check(app, obj("dri_device_t"), "chr_file", "open", False)
+            check(app, documents, "file", "read", name != "settings")
+            check(app, helper, "file", "execute_no_trans", name == "terminal")
+        check(process("aetheri_files_t"), obj("aetheri_terminal_exec_t"), "file", "execute", True)
+        check(process("aetheri_settings_t"), obj("aetheri_terminal_exec_t"), "file", "execute", False)
+        check(process("aetheri_files_t"), obj("aetheri_settings_exec_t"), "file", "execute", False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -241,9 +260,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-policy-sha256", required=True)
     parser.add_argument("--graphical", action="store_true", help="also check the graphical greeter roles")
+    parser.add_argument("--applications", action="store_true", help="also check the installed desktop app roles")
     args = parser.parse_args()
     try:
-        record = inspect(args.expected_policy_sha256, args.graphical)
+        record = inspect(args.expected_policy_sha256, args.graphical, args.applications)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

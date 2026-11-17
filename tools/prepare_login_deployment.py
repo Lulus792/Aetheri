@@ -45,7 +45,7 @@ SUPPORT = {
         f"{UNITS}/aetheri-login.service.d/20-session-shutdown.conf",
     "data/wayland-sessions/aetheri.desktop": "usr/share/wayland-sessions/aetheri.desktop",
     **{f"policy/{name}": f"{DATA}/policy/{name}" for name in (
-        "login-startup.cil", "login.cil", "login-graphical.cil", "login.fc")},
+        "login-startup.cil", "login.cil", "login-graphical.cil", "login-apps.cil", "login.fc")},
 }
 
 

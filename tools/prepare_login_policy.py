@@ -13,7 +13,7 @@ import sys
 
 
 POLICY = Path(__file__).resolve().parents[1] / "policy"
-MODULES = ("login-startup.cil", "login.cil", "login-graphical.cil")
+MODULES = ("login-startup.cil", "login.cil", "login-graphical.cil", "login-apps.cil")
 STORE = "var/lib/selinux/targeted/active"
 
 
