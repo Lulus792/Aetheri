@@ -1,5 +1,34 @@
 # Audio in a user session
 
+## Desktop session owner
+
+`AETHERI_DESKTOP_SESSION_AUDIO=ON` builds audio lifecycle support into
+`aetheri-session`. This opt-in uses the existing session process. It spawns
+PipeWire after the original local Wayland session reaches desktop readiness,
+then starts WirePlumber after the graph creates its UID-owned mode-0600 socket.
+Socket presence orders the starts. Readiness for a client still requires a
+connection to the original live graph and inspection of its capabilities.
+
+Both children receive fixed configuration and module locations, a private
+runtime directory and no inherited desktop environment. Routing state belongs
+to that session's volatile directory. After both children exit, the owner
+removes its original empty routing state directory. An unexpected entry or
+identity change preserves the directory for diagnosis.
+
+Logout, session loss and observed audio-process failure start retirement.
+WirePlumber ends before PipeWire, using each original pidfd. An actor that
+ignores SIGTERM gets one SIGKILL after four seconds. Both have a parent-death
+signal as a fallback. An audio failure leaves the session running without
+restarting the pair. No new supervisor is required.
+
+The [carrier run](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-owner-audio-lifecycle)
+checks the actual daemons, including the ALSA plug-in, orderly retirement and
+loss. The signed-image role policy, live logind sound-device admission and
+Settings control remain pending. The option defaults to off until those parts
+can be exercised together.
+
+## Diskless user manager fixture
+
 This opt-in diskless fixture joins the native audio adapter to PAM, logind,
 standard device ACLs and systemd's user manager. Two independent cold boots now
 pass the complete private session/playback/stop/logout flow and full PCM checks.

@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current audio lifecycle: read `spec/audio-session.md#desktop-session-owner` and
+the 2026-11-17 owner record. The normal entry has an opt-in direct-child pair.
+Keep fixed environments, ordered pidfd retirement, optional audio failure and
+parent-death SIGTERM with SIGPIPE ignored only in the audio children. Install
+the pinned ALSA prefix with the desktop files. Carrier 688ebdd1473e loads ALSA
+and Lua 5.5, and passes orderly stop, routing loss and owner SIGKILL. Preserve
+earlier absence and SIGPIPE evidence. Next dedicated audio policy and staged
+enforcing desktop boot/real HDA, then Settings. No USB release or NexaUI task.
+
 Current desktop audio: read `spec/login-deployment.md#pipewire-and-wireplumber-files`
 and the 2026-11-17 desktop audio record. The public offline stager yields 254
 files and six links. All 28 selected ELFs resolve in the HDA desktop root.

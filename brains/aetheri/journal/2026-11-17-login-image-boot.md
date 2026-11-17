@@ -583,3 +583,33 @@ metadata from a profile with hardware routing disabled. This was a test
 expectation error. The fixture uses temporary config and a temporary graph
 probe. Installed service policy, hardware playback and Settings are separate
 acceptance steps.
+
+## Desktop owner audio lifecycle
+
+The opt-in desktop entry now starts the graph and routing policy after
+desktop readiness and ties both children to the original session process.
+Graph-only prefix preparation did not include the ALSA SPA plug-in. The
+first owner fixture `cff1b3927c1e` exposed that missing file and the upstream
+settings module's attempt to open a state directory despite stateless routing.
+The stager now accepts the pinned ALSA prefix. The session owner prepares a
+volatile state directory that it removes when empty after orderly retirement.
+
+In `688ebdd1473e` the public stager selects 259 files and seven aliases
+(10,228,824 bytes including shared files). Against the previous root it reuses
+254 files, adds five and leaves the original root hash intact. The composed
+root's loader resolves the ALSA plug-in. The original WirePlumber process maps
+both that plug-in and Lua 5.5. Its graph entries and settings metadata are
+visible in the isolated observer. The fixture has read-only sysfs and no
+`/dev/snd` access.
+
+The linked owner harness passes orderly stop and policy loss. Both retire the
+original processes and remove the temporary runtime. A separate owner SIGKILL
+causes both originals to exit zero. The first parent-death assertion in
+`f17a5beb3541` required zero and failed. The diagnostic rerun `52c36fef11c9`
+records WirePlumber exiting on SIGPIPE. The final owner sets SIGPIPE to ignore
+for audio children. The follow-up `c20cd9429943` observed graph metadata
+before the ALSA library was mapped. The final observer waits for each
+independently. All three cases pass with the real pinned daemons in a private
+read-only-image overlay and no installed desktop policy change. Release CMake
+`784400f315a9` builds the feature and passes `linux.session` and
+`linux.session_entry`. Fourteen payload tests pass.

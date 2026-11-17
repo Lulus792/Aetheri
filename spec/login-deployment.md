@@ -111,11 +111,14 @@ and the Settings sound control connection have their own admission work.
 
 Stage the runtime in the offline desktop root before applying file contexts.
 Supply the checked prefixes from [PipeWire preparation](audio.md) and the
-[WirePlumber Lua 5.5 candidate](audio-policy-candidate.md).
+[WirePlumber Lua 5.5 candidate](audio-policy-candidate.md). For HDA, also
+prepare the [ALSA library and plug-in prefix](audio-hardware.md) with
+`tools/prepare_audio_hda.py prepare`.
 
 ```sh
 python3 tools/desktop_audio_payload.py --image-root "$IMAGE_ROOT" \
   --pipewire-prefix "$PIPEWIRE_PREFIX" --wireplumber-prefix "$WIREPLUMBER_PREFIX" \
+  --hda-prefix "$ALSA_PREFIX" \
   > desktop-audio-receipt.json
 ldconfig -r "$IMAGE_ROOT"
 ```
@@ -128,9 +131,17 @@ matching installed files and refuses conflicting objects. Keep the receipt with
 the build records. After a copy failure, inspect the partial tree and start the
 next build from a fresh image root.
 
-The [desktop image tests](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-audio-files)
-verify the loader, both daemons in a private session, and boot with virtual HDA.
-Normal session startup, device admission and Settings access are pending.
+`/usr/share/aetheri/audio` contains the graph and client configuration and a
+WirePlumber fragment. The fragment uses the pinned ACP card profiles to expose
+HDA routes and uses library files from the same selected build. For this
+profile the local graph socket is for trusted session roles. A desktop app
+needs its own permission before it can connect. [PipeWire configuration](https://pipewire.pages.freedesktop.org/pipewire/page_man_pipewire_conf_5.html)
+[WirePlumber lookup rules](https://pipewire.pages.freedesktop.org/wireplumber/daemon/locations.html).
+
+The [session integration](audio-session.md#desktop-session-owner) is a build
+opt-in. Signed image rollout requires the dedicated role and device policy and
+verification from an authenticated desktop. Settings uses a separate control
+integration.
 
 ### Compile the image policy
 

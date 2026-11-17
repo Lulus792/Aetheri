@@ -53,7 +53,8 @@ class DesktopAudio(unittest.TestCase):
         manifest = audio.audio_manifest(self.graph, self.policy)
         self.assertEqual({entry["destination"] for entry in manifest["files"]},
                          {*audio.DAEMONS.values(), "/usr/lib64/libpipewire-0.3.so.0.1611.0",
-                          "/usr/share/alsa/alsa.conf", "/usr/share/licenses/wireplumber/COPYING"})
+                          "/usr/share/alsa/alsa.conf", "/usr/share/licenses/wireplumber/COPYING",
+                          *("/usr/share/aetheri/audio/" + name for name in audio.CONFIG_FILES)})
         self.assertEqual(set(manifest["symlinks"]), {"/usr/lib64/libpipewire-0.3.so.0"})
 
     def test_conflicting_audio_inputs_are_refused_before_image_effects(self):
@@ -71,6 +72,20 @@ class DesktopAudio(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "conflicting existing runtime"):
             audio.install(self.image, self.graph, self.policy)
         self.assertEqual(daemon.read_bytes(), b"foreign")
+
+    def test_hda_projection_adds_alsa_plugin_and_soname(self):
+        prefix = self.root / "hda"
+        plugin = self.file(prefix, "usr/lib64/spa-0.2/alsa/libspa-alsa.so", "runtime")
+        asound = self.file(prefix, "usr/lib64/libasound.so.2.0.0", "runtime")
+        alias = "usr/lib64/libasound.so.2"
+        pins = {"files": [plugin, asound], "symlinks": {alias: "libasound.so.2.0.0"}}
+        with patch.object(audio.prepare_audio_hda, "check") as check, \
+             patch.object(audio.prepare_audio_hda, "profile", return_value=(pins, "hda")):
+            result = audio.audio_manifest(self.graph, self.policy, prefix)
+        check.assert_called_once_with(prefix)
+        self.assertEqual(result["symlinks"]["/" + alias], pins["symlinks"][alias])
+        staged = {entry["destination"]: entry["sha256"] for entry in result["files"]}
+        self.assertEqual(staged["/" + plugin["path"]], plugin["sha256"])
 
 
 if __name__ == "__main__":

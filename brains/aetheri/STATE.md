@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — Opt-in desktop audio reuses the session owner's
+original-child lifetime. Pinned ALSA staging and the Aetheri profiles
+pass the composed-root loader and live graph tests. Both roles exit
+cleanly on orderly stop, routing loss or abrupt owner loss in the
+isolated harness. Next compile dedicated audio execution, runtime and
+device policy, then boot a signed authenticated HDA session and join Settings.
+See the [owner record](journal/2026-11-17-login-image-boot.md#desktop-owner-audio-lifecycle).
+
 17 November 2026 — The desktop image can stage and verify the selected
 PipeWire 1.6.11 and WirePlumber 0.5.19/Lua 5.5 runtime. All 28 selected
 ELFs resolve in the composed root. A private pair connects, loads Lua 5.5
