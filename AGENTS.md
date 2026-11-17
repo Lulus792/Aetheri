@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current offline image policy: read spec/login-deployment.md and the
+2026-11-17 login-offline-policy journal. Keep the three production CIL
+sources and login file contexts together. The offline compiler uses a
+fresh copy of the distribution store with explicit root and no reload.
+Sign the enforcing kernel's serialized policy readback for that image.
+Two cold UEFI boots of local/policy-boot-4904237e9396 returned the exact
+policy readback 5e4e5370a275...407e. This differs from the installed
+policy.35 digest. Continue assembling the VM-only login root with that
+policy and the selected real units. The USB gate applies.
+
 Current installed image provider: read spec/login-deployment.md and the
 2026-11-17 login-image-provider journal. Explicit CMake image mode compiles
 the same key/release into startup and greeter. Keep the kernel statmount

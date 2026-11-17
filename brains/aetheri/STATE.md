@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — Offline compilation stages the production login policy
+and file contexts from the selected distribution module store. The
+running carrier keeps its original policy. Two cold boots of the separate
+UEFI policy image produce the same enforcing kernel policy bytes for
+release signing. Next assemble and boot the full login image. See the
+[offline policy record](journal/2026-11-17-login-offline-policy.md).
+
 17 November 2026 — An explicit CMake image profile builds the startup and
 greeter with one release anchor. Its runtime check verifies the selected
 ext4 mount views and rejects read-only views of writable storage. The

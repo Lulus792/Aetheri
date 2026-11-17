@@ -78,6 +78,26 @@ attempt.
 
 ## Image integration
 
+### Compile the image policy
+
+```sh
+python tools/prepare_login_policy.py --base "$POLICY_BASE" --output login-policy
+```
+
+Select a stable copy of the distribution's `etc/selinux` and
+`var/lib/selinux/targeted/active` trees. The compiler builds the three
+installed login modules inside a fresh copy of that store and stages the
+policy and login file contexts under `login-policy/root/etc/selinux`.
+The receipt identifies the inputs and compiled policy. The compiler store
+stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
+
+Apply the file contexts to the image while assembling it. Boot the selected
+kernel with that policy in an isolated VM and capture the bytes of
+`/sys/fs/selinux/policy` while the kernel is enforcing. Review that boot
+observation and use it as `--effective-policy` during selection signing.
+The compiled policy on disk and the kernel's serialized readback can have
+different digests even when the byte counts agree.
+
 ### Installed image provider
 
 Build the startup executable and greeter with the same selected Ed25519
