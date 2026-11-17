@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The signed desktop diagnostic reproduces the Mesa
+crash. The instruction fetch hits an anonymous non-executable
+mapping with a return address in libgallium. SDL's window software
+renderer also fails because the selected Wayland backend supplies no
+window framebuffer. The counter is retired. Next test explicit
+Wayland shared-memory presentation in the installed profile and
+verify normal logout. See the [renderer record](journal/2026-11-17-login-image-boot.md#desktop-fault-and-renderer-control).
+
 17 November 2026 — The direct-exec greetd build boots the signed VM
 through protected startup and the visible Wayland account prompt.
 Actual password authentication and Start open the UID 1000 Wayland

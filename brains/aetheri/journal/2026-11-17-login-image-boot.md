@@ -106,3 +106,40 @@ keeps SHA-256
 `85a05b531e9d46dacccc1d7a2c1b677826a0b91016e29358dc1b4cb584d59892`.
 The local case preserves the serial output, screenshots and distinct
 data disks. The synthetic secret and signing key stay in the lab.
+
+## Desktop fault and renderer control
+
+Two signed diagnostic images, `17372f4f0f73` and `e2b8b401f407`,
+reproduce the desktop crash after actual password and Start. The
+selected startup, greeter, session entry and compositor executable
+bytes match the preceding production build. The instrumented desktop
+uses the same image runtime and enforcing policy. The original
+account, password and authentication screens match the previously
+inspected frames before each keyboard action.
+
+The first diagnostic run locates the instruction fault outside the
+loaded ELF objects. The second records x86-64 `SEGV_ACCERR`: the
+instruction pointer equals the fault address, and the live
+`/proc/self/maps` row is anonymous `rw-p`. The return address is inside
+the loaded `/lib64/libgallium-26.2.5.so`. This establishes an attempted
+instruction fetch from a non-executable page during the selected
+Mesa render path. The trace does not identify the earlier operation
+that left the mapping non-executable. The previous shader-cache
+warning and the kernel audit stream do not establish that operation.
+
+A counter using the same signed runtime and policy selects SDL's
+window software renderer with implicit framebuffer acceleration
+disabled. Build `af4fc050284c` passes the 13 selected CTests.
+Actual login in image `9cbc88e7d55b` reaches the renderer and reports
+`Window framebuffer support not available`. The exact SDL 3.4.20
+Wayland backend has no window-framebuffer implementation. The
+counter was reverted after the VM test. It is not a deployment
+candidate. All six VMs ended and their read-only system-image digests
+were rechecked. The diagnostic sources, serial logs and screenshots
+stay in the local test directories.
+
+Next test explicit Wayland shared-memory presentation with an SDL
+software surface for the confined desktop. Retain buffer ownership
+through compositor release and verify first frame, normal logout
+and the new greeter in a signed VM. Keep the user app renderer and
+the original crash evidence separate.

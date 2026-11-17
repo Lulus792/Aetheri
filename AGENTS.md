@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current installed desktop fault: read the desktop fault section of
+the 2026-11-17 login-image-boot journal. Two signed diagnostic VMs
+reproduce authenticated desktop status 139. The second shows
+SEGV_ACCERR at an anonymous rw-p mapping and a return into exact
+libgallium 26.2.5. Do not infer the earlier operation or a shader-cache
+cause. Signed SDL software-window counter 9cbc88e7d55b reaches the
+renderer but refuses absent window framebuffer support. The code
+counter is reverted. Next explicit Wayland shm presentation with SDL
+software surface, original buffer release, first frame and intentional
+logout. All six VMs are terminal; preserve their evidence and USB gate.
+
 Current installed direct-exec VM: read spec/login-backend.md and the
 direct session execution section in the 2026-11-17 login-image-boot
 journal. Backend d1a75296af9f passes 23 Rust unit/one doc test and
