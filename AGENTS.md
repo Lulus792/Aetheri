@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current desktop HDA: read spec/login-deployment.md and the HDA section
+of the 2026-11-17 login-image-boot journal. The optional image payload
+reuses eleven kernel modules and adds the checked Conexant codec.
+Keep driver and config pins and regenerate the combined depmod indexes.
+Derivative ab3a3c4a71ea verifies virtual node creation and Settings
+launch, and the no-HDA desktop/power-off control passes. Three payload
+and 85 HDA contract tests pass. Device roles and app policy are unchanged.
+Next attached graph/routing runtime and Settings audio admission.
+Physical HP playback, Bluetooth, WLAN, suspend and USB gate remain.
+
 Current release app assembly: read spec/login-deployment.md and the
 fixed-desktop-apps section of the 2026-11-17 login-image-boot journal.
 Format 2 stages six fixed ELFs and signs them in AETHLS02. Startup retains

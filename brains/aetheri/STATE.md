@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The desktop image can stage the selected Intel
+HDA and Conexant kernel modules and regenerate combined module
+indexes. The signed desktop VM creates the virtual ALSA control and
+playback nodes, reaches the authenticated session, and opens Settings.
+The same image boots and powers off with HDA absent. Next integrate
+the admitted PipeWire/WirePlumber runtime and Settings controller.
+See the [HDA record](journal/2026-11-17-login-image-boot.md#desktop-hda-kernel-layer).
+
 17 November 2026 — The public image preparation steps stage and sign
 all six fixed desktop application executables in format 2. The signed
 VM verifies both namespace views, rejects a missing or changed editor,

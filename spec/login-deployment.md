@@ -84,6 +84,29 @@ attempt.
 
 ## Image integration
 
+### Intel HDA kernel modules
+
+Stage the HDA layer in the composed desktop root before generating the
+combined kernel module indexes and applying the image file contexts.
+
+```sh
+python3 tools/desktop_hda_payload.py --image-root "$IMAGE_ROOT" --kernel-root "$KERNEL_ROOT"
+depmod -C /dev/null -b "$IMAGE_ROOT" -a 6.19.10-300.fc44.x86_64
+```
+
+`KERNEL_ROOT` supplies the selected package layout under
+`usr/lib/modules/6.19.10-300.fc44.x86_64`. Use the kernel that matches
+the image and the paths and digests from the reviewed
+[HDA module selection](audio-hda-inputs.json) and
+[Conexant supplement](desktop-hda-inputs.json). The developer desktop builder
+also accepts `--hda-modules-root` and regenerates the indexes in the resulting
+image.
+
+The existing boot-time module loader reads `aetheri-hda.conf`. The Intel
+controller uses the resulting indexes for codec selection. The image keeps
+sound nodes under standard kernel and udev ownership. PipeWire, WirePlumber,
+and the Settings sound control connection have their own admission work.
+
 ### Compile the image policy
 
 ```sh

@@ -526,3 +526,33 @@ creates the file, opens and saves it in the editor, and powers off cleanly.
 The inspected editor shows `Saved`. Read-only ext4 checking of a separate
 copy confirms all nine bytes on disk. All new QEMU instances are terminal.
 The two refused images and all original data disks are preserved.
+
+## Desktop HDA kernel layer
+
+The optional desktop HDA payload selects the eleven previously reviewed
+HDA modules and the Conexant codec driver from the same kernel release.
+The carrier's kernel-modules RPM metadata and actual file bytes agree on
+the codec digest. The supplement is motivated by HP's EliteBook audio
+driver list. The tested module aliases resolve Intel PCI `8086:9d71`
+and Conexant `14f1:2008`, alongside the emulated `8086:2668` controller.
+This is alias coverage for the expected laptop family.
+[HP driver record](https://ftp.hp.com/pub/softpaq/sp95001-95500/sp95006.html).
+
+The public image preparer stages 12 modules and 591,588 compressed bytes,
+writes one modules-load file, and emits the selected hashes. The graphical
+developer builder runs depmod over the combined module tree. Three payload
+tests and 85 existing HDA contract tests pass. The previously captured
+enforcing policy denies all twelve tested direct sound-device operations
+from Settings, Files and Terminal.
+
+Signed desktop VM derivative `ab3a3c4a71ea` keeps its app selection and
+effective policy. Its test-only observer confirms that the existing boot
+loader loads `snd_hda_intel`, the emulated controller binds, and Linux
+creates control and playback character devices with major 116.
+The control node is root:audio at mode 0660. The signed app startup
+completes. With HDA present, authenticated session `350b99ca` opens
+Settings, refreshes the display list and closes the original window.
+The same image with no HDA hardware in `53b57e05` reaches the desktop,
+reports absence, and powers off cleanly. All new QEMU processes are terminal.
+The tests cover detection and login compatibility. Next stage the admitted
+audio graph and routing policy and connect the Settings sound controls.

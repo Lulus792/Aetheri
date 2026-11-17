@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "codec_modules": [
+    {
+      "path": "kernel/sound/hda/codecs/snd-hda-codec-conexant.ko.xz",
+      "size": 29080,
+      "sha256": "f4fa72a3e98c7187a4a90ca2a0d0127b7cca1de70fab7618b80564a21a4ab61b",
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    }
+  ]
+}
