@@ -56,6 +56,11 @@ class LoginDeploymentTests(unittest.TestCase):
             self.assertEqual(entry["sha256"], deployment.digest(target.read_bytes()))
             if os.name != "nt":
                 self.assertEqual(entry["mode"], stat.S_IMODE(target.stat().st_mode))
+        fallback = next(entry for entry in selected["files"] if entry["path"] == "/etc/pam.d/other")
+        self.assertEqual(fallback["mode"], 0o444)
+        self.assertEqual((tree / "etc/pam.d/other").read_bytes(),
+                         b"auth required pam_deny.so\naccount required pam_deny.so\n"
+                         b"password required pam_deny.so\nsession required pam_deny.so\n")
         conf = tomllib.loads((tree / deployment.DATA / "greetd.toml").read_text())
         self.assertIs(conf["general"]["source_profile"], False)
         self.assertEqual(conf["general"]["service"], "aetheri-login")

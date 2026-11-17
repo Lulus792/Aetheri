@@ -33,10 +33,13 @@ int main(int argc, char **argv)
         CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_USER_PAM].directory, "/etc/pam.d"));
         CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_USER_PAM].leaf, "aetheri-login"));
         CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_GREETER_PAM].leaf, "aetheri-greeter"));
+        CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_DEFAULT_PAM].directory, "/etc/pam.d"));
+        CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_DEFAULT_PAM].leaf, "other"));
         struct ae_login_sources *sources = NULL;
         int expected = complete ? 0 : -atoi(argv[1] + 4);
         result = complete ? ae_login_sources_create(inputs, AE_LOGIN_INSTALLED_BACKEND_COUNT, &sources)
-                          : ae_login_sources_create(&inputs[AE_LOGIN_INSTALLED_USER_PAM], 2, &sources);
+                          : ae_login_sources_create(&inputs[AE_LOGIN_INSTALLED_USER_PAM],
+                              AE_LOGIN_INSTALLED_DEFAULT_PAM - AE_LOGIN_INSTALLED_USER_PAM + 1, &sources);
         CHECK(result == expected && (sources != NULL) == (expected == 0));
         if (sources) {
             uint8_t first[AE_SHA256_BYTES], second[AE_SHA256_BYTES];

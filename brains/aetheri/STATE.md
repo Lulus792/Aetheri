@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The installed login handoff now protects the deny-only
+PAM default alongside both signed profiles. The fixed-path VM checks all ten
+entries and rejects missing or changed fallback bytes. The offline PAM
+runtime supplement stages 18 pinned files and eight aliases. Next apply
+and verify the supplement with the final base, loader search paths, account
+data and installed platform gate in the system image. See the
+[PAM runtime record](journal/2026-11-17-login-pam-runtime.md).
+
 17 November 2026 — The two packaged PAM profiles join the signed installed
 handoff sources. The nine files verify in a private fixed-path stage. The
 typed graphical fixture uses the exact packaged PAM bytes and a

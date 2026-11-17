@@ -9,6 +9,7 @@
 /usr/share/aetheri/login/selection\.bin    -- system_u:object_r:aetheri_login_config_t:s0
 /usr/share/aetheri/login/greeter\.ttf      -- system_u:object_r:aetheri_greeter_assets_t:s0
 /etc/pam\.d/aetheri-(login|greeter)        -- system_u:object_r:aetheri_login_config_t:s0
+/etc/pam\.d/other                        -- system_u:object_r:aetheri_login_config_t:s0
 /run/aetheri/login                         -d system_u:object_r:aetheri_login_runtime_t:s0
 /run/aetheri/login/backend-observation     -- system_u:object_r:aetheri_login_handoff_t:s0
 /run/aetheri/login/greetd\.run             -- system_u:object_r:aetheri_login_state_t:s0

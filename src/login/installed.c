@@ -134,10 +134,17 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
             {"/etc/pam.d", "aetheri-login", config_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
         [AE_LOGIN_INSTALLED_GREETER_PAM] =
             {"/etc/pam.d", "aetheri-greeter", config_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        /* The standalone image always ships the same deny-only fallback. */
+        [AE_LOGIN_INSTALLED_DEFAULT_PAM] =
+            {"/etc/pam.d", "other", config_label, AE_LOGIN_SOURCE_DATA, 0444, 114,
+                {0xea, 0x9b, 0xe9, 0x25, 0x3f, 0x1b, 0xc2, 0x0e,
+                 0x72, 0xf3, 0xaa, 0xfa, 0xf0, 0xe3, 0x6f, 0x4d,
+                 0x23, 0x21, 0x8d, 0xe8, 0x8b, 0x27, 0x0c, 0xf7,
+                 0x87, 0xec, 0xb7, 0x19, 0xfa, 0xdc, 0x9e, 0x1a}},
         [AE_LOGIN_INSTALLED_SELECTION] =
             {LOGIN_DATA, selection_leaf, config_label, AE_LOGIN_SOURCE_DATA, 0444, AE_LOGIN_SELECTION_BYTES, {0}},
     };
-    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_SELECTION] = {
+    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_DEFAULT_PAM] = {
         [AE_LOGIN_INSTALLED_FRAGMENT] = AE_LOGIN_SELECT_UNIT,
         [AE_LOGIN_INSTALLED_BACKEND] = AE_LOGIN_SELECT_BACKEND,
         [AE_LOGIN_INSTALLED_CONFIG] = AE_LOGIN_SELECT_CONFIG,
@@ -147,7 +154,7 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
         [AE_LOGIN_INSTALLED_USER_PAM] = AE_LOGIN_SELECT_USER_PAM,
         [AE_LOGIN_INSTALLED_GREETER_PAM] = AE_LOGIN_SELECT_GREETER_PAM,
     };
-    for (size_t i = 0; i < AE_LOGIN_INSTALLED_SELECTION; ++i)
+    for (size_t i = 0; i < AE_LOGIN_INSTALLED_DEFAULT_PAM; ++i)
         selected_file(installed, roles[i], &backend[i]);
     memcpy(backend[AE_LOGIN_INSTALLED_SELECTION].digest, digest, sizeof digest);
     memcpy(out, backend, sizeof backend);

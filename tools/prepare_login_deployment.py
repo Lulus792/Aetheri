@@ -34,6 +34,7 @@ SUPPORT = {
     "data/login/greetd.toml": f"{DATA}/greetd.toml",
     "data/pam.d/aetheri-login": "etc/pam.d/aetheri-login",
     "data/pam.d/aetheri-greeter": "etc/pam.d/aetheri-greeter",
+    "data/pam.d/other": "etc/pam.d/other",
     "data/sysusers.d/aetheri-login.conf": "usr/lib/sysusers.d/aetheri-login.conf",
     "data/tmpfiles.d/aetheri-login.conf": "usr/lib/tmpfiles.d/aetheri-login.conf",
     "data/systemd/aetheri-login.service": f"{UNITS}/aetheri-login.service",

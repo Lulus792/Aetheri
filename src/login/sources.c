@@ -261,7 +261,7 @@ int ae_login_sources_read_asset(struct ae_login_sources *s,size_t index,void **o
 }
 
 struct fingerprint_bytes {
-    uint8_t bytes[32768];
+    uint8_t bytes[36864];
     size_t used;
 };
 

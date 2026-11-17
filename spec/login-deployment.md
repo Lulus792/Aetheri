@@ -10,6 +10,7 @@ deployment provider can bind them to independently selected release inputs.
 | `/usr/share/aetheri/login/` | Signed release selection, backend configuration, greeter font and SELinux policy inputs |
 | `/etc/pam.d/aetheri-login` | Local human authentication and session setup through PAM |
 | `/etc/pam.d/aetheri-greeter` | Internal PAM session for the locked display account |
+| `/etc/pam.d/other` | Deny authentication, account, password and session requests for unknown PAM services |
 | `/usr/lib/systemd/system/` | Backend service, ordered startup verifier and worker shutdown drop-in |
 | `/usr/lib/sysusers.d/` and `/usr/lib/tmpfiles.d/` | Display account and per-boot directory recipes |
 | `/usr/share/wayland-sessions/aetheri.desktop` | Entry from an existing local Wayland login |
@@ -27,14 +28,15 @@ An expired password requires a separate account-management workflow. Image
 assembly must enroll and independently verify the locked greeter account and
 its groups. The carrier's choice of numeric UID/GID is local to that VM.
 
-Both installed adapters include the two PAM files in the common protected
-source set. The signed digests select the exact bytes. The startup helper
-checks the files in the original backend's mount view before publishing
-the handoff. The greeter checks the same named and held files before
-credential transport and keeps them in its ongoing admission checks.
-The image platform gate also covers PAM's loader, modules, account data and
-default service lookup. Linux-PAM loads the default service alongside a
-named profile. [Linux-PAM configuration loader](https://raw.githubusercontent.com/linux-pam/linux-pam/master/libpam/pam_handlers.c)
+Both installed adapters include all three PAM files in the common protected
+source set. The signed selection supplies the two named profiles. The installed
+adapter supplies a fixed digest for the standalone image's deny-only fallback.
+The startup helper checks the files in the original backend's mount view
+before publishing the handoff. The greeter checks the same named and held files
+before credential transport and keeps them in its ongoing admission checks.
+The image platform gate also covers PAM's loader, module files, account data and
+configuration search paths. Linux-PAM loads the default service alongside a
+named profile. [Linux-PAM configuration loader](https://raw.githubusercontent.com/linux-pam/linux-pam/v1.7.2/libpam/pam_handlers.c)
 
 The [session entry](session.md) can supply the runtime's graphics and input
 data paths when building against a protected runtime projection. The
@@ -73,6 +75,28 @@ no completion receipt until all files are written. Use a fresh tree for a new
 attempt.
 
 ## Image integration
+
+### PAM runtime supplement
+
+```sh
+python tools/prepare_login_pam_runtime.py --output login-pam-stage
+```
+
+Run this as an ordinary Linux build user with the exact source files listed
+in [the PAM runtime inventory](login-pam-runtime-inputs.json) and `readelf`
+available. It stages three additional PAM modules, the password helper,
+their additional libraries and notices. It verifies hashes during copying
+and checks the staged ELF references against the supplement and the selected
+desktop and boot inventories. The receipt records the required base paths
+and the final image metadata for the password helper. The staged helper
+has mode 0755. The image assembler still needs to apply and verify the final
+Root ownership, mode 04755 and SELinux context on the assembled image only.
+
+Image verification must check the actual base bytes, the PAM user's account
+data, the loader search and default lookup. The staged supplement check
+resolves references against the pinned base inventory. The final selected
+`pam_systemd.so` and its runtime behavior require a test in the composed
+image.
 
 ### Signed login selection
 

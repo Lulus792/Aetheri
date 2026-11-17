@@ -1,0 +1,168 @@
+{
+  "format": 1,
+  "purpose": "PAM runtime additions for the packaged Aetheri login and its deny-only default",
+  "files": [
+    {
+      "source": "/usr/bin/unix_chkpwd",
+      "destination": "/usr/bin/unix_chkpwd",
+      "size": 28176,
+      "sha256": "04756242c5688e31321ae6a19b8965aa06cbd73e9b4d0a7c280f48af8d90f5fc",
+      "mode": 493,
+      "package": "pam-1.7.2-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libcom_err.so.2.1",
+      "destination": "/usr/lib64/libcom_err.so.2.1",
+      "size": 19872,
+      "sha256": "fd86ff884b7b6b441844d7f89afecbb7f53b7602c7f7515abc4c8bd5b8e83500",
+      "mode": 493,
+      "package": "libcom_err-1.47.3-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libgssapi_krb5.so.2.2",
+      "destination": "/usr/lib64/libgssapi_krb5.so.2.2",
+      "size": 375584,
+      "sha256": "6007b4ad2525704da9917c481830bcaec4ef460a91930aaaaf97161280701375",
+      "mode": 493,
+      "package": "krb5-libs-1.22.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libk5crypto.so.3.1",
+      "destination": "/usr/lib64/libk5crypto.so.3.1",
+      "size": 95176,
+      "sha256": "906a0cf9e5c2edc908bb0e4cefea14a100fde42b91775be1b7d5cd8c652dacd7",
+      "mode": 493,
+      "package": "krb5-libs-1.22.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libkeyutils.so.1.10",
+      "destination": "/usr/lib64/libkeyutils.so.1.10",
+      "size": 24192,
+      "sha256": "26ce5c6b6d9d9691437b0476dabe62fbc6e22ad0781b78d3df78906466dea121",
+      "mode": 493,
+      "package": "keyutils-libs-1.6.3-7.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libkrb5.so.3.3",
+      "destination": "/usr/lib64/libkrb5.so.3.3",
+      "size": 874008,
+      "sha256": "a49b73e76d471258ebb225b6238e6a92842feae7f8dc88cc6bc387790121bf4c",
+      "mode": 493,
+      "package": "krb5-libs-1.22.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libkrb5support.so.0.1",
+      "destination": "/usr/lib64/libkrb5support.so.0.1",
+      "size": 66368,
+      "sha256": "171a4855c3c97a6b283c4c9f9a1af656a017b7259c1dd85da347005e77da3716",
+      "mode": 493,
+      "package": "krb5-libs-1.22.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libnsl.so.3.0.0",
+      "destination": "/usr/lib64/libnsl.so.3.0.0",
+      "size": 32544,
+      "sha256": "684041f2cb505649ec498ad8129c579d6042a896db1e47787b4919ee86c7fa8e",
+      "mode": 493,
+      "package": "libnsl2-2.0.1-5.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libresolv.so.2",
+      "destination": "/usr/lib64/libresolv.so.2",
+      "size": 69984,
+      "sha256": "7aba4bc66547667af661384fd84c79008445ff5456b27476fe5a6c2f1038233f",
+      "mode": 493,
+      "package": "glibc-2.43-9.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/libtirpc.so.3.0.0",
+      "destination": "/usr/lib64/libtirpc.so.3.0.0",
+      "size": 196624,
+      "sha256": "904c93299d11bf179af964b14c3e0297905068aa3030d163edf0e025ae9c3286",
+      "mode": 493,
+      "package": "libtirpc-1.3.7-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/security/pam_loginuid.so",
+      "destination": "/usr/lib64/security/pam_loginuid.so",
+      "size": 11328,
+      "sha256": "3e54479bdf295beca9bd1b17045e5af6946aad27a2c69dd2d256e566fe7b17f4",
+      "mode": 493,
+      "package": "pam-1.7.2-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/security/pam_succeed_if.so",
+      "destination": "/usr/lib64/security/pam_succeed_if.so",
+      "size": 19624,
+      "sha256": "d79327a7b09f323b247df57f2856422e31de8019c3cb6a682cd34a8b0f5d9032",
+      "mode": 493,
+      "package": "pam-1.7.2-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/lib64/security/pam_unix.so",
+      "destination": "/usr/lib64/security/pam_unix.so",
+      "size": 65128,
+      "sha256": "433330774660f9225a864f591401ba54cf10d02a69715fc860299cbf8bd2dea5",
+      "mode": 493,
+      "package": "pam-1.7.2-1.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/keyutils-libs/LICENCE.LGPL",
+      "destination": "/usr/share/licenses/keyutils-libs/LICENCE.LGPL",
+      "size": 26450,
+      "sha256": "0d15593e3a8ad90917f8509b5ac1e4b5e5d196434a68029aa9dc0858a4a4c521",
+      "mode": 420,
+      "package": "keyutils-libs-1.6.3-7.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/krb5-libs/LICENSE",
+      "destination": "/usr/share/licenses/krb5-libs/LICENSE",
+      "size": 63690,
+      "sha256": "d37fcb886de2ad1c602f61c99c6893bcbd9a1949f54d9a6bb40d191204eb605e",
+      "mode": 420,
+      "package": "krb5-libs-1.22.2-2.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libcom_err/NOTICE",
+      "destination": "/usr/share/licenses/libcom_err/NOTICE",
+      "size": 44585,
+      "sha256": "5da5ef153e559c1d990d4c3eedbedd4442db892d37eae1f35fff069de8ec9020",
+      "mode": 420,
+      "package": "libcom_err-1.47.3-4.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libnsl2/COPYING",
+      "destination": "/usr/share/licenses/libnsl2/COPYING",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "mode": 420,
+      "package": "libnsl2-2.0.1-5.fc44.x86_64"
+    },
+    {
+      "source": "/usr/share/licenses/libtirpc/COPYING",
+      "destination": "/usr/share/licenses/libtirpc/COPYING",
+      "size": 1476,
+      "sha256": "17cf6098f95bdbb269f0bbc68e76c88fe20487ca7ec53f454923ab4256ecd2e7",
+      "mode": 420,
+      "package": "libtirpc-1.3.7-2.fc44.x86_64"
+    }
+  ],
+  "symlinks": {
+    "/usr/lib64/libcom_err.so.2": "libcom_err.so.2.1",
+    "/usr/lib64/libgssapi_krb5.so.2": "libgssapi_krb5.so.2.2",
+    "/usr/lib64/libk5crypto.so.3": "libk5crypto.so.3.1",
+    "/usr/lib64/libkeyutils.so.1": "libkeyutils.so.1.10",
+    "/usr/lib64/libkrb5.so.3": "libkrb5.so.3.3",
+    "/usr/lib64/libkrb5support.so.0": "libkrb5support.so.0.1",
+    "/usr/lib64/libnsl.so.3": "libnsl.so.3.0.0",
+    "/usr/lib64/libtirpc.so.3": "libtirpc.so.3.0.0"
+  },
+  "image_metadata": {
+    "/usr/bin/unix_chkpwd": {
+      "mode": 2541,
+      "uid": 0,
+      "gid": 0,
+      "selinux": "system_u:object_r:chkpwd_exec_t:s0"
+    }
+  }
+}

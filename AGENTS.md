@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current packaged PAM work: read spec/login-deployment.md and the 2026-11-17
+login-pam-runtime journal. Both installed adapters include the exact deny-only
+fallback as their tenth protected source. Keep the signed selection format and
+its two named PAM rows. The ordinary-user supplement stages 18 RPM-pinned
+objects and eight aliases. Preserve the helper's 0755 staging mode and record
+its 04755 image metadata for final image assembly. Carrier systemd-pam 259.5
+differs from the selected 259.10. Next verify the composed target base, actual
+loader/account inputs and installed platform gate. The USB gate applies.
+
 Current packaged PAM sources: read the 2026-11-17 login-packaged-pam journal
 and spec/login-deployment.md. Both installed adapters add the two literal
 PAM profiles to the nine-entry handoff source set. Use O_PATH for ancestry;
