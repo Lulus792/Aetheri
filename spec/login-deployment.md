@@ -152,8 +152,34 @@ or unreadable selections cause the startup attempt to fail.
 
 The [startup adapter verification](../brains/aetheri/journal/2026-11-17-login-installed-startup.md)
 covers the native entry, real private mount views and effective policy checks.
-The greeter still needs its installed provider. Its selection must stay pinned
-in the view that the existing client and display checks use.
+
+### Greeter executable
+
+The greeter also selects its installed adapter from its build-time provider.
+Set `ae_login_greeter_profile.installed_release` to the compiled trust anchor
+and supply the mandatory `backend.check` platform callback and its context.
+The deployment can supply reviewed library and input data directories for
+the display child.
+
+The adapter derives its UID, GID, complete supplementary group set and
+display image from the signed selection. Actual process IDs and groups
+must agree before it enters the native greeter runner. The runner keeps
+its existing original local session, peer, process and display checks.
+The font comes from its original protected file at
+`/usr/share/aetheri/login/greeter.ttf`. The resident font copy must match
+the signed digest. The original selection and font file are checked on
+subsequent host gate calls. An observed replacement fences the attempt.
+The ordinary greeter continues to rely on the platform callback for live
+policy and protected host admission.
+
+Both installed adapters include `selection.bin` in the common source set
+used by the protected handoff. That binds the handoff to the signed selection
+observed in the backend mount view, including its release, account, policy
+and asset rows. The existing handoff wire format and custom provider source
+lists keep their existing contracts.
+
+See the [installed greeter check](../brains/aetheri/journal/2026-11-17-login-installed-greeter.md)
+for the native entry and protected-font tests.
 
 ### Installed system
 
@@ -170,5 +196,5 @@ The [deployment verification record](../brains/aetheri/journal/2026-11-17-login-
 covers the isolated systemd layout and a separate full graphical VM test for
 the scratch namespace. The [installed selection verification](../brains/aetheri/journal/2026-11-17-login-installed-selection.md)
 covers the reader at the exact fixed path in a private mount namespace.
-A login from the final fixed paths still requires the greeter provider,
-selection of the startup platform gate and full image integration.
+A login from the final fixed paths still requires the selected platform
+gates and full image integration.

@@ -18,6 +18,7 @@ enum {
     AE_LOGIN_INSTALLED_SYSTEMD_DROPIN,
     AE_LOGIN_INSTALLED_WORKER_DROPIN,
     AE_LOGIN_INSTALLED_GREETER,
+    AE_LOGIN_INSTALLED_SELECTION,
     AE_LOGIN_INSTALLED_BACKEND_COUNT
 };
 
@@ -40,6 +41,7 @@ int ae_login_installed_digest(struct ae_login_installed *, uint8_t out[AE_SHA256
 int ae_login_installed_backend(struct ae_login_installed *,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_BACKEND_COUNT]);
 int ae_login_installed_display(struct ae_login_installed *, struct ae_login_source_expect *);
+int ae_login_installed_font(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_close(struct ae_login_installed **);
 
 #endif

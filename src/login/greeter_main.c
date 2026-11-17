@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     struct ae_login_greeter_profile profile = {0};
     enum ae_login_ui_end end = AE_LOGIN_UI_STOPPED;
     int result = ae_login_greeter_deployment_select(&profile);
-    if (!result) result = ae_login_greeter_run(&profile, &end);
+    if (!result && profile.installed_release) result = ae_login_installed_greeter_run(&profile, &end);
+    else if (!result) result = ae_login_greeter_run(&profile, &end);
     if (result) {
         fprintf(stderr, "AETHERI_GREETER_FAIL error=%d\n", result);
         return 1;

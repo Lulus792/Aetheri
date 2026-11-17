@@ -56,6 +56,8 @@ static int expectation(struct source *s,const struct ae_login_source_expect *e)
         if(e->mode!=0555 || e->size>AE_DIGEST_MAX_BYTES)return -EINVAL;
     } else if(e->kind==AE_LOGIN_SOURCE_DATA) {
         if((e->mode!=0444 && e->mode!=0644) || e->size>AE_LOGIN_SOURCE_DATA_MAX)return -EINVAL;
+    } else if(e->kind==AE_LOGIN_SOURCE_ASSET) {
+        if(e->mode!=0444 || e->size>AE_DIGEST_MAX_BYTES)return -EINVAL;
     } else return -EINVAL;
     size_t depth=0;
     for(size_t start=1;start<n;) {
@@ -228,6 +230,31 @@ int ae_login_sources_data_digest(struct ae_login_sources *s,size_t index,uint8_t
     r=ae_login_sources_check(s);
     if(!r)memcpy(out,s->sources[index].expect.digest,32);
     return r;
+}
+
+int ae_login_sources_read_asset(struct ae_login_sources *s,size_t index,void **out,size_t *size)
+{
+    int r=owner(s);if(r)return r;
+    if(!out || *out || !size || index>=s->count ||
+       s->sources[index].expect.kind!=AE_LOGIN_SOURCE_ASSET)return -EINVAL;
+    r=ae_login_sources_check(s);if(r)return r;
+    const struct source *source=&s->sources[index];
+    size_t length=(size_t)source->expect.size;
+    unsigned char *bytes=malloc(length);
+    if(!bytes)return -ENOMEM;
+    size_t offset=0;
+    while(!r && offset<length) {
+        ssize_t count=pread(source->file,bytes+offset,length-offset,(off_t)offset);
+        if(count<0 && errno==EINTR)continue;
+        if(count<=0)r=count<0?-errno:-EBADMSG;
+        else offset+=(size_t)count;
+    }
+    uint8_t digest[AE_SHA256_BYTES];
+    if(!r)r=ae_sha256_bytes(bytes,length,digest);
+    if(!r && memcmp(digest,source->expect.digest,sizeof digest))r=-EBADMSG;
+    if(!r)r=ae_login_sources_check(s);
+    if(r){s->error=r;free(bytes);return r;}
+    *out=bytes;*size=length;return 0;
 }
 
 struct fingerprint_bytes {

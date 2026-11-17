@@ -5,6 +5,9 @@
 
 struct ae_login_greeter;
 enum { AE_LOGIN_GREETER_GROUPS_MAX=16 };
+/* Compare the calling process's actual supplementary groups with the
+   independently selected set in strictly increasing order. */
+int ae_login_greeter_check_groups(const gid_t *expected,size_t count);
 struct ae_login_greeter_expect {
     uid_t uid; /* Independently selected dedicated, non-Root greeter account. */
     gid_t gid;

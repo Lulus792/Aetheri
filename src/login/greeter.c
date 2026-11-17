@@ -68,18 +68,19 @@ static int greeter_caps(void)
     for(size_t i=0;i<2;++i)if(data[i].effective || data[i].permitted || data[i].inheritable)return -EACCES;
     return 0;
 }
-static int greeter_groups(const struct ae_login_greeter *g)
+int ae_login_greeter_check_groups(const gid_t *expected,size_t length)
 {
+    if(length>AE_LOGIN_GREETER_GROUPS_MAX || (length && !expected))return -EINVAL;
     gid_t groups[AE_LOGIN_GREETER_GROUPS_MAX];
     int count=getgroups(AE_LOGIN_GREETER_GROUPS_MAX,groups);
     if(count<0)return -errno;
-    if((size_t)count!=g->group_count)return -EACCES;
+    if((size_t)count!=length)return -EACCES;
     for(size_t i=1;i<(size_t)count;++i) {
         gid_t value=groups[i];size_t j=i;
         while(j && groups[j-1]>value){groups[j]=groups[j-1];--j;}
         groups[j]=value;
     }
-    return memcmp(groups,g->groups,g->group_count*sizeof(gid_t))?-EACCES:0;
+    return length && memcmp(groups,expected,length*sizeof(gid_t))?-EACCES:0;
 }
 static int greeter_identity(struct ae_login_greeter *g,const struct ae_image_process *backend)
 {
@@ -93,7 +94,7 @@ static int greeter_identity(struct ae_login_greeter *g,const struct ae_image_pro
     if(!r)r=greeter_label(g->owner,g->label);
     if(!r)r=greeter_label((pid_t)g->parent_pid,g->worker_label);
     if(!r)r=greeter_caps();
-    if(!r)r=greeter_groups(g);
+    if(!r)r=ae_login_greeter_check_groups(g->groups,g->group_count);
     return r;
 }
 static int greeter_inspect(sd_bus *bus,const char *manager,const char *path,

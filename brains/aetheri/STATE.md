@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The installed greeter entry consumes the signed selection
+and pins its font while checking its real account and groups. Both installed
+adapters include the selection in the handoff's source fingerprint. Two
+native profiles pass the private fixed-path greeter cases and the startup
+mount-view regressions. Next select and test the target platform gates and
+installed units through PAM, desktop and logout. See the
+[greeter adapter record](journal/2026-11-17-login-installed-greeter.md).
+
 17 November 2026 — The finite startup executable can use a build-selected
 installed adapter. It verifies the real kernel policy and pins separate
 signed-selection observations across its move into the backend mount view.

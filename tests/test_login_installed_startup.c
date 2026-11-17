@@ -51,6 +51,7 @@ int __wrap_ae_login_startup_run(const struct ae_login_run_profile *p)
     CHECK(p->startup.source_count == AE_LOGIN_INSTALLED_BACKEND_COUNT);
     CHECK(p->startup.dropin_count == 2 && p->startup.dropins[0] == AE_LOGIN_INSTALLED_SYSTEMD_DROPIN);
     CHECK(p->startup.dropins[1] == AE_LOGIN_INSTALLED_WORKER_DROPIN);
+    CHECK(!strcmp(p->startup.sources[AE_LOGIN_INSTALLED_SELECTION].leaf, "selection.bin"));
     int result = p->startup.check(p->startup.userdata);
     if (result) fprintf(stderr, "initial gate: %d\n", result);
     if (!strcmp(scenario, "policy")) {

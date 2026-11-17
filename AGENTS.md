@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current installed greeter adapter: read `spec/login-deployment.md` and the
+2026-11-17 login-installed-greeter journal. Both installed adapters bind
+`selection.bin` in the common handoff source set. The greeter checks actual
+UID/GID/groups before runner entry and pins the signed font. VM
+`fe0059739895` passes seven private cases per profile; startup
+`da5c58a8732e` passes four per profile. Preserve failed build records.
+Candidate policy `f99ec70ee8a5` is retired to baseline. Next select actual
+platform gates and exercise the installed units through full login, desktop
+and logout. Keep the first-version USB gate.
+
 Current installed startup adapter: read `spec/login-deployment.md` and the
 2026-11-17 login-installed-startup journal. The finite executable can select
 `installed_release` and an explicit platform gate. Preserve the native

@@ -14,17 +14,20 @@ int ae_test_getgroups(int size,gid_t *out) {
     return count;
 }
 int main(void) {
-    struct ae_login_greeter g={0};CHECK(!greeter_groups(&g));
-    count=1;actual[0]=992;g.groups[0]=992;g.group_count=1;CHECK(!greeter_groups(&g));
-    actual[0]=10;CHECK(greeter_groups(&g)==-EACCES);
-    count=2;actual[0]=992;actual[1]=10;CHECK(greeter_groups(&g)==-EACCES);
-    g.groups[0]=10;g.groups[1]=992;g.group_count=2;CHECK(!greeter_groups(&g));
-    actual[0]=10;actual[1]=10;CHECK(greeter_groups(&g)==-EACCES);
-    count=AE_LOGIN_GREETER_GROUPS_MAX;g.group_count=AE_LOGIN_GREETER_GROUPS_MAX;
-    for(size_t i=0;i<AE_LOGIN_GREETER_GROUPS_MAX;++i){actual[i]=(gid_t)(AE_LOGIN_GREETER_GROUPS_MAX-i);g.groups[i]=(gid_t)(i+1);}
-    CHECK(!greeter_groups(&g));group_error=EINVAL;CHECK(greeter_groups(&g)==-EINVAL);group_error=EIO;CHECK(greeter_groups(&g)==-EIO);
+    gid_t expected[AE_LOGIN_GREETER_GROUPS_MAX]={992};
+    CHECK(!ae_login_greeter_check_groups(NULL,0));
+    count=1;actual[0]=992;CHECK(!ae_login_greeter_check_groups(expected,1));
+    actual[0]=10;CHECK(ae_login_greeter_check_groups(expected,1)==-EACCES);
+    count=2;actual[0]=992;actual[1]=10;CHECK(ae_login_greeter_check_groups(expected,1)==-EACCES);
+    expected[0]=10;expected[1]=992;CHECK(!ae_login_greeter_check_groups(expected,2));
+    actual[0]=10;actual[1]=10;CHECK(ae_login_greeter_check_groups(expected,2)==-EACCES);
+    count=AE_LOGIN_GREETER_GROUPS_MAX;
+    for(size_t i=0;i<AE_LOGIN_GREETER_GROUPS_MAX;++i){actual[i]=(gid_t)(AE_LOGIN_GREETER_GROUPS_MAX-i);expected[i]=(gid_t)(i+1);}
+    CHECK(!ae_login_greeter_check_groups(expected,AE_LOGIN_GREETER_GROUPS_MAX));
+    group_error=EINVAL;CHECK(ae_login_greeter_check_groups(expected,AE_LOGIN_GREETER_GROUPS_MAX)==-EINVAL);
+    group_error=EIO;CHECK(ae_login_greeter_check_groups(expected,AE_LOGIN_GREETER_GROUPS_MAX)==-EIO);
     struct ae_login_greeter_expect e={.uid=992,.gid=992,.label="selected",.worker_label="selected"};
-    struct ae_login_greeter *out=NULL;struct ae_login_service *s=(void *)&g;struct ae_login_sources *sources=(void *)&g;
+    struct ae_login_greeter *out=NULL;struct ae_login_service *s=(void *)&e;struct ae_login_sources *sources=(void *)&e;
     e.group_count=AE_LOGIN_GREETER_GROUPS_MAX+1;CHECK(ae_login_greeter_create(s,sources,&e,&out)==-EINVAL && !out);
     e.group_count=1;CHECK(ae_login_greeter_create(s,sources,&e,&out)==-EINVAL && !out);
     gid_t invalid[]={0,992};e.groups=invalid;CHECK(ae_login_greeter_create(s,sources,&e,&out)==-EINVAL && !out);

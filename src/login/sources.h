@@ -8,7 +8,7 @@
 enum { AE_LOGIN_SOURCES_MAX=8, AE_LOGIN_SOURCE_PATH_MAX=1024,
        AE_LOGIN_SOURCE_LABEL_MAX=256, AE_LOGIN_SOURCE_DATA_MAX=65536,
        AE_LOGIN_SOURCE_FULL_PATH_MAX=1280 };
-enum ae_login_source_kind { AE_LOGIN_SOURCE_DATA=1, AE_LOGIN_SOURCE_ELF=2 };
+enum ae_login_source_kind { AE_LOGIN_SOURCE_DATA=1, AE_LOGIN_SOURCE_ELF=2, AE_LOGIN_SOURCE_ASSET=3 };
 struct ae_login_source_expect {
     /* Independently admitted canonical absolute parent and literal leaf. Never
        construct this selection/digest/label from the candidate's own metadata. */
@@ -16,8 +16,8 @@ struct ae_login_source_expect {
     const char *leaf;
     const char *label; /* Exact raw SELinux FILE label, not a process label. */
     enum ae_login_source_kind kind;
-    mode_t mode; /* ELF:0555; data:0444 or0644. Always UID0/GID0, nlink1. */
-    uint64_t size; /* Exact nonzero size; ELF <=16MiB, data <=64KiB. */
+    mode_t mode; /* ELF:0555; asset:0444; data:0444 or0644. Always UID0/GID0, nlink1. */
+    uint64_t size; /* Exact nonzero size; ELF and asset <=16MiB, data <=64KiB. */
     uint8_t digest[32];
 };
 struct ae_login_sources;
@@ -48,6 +48,10 @@ int ae_login_sources_path(struct ae_login_sources *,size_t index,enum ae_login_s
                           char out[AE_LOGIN_SOURCE_FULL_PATH_MAX]);
 /* Copy the independently expected digest of a currently verified DATA source. */
 int ae_login_sources_data_digest(struct ae_login_sources *,size_t index,uint8_t out[32]);
+/* Read and hash an ASSET from its original held file. Return an owned buffer
+   only after all original source checks still pass. *out starts NULL and
+   both outputs are unchanged on failure. Caller frees the successful copy. */
+int ae_login_sources_read_asset(struct ae_login_sources *,size_t index,void **out,size_t *size);
 /* Hash the ordered original selection, including exact expected paths/labels/
    digests and boot-local file/ancestor identities. Recheck before returning.
    This fingerprints a held observation, with no durable volume identity. */

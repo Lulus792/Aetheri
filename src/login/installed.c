@@ -111,7 +111,8 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_BACKEND_COUNT])
 {
     if (!out) return -EINVAL;
-    int result = ae_login_installed_check(installed);
+    uint8_t digest[AE_SHA256_BYTES];
+    int result = ae_login_installed_digest(installed, digest);
     if (result) return result;
     struct ae_login_source_expect backend[AE_LOGIN_INSTALLED_BACKEND_COUNT] = {
         [AE_LOGIN_INSTALLED_FRAGMENT] =
@@ -129,8 +130,10 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
         [AE_LOGIN_INSTALLED_GREETER] =
             {LOGIN_EXEC, "aetheri-login-greeter", "system_u:object_r:aetheri_greeter_exec_t:s0",
                 AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        [AE_LOGIN_INSTALLED_SELECTION] =
+            {LOGIN_DATA, selection_leaf, config_label, AE_LOGIN_SOURCE_DATA, 0444, AE_LOGIN_SELECTION_BYTES, {0}},
     };
-    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_BACKEND_COUNT] = {
+    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_SELECTION] = {
         [AE_LOGIN_INSTALLED_FRAGMENT] = AE_LOGIN_SELECT_UNIT,
         [AE_LOGIN_INSTALLED_BACKEND] = AE_LOGIN_SELECT_BACKEND,
         [AE_LOGIN_INSTALLED_CONFIG] = AE_LOGIN_SELECT_CONFIG,
@@ -138,9 +141,25 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
         [AE_LOGIN_INSTALLED_WORKER_DROPIN] = AE_LOGIN_SELECT_WORKER_DROPIN,
         [AE_LOGIN_INSTALLED_GREETER] = AE_LOGIN_SELECT_GREETER,
     };
-    for (size_t i = 0; i < AE_LOGIN_INSTALLED_BACKEND_COUNT; ++i)
+    for (size_t i = 0; i < AE_LOGIN_INSTALLED_SELECTION; ++i)
         selected_file(installed, roles[i], &backend[i]);
+    memcpy(backend[AE_LOGIN_INSTALLED_SELECTION].digest, digest, sizeof digest);
     memcpy(out, backend, sizeof backend);
+    return 0;
+}
+
+int ae_login_installed_font(struct ae_login_installed *installed, struct ae_login_source_expect *out)
+{
+    if (!out) return -EINVAL;
+    int result = ae_login_installed_check(installed);
+    if (result) return result;
+    struct ae_login_source_expect font = {
+        .directory = LOGIN_DATA, .leaf = "greeter.ttf",
+        .label = "system_u:object_r:aetheri_greeter_assets_t:s0",
+        .kind = AE_LOGIN_SOURCE_ASSET, .mode = 0444,
+    };
+    selected_file(installed, AE_LOGIN_SELECT_FONT, &font);
+    *out = font;
     return 0;
 }
 

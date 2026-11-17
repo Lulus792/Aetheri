@@ -3,6 +3,7 @@
 
 #include "login/ui/host.h"
 
+struct ae_login_release_anchor;
 struct ae_login_greeter_profile {
     struct ae_login_client_expect backend;
     struct ae_login_source_expect compositor;
@@ -14,6 +15,10 @@ struct ae_login_greeter_profile {
     unsigned vt;
     const void *font; /* Independently verified, resident font bytes. */
     size_t font_size;
+    /* Select the installed adapter from the explicit build-time source.
+       It keeps only the platform gate/context and optional protected library
+       and input directories from this input. */
+    const struct ae_login_release_anchor *installed_release;
 };
 
 /* Fresh main-thread-only greeter process. The compiled profile selects actual
@@ -22,6 +27,7 @@ struct ae_login_greeter_profile {
    original kernel peer and the protected handoff. Returns only for exit.
    No reconnect, session replay or authority to stop the backend. */
 int ae_login_greeter_run(const struct ae_login_greeter_profile *, enum ae_login_ui_end *);
+int ae_login_installed_greeter_run(const struct ae_login_greeter_profile *, enum ae_login_ui_end *);
 
 /* Explicit build-selected provider. It must bound the startup under the
    deployment supervisor and return -errno on any missing admission. Its
