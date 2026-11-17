@@ -1,16 +1,18 @@
 # Working on Aetheri
 
-Current installed shell and power-off: read the installed shell cat
-section in the 2026-11-17 login-image-boot journal and spec/login-backend.md.
-Release 7afc331c0588 passes 8 shell and 18 installed-profile CTests.
-Signed ca26a6fdcabf prints the saved document and the redirected copy;
-offline journal replay on a separate copy confirms both have nine equal
-bytes. Preserve the generic bin_t denial. Immediate ACPI after logout
-and the later visible replacement-greeter ACPI case both wait on login
-service stop (24/45 seconds), with no clean unmount or power-down.
-The cause stays open. Diagnose original worker/service stop without
-weakening the infinite-stop fence or inferring drain. Preserve both
-interrupted attempts and their original data. USB and NexaUI gates apply.
+Current installed power-off: read the PAM worker hangup section of the
+2026-11-17 login-image-boot journal and spec/login-backend.md. Diagnostic
+f2d08a75 pins and observes the original replacement worker, greeter and
+display each exit from SIGHUP. No sender attribution. Keep the worker HUP
+mask through PAM teardown, children's original mask at exec and the
+infinite-stop/normal original worker fence. Backend ae38890e7a49 passes
+24 Rust unit tests, one doc test, two compatibility build checks and the
+source preparer passes 13 tests. Signed 9d2ac4bd4a92 passes three ACPI
+power-offs: active session, just after logout and visible replacement
+greeter. PAM close, service stop, ext4 unmount and kernel power-down
+are witnessed. Preserve all interrupted attempts and data. Next exact
+public fixed-app release assembly and first-version hardware work.
+USB and NexaUI gates apply.
 
 Current shell and document handoff: read the shell job selection section
 in the 2026-11-17 login-image-boot journal and spec/files.md. The two

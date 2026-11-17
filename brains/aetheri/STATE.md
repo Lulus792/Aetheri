@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The signed VM powers off cleanly with the
+corrected PAM worker, including from an active user session, during
+replacement greeter startup and at its visible prompt. The original
+worker previously exited from SIGHUP; it now handles HUP in the same
+synchronous wait as TERM and protects PAM teardown. All three runs
+close PAM, stop the login service and unmount ext4. The installed
+application release assembly and hardware acceptance remain open.
+See the [power-off record](journal/2026-11-17-login-image-boot.md#pam-worker-hangup-during-power-off).
+
 17 November 2026 — The installed shell's built-in `cat` prints the
 saved document and can redirect it to a byte-identical file. Eight
 shell and 18 installed-profile CTests pass. Two ACPI power-off cases

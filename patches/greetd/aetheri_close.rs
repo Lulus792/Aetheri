@@ -10,7 +10,7 @@ use nix::{
 };
 use crate::error::Error;
 
-// One fresh external worker process. Block TERM before opening PAM/forking;
+// One fresh external worker process. Block TERM and HUP before PAM/forking;
 // only its child restores the inherited mask before exec. Synchronous signal
 // waiting has no handler, polling timer or extra thread.
 pub(crate) struct Signals { old_mask: SigSet, events: SigSet, parent: Pid, worker: Pid, parent_lost: bool }
@@ -18,10 +18,13 @@ impl Signals {
     pub(crate) fn prepare() -> Result<Self, Error> {
         let parent=getppid();
         if parent.as_raw()<=1 { return Err("original login parent absent".into()); }
-        let mut blocked=SigSet::empty();blocked.add(Signal::SIGTERM);blocked.add(Signal::SIGUSR1);blocked.add(Signal::SIGCHLD);
+        let mut blocked=SigSet::empty();
+        for signal in [Signal::SIGTERM,Signal::SIGHUP,Signal::SIGUSR1,Signal::SIGCHLD] {
+            blocked.add(signal);
+        }
         let mut old_mask=SigSet::empty();
         pthread_sigmask(SigmaskHow::SIG_BLOCK,Some(&blocked),Some(&mut old_mask))?;
-        if old_mask.contains(Signal::SIGTERM) || old_mask.contains(Signal::SIGUSR1) || old_mask.contains(Signal::SIGCHLD) {
+        if blocked.iter().any(|signal| old_mask.contains(signal)) {
             return Err("PAM worker inherited blocked session signals".into());
         }
         Ok(Self {old_mask,events:blocked,parent,worker:getpid(),parent_lost:false})
@@ -49,9 +52,10 @@ impl Signals {
             if force && !killed { killed=true;let _=kill(child,Signal::SIGKILL); }
             match waitpid(child,Some(WaitPidFlag::WNOHANG)) {
                 Ok(WaitStatus::Exited(pid,_)) | Ok(WaitStatus::Signaled(pid,_,_)) if pid==child => {
-                    // Keep TERM blocked through PAM close/end. Restore the old
+                    // Keep TERM and HUP blocked through PAM close/end. Restore the old
                     // CHLD mask so PAM can wait for its own teardown helpers.
-                    let mut closing=self.old_mask;closing.add(Signal::SIGTERM);closing.add(Signal::SIGUSR1);
+                    let mut closing=self.events;closing.remove(Signal::SIGCHLD);
+                    for signal in self.old_mask.iter() { closing.add(signal); }
                     if pthread_sigmask(SigmaskHow::SIG_SETMASK,Some(&closing),None).is_err() {
                         retain("PAM teardown signal mask lost");
                     }
@@ -62,7 +66,7 @@ impl Signals {
                 _ => retain("original session child observation lost"),
             }
             match self.events.wait() {
-                Ok(Signal::SIGTERM) => requested=true,
+                Ok(Signal::SIGTERM | Signal::SIGHUP) => requested=true,
                 Ok(Signal::SIGUSR1) => force=true,
                 Ok(Signal::SIGCHLD) | Err(Errno::EINTR) => (),
                 _ => retain("session signal observation lost"),
@@ -110,6 +114,30 @@ mod tests {
                        WaitStatus::Signaled(original,Signal::SIGKILL,false),WaitStatus::StillAlive] {
             assert!(!completed(original,status));
         }
+    }
+    #[test]
+    fn hangup_retires_original_child_and_stays_blocked_during_close() {
+        use nix::libc;
+        use std::io::{BufRead,BufReader};
+        let script="import signal,time,os\ndef close(*unused):\n os.write(1,b'CLOSED\\n')\n raise SystemExit(0)\nsignal.signal(signal.SIGTERM,close)\nos.write(1,b'READY\\n')\ntime.sleep(5)\n";
+        let mut child=Command::new("/usr/bin/python3").args(["-I","-B","-c",script])
+            .stdout(std::process::Stdio::piped()).spawn().unwrap();
+        let mut output=BufReader::new(child.stdout.take().unwrap());
+        let mut line=String::new();
+        output.read_line(&mut line).unwrap();
+        assert_eq!(line,"READY\n");
+
+        let close=Signals::prepare().unwrap();
+        assert_eq!(unsafe { libc::raise(libc::SIGHUP) },0);
+        close.wait(Pid::from_raw(child.id() as i32));
+        line.clear();
+        output.read_line(&mut line).unwrap();
+        assert_eq!(line,"CLOSED\n");
+        let mut after=SigSet::empty();
+        pthread_sigmask(SigmaskHow::SIG_SETMASK,None,Some(&mut after)).unwrap();
+        assert!(after.contains(Signal::SIGHUP));
+        assert!(!after.contains(Signal::SIGCHLD));
+        pthread_sigmask(SigmaskHow::SIG_SETMASK,Some(&close.old_mask),None).unwrap();
     }
     #[tokio::test(flavor="current_thread")]
     async fn normal_original_end_without_signal() {

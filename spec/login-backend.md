@@ -176,19 +176,19 @@ The crate graph and toolchain stay unchanged. It addresses an actual carrier
 failure: the daemon could exit after signaling the greeter child, causing the
 PAM worker's parent-death signal to terminate it before session teardown.
 
-The fresh external worker blocks TERM/USR1/CHLD before opening PAM and forking.
+The fresh external worker blocks TERM/HUP/USR1/CHLD before opening PAM and forking.
 Its sole child checks its original parent after arming its own parent-death
 signal, then restores the original signal mask before ordinary exec. The worker
 checks its original daemon parent around its late parent-death setup. While its
-original child is unreaped, it handles TERM by sending one TERM to that child;
+original child is unreaped, it handles TERM or HUP by sending one TERM to that child;
 USR1 requests one forced child termination. Only the worker signals this
 still-unreaped child. The daemon no longer stores/signals the child's numeric PID
 in this profile and never uses that force path to kill the Root PAM worker.
 
 The waiting worker uses synchronous signal waiting, with no signal handler,
-idle polling timer or added thread. After it reaps the original child, TERM and
-USR1 remain blocked through PAM close, credential deletion and PAM end; the old
-CHLD mask is restored for PAM teardown helpers. Lost child/signal evidence
+idle polling timer or added thread. After it reaps the original child, TERM, HUP
+and USR1 remain blocked through PAM close, credential deletion and PAM end. The
+old CHLD mask is restored for PAM teardown helpers. Lost child/signal evidence
 retains the worker with one diagnostic instead of reporting closure.
 The privileged worker-control socket is marked close-on-exec after the first
 external worker exec, preventing inheritance into the later ordinary session.

@@ -430,3 +430,61 @@ cause stays open.
 Both attempts ended through the harness and their data are preserved.
 Next diagnose installed idle-greeter shutdown with original-worker
 observations before claiming clean full-system power-off.
+
+## PAM worker hangup during power-off
+
+The exact enforcing policy allows PID1 to signal the backend, the backend
+to signal the worker, and the worker to signal the greeter. It also allows
+the relevant child-exit notifications. Diagnostic images derived from the
+same signed inputs add a test-only proc observer and leave the backend,
+greeter, effective policy and signed selection unchanged.
+
+In session `d127a653` the original replacement worker remains a zombie
+under the original backend after the greeter/display disappear and the
+scope is removed. The second image opens pidfds during the session.
+Session `5b8f6781` confirms wait status 1 for the original greeter and
+display. The unreaped worker is poll-ready with mask `0x7`, which lacks
+authoritative exit information. Linux 6.19 records that information in
+the task-release path. [Kernel task release][pidfs-release].
+
+Session `f2d08a75` waits until all three original processes are observed
+in the replacement scope before ACPI power-off. The pinned worker 257,
+greeter 266 and display 267 then each report wait status 1 with the
+`EXIT` bit present, establishing SIGHUP termination. The earlier greeter
+and user workers in the same flow exit zero. The backend continues
+waiting after the replacement worker's abnormal exit. The trace proves
+the terminating signal and the original identities. It leaves the signal
+sender unresolved. Preserve all attempts, including `ed74b1b1` where the
+replacement worker was not sampled before power-off.
+
+The worker now handles SIGHUP in its original synchronous signal loop
+alongside TERM. It sends one orderly TERM request to its original child
+and keeps HUP blocked through PAM teardown, while the unprivileged child
+still restores the inherited mask before exec. The service's normal
+worker-exit requirement and infinite-stop fence remain.
+
+The pinned offline backend build `ae38890e7a49` passes 24 Rust unit
+tests including the hangup regression, one documentation test and
+checks for the startup-only and feature-disabled profiles. The source
+preparer passes 13 tests. The initial /dev scratch attempt is preserved;
+systemd rejects a mount-namespaced unit whose working directory is
+under /dev. The successful build used /run scratch.
+
+Signed image `9d2ac4bd4a92` contains backend SHA-256
+`92d68e7e8cdf7b48d6d1f786c681f1da492dd646cbd173965891367b6d720627`.
+Session `98e79dc6` logs out and shows the replacement account prompt
+before ACPI power-off. The replacement PAM session closes and systemd
+stops the login service. Session `2103af80` requests ACPI power-off
+while the authenticated desktop and Terminal are still active; the
+original user PAM session closes and systemd stops the login service.
+Session `e7b22020` requests ACPI immediately after the user session
+is removed, with no wait for a replacement frame. The new greeter's
+PAM session also closes and the login service stops. All three runs
+confirm ext4 data unmount, kernel power-down and QEMU exit zero.
+Offline checking of a read-only copy from `98e79dc6` confirms ext4
+consistency and the original nine-byte document. The successful
+and failed diagnostic guest images and their session disks remain
+exported on Windows. Redundant unmounted copies of their roots
+were reclaimed after checking both compressed and decompressed hashes.
+
+[pidfs-release]: https://github.com/torvalds/linux/blob/v6.19/kernel/exit.c
