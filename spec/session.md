@@ -136,6 +136,15 @@ display manager, service, PAM file, executable or desktop entry on the host.
 The complete selected app/font/library closure must exist before distribution.
 The fixed development app owner is still separate from production app admission.
 
+In the [confined graphical login VM](../brains/aetheri/journal/2026-11-17-confined-graphical-desktop.md),
+the real greeter starts the selected entry through the authenticated PAM
+worker. The entry creates its UID-owned runtime independently of the
+greeter's scratch. The private POSIX shared-memory mount uses distinct
+file labels for the two sides of login. The test observes the original
+entry and worker end, user PAM closure and return to a fresh greeter. The
+empty per-session runtime and cache directories remain after that logout
+while the same UID still has other sessions.
+
 `linux.session_entry` exercises account/runtime selection, root/unequal/saved-ID
 rejection, bounded paths, NNP failure and absent/supplied/failed notifications
 with controlled adapters. Both it and `linux.session` pass native ordinary-user

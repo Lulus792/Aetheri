@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current confined graphical desktop: read the 2026-11-17 confined-graphical-
+desktop journal and spec/login.md/spec/session.md. Case f5ed8d7d307e reaches
+actual PAM/Start ACK and visible user desktop under the same split policy,
+then original user end/PAM closure, fresh greeter and clean backend stop.
+Keep private greeter /tmp and typed private /dev/shm roles. Final module
+b3a2fdbf1b71 reproduces exact effective policy of the tested candidate,
+passes 272 decisions and is retired to baseline. Preserve first case's
+lost-pin boundary and the leftover empty user runtime/cache as evidence.
+Next owned runtime cleanup and normal installed deployment. USB gate
+and NexaUI maintenance-only state remain.
+
 Current graphical policy: read spec/login.md and the 2026-11-17
 graphical-login-policy journal. The separate compositor domain uses logind
 devices and has no direct device open or backend credential path. Two real

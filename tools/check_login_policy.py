@@ -216,6 +216,15 @@ def inspect(expected: str, graphical: bool = False) -> dict:
             check(display, obj("aetheri_greeter_shm_t"), "file", permission, False)
         check(display, obj("aetheri_greeter_keymap_t"), "file", "write", True)
         check(greeter, obj("aetheri_greeter_keymap_t"), "file", "write", False)
+        shared = obj("aetheri_login_shm_dir_t")
+        for role in (display, greeter, session, shell):
+            check(role, shared, "dir", "add_name", True)
+            check(role, shared, "dir", "read", False)
+        for role in (display, greeter):
+            check(role, obj("aetheri_session_shm_t"), "file", "read", False)
+        for role in (session, shell):
+            for name in ("aetheri_greeter_shm_t", "aetheri_greeter_keymap_t"):
+                check(role, obj(name), "file", "read", False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:

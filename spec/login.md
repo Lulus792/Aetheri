@@ -252,8 +252,22 @@ The [graphical policy verification](../brains/aetheri/journal/2026-11-17-graphic
 uses the original protected startup publisher and real PAM in the four
 dedicated login/display domains. It reaches a visible authenticated prompt
 and stops the original greeter chain. The test uses a private `/tmp` for the
-pinned renderer and a private `/dev/shm` for keyboard maps. The transition
-from this graphical profile to the installed user desktop remains open.
+pinned renderer and a private `/dev/shm` for keyboard maps.
+
+For the combined graphical login and user desktop, one private POSIX
+shared-memory mount spans both lifetimes. Its Root-owned sticky directory
+allows creation without listing from either side. File transitions use
+separate labels for greeter pixels, greeter keymaps and user-session
+buffers. The greeter and its compositor cannot open or read the user's
+buffers. The user session and desktop shell cannot open or read the
+greeter's files. The user entry also creates a separate mode-0700 runtime
+directory under the authenticated user's `/run/user/UID`.
+
+The [combined VM test](../brains/aetheri/journal/2026-11-17-confined-graphical-desktop.md)
+verifies keyboard input, real PAM and Start ACK, the visible desktop, user
+PAM closure, return to a fresh greeter and its administrative stop under
+the same loaded policy. The VM test selects its own deployment provider.
+Installed login and user runtime cleanup remain open.
 
 ## Dedicated greeter account and supplementary groups
 

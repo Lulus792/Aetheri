@@ -4,10 +4,11 @@
 (type aetheri_greeter_render_t)
 (type aetheri_greeter_assets_t)
 (type aetheri_greeter_shm_dir_t)
+(type aetheri_login_shm_dir_t)
 (type aetheri_greeter_shm_t)
 (type aetheri_greeter_keymap_t)
 (typeattributeset domain (aetheri_greeter_display_t))
-(typeattributeset file_type (aetheri_greeter_display_exec_t aetheri_greeter_render_t aetheri_greeter_assets_t aetheri_greeter_shm_dir_t aetheri_greeter_shm_t aetheri_greeter_keymap_t))
+(typeattributeset file_type (aetheri_greeter_display_exec_t aetheri_greeter_render_t aetheri_greeter_assets_t aetheri_greeter_shm_dir_t aetheri_login_shm_dir_t aetheri_greeter_shm_t aetheri_greeter_keymap_t))
 (typeattributeset exec_type (aetheri_greeter_display_exec_t))
 (typeattributeset entry_type (aetheri_greeter_display_exec_t))
 (roletype system_r aetheri_greeter_display_t)
@@ -64,6 +65,25 @@
 (neverallow aetheri_greeter_display_t aetheri_greeter_shm_t (file (open create unlink)))
 (allow aetheri_greeter_display_t aetheri_greeter_keymap_t (file (create read write open getattr setattr map unlink)))
 (allow aetheri_greeter_t aetheri_greeter_keymap_t (file (read getattr map)))
+
+; A login service may give both lifetimes a private POSIX shm mount. Use a
+; Root-owned sticky directory without listing rights. File transitions keep
+; post-login buffers separate from the greeter's pixels and keyboard map.
+(allow aetheri_login_shm_dir_t tmpfs_t (filesystem (associate)))
+(allow aetheri_greeter_t aetheri_login_shm_dir_t (dir (search getattr add_name remove_name write)))
+(allow aetheri_greeter_display_t aetheri_login_shm_dir_t (dir (search getattr add_name remove_name write)))
+(allow aetheri_session_t aetheri_login_shm_dir_t (dir (search getattr add_name remove_name write)))
+(allow aetheri_desktop_shell_t aetheri_login_shm_dir_t (dir (search getattr add_name remove_name write)))
+(typetransition aetheri_greeter_t aetheri_login_shm_dir_t file aetheri_greeter_shm_t)
+(typetransition aetheri_greeter_display_t aetheri_login_shm_dir_t file aetheri_greeter_keymap_t)
+(typetransition aetheri_session_t aetheri_login_shm_dir_t file aetheri_session_shm_t)
+(typetransition aetheri_desktop_shell_t aetheri_login_shm_dir_t file aetheri_session_shm_t)
+(neverallow aetheri_greeter_t aetheri_session_shm_t (file (open read write unlink)))
+(neverallow aetheri_greeter_display_t aetheri_session_shm_t (file (open read write unlink)))
+(neverallow aetheri_session_t aetheri_greeter_shm_t (file (open read write unlink)))
+(neverallow aetheri_desktop_shell_t aetheri_greeter_shm_t (file (open read write unlink)))
+(neverallow aetheri_session_t aetheri_greeter_keymap_t (file (open read write unlink)))
+(neverallow aetheri_desktop_shell_t aetheri_greeter_keymap_t (file (open read write unlink)))
 
 ; The selected compositor uses the protected runtime, keyboard tables and
 ; libinput data. It obtains device descriptors through logind.

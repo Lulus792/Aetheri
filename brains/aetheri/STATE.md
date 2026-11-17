@@ -1,5 +1,15 @@
 # State
 
+17 November 2026 — Confined graphical case f5ed8d7d307e completes actual PAM
+and native Start, then visibly reaches the user desktop. The original entry
+and worker exit zero with PAM closure. A fresh empty greeter returns, then
+its original chain and backend stop normally. Private /dev/shm separates
+greeter and user files by type; the user entry has a separate runtime
+directory. Its empty runtime and cache remain after logout with other UID1000
+sessions live. Next retire those session-owned artifacts safely and bind
+the normal installed provider. See the
+[combined verification](journal/2026-11-17-confined-graphical-desktop.md).
+
 17 November 2026 — The graphical login policy now separates the greeter from
 its device-owning Wayland child. Real confined cases reach the focused
 account form, actual PAM password prompt and authenticated Start action.
