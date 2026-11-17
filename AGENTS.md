@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current installed startup adapter: read `spec/login-deployment.md` and the
+2026-11-17 login-installed-startup journal. The finite executable can select
+`installed_release` and an explicit platform gate. Preserve the native
+original-service and namespace guards. One view hook verifies a second
+record against the original authenticated digest before source capture.
+VM `e9f64834b8fa` verifies both private mount views and the loaded selinuxfs
+policy in Release and memory. Candidate `a78021537a8a` is retired to baseline.
+Next wire the installed greeter and platform gate, then exercise live units
+and the original boot/seat/PAM lifecycle. Keep the first-version USB gate.
+
 Current installed login selection: use `spec/login-deployment.md` and the
 2026-11-17 login-installed-selection journal. Stage the raw signature with
 `prepare_login_selection.py --signature` at the literal 0444 `selection.bin`

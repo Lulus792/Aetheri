@@ -6,6 +6,11 @@
 
 struct ae_login_installed;
 
+struct ae_login_release_anchor {
+    uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES];
+    uint8_t release[AE_LOGIN_SELECTION_RELEASE_BYTES];
+};
+
 enum {
     AE_LOGIN_INSTALLED_FRAGMENT,
     AE_LOGIN_INSTALLED_BACKEND,
@@ -30,6 +35,8 @@ int ae_login_installed_open(const uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES],
  * All output stays unchanged on failure. Same original process/thread as open. */
 int ae_login_installed_check(void *);
 int ae_login_installed_read(struct ae_login_installed *, struct ae_login_selection *);
+/* Digest of the authenticated record bytes, independent of mount identities. */
+int ae_login_installed_digest(struct ae_login_installed *, uint8_t out[AE_SHA256_BYTES]);
 int ae_login_installed_backend(struct ae_login_installed *,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_BACKEND_COUNT]);
 int ae_login_installed_display(struct ae_login_installed *, struct ae_login_source_expect *);

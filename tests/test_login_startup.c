@@ -23,6 +23,7 @@
 static int socket_fd=-1,space=-1,last_space=-1,tokens[3];
 static int policy_error,source_error,enter_error,publish_error;
 static int policy_calls,enter_calls,publish_calls,service_closes,source_closes,loaded_closes;
+static int view_calls,view_error;
 static bool pending,drift,reenter,fail_after_publish;
 static bool saved_user,saved_group;
 static bool unset_errno;
@@ -32,6 +33,11 @@ static int gate(void *p) {
     CHECK(p==&tokens);++policy_calls;
     if(reenter && active)CHECK(ae_login_startup_check(active)==-EBUSY);
     return policy_error;
+}
+static int entered(void *p) {
+    CHECK(p==&tokens && enter_calls==1 && policy_calls==2 && !source_closes && !publish_calls);
+    ++view_calls;
+    return view_error;
 }
 int __wrap_getresuid(uid_t *r,uid_t *e,uid_t *s){*r=*e=0;*s=saved_user?1000:0;return 0;}
 int __wrap_getresgid(gid_t *r,gid_t *e,gid_t *s){*r=*e=0;*s=saved_group?1000:0;return 0;}
@@ -81,6 +87,7 @@ static sd_bus *bus(void){return (sd_bus *)&tokens;}
 static void reset(void) {
     CHECK(!active);policy_error=source_error=enter_error=publish_error=0;
     policy_calls=enter_calls=publish_calls=service_closes=source_closes=loaded_closes=0;
+    view_calls=view_error=0;
     pending=drift=reenter=fail_after_publish=saved_user=saved_group=unset_errno=false;last_space=-1;
 }
 static void close_active(void){CHECK(!ae_login_startup_close(&active) && !active && service_closes==1 && source_closes==1 && loaded_closes==1);}
@@ -90,7 +97,8 @@ static void *other_thread(void *p) {
 }
 static void lifecycle(void) {
     reset();struct ae_login_startup_expect e=expectation();
-    CHECK(!ae_login_startup_create(socket_fd,bus(),&e,&active) && active && enter_calls==1 && !publish_calls);
+    e.enter_view=entered;
+    CHECK(!ae_login_startup_create(socket_fd,bus(),&e,&active) && active && enter_calls==1 && view_calls==1 && !publish_calls);
     pending=true;CHECK(ae_login_startup_check(active)==-EAGAIN);CHECK(ae_login_startup_check(active)==-EAGAIN && !publish_calls);
     pending=false;reenter=true;CHECK(!ae_login_startup_check(active));
     pthread_t thread;CHECK(!pthread_create(&thread,NULL,other_thread,NULL) && !pthread_join(thread,NULL));
@@ -98,7 +106,7 @@ static void lifecycle(void) {
     if(!child){CHECK(ae_login_startup_check(active)==-ECHILD && !ae_login_startup_close(&active));_exit(0);}
     int status;CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && !WEXITSTATUS(status));
     CHECK(!ae_login_startup_publish(active) && publish_calls==1);
-    CHECK(ae_login_startup_publish(active)==-EALREADY && publish_calls==1 && !ae_login_startup_check(active));close_active();
+    CHECK(ae_login_startup_publish(active)==-EALREADY && publish_calls==1 && view_calls==1 && !ae_login_startup_check(active));close_active();
 }
 static void failures(void) {
     struct ae_login_startup_expect e=expectation();
@@ -109,6 +117,11 @@ static void failures(void) {
     reset();enter_error=EPERM;CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EPERM && !active && enter_calls==1 && service_closes==1);
     reset();unset_errno=true;CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EIO && !active && enter_calls==1 && service_closes==1);
     reset();source_error=-ESTALE;CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-ESTALE && !active && enter_calls==1 && service_closes==1);
+    reset();e.enter_view=entered;view_error=-ESTALE;source_error=-ENODATA;
+    CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-ESTALE && !active && view_calls==1 && service_closes==1);
+    reset();enter_error=EPERM;
+    CHECK(ae_login_startup_create(socket_fd,bus(),&e,&active)==-EPERM && !active && !view_calls);
+    e=expectation();
     reset();CHECK(!ae_login_startup_create(socket_fd,bus(),&e,&active));
     drift=true;CHECK(ae_login_startup_check(active)==-ESTALE);drift=false;CHECK(ae_login_startup_check(active)==-ESTALE && ae_login_startup_publish(active)==-ESTALE && !publish_calls);close_active();
     reset();CHECK(!ae_login_startup_create(socket_fd,bus(),&e,&active));policy_error=-EAGAIN;

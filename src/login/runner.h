@@ -2,11 +2,16 @@
 #define AETHERI_LOGIN_RUNNER_H
 #include "login/startup.h"
 
+struct ae_login_release_anchor;
 struct ae_login_run_profile {
     const char *unit,*label; /* Independently admitted startup service and raw label. */
     const char *socket_prefix; /* Reviewed backend's absolute socket-name prefix. */
     uint64_t timeout_usec; /* 100ms..15s; synchronous bus calls have their own bound. */
     struct ae_login_startup_expect startup;
+    /* Select the installed adapter from the compiled deployment source.
+       Its fixed profile consumes only startup.check and startup.userdata
+       from this input. Keep NULL for an explicitly supplied custom profile. */
+    const struct ae_login_release_anchor *installed_release;
 };
 /* Finite Root executable entry, fresh single-threaded process. Use the literal
    host system bus, capture this process's original authenticated bus/self unit
@@ -20,6 +25,13 @@ struct ae_login_run_profile {
    The compiled external deployment gate is mandatory and remains distinct from
    these observations. Inputs and gate context stay immutable/live until return. */
 int ae_login_startup_run(const struct ae_login_run_profile *);
+
+/* Compose independent fixed-path selection and effective-policy checks with
+   the mandatory build-selected platform gate (PAM/account/device, effective
+   installation protection, libraries and trusted host view). Same finite
+   executable lifetime as ae_login_startup_run(). */
+int ae_login_installed_startup_run(const struct ae_login_release_anchor *,
+    int (*platform_check)(void *), void *userdata);
 
 /* Defined only by an explicitly selected build-time deployment C source.
    No default provider, runtime plugin, profile path or environment selection.

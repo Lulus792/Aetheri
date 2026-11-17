@@ -44,20 +44,24 @@ int main(int argc, char **argv)
     CHECK(key_size == sizeof public_key);
 
     uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS01";
-    if (argc == 2 || argc == 3) {
-        FILE *file = fopen(argv[1], "rb");
+    if (argc >= 2 && argc <= 4) {
+        int offset = argc == 4 ? 2 : 1;
+        if (argc == 4) CHECK(!strcmp(argv[1], "--sign-body"));
+        FILE *file = fopen(argv[offset], "rb");
         CHECK(file);
         CHECK(fread(record, 1, AE_LOGIN_SELECTION_BODY_BYTES, file) == AE_LOGIN_SELECTION_BODY_BYTES);
         CHECK(fgetc(file) == EOF && !ferror(file) && !fclose(file));
         sign_record(key, record);
         struct ae_login_selection selected;
         CHECK(!ae_login_selection_verify(record, sizeof record, public_key, release, &selected));
-        CHECK(selected.uid == 992 && selected.gid == 993 && selected.group_count == 2);
-        CHECK(selected.groups[0] == 993 && selected.groups[1] == 60000);
-        CHECK(selected.files[AE_LOGIN_SELECT_SYSTEMD_DROPIN].size == 21);
-        CHECK(selected.files[AE_LOGIN_SELECT_KERNEL_POLICY].size == 2);
-        if (argc == 3) {
-            file = fopen(argv[2], "wbx");
+        if (argc != 4) {
+            CHECK(selected.uid == 992 && selected.gid == 993 && selected.group_count == 2);
+            CHECK(selected.groups[0] == 993 && selected.groups[1] == 60000);
+            CHECK(selected.files[AE_LOGIN_SELECT_SYSTEMD_DROPIN].size == 21);
+            CHECK(selected.files[AE_LOGIN_SELECT_KERNEL_POLICY].size == 2);
+        }
+        if (argc >= 3) {
+            file = fopen(argv[offset + 1], "wbx");
             CHECK(file);
             CHECK(fwrite(record, 1, sizeof record, file) == sizeof record && !fclose(file));
         }

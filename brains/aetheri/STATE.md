@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The finite startup executable can use a build-selected
+installed adapter. It verifies the real kernel policy and pins separate
+signed-selection observations across its move into the backend mount view.
+The private VM cases pass agreement, differing signed record, different
+effective policy and failing platform-gate checks in both builds. Next
+integrate the installed greeter and image platform gate with the actual units.
+See the [startup adapter record](journal/2026-11-17-login-installed-startup.md).
+
 17 November 2026 — The signed selection now goes into the fixed image path as
 a create-only 0444 file. Its native reader authenticates and pins the protected
 record before exposing the shared backend and display expectations. An

@@ -13,7 +13,10 @@ int main(int argc,char **argv) {
     setvbuf(stdout,NULL,_IOLBF,0);
     struct ae_login_run_profile profile={0};
     int result=ae_login_deployment_select(&profile);
-    if(!result)result=ae_login_startup_run(&profile);
+    if(!result && profile.installed_release)
+        result=ae_login_installed_startup_run(profile.installed_release,
+            profile.startup.check,profile.startup.userdata);
+    else if(!result)result=ae_login_startup_run(&profile);
     if(result){fprintf(stderr,"AETHERI_LOGIN_STARTUP_FAIL error=%d\n",result);return 1;}
     puts("AETHERI_LOGIN_STARTUP_COMPLETE");return 0;
 }

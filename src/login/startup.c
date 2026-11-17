@@ -153,6 +153,11 @@ int ae_login_startup_create(int fd,sd_bus *bus,const struct ae_login_startup_exp
     if(!r)r=external(s);
     if(!r && setns(s->space,CLONE_NEWNS))r=syscall_error();
     if(!r)r=namespace_check(s);
+    if(!r && e->enter_view) {
+        r=e->enter_view(e->userdata);
+        if(r>0)r=-EINVAL;
+        if(!r)r=namespace_check(s);
+    }
     if(!r)r=external(s);
     if(!r)r=ae_login_sources_create(e->sources,e->source_count,&s->sources);
     if(!r)r=ae_login_loaded_create(s->service,s->sources,e->fragment,e->program,e->config,

@@ -16,6 +16,11 @@ struct ae_login_startup_expect {
        in the selected view, on readiness checks and before publication. No test
        callback establishes production policy. Borrow userdata until close. */
     int (*check)(void *userdata);
+    /* Optional one-time handover to a new protected observation. Invoked
+       after the original backend's namespace is entered and verified, and
+       before any source capture there. The callback may not enter another
+       namespace or publish. The same check() remains mandatory in both views. */
+    int (*enter_view)(void *userdata);
     void *userdata;
 };
 /* Fresh single-threaded Root startup only. Observe the connected stream's actual

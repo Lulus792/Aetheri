@@ -94,6 +94,11 @@ int ae_login_installed_read(struct ae_login_installed *installed, struct ae_logi
     return result;
 }
 
+int ae_login_installed_digest(struct ae_login_installed *installed, uint8_t out[AE_SHA256_BYTES])
+{
+    return installed ? ae_login_sources_data_digest(installed->anchor, 0, out) : -EINVAL;
+}
+
 static void selected_file(const struct ae_login_installed *installed, enum ae_login_selection_role role,
                           struct ae_login_source_expect *source)
 {

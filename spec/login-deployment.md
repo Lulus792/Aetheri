@@ -114,7 +114,7 @@ signature, account IDs, group ordering, reserved fields, and the size bounds
 of each role. A valid record supplies expectations for the subsequent live
 checks. Reusing a release identifier would allow multiple selections signed
 with that identifier. Boot/update policy still owns rollback between images.
-The shipped login executables still require an explicit deployment provider.
+Both login executables require an explicit deployment provider.
 
 The [fixed-path reader](../src/login/installed.h) authenticates the record and
 retains a protected source observation of those authenticated bytes. It
@@ -129,8 +129,31 @@ observes a replacement, later reads of that observation stay fenced.
 The startup helper enters the original backend's mount namespace. Each
 view needs its own source observation against the same signed release
 selection. Source observations retain mount identities from their original
-view. Keep the greeter's selection pinned in the view that its existing
-client and display checks use.
+view.
+
+### Startup executable
+
+The startup executable can now select the installed adapter from its existing
+build-time deployment source. Set `ae_login_run_profile.installed_release`
+to the compiled public key and release identifier, and provide
+`startup.check` and its context for the image's platform gate. The adapter
+sets the fixed unit, selected source order and handoff location. The platform
+gate still admits the protected installation, host namespace, account, PAM,
+libraries and devices.
+
+The adapter holds the first signed selection through the last original-view
+check. The native startup coordinator enters the original backend's namespace
+and verifies it before calling the one-time view hook. That hook opens a
+second protected selection and requires the same authenticated record digest.
+It keeps the second selection pinned during backend source capture, readiness
+and publication. The adapter also compares the signed policy size and SHA-256
+with the actual policy read from selinuxfs in each gate invocation. Changes
+or unreadable selections cause the startup attempt to fail.
+
+The [startup adapter verification](../brains/aetheri/journal/2026-11-17-login-installed-startup.md)
+covers the native entry, real private mount views and effective policy checks.
+The greeter still needs its installed provider. Its selection must stay pinned
+in the view that the existing client and display checks use.
 
 ### Installed system
 
@@ -147,5 +170,5 @@ The [deployment verification record](../brains/aetheri/journal/2026-11-17-login-
 covers the isolated systemd layout and a separate full graphical VM test for
 the scratch namespace. The [installed selection verification](../brains/aetheri/journal/2026-11-17-login-installed-selection.md)
 covers the reader at the exact fixed path in a private mount namespace.
-A login from the final fixed paths still requires both normal providers and
-image integration.
+A login from the final fixed paths still requires the greeter provider,
+selection of the startup platform gate and full image integration.
