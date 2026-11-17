@@ -24,8 +24,10 @@ import test_boot_probe as boot
 from test_laptop_no_serial import retire_failed
 
 
-def validate_wav(raw,gain=1.0,muted=False):
+def validate_wav(raw,gain=1.0,muted=False,*,signal_frames=96000):
     if not math.isfinite(gain) or not 0<gain<=1:raise ValueError('capture gain bound')
+    if type(signal_frames) is not int or not 0<signal_frames<=96000:
+        raise ValueError('capture signal length bound')
     if not 44 <= len(raw) <= 8*1024**2:
         raise ValueError('WAV size bound')
     if raw[:4] != b'RIFF' or raw[8:12] != b'WAVE' or struct.unpack_from('<I',raw,4)[0] != len(raw)-8:
@@ -37,11 +39,11 @@ def validate_wav(raw,gain=1.0,muted=False):
         if len(pcm)!=count*4:raise ValueError('truncated capture')
     samples=list(struct.iter_unpack('<hh',pcm))
     if muted:
-        if count<96000 or any(v for pair in samples for v in pair):raise ValueError('missing duration or nonzero muted capture')
+        if count<signal_frames or any(v for pair in samples for v in pair):raise ValueError('missing duration or nonzero muted capture')
         return dict(captured_frames=count,silent=True,sha256=hashlib.sha256(raw).hexdigest())
     first=next((i for i,pair in enumerate(samples) if max(map(abs,pair))>2),None)
     if first is None or first<1:raise ValueError('missing phase-zero signal start')
-    start=first-1;frames=96000
+    start=first-1;frames=signal_frames
     if len(samples)<start+frames:raise ValueError('truncated signal')
     if any(abs(v)>2 for pair in samples[:start] for v in pair):raise ValueError('unexpected prefix')
     peak=0.0

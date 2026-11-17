@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current PCM tail: read the playback follow-up in the 2026-11-17 login-image
+boot journal. The warm test 19bce8cd loses 320 left-channel samples in the
+final partial period. Image b231a92fb6fd appends 704 zero frames and passes
+all 48,000 audible samples per channel in ada4d8a7 and WHPX ac7f0a27. Keep
+the failed label observation and WHPX startup counter ba1bfaa6. The 88
+HDA host tests pass. Next use the actual requested buffer bounds in the
+finite client and connect the original graph to Settings. USB gate remains.
+
 Current desktop playback: read `spec/audio-session.md#finite-playback-client`
 and the 2026-11-17 desktop HDA playback record. Release 87939b44a506 passes
 four focused tests and the exact enforcing policy passes 101 decisions.

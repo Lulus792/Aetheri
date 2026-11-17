@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The signed test image produces an uninterrupted second
+of stereo in instruction-clock and two-vCPU WHPX runs. The warmed stream
+with a partial final buffer lost 320 left-channel samples in the original
+instruction-clock case. With 704 added silent frames, the test variant
+preserves each of the 48,000 audible frames per channel. The WAV verifier
+covers this duration and one-sided loss. Next derive padding from actual
+buffer requests and connect the Sound page. See the
+[playback follow-up](journal/2026-11-17-login-image-boot.md#playback-with-a-running-stream).
+
 17 November 2026 — The finite desktop tone client verifies the original
 PipeWire endpoint and streams both stereo channels through virtual HDA.
 Release tests and 101 enforcing policy decisions pass. Signed two-vCPU

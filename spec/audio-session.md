@@ -67,6 +67,9 @@ Sound devices and WirePlumber's state stay outside that domain. The tone
 target is currently exercised by a signed test image with a fixture trigger.
 The [measured playback record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-hda-playback)
 shows both channel tones and records the gaps in the emulated output.
+The HDA WAV verifier accepts an explicit 48,000-frame signal with a known mixer
+gain. It checks the expected sample value in both channels from the tone onset.
+Leading silence is allowed. Interior silence or missing phase continuity fails.
 Continuous playback and the user action in Settings remain open.
 
 ## Diskless user manager fixture

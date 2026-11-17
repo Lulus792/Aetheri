@@ -775,3 +775,88 @@ The host suites pass 85 HDA contract tests, seven PCM verifier tests and nine
 carrier lifecycle and isolation tests.
 Next test an independently observed, settled output when playback starts
 and connect the normal Sound page. Physical playback remains untested.
+
+### Playback with a running stream
+
+The diagnostic variant prepends 24,000 frames of silence to the same
+one-second stereo signal and uses the existing stream throughout. This
+tests whether opening the stream earlier is sufficient to prevent gaps.
+It uses the same original PipeWire descriptor, graph, WirePlumber profile,
+virtual HDA hardware and fixture owner. The C17 build uses the existing
+PipeWire 1.6.11 SDK and the exact library found in the image.
+
+The first offline copy, `77d9a2633f6b`, stops on an invalid label
+observation in the carrier's mount view. The carrier does not load the
+desktop audio types. The second copy, `4e2b9f16c2ab`, uses `debugfs` to verify
+the stored type before and after replacing the unsigned test child. Its
+original inode, permissions and raw label survive. The fixture session
+owner and the authenticated selection remain byte-identical. The replaced
+test client hashes to `da6eb6a5b141d4470d6ff9c412922e3f5cd7d3b495bbb37923971bbc3c286efe`.
+The original root hash is unchanged, and the clone passes `e2fsck -fn`.
+
+WHPX session `dc0687be` logs normal authentication, the original graph peer,
+72,000 drained frames and orderly logout. Its WAV contains both tones,
+but has two silent intervals inside the audible second: 1,024 and 621
+frames. The first is more than 0.8 s after audible onset. A half-second
+of prior silence is insufficient on this VM. The capture hashes to
+`c86936beeb292b89e45a9851271c5ec096f7651d439f83e80024595849b50629`.
+
+The host verifier now accepts an explicit one-second expectation when
+the test selects a known mixer gain. It preserves the two-second default
+for the diskless cases. The 88 host contract tests include the 1,024-frame
+dropout and the one-sided 320-frame tail loss. Both fail the verifier. A
+complete one-second signal after silence passes.
+The earlier sample-exact diskless capture `playback-final-v7` still passes
+at 96,000 frames. A one-second excerpt of its observed signal passes at the
+same known gain with less than 0.5 LSB error.
+
+The instruction-clock session `19bce8cd` opens the same warmed stream and
+drains 72,000 frames. Its right channel matches the full 48,000-frame sine
+to within two LSB at a common gain estimated from the first 1,200 frames.
+The left channel matches up to frame 47,680, then has 320 zero samples.
+Both channels have no shared interior silent interval beyond the expected
+sine crossings. The exact per-channel check still fails. This sole missing
+tail is the remainder of 72,000 frames modulo 1,024. The PCM does not
+identify which layer dropped it. The WAV hashes to
+`8b1232fd3650a4a8e2777c3ebdaefb05322f640364169b28266821637fdf6630`.
+Both runs on `4e2b9f16c2ab` retire their original peers, close PAM and return
+to the live greeter before ending the VM.
+
+The final-period counter `b231a92fb6fd` keeps the same 24,000 leading zero
+frames and audible signal, and appends 704 zero frames. Total submission is
+72,704 frames, exactly 71 blocks of 1,024. The derivative replaces only the
+fixture tone and verifies the signed selection, raw label, root hash, full
+host media readback and `e2fsck -fn`.
+
+In instruction-clock session `ada4d8a7`, the finite client joins the
+original graph and drains. The owner reaps it at zero. All 48,000 audible
+frames in both channels pass the strict WAV verifier at the gain estimated
+from the preceding unpadded run (`0.6258733866969072`). Maximum error is
+1.931 LSB. The recorded
+WAV hash is `0f2536cb6a09dfff6088f3a21008b84871d53ca5850f86f4aaf2c945aaecdee3`.
+The user session closes normally and returns to the greeter. This is a
+result for the test variant and tested virtual clock. The installed client
+would need to derive a final buffer size from the negotiated stream turn.
+
+The first WHPX counter `ba1bfaa6` stops before audio. The original greeter
+reports `-ETIMEDOUT` and startup reports `-ESTALE` during publication. The
+controller sends no credentials and retires the original VM at zero.
+The controller now recognizes the terminal startup marker before waiting
+for a greeter frame. No cause for the startup failure was established.
+
+The two-vCPU WHPX retry `ac7f0a27` logs in on the same read-only media and
+drains 72,704 frames through the original graph. It passes all 48,000 audible
+frames on both channels. The gain estimated from the earlier unpadded WHPX
+run (`0.9119864427150365`) also yields the same 1.417 LSB maximum error. The
+WAV hash is `0e2c8b208fd0024101ef22c577837f43d0b5f9501d3072e8ced3e3d4c2795b5c`.
+Both successful padded runs reap the three audio processes at zero, close
+PAM and reach the replacement greeter. Each original VM exits at zero and
+the media still hashes to
+`8694c42a082ff350413a499b2e1525e481cc5f07cef730f1f5d083c4e0bee964`.
+The fixed padding validates the known VM period for these cases. The
+regular client still needs padding derived from the actual stream request,
+and Settings and physical audio require their own acceptance.
+
+The host stored three terminal boot-time data copies with NTFS compression
+and confirmed their before/after SHA-256 hashes. The additional media and
+data copies were created sparse and verified byte-for-byte at readback.

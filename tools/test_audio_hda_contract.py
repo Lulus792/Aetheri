@@ -32,6 +32,30 @@ class Capture(unittest.TestCase):
         self.assertEqual(actual['signal_frames'],96000)
         self.assertLess(actual['max_error_lsb'],.501)
 
+    def test_one_second_desktop_signal_with_preroll(self):
+        silence=[(0,0)]*24000
+        signal=self.pairs[1024:49024]
+        genuine=wav(silence+signal+[(0,0)]*1024)
+        evidence=audio.validate_wav(genuine,signal_frames=48000)
+        self.assertEqual(evidence['signal_start'],24000)
+        self.assertEqual(evidence['signal_frames'],48000)
+        with self.assertRaises(ValueError):audio.validate_wav(genuine)
+        signal[1376:2400]=[(0,0)]*1024
+        with self.assertRaises(ValueError):
+            audio.validate_wav(wav(silence+signal),signal_frames=48000)
+
+    def test_signal_length_bound(self):
+        raw=wav([(0,0)]*10)
+        for invalid in (0,96001,1.0,True):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError,'signal length'):
+                audio.validate_wav(raw,signal_frames=invalid)
+
+    def test_one_sided_desktop_tail_loss(self):
+        signal=self.pairs[1024:49024]
+        signal[-320:]=[(0,right) for _,right in signal[-320:]]
+        with self.assertRaisesRegex(ValueError,'wrong/missing/reordered samples'):
+            audio.validate_wav(wav([(0,0)]*24000+signal),signal_frames=48000)
+
     def test_silence(self):
         with self.assertRaises(ValueError):audio.validate_wav(wav([(0,0)]*98048))
 
