@@ -138,9 +138,10 @@ int ae_login_connection_status(struct ae_login_connection *s,struct ae_login_sta
 }
 int ae_login_connection_watch(struct ae_login_connection *s,int *fd,short *events,int *peer) {
     if(!fd || !events || !peer)return -EINVAL;
-    int r=connection_enter(s);if(r<0)return r;
+    int r=connection_owner(s);if(r<0)return r;
+    if(s->error)return s->error;
     struct ae_login_status v;ae_login_status(s->model,&v);
-    *fd=s->socket;*peer=s->peer;*events=(short)(POLLIN|(v.phase==AE_LOGIN_SENDING?POLLOUT:0));s->busy=false;return 0;
+    *fd=s->socket;*peer=s->peer;*events=(short)(POLLIN|(v.phase==AE_LOGIN_SENDING?POLLOUT:0));return 0;
 }
 /* A kernel recvmsg validates ancillary layout. Close every delivered descriptor
    before rejecting, including truncated messages; the kernel closes undisclosed

@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current greeter shutdown correction: read spec/login.md and the 2026-11-17
+graphical-login-stop journal. Connection watch is local and retains existing
+fences; command preparation and pump still revalidate admission. The old
+binary fails the pending stop regression. Final idle 65600c933018 and full
+graphical PAM/desktop/return 8904a560d0b0 pass zero exits, actual PAM closure
+and baseline restoration in the administrative VM role. The diagnostic
+reproduced ESTALE; the historical EAGAIN property source remains unobserved.
+Preserve unsuccessful probe cases. Next dedicated graphical provider,
+MAC/device policy and normal deployment. USB gate stays in force.
+
 Current graphical login VM milestone: read spec/login.md and the 2026-11-17
 graphical-login-desktop journal. Real protected handoff + graphical keyboard
 input + private PAM reach Start ACK, the visible DRM user desktop, original

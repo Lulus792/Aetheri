@@ -37,10 +37,11 @@ int ae_login_connection_start(struct ae_login_connection *);
 /* Read-only local snapshot, including after a fence; borrowed text rules from
    protocol.h apply. Status is not a fresh backend admission check. */
 int ae_login_connection_status(struct ae_login_connection *,struct ae_login_status *);
-/* Borrow descriptors for poll only. events is POLLIN plus POLLOUT while sending;
-   separately watch peer_pidfd for POLLIN. Caller owns deadlines/event loop and
-   must call pump on any readiness/loss hint, or interrupt on its own timeout.
-   No timer, thread, daemon, blocking wait or internal retry loop is introduced. */
+/* Borrow descriptors and interests from local state for poll only. Returns an
+   existing fence, without a fresh admission check. events is POLLIN plus
+   POLLOUT while sending; separately watch peer_pidfd for POLLIN. The caller
+   may observe local stop before pumping. On any readiness/loss hint, pump
+   rechecks admission before touching the stream. Interrupt on caller timeout. */
 int ae_login_connection_watch(struct ae_login_connection *,int *socket_fd,
                               short *events,int *peer_pidfd);
 /* One bounded recvmsg (4096 bytes) and at most one nonblocking send per call.

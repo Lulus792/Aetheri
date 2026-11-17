@@ -175,13 +175,16 @@ submits a passive window before accepting native keyboard focus. Only after
 the backend handoff and first interactive frame are ready does it route
 credentials to the view.
 
-The host drains native events after each window poll and before any protocol
-pump. Closing the window or losing focus, seat or compositor retires the
-local conversation. A pending request uses a single deadline and a fenced
-connection clears its queued bytes. The view and its input storage are
-destroyed at teardown. The host reports Start acknowledgement separately
-from desktop readiness. It does not publish an external accessibility action
-bridge in this profile.
+The host borrows poll descriptors from local connection state. It drains
+native events after each window poll and before any protocol pump. It can
+observe a local stop even when PID1 is changing the backend unit's state.
+Command preparation and every stream pump still recheck backend admission.
+Closing the window or losing focus, seat or compositor retires the local
+conversation. A pending request uses a single deadline and a fenced connection
+clears its queued bytes. The view and its input storage are destroyed at
+teardown. The host reports Start acknowledgement separately from desktop
+readiness. It does not publish an external accessibility action bridge in
+this profile.
 
 The caller owns the compiled deployment selection, the original compositor
 and seat lifetimes, and the supervisor bound for synchronous Wayland
@@ -220,10 +223,10 @@ An [isolated VM deployment](../brains/aetheri/journal/2026-11-17-graphical-login
 exercises the native graphical entry, original greetd peer, protected
 handoff and real PAM authentication. Login opens the visible user desktop.
 Ending the desktop closes the user PAM session and returns to the empty
-greeter. A subsequent administrative backend stop ends the replacement
-processes. The replacement greeter returns `EAGAIN` in that stop sequence.
-Dedicated confinement for the graphical deployment and normal installation
-remain pending.
+greeter. The [stop regression](../brains/aetheri/journal/2026-11-17-graphical-login-stop.md)
+verifies that administrative backend stop retires the original idle greeter
+and completes again after a full login and return to the greeter. Dedicated
+confinement for the graphical deployment and normal installation remain pending.
 
 ## Dedicated greeter account and supplementary groups
 

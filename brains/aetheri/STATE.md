@@ -1,5 +1,16 @@
 # State
 
+17 November 2026 — Greeter poll descriptor lookup now reads local state.
+The event loop can handle its pending stop before transport work, with full
+admission checks at command preparation and every pump. The ordering
+regression fails on the original code and passes in Release and memory.
+Idle VM case 65600c933018 and full graphical PAM/desktop/replacement case
+8904a560d0b0 end their original chains at zero. The exact historical EAGAIN
+property source remains unobserved. The current complete flow still uses
+the administrative test role. Next dedicated graphical provider, MAC/device
+admission and normal installation. See the
+[stop verification](journal/2026-11-17-graphical-login-stop.md).
+
 17 November 2026 — Real graphical login case 58a9b0d7f26d uses the original
 greetd peer and published handoff with isolated PAM and the native executable.
 The test keyboard enters the password, receives Start ACK, reaches the
