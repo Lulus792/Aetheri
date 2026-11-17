@@ -556,3 +556,30 @@ The same image with no HDA hardware in `53b57e05` reaches the desktop,
 reports absence, and powers off cleanly. All new QEMU processes are terminal.
 The tests cover detection and login compatibility. Next stage the admitted
 audio graph and routing policy and connect the Settings sound controls.
+
+## Desktop audio files
+
+The checked PipeWire 1.6.11 and WirePlumber 0.5.19/Lua 5.5 prefixes from
+`1678b5502917` produce 254 files (8,102,494 bytes) and six links. The
+HDA desktop root already contains four matching files. The stager copies
+250 and preserves the existing Lua 5.4 library used by libinput. The root
+loader resolves all 28 selected ELF files using the composed image. Both
+installed daemons report matching compile-time and linked versions.
+
+Root `76e4dde39a97` passes the read-only ext4 check and keeps the original
+signed app selection. The VM reports `AETH_HDA_READY` and
+`AETHERI_LOGIN_STARTUP_COMPLETE`, exits zero on QMP quit, and leaves its
+boot medium hash intact. The signed app selection covers the existing
+app set. The audio inputs have their own staging receipt.
+
+In carrier case `f42f2e9bb725`, the read-only desktop root runs both daemons
+as UID/GID 1000 with private mounts, network and a mode-0600 graph socket.
+The graph contains the `WirePlumber (smoke)` client and the `settings`,
+`schema-sm-settings` and `sm-settings` metadata. The original manager maps
+Lua 5.5. Both original processes exit zero after SIGTERM over their pidfds.
+The image hash is unchanged. The earlier fixture `2fe1a5912158` timed out
+because its observer expected an unqualified client name and `default`
+metadata from a profile with hardware routing disabled. This was a test
+expectation error. The fixture uses temporary config and a temporary graph
+probe. Installed service policy, hardware playback and Settings are separate
+acceptance steps.

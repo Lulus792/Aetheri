@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — The desktop image can stage and verify the selected
+PipeWire 1.6.11 and WirePlumber 0.5.19/Lua 5.5 runtime. All 28 selected
+ELFs resolve in the composed root. A private pair connects, loads Lua 5.5
+and stops cleanly. The desktop image boots with virtual HDA. Next wire the
+normal authenticated session's services, device access and Settings control.
+See the [audio record](journal/2026-11-17-login-image-boot.md#desktop-audio-files).
+
 17 November 2026 — The desktop image can stage the selected Intel
 HDA and Conexant kernel modules and regenerate combined module
 indexes. The signed desktop VM creates the virtual ALSA control and

@@ -107,6 +107,31 @@ controller uses the resulting indexes for codec selection. The image keeps
 sound nodes under standard kernel and udev ownership. PipeWire, WirePlumber,
 and the Settings sound control connection have their own admission work.
 
+### PipeWire and WirePlumber files
+
+Stage the runtime in the offline desktop root before applying file contexts.
+Supply the checked prefixes from [PipeWire preparation](audio.md) and the
+[WirePlumber Lua 5.5 candidate](audio-policy-candidate.md).
+
+```sh
+python3 tools/desktop_audio_payload.py --image-root "$IMAGE_ROOT" \
+  --pipewire-prefix "$PIPEWIRE_PREFIX" --wireplumber-prefix "$WIREPLUMBER_PREFIX" \
+  > desktop-audio-receipt.json
+ldconfig -r "$IMAGE_ROOT"
+```
+
+The daemons are `aetheri-pipewire` and `aetheri-wireplumber` under
+`/usr/libexec/aetheri`. Shared libraries, modules, routing scripts, ALSA profiles
+and license files keep their package-relative locations. The payload omits SDK
+headers, the unversioned PipeWire SDK link and test commands. The stager reuses
+matching installed files and refuses conflicting objects. Keep the receipt with
+the build records. After a copy failure, inspect the partial tree and start the
+next build from a fresh image root.
+
+The [desktop image tests](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-audio-files)
+verify the loader, both daemons in a private session, and boot with virtual HDA.
+Normal session startup, device admission and Settings access are pending.
+
 ### Compile the image policy
 
 ```sh

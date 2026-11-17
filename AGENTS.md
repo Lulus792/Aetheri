@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current desktop audio: read `spec/login-deployment.md#pipewire-and-wireplumber-files`
+and the 2026-11-17 desktop audio record. The public offline stager yields 254
+files and six links. All 28 selected ELFs resolve in the HDA desktop root.
+Image 76e4dde39a97 passes HDA/startup and private pair f42f2e9bb725 connects,
+loads Lua 5.5 and ends cleanly. Preserve the first smoke assertion failure.
+Next normal authenticated session devices, service policy and Settings.
+The USB gate and NexaUI maintenance-only state apply.
+
 Current desktop HDA: read spec/login-deployment.md and the HDA section
 of the 2026-11-17 login-image-boot journal. The optional image payload
 reuses eleven kernel modules and adds the checked Conexant codec.
