@@ -13,10 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #ifdef AETHERI_DESKTOP_SHM
-#include <sys/mman.h>
+#include "../linux/wayland_shm.h"
 #endif
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wayland-client.h>
@@ -25,14 +25,9 @@ struct app;
 #ifdef AETHERI_DESKTOP_SHM
 struct view;
 struct desktop_buffer {
-    struct view *view;
-    struct wl_buffer *object;
+    struct ae_wayland_buffer backing;
     SDL_Surface *image;
     SDL_Renderer *renderer;
-    void *pixels;
-    size_t size;
-    int width, height;
-    bool busy;
 };
 #endif
 struct output { struct wl_output *object; char name[128]; };
@@ -178,50 +173,27 @@ static void frame_done(void *data,struct wl_callback *callback,uint32_t time) {
 }
 static const struct wl_callback_listener frame_listener={.done=frame_done};
 #ifdef AETHERI_DESKTOP_SHM
-static void buffer_release(void *data, struct wl_buffer *object)
+static void buffer_release(void *data)
 {
-    struct desktop_buffer *buffer = data;
-    (void)object;
-    buffer->busy = false;
-    if (buffer->view->dirty) wake(buffer->view->app, 0);
+    struct view *view = data;
+    if (view->dirty) wake(view->app, 0);
 }
-static const struct wl_buffer_listener buffer_listener = {.release = buffer_release};
 
 static void buffer_close(struct desktop_buffer *buffer)
 {
-    if (buffer->object) wl_buffer_destroy(buffer->object);
     if (buffer->renderer) SDL_DestroyRenderer(buffer->renderer);
     if (buffer->image) SDL_DestroySurface(buffer->image);
-    if (buffer->size) (void)munmap(buffer->pixels, buffer->size);
+    ae_wayland_buffer_close(&buffer->backing);
     *buffer = (struct desktop_buffer){0};
 }
 
 static bool buffer_open(struct desktop_buffer *buffer, struct view *view, int width, int height)
 {
-    if (width <= 0 || height <= 0 || width > 7680 || height > 4320)
-        return SDL_SetError("Invalid shared buffer size");
-    int pitch = width * 4;
-    int size = pitch * height;
-    int fd = open("/dev/shm", O_TMPFILE | O_RDWR | O_CLOEXEC, 0600);
-    if (fd < 0) return SDL_SetError("Cannot open shared buffer: %s", strerror(errno));
-    int allocated = posix_fallocate(fd, 0, size);
-    void *pixels = allocated ? MAP_FAILED : mmap(NULL, (size_t)size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (pixels == MAP_FAILED) {
-        int failure = allocated ? allocated : errno;
-        close(fd);
-        return SDL_SetError("Cannot allocate shared buffer: %s", strerror(failure));
-    }
-    *buffer = (struct desktop_buffer){.view = view, .pixels = pixels, .size = (size_t)size,
-        .width = width, .height = height};
-    struct wl_shm_pool *pool = wl_shm_create_pool(view->app->shm, fd, size);
-    close(fd);
-    if (pool) {
-        buffer->object = wl_shm_pool_create_buffer(pool, 0, width, height, pitch, WL_SHM_FORMAT_ARGB8888);
-        wl_shm_pool_destroy(pool);
-    }
-    if (!buffer->object || wl_buffer_add_listener(buffer->object, &buffer_listener, buffer))
-        return SDL_SetError("Unable to create Wayland buffer");
-    buffer->image = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, pitch);
+    int result = ae_wayland_buffer_open(&buffer->backing, view->app->shm, WL_SHM_FORMAT_ARGB8888,
+        width, height, buffer_release, view);
+    if (result) return SDL_SetError("Cannot open shared buffer: %s", strerror(-result));
+    buffer->image = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ARGB8888,
+        buffer->backing.pixels, buffer->backing.pitch);
     if (buffer->image) buffer->renderer = SDL_CreateSoftwareRenderer(buffer->image);
     return buffer->renderer && SDL_SetRenderDrawBlendMode(buffer->renderer, SDL_BLENDMODE_BLEND);
 }
@@ -231,8 +203,8 @@ static struct desktop_buffer *buffer_available(struct view *view, int width, int
     struct desktop_buffer *selected = NULL;
     for (size_t i = 0; i < SDL_arraysize(view->buffers); ++i) {
         struct desktop_buffer *buffer = &view->buffers[i];
-        if (buffer->busy) continue;
-        if (buffer->width == width && buffer->height == height && buffer->renderer) return buffer;
+        if (buffer->backing.busy) continue;
+        if (buffer->backing.width == width && buffer->backing.height == height && buffer->renderer) return buffer;
         if (!selected) selected = buffer;
     }
     if (!selected) return NULL;
@@ -315,10 +287,7 @@ static void draw(struct view *v) {
     }
     if (!SDL_RenderPresent(v->renderer)) { error(a,"present"); return; }
 #ifdef AETHERI_DESKTOP_SHM
-    buffer->busy = true;
-    wl_surface_attach(v->surface, buffer->object, 0, 0);
-    wl_surface_damage(v->surface, 0, 0, v->width, v->height);
-    wl_surface_commit(v->surface);
+    ae_wayland_buffer_present(&buffer->backing, v->surface, v->width, v->height);
 #endif
     v->dirty = false; ++a->frames;
     /* Wayland EGL can submit the previous allocation once after a native

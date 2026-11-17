@@ -283,3 +283,54 @@ presentation path as needed, test shell output and file viewing,
 and add release selection for the fixed apps to the public
 assembly flow. The two confirmed apps run only in the selected
 single-output VM. The hardware and USB gates remain.
+
+## Installed Terminal presentation
+
+The installed Terminal uses the existing NexaUI RGBA raster and converts it
+to an opaque Wayland XRGB8888 buffer. SDL continues to own the Wayland
+window, events and text input. The desktop and Terminal share the anonymous
+file allocation and release-tracked buffer operations. Terminal keeps only
+two slots and blocks in its existing wait path when both are retained by
+the compositor. The development OpenGL ES paths compile separately.
+
+The first assembly `5c0a59b9cafa` rejects build RPATHs on the installed
+PTY starter, shell and editor. Release `ba38f908c8d0` builds those helpers
+without RPATH and passes 18 selected tests from 844 inputs. The selected
+Terminal ELF SHA-256 is
+`32c1915045b937678359ecf566e4184414e065ce65e1324878fdb820cc1f4885`.
+The selected archived authorizations and effective policy remain the same
+as the earlier app image. The final window uses the current Files binary.
+
+Signed image `a63130f871f1` boots normally. Its second cold boot
+`1729a072` verifies the refactored dock and shows Terminal's welcome
+screen and shell prompt. In the inspected screenshot the user input
+`pwd` reached the original shell. The shell then returned 125 after
+refusing job admission with `cannot select original job process group`.
+The Terminal draws eight frames, closes through Ctrl+Shift+Q with
+`failed=0`, and the desktop logs out normally. The crash in the old
+Terminal's GLES path is no longer reproduced by this presentation path.
+Its original fault address was never captured.
+
+The shell's foreground selection calls `getpgid` on original job members
+before `tcsetpgrp`. The exact deployed policy readback denies
+`aetheri_terminal_t` to itself for `process/getpgid`. The proposed
+permission is limited to that role. Offline build `7a795650f9d0` compiles
+and the 35 decision checks pass with the new permission and the earlier
+denials. The on-disk policy SHA-256 is
+`57371932ca91ca7ac1e262f475dc43d6ddef89a2407eabe14a0ec5145c31caab`.
+Boot readback and actual corrected shell command execution are pending.
+
+The independent Files case `be1e7007` creates and displays the file.
+Enter starts and pins the original Terminal document child. This child
+returns status two and no editor window is observed. The exact rejected
+preflight remains open. The selected file and original VM traces are
+preserved. All three QEMU processes terminated, and the read-only boot
+image stays SHA-256
+`244d40c381fc557f52b6a602e05a99fe487ab99f440a567d76dfe00b0a3f75ee`.
+
+The two older unmounted successful VM roots were reclaimed from the lab
+after verifying their exact decompressed hashes against both preserved
+archives. The compressed artifacts and Windows test images retain the
+root contents. Failed raw fixtures remain available. Next boot the
+job-control candidate, test actual output, and localize the document
+preflight before testing save and reopen.

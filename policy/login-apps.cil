@@ -81,7 +81,8 @@
 (allow aetheri_document_apps home_root_t (dir (search getattr)))
 (allow aetheri_document_apps user_home_dir_t (dir (search getattr)))
 (allow aetheri_files_t self (process (setpgid)))
-(allow aetheri_terminal_t self (process (setpgid getsession)))
+; The shell checks an original job member before handing it the foreground PTY.
+(allow aetheri_terminal_t self (process (getpgid setpgid getsession)))
 (allow aetheri_files_t aetheri_terminal_t (fd (use)))
 (allow aetheri_terminal_t aetheri_files_t (fd (use)))
 (allow aetheri_terminal_t aetheri_files_t (fifo_file (write append getattr ioctl)))

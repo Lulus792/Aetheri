@@ -1,5 +1,12 @@
 # Development graphical terminal
 
+The installed image's NexaUI Terminal presents its rasterized view through
+Wayland XRGB8888 shared-memory buffers. SDL owns the window and input, while
+the buffer code shared with the desktop reserves storage and waits for
+`wl_buffer.release` before reuse. A pending redraw sleeps while both slots
+are busy. The development targets keep their OpenGL ES presentation.
+See the [installed VM record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#installed-terminal-presentation).
+
 The optional [built-in Compose provider](compose.md) now supplies an actual
 compositor-to-SDL preedit/commit path in addition to the earlier controlled v3
 fixture below. Native keys reach the original shell as exact UTF-8, including

@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wayland-client.h>
+#ifdef AETHERI_TERMINAL_SHM
+#include "../linux/wayland_shm.h"
+#endif
 enum { GLYPHS=512, TEXTURE_BUDGET=8*1024*1024, INPUT_BYTES=AE_TERM_INPUT_BYTES };
 struct glyph { uint32_t code,marks[3];uint8_t count,style;SDL_Texture *texture;float w,h;size_t bytes;uint64_t age; };
 struct app {
@@ -70,6 +73,12 @@ struct app {
     unsigned font_points,applied_points;
     bool running,failed,dirty,diagnostics,german,contrast,close_pressed,selecting,editor;
     unsigned frame,drawn_frame;struct wl_callback *frame_callback;
+#ifdef AETHERI_TERMINAL_SHM
+    struct wl_shm *shm;
+    struct ae_wayland_buffer buffers[2];
+    uint32_t buffer_event;
+    bool buffer_pending, xrgb8888;
+#endif
     const char *message;char ended_message[128];
 };
 static void paste_cancel(struct app *a,const char *message);
@@ -436,11 +445,96 @@ static void draw_paste(struct app *a,int w,int h) {
         label(a,i ? tr(a,"Paste","Einfügen") : tr(a,"Cancel","Abbrechen"),a->paste_buttons[i].x+12,buttons_y+8,0xffffff);
     }
 }
+#ifdef AETHERI_TERMINAL_SHM
+static void buffer_released(void *data)
+{
+    struct app *a = data;
+    if (!a->buffer_pending) return;
+    a->buffer_pending = false;
+    SDL_Event event = {.type = a->buffer_event};
+    if (!SDL_PushEvent(&event)) _Exit(1);
+}
+
+static struct ae_wayland_buffer *available_buffer(struct app *a, int width, int height)
+{
+    struct ae_wayland_buffer *selected = NULL;
+    for (size_t i = 0; i < SDL_arraysize(a->buffers); ++i) {
+        struct ae_wayland_buffer *buffer = &a->buffers[i];
+        if (buffer->busy) continue;
+        if (buffer->object && buffer->width == width && buffer->height == height) return buffer;
+        if (!selected) selected = buffer;
+    }
+    if (!selected) {
+        a->buffer_pending = true;
+        return NULL;
+    }
+    ae_wayland_buffer_close(selected);
+    int result = ae_wayland_buffer_open(selected, a->shm, WL_SHM_FORMAT_XRGB8888,
+        width, height, buffer_released, a);
+    if (!result) return selected;
+    SDL_SetError("Cannot open shared buffer: %s", strerror(-result));
+    error(a, "terminal display");
+    return NULL;
+}
+
+static void shm_format(void *data, struct wl_shm *shm, uint32_t format)
+{
+    struct app *a = data;
+    (void)shm;
+    if (format == WL_SHM_FORMAT_XRGB8888) a->xrgb8888 = true;
+}
+
+static const struct wl_shm_listener shm_listener = {.format = shm_format};
+
+static void shm_global(void *data, struct wl_registry *registry, uint32_t name,
+    const char *interface, uint32_t version)
+{
+    struct app *a = data;
+    (void)version;
+    if (strcmp(interface, wl_shm_interface.name) || a->shm) return;
+    a->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
+    if (a->shm && wl_shm_add_listener(a->shm, &shm_listener, a)) {
+        wl_shm_destroy(a->shm);
+        a->shm = NULL;
+    }
+}
+
+static void shm_global_remove(void *data, struct wl_registry *registry, uint32_t name)
+{
+    (void)data;
+    (void)registry;
+    (void)name;
+}
+
+static const struct wl_registry_listener shm_registry_listener = {
+    .global = shm_global, .global_remove = shm_global_remove};
+
+static bool terminal_shm_open(struct app *a, struct wl_display *display, struct wl_surface *surface)
+{
+    if (!display || !surface) return false;
+    struct wl_registry *registry = wl_display_get_registry(display);
+    if (!registry) return false;
+    bool ready = !wl_registry_add_listener(registry, &shm_registry_listener, a) &&
+        wl_display_roundtrip(display) >= 0 && a->shm &&
+        wl_display_roundtrip(display) >= 0 && a->xrgb8888;
+    wl_registry_destroy(registry);
+    a->buffer_event = SDL_RegisterEvents(1);
+    return ready && a->buffer_event;
+}
+#endif
+
 static void draw(struct app *a) {
     layout(a);int w,h,pw,ph;
+    if (a->failed) return;
     if (!SDL_GetWindowSize(a->window,&w,&h) || !SDL_GetWindowSizeInPixels(a->window,&pw,&ph) ||
-            !SDL_SetRenderScale(a->renderer,(float)pw/(float)w,(float)ph/(float)h) ||
+            w<=0 || h<=0 || pw<=0 || ph<=0) { error(a,"frame size");return; }
+#ifdef AETHERI_TERMINAL_SHM
+    struct ae_wayland_buffer *buffer = available_buffer(a, pw, ph);
+    if (!buffer) return;
+#else
+    if (!SDL_SetRenderScale(a->renderer,(float)pw/(float)w,(float)ph/(float)h) ||
             !SDL_SetRenderDrawColor(a->renderer,16,20,28,255) || !SDL_RenderClear(a->renderer)) { error(a,"frame setup");return; }
+#endif
 #ifdef AETHERI_TERMINAL_NEXAUI
     if (!ae_terminal_view_begin(a->view,(float)w,(float)h,(float)pw/(float)w,(float)a->font_points,
         a->cell_w,a->cell_h,(float)TTF_GetFontAscent(a->font)/a->density)) { error(a,"NexaUI frame");return; }
@@ -514,6 +608,10 @@ static void draw(struct app *a) {
 #ifdef AETHERI_TERMINAL_NEXAUI
     const unsigned char *pixels=NULL;size_t stride=0;
     if (!ae_terminal_view_finish(a->view,(unsigned)pw,(unsigned)ph,&pixels,&stride) || stride>INT_MAX) {error(a,"NexaUI raster");return;}
+#ifdef AETHERI_TERMINAL_SHM
+    if (!SDL_ConvertPixels(pw, ph, SDL_PIXELFORMAT_RGBA32, pixels, (int)stride,
+            SDL_PIXELFORMAT_XRGB8888, buffer->pixels, buffer->pitch)) {error(a,"NexaUI pixel conversion");return;}
+#else
     if (a->view_width!=(unsigned)pw || a->view_height!=(unsigned)ph) {
         SDL_Texture *texture=SDL_CreateTexture(a->renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STREAMING,pw,ph);
         if (!texture || !SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST)) {SDL_DestroyTexture(texture);error(a,"NexaUI canvas");return;}
@@ -522,7 +620,14 @@ static void draw(struct app *a) {
     if (!SDL_UpdateTexture(a->view_texture,NULL,pixels,(int)stride) || !SDL_SetRenderScale(a->renderer,1,1) ||
         !SDL_RenderTexture(a->renderer,a->view_texture,NULL,NULL)) {error(a,"NexaUI canvas upload");return;}
 #endif
+#endif
+#ifdef AETHERI_TERMINAL_SHM
+    struct wl_surface *surface=SDL_GetPointerProperty(SDL_GetWindowProperties(a->window),SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,NULL);
+    if (!surface) { error(a,"missing Wayland surface");return; }
+    ae_wayland_buffer_present(buffer, surface, w, h);
+#else
     if (!SDL_RenderPresent(a->renderer)) { error(a,"present");return; }
+#endif
 #ifdef AETHERI_TERMINAL_NEXAUI
     accessibility_publish(a);
     if (a->diagnostics) {printf("NEXAUI_FRAME %u width=%d height=%d stride=%zu\n",a->frame+1,pw,ph,stride);printf("READ_FOCUS id=%llu\n",(unsigned long long)nx_focus_id(ae_terminal_view_context(a->view)));printf("CHROME maximized=%d header=%.1f\n",chrome.maximized,a->bar_height);printf("CHROME_POINTER hovered=%u pressed=%u\n",a->chrome_hover,a->chrome_pressed);}
@@ -1378,8 +1483,11 @@ int main(int argc,char **argv) {
     int fm,fn,fp,hm,hn,hp;TTF_GetFreeTypeVersion(&fm,&fn,&fp);TTF_GetHarfBuzzVersion(&hm,&hn,&hp);
     if (SDL_GetVersion()!=SDL_VERSION || TTF_Version()!=SDL_TTF_VERSION || fm!=2 || fn!=15 || fp!=0 || hm!=15 || hn!=0 || hp!=0) { error(&a,"unreviewed SDL/text version");goto cleanup; }
     a.font=TTF_OpenFont(font,16);a.window=SDL_CreateWindow(a.editor ? "Aetheri Editor" : "Aetheri Terminal",1000,700,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY);
+#ifndef AETHERI_TERMINAL_SHM
     if (a.window) a.renderer=SDL_CreateRenderer(a.window,"opengles2");
-    if (!a.font || !TTF_FontIsFixedWidth(a.font) || !a.window || !a.renderer || !SDL_SetWindowMinimumSize(a.window,480,320) || !SDL_SetWindowHitTest(a.window,hit_test,&a) || !SDL_StartTextInput(a.window)) { error(&a,"font/window/renderer/input setup");goto cleanup; }
+    if (!a.renderer) { error(&a,"renderer setup");goto cleanup; }
+#endif
+    if (!a.font || !TTF_FontIsFixedWidth(a.font) || !a.window || !SDL_SetWindowMinimumSize(a.window,480,320) || !SDL_SetWindowHitTest(a.window,hit_test,&a) || !SDL_StartTextInput(a.window)) { error(&a,"font/window/input setup");goto cleanup; }
 #ifdef AETHERI_TERMINAL_NEXAUI
     size_t regular_size=0,bold_size=0;
     a.view_font=load_view_font(font,&regular_size);a.view_bold=load_view_font(bold_font,&bold_size);
@@ -1394,6 +1502,9 @@ int main(int argc,char **argv) {
 #endif
     struct wl_display *display=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,NULL);
     struct wl_surface *surface=SDL_GetPointerProperty(SDL_GetWindowProperties(a.window),SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER,NULL);
+#ifdef AETHERI_TERMINAL_SHM
+    if (!terminal_shm_open(&a, display, surface)) { error(&a,"Wayland shared memory setup");goto cleanup; }
+#endif
     if (!ae_clipboard_open(&a.clipboard,display,surface,clipboard_wake,&a)) a.clipboard_fd=ae_clipboard_watch_fd(a.clipboard);
     a.event=SDL_RegisterEvents(1);a.ack=SDL_CreateSemaphore(0);a.io_lock=SDL_CreateMutex();
     if (!a.event || !a.ack || !a.io_lock || pipe2(a.wake,O_NONBLOCK|O_CLOEXEC)) { error(&a,"event bridge setup");goto cleanup; }
@@ -1402,12 +1513,26 @@ int main(int argc,char **argv) {
     atomic_init(&a.clipboard_deadline,0);atomic_init(&a.active,true);
     if(!prepare_io(&a)) {error(&a,"initial PTY readiness handles");goto cleanup;}
     a.worker=SDL_CreateThread(worker,"terminal-ready",&a);if (!a.worker) { error(&a,"PTY event worker");goto cleanup; }
-    if (a.diagnostics) printf("READY wayland opengles2 %s=%d\n",a.editor ? "editor" : "shell",a.session->pty.pid);
+    if (a.diagnostics) printf("READY wayland %s %s=%d\n",
+#ifdef AETHERI_TERMINAL_SHM
+        "shm",
+#else
+        "opengles2",
+#endif
+        a.editor ? "editor" : "shell",a.session->pty.pid);
     while (a.running) {
+#ifdef AETHERI_TERMINAL_SHM
+        if (a.dirty && !a.failed && !a.buffer_pending) draw(&a);
+#else
         if (a.dirty && !a.failed) draw(&a);
+#endif
 #ifdef AETHERI_TERMINAL_NEXAUI
         if (!a.failed) accessibility_prepare(&a);
+#ifdef AETHERI_TERMINAL_SHM
+        if (a.dirty && !a.failed && !a.buffer_pending) continue;
+#else
         if (a.dirty && !a.failed) continue;
+#endif
 #endif
         if (!a.running) break;
         SDL_Event e;if (!SDL_WaitEvent(&e)) { error(&a,"event wait");break; }event(&a,&e);
@@ -1440,6 +1565,10 @@ cleanup:
         if(ae_terminal_pty_close(p)) a.failed=true;
     }
     if (a.frame_callback) wl_callback_destroy(a.frame_callback);
+#ifdef AETHERI_TERMINAL_SHM
+    for (size_t i=0;i<SDL_arraysize(a.buffers);++i) ae_wayland_buffer_close(&a.buffers[i]);
+    if (a.shm) wl_shm_destroy(a.shm);
+#endif
 #ifdef AETHERI_TERMINAL_NEXAUI
     SDL_DestroyTexture(a.view_texture);ae_terminal_view_destroy(a.view);free(a.view_font);free(a.view_bold);
 #endif

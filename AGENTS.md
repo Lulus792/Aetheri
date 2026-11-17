@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current installed Terminal: read the installed Terminal presentation
+section in the 2026-11-17 login-image-boot journal. Shared Wayland
+buffer ownership passes signed a63130f871f1 with visible Terminal,
+input, close and normal session end. ba38f908c8d0 passes 18 CTests.
+Actual pwd reaches the shell but foreground job selection returns
+125. The deployed policy denies same-domain process/getpgid, the
+offline 7a795650f9d0 correction passes 35 decisions, and a signed
+boot still must verify the correction. Files opens/pins original
+document child, which exits two before a window; localize its
+preflight. All VMs terminal. Preserve failure images/data and USB gate.
+
 Current fixed app roles: read the fixed app entrypoints section of
 the 2026-11-17 login-image-boot journal and spec/session.md. Offline
 74712fbbc0d2 and two boot reads produce effective 78e5a894…b82f.
