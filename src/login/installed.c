@@ -21,9 +21,10 @@ static const char unit_label[] = "system_u:object_r:systemd_unit_file_t:s0";
 struct ae_login_installed {
     struct ae_login_sources *anchor;
     struct ae_login_selection selection;
+    uint32_t record_size;
 };
 
-static int read_record(uint8_t bytes[AE_LOGIN_SELECTION_BYTES])
+static int read_record(uint8_t *bytes, uint32_t size)
 {
     struct open_how how = {
         .flags = O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW,
@@ -39,10 +40,10 @@ static int read_record(uint8_t bytes[AE_LOGIN_SELECTION_BYTES])
     int result = fstat(fd, &info) ? -errno : 0;
     if (!result && (info.st_mode != (S_IFREG | 0444) || info.st_uid ||
                     info.st_gid || info.st_nlink != 1)) result = -EACCES;
-    if (!result && info.st_size != AE_LOGIN_SELECTION_BYTES) result = -EBADMSG;
+    if (!result && info.st_size != (off_t)size) result = -EBADMSG;
     size_t used = 0;
-    while (!result && used < AE_LOGIN_SELECTION_BYTES) {
-        ssize_t count = read(fd, bytes + used, AE_LOGIN_SELECTION_BYTES - used);
+    while (!result && used < size) {
+        ssize_t count = read(fd, bytes + used, size - used);
         if (count < 0 && errno == EINTR) continue;
         if (count <= 0) result = count < 0 ? -errno : -EBADMSG;
         else used += (size_t)count;
@@ -51,20 +52,20 @@ static int read_record(uint8_t bytes[AE_LOGIN_SELECTION_BYTES])
     return result;
 }
 
-int ae_login_installed_open(const uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES],
-    const uint8_t release[AE_LOGIN_SELECTION_RELEASE_BYTES], struct ae_login_installed **out)
+int ae_login_installed_open(const struct ae_login_release_anchor *trust, struct ae_login_installed **out)
 {
-    if (!key || !release || !out || *out) return -EINVAL;
+    if (!trust || !out || *out) return -EINVAL;
     if (security_getenforce() != 1) return -EACCES;
-    uint8_t bytes[AE_LOGIN_SELECTION_BYTES];
+    uint8_t bytes[AE_LOGIN_SELECTION_SOUND_BYTES];
+    uint32_t size = trust->desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES;
     struct ae_login_selection selected;
-    int result = read_record(bytes);
-    if (!result) result = ae_login_selection_verify(bytes, sizeof bytes, key, release, &selected);
+    int result = read_record(bytes, size);
+    if (!result) result = ae_login_selection_verify(bytes, size, trust->key, trust->release, &selected);
     struct ae_login_source_expect anchor = {
         .directory = LOGIN_DATA, .leaf = selection_leaf, .label = config_label,
-        .kind = AE_LOGIN_SOURCE_DATA, .mode = 0444, .size = sizeof bytes,
+        .kind = AE_LOGIN_SOURCE_DATA, .mode = 0444, .size = size,
     };
-    if (!result) result = ae_sha256_bytes(bytes, sizeof bytes, anchor.digest);
+    if (!result) result = ae_sha256_bytes(bytes, size, anchor.digest);
     if (result) return result;
     struct ae_login_installed *installed = calloc(1, sizeof *installed);
     if (!installed) return -ENOMEM;
@@ -76,6 +77,7 @@ int ae_login_installed_open(const uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES],
         return result;
     }
     installed->selection = selected;
+    installed->record_size = size;
     *out = installed;
     return 0;
 }
@@ -142,7 +144,7 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
                  0x23, 0x21, 0x8d, 0xe8, 0x8b, 0x27, 0x0c, 0xf7,
                  0x87, 0xec, 0xb7, 0x19, 0xfa, 0xdc, 0x9e, 0x1a}},
         [AE_LOGIN_INSTALLED_SELECTION] =
-            {LOGIN_DATA, selection_leaf, config_label, AE_LOGIN_SOURCE_DATA, 0444, AE_LOGIN_SELECTION_BYTES, {0}},
+            {LOGIN_DATA, selection_leaf, config_label, AE_LOGIN_SOURCE_DATA, 0444, installed->record_size, {0}},
     };
     static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_DEFAULT_PAM] = {
         [AE_LOGIN_INSTALLED_FRAGMENT] = AE_LOGIN_SELECT_UNIT,
@@ -212,9 +214,9 @@ int ae_login_installed_runtime(struct ae_login_installed *installed,
 }
 
 int ae_login_installed_desktop_apps(struct ae_login_installed *installed,
-    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT])
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_MAX], size_t *count)
 {
-    if (!out) return -EINVAL;
+    if (!out || !count) return -EINVAL;
     int result = ae_login_installed_check(installed);
     if (result) return result;
     static const struct {
@@ -228,10 +230,13 @@ int ae_login_installed_desktop_apps(struct ae_login_installed *installed,
         {"aetheri-terminal-pty-starter", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_PTY_STARTER},
         {"aetheri-shell", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_SHELL},
         {"aetheri-editor", "system_u:object_r:aetheri_terminal_helper_exec_t:s0", AE_LOGIN_SELECT_EDITOR},
+        {"aetheri-audio-desktop-control", "system_u:object_r:aetheri_audio_control_exec_t:s0", AE_LOGIN_SELECT_SOUND},
     };
-    _Static_assert(sizeof apps / sizeof apps[0] == AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT,
+    _Static_assert(sizeof apps / sizeof apps[0] == AE_LOGIN_INSTALLED_DESKTOP_APP_MAX,
         "complete installed desktop application selection");
-    for (size_t index = 0; index < AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT; ++index) {
+    size_t selected = AE_LOGIN_INSTALLED_DESKTOP_APP_MAX;
+    if (!installed->selection.files[AE_LOGIN_SELECT_SOUND].size) --selected;
+    for (size_t index = 0; index < selected; ++index) {
         struct ae_login_source_expect expected = {
             .directory = LOGIN_EXEC, .leaf = apps[index].leaf, .label = apps[index].label,
             .kind = AE_LOGIN_SOURCE_ELF, .mode = 0555,
@@ -239,6 +244,7 @@ int ae_login_installed_desktop_apps(struct ae_login_installed *installed,
         selected_file(installed, apps[index].role, &expected);
         out[index] = expected;
     }
+    *count = selected;
     return 0;
 }
 

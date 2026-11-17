@@ -103,8 +103,8 @@ access.
 
 The native Sound page passes a private Wayland test with a live PipeWire
 graph, WirePlumber and a software sink in a PAM/logind test session. The
-signed image still needs to supply the mediator under its own SELinux
-role and exercise the same path with HDA. See the
+format-3 image profile selects the mediator's executable and dedicated
+SELinux role. Signed HDA execution remains to be verified. See the
 [live test record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#live-desktop-sound-mediator).
 
 The view exposes radio, slider and switch semantics, keyboard focus and

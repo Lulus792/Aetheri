@@ -13,18 +13,35 @@
 
 int main(int argc, char **argv)
 {
-    CHECK(argc == 2);
+    CHECK(argc == 2 || (argc == 3 && !strcmp(argv[2], "--desktop-sound")));
     CHECK(getuid() && getuid() == geteuid());
-    const uint8_t test_seed[32] = {11}, release[AE_LOGIN_SELECTION_RELEASE_BYTES] = {42};
-    uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES];
+    const uint8_t test_seed[32] = {11};
+    struct ae_login_release_anchor trust = {.release = {42}, .desktop_sound = argc == 3};
     EVP_PKEY *signer = EVP_PKEY_new_raw_private_key_ex(NULL, "ED25519", NULL, test_seed, sizeof test_seed);
     CHECK(signer);
-    size_t size = sizeof key;
-    CHECK(EVP_PKEY_get_raw_public_key(signer, key, &size) == 1 && size == sizeof key);
+    size_t size = sizeof trust.key;
+    CHECK(EVP_PKEY_get_raw_public_key(signer, trust.key, &size) == 1 && size == sizeof trust.key);
     EVP_PKEY_free(signer);
 
     struct ae_login_installed *installed = NULL;
-    int result = ae_login_installed_open(key, release, &installed);
+    int result = ae_login_installed_open(&trust, &installed);
+    if (!strcmp(argv[1], "projection")) {
+        CHECK(!result && installed);
+        struct ae_login_source_expect targets[AE_LOGIN_INSTALLED_DESKTOP_APP_MAX];
+        size_t count;
+        CHECK(!ae_login_installed_desktop_apps(installed, targets, &count));
+        CHECK(count == (trust.desktop_sound ? 7u : 6u));
+        if (trust.desktop_sound) {
+            CHECK(!strcmp(targets[count - 1].leaf, "aetheri-audio-desktop-control"));
+            CHECK(!strcmp(targets[count - 1].label, "system_u:object_r:aetheri_audio_control_exec_t:s0"));
+        }
+        struct ae_login_source_expect backend[AE_LOGIN_INSTALLED_BACKEND_COUNT];
+        CHECK(!ae_login_installed_backend(installed, backend));
+        CHECK(backend[AE_LOGIN_INSTALLED_SELECTION].size ==
+              (trust.desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES));
+        CHECK(!ae_login_installed_close(&installed));
+        return 0;
+    }
     bool complete = !strcmp(argv[1], "backend");
     if (complete || !strncmp(argv[1], "pam-", 4)) {
         CHECK(!result && installed);

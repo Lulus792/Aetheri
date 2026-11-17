@@ -6,8 +6,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-static const uint8_t magic[] = "AETHLS02";
-
 static const uint32_t limits[AE_LOGIN_SELECT_COUNT] = {
     [AE_LOGIN_SELECT_UNIT] = 65536,
     [AE_LOGIN_SELECT_STARTUP_UNIT] = 65536,
@@ -31,6 +29,7 @@ static const uint32_t limits[AE_LOGIN_SELECT_COUNT] = {
     [AE_LOGIN_SELECT_PTY_STARTER] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_SHELL] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_EDITOR] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_SOUND] = AE_DIGEST_MAX_BYTES,
 };
 
 static uint32_t read_u32(const uint8_t *p)
@@ -45,7 +44,7 @@ static bool nonzero(const uint8_t *bytes, size_t size)
     return any != 0;
 }
 
-static int verify(const uint8_t *body, const uint8_t *public_key)
+static int verify(const uint8_t *body, size_t length, const uint8_t *public_key)
 {
     unsigned long version = OpenSSL_version_num();
     if (version < 0x30500090UL || version >= 0x30600000UL) return -EIO;
@@ -58,8 +57,8 @@ static int verify(const uint8_t *body, const uint8_t *public_key)
     int result = -EIO;
     if (key && !md) result = -ENOMEM;
     if (md && EVP_DigestVerifyInit_ex(md, NULL, NULL, lib, "provider=default", key, NULL) == 1) {
-        int checked = EVP_DigestVerify(md, body + AE_LOGIN_SELECTION_BODY_BYTES,
-            AE_LOGIN_SELECTION_SIGNATURE_BYTES, body, AE_LOGIN_SELECTION_BODY_BYTES);
+        int checked = EVP_DigestVerify(md, body + length,
+            AE_LOGIN_SELECTION_SIGNATURE_BYTES, body, length);
         result = checked == 1 ? 0 : checked == 0 ? -EKEYREJECTED : -EIO;
     }
     EVP_MD_CTX_free(md);
@@ -77,11 +76,15 @@ int ae_login_selection_verify(const uint8_t *bytes, size_t size,
     if (!bytes || !public_key || !release || !out ||
         !nonzero(public_key, AE_LOGIN_SELECTION_KEY_BYTES) ||
         !nonzero(release, AE_LOGIN_SELECTION_RELEASE_BYTES)) return -EINVAL;
-    if (size != AE_LOGIN_SELECTION_BYTES || memcmp(bytes, magic, sizeof magic - 1))
-        return -EBADMSG;
-    const uint8_t *p = bytes + sizeof magic - 1;
+    size_t roles;
+    if (size == AE_LOGIN_SELECTION_BYTES && !memcmp(bytes, "AETHLS02", 8))
+        roles = AE_LOGIN_SELECT_SOUND;
+    else if (size == AE_LOGIN_SELECTION_SOUND_BYTES && !memcmp(bytes, "AETHLS03", 8))
+        roles = AE_LOGIN_SELECT_COUNT;
+    else return -EBADMSG;
+    const uint8_t *p = bytes + 8;
     if (memcmp(p, release, AE_LOGIN_SELECTION_RELEASE_BYTES)) return -EKEYREJECTED;
-    int result = verify(bytes, public_key);
+    int result = verify(bytes, size - AE_LOGIN_SELECTION_SIGNATURE_BYTES, public_key);
     if (result) return result;
 
     p += AE_LOGIN_SELECTION_RELEASE_BYTES;
@@ -103,7 +106,7 @@ int ae_login_selection_verify(const uint8_t *bytes, size_t size,
             parsed.groups[i] = last = group;
         }
     }
-    for (size_t i = 0; i < AE_LOGIN_SELECT_COUNT; ++i, p += 4 + AE_SHA256_BYTES) {
+    for (size_t i = 0; i < roles; ++i, p += 4 + AE_SHA256_BYTES) {
         struct ae_login_selected_file *file = &parsed.files[i];
         file->size = read_u32(p);
         if (!file->size || file->size > limits[i] || !nonzero(p + 4, AE_SHA256_BYTES))

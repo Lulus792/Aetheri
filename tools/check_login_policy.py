@@ -69,8 +69,40 @@ def check_desktop_audio(check, process, obj) -> None:
             check(client, sound, "chr_file", permission, False)
 
 
+def check_desktop_sound(check, process, obj) -> None:
+    control = process("aetheri_audio_control_t")
+    executable = obj("aetheri_audio_control_exec_t")
+    session = process("aetheri_session_t")
+    graph = process("aetheri_audio_graph_t")
+    startup = process("aetheri_login_startup_t")
+    check(session, executable, "file", "execute", True)
+    check(session, executable, "file", "execute_no_trans", False)
+    check(session, control, "process2", "nnp_transition", True)
+    check(control, executable, "file", "entrypoint", True)
+    check(startup, executable, "file", "read", True)
+    check(startup, executable, "file", "execute", False)
+    check(startup, executable, "file", "write", False)
+    check(control, session, "fd", "use", True)
+    for access in ("read", "write", "getattr", "getopt"):
+        check(control, session, "unix_stream_socket", access, True)
+    check(control, session, "unix_stream_socket", "connectto", False)
+    check(control, graph, "unix_stream_socket", "connectto", True)
+    check(control, obj("systemd_logind_sessions_t"), "dir", "watch", True)
+    check(control, obj("systemd_logind_sessions_t"), "file", "write", False)
+    check(control, obj("aetheri_audio_graph_mem_t"), "file", "map", True)
+    check(control, obj("aetheri_audio_state_t"), "file", "write", False)
+    for access in ("open", "read", "write", "ioctl", "map"):
+        check(control, obj("sound_device_t"), "chr_file", access, False)
+    check(control, control, "tcp_socket", "create", False)
+    for actor in ("settings", "files", "terminal", "greeter"):
+        peer = process(f"aetheri_{actor}_t")
+        check(peer, executable, "file", "execute", False)
+        check(peer, control, "unix_stream_socket", "connectto", False)
+        check(control, peer, "process", "ptrace", False)
+
+
 def inspect(expected: str, graphical: bool = False, applications: bool = False,
-            desktop_audio: bool = False) -> dict:
+            desktop_audio: bool = False, desktop_sound: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -307,6 +339,8 @@ def inspect(expected: str, graphical: bool = False, applications: bool = False,
         check(process("aetheri_files_t"), obj("aetheri_settings_exec_t"), "file", "execute", False)
     if desktop_audio:
         check_desktop_audio(check, process, obj)
+    if desktop_sound:
+        check_desktop_sound(check, process, obj)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -321,9 +355,11 @@ def main() -> int:
     parser.add_argument("--graphical", action="store_true", help="also check the graphical greeter roles")
     parser.add_argument("--applications", action="store_true", help="also check the installed desktop app roles")
     parser.add_argument("--desktop-audio", action="store_true", help="also check the desktop audio roles")
+    parser.add_argument("--desktop-sound", action="store_true", help="also check the desktop Sound mediator")
     args = parser.parse_args()
     try:
-        record = inspect(args.expected_policy_sha256, args.graphical, args.applications, args.desktop_audio)
+        record = inspect(args.expected_policy_sha256, args.graphical, args.applications,
+                         args.desktop_audio, args.desktop_sound)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

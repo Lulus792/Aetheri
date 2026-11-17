@@ -58,7 +58,7 @@ int ae_login_installed_greeter_run(const struct ae_login_greeter_profile *p, enu
     struct deployment deployment = {.provider = p};
     const struct ae_login_release_anchor *trust = p->installed_release;
     result = ae_login_policy_status_open(&deployment.status);
-    if (!result) result = ae_login_installed_open(trust->key, trust->release, &deployment.installed);
+    if (!result) result = ae_login_installed_open(trust, &deployment.installed);
     struct ae_login_selection selection;
     if (!result) result = ae_login_installed_read(deployment.installed, &selection);
 

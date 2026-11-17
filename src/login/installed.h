@@ -3,12 +3,14 @@
 
 #include "login/selection.h"
 #include "login/sources.h"
+#include <stdbool.h>
 
 struct ae_login_installed;
 
 struct ae_login_release_anchor {
     uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES];
     uint8_t release[AE_LOGIN_SELECTION_RELEASE_BYTES];
+    bool desktop_sound;
 };
 
 enum {
@@ -34,14 +36,13 @@ enum {
     AE_LOGIN_INSTALLED_RUNTIME_COUNT
 };
 
-enum { AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT = 6 };
+enum { AE_LOGIN_INSTALLED_DESKTOP_APP_MAX = 7 };
 
 /* Providers supply independent build-selected trust anchors. Open the literal
  * installed selection path, authenticate the bytes, then retain and observe the
  * protected file and ancestry. The caller admits the original host view and
  * excludes concurrent privileged namespace writers. Output starts NULL. */
-int ae_login_installed_open(const uint8_t key[AE_LOGIN_SELECTION_KEY_BYTES],
-    const uint8_t release[AE_LOGIN_SELECTION_RELEASE_BYTES], struct ae_login_installed **out);
+int ae_login_installed_open(const struct ae_login_release_anchor *, struct ae_login_installed **out);
 
 /* Follow the original observation. Any observed loss permanently fences access.
  * Read returns copied claims only, including the expected effective policy.
@@ -59,7 +60,7 @@ int ae_login_installed_backend(struct ae_login_installed *,
 int ae_login_installed_runtime(struct ae_login_installed *,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_RUNTIME_COUNT]);
 int ae_login_installed_desktop_apps(struct ae_login_installed *,
-    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT]);
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_DESKTOP_APP_MAX], size_t *count);
 int ae_login_installed_display(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_font(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_close(struct ae_login_installed **);

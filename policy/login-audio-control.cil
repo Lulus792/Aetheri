@@ -1,0 +1,46 @@
+; MIT. Per-window Sound authority for the signed desktop image.
+(type aetheri_audio_control_t)
+(type aetheri_audio_control_exec_t)
+(type aetheri_audio_control_mem_t)
+(typeattributeset aetheri_audio_roles (aetheri_audio_control_t))
+(typeattributeset aetheri_audio_programs (aetheri_audio_control_exec_t))
+(typeattributeset file_type (aetheri_audio_control_mem_t))
+(typeattributeset tmpfsfile (aetheri_audio_control_mem_t))
+
+(call aetheri_app_entry (aetheri_session_t aetheri_audio_control_t aetheri_audio_control_exec_t))
+(allow aetheri_login_startup_t aetheri_audio_control_exec_t (file (read open getattr)))
+(neverallow aetheri_login_startup_t aetheri_audio_control_exec_t (file (execute execute_no_trans write create unlink)))
+
+; The session owner creates the unnamed socket pair and transfers both ends.
+(allow aetheri_audio_control_t aetheri_session_t (unix_stream_socket (read write getattr getopt)))
+(allow aetheri_audio_control_t aetheri_audio_socket_t (sock_file (write getattr)))
+(allow aetheri_audio_control_t aetheri_audio_graph_t (unix_stream_socket (connectto)))
+
+; Read-only session and original-child observations.
+(allow aetheri_audio_control_t pidfs_t (filesystem (getattr)))
+(allow aetheri_audio_control_t aetheri_audio_graph_t (process (getattr)))
+(allow aetheri_audio_control_t aetheri_audio_policy_t (process (getattr)))
+(allow aetheri_audio_control_t aetheri_settings_t (process (getattr)))
+(allow aetheri_audio_control_t proc_t (dir (search read open getattr)))
+(allow aetheri_audio_control_t proc_t (file (read open getattr)))
+(allow aetheri_audio_control_t proc_t (lnk_file (read getattr)))
+(allow aetheri_audio_control_t init_t (dir (search)))
+(allow aetheri_audio_control_t init_t (file (read open getattr)))
+(allow aetheri_audio_control_t init_var_run_t (dir (search getattr)))
+(allow aetheri_audio_control_t systemd_logind_sessions_t (dir (search read open getattr watch)))
+(allow aetheri_audio_control_t systemd_logind_sessions_t (file (read open getattr)))
+
+; Shared memory belongs to the original graph or its control client.
+(typetransition aetheri_audio_control_t tmpfs_t file aetheri_audio_control_mem_t)
+(allow aetheri_audio_control_t aetheri_audio_control_mem_t (file (create read write open getattr setattr map ioctl)))
+(allow aetheri_audio_control_t aetheri_audio_graph_mem_t (file (read write getattr map ioctl)))
+(allow aetheri_audio_graph_t aetheri_audio_control_mem_t (file (read write getattr map ioctl)))
+(allow aetheri_audio_graph_t aetheri_audio_control_t (fd (use)))
+(allow aetheri_audio_control_t aetheri_audio_graph_t (fd (use)))
+
+(neverallow aetheri_audio_control_t sound_device_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_control_t aetheri_audio_state_t (file (open read write create)))
+(neverallow aetheri_audio_control_t aetheri_session_t (process (ptrace signal sigkill)))
+(neverallow aetheri_audio_control_t aetheri_audio_graph_t (process (ptrace signal sigkill)))
+(neverallow aetheri_audio_control_t aetheri_audio_policy_t (process (ptrace signal sigkill)))
+(neverallow aetheri_audio_control_t aetheri_settings_t (process (ptrace signal sigkill)))

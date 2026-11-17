@@ -11,6 +11,7 @@ import sys
 
 from prepare_login_deployment import (
     DATA, DESKTOP_EXECUTABLES, FORMAT, LIBEXEC, MAX_INPUT, UNITS, digest, unique_object,
+    SOUND_EXECUTABLE, SOUND_FORMAT,
 )
 from verify_login_accounts import verify as verify_accounts
 
@@ -61,9 +62,9 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
         raise ValueError("selected groups differ from the enrolled greeter")
     selection = json.loads(read_regular(stage / "receipt.json", 65536), object_pairs_hook=unique_object)
     if (not isinstance(selection, dict) or set(selection) != {"format", "files"}
-            or type(selection["format"]) is not int or selection["format"] != FORMAT
+            or type(selection["format"]) is not int or selection["format"] not in (FORMAT, SOUND_FORMAT)
             or not isinstance(selection["files"], list)):
-        raise ValueError("expected the format-2 login staging receipt")
+        raise ValueError("expected a format-2 or format-3 login staging receipt")
     files = {}
     for entry in selection["files"]:
         if (not isinstance(entry, dict) or set(entry) != {"path", "mode", "size", "sha256"}
@@ -71,10 +72,12 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
             raise ValueError("invalid or duplicate login receipt file")
         files[entry["path"]] = entry
 
-    body = bytearray(b"AETHLS02" + bytes.fromhex(release))
+    sound = selection["format"] == SOUND_FORMAT
+    roles = (*ROLES, (f"/{LIBEXEC}/{SOUND_EXECUTABLE}", MAX_INPUT)) if sound else ROLES
+    body = bytearray((b"AETHLS03" if sound else b"AETHLS02") + bytes.fromhex(release))
     body.extend(struct.pack(">IIB2x16I", uid, gid, len(groups), *groups, *([0] * (16 - len(groups)))))
     external = iter((dropin, policy))
-    for name, limit in ROLES:
+    for name, limit in roles:
         path = next(external) if name is None else stage / "root" / name[1:]
         value = read_regular(path, limit)
         hashed = digest(value)

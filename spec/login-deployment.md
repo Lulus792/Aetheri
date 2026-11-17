@@ -148,8 +148,12 @@ need their own permission before connecting. [PipeWire configuration](https://pi
 
 The [session integration](audio-session.md#desktop-session-owner) is a build
 opt-in. Prepare the matching policy with `--desktop-audio` and use the
-effective policy from that image in the signed selection. Settings uses a
-separate control integration.
+effective policy from that image in the signed selection. For the
+[Settings mediator](audio-session.md#desktop-sound-mediator), enable
+`AETHERI_DESKTOP_SESSION_SOUND` in the image build and select
+`aetheri-audio-desktop-control` as the extra executable in a format-3
+login artifact manifest. Install it as Root-owned mode 0555 at
+`/usr/libexec/aetheri/aetheri-audio-desktop-control`.
 
 ### Compile the image policy
 
@@ -162,6 +166,7 @@ Select a stable copy of the distribution's `etc/selinux` and
 inside a fresh copy of that store and stages the
 policy and login file contexts under `login-policy/root/etc/selinux`.
 Pass `--desktop-audio` when building an image with `AETHERI_DESKTOP_SESSION_AUDIO=ON`.
+Add `--desktop-sound` for the image with the Settings mediator.
 The receipt identifies the inputs and compiled policy. The compiler store
 stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
 
@@ -319,6 +324,16 @@ Use a new release identifier when producing the version-2 image and rebuild
 both entry points against its selected anchor. The version-2 reader requires
 all 22 records, so updating an older test image requires staging and signing
 the complete selection.
+
+Version 3 uses `AETHLS03` and appends one required, bounded row for
+`aetheri-audio-desktop-control` after the editor. The signature covers
+all 943 body bytes and the complete signed record is 1,007 bytes. The
+format-3 staging receipt selects the matching encoder. A sound-enabled
+image compiles the version-3 expectation into both login entry points.
+The startup helper retains the mediator in its original executable
+observations in both mount views. The common backend handoff continues
+to contain ten sources and includes the exact authenticated selection
+size and digest.
 
 The native verifier checks the exact record size, release identifier,
 signature, account IDs, group ordering, reserved fields, and the size bounds

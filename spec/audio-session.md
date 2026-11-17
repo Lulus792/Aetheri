@@ -105,9 +105,12 @@ It retires the connection before the owner stops routing and the graph.
 When audio is unavailable, the desktop can open Settings without a channel.
 
 The private Wayland test joins the actual mediator and Settings executable
-to PipeWire and WirePlumber with a software sink. Image assembly, a
-dedicated mediator SELinux transition and signed HDA verification are
-still required. See the
+to PipeWire and WirePlumber with a software sink. The format-3 image
+selection and the optional Sound policy bind the mediator to its own
+entrypoint and domain. The mediator uses the inherited session socket
+and the private graph socket, with read-only logind observation. Settings
+displays the mediated changes, while device access belongs to PipeWire
+and WirePlumber. Signed HDA execution remains to be verified. See the
 [live test record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#live-desktop-sound-mediator).
 
 ## Shared session control handle

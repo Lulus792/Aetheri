@@ -40,9 +40,10 @@ static int observe_runtime(struct ae_login_installed *installed, struct runtime_
     struct ae_image expected, current;
     if (!result) result = ae_login_sources_image(out->core, AE_LOGIN_INSTALLED_STARTUP_PROGRAM, &expected);
     if (!result) result = ae_image_match_self(0, 0, &expected, &current);
-    struct ae_login_source_expect apps[AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT];
-    if (!result) result = ae_login_installed_desktop_apps(installed, apps);
-    if (!result) result = ae_login_sources_create(apps, AE_LOGIN_INSTALLED_DESKTOP_APP_COUNT, &out->apps);
+    struct ae_login_source_expect apps[AE_LOGIN_INSTALLED_DESKTOP_APP_MAX];
+    size_t count;
+    if (!result) result = ae_login_installed_desktop_apps(installed, apps, &count);
+    if (!result) result = ae_login_sources_create(apps, count, &out->apps);
     if (result) close_runtime(out);
     return result;
 }
@@ -90,7 +91,7 @@ static int enter_view(void *value)
     struct deployment *deployment = value;
     if (deployment->backend) return -EALREADY;
     struct ae_login_installed *backend = NULL;
-    int result = ae_login_installed_open(deployment->trust->key, deployment->trust->release, &backend);
+    int result = ae_login_installed_open(deployment->trust, &backend);
     uint8_t digest[AE_SHA256_BYTES];
     if (!result) result = ae_login_installed_digest(backend, digest);
     if (!result && memcmp(digest, deployment->record_digest, sizeof digest)) result = -ESTALE;
@@ -114,7 +115,7 @@ int ae_login_installed_startup_run(const struct ae_login_release_anchor *trust,
         .trust = trust, .platform_check = platform_check, .userdata = userdata,
     };
     result = ae_login_policy_status_open(&deployment.status);
-    if (!result) result = ae_login_installed_open(trust->key, trust->release, &deployment.original);
+    if (!result) result = ae_login_installed_open(trust, &deployment.original);
     struct ae_login_selection selection;
     if (!result) result = ae_login_installed_read(deployment.original, &selection);
     if (!result) deployment.policy = selection.files[AE_LOGIN_SELECT_KERNEL_POLICY];

@@ -17,6 +17,8 @@ DATA = "usr/share/aetheri/login"
 UNITS = "usr/lib/systemd/system"
 MAX_INPUT = 16 * 1024 * 1024
 FORMAT = 2
+SOUND_FORMAT = 3
+SOUND_EXECUTABLE = "aetheri-audio-desktop-control"
 
 DESKTOP_EXECUTABLES = (
     "aetheri-settings-nexaui", "aetheri-files-nexaui", "aetheri-terminal-nexaui",
@@ -53,6 +55,8 @@ SUPPORT = {
     **{f"policy/{name}": f"{DATA}/policy/{name}" for name in (
         "login-startup.cil", "login.cil", "login-graphical.cil", "login-apps.cil", "login.fc")},
 }
+SOUND_SUPPORT = {f"policy/{name}": f"{DATA}/policy/{name}" for name in
+                 ("login-audio-control.cil", "login-audio-control.fc")}
 
 
 def digest(body: bytes) -> str:
@@ -83,7 +87,7 @@ def read_artifact(manifest: Path, name: str, selection: object) -> bytes:
         body = stream.read(size + 1)
     if len(body) != size or digest(body) != expected:
         raise ValueError(f"artifact differs from its selection: {name}")
-    if name in EXECUTABLES:
+    if name in EXECUTABLES or name == SOUND_EXECUTABLE:
         # Full executable and live-process admission belong to the native verifier.
         if (len(body) < 64 or body[:7] != b"\x7fELF\x02\x01\x01"
                 or body[16:18] not in (b"\x02\x00", b"\x03\x00") or body[18:20] != b"\x3e\x00"):
@@ -103,15 +107,22 @@ def stage(manifest: Path, destination: Path) -> dict:
         raise ValueError("login artifact selection exceeds 64 KiB")
     selected = json.loads(data, object_pairs_hook=unique_object)
     if (not isinstance(selected, dict) or set(selected) != {"format", "artifacts"}
-            or type(selected["format"]) is not int or selected["format"] != FORMAT
-            or not isinstance(selected["artifacts"], dict)
-            or set(selected["artifacts"]) != set(ARTIFACTS)):
-        raise ValueError("expected the complete format-2 login artifact selection")
+            or type(selected["format"]) is not int or selected["format"] not in (FORMAT, SOUND_FORMAT)
+            or not isinstance(selected["artifacts"], dict)):
+        raise ValueError("expected a format-2 or format-3 login artifact selection")
+    version = selected["format"]
+    artifacts = ARTIFACTS
+    support = SUPPORT
+    if version == SOUND_FORMAT:
+        artifacts = {**ARTIFACTS, SOUND_EXECUTABLE: (f"{LIBEXEC}/{SOUND_EXECUTABLE}", 0o555)}
+        support = {**SUPPORT, **SOUND_SUPPORT}
+    if set(selected["artifacts"]) != set(artifacts):
+        raise ValueError(f"expected the complete format-{version} login artifact selection")
     payload = {
         target: (read_artifact(manifest, name, selected["artifacts"][name]), mode)
-        for name, (target, mode) in ARTIFACTS.items()
+        for name, (target, mode) in artifacts.items()
     }
-    for source, target in SUPPORT.items():
+    for source, target in support.items():
         body = (ROOT / source).read_bytes().replace(b"\r\n", b"\n")
         if source.endswith(".service.in"):
             placeholder = b"@AETHERI_LOGIN_STARTUP_CONTEXT@"
@@ -120,7 +131,7 @@ def stage(manifest: Path, destination: Path) -> dict:
             body = body.replace(placeholder, b"system_u:system_r:aetheri_login_startup_t:s0")
         payload[target] = body, 0o444
 
-    record = {"format": FORMAT, "files": [
+    record = {"format": version, "files": [
         {"path": "/" + target, "mode": mode, "size": len(body), "sha256": digest(body)}
         for target, (body, mode) in sorted(payload.items())]}
     destination.mkdir()

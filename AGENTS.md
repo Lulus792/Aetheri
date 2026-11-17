@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current signed Sound stage: read spec/login-deployment.md and the 2026-11-18
+Sound image record. Build-selected v3 adds one protected mediator ELF to
+the startup apps guard in both views. The ten-source handoff stays exact.
+Both e2cd43820800 profiles pass selection and packaging. UEFI preflight
+7a9f758ed52b captures 0444e00f…a8d2; all 139 decisions pass. The actual
+1,007-byte signed stage 11bbfde9…9fa6 passes the native reader with the
+compiled VM anchor and enrolled UID/GID999. Preserve the base conditional
+strict-compile finding and first account rejection. The public stage is
+archived locally. Next assemble and boot signed HDA, verify mediator
+admission and teardown. USB gate remains.
+
 Current live Sound mediator: read spec/audio-session.md#desktop-sound-mediator
 and the 2026-11-17 live Sound record. Opt-in owner passes FD 3 to Settings,
 and the channel and three original pins on FDs 3–6 to a finite audio

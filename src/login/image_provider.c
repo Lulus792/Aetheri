@@ -13,6 +13,7 @@
 #include <sys/prctl.h>
 
 static const struct ae_login_release_anchor release = {
+    .desktop_sound = AETHERI_DESKTOP_SESSION_SOUND,
     .key = {AE_LOGIN_IMAGE_PUBLIC_KEY},
     .release = {AE_LOGIN_IMAGE_RELEASE},
 };

@@ -119,6 +119,40 @@ class LoginDeploymentTests(unittest.TestCase):
             deployment.stage(self.manifest, self.root / "out")
         self.assertFalse((self.root / "out").exists())
 
+    def test_sound_profile_requires_the_reviewed_executable(self):
+        self.selection["format"] = deployment.SOUND_FORMAT
+        stage = self.root / "sound"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "complete format-3"):
+            deployment.stage(self.manifest, stage)
+        name = deployment.SOUND_EXECUTABLE
+        original = (self.root / "aetheri-editor.input").read_bytes()[:64] + name.encode()
+        self.select(name, original)
+        self.save()
+        receipt = deployment.stage(self.manifest, stage)
+        self.assertEqual(receipt["format"], 3)
+        dropin, policy = self.root / "distribution", self.root / "policy"
+        dropin.write_bytes(b"distribution service\n")
+        policy.write_bytes(b"\x01\x02")
+        args = (stage, dropin, policy, "2a" + "00" * 31, 992, 993, [993, 60000])
+        body = selection.payload(*args)
+        self.assertEqual((body[:8], len(body)), (b"AETHLS03", 943))
+        self.assertEqual(int.from_bytes(body[-36:-32], "big"), len(original))
+        self.assertEqual(body[-32:].hex(), deployment.digest(original))
+        if self.verifier:
+            encoded, signed = self.root / "body", self.root / "signed"
+            encoded.write_bytes(body)
+            subprocess.run([self.verifier, encoded, signed], check=True, timeout=15)
+            self.assertEqual((signed.read_bytes()[:len(body)], signed.stat().st_size), (body, 1007))
+        candidate = stage / "root" / deployment.LIBEXEC / name
+        candidate.chmod(0o755)
+        candidate.write_bytes(original[:-1] + b"!")
+        with self.assertRaisesRegex(ValueError, f"staged file differs.*{name}"):
+            selection.payload(*args)
+        candidate.unlink()
+        with self.assertRaises(FileNotFoundError):
+            selection.payload(*args)
+
     def test_release_selection_checks_the_actual_staged_bytes(self):
         self.save()
         stage = self.root / "stage"

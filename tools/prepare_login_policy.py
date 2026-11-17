@@ -36,9 +36,12 @@ def inventory(root: Path) -> dict:
     return entries
 
 
-def prepare(base: Path, output: Path, desktop_audio: bool = False) -> dict:
+def prepare(base: Path, output: Path, desktop_audio: bool = False,
+            desktop_sound: bool = False) -> dict:
     if sys.platform != "linux":
         raise ValueError("run the offline policy compiler on Linux")
+    if desktop_sound and not desktop_audio:
+        raise ValueError("desktop Sound requires the desktop audio policy")
     base_config = base / "etc/selinux"
     base_store = base / STORE
     if any(output.resolve().is_relative_to(source.resolve()) for source in (base_config, base_store)):
@@ -50,10 +53,14 @@ def prepare(base: Path, output: Path, desktop_audio: bool = False) -> dict:
         raise ValueError("the baseline already contains the login policy module")
 
     names = (*MODULES, "login-audio.cil") if desktop_audio else MODULES
+    if desktop_sound:
+        names = (*names, "login-audio-control.cil")
     module_sources = {name: (POLICY / name).read_bytes().replace(b"\r\n", b"\n") for name in names}
     file_contexts = (POLICY / "login.fc").read_bytes().replace(b"\r\n", b"\n")
     if desktop_audio:
         file_contexts += b"\n" + (POLICY / "login-audio.fc").read_bytes().replace(b"\r\n", b"\n")
+    if desktop_sound:
+        file_contexts += b"\n" + (POLICY / "login-audio-control.fc").read_bytes().replace(b"\r\n", b"\n")
     output.mkdir()
     root = output / "root"
     target = root / "etc/selinux"
@@ -108,9 +115,10 @@ def main() -> int:
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--desktop-audio", action="store_true")
+    parser.add_argument("--desktop-sound", action="store_true")
     args = parser.parse_args()
     try:
-        record = prepare(args.base, args.output.absolute(), args.desktop_audio)
+        record = prepare(args.base, args.output.absolute(), args.desktop_audio, args.desktop_sound)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

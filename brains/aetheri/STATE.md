@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — Sound format 3 stages and signs the mediator. The native
+reader accepts the actual VM fixture release and projects the exact ELF.
+Both build profiles pass selection and packaging. The optional mediator
+policy passes 139 decisions on the compiled policy and its enforcing UEFI
+readback. Next assemble the signed stage, verify installed policy and
+exercise HDA through Settings. See the
+[Sound image record](journal/2026-11-18-desktop-sound-image.md).
+
 17 November 2026 — The opt-in desktop Sound profile provisions the fixed
 Settings socket and launches a per-window mediator with original process
 pins. Four Release CTests pass. Carrier case `f3d0924ca9` confirms live
