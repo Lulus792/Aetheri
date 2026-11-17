@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — The assembled PAM root verifier checks all three profiles,
+the actual ELF dependency closure and the password helper metadata. In the
+isolated root, all six selected modules load, including the exact archived
+systemd-pam 259.10 build. The next gate covers the selected account data,
+runtime search paths and installed login units in a booted image. See the
+[composed PAM record](journal/2026-11-17-login-pam-root.md).
+
 17 November 2026 — The installed login handoff now protects the deny-only
 PAM default alongside both signed profiles. The fixed-path VM checks all ten
 entries and rejects missing or changed fallback bytes. The offline PAM

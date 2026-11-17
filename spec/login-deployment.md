@@ -92,11 +92,22 @@ and the final image metadata for the password helper. The staged helper
 has mode 0755. The image assembler still needs to apply and verify the final
 Root ownership, mode 04755 and SELinux context on the assembled image only.
 
-Image verification must check the actual base bytes, the PAM user's account
-data, the loader search and default lookup. The staged supplement check
-resolves references against the pinned base inventory. The final selected
-`pam_systemd.so` and its runtime behavior require a test in the composed
-image.
+Inspect the assembled root after applying final ownership, modes and labels.
+Use a stable offline root and a reader that can see its SELinux file contexts.
+
+```sh
+python tools/verify_login_pam_root.py --root /mnt/aetheri-image
+```
+
+The verifier checks the three PAM configuration files and follows the selected
+module files' ELF dependencies through exact aliases to pinned file bytes in
+the image. It checks the loader and the password helper's path, mode and label.
+The JSON result lists the checked objects and references. Image boot tests still
+need to exercise loader configuration, account data, the installed platform
+gates and full PAM session creation. The
+[composed PAM check](../brains/aetheri/journal/2026-11-17-login-pam-root.md)
+loads the selected modules with the image's own libraries and checks the
+default service inside a private test root.
 
 ### Signed login selection
 

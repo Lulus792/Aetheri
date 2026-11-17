@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current composed PAM root work: read spec/login-deployment.md and the
+2026-11-17 login-pam-root journal. The offline verifier checks the three
+configuration files, 30 ELF objects, 18 library aliases and helper metadata
+in the isolated final-layout fixture. Exact archived systemd-pam 259.10 loads
+with all six selected modules, and the unknown-service default denies five
+calls. Preserve the archived raw bytes, fixture failures and private nosuid
+metadata testing. Next actual account/search inputs and installed platform
+gates through a booted login. The USB gate applies.
+
 Current packaged PAM work: read spec/login-deployment.md and the 2026-11-17
 login-pam-runtime journal. Both installed adapters include the exact deny-only
 fallback as their tenth protected source. Keep the signed selection format and
