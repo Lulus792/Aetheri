@@ -362,6 +362,17 @@ if(BUILD_TESTING AND AETHERI_AUDIO)
         add_test(NAME audio.tone_cli COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_audio_cli.py"
             $<TARGET_FILE:aetheri-audio-test-tone> --tone)
         set_tests_properties(audio.tone_cli PROPERTIES ENVIRONMENT "LD_LIBRARY_PATH=${AETHERI_AUDIO_PREFIX}/usr/lib64")
+        add_executable(test_audio_tone_buffers tests/test_audio_tone_buffers.c src/audio/remote.c)
+        target_include_directories(test_audio_tone_buffers PRIVATE src)
+        target_include_directories(test_audio_tone_buffers SYSTEM PRIVATE
+            "${AETHERI_AUDIO_PREFIX}/usr/include/pipewire-0.3" "${AETHERI_AUDIO_PREFIX}/usr/include/spa-0.2")
+        target_compile_options(test_audio_tone_buffers PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        target_link_libraries(test_audio_tone_buffers PRIVATE "${AETHERI_AUDIO_PREFIX}/usr/lib64/libpipewire-0.3.so.0.1611.0" m)
+        if(AETHERI_SANITIZERS)
+            target_compile_options(test_audio_tone_buffers PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(test_audio_tone_buffers PRIVATE -fsanitize=address,undefined)
+        endif()
+        add_test(NAME audio.tone_buffers COMMAND test_audio_tone_buffers)
     endif()
     add_test(NAME audio.playback COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_audio.py"
         $<TARGET_FILE:aetheri-audio-check> "${AETHERI_AUDIO_PREFIX}" "${CMAKE_CURRENT_BINARY_DIR}")

@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The desktop tone client now has a half-second silent
+lead and pads the final buffer to the bounded PipeWire request. Its final
+CMake ELF produces the byte-identical reference WAV in the instruction-clock
+VM and passes the full sample check in a two-vCPU WHPX retry. An earlier WHPX
+run on the same media has two gaps. Five audio CTests, ASan/UBSan and all 88
+HDA host tests pass. Next connect the Sound page through the session owner.
+See the [buffer correction](journal/2026-11-17-login-image-boot.md#request-sized-final-buffer).
+
 17 November 2026 — The signed test image produces an uninterrupted second
 of stereo in instruction-clock and two-vCPU WHPX runs. The warmed stream
 with a partial final buffer lost 320 left-channel samples in the original

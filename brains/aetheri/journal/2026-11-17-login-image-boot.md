@@ -860,3 +860,74 @@ and Settings and physical audio require their own acceptance.
 The host stored three terminal boot-time data copies with NTFS compression
 and confirmed their before/after SHA-256 hashes. The additional media and
 data copies were created sparse and verified byte-for-byte at readback.
+
+### Request-sized final buffer
+
+The desktop tone now queues the requested playback length within the mapped
+buffer capacity and its 8,192-frame turn bound. It copies the remaining
+prepared frames and zeroes only the rest of a requested final turn. The
+buffer and chunk size include the padding. The signal count advances by
+prepared frames. A zero request keeps the short buffer. The separate lab
+player retains its existing queue lengths.
+
+Native case `e1654f8b2b8a` exercises the actual process callback for six
+turns. They cover padding, a request larger than capacity, the turn bound,
+zero request, exact end and a nonfinal turn. The test checks two-channel
+sample contents, silence, untouched space and queue/drain accounting.
+The previous client fails on the expected queue-size check. The current
+Release and ASan/UBSan builds pass. The first ordinary-user launch failed
+to load the selected shared library through a root-only SDK directory.
+The passing launches use a byte-identical readable library copy.
+
+CMake Release `286dbb597cec` verifies 252 pinned SDK files and builds both
+players and the callback test. All five selected CTests pass, including
+the separate lab player's full private-graph playback. The initial build
+preparation calls failed on their arguments or ephemeral work path. The
+final CTest uses the reviewed toolchain's loader wrapper.
+
+The first runtime image `7a4c18b0e935` uses request-sized padding alone.
+Instruction-clock session `299a9a77` authenticates, drains, reaps the
+original children and returns to the greeter. Its independent WAV still
+has 1,024 consecutive silent frames shortly after audible onset. The WAV
+hash is `1d4a50e6b32dea2bd00a6356687f21655f0845b586fdbfd70e72f528f57c687d`.
+This preserves the measured startup failure with the new final-buffer code.
+
+The CMake target now prepends 24,000 silent frames in the desktop tone
+profile. The signal begins at phase zero and still has 48,000 frames.
+Socket and pidfd admission, CLI and diagnostic frame counts keep their
+existing contract. A separate Release build with the final source passes
+the five selected CTests. The image `9ab6c4e3d2f7` stages that exact tone ELF,
+SHA-256 `be895f9198c673529889b96a836e853513da26635770897bbf5221e2bfdf5e2d`.
+The root and boot projection checks preserve the signed selection, file inode
+and raw exec label. This uses the existing session-owner fixture trigger.
+
+The final ASan/UBSan callback test and all 88 host HDA checks pass. In
+two-vCPU WHPX session `502af9e3`, the exact CMake client connects and drains
+48,000 tone frames. Its WAV has two interior gaps of 1,106 and 1,024 frames
+and fails strict validation. This happens before the final turn. The
+earlier fixed-length WHPX acceptance does not establish repeatability.
+The capture hashes to
+`4b8b9ace1c9965ec17abefa4ebe7be0ce4ab9561201e836c9ef0dfcaa9fafb25`.
+The original processes exit zero, PAM closes and the next greeter appears.
+
+Instruction-clock session `73cd84eb` passes all 48,000 frames per channel
+with the same gain and 1.931 LSB maximum error. The WAV is byte-identical to
+the successful fixed-padding WAV from `ada4d8a7`, SHA-256
+`0f2536cb6a09dfff6088f3a21008b84871d53ca5850f86f4aaf2c945aaecdee3`.
+The signed test image reaps the tone, policy and graph, closes PAM and shows
+the next greeter. The VM ends at zero and verifies the read-only media hash
+`1734129e8029194998ff1050415b84c9ee3a1832529c713dfad8066cbab2843b`.
+
+The same media also passes 48,000 frames per channel in two-vCPU WHPX retry
+`54508ece` with 1.417 LSB maximum error at the previously measured WHPX gain.
+The WAV hash is `89bbb1a92092b2f93a1ba930eac92d834a2873145bdccc195bedd9678e7b25fa`.
+A kernel audit message splits the tone reap line. Preserve the controller's
+`tone_end=false` observation. The session owner's final original-child
+summary records status zero for the tone, WirePlumber and PipeWire. PAM
+closes, the replacement greeter appears and the VM ends at zero with the
+same read-only media hash. The WHPX results include a pass and a dropout
+on identical media, so the remaining repeatability question is open.
+
+Next connect the authenticated session owner's audio mediation to the
+normal Sound page. The playback button and settings need their own native
+acceptance. Physical HDA and Bluetooth have yet to be measured.

@@ -23,7 +23,7 @@ struct check {
     struct pw_main_loop *loop;struct pw_context *context;struct pw_core *core;struct pw_stream *stream;
     struct spa_hook core_listener,stream_listener;struct spa_source *timer;
     float *prepared; /* Immutable finite signal; owned until stream teardown. */
-    uint32_t total,sent;bool silent,formatted,draining,done,announced,failed,wait_start,started;
+    uint32_t lead,total,sent;bool silent,formatted,draining,done,announced,failed,wait_start,started;
 };
 static void fail(struct check *c,const char *reason) {
     if(!c->failed) fprintf(stderr,"audio-check: %s\n",reason);
@@ -46,7 +46,7 @@ static void state(void *data,enum pw_stream_state old,enum pw_stream_state curre
     else if(current==PW_STREAM_STATE_PAUSED && !c->announced) {
         uint32_t node=pw_stream_get_node_id(c->stream);
         if(node==PW_ID_ANY) {fail(c,"missing exported node");return;}
-        c->announced=true;printf("CONNECTED node=%u frames=%u rate=%u channels=%u\n",node,c->total,RATE,CHANNELS);
+        c->announced=true;printf("CONNECTED node=%u frames=%u rate=%u channels=%u\n",node,c->total-c->lead,RATE,CHANNELS);
     }
 }
 static void format(void *data,uint32_t id,const struct spa_pod *param) {
@@ -58,21 +58,32 @@ static void format(void *data,uint32_t id,const struct spa_pod *param) {
 static void drained(void *data) {
     struct check *c=data;
     if(!c->draining || c->sent!=c->total) {fail(c,"unexpected drain");return;}
-    c->done=true;printf("DRAINED frames=%u\n",c->sent);pw_main_loop_quit(c->loop);
+    c->done=true;printf("DRAINED frames=%u\n",c->sent-c->lead);pw_main_loop_quit(c->loop);
 }
 static void process(void *data) {
     struct check *c=data;if(c->failed || c->draining) return;
     struct pw_buffer *buffer=pw_stream_dequeue_buffer(c->stream);if(!buffer) return;
     struct spa_buffer *storage=buffer->buffer;
     if(!c->formatted || !storage || storage->n_datas!=1 || !storage->datas || !storage->datas[0].data || (uintptr_t)storage->datas[0].data%_Alignof(float) || !storage->datas[0].chunk || storage->datas[0].maxsize<STRIDE || storage->datas[0].maxsize>4u*1024u*1024u) {fail(c,"unsupported output buffer");return;}
-    struct spa_data *d=&storage->datas[0];uint32_t frames=d->maxsize/STRIDE;
-    if(frames>TURN_FRAMES) frames=TURN_FRAMES;
-    if(buffer->requested && buffer->requested<frames) frames=(uint32_t)buffer->requested;
-    if(frames>c->total-c->sent) frames=c->total-c->sent;
+    struct spa_data *d=&storage->datas[0];uint32_t limit=d->maxsize/STRIDE;
+    if(limit>TURN_FRAMES) limit=TURN_FRAMES;
+    if(buffer->requested && buffer->requested<limit) limit=(uint32_t)buffer->requested;
+    uint32_t remaining=c->total-c->sent;
+    uint32_t frames=remaining<limit ? remaining : limit;
     if(!frames) {fail(c,"empty output turn");return;}
-    memcpy(d->data,c->prepared+(size_t)c->sent*CHANNELS,(size_t)frames*STRIDE);
-    d->chunk->offset=0;d->chunk->stride=STRIDE;d->chunk->size=frames*STRIDE;d->chunk->flags=0;
-    buffer->size=frames;
+    size_t signal_bytes=(size_t)frames*STRIDE;
+    memcpy(d->data,c->prepared+(size_t)c->sent*CHANNELS,signal_bytes);
+    uint32_t queued=frames;
+#ifdef AETHERI_AUDIO_DESKTOP_TONE
+    /* Finish the requested turn with silence. Only prepared frames count
+     * toward the signal and a zero request supplies no length to pad to. */
+    if(buffer->requested && frames<limit) {
+        memset((unsigned char *)d->data+signal_bytes,0,(size_t)(limit-frames)*STRIDE);
+        queued=limit;
+    }
+#endif
+    d->chunk->offset=0;d->chunk->stride=STRIDE;d->chunk->size=queued*STRIDE;d->chunk->flags=0;
+    buffer->size=queued;
     if(pw_stream_queue_buffer(c->stream,buffer)<0) {fail(c,"queue rejected");return;}
     c->sent+=frames;
     if(c->sent==c->total) {c->draining=true;if(pw_stream_flush(c->stream,true)<0) fail(c,"drain rejected");}
@@ -89,6 +100,9 @@ int main(int argc,char **argv) {
     unsigned long pin=strtoul(argv[2],NULL,10);
     if(pin<3 || pin>INT_MAX) return 2;
     remote=argv[1];autoconnect=true;original=(int)pin;
+    /* Give the newly opened output a brief silent lead before the test tone. */
+    c.lead=RATE/2;
+    c.total+=c.lead;
 #else
     bool frames_set=false;
     for(int i=1;i<argc;++i) {
@@ -111,8 +125,9 @@ int main(int argc,char **argv) {
     /* Keep synthesis/allocation outside streaming. The validated finite bound
      * is at most 768,000 bytes; process only copies its bounded next slice. */
     c.prepared=malloc((size_t)c.total*STRIDE);if(!c.prepared) goto done;
-    for(uint32_t i=0;i<c.total;++i) {
-        double phase=(double)i*6.2831853071795864769/(double)RATE;
+    memset(c.prepared,0,(size_t)c.lead*STRIDE);
+    for(uint32_t i=c.lead;i<c.total;++i) {
+        double phase=(double)(i-c.lead)*6.2831853071795864769/(double)RATE;
         c.prepared[2u*i]=c.silent ? 0.0f : (float)(0.125*sin(440.0*phase));
         c.prepared[2u*i+1u]=c.silent ? 0.0f : (float)(0.125*sin(880.0*phase));
     }

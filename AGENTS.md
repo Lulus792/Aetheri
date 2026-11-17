@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current desktop tone: read the request-sized final buffer section in the
+2026-11-17 login-image boot journal and spec/audio-session.md. The finite
+client prepends 24,000 silent frames and pads only the bounded requested
+turn. Final CMake ELF be895f91…5e2d in image 9ab6c4e3d2f7 passes exact PCM
+in 73cd84eb and WHPX 54508ece. Preserve gaps in 502af9e3 and 299a9a77.
+Five Release CTests, the sanitizer callback and all 88 HDA checks pass.
+Next original-session Sound settings mediation. USB gate remains.
+
 Current PCM tail: read the playback follow-up in the 2026-11-17 login-image
 boot journal. The warm test 19bce8cd loses 320 left-channel samples in the
 final partial period. Image b231a92fb6fd appends 704 zero frames and passes

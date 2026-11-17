@@ -57,9 +57,15 @@ The audio SDK build produces `aetheri-audio-test-tone` when both
 `AETHERI_AUDIO` and `AETHERI_DESKTOP_SESSION_AUDIO` are on. A trusted owner
 supplies the session's absolute graph socket path and the descriptor number
 of its original PipeWire pidfd. The client uses the strict peer check, then
-queues a fixed second of stereo test samples. It has no option to select a
-different signal or reconnect. `DRAINED` is a stream result. A VM test can
-independently measure the samples at the emulated device.
+queues a half-second of silence followed by one second of stereo test samples.
+It has no option to select a different signal or reconnect. If a playback
+request has a defined frame count, the tone finishes a partial last buffer
+with silence up to the requested size within the mapped capacity and the
+per-turn bound. A zero request supplies no length for padding. PipeWire
+receives the full queued size. `CONNECTED` and `DRAINED` count the 48,000
+tone frames. A VM test independently measures the samples at the emulated
+device.
+[PipeWire 1.6.11 buffer contract](https://github.com/PipeWire/pipewire/blob/1.6.11/src/pipewire/stream.h#L247-L270)
 
 The executable has a dedicated SELinux transition from the authenticated
 session owner. It has access to the private graph socket and shared buffers.
