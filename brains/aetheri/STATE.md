@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The two packaged PAM profiles join the signed installed
+handoff sources. The nine files verify in a private fixed-path stage. The
+typed graphical fixture uses the exact packaged PAM bytes and a
+compile-bound graphics/input runtime to complete password login, desktop
+startup and logout. Next verify the PAM module/default lookup and the
+remaining protected platform inputs from the actual system image. See the
+[packaged PAM record](journal/2026-11-17-login-packaged-pam.md).
+
 17 November 2026 — The policy-bound login handoff pins the enforcing SELinux
 status sequence alongside the signed selection. A byte-identical policy
 reload fences the original reader and rejects fresh use of its handoff.

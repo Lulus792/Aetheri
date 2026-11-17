@@ -130,6 +130,10 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
         [AE_LOGIN_INSTALLED_GREETER] =
             {LOGIN_EXEC, "aetheri-login-greeter", "system_u:object_r:aetheri_greeter_exec_t:s0",
                 AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        [AE_LOGIN_INSTALLED_USER_PAM] =
+            {"/etc/pam.d", "aetheri-login", config_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        [AE_LOGIN_INSTALLED_GREETER_PAM] =
+            {"/etc/pam.d", "aetheri-greeter", config_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
         [AE_LOGIN_INSTALLED_SELECTION] =
             {LOGIN_DATA, selection_leaf, config_label, AE_LOGIN_SOURCE_DATA, 0444, AE_LOGIN_SELECTION_BYTES, {0}},
     };
@@ -140,6 +144,8 @@ int ae_login_installed_backend(struct ae_login_installed *installed,
         [AE_LOGIN_INSTALLED_SYSTEMD_DROPIN] = AE_LOGIN_SELECT_SYSTEMD_DROPIN,
         [AE_LOGIN_INSTALLED_WORKER_DROPIN] = AE_LOGIN_SELECT_WORKER_DROPIN,
         [AE_LOGIN_INSTALLED_GREETER] = AE_LOGIN_SELECT_GREETER,
+        [AE_LOGIN_INSTALLED_USER_PAM] = AE_LOGIN_SELECT_USER_PAM,
+        [AE_LOGIN_INSTALLED_GREETER_PAM] = AE_LOGIN_SELECT_GREETER_PAM,
     };
     for (size_t i = 0; i < AE_LOGIN_INSTALLED_SELECTION; ++i)
         selected_file(installed, roles[i], &backend[i]);

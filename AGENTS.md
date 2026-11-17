@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current packaged PAM sources: read the 2026-11-17 login-packaged-pam journal
+and spec/login-deployment.md. Both installed adapters add the two literal
+PAM profiles to the nine-entry handoff source set. Use O_PATH for ancestry;
+the five-drop-in bound is unchanged. Case `01207743de7c` checks all nine and
+negative PAM cases. Actual packaged PAM case `d257d0be87fe` uses bound entry
+`6b2636f06b9c` with compiled runtime data paths and passes desktop/logout.
+Preserve failed EGL case `34afa1ca0bd6` and exact fixture retirement. Next
+integrate the protected target platform, PAM modules/default and live units.
+The first-version USB gate applies.
+
 Current login policy handoff: read the version-2 profile in `spec/login.md`
 and the 2026-11-17 login-policy-handoff journal. Both installed adapters pin
 the enforcing selinuxfs sequence. The startup digest comparison and the

@@ -74,7 +74,10 @@ static int expectation(struct source *s,const struct ae_login_source_expect *e)
 }
 static int open_component(int parent,const char *name,bool directory,bool no_mount)
 {
-    struct open_how h={.flags=(uint64_t)(O_RDONLY|O_CLOEXEC|O_NOFOLLOW|O_NONBLOCK|(directory?O_DIRECTORY:0)),
+    /* Directory handles are only used for identity and lookup. Do not require
+       permission to enumerate protected ancestors such as /etc/pam.d. */
+    struct open_how h={.flags=(uint64_t)(O_CLOEXEC|O_NOFOLLOW|
+        (directory?(O_PATH|O_DIRECTORY):(O_RDONLY|O_NONBLOCK))),
         .resolve=RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS};
     if(parent!=AT_FDCWD)h.resolve|=RESOLVE_BENEATH;
     if(no_mount)h.resolve|=RESOLVE_NO_XDEV;
@@ -262,6 +265,11 @@ struct fingerprint_bytes {
     size_t used;
 };
 
+_Static_assert(16 + AE_LOGIN_SOURCES_MAX *
+    (AE_LOGIN_SOURCE_PATH_MAX + LEAF + AE_LOGIN_SOURCE_LABEL_MAX + AE_SHA256_BYTES +
+     19 * 8 + (DEPTH + 1) * 96) <= sizeof ((struct fingerprint_bytes *)0)->bytes,
+    "source fingerprint buffer must cover every admitted path and ancestor");
+
 static void fingerprint_number(struct fingerprint_bytes *buffer,uint64_t number)
 {
     for(size_t n=0;n<8;++n)buffer->bytes[buffer->used++]=(uint8_t)(number>>(56U-(unsigned)n*8U));
@@ -279,8 +287,6 @@ int ae_login_sources_fingerprint(struct ae_login_sources *s,uint8_t out[32])
     if(!out)return -EINVAL;
     int r=ae_login_sources_check(s);
     if(r)return r;
-    /* At most 8 entries, each with 1536 string bytes, 32 digest bytes,
-       19 numbers and 17 ancestor records of 96 bytes: less than 32768. */
     struct fingerprint_bytes buffer={.bytes="AETHLGS1",.used=8};
     fingerprint_number(&buffer,s->count);
     for(size_t i=0;i<s->count;++i) {

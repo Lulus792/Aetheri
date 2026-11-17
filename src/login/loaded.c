@@ -12,7 +12,6 @@
 #define UNIT "org.freedesktop.systemd1.Unit"
 #define SERVICE "org.freedesktop.systemd1.Service"
 #define COMMAND "sasasttttuii"
-enum { MAX_DROPINS=AE_LOGIN_SOURCES_MAX-3 };
 
 struct command_record {
     uint64_t start_monotonic;
@@ -25,7 +24,7 @@ struct ae_login_loaded {
     char fragment[AE_LOGIN_SOURCE_FULL_PATH_MAX];
     char program[AE_LOGIN_SOURCE_FULL_PATH_MAX];
     char config[AE_LOGIN_SOURCE_FULL_PATH_MAX];
-    char dropins[MAX_DROPINS][AE_LOGIN_SOURCE_FULL_PATH_MAX];
+    char dropins[AE_LOGIN_UNIT_DROPINS_MAX][AE_LOGIN_SOURCE_FULL_PATH_MAX];
     size_t dropin_count;
     size_t program_index;
     size_t config_index;
@@ -373,7 +372,7 @@ int ae_login_loaded_create(struct ae_login_service *service,struct ae_login_sour
                            const size_t *dropins,size_t dropin_count,struct ae_login_loaded **out)
 {
     if(!out || *out || !service || !sources || fragment==config || program==fragment || program==config ||
-       dropin_count>MAX_DROPINS || (dropin_count && !dropins))
+       dropin_count>AE_LOGIN_UNIT_DROPINS_MAX || (dropin_count && !dropins))
         return -EINVAL;
     for(size_t i=0;i<dropin_count;++i) {
         if(dropins[i]==fragment || dropins[i]==program || dropins[i]==config)return -EINVAL;

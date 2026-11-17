@@ -138,7 +138,7 @@ int ae_login_startup_create(int fd,sd_bus *bus,const struct ae_login_startup_exp
     if(!out || *out || !e || !e->check || !e->sources || !bus || fd<0 ||
        e->service.uid || e->service.gid || !e->source_count || e->source_count>AE_LOGIN_SOURCES_MAX ||
        e->fragment>=e->source_count || e->program>=e->source_count || e->config>=e->source_count ||
-       e->dropin_count>AE_LOGIN_SOURCES_MAX-3 || (e->dropin_count && !e->dropins))return -EINVAL;
+       e->dropin_count>AE_LOGIN_UNIT_DROPINS_MAX || (e->dropin_count && !e->dropins))return -EINVAL;
     int r=single_thread();if(r)return r;
     struct ae_login_startup *s=calloc(1,sizeof *s);if(!s)return -ENOMEM;
     s->owner=getpid();s->thread=gettid();s->space=-1;s->directory=-1;s->check=e->check;s->userdata=e->userdata;

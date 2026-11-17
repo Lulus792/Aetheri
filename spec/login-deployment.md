@@ -27,6 +27,20 @@ An expired password requires a separate account-management workflow. Image
 assembly must enroll and independently verify the locked greeter account and
 its groups. The carrier's choice of numeric UID/GID is local to that VM.
 
+Both installed adapters include the two PAM files in the common protected
+source set. The signed digests select the exact bytes. The startup helper
+checks the files in the original backend's mount view before publishing
+the handoff. The greeter checks the same named and held files before
+credential transport and keeps them in its ongoing admission checks.
+The image platform gate also covers PAM's loader, modules, account data and
+default service lookup. Linux-PAM loads the default service alongside a
+named profile. [Linux-PAM configuration loader](https://raw.githubusercontent.com/linux-pam/linux-pam/master/libpam/pam_handlers.c)
+
+The [session entry](session.md) can supply the runtime's graphics and input
+data paths when building against a protected runtime projection. The
+packaged human PAM profile contains the account, authentication and
+session steps. Image integration selects and verifies the actual runtime.
+
 Root owns `/run/aetheri/login` and its create-only handoff. The greeter owns
 the mode-0700 render directory `/run/aetheri/login-greeter`. The backend and
 its descendants share their own `/tmp` and `/dev/shm` mounts backed by distinct

@@ -353,6 +353,14 @@ static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,
     free(original);
     if (!created) return false;
     printf("AETHERI_RUNTIME path=%s cache=%s\n",runtime,cache);
+#ifdef AETHERI_DESKTOP_SHARE
+    /* A build with an independently bound runtime supplies its own data path
+       alongside the existing library path. Keep that choice in the session. */
+    if(setenv("LIBINPUT_QUIRKS_DIR",AETHERI_DESKTOP_SHARE "/libinput",1) ||
+       setenv("__EGL_VENDOR_LIBRARY_DIRS",AETHERI_DESKTOP_SHARE "/glvnd/egl_vendor.d",1) ||
+       unsetenv("__EGL_VENDOR_LIBRARY_FILENAMES") ||
+       setenv("LIBGL_DRIVERS_PATH",AETHERI_DESKTOP_LIBRARIES "/dri",1))return false;
+#endif
     return setenv("XDG_RUNTIME_DIR",runtime,1)==0 && setenv("WAYLAND_DISPLAY","aetheri-image",1)==0 && setenv("LIBSEAT_BACKEND","logind",1)==0 && setenv("LIBGL_ALWAYS_SOFTWARE","1",1)==0 && setenv("GALLIUM_DRIVER","llvmpipe",1)==0 && setenv("LP_NUM_THREADS","2",1)==0 && setenv("LD_LIBRARY_PATH",AETHERI_DESKTOP_LIBRARIES,1)==0 && setenv("PATH",BIN ":/usr/bin",1)==0 && unsetenv("DISPLAY")==0 && unsetenv("WAYLAND_SOCKET")==0;
 }
 static bool app_start(struct child *c,enum role role,char *cache,char *documents,struct ae_session *session) {

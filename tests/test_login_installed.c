@@ -1,6 +1,7 @@
 #include "login/installed.h"
 #include <errno.h>
 #include <openssl/evp.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,28 @@ int main(int argc, char **argv)
 
     struct ae_login_installed *installed = NULL;
     int result = ae_login_installed_open(key, release, &installed);
+    bool complete = !strcmp(argv[1], "backend");
+    if (complete || !strncmp(argv[1], "pam-", 4)) {
+        CHECK(!result && installed);
+        struct ae_login_source_expect inputs[AE_LOGIN_INSTALLED_BACKEND_COUNT];
+        CHECK(!ae_login_installed_backend(installed, inputs));
+        CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_USER_PAM].directory, "/etc/pam.d"));
+        CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_USER_PAM].leaf, "aetheri-login"));
+        CHECK(!strcmp(inputs[AE_LOGIN_INSTALLED_GREETER_PAM].leaf, "aetheri-greeter"));
+        struct ae_login_sources *sources = NULL;
+        int expected = complete ? 0 : -atoi(argv[1] + 4);
+        result = complete ? ae_login_sources_create(inputs, AE_LOGIN_INSTALLED_BACKEND_COUNT, &sources)
+                          : ae_login_sources_create(&inputs[AE_LOGIN_INSTALLED_USER_PAM], 2, &sources);
+        CHECK(result == expected && (sources != NULL) == (expected == 0));
+        if (sources) {
+            uint8_t first[AE_SHA256_BYTES], second[AE_SHA256_BYTES];
+            CHECK(!ae_login_sources_fingerprint(sources, first));
+            CHECK(!ae_login_sources_fingerprint(sources, second));
+            CHECK(!memcmp(first, second, sizeof first));
+        }
+        CHECK(!ae_login_sources_close(&sources) && !ae_login_installed_close(&installed));
+        return 0;
+    }
     if (strcmp(argv[1], "replacement")) {
         CHECK(result == -atoi(argv[1]) && !installed);
         return 0;

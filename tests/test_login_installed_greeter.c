@@ -45,6 +45,8 @@ int __wrap_ae_login_greeter_run(const struct ae_login_greeter_profile *profile,
     CHECK(profile->backend.source_count == AE_LOGIN_INSTALLED_BACKEND_COUNT);
     CHECK(!strcmp(profile->backend.sources[AE_LOGIN_INSTALLED_SELECTION].leaf, "selection.bin"));
     CHECK(profile->backend.sources[AE_LOGIN_INSTALLED_SELECTION].size == AE_LOGIN_SELECTION_BYTES);
+    CHECK(!strcmp(profile->backend.sources[AE_LOGIN_INSTALLED_USER_PAM].leaf, "aetheri-login"));
+    CHECK(!strcmp(profile->backend.sources[AE_LOGIN_INSTALLED_GREETER_PAM].leaf, "aetheri-greeter"));
     CHECK(profile->backend.greeter.uid == 1000 && profile->backend.greeter.gid == 1000);
     CHECK(!profile->backend.greeter.group_count);
     CHECK(profile->backend.greeter.program == AE_LOGIN_INSTALLED_GREETER);

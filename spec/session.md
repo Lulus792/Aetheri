@@ -11,6 +11,13 @@ actual one-display KMS app/save/shutdown workflow; read the linked runtime contr
 and [execution record](../brains/aetheri/journal/2026-11-10-current-desktop-owner.md).
 Normal service/device/session admission remains open.
 
+The bound session entry can compile `AETHERI_DESKTOP_SHARE` alongside its
+selected library path. It takes libinput quirks and EGL vendor data from
+that directory and Mesa drivers from the selected library directory's
+`dri` subdirectory. The bound runtime supplies these child-process paths.
+The standard PAM profile can stay focused on authentication and login.
+[libglvnd vendor discovery](https://github.com/NVIDIA/libglvnd/blob/master/src/EGL/icd_enumeration.md)
+
 ## Native desktop owner and original-session observation
 
 10 November 2026. The existing C17 owner in `src/boot/desktop.c` now uses

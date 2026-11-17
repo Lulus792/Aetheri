@@ -4,6 +4,7 @@
 #include "login/sources.h"
 
 struct ae_login_loaded;
+enum { AE_LOGIN_UNIT_DROPINS_MAX=5 };
 /* Join an original active service to three distinct independently selected
    source entries: fragment (data), program (ELF), configuration (data).
    The loaded, non-transient unit must start exactly PROGRAM --config CONFIG

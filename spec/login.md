@@ -803,7 +803,10 @@ modification and change times as seconds/nanoseconds. Each original ancestor
 including `/` contributes u64 mount ID, inode, device major/minor, UID/GID,
 mode, filesystem type, birth-present flag, birth seconds/nanoseconds and eight
 filesystem-ID bytes. Signed values use their two's-complement u64 encoding.
-The source count, path sizes and depth retain the existing bounded profile.
+The installed source list contains nine entries, including both selected
+PAM profiles in the original backend's mount view. Directory ancestry uses
+path-only handles and retains the existing ownership, symlink, mount and
+identity checks. The loaded systemd drop-in limit stays five.
 
 The protection of the selected file and parent supplies authenticity. The hash
 values identify the captured context. The administrative observation remains
