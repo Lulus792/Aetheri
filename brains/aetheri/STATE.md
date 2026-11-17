@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The installed shell's built-in `cat` prints the
+saved document and can redirect it to a byte-identical file. Eight
+shell and 18 installed-profile CTests pass. Two ACPI power-off cases
+start system shutdown and time out at the installed login-service
+stop, including after the replacement greeter displays its prompt.
+Next observe the original greeter worker through service shutdown
+and address the first-version power-off gap. See the
+[installed shell record](journal/2026-11-17-login-image-boot.md#installed-shell-cat).
+
 17 November 2026 — Signed VM Terminal executes `pwd` and reprompts
 with the corrected job-lookup permission. Files now opens the exact
 selected document in the editor, saves text, and reopens it after a

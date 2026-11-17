@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 extern char **environ;
@@ -18,6 +19,58 @@ const char *ae_shell_environment(void *context,const char *name) {
 }
 static int report(const char *message,int status) { dprintf(2,"aetheri-shell: %s\n",message); return status; }
 static bool parent_builtin(const char *name) { return !strcmp(name,"cd") || !strcmp(name,"export") || !strcmp(name,"unset") || !strcmp(name,"exit") || !strcmp(name,"jobs") || !strcmp(name,"fg") || !strcmp(name,"bg"); }
+
+enum cat_result { CAT_OK, CAT_INPUT_ERROR, CAT_OUTPUT_ERROR };
+
+static enum cat_result cat_stream(int input,const struct stat *output) {
+    struct stat source;
+    if (fstat(input,&source)) return CAT_INPUT_ERROR;
+    if (S_ISREG(output->st_mode) && source.st_dev==output->st_dev && source.st_ino==output->st_ino) {
+        errno=EINVAL;
+        return CAT_INPUT_ERROR;
+    }
+    unsigned char bytes[16384];
+    for (;;) {
+        ssize_t count;
+        do { count=read(input,bytes,sizeof(bytes)); } while (count<0 && errno==EINTR);
+        if (count<0) return CAT_INPUT_ERROR;
+        if (!count) return CAT_OK;
+        for (size_t offset=0;offset<(size_t)count;) {
+            ssize_t written=write(STDOUT_FILENO,bytes+offset,(size_t)count-offset);
+            if (written<0 && errno==EINTR) continue;
+            if (written<=0) {
+                if (!written) errno=EIO;
+                return CAT_OUTPUT_ERROR;
+            }
+            offset+=(size_t)written;
+        }
+    }
+}
+
+static int cat_command(const struct ae_shell_command *c) {
+    unsigned first=1;
+    while (first<c->argc && !strcmp(c->argv[first],"-u")) ++first;
+    if (first<c->argc && !strcmp(c->argv[first],"--")) ++first;
+    else if (first<c->argc && c->argv[first][0]=='-' && c->argv[first][1])
+        return report("usage: cat [-u] [--] [FILE ...]",2);
+
+    struct stat output;
+    if (fstat(STDOUT_FILENO,&output)) return report(strerror(errno),1);
+    int status=0;
+    for (unsigned i=first;;++i) {
+        bool standard=i==c->argc || !strcmp(c->argv[i],"-");
+        int input=STDIN_FILENO;
+        if (!standard) {
+            do { input=open(c->argv[i],O_RDONLY|O_CLOEXEC); } while (input<0 && errno==EINTR);
+        }
+        enum cat_result result=input<0 ? CAT_INPUT_ERROR : cat_stream(input,&output);
+        int saved=errno;
+        if (!standard && input>=0) close(input);
+        if (result!=CAT_OK) status=report(strerror(saved),1);
+        if (result==CAT_OUTPUT_ERROR || i+1>=c->argc) return status;
+    }
+}
+
 static int builtin(struct ae_shell_session *s,const struct ae_shell_command *c) {
     const char *name=c->argv[0];
     if (!strcmp(name,"exit")) {
@@ -55,9 +108,10 @@ static int builtin(struct ae_shell_session *s,const struct ae_shell_command *c) 
         if (!cwd) return report(strerror(errno),1);
         int n=dprintf(1,"%s\n",cwd);free(cwd);return n<0 ? 1 : 0;
     }
+    if (!strcmp(name,"cat")) return cat_command(c);
     if (!strcmp(name,"help")) {
         if (c->argc!=1) return report("usage: help",2);
-        return dprintf(1,"Aetheri experimental shell profile 0\nBuiltins: cd [PATH], export NAME VALUE, unset NAME, exit [STATUS], pwd, help\nInteractive -i: jobs, fg [ID], bg [ID]; Ctrl+C interrupt, Ctrl+Z stop\nForeground pipes and < > >> 2> 2>>; variables $NAME ${NAME} $?\nPOSIX script compatibility and persistent sessions are not implemented.\n")<0 ? 1 : 0;
+        return dprintf(1,"Aetheri experimental shell profile 0\nBuiltins: cd [PATH], export NAME VALUE, unset NAME, exit [STATUS], pwd, cat, help\nInteractive -i: jobs, fg [ID], bg [ID]; Ctrl+C interrupt, Ctrl+Z stop\nForeground pipes and < > >> 2> 2>>; variables $NAME ${NAME} $?\nPOSIX script compatibility and persistent sessions are not implemented.\n")<0 ? 1 : 0;
     }
     return ae_shell_jobs_command(s,c);
 }

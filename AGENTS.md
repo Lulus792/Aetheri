@@ -1,5 +1,17 @@
 # Working on Aetheri
 
+Current installed shell and power-off: read the installed shell cat
+section in the 2026-11-17 login-image-boot journal and spec/login-backend.md.
+Release 7afc331c0588 passes 8 shell and 18 installed-profile CTests.
+Signed ca26a6fdcabf prints the saved document and the redirected copy;
+offline journal replay on a separate copy confirms both have nine equal
+bytes. Preserve the generic bin_t denial. Immediate ACPI after logout
+and the later visible replacement-greeter ACPI case both wait on login
+service stop (24/45 seconds), with no clean unmount or power-down.
+The cause stays open. Diagnose original worker/service stop without
+weakening the infinite-stop fence or inferring drain. Preserve both
+interrupted attempts and their original data. USB and NexaUI gates apply.
+
 Current shell and document handoff: read the shell job selection section
 in the 2026-11-17 login-image-boot journal and spec/files.md. The two
 enforcing policy reads and 35 decisions pass. Signed 5c0b5e09cd37

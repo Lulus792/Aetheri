@@ -69,6 +69,27 @@ class ShellExecution(unittest.TestCase):
         self.assertEqual((code, out, err), (0, b"", b""))
         self.assertEqual((self.root / "note").read_bytes(), b"payload")
 
+    def test_builtin_cat_preserves_bytes_and_uses_no_path_program(self):
+        payload = bytes(range(256)) * 1536 + b"no final newline"
+        (self.root / "first").write_bytes(payload)
+        (self.root / "-last").write_bytes(b"tail")
+        env = {**self.env, "PATH": "/aetheri-path-disabled"}
+        result = self.run_shell("cat -u -- first - -last | cat > copy", data=b"stdin", env=env)
+        self.assertEqual(result, (0, b"", b""))
+        self.assertEqual((self.root / "copy").read_bytes(), payload + b"stdintail")
+
+    def test_builtin_cat_reports_failed_input_and_refuses_self_append(self):
+        note = self.root / "note"
+        note.write_bytes(b"content")
+        code, out, err = self.run_shell("cat missing note")
+        self.assertEqual((code, out), (1, b"content"))
+        self.assertTrue(err)
+        code, out, err = self.run_shell("cat note >> note")
+        self.assertEqual((code, out), (1, b""))
+        self.assertTrue(err)
+        self.assertEqual(note.read_bytes(), b"content")
+        self.assertEqual(self.run_shell("cat -X note")[:2], (2, b""))
+
     def test_parent_state_and_last_status(self):
         target = self.root / "Grüße with space"
         target.mkdir()

@@ -42,10 +42,15 @@ exit 0
   select file redirections, at most one per standard descriptor per command.
   `>`/`2>` truncate an existing target; append preserves existing bytes. File
   names use the same word rules. Redirections override that stage's pipe end.
-- Builtins: `cd [PATH]`, `export NAME VALUE`, `unset NAME`, `exit [0..255]`, `pwd`
-  and `help`, plus interactive `jobs`, `fg [ID]` and `bg [ID]`. Parent-state/job
+- Builtins: `cd [PATH]`, `export NAME VALUE`, `unset NAME`, `exit [0..255]`, `pwd`,
+  `cat` and `help`, plus interactive `jobs`, `fg [ID]` and `bg [ID]`. Parent-state/job
   builtins must be alone without redirection; invalid
-  use rejects the whole pipeline before effects. `pwd`/`help` can be piped.
+  use rejects the whole pipeline before effects. `pwd`, `cat` and `help` can be piped.
+- `cat [-u] [--] [FILE ...]` copies bytes in order with no added line ending.
+  With no files or an operand of `-`, it reads standard input. Use `--` before
+  a filename that starts with a dash. It writes chunks directly, preserves
+  the pipeline and redirection rules, and rejects a regular input that aliases
+  the output. A failed input reports status 1 while later inputs are still read.
 - `;`, `&`, `&&`, `||`, command substitution, here-documents, function/value
   syntax and multiline quoting are unsupported and fail before execution.
   Existing shell scripts require an explicit appropriate interpreter. A script

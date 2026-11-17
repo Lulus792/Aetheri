@@ -386,3 +386,47 @@ and logind removes the session. The two full images retain their
 read-only boot digests and all new QEMU processes terminated. Next
 admit the required shell utilities through the fixed release selection
 and integrate the fixed apps into the public image assembly.
+
+## Installed shell cat
+
+Baseline image `a2906a8c4658` session `cd39ee52` uses a copy of the
+saved document volume. Typing `cat /home/aetheri/Documents/vmprobe`
+displays `Permission denied` and a fresh shell prompt. This reproduces
+a failure in the current installed profile; the older laptop's exact
+command and output are unavailable.
+
+The original Aetheri shell now implements byte-stream `cat` using its
+existing pipeline child, redirections and file permissions. It handles
+partial writes, interrupted I/O, standard input and multiple files.
+The tests cover copying binary data through two pipeline stages with
+PATH unavailable, a dash-prefixed filename, input-error continuation,
+and refusal to append a file to itself. Release `7afc331c0588` passes
+all eight shell CTests and the 18 selected installed-profile CTests.
+Its shell SHA-256 is
+`82b386f97b216ea39ce1388ba74bbdf5628bc5331c02d28e83f49b908abf1ff2`.
+Signed VM image `ca26a6fdcabf` retains the same effective policy and
+starts through the protected login startup path.
+
+Session `f72d8c78` displays the saved `validated` file through
+Terminal. It logs out normally but the harness quits QEMU before the
+redirected file reaches the recovered data disk. Session `de132e86`
+displays both the original and redirected file with identical visible
+text. Replay on a separate memory copy verifies that both files
+contain the same nine bytes and that the copy has the document type.
+The original captured data disk SHA-256 is
+`ef5d30306cdb976b0c11abd6d3cc07a14706abd466d98e293aaee29638644732`.
+
+The latter session also reveals a separate power-off gap. After normal
+logout and logind's removal of user session 2, the ACPI power key starts
+systemd shutdown while the replacement greeter opens PAM session 3.
+The 24-second harness deadline expires without login-service stop,
+data unmount or kernel power-down. The harness then ends QEMU.
+Session `b4f9129e` independently matches the replacement account
+prompt before requesting power-off. Its 45-second deadline expires at
+the same service-stop boundary. Thus the observed stall also occurs
+after the replacement prompt is visible. Logind removes the replacement
+scope, but its worker's PAM close is absent from the trace. The stop
+cause stays open.
+Both attempts ended through the harness and their data are preserved.
+Next diagnose installed idle-greeter shutdown with original-worker
+observations before claiming clean full-system power-off.
