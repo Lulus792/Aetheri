@@ -17,6 +17,8 @@
 (allow init_t aetheri_login_startup_t (process2 (nnp_transition)))
 (allow init_t aetheri_login_startup_exec_t (file (read open getattr execute map)))
 (allow init_t aetheri_login_runtime_t (dir (mounton)))
+; The boot-time tmpfiles recipe provisions the runtime directory before login.
+(allow systemd_tmpfiles_t aetheri_login_runtime_t (dir (create getattr setattr)))
 (allow aetheri_login_startup_t aetheri_login_startup_exec_t (file (entrypoint execute read open getattr map)))
 (allow aetheri_login_startup_t init_t (fd (use)))
 (allow aetheri_login_startup_t init_t (process (sigchld getattr)))

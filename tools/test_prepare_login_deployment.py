@@ -73,7 +73,15 @@ class LoginDeploymentTests(unittest.TestCase):
         self.assertEqual(conf["default_session"]["command"],
                          "/usr/libexec/aetheri/aetheri-login-greeter")
         units = tree / deployment.UNITS
-        self.assertIn("Wants=aetheri-login-startup.service", (units / "aetheri-login.service").read_text())
+        backend = (units / "aetheri-login.service").read_text().splitlines()
+        self.assertIn("Wants=aetheri-login-startup.service", backend)
+        self.assertIn("Requires=systemd-logind.service systemd-tmpfiles-setup.service", backend)
+        self.assertEqual([line for line in backend if line.startswith("AssertPathIsDirectory=")], [
+            "AssertPathIsDirectory=/run/aetheri/login",
+            "AssertPathIsDirectory=/run/aetheri/login-greeter",
+            "AssertPathIsDirectory=/run/aetheri/login-tmp",
+            "AssertPathIsDirectory=/run/aetheri/login-shm",
+        ])
         self.assertIn("SELinuxContext=system_u:system_r:aetheri_login_startup_t:s0",
                       (units / "aetheri-login-startup.service").read_text())
         self.assertFalse((units / "display-manager.service").exists())

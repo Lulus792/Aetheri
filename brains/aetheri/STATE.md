@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The standalone signed UEFI VM passes root/data
+checks. The tmpfiles correction admits just the private login
+directories and the corrected boot reaches the original greeter PAM
+open/close. The backend worker still invokes `/bin/sh`, which the
+image lacks. The VT8 screenshot and selected source identify the
+failed exec before the greeter. Next verify native direct execution
+for the installed backend, re-sign and boot again. See the
+[standalone login record](journal/2026-11-17-login-image-boot.md).
+
 17 November 2026 — Offline compilation stages the production login policy
 and file contexts from the selected distribution module store. The
 running carrier keeps its original policy. Two cold boots of the separate

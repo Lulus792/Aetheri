@@ -13,6 +13,10 @@
 (typeattributeset entry_type (aetheri_greeter_display_exec_t))
 (roletype system_r aetheri_greeter_display_t)
 
+; Prepare the private render and scratch directory metadata at boot.
+(allow systemd_tmpfiles_t aetheri_greeter_render_t (dir (create getattr setattr)))
+(allow systemd_tmpfiles_t aetheri_login_shm_dir_t (dir (create getattr setattr)))
+
 ; The ordinary greeter executes the protected compositor and observes its
 ; original pidfd and ELF. The parent can stop its child without ptrace.
 (typetransition aetheri_greeter_t aetheri_greeter_display_exec_t process aetheri_greeter_display_t)

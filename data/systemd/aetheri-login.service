@@ -1,10 +1,14 @@
 [Unit]
 Description=Aetheri graphical login
-Requires=systemd-logind.service
+Requires=systemd-logind.service systemd-tmpfiles-setup.service
 Wants=aetheri-login-startup.service
 After=dbus.socket systemd-logind.service systemd-user-sessions.service systemd-tmpfiles-setup.service
 Conflicts=getty@tty8.service
 After=getty@tty8.service
+AssertPathIsDirectory=/run/aetheri/login
+AssertPathIsDirectory=/run/aetheri/login-greeter
+AssertPathIsDirectory=/run/aetheri/login-tmp
+AssertPathIsDirectory=/run/aetheri/login-shm
 
 [Service]
 Type=exec

@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current standalone signed login VM: read `brains/aetheri/STATE.md` and
+the 2026-11-17 login-image-boot journal. Final Release profile passes
+13 CTests and package suite passes four. The original root/data checks
+pass. After the tmpfiles correction, signed image e536a921bc7e starts
+the backend and PAM opens/closes actual greeter session 1. VT8 and
+worker source identify the missing /bin/sh exec despite source_profile
+false. The selected greeter ELF exists. Startup selection occurs but
+namespace observation ends after the backend exits. Next verify direct
+exec for the installed backend, preserve worker/PAM ownership, then
+re-sign and boot. Both VM cases are terminal. Keep their logs/screens,
+the separate audit findings, the physical USB gate and NexaUI
+maintenance-only state.
+
 Current offline image policy: read spec/login-deployment.md and the
 2026-11-17 login-offline-policy journal. Keep the three production CIL
 sources and login file contexts together. The offline compiler uses a
