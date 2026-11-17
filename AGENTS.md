@@ -1,5 +1,17 @@
 # Working on Aetheri
 
+Current graphical policy: read spec/login.md and the 2026-11-17
+graphical-login-policy journal. The separate compositor domain uses logind
+devices and has no direct device open or backend credential path. Two real
+confined graphical PAM authentications reach the Start action. Final
+cd81c2dc1d7e retires the four original pins at zero and records greeter PAM
+closure; it sends no Start. Keep typed private scratch, the received-only
+read/write pixel FD and the no-ptrace/no-device-open checks. Final loaded
+decisions and strict negative compiles pass. Preserve prior failures and the
+original-pin loss case. Next same-policy graphical Start into a separate user
+runtime and regular deployment. USB gate remains. NexaUI P04 maintained in
+place; no new chat message.
+
 Current greeter shutdown correction: read spec/login.md and the 2026-11-17
 graphical-login-stop journal. Connection watch is local and retains existing
 fences; command preparation and pump still revalidate admission. The old

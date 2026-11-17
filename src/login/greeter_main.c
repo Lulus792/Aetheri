@@ -4,12 +4,17 @@
 #include <stdio.h>
 #include <systemd/sd-journal.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <syslog.h>
 #include <unistd.h>
 
 static int redirect_diagnostics(void)
 {
-    if (!isatty(STDERR_FILENO)) return 0;
+    struct stat error;
+    if (!isatty(STDERR_FILENO) &&
+        (fstat(STDERR_FILENO, &error) || !S_ISCHR(error.st_mode) ||
+         error.st_rdev != makedev(1, 3))) return 0;
     int stream = sd_journal_stream_fd("aetheri-greeter", LOG_INFO, 0);
     if (stream < 0) return 0;
     int status = dup2(stream, STDERR_FILENO) < 0;

@@ -1,5 +1,17 @@
 # State
 
+17 November 2026 — The graphical login policy now separates the greeter from
+its device-owning Wayland child. Real confined cases reach the focused
+account form, actual PAM password prompt and authenticated Start action.
+Case cd81c2dc1d7e closes the original greeter chain at zero and records PAM
+closure. No Start was submitted in this profile. The actual pin needs
+separate private /tmp and /dev/shm mounts. The pixel descriptor is writable
+for the compositor's shared mapping but pathname operations are forbidden.
+The final rule set passes 258 loaded decisions and ten strict negative
+compiles. Next carry the verified graphical chain into a user-specific
+runtime and installed deployment. See the
+[graphical policy record](journal/2026-11-17-graphical-login-policy.md).
+
 17 November 2026 — Greeter poll descriptor lookup now reads local state.
 The event loop can handle its pending stop before transport work, with full
 admission checks at command preparation and every pump. The ordering

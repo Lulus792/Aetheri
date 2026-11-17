@@ -20,7 +20,7 @@ class Decision(ctypes.Structure):
                 ("allowed", "decided", "auditallow", "auditdeny", "seqno", "flags")]
 
 
-def inspect(expected: str) -> dict:
+def inspect(expected: str, graphical: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -186,6 +186,36 @@ def inspect(expected: str) -> dict:
         check(role, obj("aetheri_session_shm_t"), "file", "create", True)
         check(role, obj("aetheri_session_memfd_t"), "file", "write", True)
         check(role, obj("tmpfs_t"), "file", "write", False)
+    if graphical:
+        display = process("aetheri_greeter_display_t")
+        display_exec = obj("aetheri_greeter_display_exec_t")
+        check(greeter, display, "process", "transition", True)
+        check(greeter, display, "process2", "nnp_transition", True)
+        check(greeter, display, "process", "ptrace", False)
+        check(display, greeter, "process", "ptrace", False)
+        check(greeter, display_exec, "file", "execute_no_trans", False)
+        check(display, display_exec, "file", "entrypoint", True)
+        check(display, process("systemd_logind_t"), "fd", "use", True)
+        for device in ("dri_device_t", "event_device_t"):
+            check(display, obj(device), "chr_file", "read", True)
+            check(display, obj(device), "chr_file", "open", False)
+        check(display, backend, "unix_stream_socket", "connectto", False)
+        check(display, obj("aetheri_login_socket_t"), "sock_file", "write", False)
+        check(display, obj("aetheri_login_handoff_t"), "file", "read", False)
+        check(display, obj("shadow_t"), "file", "read", False)
+        check(display, obj("user_home_t"), "file", "read", False)
+        check(display, display, "process", "execmem", False)
+        for klass in ("tcp_socket", "udp_socket"):
+            check(display, display, klass, "create", False)
+        for role in (display, greeter):
+            check(role, obj("tmpfs_t"), "file", "write", False)
+            check(role, obj("aetheri_greeter_shm_dir_t"), "dir", "add_name", True)
+        check(greeter, obj("aetheri_greeter_shm_t"), "file", "write", True)
+        check(display, obj("aetheri_greeter_shm_t"), "file", "write", True)
+        for permission in ("open", "create", "unlink"):
+            check(display, obj("aetheri_greeter_shm_t"), "file", permission, False)
+        check(display, obj("aetheri_greeter_keymap_t"), "file", "write", True)
+        check(greeter, obj("aetheri_greeter_keymap_t"), "file", "write", False)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -197,9 +227,10 @@ def inspect(expected: str) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-policy-sha256", required=True)
+    parser.add_argument("--graphical", action="store_true", help="also check the graphical greeter roles")
     args = parser.parse_args()
     try:
-        record = inspect(args.expected_policy_sha256)
+        record = inspect(args.expected_policy_sha256, args.graphical)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

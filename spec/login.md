@@ -216,8 +216,9 @@ The runner closes the local display and observes its original direct child's
 exit. If the child needs a stop request, it sends SIGTERM through the held
 pidfd and checks for exit within the bounded retirement window. The launcher
 reports Start acknowledgement separately from the desktop lifecycle and uses
-the local journal for stderr diagnostics when greetd attaches a VT and the
-journal is available.
+the local journal for stderr diagnostics when greetd attaches a VT or the
+domain transition replaces stderr with the null device. A redirected output
+file or pipe keeps its original destination.
 
 An [isolated VM deployment](../brains/aetheri/journal/2026-11-17-graphical-login-desktop.md)
 exercises the native graphical entry, original greetd peer, protected
@@ -227,6 +228,32 @@ greeter. The [stop regression](../brains/aetheri/journal/2026-11-17-graphical-lo
 verifies that administrative backend stop retires the original idle greeter
 and completes again after a full login and return to the greeter. Dedicated
 confinement for the graphical deployment and normal installation remain pending.
+
+### Graphical greeter policy
+
+The candidate [graphical policy](../policy/login-graphical.cil) adds a
+separate domain for the exact compositor executable. Only the greeter
+transitions there. The greeter can observe and stop its own compositor
+child. The compositor uses the unnamed display channel and receives
+seat devices through logind. It has no direct input or DRM open permission.
+The greeter retains the protected login connection. The compositor has no
+backend-socket, login handoff or shadow access.
+
+The graphical domain pair uses separately typed pixel buffers and keyboard
+maps. A deployment that uses POSIX shared memory must select a private
+directory with the designated graphical type. The greeter receives the
+window's keyboard map read-only. The compositor receives the greeter's
+pixel FD with read/write access for libwayland's shared mapping. The
+compositor cannot open, create or unlink files of that pixel type. The
+read-only policy checker accepts `--graphical` to verify these decisions
+against an independently selected digest of the effective enforcing policy.
+
+The [graphical policy verification](../brains/aetheri/journal/2026-11-17-graphical-login-policy.md)
+uses the original protected startup publisher and real PAM in the four
+dedicated login/display domains. It reaches a visible authenticated prompt
+and stops the original greeter chain. The test uses a private `/tmp` for the
+pinned renderer and a private `/dev/shm` for keyboard maps. The transition
+from this graphical profile to the installed user desktop remains open.
 
 ## Dedicated greeter account and supplementary groups
 
