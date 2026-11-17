@@ -1,6 +1,7 @@
 """Check the offline desktop audio projection and its existing-file boundary."""
 
 import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -86,6 +87,23 @@ class DesktopAudio(unittest.TestCase):
         self.assertEqual(result["symlinks"]["/" + alias], pins["symlinks"][alias])
         staged = {entry["destination"]: entry["sha256"] for entry in result["files"]}
         self.assertEqual(staged["/" + plugin["path"]], plugin["sha256"])
+
+    def test_sound_rule_uses_the_package_pin(self):
+        name = audio.SOUND_RULE.lstrip("/")
+        source = self.root / "source" / name
+        row = self.file(self.root / "source", name, "runtime")
+        pin = {"destination": audio.SOUND_RULE, "package": "systemd-udev-test",
+               **{key: row[key] for key in ("size", "mode", "sha256")}}
+        pins = self.root / "inputs.json"
+        pins.write_text(json.dumps({"format": 1, "file": pin}), encoding="utf-8")
+        with patch.object(audio, "SOUND_RULE_INPUTS", pins):
+            manifest = audio.audio_manifest(self.graph, self.policy, sound_rule=source)
+            selected = next(entry for entry in manifest["files"] if entry["destination"] == audio.SOUND_RULE)
+            self.assertEqual(selected, {**pin, "source": str(source)})
+            source.write_bytes(b"x" * pin["size"])
+            with self.assertRaisesRegex(ValueError, "changed udev sound rule bytes"):
+                audio.install(self.image, self.graph, self.policy, sound_rule=source)
+        self.assertEqual(list(self.image.iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import stat
 import sys
 
 import desktop_payload
@@ -18,9 +19,12 @@ DAEMONS = {
 }
 CONFIG_ROOT = Path(__file__).resolve().parents[1] / "data/audio"
 CONFIG_FILES = ("pipewire.conf", "client.conf", "wireplumber.conf.d/80-aetheri.conf")
+SOUND_RULE_INPUTS = CONFIG_ROOT.parents[1] / "spec/audio-udev-inputs.json"
+SOUND_RULE = "/usr/lib/udev/rules.d/78-sound-card.rules"
 
 
-def audio_manifest(graph: Path, policy: Path, hda: Path | None = None) -> dict:
+def audio_manifest(graph: Path, policy: Path, hda: Path | None = None,
+                   sound_rule: Path | None = None) -> dict:
     """Project only runtime files, logic, device data and notices from checked prefixes."""
     graph, policy = graph.absolute(), policy.absolute()
     prepare_audio.check(graph)
@@ -59,6 +63,20 @@ def audio_manifest(graph: Path, policy: Path, hda: Path | None = None) -> dict:
                     raise ValueError(f"conflicting audio inputs for {destination}")
             else:
                 selected[destination] = row
+    if sound_rule is not None:
+        pins = json.loads(SOUND_RULE_INPUTS.read_bytes())
+        rule = pins["file"]
+        if pins["format"] != 1 or rule["destination"] != SOUND_RULE or SOUND_RULE in selected:
+            raise ValueError("expected the pinned udev sound rule")
+        sound_rule = sound_rule.absolute()
+        if (sound_rule.resolve(strict=True) != sound_rule or
+                not stat.S_ISREG(sound_rule.lstat().st_mode) or sound_rule.stat().st_size != rule["size"]):
+            raise ValueError("expected the selected regular udev sound rule")
+        with sound_rule.open("rb") as stream:
+            body = stream.read(rule["size"] + 1)
+        if len(body) != rule["size"] or hashlib.sha256(body).hexdigest() != rule["sha256"]:
+            raise ValueError("changed udev sound rule bytes")
+        selected[SOUND_RULE] = {**rule, "source": str(sound_rule)}
     for name in CONFIG_FILES:
         source = CONFIG_ROOT / name
         body = source.read_bytes()
@@ -87,7 +105,8 @@ def audio_manifest(graph: Path, policy: Path, hda: Path | None = None) -> dict:
     return manifest
 
 
-def install(tree: Path, graph: Path, policy: Path, hda: Path | None = None) -> dict:
+def install(tree: Path, graph: Path, policy: Path, hda: Path | None = None,
+            sound_rule: Path | None = None) -> dict:
     tree = tree.absolute()
     if tree == Path(tree.anchor) or tree.resolve(strict=True) != tree:
         raise ValueError("select an offline image tree")
@@ -95,7 +114,9 @@ def install(tree: Path, graph: Path, policy: Path, hda: Path | None = None) -> d
            or prefix.absolute().is_relative_to(tree) for prefix in (graph, policy, hda)
            if prefix is not None):
         raise ValueError("audio image tree overlaps an input prefix")
-    manifest = audio_manifest(graph, policy, hda)
+    if sound_rule is not None and sound_rule.resolve(strict=True).is_relative_to(tree):
+        raise ValueError("select the udev sound rule outside the image tree")
+    manifest = audio_manifest(graph, policy, hda, sound_rule)
     result = desktop_payload.install(tree, manifest)
     return {
         **result,
@@ -113,9 +134,11 @@ def main() -> int:
     parser.add_argument("--pipewire-prefix", required=True, type=Path)
     parser.add_argument("--wireplumber-prefix", required=True, type=Path)
     parser.add_argument("--hda-prefix", type=Path)
+    parser.add_argument("--sound-rule", type=Path)
     args = parser.parse_args()
     try:
-        result = install(args.image_root, args.pipewire_prefix, args.wireplumber_prefix, args.hda_prefix)
+        result = install(args.image_root, args.pipewire_prefix, args.wireplumber_prefix,
+                         args.hda_prefix, args.sound_rule)
     except (OSError, ValueError, KeyError) as error:
         print(f"desktop audio: {error}", file=sys.stderr)
         return 1

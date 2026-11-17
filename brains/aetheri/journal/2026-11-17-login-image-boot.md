@@ -653,3 +653,36 @@ package, check the original card and control-node ACL in the live session,
 and verify playback with a mediated client. The carrier's installed 259.5
 copy has different provenance. No physical playback or Settings control
 was exercised in these runs.
+
+## Desktop HDA discovery
+
+Fedora's signed `systemd-udev-259.10-1.fc44.x86_64` RPM supplies
+`78-sound-card.rules`. The carrier verified the package signature, header
+and payload digests. A literal GNU cpio extraction matched the RPM header's
+4,816-byte file record. The earlier audio-only archive reader refused the
+full udev package's member names. No package script ran. The rule's bytes
+also match the earlier carrier observation, and the image uses the exact
+259.10 package input. `spec/audio-udev-inputs.json` keeps these pins separate
+from the frozen desktop input manifest used by libinput preparation.
+
+Signed image `bbbdaf5a4579` uses the existing enforcing policy. The 79
+readback decisions include WirePlumber's existing directory `open` access.
+A candidate explicit allow (`d77491923c3b`) compiled to identical policy
+bytes, so the redundant rule was omitted. The native stager verified the
+final 260-file, seven-alias projection against the read-only image and
+reused every file. Five focused native and 15 host payload tests passed.
+
+With virtual Intel HDA in `62527d4e`, the normal desktop login starts both
+audio actors. A test-only WirePlumber log fragment records successful
+access checks on `/dev/snd/pcmC0D0p`, publication of the ALSA device, selection
+of `output:analog-stereo` on `alsa_card.pci-0000_00_04.0`, and application of
+`analog-output-lineout` and mixer volume. These logs show the ordinary
+session's device and route behavior. They do not independently inventory the
+kernel ACL or measure a rendered PCM stream. In `776d5a4a`, the same image
+without HDA starts the audio pair and reports no sound device. Both sessions
+reap both original children with exit zero, remove runtime, close PAM and
+return to the greeter. All QEMU instances ended and media hashes agree.
+
+Next bind an authorized playback/control client to the original graph and
+verify the emulated PCM output and Settings. Physical laptop testing remains
+after VM acceptance.

@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current HDA discovery: read the 2026-11-17 discovery record and
+`spec/login-deployment.md#pipewire-and-wireplumber-files`. The signed Fedora
+259.10 rule is selected by the audio supplement. Image bbbdaf5a4579 session
+62527d4e sees readable/writable virtual PCM and selects analog stereo and
+line-out. 776d5a4a passes without HDA. Both cleanly return to the greeter.
+Final image projection and 79 policy decisions pass. Preserve the first
+archive-reader failure and unrelated frozen base pins. Next mediated graph
+client, actual PCM playback and Settings. USB gate remains.
+
 Current audio policy: read `spec/audio-session.md#selinux-and-sound-devices`
 and the 2026-11-17 audio policy record. Offline optional roles and private
 paths compile. Signed HDA VM 819df4d9e095/session b3f5a90b reaches both

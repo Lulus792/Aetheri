@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "rpm": {
+    "name": "systemd-udev-259.10-1.fc44.x86_64.rpm",
+    "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/Packages/s/systemd-udev-259.10-1.fc44.x86_64.rpm",
+    "size": 2786868,
+    "sha256": "16c06e9a6b99228056a9b79d6babf7a07b41cbe5194ae1eb1e0968b0e119fcc4",
+    "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6"
+  },
+  "file": {
+    "destination": "/usr/lib/udev/rules.d/78-sound-card.rules",
+    "size": 4816,
+    "sha256": "ec291608292fe2de555e8a1e5ce574acf315fe65268c469872614073d5e36cae",
+    "mode": 420,
+    "package": "systemd-udev-259.10-1.fc44.x86_64",
+    "provenance": null
+  }
+}

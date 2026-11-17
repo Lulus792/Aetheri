@@ -113,12 +113,20 @@ Stage the runtime in the offline desktop root before applying file contexts.
 Supply the checked prefixes from [PipeWire preparation](audio.md) and the
 [WirePlumber Lua 5.5 candidate](audio-policy-candidate.md). For HDA, also
 prepare the [ALSA library and plug-in prefix](audio-hardware.md) with
-`tools/prepare_audio_hda.py prepare`.
+`tools/prepare_audio_hda.py prepare`. Verify the `systemd-udev` RPM against
+the [sound rule pin](audio-udev-inputs.json), including the Fedora signature
+and package SHA-256. Extract only the selected rule into the build staging
+area. The stager checks the rule's length and digest again.
+
+```sh
+rpm2cpio "$UDEV_RPM" | cpio --extract --quiet --to-stdout \
+  './usr/lib/udev/rules.d/78-sound-card.rules' > "$SOUND_RULE"
+```
 
 ```sh
 python3 tools/desktop_audio_payload.py --image-root "$IMAGE_ROOT" \
   --pipewire-prefix "$PIPEWIRE_PREFIX" --wireplumber-prefix "$WIREPLUMBER_PREFIX" \
-  --hda-prefix "$ALSA_PREFIX" \
+  --hda-prefix "$ALSA_PREFIX" --sound-rule "$SOUND_RULE" \
   > desktop-audio-receipt.json
 ldconfig -r "$IMAGE_ROOT"
 ```
@@ -133,9 +141,9 @@ next build from a fresh image root.
 
 `/usr/share/aetheri/audio` contains the graph and client configuration and a
 WirePlumber fragment. The fragment uses the pinned ACP card profiles to expose
-HDA routes and uses library files from the same selected build. For this
-profile the local graph socket is for trusted session roles. A desktop app
-needs its own permission before it can connect. [PipeWire configuration](https://pipewire.pages.freedesktop.org/pipewire/page_man_pipewire_conf_5.html)
+HDA routes. The udev rule marks cards initialized after their control nodes
+are processed. The graph socket is for trusted session roles. Desktop apps
+need their own permission before connecting. [PipeWire configuration](https://pipewire.pages.freedesktop.org/pipewire/page_man_pipewire_conf_5.html)
 [WirePlumber lookup rules](https://pipewire.pages.freedesktop.org/wireplumber/daemon/locations.html).
 
 The [session integration](audio-session.md#desktop-session-owner) is a build

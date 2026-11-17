@@ -54,6 +54,7 @@ def check_desktop_audio(check, process, obj) -> None:
     check(policy, socket, "sock_file", "write", True)
     check(policy, graph, "unix_stream_socket", "connectto", True)
     check(policy, obj("device_t"), "dir", "watch", True)
+    check(policy, obj("device_t"), "dir", "open", True)
     check(graph, obj("device_t"), "dir", "watch", False)
     check(policy, obj("device_t"), "chr_file", "open", False)
     for name in ("settings", "files", "terminal", "greeter"):

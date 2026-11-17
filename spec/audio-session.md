@@ -43,10 +43,12 @@ and the active user's udev/logind ACL. [PipeWire ALSA monitor](https://github.co
 Use `tools/check_login_policy.py --desktop-audio --expected-policy-sha256 DIGEST`
 from the image's administrative verification environment to check the loaded
 rules. An application still needs a mediated control or playback endpoint.
-The [signed desktop test](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-audio-policy)
-starts both audio roles after authentication and reaches ALSA monitoring. The
-image still needs the matching `78-sound-card.rules` udev rule and verification
-that the original sound card and playback route appear in the graph.
+The [signed desktop test](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-hda-discovery)
+starts both audio roles after authentication. With the pinned udev rule,
+WirePlumber reports the emulated PCM device accessible and selects the analog
+stereo profile and line-out port. The same image logs in and out cleanly
+without a sound card. Playback of a client stream and the Settings controls
+remain separate acceptance steps.
 
 ## Diskless user manager fixture
 

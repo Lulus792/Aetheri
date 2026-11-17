@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — The pinned Fedora udev sound rule closes discovery in
+the signed HDA desktop VM. After normal login, WirePlumber sees an accessible
+PCM device, selects analog stereo and line-out, and applies mixer volume.
+The same signed media without a card passes login/logout. Next authorize
+the mediated client and verify PCM playback and Settings controls.
+See the [discovery record](journal/2026-11-17-login-image-boot.md#desktop-hda-discovery).
+
 17 November 2026 — Dedicated audio policy builds offline and passes 78
 checks against the enforcing kernel readback. In the signed HDA VM both
 roles start after normal login, reach ALSA monitoring, and exit cleanly
