@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — The native Settings entry admits the inherited Sound
+descriptor, wakes the idle window on updates and keeps Displays usable on
+loss. Six Release CTests pass on the enforcing carrier, including a real
+Wayland Settings window with a controlled launcher. Next bind descriptor 3
+to the authenticated desktop owner's live audio authority and exercise a
+signed HDA session. See the [native entry record](journal/2026-11-17-login-image-boot.md#sound-channel-native-settings-entry).
+
 17 November 2026 — Settings sound messages now have a versioned private
 seqpacket codec, an owner request dispatcher and a client model adapter.
 Release and ASan/UBSan tests join both endpoints and the existing model.

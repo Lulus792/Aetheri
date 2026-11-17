@@ -1178,6 +1178,11 @@ if(AETHERI_SETTINGS)
                     $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-settings-nexaui>
                     "${AETHERI_SETTINGS_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
                 set_tests_properties(settings.view_native PROPERTIES TIMEOUT 90 LABELS "nexaui")
+                add_test(NAME settings.sound_entry COMMAND Python3::Interpreter
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_settings_sound_entry.py"
+                    $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:aetheri-settings-nexaui>
+                    "${AETHERI_SETTINGS_TEST_FONT}" "${CMAKE_CURRENT_BINARY_DIR}")
+                set_tests_properties(settings.sound_entry PROPERTIES TIMEOUT 60 LABELS "nexaui")
                 if(AETHERI_ATSPI_TEST_PREFIX)
                     add_test(NAME settings.view_atspi COMMAND Python3::Interpreter
                         "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_settings_view.py"

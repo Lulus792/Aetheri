@@ -83,9 +83,18 @@ the owner's result cannot be delivered after dispatch, the owner retires
 the pair and Settings reports an unknown outcome. A locally busy send
 allows a fresh user action.
 
-The affected model and both endpoints pass native seqpacket tests. Wiring
-the original app launcher and desktop audio backend into this channel is
-pending.
+The native Settings executable accepts the explicit first argument
+`--sound-channel` with descriptor 3. It checks that the descriptor is an
+unnamed connected seqpacket socket created by its direct launcher parent
+with matching user and group credentials, then marks it close-on-exec. The
+session launcher and image policy still establish the parent's authority.
+Settings waits for sound, window and quit events together, processes at
+most eight sound packets per turn, and closes the channel on retirement.
+Its other pages remain usable after sound loss.
+
+The model, both endpoints and the native Sound page pass a private Wayland
+test with a controlled launcher. Provisioning descriptor 3 in the original
+desktop owner and binding its live audio backend are pending.
 
 The view exposes radio, slider and switch semantics, keyboard focus and
 English/German labels. Both raster densities, dark/light/high contrast,

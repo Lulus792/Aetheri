@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define CHECK(expr) do { if(!(expr)) { fprintf(stderr,"sound channel line %d: %s\n",__LINE__,#expr); exit(1); } } while(0)
@@ -21,6 +22,33 @@ static struct ae_audio_message available(void)
         .ref={1,27,4},.name="alsa_output.analog",.description="Line out",
         .is_default=true,.volume_available=true,.volume=0.45};
     return message;
+}
+
+static void launcher_admission(void)
+{
+    int sound[2],stream[2];
+    CHECK(!socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,sound));
+    CHECK(!socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,stream));
+    CHECK(!ae_settings_sound_channel_admit(sound[0]));
+
+    pid_t child=fork();
+    CHECK(child>=0);
+    if(!child) {
+        close(sound[0]);
+        close(stream[0]);
+        CHECK(!ae_settings_sound_channel_admit(stream[1]));
+        CHECK(!fcntl(sound[1],F_SETFD,0));
+        CHECK(ae_settings_sound_channel_admit(sound[1]));
+        CHECK(fcntl(sound[1],F_GETFD)==FD_CLOEXEC);
+        _exit(0);
+    }
+    int status;
+    CHECK(waitpid(child,&status,0)==child);
+    CHECK(WIFEXITED(status) && WEXITSTATUS(status)==0);
+    close(sound[0]);
+    close(sound[1]);
+    close(stream[0]);
+    close(stream[1]);
 }
 
 struct submit_fixture {
@@ -215,11 +243,12 @@ static void capacity_and_loss(void)
 
 int main(void)
 {
+    launcher_admission();
     round_trip();
     request_retirement();
     invalid_inputs();
     no_received_rights();
     capacity_and_loss();
-    puts("Sound channel: snapshots, ordered controls, malformed packets, ancillary closure and loss passed");
+    puts("Sound channel: launcher admission, snapshots, ordered controls, malformed packets, ancillary closure and loss passed");
     return 0;
 }

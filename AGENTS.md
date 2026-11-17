@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current native Sound entry: read spec/settings.md#private-sound-channel and
+the 2026-11-17 native Settings entry record. The NexaUI executable admits
+the direct launcher's unnamed seqpacket FD 3 and combines bounded audio
+receives with the normal event wait. Release 05da0db34a11 passes six CTests
+including a real Wayland window with controlled owner, original mute
+intent/readback and navigation after peer retirement. Use the payload
+environment with the original ctest executable. Next provision FD 3 in
+the authenticated desktop owner, bind live graph authority and verify
+signed HDA. USB gate remains.
+
 Current Sound channel: read spec/settings.md#private-sound-channel and the
 2026-11-17 Sound settings channel record. Version 1 has bounded native
 snapshot/intent/result packets. The owner dispatcher consumes each request

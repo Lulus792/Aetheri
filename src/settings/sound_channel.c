@@ -1,7 +1,34 @@
+#define _GNU_SOURCE
 #include "settings/sound_channel.h"
 #include "settings/model.h"
 #include "audio/control_wire.h"
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+bool ae_settings_sound_channel_admit(int fd)
+{
+    pid_t parent=getppid();
+    if(fd<3 || parent<=1 || getuid()!=geteuid() || getgid()!=getegid()) return false;
+    int type;
+    socklen_t size=sizeof type;
+    if(getsockopt(fd,SOL_SOCKET,SO_TYPE,&type,&size) || size!=sizeof type ||
+       type!=SOCK_SEQPACKET) return false;
+    struct sockaddr_un name;
+    size=sizeof name;
+    if(getsockname(fd,(struct sockaddr *)&name,&size) || size!=sizeof name.sun_family ||
+       name.sun_family!=AF_UNIX) return false;
+    size=sizeof name;
+    if(getpeername(fd,(struct sockaddr *)&name,&size) || size!=sizeof name.sun_family ||
+       name.sun_family!=AF_UNIX) return false;
+    struct ucred peer;
+    size=sizeof peer;
+    return !getsockopt(fd,SOL_SOCKET,SO_PEERCRED,&peer,&size) && size==sizeof peer &&
+        peer.pid==parent && peer.uid==getuid() && peer.gid==getgid() &&
+        getppid()==parent && fcntl(fd,F_SETFD,FD_CLOEXEC)==0;
+}
 
 void ae_settings_sound_channel_init(struct ae_settings_sound_channel *channel,int fd)
 {

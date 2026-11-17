@@ -960,3 +960,39 @@ passes a strict Release compile and execution in the same carrier.
 The normal desktop still needs to provision these endpoints and bind the
 live owner. That step includes original child and session admission, the
 Settings native event loop and a joined HDA test.
+
+## Sound channel native Settings entry
+
+The ordinary NexaUI Settings executable now accepts the inherited Sound
+channel on FD 3 with the explicit launch marker. On Linux 6.19.10, the
+launcher test confirms the kernel peer credentials on an unnamed seqpacket
+pair across fork. It rejects a self-created pair and a stream, and checks
+that the admitted descriptor has close-on-exec set. The selected parent
+must still be admitted by the desktop launch and installed policy.
+
+The window wait includes both the existing quit pipe and the Sound FD.
+The receive budget is eight packets per turn. A failed channel is retired
+and closed while the other Settings pages keep processing Wayland input.
+The private view test launches the real Settings ELF and clicks Sound and
+Mute through the test compositor. An idle view renders a synthetic output
+snapshot. The original request carries its selected revision and output
+identity. The submission leaves the mute state unchanged; matching
+readback confirms it. Closing the owner FD fences Sound, then clicking
+Displays works and Escape ends Settings at zero. The test also checks
+that the launch marker without an inherited descriptor returns 2.
+
+The focused Release build `05da0db34a11` passes six CTests with the
+original ctest executable and pinned library environment. Earlier attempts
+include a mistyped build target, a missing `libmtdev.so.1` in the compositor
+loader path and a silent compositor exit with an overlong private Unix
+socket path. The fixture now puts its runtime socket in a short private
+directory. The toolchain ctest wrapper dropped the required loader paths;
+the unchanged final binaries and fixture pass under the original ctest.
+The logs remain in the carrier's `settings-native-981144e1ae6a` and
+`settings-native-05da0db34a11` work directories.
+
+Next issue the pair from the authenticated desktop owner's fixed Settings
+launch, bind the original live graph and audio authority, and exercise
+the complete path on a signed HDA image. The private fixture uses a
+synthetic owner. Physical audio, Bluetooth, WLAN, suspend and the USB gate
+remain open.

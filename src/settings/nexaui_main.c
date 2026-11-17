@@ -6,6 +6,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "settings/nexaui_view.h"
 #include "settings/nexaui_main.h"
+#include "settings/sound_channel.h"
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
 #include "settings/audio_host.h"
 #endif
@@ -18,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/epoll.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -199,7 +201,49 @@ static int observe_displays(nx_window *window, struct ae_settings *model,
     }
     return 1;
 }
-int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *audio) {
+static int sound_wait_open(int signal,int sound)
+{
+    int wait=epoll_create1(EPOLL_CLOEXEC);
+    if(wait<0) return -1;
+    struct epoll_event event={.events=EPOLLIN,.data.fd=signal};
+    if(!epoll_ctl(wait,EPOLL_CTL_ADD,signal,&event)) {
+        event.data.fd=sound;
+        if(!epoll_ctl(wait,EPOLL_CTL_ADD,sound,&event)) return wait;
+    }
+    close(wait);
+    return -1;
+}
+
+static void sound_detach(int *wait,int *fd)
+{
+    if(*wait>=0) close(*wait);
+    close(*fd);
+    *wait=*fd=-1;
+}
+
+static void sound_receive(int wait,struct ae_settings_sound_channel *sound,
+                          struct ae_settings *model,int *dirty)
+{
+    struct epoll_event events[2];
+    int count;
+    do { count=epoll_wait(wait,events,2,0); } while(count<0 && errno==EINTR);
+    if(count<0) {
+        (void)ae_settings_sound_snapshot(model,NULL,AE_AUDIO_CONTROL_BACKEND_LOST);
+        ae_settings_sound_result(model,AE_AUDIO_UNAVAILABLE);
+        sound->pending=0;
+        sound->retired=true;
+        *dirty=1;
+        return;
+    }
+    for(int i=0;i<count;++i) if(events[i].data.fd==sound->fd) {
+        for(unsigned packets=0;packets<8 && !sound->retired;++packets) {
+            if(!ae_settings_sound_channel_receive(sound,model)) break;
+            *dirty=1;
+        }
+    }
+}
+
+static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *sound_fd) {
 #ifndef AETHERI_SETTINGS_AUDIO_HOST
     if(audio) return 2;
 #endif
@@ -222,6 +266,16 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
     struct chrome_pointer pointer={0};
     size_t length=0; unsigned char *font=load_font(font_path,&length);
     struct ae_settings model; ae_settings_init(&model);
+    struct ae_settings_sound_channel sound;
+    int sound_wait=-1;
+    if(sound_fd) {
+        ae_settings_sound_channel_init(&sound,*sound_fd);
+        sound_wait=sound_wait_open(fds[0],*sound_fd);
+        if(sound_wait<0) {
+            (void)ae_settings_sound_snapshot(&model,NULL,AE_AUDIO_CONTROL_BACKEND_LOST);
+            sound_detach(&sound_wait,sound_fd);
+        }
+    }
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
     bool audio_bound=false;
     if(audio) {
@@ -249,7 +303,8 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
     while(okay && !stopping) {
         nx_window_info info; nx_event event; int available=0, quit=0;
         uint32_t signal_events=0;
-        uint32_t timeout=busy?16:dirty?0:unavailable?1000:UINT32_MAX;int wait_fd=fds[0];
+        uint32_t timeout=busy?16:dirty?0:unavailable?1000:UINT32_MAX;
+        int wait_fd=sound_wait>=0?sound_wait:fds[0];
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
         if(audio) {wait_fd=ae_settings_audio_host_prepare(audio,fds[0],&timeout);if(wait_fd<0) {okay=0;break;}}
 #endif
@@ -266,6 +321,10 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
         if(signal_events & (NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP)) {okay=0;break;}
         if(stopping) break;
         if(info.should_close) break;
+        if(sound_wait>=0 && (signal_events&NX_WINDOW_FD_READABLE)) {
+            sound_receive(sound_wait,&sound,&model,&dirty);
+            if(sound.retired) sound_detach(&sound_wait,sound_fd);
+        }
         do {
             if(nx_window_next_event(window,&event,&available)!=NX_OK) {okay=0;break;}
             if(available) {
@@ -307,6 +366,11 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
         if(audio && !ae_settings_audio_host_update(audio,&changed)) {okay=0;break;}
 #endif
+        if(sound_wait>=0 && model.sound.queued) {
+            (void)ae_settings_sound_channel_send(&sound,&model);
+            if(sound.retired) sound_detach(&sound_wait,sound_fd);
+            changed=true;
+        }
         enum ae_settings_window_action action=ae_settings_view_take_action(view);
         if(action==AE_SETTINGS_WINDOW_CLOSE) break;
         nx_result request=NX_OK;
@@ -343,8 +407,7 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
             }
             fflush(stdout);}
         if(verify || diagnostics) {printf("MODEL theme=%d german=%d text=%u page=%d\n",(int)model.theme,model.german,model.text_percent,(int)model.page);fflush(stdout);}
-#ifdef AETHERI_SETTINGS_AUDIO_HOST
-        if(audio && diagnostics) {
+        if((audio || sound_fd) && diagnostics) {
             const struct ae_settings_sound *s=&model.sound;
             printf("AUDIO state=%d revision=%llu count=%zu feedback=%d stale=%d fenced=%d\n",(int)s->observation.state,
                 (unsigned long long)s->observation.revision,s->observation.count,(int)s->feedback,s->stale,s->fenced);
@@ -355,7 +418,6 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
             }
             fflush(stdout);
         }
-#endif
         if(diagnostics && !changed) {
             printf("SETTLED theme=%d german=%d text=%u page=%d %.0f %.0f\n",
                 (int)model.theme,model.german,model.text_percent,(int)model.page,info.width,info.height);
@@ -371,6 +433,7 @@ int ae_settings_nexaui_run(int argc, char **argv,struct ae_settings_audio_host *
         dirty=changed?1:0;
     }
 done:
+    if(sound_wait>=0) sound_detach(&sound_wait,sound_fd);
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
     if(audio_bound && !ae_settings_audio_host_bind(audio,NULL)) okay=0;
 #endif
@@ -382,6 +445,18 @@ done:
     if(!okay) fputs("Aetheri Settings view failed\n",stderr);
     return okay?0:1;
 }
+int ae_settings_nexaui_run(int argc,char **argv,struct ae_settings_audio_host *audio) {
+    return run(argc,argv,audio,NULL);
+}
 #ifndef AETHERI_SETTINGS_NO_MAIN
-int main(int argc,char **argv) {return ae_settings_nexaui_run(argc,argv,NULL);}
+int main(int argc,char **argv) {
+    if(argc>1 && !strcmp(argv[1],"--sound-channel")) {
+        int fd=3;
+        if(!ae_settings_sound_channel_admit(fd)) return 2;
+        int status=run(argc-1,argv+1,NULL,&fd);
+        if(fd>=0) close(fd);
+        return status;
+    }
+    return ae_settings_nexaui_run(argc,argv,NULL);
+}
 #endif
