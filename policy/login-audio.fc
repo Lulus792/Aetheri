@@ -1,0 +1,6 @@
+/usr/libexec/aetheri/aetheri-pipewire    -- system_u:object_r:aetheri_audio_graph_exec_t:s0
+/usr/libexec/aetheri/aetheri-wireplumber -- system_u:object_r:aetheri_audio_policy_exec_t:s0
+/usr/share/aetheri/audio(/.*)?              system_u:object_r:aetheri_audio_config_t:s0
+/usr/share/wireplumber(/.*)?                 system_u:object_r:aetheri_audio_config_t:s0
+/usr/share/alsa(/.*)?                        system_u:object_r:aetheri_audio_config_t:s0
+/usr/share/alsa-card-profile(/.*)?           system_u:object_r:aetheri_audio_config_t:s0

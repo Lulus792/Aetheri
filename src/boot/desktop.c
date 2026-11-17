@@ -345,15 +345,15 @@ static void runtime_finish(struct session_runtime *state)
 struct session_audio {
     bool disabled,stopping;
     double deadline;
-    int state;
+    int directory,state;
 };
 
 static bool audio_spawn(struct child *c, enum role role, const char *runtime)
 {
-    char directory[sizeof "XDG_RUNTIME_DIR="+512];
-    char state[sizeof "XDG_STATE_HOME="+512];
-    int n=snprintf(directory,sizeof directory,"XDG_RUNTIME_DIR=%s",runtime);
-    int s=snprintf(state,sizeof state,"XDG_STATE_HOME=%s",runtime);
+    char directory[sizeof "XDG_RUNTIME_DIR=/audio"+512];
+    char state[sizeof "XDG_STATE_HOME=/audio"+512];
+    int n=snprintf(directory,sizeof directory,"XDG_RUNTIME_DIR=%s/audio",runtime);
+    int s=snprintf(state,sizeof state,"XDG_STATE_HOME=%s/audio",runtime);
     if(n<0 || (size_t)n>=sizeof directory || s<0 || (size_t)s>=sizeof state)return false;
     char *env[]={directory,state,"LANG=C","HOME=/nonexistent",
         "PIPEWIRE_CONFIG_DIR=/usr/share/aetheri/audio","PIPEWIRE_REMOTE=aetheri-audio",
@@ -378,14 +378,19 @@ static void audio_step(struct session_audio *audio, struct child *children,
     if(runtime_match(owned->parent,owned->leaf,owned->directory))goto unavailable;
     if(!graph->pid){
         double time=now();
-        if(time<0 || mkdirat(owned->directory,"wireplumber",0700))goto unavailable;
-        audio->state=openat(owned->directory,"wireplumber",O_PATH|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
+        const int flags=O_PATH|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC;
+        if(time<0 || mkdirat(owned->directory,"audio",0700))goto unavailable;
+        audio->directory=openat(owned->directory,"audio",flags);
+        if(audio->directory<0 || mkdirat(audio->directory,"wireplumber",0700))goto unavailable;
+        audio->state=openat(audio->directory,"wireplumber",flags);
         if(audio->state<0 || !audio_spawn(graph,PIPEWIRE,runtime))goto unavailable;
         audio->deadline=time+6;
         return;
     }
     struct stat socket;
-    if(!fstatat(owned->directory,"aetheri-audio",&socket,AT_SYMLINK_NOFOLLOW)){
+    if(runtime_match(owned->directory,"audio",audio->directory) ||
+       runtime_match(audio->directory,"wireplumber",audio->state))goto unavailable;
+    if(!fstatat(audio->directory,"aetheri-audio",&socket,AT_SYMLINK_NOFOLLOW)){
         if(!S_ISSOCK(socket.st_mode) || socket.st_uid!=getuid() ||
            (socket.st_mode&07777)!=0600 || !audio_spawn(policy,WIREPLUMBER,runtime))goto unavailable;
         return;
@@ -421,10 +426,17 @@ static bool audio_retire(struct session_audio *audio, struct child *children, co
         if(c->output>=0)return false;
     }
     if(audio->state>=0){
-        int result=runtime_match(owned->directory,"wireplumber",audio->state);
-        if(!result && unlinkat(owned->directory,"wireplumber",AT_REMOVEDIR))result=-errno;
+        int result=runtime_match(owned->directory,"audio",audio->directory);
+        if(!result)result=runtime_match(audio->directory,"wireplumber",audio->state);
+        if(!result && unlinkat(audio->directory,"wireplumber",AT_REMOVEDIR))result=-errno;
         if(result)fprintf(stderr,"AETHERI_AUDIO_STATE_CLEANUP error=%d\n",result);
         close_fd(&audio->state);
+    }
+    if(audio->directory>=0){
+        int result=runtime_match(owned->directory,"audio",audio->directory);
+        if(!result && unlinkat(owned->directory,"audio",AT_REMOVEDIR))result=-errno;
+        if(result)fprintf(stderr,"AETHERI_AUDIO_RUNTIME_CLEANUP error=%d\n",result);
+        close_fd(&audio->directory);
     }
     audio->disabled=true;
     return true;
@@ -479,7 +491,7 @@ int main(void) {
     if(!entry_logging()){fputs("AETHERI_DESKTOP_FAIL logging\n",stderr);return 1;}
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
-    struct session_audio audio={.state=-1};
+    struct session_audio audio={.directory=-1,.state=-1};
 #endif
     struct session_runtime owned = { .parent = -1, .directory = -1, .cache = -1 };
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);

@@ -20,7 +20,52 @@ class Decision(ctypes.Structure):
                 ("allowed", "decided", "auditallow", "auditdeny", "seqno", "flags")]
 
 
-def inspect(expected: str, graphical: bool = False, applications: bool = False) -> dict:
+def check_desktop_audio(check, process, obj) -> None:
+    session = process("aetheri_session_t")
+    graph = process("aetheri_audio_graph_t")
+    policy = process("aetheri_audio_policy_t")
+    socket = obj("aetheri_audio_socket_t")
+    runtime = obj("aetheri_audio_runtime_t")
+    state = obj("aetheri_audio_state_t")
+    sound = obj("sound_device_t")
+    for role, name in ((graph, "graph"), (policy, "policy")):
+        program = obj(f"aetheri_audio_{name}_exec_t")
+        check(session, program, "file", "execute", True)
+        check(session, program, "file", "execute_no_trans", False)
+        check(session, role, "process2", "nnp_transition", True)
+        check(role, program, "file", "entrypoint", True)
+        check(role, obj("aetheri_audio_config_t"), "file", "read", True)
+        check(role, obj("aetheri_audio_config_t"), "file", "write", False)
+        check(role, obj("user_home_t"), "file", "read", False)
+        check(role, obj("tmpfs_t"), "file", "map", False)
+        check(role, role, "tcp_socket", "create", False)
+        check(role, role, "capability", "sys_admin", False)
+        for permission in ("open", "read", "write", "ioctl", "map"):
+            check(role, sound, "chr_file", permission, role == policy)
+        for source in ("settings", "files", "terminal", "greeter"):
+            check(process(f"aetheri_{source}_t"), program, "file", "execute", False)
+    check(session, runtime, "dir", "create", True)
+    check(session, state, "dir", "rmdir", True)
+    check(graph, state, "dir", "add_name", False)
+    check(policy, state, "dir", "add_name", True)
+    check(graph, runtime, "dir", "add_name", True)
+    check(policy, runtime, "dir", "add_name", False)
+    check(graph, socket, "sock_file", "create", True)
+    check(policy, socket, "sock_file", "write", True)
+    check(policy, graph, "unix_stream_socket", "connectto", True)
+    check(policy, obj("device_t"), "dir", "watch", True)
+    check(graph, obj("device_t"), "dir", "watch", False)
+    check(policy, obj("device_t"), "chr_file", "open", False)
+    for name in ("settings", "files", "terminal", "greeter"):
+        client = process(f"aetheri_{name}_t")
+        check(client, socket, "sock_file", "write", False)
+        check(client, graph, "unix_stream_socket", "connectto", False)
+        for permission in ("open", "read", "write", "ioctl", "map"):
+            check(client, sound, "chr_file", permission, False)
+
+
+def inspect(expected: str, graphical: bool = False, applications: bool = False,
+            desktop_audio: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -255,6 +300,8 @@ def inspect(expected: str, graphical: bool = False, applications: bool = False) 
         check(process("aetheri_files_t"), obj("aetheri_terminal_exec_t"), "file", "execute", True)
         check(process("aetheri_settings_t"), obj("aetheri_terminal_exec_t"), "file", "execute", False)
         check(process("aetheri_files_t"), obj("aetheri_settings_exec_t"), "file", "execute", False)
+    if desktop_audio:
+        check_desktop_audio(check, process, obj)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -268,9 +315,10 @@ def main() -> int:
     parser.add_argument("--expected-policy-sha256", required=True)
     parser.add_argument("--graphical", action="store_true", help="also check the graphical greeter roles")
     parser.add_argument("--applications", action="store_true", help="also check the installed desktop app roles")
+    parser.add_argument("--desktop-audio", action="store_true", help="also check the desktop audio roles")
     args = parser.parse_args()
     try:
-        record = inspect(args.expected_policy_sha256, args.graphical, args.applications)
+        record = inspect(args.expected_policy_sha256, args.graphical, args.applications, args.desktop_audio)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

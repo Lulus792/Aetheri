@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current audio policy: read `spec/audio-session.md#selinux-and-sound-devices`
+and the 2026-11-17 audio policy record. Offline optional roles and private
+paths compile. Signed HDA VM 819df4d9e095/session b3f5a90b reaches both
+original actors and ALSA inotify, then clean logout/replacement. All 78
+readback decisions pass. Preserve first label and watch failures and failed
+full-/run build. Next source exact systemd-udev 259.10 `78-sound-card.rules`,
+verify the actual card, ACL/device/route/PCM and connect Settings. The 259.5
+carrier rule is a different input. No USB release or NexaUI task.
+
 Current audio lifecycle: read `spec/audio-session.md#desktop-session-owner` and
 the 2026-11-17 owner record. The normal entry has an opt-in direct-child pair.
 Keep fixed environments, ordered pidfd retirement, optional audio failure and

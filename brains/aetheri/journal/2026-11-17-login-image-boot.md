@@ -613,3 +613,43 @@ independently. All three cases pass with the real pinned daemons in a private
 read-only-image overlay and no installed desktop policy change. Release CMake
 `784400f315a9` builds the feature and passes `linux.session` and
 `linux.session_entry`. Fourteen payload tests pass.
+
+## Desktop audio policy
+
+The optional image compiler stages a dedicated graph domain and routing
+domain. The session owner creates a separate labeled `audio` directory and
+holds both it and the routing state directory. WirePlumber has sound-device
+access within the pair. The graph and policy domains share IPC and their own
+buffers. The installed desktop apps lack direct access to either.
+
+Release build `564717d719fc` passes `linux.session` and `linux.session_entry`.
+The first signed assembly `31dd6ef1e26e` recreated the selection file without
+its original SELinux context. Startup rejected it with `-EACCES`. Assembly
+`63e7e121e283` preserves the file context and reaches the desktop. Session
+`46e7dafe` starts and retires both audio processes, clears the runtime and
+returns to the greeter. ALSA reports a permission denial on the `/dev/snd`
+inotify watch. The separately verified distribution policy labels the
+directory `device_t` and the sound character nodes `sound_device_t`.
+
+Offline compile `5c485cfcdd1b` adds WirePlumber's directory read/watch
+permission. Its two snapshot boots read the same enforcing policy, SHA-256
+`0b05857a7730c0e6aab8a3cd852e88094477de1b4bd179379accbaeb63582ca9`.
+The resulting policy passes 78 checked decisions. Build `94eda0c97a69` failed
+on the carrier's full `/run` and is preserved; the successful build used
+shared-memory scratch. The carrier remains on its original enforcing policy.
+
+Signed image `819df4d9e095`, session `b3f5a90b`, boots with virtual HDA,
+authenticates a normal user, reaches the desktop, and starts both original
+audio actors. Its test-only logging fragment records ALSA monitor activation
+and successful inotify startup. Both children exit zero on logout, the
+runtime directory is removed, PAM closes and the replacement greeter appears.
+The test boots are terminal and leave their read-only media hashes intact.
+
+The ALSA log has no admitted card or output route. The current root includes
+`70-uaccess.rules` and the seat rules, but its `78-sound-card.rules` is
+absent. PipeWire 1.6.11 requires the resulting `SOUND_INITIALIZED` property
+before considering a card. Add the exact rule from the selected 259.10 udev
+package, check the original card and control-node ACL in the live session,
+and verify playback with a mediated client. The carrier's installed 259.5
+copy has different provenance. No physical playback or Settings control
+was exercised in these runs.

@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — Dedicated audio policy builds offline and passes 78
+checks against the enforcing kernel readback. In the signed HDA VM both
+roles start after normal login, reach ALSA monitoring, and exit cleanly
+before the original runtime and session retire. The image lacks udev's
+selected `78-sound-card.rules`. Next add that pinned rule and verify card,
+route, device ACL and mediated playback. Settings control remains pending.
+See the [audio policy record](journal/2026-11-17-login-image-boot.md#desktop-audio-policy).
+
 17 November 2026 — Opt-in desktop audio reuses the session owner's
 original-child lifetime. Pinned ALSA staging and the Aetheri profiles
 pass the composed-root loader and live graph tests. Both roles exit

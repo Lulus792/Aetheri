@@ -139,9 +139,9 @@ needs its own permission before it can connect. [PipeWire configuration](https:/
 [WirePlumber lookup rules](https://pipewire.pages.freedesktop.org/wireplumber/daemon/locations.html).
 
 The [session integration](audio-session.md#desktop-session-owner) is a build
-opt-in. Signed image rollout requires the dedicated role and device policy and
-verification from an authenticated desktop. Settings uses a separate control
-integration.
+opt-in. Prepare the matching policy with `--desktop-audio` and use the
+effective policy from that image in the signed selection. Settings uses a
+separate control integration.
 
 ### Compile the image policy
 
@@ -150,9 +150,10 @@ python tools/prepare_login_policy.py --base "$POLICY_BASE" --output login-policy
 ```
 
 Select a stable copy of the distribution's `etc/selinux` and
-`var/lib/selinux/targeted/active` trees. The compiler builds the three
-installed login modules inside a fresh copy of that store and stages the
+`var/lib/selinux/targeted/active` trees. The compiler builds the login policy
+inside a fresh copy of that store and stages the
 policy and login file contexts under `login-policy/root/etc/selinux`.
+Pass `--desktop-audio` when building an image with `AETHERI_DESKTOP_SESSION_AUDIO=ON`.
 The receipt identifies the inputs and compiled policy. The compiler store
 stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
 

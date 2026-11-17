@@ -10,10 +10,10 @@ Socket presence orders the starts. Readiness for a client still requires a
 connection to the original live graph and inspection of its capabilities.
 
 Both children receive fixed configuration and module locations, a private
-runtime directory and no inherited desktop environment. Routing state belongs
-to that session's volatile directory. After both children exit, the owner
-removes its original empty routing state directory. An unexpected entry or
-identity change preserves the directory for diagnosis.
+`audio` runtime directory inside the session, and no inherited desktop
+environment. The `wireplumber` state directory is volatile. After both
+children exit the owner removes its original directories if empty. An
+unexpected entry or identity change preserves the directory for diagnosis.
 
 Logout, session loss and observed audio-process failure start retirement.
 WirePlumber ends before PipeWire, using each original pidfd. An actor that
@@ -23,9 +23,30 @@ restarting the pair. No new supervisor is required.
 
 The [carrier run](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-owner-audio-lifecycle)
 checks the actual daemons, including the ALSA plug-in, orderly retirement and
-loss. The signed-image role policy, live logind sound-device admission and
-Settings control remain pending. The option defaults to off until those parts
-can be exercised together.
+loss. The option defaults to off and requires the matching image policy.
+
+### SELinux and sound devices
+
+The session owner starts the two labeled executables in separate domains with
+NoNewPrivileges. The graph owns the listener and lock. WirePlumber may connect
+to the graph and write routing state. The domains can exchange their own
+shared audio buffers. Settings, Files, Terminal and the greeter have no graph
+connection or direct sound-device access.
+
+WirePlumber uses ALSA to open sound devices. The graph has no direct device
+access. The ALSA monitor observes `/dev/snd` with inotify. The distribution
+labels that directory `device_t`, so the policy grants WirePlumber read/watch
+on directories of that type. Device opens still require the sound-device type
+and the active user's udev/logind ACL. [PipeWire ALSA monitor](https://github.com/PipeWire/pipewire/blob/1.6.11/spa/plugins/alsa/alsa-udev.c)
+[systemd sound-device access](https://github.com/systemd/systemd/blob/v259/rules.d/70-uaccess.rules.in).
+
+Use `tools/check_login_policy.py --desktop-audio --expected-policy-sha256 DIGEST`
+from the image's administrative verification environment to check the loaded
+rules. An application still needs a mediated control or playback endpoint.
+The [signed desktop test](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-audio-policy)
+starts both audio roles after authentication and reaches ALSA monitoring. The
+image still needs the matching `78-sound-card.rules` udev rule and verification
+that the original sound card and playback route appear in the graph.
 
 ## Diskless user manager fixture
 

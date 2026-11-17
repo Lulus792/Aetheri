@@ -36,7 +36,7 @@ def inventory(root: Path) -> dict:
     return entries
 
 
-def prepare(base: Path, output: Path) -> dict:
+def prepare(base: Path, output: Path, desktop_audio: bool = False) -> dict:
     if sys.platform != "linux":
         raise ValueError("run the offline policy compiler on Linux")
     base_config = base / "etc/selinux"
@@ -49,8 +49,11 @@ def prepare(base: Path, output: Path) -> dict:
     if any(name.split("/")[-2:-1] == ["aetheri_login"] for name in modules):
         raise ValueError("the baseline already contains the login policy module")
 
-    module_sources = {name: (POLICY / name).read_bytes().replace(b"\r\n", b"\n") for name in MODULES}
+    names = (*MODULES, "login-audio.cil") if desktop_audio else MODULES
+    module_sources = {name: (POLICY / name).read_bytes().replace(b"\r\n", b"\n") for name in names}
     file_contexts = (POLICY / "login.fc").read_bytes().replace(b"\r\n", b"\n")
+    if desktop_audio:
+        file_contexts += b"\n" + (POLICY / "login-audio.fc").read_bytes().replace(b"\r\n", b"\n")
     output.mkdir()
     root = output / "root"
     target = root / "etc/selinux"
@@ -104,9 +107,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--desktop-audio", action="store_true")
     args = parser.parse_args()
     try:
-        record = prepare(args.base, args.output.absolute())
+        record = prepare(args.base, args.output.absolute(), args.desktop_audio)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1
