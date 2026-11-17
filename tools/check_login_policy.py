@@ -24,11 +24,12 @@ def check_desktop_audio(check, process, obj) -> None:
     session = process("aetheri_session_t")
     graph = process("aetheri_audio_graph_t")
     policy = process("aetheri_audio_policy_t")
+    tone = process("aetheri_audio_tone_t")
     socket = obj("aetheri_audio_socket_t")
     runtime = obj("aetheri_audio_runtime_t")
     state = obj("aetheri_audio_state_t")
     sound = obj("sound_device_t")
-    for role, name in ((graph, "graph"), (policy, "policy")):
+    for role, name in ((graph, "graph"), (policy, "policy"), (tone, "tone")):
         program = obj(f"aetheri_audio_{name}_exec_t")
         check(session, program, "file", "execute", True)
         check(session, program, "file", "execute_no_trans", False)
@@ -41,7 +42,7 @@ def check_desktop_audio(check, process, obj) -> None:
         check(role, role, "tcp_socket", "create", False)
         check(role, role, "capability", "sys_admin", False)
         for permission in ("open", "read", "write", "ioctl", "map"):
-            check(role, sound, "chr_file", permission, role == policy)
+            check(role, sound, "chr_file", permission, role != tone)
         for source in ("settings", "files", "terminal", "greeter"):
             check(process(f"aetheri_{source}_t"), program, "file", "execute", False)
     check(session, runtime, "dir", "create", True)
@@ -53,6 +54,9 @@ def check_desktop_audio(check, process, obj) -> None:
     check(graph, socket, "sock_file", "create", True)
     check(policy, socket, "sock_file", "write", True)
     check(policy, graph, "unix_stream_socket", "connectto", True)
+    check(tone, graph, "unix_stream_socket", "connectto", True)
+    check(tone, graph, "process", "ptrace", False)
+    check(tone, state, "file", "write", False)
     check(policy, obj("device_t"), "dir", "watch", True)
     check(policy, obj("device_t"), "dir", "open", True)
     check(graph, obj("device_t"), "dir", "watch", False)

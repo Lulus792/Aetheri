@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The finite desktop tone client verifies the original
+PipeWire endpoint and streams both stereo channels through virtual HDA.
+Release tests and 101 enforcing policy decisions pass. Signed two-vCPU
+WHPX and instruction-clock captures contain 1,024-frame gaps. The registered
+carrier recovered after the host restart. The tone is triggered by a test-only
+session owner. Next observe the settled route before playback, verify continuous
+output and connect the regular Sound page. See the
+[playback record](journal/2026-11-17-login-image-boot.md#desktop-hda-playback).
+
 17 November 2026 — The pinned Fedora udev sound rule closes discovery in
 the signed HDA desktop VM. After normal login, WirePlumber sees an accessible
 PCM device, selects analog stereo and line-out, and applies mixer volume.

@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current desktop playback: read `spec/audio-session.md#finite-playback-client`
+and the 2026-11-17 desktop HDA playback record. Release 87939b44a506 passes
+four focused tests and the exact enforcing policy passes 101 decisions.
+Signed WHPX f8acdc2d and two-vCPU 8a2a1208 join the original PipeWire and
+drain, measure both channel tones and close normally. Instruction-clock
+cadd2a22 does the same. Both clone captures have 1,024-frame gaps.
+Keep the first ALSA failure and interrupted VM evidence. The recovered
+carrier is enforcing; only the copied test-account fixture was refreshed.
+Next settle the original output before playback, measure continuous PCM and
+connect Settings. USB gate remains.
+
 Current HDA discovery: read the 2026-11-17 discovery record and
 `spec/login-deployment.md#pipewire-and-wireplumber-files`. The signed Fedora
 259.10 rule is selected by the audio supplement. Image bbbdaf5a4579 session

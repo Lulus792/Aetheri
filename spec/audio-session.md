@@ -33,8 +33,9 @@ to the graph and write routing state. The domains can exchange their own
 shared audio buffers. Settings, Files, Terminal and the greeter have no graph
 connection or direct sound-device access.
 
-WirePlumber uses ALSA to open sound devices. The graph has no direct device
-access. The ALSA monitor observes `/dev/snd` with inotify. The distribution
+WirePlumber probes ALSA and applies profiles and mixer settings. PipeWire
+opens the resulting PCM device when the route is used. The ALSA monitor
+observes `/dev/snd` with inotify. The distribution
 labels that directory `device_t`, so the policy grants WirePlumber read/watch
 on directories of that type. Device opens still require the sound-device type
 and the active user's udev/logind ACL. [PipeWire ALSA monitor](https://github.com/PipeWire/pipewire/blob/1.6.11/spa/plugins/alsa/alsa-udev.c)
@@ -49,6 +50,24 @@ WirePlumber reports the emulated PCM device accessible and selects the analog
 stereo profile and line-out port. The same image logs in and out cleanly
 without a sound card. Playback of a client stream and the Settings controls
 remain separate acceptance steps.
+
+### Finite playback client
+
+The audio SDK build produces `aetheri-audio-test-tone` when both
+`AETHERI_AUDIO` and `AETHERI_DESKTOP_SESSION_AUDIO` are on. A trusted owner
+supplies the session's absolute graph socket path and the descriptor number
+of its original PipeWire pidfd. The client uses the strict peer check, then
+queues a fixed second of stereo test samples. It has no option to select a
+different signal or reconnect. `DRAINED` is a stream result. A VM test can
+independently measure the samples at the emulated device.
+
+The executable has a dedicated SELinux transition from the authenticated
+session owner. It has access to the private graph socket and shared buffers.
+Sound devices and WirePlumber's state stay outside that domain. The tone
+target is currently exercised by a signed test image with a fixture trigger.
+The [measured playback record](../brains/aetheri/journal/2026-11-17-login-image-boot.md#desktop-hda-playback)
+shows both channel tones and records the gaps in the emulated output.
+Continuous playback and the user action in Settings remain open.
 
 ## Diskless user manager fixture
 

@@ -686,3 +686,92 @@ return to the greeter. All QEMU instances ended and media hashes agree.
 Next bind an authorized playback/control client to the original graph and
 verify the emulated PCM output and Settings. Physical laptop testing remains
 after VM acceptance.
+
+## Desktop HDA playback
+
+The CMake desktop audio profile builds `aetheri-audio-test-tone` from the
+finite playback diagnostic. The session owner selects the graph path and
+passes its original PipeWire pidfd. The client verifies the kernel peer
+before joining the graph. It submits 48,000 stereo frames at 48 kHz with
+440 Hz on the left and 880 Hz on the right. The standalone lab diagnostic
+keeps its existing options. Release build `87939b44a506` passes `audio.cli`,
+`audio.tone_cli`, `linux.session` and `linux.session_entry`. The first CTest
+attempt `76dc0f6cf05c` lacked the profile's library path and exited 127.
+The installed-profile executable has no build-tree library search path.
+
+The dedicated tone role can join the graph and exchange audio buffers.
+Direct sound-device access and routing-state writes stay outside that role.
+The first signed test `0c19e381b6e3`, session `df233e64`, reaches the
+original graph, but the ALSA plug-in reports `Unknown PCM front:0`. The
+PipeWire graph needed sound-device permission for playback. WirePlumber
+continues to probe and configure the device. In offline policy `00f02fa0e750`,
+both graph and routing roles still require the device ACL. Two cold policy
+boots in `d5dedf0ec43b` yield identical enforcing readback bytes, SHA-256
+`40f40dd0b0cc352884fd8ca170a06dad4fefa26f1072d3cbe4a9f9c97a7cff88`.
+All 101 checked policy decisions pass.
+
+Signed image `5dca38648c9a` uses a test-only session-owner build that launches
+the tone once WirePlumber reports the analog stereo volume. The first two
+capture controllers (`5d2199c8`, `faf52c14`) rejected the pinned QEMU's
+deprecation warning. The corrected controller handles that exact warning.
+Authenticated WHPX session `f8acdc2d` observes the original graph peer and
+`DRAINED frames=48000`, then reaps the tone at zero. Both audio actors also
+exit zero. The owner removes its audio runtime, PAM closes and the next
+greeter is visible. The original VM exits and its media hash agrees.
+
+The 48 kHz signed-16-bit stereo WAV contains the two requested frequencies
+on their respective channels. Of 194,332 frames, 65,374 are nonzero and the
+longest silent interval inside the active range has 17,497 frames (364 ms).
+The graph reports `snd_pcm_avail after recover: Broken pipe`. A stream
+drain confirms that the graph consumed the submitted buffers. The measured
+emulated output fails the continuous playback requirement. The recording's
+SHA-256 is `d75c30ea441541884d222d10f18e8ccc21de3eeb62a7b5d58844c136a34bb914`.
+
+Instruction-clock session `dac1ef60` reaches the greeter, submits the
+username and is still on the sending screen at the fixed password display
+check. The controller exits the original VM cleanly without sending the
+password. The follow-up waits for each expected greeter frame before sending
+the next input.
+
+The follow-up `2fecae0d` reaches the original password frame. During the
+host restart the registered carrier process (PID 14356) and its volatile
+fixture credential were lost. The controller cannot load the answer and
+exits the original playback VM cleanly. Both instruction-clock attempts
+leave their media hash intact. Neither reaches the stream.
+
+The offline qcow2 check finds no errors on the existing carrier disk. The
+stale localhost socket is preserved as `qmp-retired-14356.sock`. The same
+registered carrier boots as PID 16648 with an observed QMP identity, new
+boot ID `5c89d4e7-612e-4444-9625-6cb7e539c1dc` and SELinux enforcing.
+For the next playback attempt `aa42d3f8909b` clones the archived ext4 root
+and gives its synthetic `aetheri` account a fresh value through the same
+SHA-512 password hashing profile. The clone preserves the shadow inode,
+owner, mode and SELinux label. The signed selection, fixture owner and
+validated tone executable have their original hashes. The new root passes
+offline `e2fsck -fn` and hashes to
+`3598c5c72f72a26674a942ebb10475b8e8f304f9f3683f261335b800abf56727`.
+The test credential lives in a root-only directory on the carrier's disk.
+
+In two-vCPU WHPX session `8a2a1208`, the clone boots and authenticates.
+The tone verifies the original graph, drains 48,000 frames and exits at
+zero. Logout ends both audio actors and returns to the live greeter. The
+WAV hashes to `cbd417464449ec97848aa268e4bd3ea81de750b552d40365e75f33f07b21aaa1`.
+It has both channel frequencies and three interior intervals of exactly
+1,024 silent frames (21 ms each), so it still fails continuous playback.
+The earlier `Broken pipe` line is absent in this run. The recorder and
+console logs alone cannot establish where the missing frames arise.
+
+Instruction-clock session `cadd2a22` uses the same clone. The original
+graph admits the tone and drains it about one guest second after connection.
+The WAV contains both requested frequencies and one interior interval of
+1,024 silent frames shortly after the onset. It hashes to
+`ce19acb8d89843875cc3d26b49515e5d0033c581c2a4c29641fbcab151ef3bc3`.
+The gap therefore also occurs under instruction-counted emulation. The
+host capture does not locate the missing period in the player, graph or
+device. Both final clone VMs close PAM, reap both audio processes at zero,
+return to the greeter and terminate with the original read-only media
+hash `2246f765a5e802f2c22300e890e1eaa1496aaf75dfcd9e6c5131236bf5b40c3c`.
+The host suites pass 85 HDA contract tests, seven PCM verifier tests and nine
+carrier lifecycle and isolation tests.
+Next test an independently observed, settled output when playback starts
+and connect the normal Sound page. Physical playback remains untested.

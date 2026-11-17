@@ -5,6 +5,7 @@
 #include <spa/param/audio/format-utils.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 #include <signal.h>
@@ -80,7 +81,16 @@ static const struct pw_core_events core_events={.version=PW_VERSION_CORE_EVENTS,
 static const struct pw_stream_events stream_events={.version=PW_VERSION_STREAM_EVENTS,.state_changed=state,.param_changed=format,.process=process,.drained=drained};
 
 int main(int argc,char **argv) {
-    const char *remote=NULL;struct check c={.total=RATE};bool frames_set=false,autoconnect=false;int original=-1;
+    const char *remote=NULL;struct check c={.total=RATE};bool autoconnect=false;int original=-1;
+#ifdef AETHERI_AUDIO_DESKTOP_TONE
+    /* The session owner supplies only its literal runtime path and original
+     * graph pin. The installed profile has no client-selected playback flags. */
+    if(argc!=3 || !*argv[2] || strlen(argv[2])>10 || strspn(argv[2],"0123456789")!=strlen(argv[2])) return 2;
+    unsigned long pin=strtoul(argv[2],NULL,10);
+    if(pin<3 || pin>INT_MAX) return 2;
+    remote=argv[1];autoconnect=true;original=(int)pin;
+#else
+    bool frames_set=false;
     for(int i=1;i<argc;++i) {
         if(!strcmp(argv[i],"--remote") && !remote && i+1<argc) remote=argv[++i];
         else if(!strcmp(argv[i],"--frames") && !frames_set && i+1<argc) {
@@ -92,6 +102,7 @@ int main(int argc,char **argv) {
         else if(!strcmp(argv[i],"--server-pidfd") && original<0 && i+1<argc && !strcmp(argv[i+1],"3")) {original=3;++i;}
         else return 2;
     }
+#endif
     if(!remote || remote[0]!='/' || strlen(remote)>=sizeof(((struct sockaddr_un *)0)->sun_path) || getuid()==0 || getuid()!=geteuid() || getgid()!=getegid()) return 2;
     if(prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0)) return 1;
     setvbuf(stdout,NULL,_IOLBF,0);pw_init(NULL,NULL);
@@ -112,7 +123,7 @@ int main(int argc,char **argv) {
     if(!properties) goto done; /* Never turn failed explicit routing into default routing. */
     int fd=original>=0 ? ae_audio_remote_connect_original(remote,original) : ae_audio_remote_connect(remote);
     bool original_checked=original>=0;if(original_checked) {close(original);original=-1;}
-    if(fd<0) {pw_properties_free(properties);goto done;}
+    if(fd<0) {fprintf(stderr,"audio-check: endpoint refused: %s\n",strerror(errno));pw_properties_free(properties);goto done;}
     if(original_checked) puts("AETHERI_AUDIO_PLAYER_PEER original=1");
     c.core=pw_context_connect_fd(c.context,fd,properties,0);if(!c.core) goto done;
     pw_core_add_listener(c.core,&c.core_listener,&core_events,&c);

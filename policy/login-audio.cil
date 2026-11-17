@@ -1,8 +1,10 @@
 ; MIT. Audio for the installed authenticated desktop session.
 (type aetheri_audio_graph_t)
 (type aetheri_audio_policy_t)
+(type aetheri_audio_tone_t)
 (type aetheri_audio_graph_exec_t)
 (type aetheri_audio_policy_exec_t)
+(type aetheri_audio_tone_exec_t)
 (type aetheri_audio_config_t)
 (type aetheri_audio_runtime_t)
 (type aetheri_audio_state_t)
@@ -10,19 +12,21 @@
 (type aetheri_audio_lock_t)
 (type aetheri_audio_graph_mem_t)
 (type aetheri_audio_policy_mem_t)
+(type aetheri_audio_tone_mem_t)
 (typeattribute aetheri_audio_roles)
 (typeattribute aetheri_audio_programs)
-(typeattributeset aetheri_audio_roles (aetheri_audio_graph_t aetheri_audio_policy_t))
-(typeattributeset aetheri_audio_programs (aetheri_audio_graph_exec_t aetheri_audio_policy_exec_t))
+(typeattributeset aetheri_audio_roles (aetheri_audio_graph_t aetheri_audio_policy_t aetheri_audio_tone_t))
+(typeattributeset aetheri_audio_programs (aetheri_audio_graph_exec_t aetheri_audio_policy_exec_t aetheri_audio_tone_exec_t))
 (typeattributeset domain (aetheri_audio_roles))
 (typeattributeset file_type (aetheri_audio_programs aetheri_audio_config_t aetheri_audio_runtime_t
-    aetheri_audio_state_t aetheri_audio_socket_t aetheri_audio_lock_t aetheri_audio_graph_mem_t aetheri_audio_policy_mem_t))
+    aetheri_audio_state_t aetheri_audio_socket_t aetheri_audio_lock_t aetheri_audio_graph_mem_t aetheri_audio_policy_mem_t aetheri_audio_tone_mem_t))
 (typeattributeset exec_type (aetheri_audio_programs))
 (typeattributeset entry_type (aetheri_audio_programs))
-(typeattributeset tmpfsfile (aetheri_audio_graph_mem_t aetheri_audio_policy_mem_t))
+(typeattributeset tmpfsfile (aetheri_audio_graph_mem_t aetheri_audio_policy_mem_t aetheri_audio_tone_mem_t))
 
 (call aetheri_app_entry (aetheri_session_t aetheri_audio_graph_t aetheri_audio_graph_exec_t))
 (call aetheri_app_entry (aetheri_session_t aetheri_audio_policy_t aetheri_audio_policy_exec_t))
+(call aetheri_app_entry (aetheri_session_t aetheri_audio_tone_t aetheri_audio_tone_exec_t))
 
 ; The existing session owner creates and retains these two directories. The
 ; graph can publish only its own lock and listener types. WirePlumber owns
@@ -80,8 +84,24 @@
 (allow aetheri_audio_graph_t aetheri_audio_policy_t (fd (use)))
 (allow aetheri_audio_policy_t aetheri_audio_graph_t (fd (use)))
 
-; WirePlumber's ALSA monitor hosts the device-facing nodes. DAC and existing
-; udev/logind seat ACLs still decide which devices the session user can open.
+; The fixed tone client borrows the original graph pidfd from its session owner.
+; It shares audio buffers with the graph, with no routing-state or device access.
+(allow aetheri_audio_tone_t aetheri_audio_socket_t (sock_file (write getattr)))
+(allow aetheri_audio_tone_t aetheri_audio_graph_t (unix_stream_socket (connectto)))
+(allow aetheri_audio_tone_t aetheri_audio_graph_t (process (getattr)))
+(allow aetheri_audio_tone_t pidfs_t (filesystem (getattr)))
+(typetransition aetheri_audio_tone_t tmpfs_t file aetheri_audio_tone_mem_t)
+(allow aetheri_audio_tone_t aetheri_audio_tone_mem_t (file (create read write open getattr setattr map ioctl)))
+(allow aetheri_audio_tone_t aetheri_audio_graph_mem_t (file (read write getattr map ioctl)))
+(allow aetheri_audio_graph_t aetheri_audio_tone_mem_t (file (read write getattr map ioctl)))
+(allow aetheri_audio_graph_t aetheri_audio_tone_t (fd (use)))
+(allow aetheri_audio_tone_t aetheri_audio_graph_t (fd (use)))
+
+; WirePlumber probes ALSA and applies routes and mixer controls. PipeWire
+; opens the ALSA nodes created for those routes. Both remain subject to the
+; active user's device permissions and the udev/logind seat ACLs.
+(allow aetheri_audio_graph_t sound_device_t (dir (search getattr)))
+(allow aetheri_audio_graph_t sound_device_t (chr_file (open read write getattr ioctl map)))
 (allow aetheri_audio_policy_t device_t (dir (read watch)))
 (allow aetheri_audio_policy_t sound_device_t (dir (search read open getattr)))
 (allow aetheri_audio_policy_t sound_device_t (chr_file (open read write getattr ioctl map)))
@@ -99,7 +119,8 @@
 (neverallow aetheri_desktop_apps aetheri_audio_graph_t (unix_stream_socket (connectto)))
 (neverallow aetheri_desktop_apps aetheri_audio_socket_t (sock_file (write)))
 (neverallow aetheri_desktop_apps sound_device_t (chr_file (open read write ioctl map)))
-(neverallow aetheri_audio_graph_t sound_device_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_tone_t sound_device_t (chr_file (open read write ioctl map)))
+(neverallow aetheri_audio_tone_t aetheri_audio_state_t (file (open read write create)))
 (neverallow aetheri_audio_graph_t aetheri_audio_state_t (dir (write add_name remove_name)))
 (neverallow aetheri_audio_policy_t aetheri_audio_runtime_t (dir (write add_name remove_name)))
 (neverallow aetheri_audio_roles aetheri_audio_config_t (file (write create unlink)))
