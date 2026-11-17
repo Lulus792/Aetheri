@@ -267,7 +267,9 @@ The [combined VM test](../brains/aetheri/journal/2026-11-17-confined-graphical-d
 verifies keyboard input, real PAM and Start ACK, the visible desktop, user
 PAM closure, return to a fresh greeter and its administrative stop under
 the same loaded policy. The VM test selects its own deployment provider.
-Installed login and user runtime cleanup remain open.
+The separate [runtime cleanup check](session.md#session-owned-runtime-cleanup)
+verifies release of the empty user runtime at logout. Installed login
+remains open.
 
 ## Dedicated greeter account and supplementary groups
 

@@ -257,7 +257,78 @@ static bool entry_logging(void) {
     return true;
 #endif
 }
-static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,char *documents,size_t document_size,struct ae_session **session) {
+
+struct session_runtime {
+    int parent, directory, cache;
+    const char *leaf;
+};
+
+static int runtime_match(int parent, const char *name, int held)
+{
+    struct stat expected, current;
+    if (fstat(held, &expected) || fstatat(parent, name, &current, AT_SYMLINK_NOFOLLOW))
+        return -errno;
+    if (!S_ISDIR(current.st_mode) || expected.st_dev != current.st_dev ||
+        expected.st_ino != current.st_ino) return -ESTALE;
+    return 0;
+}
+
+static int runtime_retire(struct session_runtime *state)
+{
+    int result = 0;
+    if (state->directory >= 0) {
+        result = runtime_match(state->parent, state->leaf, state->directory);
+        if (!result && state->cache >= 0) {
+            result = runtime_match(state->directory, "cache", state->cache);
+            if (!result && unlinkat(state->directory, "cache", AT_REMOVEDIR)) result = -errno;
+        }
+        if (!result) result = runtime_match(state->parent, state->leaf, state->directory);
+        if (!result && unlinkat(state->parent, state->leaf, AT_REMOVEDIR)) result = -errno;
+    }
+    close_fd(&state->cache);
+    close_fd(&state->directory);
+    close_fd(&state->parent);
+    state->leaf = NULL;
+    return result;
+}
+
+static bool runtime_create(const char *parent, uid_t uid, struct session_runtime *state,
+                           char *runtime, size_t size, char *cache, size_t cache_size)
+{
+    int length = snprintf(runtime, size, "%s/aetheri-XXXXXX", parent);
+    if (length < 0 || (size_t)length >= size || (size_t)length + sizeof "/cache" > cache_size)
+        return false;
+    /* The temporary name is made through the original directory descriptor. */
+    const int flags = O_PATH | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
+    state->parent = open(parent, flags);
+    struct stat info;
+    if (state->parent < 0 || fstat(state->parent, &info) || info.st_uid != uid ||
+        (info.st_mode & 07777) != 0700) return false;
+    char candidate[64];
+    int n = snprintf(candidate, sizeof candidate, "/proc/self/fd/%d/aetheri-XXXXXX", state->parent);
+    if (n < 0 || (size_t)n >= sizeof candidate || !mkdtemp(candidate)) return false;
+    char *leaf = strrchr(runtime, '/') + 1;
+    memcpy(leaf, strrchr(candidate, '/') + 1, sizeof "aetheri-XXXXXX");
+    state->leaf = leaf;
+    state->directory = openat(state->parent, leaf, flags);
+    if (state->directory < 0 || mkdirat(state->directory, "cache", 0700)) return false;
+    state->cache = openat(state->directory, "cache", flags);
+    if (state->cache < 0) return false;
+    memcpy(cache, runtime, (size_t)length);
+    memcpy(cache + length, "/cache", sizeof "/cache");
+    return !runtime_match(AT_FDCWD, parent, state->parent) &&
+           !runtime_match(state->parent, leaf, state->directory);
+}
+
+static void runtime_finish(struct session_runtime *state)
+{
+    bool held = state->directory >= 0;
+    int result = runtime_retire(state);
+    if (result) fprintf(stderr, "AETHERI_RUNTIME_CLEANUP error=%d\n", result);
+    else if (held) puts("AETHERI_RUNTIME_CLEANUP removed=1");
+}
+
+static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,char *documents,size_t document_size,struct ae_session **session,struct session_runtime *owned) {
     char *original=NULL;
     if(!entry_paths(&original,documents,document_size)){free(original);return false;}
     uid_t uid=getuid();
@@ -271,19 +342,16 @@ static bool environment(char *runtime,size_t size,char *cache,size_t cache_size,
         if(!strcmp(line,"NoNewPrivs:\t1\n"))nnp=true;
     }
     if(fclose(status) || caps!=15 || !nnp || ae_session_open(uid,"seat0",session)<0){free(original);return false;}
-    struct stat info;
 #ifdef AETHERI_DESKTOP_SESSION_ENTRY
+    struct stat info;
     const char *parents[]={"/run","/run/user"};
     for(size_t i=0;i<2;++i)if(lstat(parents[i],&info) || !S_ISDIR(info.st_mode) || info.st_uid || (info.st_mode&0022)){
         free(original);return false;
     }
 #endif
-    if(lstat(original,&info) || !S_ISDIR(info.st_mode) || info.st_uid!=uid || (info.st_mode&07777)!=0700){free(original);return false;}
-    int n=snprintf(runtime,size,"%s/aetheri-XXXXXX",original);
+    bool created = runtime_create(original, uid, owned, runtime, size, cache, cache_size);
     free(original);
-    if(n<0 || (size_t)n>=size || !mkdtemp(runtime))return false;
-    n=snprintf(cache,cache_size,"%s/cache",runtime);
-    if(n<0 || (size_t)n>=cache_size || mkdir(cache,0700))return false;
+    if (!created) return false;
     printf("AETHERI_RUNTIME path=%s cache=%s\n",runtime,cache);
     return setenv("XDG_RUNTIME_DIR",runtime,1)==0 && setenv("WAYLAND_DISPLAY","aetheri-image",1)==0 && setenv("LIBSEAT_BACKEND","logind",1)==0 && setenv("LIBGL_ALWAYS_SOFTWARE","1",1)==0 && setenv("GALLIUM_DRIVER","llvmpipe",1)==0 && setenv("LP_NUM_THREADS","2",1)==0 && setenv("LD_LIBRARY_PATH",AETHERI_DESKTOP_LIBRARIES,1)==0 && setenv("PATH",BIN ":/usr/bin",1)==0 && unsetenv("DISPLAY")==0 && unsetenv("WAYLAND_SOCKET")==0;
 }
@@ -299,13 +367,14 @@ int main(void) {
     if(!entry_descriptors()){fputs("AETHERI_DESKTOP_FAIL descriptors\n",stderr);return 1;}
     if(!entry_logging()){fputs("AETHERI_DESKTOP_FAIL logging\n",stderr);return 1;}
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
+    struct session_runtime owned = { .parent = -1, .directory = -1, .cache = -1 };
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
-    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),documents,sizeof(documents),&session)){ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
+    if(!environment(runtime,sizeof(runtime),cache,sizeof(cache),documents,sizeof(documents),&session,&owned)){runtime_finish(&owned);ae_session_close(&session);fputs("AETHERI_DESKTOP_FAIL context\n",stderr);return 1;}
     sigset_t mask;sigemptyset(&mask);sigaddset(&mask,SIGCHLD);sigaddset(&mask,SIGTERM);sigaddset(&mask,SIGINT);
-    if(sigprocmask(SIG_BLOCK,&mask,NULL) || signal(SIGCHLD,SIG_DFL)==SIG_ERR || signal(SIGPIPE,SIG_IGN)==SIG_ERR){ae_session_close(&session);return 1;}
+    if(sigprocmask(SIG_BLOCK,&mask,NULL) || signal(SIGCHLD,SIG_DFL)==SIG_ERR || signal(SIGPIPE,SIG_IGN)==SIG_ERR){runtime_finish(&owned);ae_session_close(&session);return 1;}
     int signals=signalfd(-1,&mask,SFD_CLOEXEC|SFD_NONBLOCK),shell[2]={-1,-1},launch[2]={-1,-1};
     if(signals<0 || socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,shell) || socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,launch) || !nonblock(launch[0])){
-        close_fd(&signals);for(unsigned i=0;i<2;++i){close_fd(&shell[i]);close_fd(&launch[i]);}ae_session_close(&session);return 1;
+        close_fd(&signals);for(unsigned i=0;i<2;++i){close_fd(&shell[i]);close_fd(&launch[i]);}runtime_finish(&owned);ae_session_close(&session);return 1;
     }
     char shell_number[32],launch_number[32];snprintf(shell_number,sizeof(shell_number),"%d",shell[0]);
     char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","auto","--shell-fd",shell_number,"--compose",NULL};
@@ -386,6 +455,7 @@ int main(void) {
         close_fd(&c->pin);close_fd(&c->output);
     }
     close_fd(&launch[0]);close_fd(&signals);
+    runtime_finish(&owned);
     if(ae_session_close(&session)<0)failed=true;
     printf("NATIVE_SESSION_END {\"children\":{");bool comma=false;
     for(size_t i=0;i<ROLE_COUNT;++i)if(children[i].pid){

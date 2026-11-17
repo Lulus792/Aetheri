@@ -88,6 +88,53 @@ static void missing_stdio_test(void) {
     if(!pid){if(close(0))_exit(2);_exit(entry_descriptors()?3:0);}
     int status;CHECK(waitpid(pid,&status,0)==pid && WIFEXITED(status) && !WEXITSTATUS(status));
 }
+
+static void runtime_test(void) {
+    char base[] = "/tmp/aetheri-runtime-test-XXXXXX";
+    CHECK(mkdtemp(base));
+    const struct session_runtime empty_runtime = { .parent = -1, .directory = -1, .cache = -1 };
+    struct session_runtime first = empty_runtime, second = empty_runtime;
+    char path[512], cache[512], other[512], other_cache[512];
+    CHECK(runtime_create(base, getuid(), &first, path, sizeof path, cache, sizeof cache));
+    CHECK(runtime_create(base, getuid(), &second, other, sizeof other, other_cache, sizeof other_cache));
+    CHECK(strcmp(path, other));
+    CHECK(!runtime_retire(&first) && access(path, F_OK) == -1 && errno == ENOENT);
+    CHECK(!access(other_cache, F_OK));
+
+    int file = openat(second.cache, "preserve", O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    CHECK(file >= 0 && !close(file));
+    CHECK(runtime_retire(&second) == -ENOTEMPTY);
+    CHECK(second.parent < 0 && second.directory < 0 && second.cache < 0);
+    int directory = open(other_cache, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    CHECK(directory >= 0 && !faccessat(directory, "preserve", F_OK, 0));
+    CHECK(!unlinkat(directory, "preserve", 0) && !close(directory));
+    CHECK(!runtime_retire(&second) && !access(other_cache, F_OK));
+    CHECK(!rmdir(other_cache) && !rmdir(other));
+
+    first = empty_runtime;
+    CHECK(runtime_create(base, getuid(), &first, path, sizeof path, cache, sizeof cache));
+    CHECK(!renameat(first.directory, "cache", first.directory, "held-cache"));
+    CHECK(!symlinkat(base, first.directory, "cache"));
+    CHECK(runtime_retire(&first) == -ESTALE);
+    struct stat link;
+    CHECK(!lstat(cache, &link) && S_ISLNK(link.st_mode));
+    directory = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    CHECK(directory >= 0 && !unlinkat(directory, "cache", 0));
+    CHECK(!unlinkat(directory, "held-cache", AT_REMOVEDIR) && !close(directory));
+    CHECK(!rmdir(path));
+
+    first = empty_runtime;
+    CHECK(runtime_create(base, getuid(), &first, path, sizeof path, cache, sizeof cache));
+    char leaf[sizeof "aetheri-XXXXXX"];
+    memcpy(leaf, first.leaf, sizeof leaf);
+    CHECK(!renameat(first.parent, leaf, first.parent, "held-runtime"));
+    CHECK(!mkdirat(first.parent, leaf, 0700));
+    CHECK(runtime_retire(&first) == -ESTALE && !access(path, F_OK));
+    directory = open(base, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    CHECK(directory >= 0 && !unlinkat(directory, "held-runtime/cache", AT_REMOVEDIR));
+    CHECK(!unlinkat(directory, "held-runtime", AT_REMOVEDIR) && !close(directory));
+    CHECK(!rmdir(path) && !rmdir(base));
+}
 int ae_test_getresuid(uid_t *r,uid_t *e,uid_t *s) {*r=model_uid;*e=model_euid;*s=model_suid;return 0;}
 int ae_test_getresgid(gid_t *r,gid_t *e,gid_t *s) {*r=model_gid;*e=model_egid;*s=model_sgid;return 0;}
 int ae_test_getpwuid_r(uid_t uid,struct passwd *p,char *buffer,size_t size,struct passwd **out) {
@@ -107,6 +154,7 @@ int main(void) {
     descriptor_test(false);descriptor_test(true);
     missing_stdio_test();
     logging_test(0);logging_test(1);logging_test(2);
+    runtime_test();
     char *parent=NULL,documents[4096];
     CHECK(!setenv("HOME","/forged/home",1) && !setenv("USER","forged",1) && !setenv("LOGNAME","forged",1) && !setenv("XDG_RUNTIME_DIR","/forged/runtime",1));
     CHECK(entry_paths(&parent,documents,sizeof(documents)) && !strcmp(parent,"/run/user/1201") && !strcmp(documents,"/home/original/Documents"));free(parent);parent=NULL;

@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current session runtime cleanup: read spec/session.md and the 2026-11-17
+session-runtime-cleanup journal. Retain parent/runtime/cache FDs from
+creation and use empty-only removals after known children and output end.
+Keep the error diagnostic independent of the user session exit status.
+No recursive deletion, retry, or adoption after an observed mismatch.
+Case 40866a4393b0 proves original runtime removal and preservation of
+the live same-UID parent/sibling, plus PAM close and fresh greeter/stop.
+The original leftover case stays preserved. Next normal installed provider
+and deployment profile. USB gate remains.
+
 Current confined graphical desktop: read the 2026-11-17 confined-graphical-
 desktop journal and spec/login.md/spec/session.md. Case f5ed8d7d307e reaches
 actual PAM/Start ACK and visible user desktop under the same split policy,

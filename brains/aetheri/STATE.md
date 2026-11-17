@@ -1,5 +1,14 @@
 # State
 
+17 November 2026 — The desktop owner retires its empty session runtime
+and cache after original children end. It retains and compares directory
+identities and leaves nonempty or observed replaced objects for separate
+handling. The full confined login/desktop/logout case 40866a4393b0
+verifies the original runtime is gone, the same-UID parent and sibling
+survive and a fresh greeter stops normally. Next select and verify the
+normal installed provider and service profile. See the
+[cleanup record](journal/2026-11-17-session-runtime-cleanup.md).
+
 17 November 2026 — Confined graphical case f5ed8d7d307e completes actual PAM
 and native Start, then visibly reaches the user desktop. The original entry
 and worker exit zero with PAM closure. A fresh empty greeter returns, then

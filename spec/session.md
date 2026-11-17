@@ -141,9 +141,24 @@ the real greeter starts the selected entry through the authenticated PAM
 worker. The entry creates its UID-owned runtime independently of the
 greeter's scratch. The private POSIX shared-memory mount uses distinct
 file labels for the two sides of login. The test observes the original
-entry and worker end, user PAM closure and return to a fresh greeter. The
-empty per-session runtime and cache directories remain after that logout
-while the same UID still has other sessions.
+entry and worker end, user PAM closure and return to a fresh greeter.
+
+### Session-owned runtime cleanup
+
+The owner creates its runtime relative to the selected parent directory
+and retains close-on-exec descriptors for the parent, runtime and cache.
+After its tracked children end and their output closes, it compares each
+name with its retained directory identity. It removes the original cache
+and then the original runtime with empty-directory operations. On setup
+failure it also retires any directories it already holds.
+
+The owner logs cleanup separately from the session result. A missing,
+busy, replaced or nonempty directory stops that attempt. Only the two
+owned names are considered. The identity checks and removals are separate
+system calls, with cooperating writers under the same UID assumed.
+The [cleanup verification](../brains/aetheri/journal/2026-11-17-session-runtime-cleanup.md)
+checks that the just-ended runtime is gone while the same user's original
+runtime parent and an independent sibling remain available.
 
 `linux.session_entry` exercises account/runtime selection, root/unequal/saved-ID
 rejection, bounded paths, NNP failure and absent/supplied/failed notifications
