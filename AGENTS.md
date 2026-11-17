@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current login release selection: read the signed-selection section in
+`spec/login-deployment.md` and the 2026-11-17 login-release-selection journal.
+The offline generator emits 691 canonical bytes from the reviewed staging
+receipt, literal account IDs, selected systemd drop-in and effective policy.
+The OpenSSL 3.5 verifier expects the 64-byte Ed25519 suffix and independently
+selected public key and release identifier. The native and Python-to-C tests pass in
+Release `42b8160c9343` and memory `7c3c491ecb4b`. Preserve the failed build
+artifacts. Next wire the fixed-path providers, preserve original-instance
+guards and verify against the effective image. The first-version USB gate applies.
+
 Current fixed login layout: read `spec/login-deployment.md` and the
 2026-11-17 deployment-layout journal. The offline stager requires 11 independently
 selected artifacts and writes a 24-file tree plus receipt. Case `33b887fe4e0e`

@@ -60,6 +60,58 @@ attempt.
 
 ## Image integration
 
+### Signed login selection
+
+The startup verifier and greeter need the same independently selected
+deployment inputs. The selection can be signed after both executables are
+built, so the greeter's own digest can be included. Build the eventual
+providers with an explicitly selected Ed25519 public key and a nonzero,
+unique 32-byte identifier for the selected image release. Keep the release
+signing key on the signing workstation. The providers' trusted image
+placement must establish the public key and release identifier before they
+read a selection.
+
+Prepare an unsigned record from an already reviewed staging receipt. Supply
+the actual distribution-wide systemd service drop-in and a separately
+reviewed snapshot of the effective kernel policy bytes as ordinary files.
+Use the image's reserved greeter UID/GID and exact supplementary groups, one
+`--group` argument per group in ascending order. An empty group set uses no
+`--group` arguments.
+
+```sh
+python tools/prepare_login_selection.py --stage login-stage \
+  --release "$LOGIN_RELEASE_ID" --greeter-uid "$LOGIN_UID" --greeter-gid "$LOGIN_GID" \
+  --systemd-dropin selected-timeout-abort.conf --effective-policy selected-policy.bin \
+  --output login.body
+```
+
+On the signing workstation, review the selected inputs and sign the exact
+`login.body` bytes with plain Ed25519. For the OpenSSL CLI, use
+`openssl pkeyutl -sign -rawin -inkey login-release.pem -in login.body -out login.sig`.
+Append the 64 raw signature bytes to the body as `selection.bin`.
+[OpenSSL Ed25519 signing and verification](https://docs.openssl.org/3.5/man7/EVP_SIGNATURE-ED25519/)
+
+The 755-byte version-1 record uses big-endian integers. It contains the
+eight-byte magic `AETHLS01`, the 32-byte release identifier, the 32-bit UID
+and GID, the one-byte supplementary group count, two zero reserved bytes,
+and sixteen 32-bit group slots, padded with zeros. Each file row contains a
+32-bit nonzero size and its 32-byte SHA-256 digest. The Ed25519 signature
+covers the whole 691-byte body. File rows have this fixed order.
+
+1. Backend unit, startup unit, distribution service drop-in, worker shutdown drop-in
+2. Backend executable, backend configuration, greeter executable, greeter display executable
+3. Greeter font, human PAM profile, greeter PAM profile
+4. Session entry, compositor, desktop, startup executable, effective kernel policy
+
+The native verifier checks the exact record size, release identifier,
+signature, account IDs, group ordering, reserved fields, and the size bounds
+of each role. A valid record supplies expectations for the subsequent live
+checks. Reusing a release identifier would allow multiple selections signed
+with that identifier. Boot/update policy still owns rollback between images.
+The shipped login executables still require an explicit deployment provider.
+
+### Installed system
+
 The stager copies the selected files and produces the receipt. Image assembly
 must supply the linked libraries, PAM modules, full desktop runtime, protected
 placement and ownership, and the verified distribution and Aetheri SELinux

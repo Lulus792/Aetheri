@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The login package can prepare one bounded release selection
+from the staged files, separately selected systemd drop-in and effective
+policy. The C17 verifier authenticates that exact selection with Ed25519 and an
+independent release identifier. Release and sanitizer builds each pass 11
+selected login/session tests, including Python-to-C format coverage. Next wire
+the signed selection into the two fixed-path providers and verify their live
+system admission. See the [selection record](journal/2026-11-17-login-release-selection.md).
+
 17 November 2026 — The fixed graphical login layout stages 24 selected files
 and records their paths, hashes and modes. An isolated Linux root verifies
 systemd units, activation alias, account and directory recipes and all 17 file

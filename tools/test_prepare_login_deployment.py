@@ -3,14 +3,18 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
 
 import prepare_login_deployment as deployment
+import prepare_login_selection as selection
 
 
 class LoginDeploymentTests(unittest.TestCase):
+    verifier = None
     def setUp(self):
         work = tempfile.TemporaryDirectory()
         self.addCleanup(work.cleanup)
@@ -97,6 +101,34 @@ class LoginDeploymentTests(unittest.TestCase):
             deployment.stage(self.manifest, self.root / "out")
         self.assertFalse((self.root / "out").exists())
 
+    def test_release_selection_checks_the_actual_staged_bytes(self):
+        self.save()
+        stage = self.root / "stage"
+        deployment.stage(self.manifest, stage)
+        dropin, policy = self.root / "distribution", self.root / "policy"
+        dropin.write_bytes(b"distribution service\n")
+        policy.write_bytes(b"\x01\x02")
+        release = "2a" + "00" * 31
+        args = (stage, dropin, policy, release, 992, 993, [993, 60000])
+        result = selection.payload(*args)
+        self.assertEqual(len(result), 691)
+        if self.verifier:
+            encoded = self.root / "selection"
+            encoded.write_bytes(result)
+            subprocess.run([self.verifier, encoded], check=True, timeout=15)
+
+        with self.assertRaisesRegex(ValueError, "strictly increasing"):
+            selection.payload(*args[:-1], [60000, 993])
+        candidate = stage / "root" / deployment.LIBEXEC / "aetheri-login-greeter"
+        candidate.chmod(0o755)
+        original = candidate.read_bytes()
+        candidate.write_bytes(original[:-1] + b"P")
+        with self.assertRaisesRegex(ValueError, "differs from reviewed receipt"):
+            selection.payload(*args)
+
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "--verify-selection":
+        LoginDeploymentTests.verifier = sys.argv[2]
+        del sys.argv[1:3]
     unittest.main()
