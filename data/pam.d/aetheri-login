@@ -1,0 +1,8 @@
+# Local human login. The greeter's internal account uses a different profile.
+auth requisite pam_succeed_if.so uid > 0 user != aetheri-greeter quiet
+auth required pam_unix.so
+account required pam_unix.so
+password required pam_deny.so
+session required pam_loginuid.so
+session required pam_systemd.so
+session required pam_unix.so

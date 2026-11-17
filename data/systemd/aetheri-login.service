@@ -1,0 +1,24 @@
+[Unit]
+Description=Aetheri graphical login
+Requires=systemd-logind.service
+Wants=aetheri-login-startup.service
+After=dbus.socket systemd-logind.service systemd-user-sessions.service systemd-tmpfiles-setup.service
+Conflicts=getty@tty8.service
+After=getty@tty8.service
+
+[Service]
+Type=exec
+NotifyAccess=main
+ExecStart=/usr/libexec/aetheri/aetheri-login-backend --config /usr/share/aetheri/login/greetd.toml
+SELinuxContext=system_u:system_r:aetheri_login_backend_t:s0
+NoNewPrivileges=yes
+LimitCORE=0
+LimitMEMLOCK=64M
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_KILL CAP_SYS_TTY_CONFIG CAP_AUDIT_WRITE
+BindPaths=/run/aetheri/login-shm:/dev/shm /run/aetheri/login-tmp:/tmp
+# The user desktop inherits this namespace and needs its regular home.
+# The backend's reviewed socket prefix is under /run.
+ProtectSystem=full
+
+[Install]
+Alias=display-manager.service

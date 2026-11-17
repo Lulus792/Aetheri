@@ -1,0 +1,13 @@
+[general]
+source_profile = false
+service = "aetheri-login"
+runfile = "/run/aetheri/login/greetd.run"
+
+[terminal]
+vt = 8
+switch = true
+
+[default_session]
+command = "/usr/libexec/aetheri/aetheri-login-greeter"
+user = "aetheri-greeter"
+service = "aetheri-greeter"

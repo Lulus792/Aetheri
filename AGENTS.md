@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current fixed login layout: read `spec/login-deployment.md` and the
+2026-11-17 deployment-layout journal. The offline stager requires 11 independently
+selected artifacts and writes a 24-file tree plus receipt. Case `33b887fe4e0e`
+verifies the isolated units/alias, sysusers/tmpfiles and all 17 file contexts.
+Case `994e02d124b3` proves the proposed sticky scratch mounts and full PAM/desktop/
+logout in the existing fixture profile. Candidate policy `022652a61780` was
+retired to exact baseline. Preserve the VM records and USB gate. Next bind
+normal providers to the fixed paths and full image runtime/effective policy.
+
 Current session runtime cleanup: read spec/session.md and the 2026-11-17
 session-runtime-cleanup journal. Retain parent/runtime/cache FDs from
 creation and use empty-only removals after known children and output end.

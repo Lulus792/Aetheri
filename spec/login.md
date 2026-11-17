@@ -7,8 +7,10 @@ The C conversation model, native stream and protected startup components exist.
 Private PAM authentication now reaches the actual graphical desktop and completes
 session shutdown. A candidate SELinux domain confines the finite startup helper.
 A locked dedicated greeter account and internal PAM profile now have actual
-carrier session evidence, including a split SELinux profile. Normal deployment
-admission and the original graphical greeter remain work.
+carrier session evidence, including a split SELinux profile. The original
+graphical greeter runs in the private VM profile. The
+[deployment layout](login-deployment.md) stages the fixed system paths and
+service inputs. Normal deployment admission remains open.
 
 ## Candidate login roles
 

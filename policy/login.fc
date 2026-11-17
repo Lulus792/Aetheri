@@ -1,0 +1,16 @@
+/usr/libexec/aetheri/aetheri-login-backend  -- system_u:object_r:aetheri_login_backend_exec_t:s0
+/usr/libexec/aetheri/aetheri-login-startup  -- system_u:object_r:aetheri_login_startup_exec_t:s0
+/usr/libexec/aetheri/aetheri-login-greeter  -- system_u:object_r:aetheri_greeter_exec_t:s0
+/usr/libexec/aetheri/aetheri-login-display  -- system_u:object_r:aetheri_greeter_display_exec_t:s0
+/usr/libexec/aetheri/aetheri-session        -- system_u:object_r:aetheri_session_exec_t:s0
+/usr/libexec/aetheri/aetheri-compositor     -- system_u:object_r:aetheri_session_core_exec_t:s0
+/usr/libexec/aetheri/aetheri-desktop        -- system_u:object_r:aetheri_desktop_shell_exec_t:s0
+/usr/share/aetheri/login/greetd\.toml      -- system_u:object_r:aetheri_login_config_t:s0
+/usr/share/aetheri/login/greeter\.ttf      -- system_u:object_r:aetheri_greeter_assets_t:s0
+/etc/pam\.d/aetheri-(login|greeter)        -- system_u:object_r:aetheri_login_config_t:s0
+/run/aetheri/login                         -d system_u:object_r:aetheri_login_runtime_t:s0
+/run/aetheri/login/backend-observation     -- system_u:object_r:aetheri_login_handoff_t:s0
+/run/aetheri/login/greetd\.run             -- system_u:object_r:aetheri_login_state_t:s0
+/run/aetheri/login-greeter                 -d system_u:object_r:aetheri_greeter_render_t:s0
+/run/aetheri/login-tmp                     -d system_u:object_r:aetheri_login_shm_dir_t:s0
+/run/aetheri/login-shm                     -d system_u:object_r:aetheri_login_shm_dir_t:s0

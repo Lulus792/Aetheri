@@ -32,6 +32,7 @@
 ; Read-only image/configuration, proc, cgroup and SELinux observations.
 (allow aetheri_login_startup_t root_t (dir (search read open getattr)))
 (allow aetheri_login_startup_t usr_t (dir (search read open getattr)))
+(allow aetheri_login_startup_t bin_t (dir (search read open getattr)))
 (allow aetheri_login_startup_t var_t (dir (search getattr)))
 (allow aetheri_login_startup_t var_run_t (dir (search read open getattr)))
 (allow aetheri_login_startup_t init_var_run_t (dir (search read open getattr)))

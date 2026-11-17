@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The fixed graphical login layout stages 24 selected files
+and records their paths, hashes and modes. An isolated Linux root verifies
+systemd units, activation alias, account and directory recipes and all 17 file
+contexts. The full graphical fixture passes PAM, desktop, logout and greeter
+return under the proposed `/tmp` and `/dev/shm` namespace. Next bind the normal
+compiled providers and effective policy to final packaged inputs. See the
+[deployment layout record](journal/2026-11-17-login-deployment-layout.md).
+
 17 November 2026 — The desktop owner retires its empty session runtime
 and cache after original children end. It retains and compares directory
 identities and leaves nonempty or observed replaced objects for separate

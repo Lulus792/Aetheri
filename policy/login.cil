@@ -65,6 +65,7 @@
 ; Protected runtime/linker inputs and public account metadata.
 (allow aetheri_login_roles root_t (dir (search getattr)))
 (allow aetheri_login_roles usr_t (dir (search read open getattr)))
+(allow aetheri_login_roles bin_t (dir (search getattr)))
 (allow aetheri_login_roles var_t (dir (search getattr)))
 (allow aetheri_login_roles var_run_t (dir (search getattr)))
 (allow aetheri_login_roles init_var_run_t (dir (search getattr)))
@@ -180,6 +181,7 @@
 (allow aetheri_greeter_t init_t (unix_stream_socket (read)))
 (allow aetheri_greeter_t init_var_run_t (dir (read open)))
 (allow aetheri_greeter_t systemd_unit_file_t (dir (search read open getattr)))
+(allow aetheri_greeter_t bin_t (dir (read open)))
 (allow aetheri_greeter_t systemd_unit_file_t (file (read open getattr)))
 (allow aetheri_greeter_t systemd_unit_file_t (service (status)))
 (allow aetheri_greeter_t sysfs_t (dir (search getattr)))
