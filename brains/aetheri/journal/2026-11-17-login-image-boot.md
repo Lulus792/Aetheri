@@ -176,3 +176,40 @@ Both original VMs exited. Each run rechecks system image SHA-256
 The VM test is single-output desktop evidence. Terminal, Files and
 Settings launches in the installed profile and hardware validation
 remain open. The USB release gate still applies.
+
+## Installed app execution boundary
+
+Three independent logins in signed image `b0bfb4471e8b` reach the dock.
+The controller verifies the corresponding search query on a presented
+frame, then uses Enter to launch Terminal, Files or Settings. All
+three fork, exit 126 before app readiness and cause the current
+session owner to close the failed session. The original PIDs, signed
+media digest and screenshots are retained.
+
+Build `d3bc5e6f781b` adds the original child exec pathname and errno
+to the existing session diagnostics before exit 126. The diagnostic
+does not act as an app-ready or cleanup observation. All 13 selected
+Linux tests pass. A new signed image `f528ac353c7f` proves the actual
+`execv` call returns `EACCES` for each of the same three applications.
+The compositor and desktop close, the session runtime directory is
+removed, PAM/logind close the user session, and a new greeter starts.
+
+Offline inspection of the original read-only ext4 root finds the
+three executable files, the PTY starter, shell and editor at their
+intended paths. Each file is Root-owned, regular and mode 0755 with
+no embedded RPATH/RUNPATH. Each dependency closure resolves through
+the image loader under UID/GID 1000. The six files have label
+`bin_t`. An independent userspace decision query of the exact
+effective policy captured from the signed image denies
+`aetheri_session_t` execute and execute-no-transition on `bin_t`.
+Positive controls allow the selected compositor and desktop file
+permissions. The shared carrier policy is preserved.
+
+Next add exact installed entrypoint and role selection for the
+applications and their needed helpers. The session's existing
+generic `bin_t` denial is covered by the policy checker. Keep the
+earlier user and system runtime authority work separate and verify
+actual app readiness, input and shutdown after the targeted
+admission. All seven new VMs are terminal and the USB gate applies.
+Four older unmounted fixture ext4 files were made sparse, reclaiming
+1,017,806,848 allocated bytes with their full SHA-256 values preserved.

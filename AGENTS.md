@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current signed app launch: read the installed app execution boundary
+in the 2026-11-17 login-image-boot journal. The three ordinary app
+search launches reach original fork in signed b0bfb4471e8b and
+f528ac353c7f. Final d3bc5e6f781b confirms execv EACCES for Terminal,
+Files and Settings; 13 CTests pass. Offline loader resolves six
+archived apps/helpers and the exact effective policy denies generic
+bin_t execution while allowing selected compositor/desktop controls.
+All seven VMs are terminal. Next exact app and helper admission
+with dedicated role policy, then runtime, input and shutdown.
+Retain the USB gate and original failure evidence.
+
 Current signed desktop VM: read the shared-memory desktop section of
 the 2026-11-17 login-image-boot journal and spec/session.md. Signed
 image b0bfb4471e8b reaches visible user desktop after actual password

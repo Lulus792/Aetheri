@@ -1,5 +1,12 @@
 # State
 
+17 November 2026 — Actual Terminal, Files and Settings launch
+requests reach the session owner in the signed VM. The child
+`execv` returns EACCES for all three. Their archived ELF closure
+resolves, and the signed policy denies execution of their generic
+`bin_t` files. Next add exact installed app and helper admission
+and test the full launch path. See the [app execution record](journal/2026-11-17-login-image-boot.md#installed-app-execution-boundary).
+
 17 November 2026 — The signed VM logs in to the visible desktop,
 draws the dock and expanded search through Wayland shared memory,
 and logs out normally. PAM closes session 2 and a new greeter

@@ -90,7 +90,10 @@ static bool spawn(struct child *c,char *const argv[],const int *pass,size_t coun
         if(got!=0)_exit(125);
         sigset_t mask;sigemptyset(&mask);
         if(sigprocmask(SIG_SETMASK,&mask,NULL) || signal(SIGPIPE,SIG_DFL)==SIG_ERR)_exit(125);
-        execv(argv[0],argv);_exit(126);
+        execv(argv[0],argv);
+        int failure=errno;
+        (void)dprintf(STDERR_FILENO,"exec failed path=%s errno=%d\n",argv[0],failure);
+        _exit(126);
     }
     close(logs[1]);close(gate[0]);
     int pin=pidfd_open(pid,0);
