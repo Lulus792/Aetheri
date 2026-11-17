@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current installed HDA Sound: read spec/audio-session.md#desktop-sound-mediator
+and the 2026-11-18 installed HDA record. Signed VM 659ead1f authenticates
+and confirms 40% to 39% and mute via native keyboard input. Original app
+and mediator exit zero; logout, replacement greeter and power-off pass.
+0b85af2f passes the same flow with zero outputs. Missing cac5a6eb and
+changed 59d7e72d preserve the signature and fail with -2 and -74.
+Preserve the full-F:, QMP scope, fixture credential and focus races as
+evidence. All new QEMUs are terminal. Physical HDA, Bluetooth, WLAN,
+suspend and the first-version USB gate remain.
+
 Current signed Sound stage: read spec/login-deployment.md and the 2026-11-18
 Sound image record. Build-selected v3 adds one protected mediator ELF to
 the startup apps guard in both views. The ten-source handoff stays exact.

@@ -64,8 +64,59 @@ with SHA-256
 The detailed builds and strict-audit evidence are in the matching
 `desktop-sound-image-e2cd43820800-evidence.tar.gz` archive.
 
-Next assemble the signed stage with the HDA image and apply the selected
-file contexts. Verify both read-only startup views, the session owner's
-actual confined transition, graphical volume/mute readback and normal
-teardown. Keep missing and changed mediator checks against the same signed
-selection. The first-version USB gate remains open.
+## Installed HDA Sound
+
+The assembled VM image preserves the 1,007-byte selection and adds the
+mediator at its fixed path with mode 0555 and
+`aetheri_audio_control_exec_t`. The reviewed ELF, audio packages and
+SELinux policy remain tied to the preceding stage. The raw ext4 root
+passes read-only checking and its copied bytes match
+`ffdf998bfa34b24a14b6a49670214c9e01fd9f70075e8d64eea3d26938a51366`.
+The original HDA archive is intact. The test media SHA-256 is
+`763eb2f0e3b20abaab8a3cdd1266cf0409b7a739dbffa3c84740fdf0ec4cc89c`.
+
+Authenticated VM case `659ead1f` passes installed startup, PAM login and
+the visible desktop. The emulated Intel controller reports an HDA control
+node and PCM node. WirePlumber creates the analog stereo output and
+Settings labels it Built-in Audio Analog Stereo. Through native keyboard
+focus and action, the observed volume changes from 0.399993891 to
+0.389999389 in revision 5, and mute changes from 0 to 1 in revision 8.
+Settings renders the confirmed state and 39% volume.
+
+The original Settings PID 274 and its mediator PID 275 both exit zero
+after closing the window. PipeWire and WirePlumber retire on logout, PAM
+closes the user session and the greeter returns. An ACPI request then
+ends the VM normally, including the guest kernel's power-down marker.
+The read-only boot hash is unchanged.
+
+The missing mediator case `cac5a6eb` returns `-ENOENT`. The same-size
+one-byte change case `59d7e72d` returns `-EBADMSG`. Both derive from the
+successful image, retain the exact signed selection and pass offline
+ext4 checking. Neither startup reaches completion or the user desktop.
+Both QEMU processes end at zero after the expected refusal and each
+read-only boot hash is unchanged.
+
+Without an emulated audio controller, case `0b85af2f` boots the same
+signed media and reaches Sound through the same Settings entry. The
+mediator sends a ready snapshot with zero outputs. Closing the window
+retires the app and mediator, logout returns to the greeter, and the
+kernel powers off normally.
+
+The first composition filled F: during final media readback. The second
+uses a temporary directory on C:. First boot `b1808344` reached startup
+completion and HDA. Its controller initially applied its workspace-only
+socket boundary to that test directory, then resumed the same process
+after confirming its QMP UUID. That attempt ended at the fixture password
+lookup. Boot `c90385da` reached the desktop and the HDA route but the
+controller typed before search focus settled. The final case waits for
+the actual focus, frame and route. Those fixture failures are retained.
+
+The locally retained evidence is
+`local/login-review-2026-11-10/installed-sound-659ead1f-evidence.tar.gz`,
+SHA-256 `4fff6d192098bdfb23a13e8c9fffb67dbf87e77dc7466203e240076e636e7120`.
+It includes the serial traces, screenshots, media receipts and the exact
+counterexample deltas. The successful VM's muted Sound screenshot is
+`local/login-review-2026-11-10/installed-sound-659ead1f.png`.
+
+Physical laptop playback, Bluetooth and suspend still need verification.
+The first-version USB gate remains open.

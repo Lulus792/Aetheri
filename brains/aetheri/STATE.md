@@ -1,5 +1,12 @@
 # State
 
+18 November 2026 — Signed HDA VM `659ead1f` authenticates and exposes
+its analog stereo output in Settings. Keyboard actions confirm volume
+and mute readback, then close the original app and mediator before normal
+logout and power-off. The same image with no HDA also powers off after an
+empty Sound page. Missing and changed mediator cases fail startup with
+the original signature. See the [installed HDA record](journal/2026-11-18-desktop-sound-image.md#installed-hda-sound).
+
 18 November 2026 — Sound format 3 stages and signs the mediator. The native
 reader accepts the actual VM fixture release and projects the exact ELF.
 Both build profiles pass selection and packaging. The optional mediator
