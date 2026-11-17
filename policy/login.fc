@@ -6,6 +6,7 @@
 /usr/libexec/aetheri/aetheri-compositor     -- system_u:object_r:aetheri_session_core_exec_t:s0
 /usr/libexec/aetheri/aetheri-desktop        -- system_u:object_r:aetheri_desktop_shell_exec_t:s0
 /usr/share/aetheri/login/greetd\.toml      -- system_u:object_r:aetheri_login_config_t:s0
+/usr/share/aetheri/login/selection\.bin    -- system_u:object_r:aetheri_login_config_t:s0
 /usr/share/aetheri/login/greeter\.ttf      -- system_u:object_r:aetheri_greeter_assets_t:s0
 /etc/pam\.d/aetheri-(login|greeter)        -- system_u:object_r:aetheri_login_config_t:s0
 /run/aetheri/login                         -d system_u:object_r:aetheri_login_runtime_t:s0

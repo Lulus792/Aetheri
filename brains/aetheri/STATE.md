@@ -1,5 +1,13 @@
 # State
 
+17 November 2026 — The signed selection now goes into the fixed image path as
+a create-only 0444 file. Its native reader authenticates and pins the protected
+record before exposing the shared backend and display expectations. An
+ordinary-user VM case observes the real installed path privately and fences a
+byte-identical replacement even after restoration. Next compose the provider
+gates around the startup helper's namespace transition and exercise the
+packaged units. See the [installed selection record](journal/2026-11-17-login-installed-selection.md).
+
 17 November 2026 — The login package can prepare one bounded release selection
 from the staged files, separately selected systemd drop-in and effective
 policy. The C17 verifier authenticates that exact selection with Ed25519 and an

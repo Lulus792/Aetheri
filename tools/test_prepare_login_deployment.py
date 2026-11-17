@@ -112,10 +112,33 @@ class LoginDeploymentTests(unittest.TestCase):
         args = (stage, dropin, policy, release, 992, 993, [993, 60000])
         result = selection.payload(*args)
         self.assertEqual(len(result), 691)
+        signature = self.root / "signature"
+        signature.write_bytes(bytes(63))
+        destination = stage / "root" / deployment.DATA / "selection.bin"
+        command = [sys.executable, selection.__file__, "--stage", str(stage),
+                   "--systemd-dropin", str(dropin), "--effective-policy", str(policy),
+                   "--release", release, "--greeter-uid", "992", "--greeter-gid", "993",
+                   "--group", "993", "--group", "60000", "--signature", str(signature),
+                   "--output", str(destination)]
+        failed = subprocess.run(command, capture_output=True, timeout=15)
+        self.assertEqual(failed.returncode, 1, failed.stderr)
+        self.assertFalse(destination.exists())
         if self.verifier:
             encoded = self.root / "selection"
             encoded.write_bytes(result)
-            subprocess.run([self.verifier, encoded], check=True, timeout=15)
+            signed = self.root / "signed"
+            subprocess.run([self.verifier, encoded, signed], check=True, timeout=15)
+            record = signed.read_bytes()
+            self.assertEqual(record[:len(result)], result)
+            signature.write_bytes(record[len(result):])
+        else:
+            signature.write_bytes(bytes(64))
+        subprocess.run(command, check=True, timeout=15)
+        self.assertEqual(destination.read_bytes(), result + signature.read_bytes())
+        if os.name != "nt":
+            self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o444)
+        failed = subprocess.run(command, capture_output=True, timeout=15)
+        self.assertEqual(failed.returncode, 1, failed.stderr)
 
         with self.assertRaisesRegex(ValueError, "strictly increasing"):
             selection.payload(*args[:-1], [60000, 993])

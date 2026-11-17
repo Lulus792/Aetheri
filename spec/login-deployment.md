@@ -7,7 +7,7 @@ deployment provider can bind them to independently selected release inputs.
 | Path | Purpose |
 | --- | --- |
 | `/usr/libexec/aetheri/` | Backend, startup verifier, greeter, its display process, session entry, compositor and desktop |
-| `/usr/share/aetheri/login/` | Fixed backend configuration, greeter font, SELinux policy and file-context inputs |
+| `/usr/share/aetheri/login/` | Signed release selection, backend configuration, greeter font and SELinux policy inputs |
 | `/etc/pam.d/aetheri-login` | Local human authentication and session setup through PAM |
 | `/etc/pam.d/aetheri-greeter` | Internal PAM session for the locked display account |
 | `/usr/lib/systemd/system/` | Backend service, ordered startup verifier and worker shutdown drop-in |
@@ -88,7 +88,13 @@ python tools/prepare_login_selection.py --stage login-stage \
 On the signing workstation, review the selected inputs and sign the exact
 `login.body` bytes with plain Ed25519. For the OpenSSL CLI, use
 `openssl pkeyutl -sign -rawin -inkey login-release.pem -in login.body -out login.sig`.
-Append the 64 raw signature bytes to the body as `selection.bin`.
+Run the preparation command again with the same selection inputs, adding
+`--signature login.sig` and setting the output to
+`login-stage/root/usr/share/aetheri/login/selection.bin`. It rebuilds the body
+and appends exactly 64 raw signature bytes. It creates the output once and
+sets mode 0444. During image assembly use Root ownership and the supplied
+SELinux file context. Signing and verification cover the final bytes
+even if two preparation runs use different inputs.
 [OpenSSL Ed25519 signing and verification](https://docs.openssl.org/3.5/man7/EVP_SIGNATURE-ED25519/)
 
 The 755-byte version-1 record uses big-endian integers. It contains the
@@ -110,6 +116,22 @@ checks. Reusing a release identifier would allow multiple selections signed
 with that identifier. Boot/update policy still owns rollback between images.
 The shipped login executables still require an explicit deployment provider.
 
+The [fixed-path reader](../src/login/installed.h) authenticates the record and
+retains a protected source observation of those authenticated bytes. It
+checks Root ownership, mode 0444, a single link, the exact SELinux file label,
+and the original path and file identities. It projects shared expectations
+for the backend, loaded configuration, ordered drop-ins and greeter, plus
+the separate display executable. It reports the signed account and policy
+expectations for the providers' live comparisons. When a source check
+observes a replacement, later reads of that observation stay fenced.
+[Linux path resolution](https://man7.org/linux/man-pages/man2/openat2.2.html)
+
+The startup helper enters the original backend's mount namespace. Each
+view needs its own source observation against the same signed release
+selection. Source observations retain mount identities from their original
+view. Keep the greeter's selection pinned in the view that its existing
+client and display checks use.
+
 ### Installed system
 
 The stager copies the selected files and produces the receipt. Image assembly
@@ -123,5 +145,7 @@ work. The carrier-only policy supplement stays outside the package.
 
 The [deployment verification record](../brains/aetheri/journal/2026-11-17-login-deployment-layout.md)
 covers the isolated systemd layout and a separate full graphical VM test for
-the scratch namespace. A login from the final fixed paths still requires the
-normal providers and image integration.
+the scratch namespace. The [installed selection verification](../brains/aetheri/journal/2026-11-17-login-installed-selection.md)
+covers the reader at the exact fixed path in a private mount namespace.
+A login from the final fixed paths still requires both normal providers and
+image integration.

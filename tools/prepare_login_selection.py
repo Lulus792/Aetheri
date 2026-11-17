@@ -91,13 +91,21 @@ def main() -> int:
     parser.add_argument("--greeter-uid", type=int, required=True)
     parser.add_argument("--greeter-gid", type=int, required=True)
     parser.add_argument("--group", action="append", type=int, default=[])
+    parser.add_argument("--signature", type=Path, help="append the offline signer’s raw Ed25519 signature")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         body = payload(args.stage, args.systemd_dropin, args.effective_policy,
                        args.release, args.greeter_uid, args.greeter_gid, args.group)
+        if args.signature is not None:
+            signature = read_regular(args.signature, 64)
+            if len(signature) != 64:
+                raise ValueError("expected a 64-byte raw Ed25519 signature")
+            body += signature
         with args.output.open("xb") as stream:
             stream.write(body)
+        if args.signature is not None:
+            args.output.chmod(0o444)
     except (OSError, ValueError) as error:
         print(f"login selection: {error}", file=sys.stderr)
         return 1

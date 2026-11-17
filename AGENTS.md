@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current installed login selection: use `spec/login-deployment.md` and the
+2026-11-17 login-installed-selection journal. Stage the raw signature with
+`prepare_login_selection.py --signature` at the literal 0444 `selection.bin`
+path. Native readers pin authenticated bytes in their original view. VM
+`3c5e5fe9f62b` passes 11 checks in each profile, including byte-identical
+replacement and permanent fencing after restoration. Preserve the failed
+raw-label fixture. Candidate policy `6a313795bebf` is retired to exact baseline.
+Next connect the actual providers. Startup must acquire separate protected
+observations before and after its authenticated namespace transition. Keep
+live policy/account/runtime/device admission and the first-version USB gate.
+
 Current login release selection: read the signed-selection section in
 `spec/login-deployment.md` and the 2026-11-17 login-release-selection journal.
 The offline generator emits 691 canonical bytes from the reviewed staging

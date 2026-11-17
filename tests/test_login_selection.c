@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     CHECK(key_size == sizeof public_key);
 
     uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS01";
-    if (argc == 2) {
+    if (argc == 2 || argc == 3) {
         FILE *file = fopen(argv[1], "rb");
         CHECK(file);
         CHECK(fread(record, 1, AE_LOGIN_SELECTION_BODY_BYTES, file) == AE_LOGIN_SELECTION_BODY_BYTES);
@@ -56,6 +56,11 @@ int main(int argc, char **argv)
         CHECK(selected.groups[0] == 993 && selected.groups[1] == 60000);
         CHECK(selected.files[AE_LOGIN_SELECT_SYSTEMD_DROPIN].size == 21);
         CHECK(selected.files[AE_LOGIN_SELECT_KERNEL_POLICY].size == 2);
+        if (argc == 3) {
+            file = fopen(argv[2], "wbx");
+            CHECK(file);
+            CHECK(fwrite(record, 1, sizeof record, file) == sizeof record && !fclose(file));
+        }
         EVP_PKEY_free(key);
         return 0;
     }
