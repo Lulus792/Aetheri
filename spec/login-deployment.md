@@ -125,6 +125,36 @@ controller uses the resulting indexes for codec selection. The image keeps
 sound nodes under standard kernel and udev ownership. PipeWire, WirePlumber,
 and the Settings sound control connection have their own admission work.
 
+### Intel PCI WLAN files
+
+The [WLAN inventory](desktop-wlan-inputs.json) selects the `iwlwifi` and
+`iwlmvm` modules and their four local dependencies for the existing Fedora
+kernel. The PCI rule requests the device's reported alias when an unbound
+Intel `8086:24fd` device is added. The kernel chooses the matching radio
+configuration and requests its firmware. The inventory includes the two
+API 36 firmware files referenced by the applicable Intel configurations
+and their original license notice. [Linux Intel configuration](https://github.com/torvalds/linux/blob/v6.19/drivers/net/wireless/intel/iwlwifi/cfg/8000.c)
+
+Use the already selected kernel tree for `--kernel-root`. Put the two
+uncompressed `.ucode` files and `LICENCE.iwlwifi_firmware` from the recorded
+commit into `--firmware-dir`. Supply the exact Fedora `wireless-regdb` RPM.
+The stager verifies the RPM signature before selecting `regulatory.db`,
+its kernel signature and its license notice. Keep the database and its
+signature together so the kernel can enforce regulatory constraints.
+[Fedora regulatory database package](https://packages.fedoraproject.org/pkgs/wireless-regdb/wireless-regdb/fedora-44.html)
+
+```sh
+python3 tools/desktop_wlan_payload.py --image-root "$IMAGE_ROOT" \
+  --kernel-root "$KERNEL_ROOT" --firmware-dir "$WLAN_FIRMWARE" \
+  --regdb-rpm "$REGDB_RPM"
+depmod -C /dev/null -b "$IMAGE_ROOT" -a 6.19.10-300.fc44.x86_64
+```
+
+The development desktop builder accepts the same three inputs through
+`--wlan-inputs` and regenerates the combined indexes after staging. Keep
+the WLAN receipt with the image inputs. The connection manager, Settings
+controls and physical HP acceptance have their own runtime tests.
+
 ### PipeWire and WirePlumber files
 
 Stage the runtime in the offline desktop root before applying file contexts.

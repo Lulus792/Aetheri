@@ -17,6 +17,7 @@ import uuid
 import build_data_probe as data_image
 import desktop_hda_payload
 import desktop_payload
+import desktop_wlan_payload
 import device_filter_image
 import test_boot_probe as boot
 import prepare_libinput_runtime as input_projection
@@ -38,7 +39,7 @@ def runtime_selection(input_runtime=None):
 
 
 def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input_runtime=None,
-          hda_modules_root=None):
+          hda_modules_root=None,wlan_inputs=None):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:
         raise ValueError('use the ordinary x86-64 Linux image builder')
     raw,manifest=runtime_selection(input_runtime)
@@ -77,6 +78,7 @@ def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input
         link('etc/systemd/user/sockets.target.wants/dbus.socket','/usr/lib/systemd/user/dbus.socket')
         put('etc/modules-load.d/aetheri-graphics.conf','bochs\n')
         hda = desktop_hda_payload.install(tree, hda_modules_root) if hda_modules_root is not None else None
+        wlan = desktop_wlan_payload.install(tree, *wlan_inputs) if wlan_inputs is not None else None
         run('depmod',['/usr/bin/depmod','-C','/dev/null','-b',str(tree),'-a','6.19.10-300.fc44.x86_64'])
         (tree/'etc/passwd').write_text((tree/'etc/passwd').read_text()+'dbus:x:81:81:D-Bus:/nonexistent:/nonexistent\n')
         (tree/'etc/group').write_text((tree/'etc/group').read_text()+'dbus:x:81:\ntty:x:5:\ndisk:x:6:\nlp:x:7:\ncdrom:x:11:\ndialout:x:18:\ntape:x:33:\nkvm:x:36:\naudio:x:63:\nsgx:x:995:\ninput:x:998:\nvideo:x:997:\nrender:x:996:\nclock:x:103:\nkmem:x:9:\n')
@@ -140,6 +142,7 @@ def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input
         run('owner',flags)
         result=dict(proof='desktop-image',target='aetheri-desktop.target',desktop_inputs_sha256=hashlib.sha256(raw).hexdigest(),desktop_builder_sha256=boot.sha(Path(__file__)),desktop_owner_sha256=boot.sha(ROOT/'src/boot/desktop.c'),desktop_session_sha256=boot.sha(ROOT/'src/linux/session.c'),desktop_runtime=inventory,device_filter=dict(runtime=device_runtime,source_sha256=boot.sha(ROOT/'src/boot/device_filter.c')),applications={n:boot.sha(app_root/n) for n in APPS})
         if hda is not None:result['hda']=hda
+        if wlan is not None:result['wlan']=wlan
         if prepare_extra:result.update(prepare_extra(tree,nonce,volume))
         return result
 
@@ -151,5 +154,7 @@ if __name__=='__main__':
     p.add_argument('--boot-image',type=Path,required=True);p.add_argument('--packages',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--input-runtime',type=Path)
     p.add_argument('--hda-modules-root',type=Path,help='kernel input tree for the selected Intel HDA modules')
+    p.add_argument('--wlan-inputs',type=Path,nargs=3,metavar=('KERNEL_ROOT','FIRMWARE_DIR','REGDB_RPM'),
+                   help='stage the selected Intel WLAN inputs')
     a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),input_runtime=a.input_runtime,
-                           hda_modules_root=a.hda_modules_root)
+                           hda_modules_root=a.hda_modules_root,wlan_inputs=a.wlan_inputs)

@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The Intel `8086:24fd` WLAN layer stages the six pinned
+driver modules, API 36 firmware, signed regulatory data and a PCI-scoped
+udev rule. The merged desktop module index resolves the Intel alias and
+the complete dependency chain. An altered regulatory RPM is refused.
+VM `347ca597` loads the WLAN modules under enforcing SELinux and observes
+two virtual radios and `/dev/rfkill`. The signed login startup and shutdown
+pass. Physical WLAN, association and the Settings workflow remain open.
+See the [WLAN input record](journal/2026-11-18-desktop-wlan.md).
+
 18 November 2026 — The installed suspend guard now admits the original
 desktop in enforcing SELinux. The desktop can read the enforcement flag and
 keeps its policy mutation denials. Signed image `ac97b7682ba1` enters actual

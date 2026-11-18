@@ -24,15 +24,15 @@ def sha(raw):
 
 
 @contextlib.contextmanager
-def sealed_package(path, package):
+def sealed_package(path, package, *, description="audio RPM"):
     """Hash/signature/parser share one immutable data object, not repeated paths."""
     import fcntl
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.stat().st_size != package["size"]:
-        raise ValueError("changed audio RPM")
+        raise ValueError(f"changed {description}")
     raw = path.read_bytes()
     if len(raw) != package["size"] or sha(raw) != package["sha256"]:
-        raise ValueError("changed audio RPM bytes")
+        raise ValueError(f"changed {description} bytes")
     fd = os.memfd_create("aetheri-audio-rpm", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
         os.fchmod(fd, 0o600)
@@ -40,12 +40,12 @@ def sealed_package(path, package):
         while pending:
             written = os.write(fd, pending)
             if written <= 0:
-                raise OSError("audio RPM snapshot write")
+                raise OSError(f"{description} snapshot write")
             pending = pending[written:]
         seals = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL
         fcntl.fcntl(fd, fcntl.F_ADD_SEALS, seals)
         if fcntl.fcntl(fd, fcntl.F_GET_SEALS) != seals:
-            raise ValueError("audio RPM snapshot not sealed")
+            raise ValueError(f"{description} snapshot not sealed")
         yield fd
     finally:
         os.close(fd)

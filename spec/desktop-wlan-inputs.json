@@ -1,0 +1,107 @@
+{
+  "format": 1,
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "pci_device": "8086:24fd",
+  "firmware_source": {
+    "tag": "20260309",
+    "commit": "c822cbbb14ce5b8ee1f27346220640ac350bbf34",
+    "url": "https://gitlab.com/kernel-firmware/linux-firmware/-/tree/c822cbbb14ce5b8ee1f27346220640ac350bbf34"
+  },
+  "kernel_modules": [
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/net/wireless/intel/iwlwifi/iwlwifi.ko.xz",
+      "size": 266768,
+      "sha256": "dc6eb879c93b8eb5602953c9271f4778ed0f07d9544816bbe0dd2766ceb68b5c",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/drivers/net/wireless/intel/iwlwifi/mvm/iwlmvm.ko.xz",
+      "size": 431296,
+      "sha256": "3c124059acb9f16787f86f255a18cd864223848d9b5a93b010089b4a3d221471",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/net/mac80211/mac80211.ko.xz",
+      "size": 688920,
+      "sha256": "71c3d09a5aa0244566eda0417dd1a354afd339a1003b4a9a6afb73758ec67742",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/net/wireless/cfg80211.ko.xz",
+      "size": 488164,
+      "sha256": "ba0412c732fe02f585d986326e1967cdc8a5c9d45fddba940fcb0ad4b92716ad",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/net/rfkill/rfkill.ko.xz",
+      "size": 24536,
+      "sha256": "0576e2162b4d7317f1af3053cbce35ff4ca4e28ecf37fbdfffe0f004c9df9922",
+      "mode": 420,
+      "package": "kernel-modules-6.19.10-300.fc44.x86_64"
+    },
+    {
+      "destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/lib/crypto/libarc4.ko.xz",
+      "size": 8836,
+      "sha256": "1970af433cb300011dee8cfc15ec4c92638859e6ef1f6beac468f9333dd2e0f2",
+      "mode": 420,
+      "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"
+    }
+  ],
+  "firmware": [
+    {
+      "destination": "/usr/lib/firmware/iwlwifi-8265-36.ucode",
+      "size": 2432528,
+      "sha256": "1336afcd028ed094d1fe33893c84c273bb5711be52970040344a75a12f276d56",
+      "mode": 420,
+      "provenance": "linux-firmware@c822cbbb14ce5b8ee1f27346220640ac350bbf34"
+    },
+    {
+      "destination": "/usr/lib/firmware/iwlwifi-8000C-36.ucode",
+      "size": 2425084,
+      "sha256": "479931721f5e168d69d67c297c11738acd75da390adb94f96030a1055f4cf57a",
+      "mode": 420,
+      "provenance": "linux-firmware@c822cbbb14ce5b8ee1f27346220640ac350bbf34"
+    },
+    {
+      "destination": "/usr/share/licenses/linux-firmware/LICENCE.iwlwifi_firmware",
+      "size": 2046,
+      "sha256": "16d5040c7cf851fc693b7542e20870935b99802533ea1bfd231c377a2305e5c5",
+      "mode": 420,
+      "provenance": "linux-firmware@c822cbbb14ce5b8ee1f27346220640ac350bbf34"
+    }
+  ],
+  "regdb_rpm": {
+    "name": "wireless-regdb-2026.02.04-1.fc44.noarch.rpm",
+    "url": "https://eu.edge.kernel.org/fedora/releases/44/Everything/x86_64/os/Packages/w/wireless-regdb-2026.02.04-1.fc44.noarch.rpm",
+    "size": 16719,
+    "sha256": "2a1dee2d3664b3f50fdcb6a6de78adf506031085daa57ea831e1687af82c531d",
+    "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6"
+  },
+  "regdb_files": [
+    {
+      "destination": "/usr/lib/firmware/regulatory.db",
+      "size": 6308,
+      "sha256": "9d171281bfe7acc5d203007427f6075b704b7a48ff42ae25b9f490a0118fe7d2",
+      "mode": 420,
+      "package": "wireless-regdb-2026.02.04-1.fc44.noarch"
+    },
+    {
+      "destination": "/usr/lib/firmware/regulatory.db.p7s",
+      "size": 1085,
+      "sha256": "d1170298577027c2da346242627ff6cad09fbebaa96a6b2de07ada7c873dd337",
+      "mode": 420,
+      "package": "wireless-regdb-2026.02.04-1.fc44.noarch"
+    },
+    {
+      "destination": "/usr/share/licenses/wireless-regdb/LICENSE",
+      "size": 880,
+      "sha256": "678b0df753c86198fc496d1f1033429bbd57f101472132ee7eaaf9f5e0a7fae1",
+      "mode": 420,
+      "package": "wireless-regdb-2026.02.04-1.fc44.noarch"
+    }
+  ]
+}

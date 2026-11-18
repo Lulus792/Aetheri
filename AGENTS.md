@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current Intel WLAN inputs: read `spec/login-deployment.md#intel-pci-wlan-files`
+and the 2026-11-18 desktop-wlan record. Stage the six pinned modules, two
+API 36 blobs, notices, signed regulatory data and the scoped 8086:24fd rule.
+Run combined depmod after staging. The merged tree resolves the sample PCI
+alias, orders the six dependencies and rejects a changed regulatory RPM.
+VM 561ea4743319/347ca597 loads the real WLAN modules and two hwsim PHYs
+under enforcing SELinux. Signed login startup and ACPI power-off pass.
+Keep hwsim and explicit module loads in VM fixtures. The physical test,
+WLAN connection manager, Settings and the first-version USB gate remain.
+
 Current signed suspend: read the installed-suspend-guard record and
 `spec/session.md#suspend-and-resume-lock-coordination`. Keep guard phase
 exit statuses and read-only desktop access to the enforcing flag, with
