@@ -8,7 +8,7 @@
    No compositor blur or backdrop permission is inferred from a painted panel. */
 struct palette { nx_color canvas, sidebar, card, text, secondary, line, accent, selected, hover, focus; };
 struct label { char bytes[512]; float width, size; nx_text_layout *layout; };
-enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV, CHROME, VALUE, TOGGLE };
+enum node_kind { TEXT, CARD, BUTTON, RADIO, NAV, CHROME, VALUE, TOGGLE, PASSWORD };
 struct node {
     enum node_kind kind;
     uint64_t id, parent;
@@ -40,12 +40,17 @@ struct ae_settings_view {
     enum ae_settings_window_action action;
     bool refresh;
     uint64_t restore_wlan_focus;
+    uint64_t join_selection,join_focus;
+    size_t join_row;
+    nx_text_field *join_field;
+    bool join_invalid;
     uint64_t sound_drag_id,sound_target;
     double sound_draft,sound_volume;
     enum ae_audio_command_kind sound_kind;
     bool sound_intent,sound_mute,sound_redraw;
 };
-enum { WLAN_SWITCH = 60, WLAN_REFRESH = 61, WLAN_SCAN = 62 };
+enum { WLAN_SWITCH = 60, WLAN_REFRESH = 61, WLAN_SCAN = 62,
+       WLAN_PASSWORD = 71, WLAN_JOIN = 72, WLAN_CANCEL = 73, WLAN_ROW = 300 };
 static nx_utf8_span span(const char *s) { return (nx_utf8_span){s, strlen(s)}; }
 static nx_color rgb(unsigned value) {
     return (nx_color){(float)((value>>16)&255u)/255, (float)((value>>8)&255u)/255,
@@ -136,10 +141,20 @@ bool ae_settings_view_create(struct ae_settings *model, const void *font, size_t
 }
 void ae_settings_view_destroy(struct ae_settings_view *v) {
     if(!v) return;
+    nx_text_field_destroy(v->join_field);
     for(size_t i=0;i<LABELS;++i) nx_text_layout_destroy(v->labels[i].layout);
     nx_context_destroy(v->context);nx_font_collection_destroy(v->fonts);nx_font_close(v->font);free(v);
 }
 nx_context *ae_settings_view_context(struct ae_settings_view *v) {return v?v->context:NULL;}
+bool ae_settings_view_cancel_join(struct ae_settings_view *v) {
+    if(!v->join_selection) return false;
+    nx_text_field_destroy(v->join_field);
+    v->join_field=NULL;
+    v->join_selection=0;
+    v->join_invalid=false;
+    v->join_focus=WLAN_ROW+2*v->join_row;
+    return true;
+}
 enum ae_settings_window_action ae_settings_view_take_action(struct ae_settings_view *v) {
     if(!v) return AE_SETTINGS_WINDOW_NONE;
     enum ae_settings_window_action action=v->action;v->action=AE_SETTINGS_WINDOW_NONE;return action;
@@ -244,9 +259,71 @@ static const char *network_security(const struct ae_settings_view *v,enum ae_wla
     }
 }
 
+static bool can_join(const struct ae_wlan_network *row) {
+    return row->selection && !row->connected &&
+        (row->security==AE_WLAN_PERSONAL || row->security==AE_WLAN_OPEN);
+}
+
+static const char *join_status(const struct ae_settings_view *v) {
+    switch(v->model->wlan.join) {
+        case AE_SETTINGS_JOIN_RUNNING: return tr(v,"Connecting…","Verbindung wird aufgebaut…");
+        case AE_SETTINGS_JOIN_CONNECTED: return tr(v,"Connected to Wi-Fi.","Mit WLAN verbunden.");
+        case AE_SETTINGS_JOIN_FAILED: return tr(v,"Could not connect to this network.","Verbindung mit diesem Netz fehlgeschlagen.");
+        case AE_SETTINGS_JOIN_EXPIRED: return tr(v,"The selection expired. Choose a network again.","Auswahl abgelaufen. Wähle das Netz erneut aus.");
+        case AE_SETTINGS_JOIN_UNKNOWN: return tr(v,"Connection not confirmed. Scan again to check.","Verbindung unbestätigt. Suche erneut nach Netzen.");
+        default: return NULL;
+    }
+}
+
+static bool join_form(struct ae_settings_view *v,float x,float *y,float w,float scale) {
+    const struct ae_wlan_network *row=&v->model->wlan.networks.rows[v->join_row];
+    size_t card;
+    if(!group(v,32,x,*y,w,&card)) return false;
+    *y+=16;
+    x+=16;
+    w-=32;
+    if(!text(v,65,32,tr(v,"Join Wi-Fi network","Mit WLAN verbinden"),16*scale,x,y,w,false)) return false;
+    *y+=8;
+    if(!text(v,66,32,row->name,14*scale,x,y,w,false)) return false;
+    *y+=6;
+    if(!text(v,67,32,network_security(v,row->security),12*scale,x,y,w,true)) return false;
+    *y+=16;
+    if(v->join_field) {
+        const char *name=tr(v,"Password","Passwort");
+        if(!text(v,68,32,name,13*scale,x,y,w,false)) return false;
+        *y+=8;
+        nx_rect field={x,*y,w,40*scale};
+        if(!node(v,(struct node){.kind=PASSWORD,.id=WLAN_PASSWORD,.parent=32,.rect=field,.name=name})) return false;
+        *y+=field.height+12;
+        if(v->join_invalid && !text(v,69,32,
+            tr(v,"Enter a password with 8 to 63 printable ASCII characters.",
+                 "Gib ein Passwort mit 8 bis 63 druckbaren ASCII-Zeichen ein."),12*scale,x,y,w,true)) return false;
+    }
+    nx_rect connect={x,*y,w,40},cancel=connect;
+    bool stack=w<250*scale;
+    if(!stack) {
+        connect.width=cancel.width=(w-8)/2;
+        cancel.x+=connect.width+8;
+    }
+    if(!choice(v,BUTTON,WLAN_JOIN,32,tr(v,"Connect","Verbinden"),13*scale,&connect,true,false,NX_ICON_NONE))
+        return false;
+    if(stack) cancel.y+=connect.height+8;
+    if(!choice(v,BUTTON,WLAN_CANCEL,32,tr(v,"Cancel","Abbrechen"),13*scale,&cancel,false,false,NX_ICON_NONE))
+        return false;
+    *y=fmaxf(connect.y+connect.height,cancel.y+cancel.height)+16;
+    v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
+    return true;
+}
+
 static bool available_networks(struct ae_settings_view *v,float x,float *y,float w,float scale) {
     const struct ae_settings_wlan *wlan=&v->model->wlan;
     *y+=22;
+    if(v->join_selection) return join_form(v,x,y,w,scale);
+    const char *feedback=join_status(v);
+    if(feedback) {
+        if(!text(v,65,5,feedback,13*scale,x,y,w,true)) return false;
+        *y+=12;
+    }
     if(!text(v,63,5,tr(v,"Available networks","Verfügbare Netze"),16*scale,x,y,w,false)) return false;
     *y+=12;
     nx_rect scan={x,*y,w,40};
@@ -267,13 +344,17 @@ static bool available_networks(struct ae_settings_view *v,float x,float *y,float
     *y+=12;
     for(size_t i=0;i<wlan->networks.count;++i) {
         const struct ae_wlan_network *row=&wlan->networks.rows[i];
-        uint64_t id=300+2*i;
+        uint64_t id=WLAN_ROW+2*i;
         char detail[100];
         (void)snprintf(detail,sizeof detail,"%s%s · %d dBm",
                        row->connected?tr(v,"Connected · ","Verbunden · "):"",
                        network_security(v,row->security),(int)row->signal/100);
-        if(!text(v,id,32,row->name,14*scale,x+16,y,w-32,false) ||
-           !text(v,id+1,32,detail,12*scale,x+16,y,w-32,true)) return false;
+        if(can_join(row)) {
+            nx_rect choice_rect={x+16,*y,w-32,36};
+            if(!choice(v,BUTTON,id,32,row->name,14*scale,&choice_rect,false,wlan->busy,NX_ICON_WIFI)) return false;
+            *y+=choice_rect.height+4;
+        } else if(!text(v,id,32,row->name,14*scale,x+16,y,w-32,false)) return false;
+        if(!text(v,id+1,32,detail,12*scale,x+16,y,w-32,true)) return false;
         *y+=12;
     }
     v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
@@ -468,6 +549,15 @@ static bool content(struct ae_settings_view *v, float width, float *extent) {
 static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy, uint64_t *pressed) {
     nx_rect r=n.rect;r.x+=dx;r.y+=dy;
     struct palette p=v->colors;
+    if(n.kind==PASSWORD) {
+        nx_text_field_desc field={.id=n.id,.bounds=r,.name=span(n.name),.fonts=v->fonts,
+            .pixels_per_em=16*(float)v->model->text_percent/100,.glyph_cache_bytes=GLYPH_CACHE,.password=1};
+        nx_interaction_state state;
+        int valid=0,submitted=0;
+        if(nx_text_field_widget(v->context,&field,v->join_field,&state,&valid,&submitted)!=NX_OK) return false;
+        if(submitted) *pressed=WLAN_JOIN;
+        return true;
+    }
     if(n.kind==VALUE || n.kind==TOGGLE) {
         nx_control_desc desc={.id=n.id,.parent_id=n.parent,.bounds=r,.name=span(n.name),.disabled=n.disabled};
         nx_interaction_state state;
@@ -609,7 +699,13 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
         if(!m->displays[i].id || !memchr(m->displays[i].name,0,sizeof(m->displays[i].name))) return false;
     v->label_count=v->node_count=0;
     v->sound_intent=false;v->sound_redraw=false;
+    if(v->join_selection && (m->page!=AE_SETTINGS_NETWORK || m->wlan.busy ||
+       v->join_row>=m->wlan.networks.count ||
+       m->wlan.networks.rows[v->join_row].selection!=v->join_selection))
+        (void)ae_settings_view_cancel_join(v);
     if(width<320 || height<240) {
+        (void)ae_settings_view_cancel_join(v);
+        v->join_focus=0;
         v->restore_wlan_focus=0;
         return small_frame(v,width,height);
     }
@@ -672,8 +768,10 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
        choice. A later Tab returns to focus-following navigation. */
     if(nx_key_pressed(v->context,NX_KEY_PAGE_DOWN)) v->scroll_y+=scroll.viewport.height*0.8f;
     if(nx_key_pressed(v->context,NX_KEY_PAGE_UP)) v->scroll_y-=scroll.viewport.height*0.8f;
-    if(nx_key_pressed(v->context,NX_KEY_HOME)) v->scroll_y=0;
-    if(nx_key_pressed(v->context,NX_KEY_END)) v->scroll_y=extent;
+    if(focus!=WLAN_PASSWORD) {
+        if(nx_key_pressed(v->context,NX_KEY_HOME)) v->scroll_y=0;
+        if(nx_key_pressed(v->context,NX_KEY_END)) v->scroll_y=extent;
+    }
     v->last_focus=focus;v->last_width=width;v->last_height=height;v->last_text=m->text_percent;
     v->last_german=m->german;v->last_page=m->page;
     /* Fixed regions precede the scroll tree, preserving deterministic Tab order. */
@@ -699,6 +797,32 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     }
     else if(pressed==WLAN_REFRESH) *changed=ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_READ);
     else if(pressed==WLAN_SCAN) *changed=ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_SCAN);
+    else if(pressed==WLAN_CANCEL) *changed=ae_settings_view_cancel_join(v);
+    else if(pressed==WLAN_JOIN && v->join_selection) {
+        nx_utf8_span draft={0};
+        if(v->join_field && nx_text_field_text(v->join_field,&draft)!=NX_OK) return false;
+        if(ae_settings_wlan_join(&m->wlan,v->join_row,draft.data,draft.length)) {
+            (void)ae_settings_view_cancel_join(v);
+            v->join_focus=WLAN_SCAN;
+        } else {
+            v->join_invalid=true;
+            if(v->join_field) v->join_focus=WLAN_PASSWORD;
+        }
+        *changed=true;
+    }
+    else if(m->page==AE_SETTINGS_NETWORK && pressed>=WLAN_ROW && !(pressed%2) &&
+            (pressed-WLAN_ROW)/2<m->wlan.networks.count && !v->join_selection && !m->wlan.busy) {
+        size_t index=(size_t)(pressed-WLAN_ROW)/2;
+        const struct ae_wlan_network *row=&m->wlan.networks.rows[index];
+        if(can_join(row)) {
+            if(row->security==AE_WLAN_PERSONAL &&
+               nx_text_field_create_password("",0,&v->join_field)!=NX_OK) return false;
+            v->join_selection=row->selection;
+            v->join_row=index;
+            v->join_focus=v->join_field?WLAN_PASSWORD:WLAN_JOIN;
+            *changed=true;
+        }
+    }
     else if(pressed>=100 && pressed<=102) {m->theme=(enum ae_settings_theme)(pressed-100);*changed=true;}
     else if(pressed>=110 && pressed<=112) {const unsigned values[]={100,150,200};m->text_percent=values[pressed-110];*changed=true;}
     else if(pressed==120 || pressed==121) {m->german=pressed==121;*changed=true;}
@@ -714,6 +838,8 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(v->sound_redraw) *changed=true;
     uint64_t current_focus=nx_focus_id(v->context);
     if(m->page!=AE_SETTINGS_NETWORK) {
+        (void)ae_settings_view_cancel_join(v);
+        v->join_focus=0;
         v->restore_wlan_focus=0;
     } else if(m->wlan.busy) {
         /* The disabled controls can lose toolkit focus during a service call. */
@@ -723,6 +849,10 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
         uint64_t restore_id=v->restore_wlan_focus;
         v->restore_wlan_focus=0;
         if(!current_focus && nx_focus_set(v->context,restore_id)==NX_OK) *changed=true;
+    }
+    if(v->join_focus && !m->wlan.busy && nx_focus_set(v->context,v->join_focus)==NX_OK) {
+        v->join_focus=0;
+        *changed=true;
     }
     return true;
 }

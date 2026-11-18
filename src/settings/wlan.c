@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
 #include "settings/wlan.h"
 
 #include <errno.h>
@@ -12,6 +12,7 @@
 #define WLAN_PATH "/org/aetheri/Wlan1"
 #define BUS_SOCKET "unix:path=/run/dbus/system_bus_socket"
 #define CALL_USEC UINT64_C(4000000)
+#define JOIN_CALL_USEC UINT64_C(38000000)
 #define READ_INTERVAL UINT64_C(200000)
 #define CHANGE_WINDOW UINT64_C(10000000)
 
@@ -22,6 +23,8 @@ static uint64_t now_usec(void) {
 }
 
 void ae_settings_wlan_close(struct ae_settings_wlan_client *client) {
+    explicit_bzero(client->model->passphrase,sizeof client->model->passphrase);
+    client->model->join_selection=0;
     sd_bus_close_unref(client->bus);
     if(client->wait_fd>=0) close(client->wait_fd);
     *client=(struct ae_settings_wlan_client){.model=client->model,.wait_fd=-1,.parent_fd=-1};
@@ -35,6 +38,7 @@ static void finish(struct ae_settings_wlan_client *client,enum ae_settings_wlan_
     model->uncertain=uncertain;
     if(state!=AE_SETTINGS_WLAN_ON && !uncertain) {
         model->scan=AE_SETTINGS_SCAN_IDLE;
+        model->join=AE_SETTINGS_JOIN_IDLE;
         model->networks=(struct ae_wlan_networks){0};
     }
     ae_settings_wlan_close(client);
@@ -42,6 +46,12 @@ static void finish(struct ae_settings_wlan_client *client,enum ae_settings_wlan_
 
 static void lost(struct ae_settings_wlan_client *client) {
     struct ae_settings_wlan *model=client->model;
+    if(model->join==AE_SETTINGS_JOIN_RUNNING) {
+        model->join=AE_SETTINGS_JOIN_UNKNOWN;
+        model->scan=AE_SETTINGS_SCAN_IDLE;
+        finish(client,model->state,false);
+        return;
+    }
     if(model->scan==AE_SETTINGS_SCAN_RUNNING) {
         model->scan=AE_SETTINGS_SCAN_FAILED;
         finish(client,model->state,false);
@@ -68,24 +78,27 @@ static bool read_networks(sd_bus_message *m,struct ae_wlan_networks *out) {
     struct ae_wlan_networks snapshot={0};
     int scanning,more;
     if(sd_bus_message_is_method_error(m,NULL)!=0 ||
-       !sd_bus_message_has_signature(m,AE_WLAN_NETWORK_REPLY) ||
+       !sd_bus_message_has_signature(m,AE_WLAN_SELECTION_REPLY) ||
        sd_bus_message_read(m,"bb",&scanning,&more)<=0 ||
-       sd_bus_message_enter_container(m,'a',"(" AE_WLAN_NETWORK_FIELDS ")")<=0) return false;
+       sd_bus_message_enter_container(m,'a',"(" AE_WLAN_SELECTION_FIELDS ")")<=0) return false;
     snapshot.scanning=scanning!=0;
     snapshot.more=more!=0;
     int result;
-    while((result=sd_bus_message_enter_container(m,'r',AE_WLAN_NETWORK_FIELDS))>0) {
+    while((result=sd_bus_message_enter_container(m,'r',AE_WLAN_SELECTION_FIELDS))>0) {
         const char *name=NULL;
+        uint64_t selection=0;
         uint8_t security=0;
         int16_t signal=0;
         int connected=0;
         if(snapshot.count==AE_WLAN_NETWORK_LIMIT ||
-           sd_bus_message_read(m,AE_WLAN_NETWORK_FIELDS,&name,&security,&signal,&connected)<=0 ||
+           sd_bus_message_read(m,AE_WLAN_SELECTION_FIELDS,&selection,&name,&security,&signal,&connected)<=0 ||
+           !selection ||
            sd_bus_message_exit_container(m)<0 || security>AE_WLAN_ENTERPRISE ||
            signal>0 || signal<-10000) return false;
         size_t length=strnlen(name,AE_WLAN_NAME_CAPACITY);
         if(!length || length==AE_WLAN_NAME_CAPACITY) return false;
         struct ae_wlan_network *row=&snapshot.rows[snapshot.count++];
+        row->selection=selection;
         memcpy(row->name,name,length+1);
         row->security=(enum ae_wlan_security)security;
         row->signal=signal;
@@ -95,6 +108,18 @@ static bool read_networks(sd_bus_message *m,struct ae_wlan_networks *out) {
        (snapshot.scanning && (snapshot.more || snapshot.count))) return false;
     *out=snapshot;
     return true;
+}
+
+static enum ae_settings_join_state read_join(sd_bus_message *message) {
+    if(sd_bus_message_is_method_error(message,"org.aetheri.Error1.StaleSelection")>0)
+        return AE_SETTINGS_JOIN_EXPIRED;
+    if(sd_bus_message_is_method_error(message,"org.aetheri.Error1.ConnectionFailed")>0)
+        return AE_SETTINGS_JOIN_FAILED;
+    const char *state=NULL;
+    if(sd_bus_message_is_method_error(message,NULL)==0 && sd_bus_message_has_signature(message,"s") &&
+       sd_bus_message_read(message,"s",&state)>0 && !strcmp(state,"connected"))
+        return AE_SETTINGS_JOIN_CONNECTED;
+    return AE_SETTINGS_JOIN_UNKNOWN;
 }
 
 static int reply(sd_bus_message *message,void *data,sd_bus_error *error) {
@@ -112,6 +137,9 @@ static int reply(sd_bus_message *message,void *data,sd_bus_error *error) {
         case AE_SETTINGS_WLAN_LIST:
             client->reply_valid=read_networks(message,&client->reply_networks);
             break;
+        case AE_SETTINGS_WLAN_JOIN:
+            client->model->join=read_join(message);
+            break;
         default:
             client->refused=sd_bus_message_is_method_error(message,"org.aetheri.Error1.NotAuthorized")>0;
             break;
@@ -121,12 +149,23 @@ static int reply(sd_bus_message *message,void *data,sd_bus_error *error) {
 
 static bool submit(struct ae_settings_wlan_client *client,enum ae_settings_wlan_request request) {
     int result;
-    if(request==AE_SETTINGS_WLAN_ENABLE || request==AE_SETTINGS_WLAN_DISABLE)
+    if(request==AE_SETTINGS_WLAN_JOIN) {
+        struct ae_settings_wlan *model=client->model;
+        sd_bus_message *message=NULL;
+        result=sd_bus_message_new_method_call(client->bus,&message,WLAN_BUS,WLAN_PATH,WLAN_BUS,"Join");
+        if(result>=0) result=sd_bus_message_sensitive(message);
+        if(result>=0) result=sd_bus_message_append(message,"ts",model->join_selection,model->passphrase);
+        explicit_bzero(model->passphrase,sizeof model->passphrase);
+        model->join_selection=0;
+        model->networks=(struct ae_wlan_networks){0};
+        if(result>=0) result=sd_bus_call_async(client->bus,NULL,message,reply,client,JOIN_CALL_USEC);
+        sd_bus_message_unref(message);
+    } else if(request==AE_SETTINGS_WLAN_ENABLE || request==AE_SETTINGS_WLAN_DISABLE)
         result=sd_bus_call_method_async(client->bus,NULL,WLAN_BUS,WLAN_PATH,WLAN_BUS,"SetEnabled",reply,client,
                                       "b",request==AE_SETTINGS_WLAN_ENABLE);
     else {
         const char *member=request==AE_SETTINGS_WLAN_SCAN?"StartScan":
-            request==AE_SETTINGS_WLAN_LIST?"GetNetworks":"GetState";
+            request==AE_SETTINGS_WLAN_LIST?"GetJoinNetworks":"GetState";
         result=sd_bus_call_method_async(client->bus,NULL,WLAN_BUS,WLAN_PATH,WLAN_BUS,member,reply,client,"");
     }
     if(result<0) return false;
@@ -145,7 +184,7 @@ static bool start(struct ae_settings_wlan_client *client,enum ae_settings_wlan_r
     client->wait_fd=epoll_create1(EPOLL_CLOEXEC);
     if(client->wait_fd<0 || !submit(client,request)) return false;
     client->target=request==AE_SETTINGS_WLAN_ENABLE?AE_SETTINGS_WLAN_ON:AE_SETTINGS_WLAN_OFF;
-    client->deadline=now+CHANGE_WINDOW;
+    client->deadline=now+(request==AE_SETTINGS_WLAN_JOIN?JOIN_CALL_USEC+CALL_USEC:CHANGE_WINDOW);
     return true;
 }
 
@@ -242,6 +281,12 @@ bool ae_settings_wlan_process(struct ae_settings_wlan_client *client) {
     enum ae_settings_wlan_request sent=client->sent;
     client->sent=AE_SETTINGS_WLAN_NONE;
     client->reply_ready=false;
+    if(sent==AE_SETTINGS_WLAN_JOIN) {
+        client->model->scan=AE_SETTINGS_SCAN_RUNNING;
+        client->deadline=now+CHANGE_WINDOW;
+        schedule(client,AE_SETTINGS_WLAN_LIST,now);
+        return true;
+    }
     if(sent==AE_SETTINGS_WLAN_SCAN || sent==AE_SETTINGS_WLAN_LIST) return scan_result(client,sent,now);
     if(sent!=AE_SETTINGS_WLAN_READ) {
         if(client->refused) {finish(client,AE_SETTINGS_WLAN_UNAVAILABLE,false);return true;}

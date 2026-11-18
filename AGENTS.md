@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current WLAN association: read the 2026-11-18 desktop-iwd association
+record and Wlan1 1.2. Keep original process/session-bound selections,
+one credential response on the dedicated iwd connection, the limited
+broker callback paths and independent Connected property readback.
+Signed image 5d555d013e6b with VM 9268f373 joins the isolated WPA network
+from Settings, then passes logout, power-off and the overlay check.
+Cold VM a3c9b372 rejects a wrong password and passes explicit retry.
+Keep the first broker denial and harness evidence. Next independent
+DHCP/DNS and physical WLAN acceptance. The first-version USB gate applies.
+
 Current WLAN discovery: read the discovery section of the 2026-11-18
 desktop-iwd journal and the Wlan1 1.1 contract. Keep the original Settings
 session and iwd ProcessFD, bounded snapshot, and display-only names.

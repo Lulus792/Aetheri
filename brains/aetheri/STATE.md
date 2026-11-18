@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The native Network page joins a protected WLAN through
+Wlan1 1.2. Signed VM `9268f373` checks password masking, Escape and the
+original row's focus, confirms the wireless association through iwd, and
+shows the connected row. Switching Wi-Fi off, closing Settings, logout,
+ACPI power-off and the data overlay check pass. Cold repeat `a3c9b372`
+rejects a wrong password and connects after explicit retry. Physical WLAN and
+independent DHCP and DNS acceptance remain open. See the
+[association record](journal/2026-11-18-desktop-iwd.md#wlan-association-from-settings).
+
 18 November 2026 — Network scans from the original Settings app now use
 Wlan1 1.1 and the pinned iwd peer. Signed VM `b75e7341` shows the simulated
 protected network and its signal. Cold VM `ad993a64` shows the completed

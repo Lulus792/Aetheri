@@ -1,8 +1,10 @@
 /* Local Settings control for the fixed WLAN service. */
 #include "linux/peer.h"
 #include "wlan/discovery.h"
+#include "wlan/join.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <selinux/selinux.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,7 +13,9 @@
 #include <sys/ioctl.h>
 #include <sys/pidfd.h>
 #include <sys/prctl.h>
+#include <sys/random.h>
 #include <systemd/sd-login.h>
+#include <time.h>
 #include <unistd.h>
 
 #define WLAN_BUS "org.aetheri.Wlan1"
@@ -28,12 +32,47 @@
 #define WLAN_UNIT_PATH MANAGER_PATH "/unit/aetheri_2dwlan_2eservice"
 #define CALL_TIMEOUT UINT64_C(3000000)
 #define IDLE_TIMEOUT UINT64_C(30000000)
+#define SELECTION_TIMEOUT UINT64_C(120000000)
 
 struct caller {
     struct ae_peer peer;
     uint64_t cgroup;
     char *session;
 };
+
+struct selection {
+    struct ae_wlan_discovery snapshot;
+    struct ae_peer owner, iwd;
+    uint64_t cgroup, iwd_cgroup, expires;
+};
+
+struct control {
+    sd_bus *backend;
+    struct selection selection;
+};
+
+static uint64_t now_usec(void) {
+    struct timespec now;
+    if(clock_gettime(CLOCK_MONOTONIC,&now)<0) return 0;
+    return (uint64_t)now.tv_sec*UINT64_C(1000000)+(uint64_t)now.tv_nsec/1000;
+}
+
+static void clear_selection(struct selection *selection) {
+    ae_peer_clear(&selection->owner);
+    ae_peer_clear(&selection->iwd);
+    selection->expires=0;
+}
+
+static uint64_t selection_wait(struct selection *selection) {
+    if(!selection->expires) return IDLE_TIMEOUT;
+    uint64_t now=now_usec();
+    if(!now || now>=selection->expires || ae_peer_alive(&selection->owner)<0 ||
+       ae_peer_alive(&selection->iwd)<0) {
+        clear_selection(selection);
+        return IDLE_TIMEOUT;
+    }
+    return selection->expires-now;
+}
 
 static int identity(const struct ae_peer *peer, uint64_t *cgroup)
 {
@@ -174,14 +213,45 @@ static bool scan_authorized(void *data) {
     return observe_caller(data)>=0;
 }
 
-static int reply_networks(sd_bus_message *request,const struct ae_wlan_networks *snapshot) {
+static bool preserve_selection(struct selection *selection,struct ae_wlan_discovery *snapshot,
+                               const struct caller *caller,struct ae_peer *iwd,uint64_t iwd_cgroup) {
+    clear_selection(selection);
+    if(!snapshot->visible.count) return true;
+    uint64_t now=now_usec();
+    if(!now) return false;
+    uint64_t tokens[AE_WLAN_NETWORK_LIMIT];
+    size_t bytes=snapshot->visible.count*sizeof tokens[0];
+    if(getrandom(tokens,bytes,GRND_NONBLOCK)!=(ssize_t)bytes) return false;
+    for(size_t i=0;i<snapshot->visible.count;++i) {
+        if(!tokens[i]) return false;
+        for(size_t j=0;j<i;++j) if(tokens[i]==tokens[j]) return false;
+        snapshot->visible.rows[i].selection=tokens[i];
+    }
+    int pin=fcntl(caller->peer.pidfd,F_DUPFD_CLOEXEC,3);
+    if(pin<0) return false;
+    selection->owner=caller->peer;
+    selection->owner.pidfd=pin;
+    selection->iwd=*iwd;
+    iwd->pidfd=-1;
+    selection->cgroup=caller->cgroup;
+    selection->iwd_cgroup=iwd_cgroup;
+    selection->expires=now+SELECTION_TIMEOUT;
+    selection->snapshot=*snapshot;
+    return true;
+}
+
+static int reply_networks(sd_bus_message *request,const struct ae_wlan_networks *snapshot,bool selectable) {
     sd_bus_message *reply=NULL;
     int result=sd_bus_message_new_method_return(request,&reply);
     if(result>=0) result=sd_bus_message_append(reply,"bb",snapshot->scanning,snapshot->more);
-    if(result>=0) result=sd_bus_message_open_container(reply,'a',"(" AE_WLAN_NETWORK_FIELDS ")");
+    if(result>=0) result=sd_bus_message_open_container(reply,'a',selectable?
+        "(" AE_WLAN_SELECTION_FIELDS ")":"(" AE_WLAN_NETWORK_FIELDS ")");
     for(size_t i=0;result>=0 && i<snapshot->count;++i) {
         const struct ae_wlan_network *row=&snapshot->rows[i];
-        result=sd_bus_message_append(reply,"(" AE_WLAN_NETWORK_FIELDS ")",row->name,
+        if(selectable)
+            result=sd_bus_message_append(reply,"(" AE_WLAN_SELECTION_FIELDS ")",row->selection,row->name,
+                                         (uint8_t)row->security,row->signal,row->connected);
+        else result=sd_bus_message_append(reply,"(" AE_WLAN_NETWORK_FIELDS ")",row->name,
                                      (uint8_t)row->security,row->signal,row->connected);
     }
     if(result>=0) result=sd_bus_message_close_container(reply);
@@ -190,26 +260,90 @@ static int reply_networks(sd_bus_message *request,const struct ae_wlan_networks 
     return result;
 }
 
-static int discovery_method(sd_bus_message *message,sd_bus *bus,struct caller *caller,bool scan,sd_bus_error *error) {
+static int discovery_method(sd_bus_message *message,struct control *control,struct caller *caller,
+                            enum ae_wlan_discovery_action action,sd_bus_error *error) {
     struct ae_peer iwd=AE_PEER_INIT;
-    struct ae_wlan_networks snapshot={0};
+    struct ae_wlan_discovery snapshot={0};
     uint64_t cgroup=0,last=0;
+    sd_bus *bus=control->backend;
+    if(action!=AE_WLAN_LIST) clear_selection(&control->selection);
     int result=capture_backend(bus,AE_IWD_BUS,AE_IWD_CONTEXT,0,&iwd);
     if(result>=0 && (identity(&iwd,&cgroup)<0 || current_context(&iwd)<0)) result=-ESTALE;
     if(result>=0 && !scan_authorized(caller)) result=-EPERM;
-    if(result>=0) result=ae_wlan_discover(bus,&iwd,&snapshot,scan,scan_authorized,caller);
+    if(result>=0) result=ae_wlan_discover(bus,&iwd,&snapshot,action,scan_authorized,caller);
     if(result>=0 && (current_context(&iwd)<0 || identity(&iwd,&last)<0 || cgroup!=last)) result=-ESTALE;
+    if(result==-EPERM || !scan_authorized(caller)) {
+        result=sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active local Settings session required");
+    } else if(result<0 || (action==AE_WLAN_SELECT &&
+              !preserve_selection(&control->selection,&snapshot,caller,&iwd,cgroup))) {
+        result=sd_bus_error_set_const(error,"org.aetheri.Error1.Unavailable","Wireless discovery unavailable");
+    } else {
+        result=action==AE_WLAN_SCAN?sd_bus_reply_method_return(message,""):
+            reply_networks(message,&snapshot.visible,action==AE_WLAN_SELECT);
+    }
     ae_peer_clear(&iwd);
+    return result;
+}
+
+static int open_system(sd_bus **bus);
+
+static int join_method(sd_bus_message *message,struct control *control,struct caller *caller,sd_bus_error *error) {
+    struct selection *selection=&control->selection;
+    uint64_t token=0;
+    const char *passphrase=NULL;
+    if(sd_bus_message_read(message,"ts",&token,&passphrase)<=0 || !token)
+        return sd_bus_error_set_const(error,SD_BUS_ERROR_INVALID_ARGS,"Expected a network selection");
+    uint64_t now=now_usec();
+    if(!now || !selection->expires || now>=selection->expires ||
+       selection->owner.connection_pid!=caller->peer.connection_pid ||
+       selection->cgroup!=caller->cgroup || ae_peer_alive(&selection->owner)<0)
+        goto stale;
+    size_t index=0;
+    for(;index<selection->snapshot.visible.count;++index)
+        if(selection->snapshot.visible.rows[index].selection==token) break;
+    if(index==selection->snapshot.visible.count) goto stale;
+    enum ae_wlan_security security=selection->snapshot.visible.rows[index].security;
+    size_t length=strnlen(passphrase,AE_WLAN_PASSPHRASE_CAPACITY);
+    if((security!=AE_WLAN_OPEN && security!=AE_WLAN_PERSONAL) ||
+       (length && (security!=AE_WLAN_PERSONAL || !ae_wlan_passphrase_valid(passphrase,length))))
+        return sd_bus_error_set_const(error,SD_BUS_ERROR_INVALID_ARGS,"Unsupported security or invalid passphrase");
+
+    char path[AE_WLAN_PATH_CAPACITY];
+    strcpy(path,selection->snapshot.paths[index]);
+    struct ae_peer iwd=selection->iwd;
+    selection->iwd.pidfd=-1;
+    uint64_t wanted_cgroup=selection->iwd_cgroup;
+    clear_selection(selection);
+    uint64_t cgroup=0;
+    sd_bus *bus=NULL;
+    struct ae_peer current=AE_PEER_INIT;
+    sd_id128_t checked_bus,join_bus;
+    int result=-ESTALE;
+    if(current_context(&iwd)>=0 && identity(&iwd,&cgroup)>=0 && cgroup==wanted_cgroup &&
+       sd_bus_get_bus_id(control->backend,&checked_bus)>=0 && open_system(&bus)>=0 &&
+       capture_backend(bus,AE_IWD_BUS,AE_IWD_CONTEXT,iwd.connection_pid,&current)>=0 &&
+       !strcmp(current.unique_name,iwd.unique_name) && ae_peer_alive(&iwd)>=0 &&
+       sd_bus_get_bus_id(bus,&join_bus)>=0 && sd_id128_equal(checked_bus,join_bus))
+        result=ae_wlan_join(bus,&iwd,path,security,passphrase,scan_authorized,caller);
+    sd_bus_close_unref(bus);
+    ae_peer_clear(&current);
+    ae_peer_clear(&iwd);
+    if(result==-ESTALE) goto stale;
     if(result==-EPERM || !scan_authorized(caller))
         return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active local Settings session required");
+    if(result==-ETIMEDOUT)
+        return sd_bus_error_set_const(error,"org.aetheri.Error1.OutcomeUnknown","Connection status could not be confirmed");
     if(result<0)
-        return sd_bus_error_set_const(error,"org.aetheri.Error1.Unavailable","Wireless discovery unavailable");
-    return scan?sd_bus_reply_method_return(message,""):reply_networks(message,&snapshot);
+        return sd_bus_error_set_const(error,"org.aetheri.Error1.ConnectionFailed","The network connection failed");
+    return sd_bus_reply_method_return(message,"s","connected");
+stale:
+    return sd_bus_error_set_const(error,"org.aetheri.Error1.StaleSelection","Scan again to select an available network");
 }
 
 static int method(sd_bus_message *message, void *data, sd_bus_error *error)
 {
-    sd_bus *backend = data;
+    struct control *control=data;
+    sd_bus *backend=control->backend;
     struct caller caller = {.peer = AE_PEER_INIT};
     struct ae_peer manager = AE_PEER_INIT;
     char *state = NULL;
@@ -217,11 +351,19 @@ static int method(sd_bus_message *message, void *data, sd_bus_error *error)
     int enabled = 0;
     const char *member = sd_bus_message_get_member(message);
     const int setting = strcmp(member, "SetEnabled") == 0;
+    bool joining=!strcmp(member,"Join");
+    if(joining) (void)sd_bus_message_sensitive(message);
     int result = ae_peer_capture(message, &caller.peer);
     if (result < 0 || observe_caller(&caller) < 0)
         goto denied;
-    if (!strcmp(member,"StartScan") || !strcmp(member,"GetNetworks")) {
-        result=discovery_method(message,backend,&caller,!strcmp(member,"StartScan"),error);
+    if(joining) {
+        result=join_method(message,control,&caller,error);
+        goto done;
+    }
+    if (!strcmp(member,"StartScan") || !strcmp(member,"GetNetworks") || !strcmp(member,"GetJoinNetworks")) {
+        enum ae_wlan_discovery_action action=!strcmp(member,"StartScan")?AE_WLAN_SCAN:
+            !strcmp(member,"GetJoinNetworks")?AE_WLAN_SELECT:AE_WLAN_LIST;
+        result=discovery_method(message,control,&caller,action,error);
         goto done;
     }
     if (setting && sd_bus_message_read(message, "b", &enabled) <= 0) {
@@ -232,6 +374,7 @@ static int method(sd_bus_message *message, void *data, sd_bus_error *error)
         goto unavailable;
     if (observe_caller(&caller) < 0)
         goto denied;
+    if(setting) clear_selection(&control->selection);
     if (!setting) {
         result = sd_bus_get_property_string(backend, manager.unique_name, WLAN_UNIT_PATH, UNIT_INTERFACE,
                                             "ActiveState", NULL, &state);
@@ -275,6 +418,8 @@ static const sd_bus_vtable methods[] = {
     SD_BUS_METHOD("SetEnabled", "b", "", method, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("StartScan", "", "", method, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("GetNetworks", "", AE_WLAN_NETWORK_REPLY, method, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("GetJoinNetworks", "", AE_WLAN_SELECTION_REPLY, method, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("Join", "ts", "s", method, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
 
@@ -298,23 +443,25 @@ int main(void)
     freecon(context);
     if (!admitted)
         return EXIT_FAILURE;
-    sd_bus *incoming = NULL, *backend = NULL;
+    sd_bus *incoming = NULL;
+    struct control control={.selection={.owner=AE_PEER_INIT,.iwd=AE_PEER_INIT}};
     sd_bus_slot *slot = NULL;
     int result = open_system(&incoming);
-    if (result >= 0) result = open_system(&backend);
-    if (result >= 0) result = sd_bus_add_object_vtable(incoming, &slot, WLAN_PATH, WLAN_BUS, methods, backend);
+    if (result >= 0) result = open_system(&control.backend);
+    if (result >= 0) result = sd_bus_add_object_vtable(incoming, &slot, WLAN_PATH, WLAN_BUS, methods, &control);
     if (result >= 0) result = sd_bus_request_name(incoming, WLAN_BUS, 0);
     if (result == 0) result = -EADDRINUSE;
     while (result >= 0) {
         result = sd_bus_process(incoming, NULL);
         if (result != 0)
             continue;
-        result = sd_bus_wait(incoming, IDLE_TIMEOUT);
+        result = sd_bus_wait(incoming, selection_wait(&control.selection));
         if (result == 0)
             break;
     }
     sd_bus_slot_unref(slot);
     sd_bus_flush_close_unref(incoming);
-    sd_bus_close_unref(backend);
+    sd_bus_close_unref(control.backend);
+    clear_selection(&control.selection);
     return result < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

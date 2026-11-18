@@ -138,7 +138,8 @@ static bool read_inventory(sd_bus_message *m,struct inventory *inventory,bool st
                 network->path=path;
             }
             if(station || network) {
-                if(strncmp(path,IWD_ROOT,sizeof IWD_ROOT-1) || strnlen(path,256)==256 ||
+                if(strncmp(path,IWD_ROOT,sizeof IWD_ROOT-1) ||
+                   strnlen(path,AE_WLAN_PATH_CAPACITY)==AE_WLAN_PATH_CAPACITY ||
                    !read_properties(m,station,network)) return false;
             } else if(sd_bus_message_skip(m,"a{sv}")<0) return false;
             if(sd_bus_message_exit_container(m)<0) return false;
@@ -167,22 +168,27 @@ static int scan_radios(sd_bus *bus,const struct ae_peer *iwd,uint64_t deadline,
     return accepted?0:-EIO;
 }
 
-static void add_network(struct ae_wlan_networks *out,const struct network *network,int16_t signal) {
+static void add_network(struct ae_wlan_discovery *snapshot,bool selectable,const struct network *network,int16_t signal) {
+    struct ae_wlan_networks *out=&snapshot->visible;
     struct ae_wlan_network row={.security=network->security,.signal=signal,.connected=network->connected};
     if(signal>0 || signal<-10000 || !display_name(network->name,row.name)) return;
     for(size_t i=0;i<out->count;++i) {
         struct ae_wlan_network *old=&out->rows[i];
-        if(old->security==row.security && !strcmp(old->name,row.name)) {
+        bool same=selectable?!strcmp(snapshot->paths[i],network->path):
+            old->security==row.security && !strcmp(old->name,row.name);
+        if(same) {
             if(row.signal>old->signal) old->signal=row.signal;
             old->connected=old->connected || row.connected;
             return;
         }
     }
     if(out->count==AE_WLAN_NETWORK_LIMIT) {out->more=true;return;}
+    if(selectable) strcpy(snapshot->paths[out->count],network->path);
     out->rows[out->count++]=row;
 }
 
-static int ordered_networks(sd_bus_message *m,const struct inventory *inventory,struct ae_wlan_networks *out) {
+static int ordered_networks(sd_bus_message *m,const struct inventory *inventory,
+                            struct ae_wlan_discovery *out,bool selectable) {
     if(!sd_bus_message_has_signature(m,"a(on)") || sd_bus_message_enter_container(m,'a',"(on)")<=0)
         return -EBADMSG;
     unsigned count=0;
@@ -194,7 +200,7 @@ static int ordered_networks(sd_bus_message *m,const struct inventory *inventory,
            sd_bus_message_exit_container(m)<0) return -EBADMSG;
         for(size_t i=0;i<inventory->network_count;++i) {
             if(strcmp(path,inventory->networks[i].path)) continue;
-            add_network(out,&inventory->networks[i],signal);
+            add_network(out,selectable,&inventory->networks[i],signal);
             break;
         }
     }
@@ -202,15 +208,16 @@ static int ordered_networks(sd_bus_message *m,const struct inventory *inventory,
     return 0;
 }
 
-int ae_wlan_discover(sd_bus *bus,const struct ae_peer *iwd,struct ae_wlan_networks *out,
-                     bool start_scan,bool (*authorized)(void *),void *caller) {
+int ae_wlan_discover(sd_bus *bus,const struct ae_peer *iwd,struct ae_wlan_discovery *out,
+                     enum ae_wlan_discovery_action action,bool (*authorized)(void *),void *caller) {
     uint64_t now=now_usec();
     if(!now) return -EIO;
     uint64_t deadline=now+BACKEND_USEC;
     struct inventory *inventory=calloc(1,sizeof *inventory);
     if(!inventory) return -ENOMEM;
     sd_bus_message *objects=NULL;
-    struct ae_wlan_networks snapshot={0};
+    struct ae_wlan_discovery snapshot={0};
+    bool start_scan=action==AE_WLAN_SCAN;
     int result=call(bus,iwd,deadline,"/","org.freedesktop.DBus.ObjectManager","GetManagedObjects",&objects);
     if(result>=0 && !read_inventory(objects,inventory,start_scan)) result=-EBADMSG;
     if(result>=0 && !inventory->station_count) result=-ENODEV;
@@ -219,12 +226,12 @@ int ae_wlan_discover(sd_bus *bus,const struct ae_peer *iwd,struct ae_wlan_networ
         result=scan_radios(bus,iwd,deadline,inventory,authorized,caller);
         goto done;
     }
-    for(size_t i=0;i<inventory->station_count;++i) snapshot.scanning|=inventory->stations[i].scanning;
-    if(!snapshot.scanning) {
+    for(size_t i=0;i<inventory->station_count;++i) snapshot.visible.scanning|=inventory->stations[i].scanning;
+    if(!snapshot.visible.scanning) {
         for(size_t i=0;i<inventory->station_count;++i) {
             sd_bus_message *reply=NULL;
             result=call(bus,iwd,deadline,inventory->stations[i].path,IWD_STATION,"GetOrderedNetworks",&reply);
-            if(result>=0) result=ordered_networks(reply,inventory,&snapshot);
+            if(result>=0) result=ordered_networks(reply,inventory,&snapshot,action==AE_WLAN_SELECT);
             sd_bus_message_unref(reply);
             if(result<0) goto done;
         }

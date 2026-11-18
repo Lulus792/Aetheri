@@ -24,17 +24,24 @@ enum ae_settings_wlan_state {
 };
 enum ae_settings_wlan_request {
     AE_SETTINGS_WLAN_NONE, AE_SETTINGS_WLAN_READ, AE_SETTINGS_WLAN_ENABLE, AE_SETTINGS_WLAN_DISABLE,
-    AE_SETTINGS_WLAN_SCAN, AE_SETTINGS_WLAN_LIST
+    AE_SETTINGS_WLAN_SCAN, AE_SETTINGS_WLAN_LIST, AE_SETTINGS_WLAN_JOIN
 };
 enum ae_settings_scan_state {
     AE_SETTINGS_SCAN_IDLE, AE_SETTINGS_SCAN_RUNNING, AE_SETTINGS_SCAN_READY, AE_SETTINGS_SCAN_FAILED
+};
+enum ae_settings_join_state {
+    AE_SETTINGS_JOIN_IDLE, AE_SETTINGS_JOIN_RUNNING, AE_SETTINGS_JOIN_CONNECTED,
+    AE_SETTINGS_JOIN_FAILED, AE_SETTINGS_JOIN_EXPIRED, AE_SETTINGS_JOIN_UNKNOWN
 };
 struct ae_settings_wlan {
     enum ae_settings_wlan_state state;
     enum ae_settings_wlan_request request;
     enum ae_settings_scan_state scan;
+    enum ae_settings_join_state join;
     bool supported, busy, changing, uncertain;
     struct ae_wlan_networks networks;
+    uint64_t join_selection;
+    char passphrase[AE_WLAN_PASSPHRASE_CAPACITY];
 };
 enum ae_settings_sound_feedback {AE_SETTINGS_SOUND_IDLE,AE_SETTINGS_SOUND_QUEUED,
     AE_SETTINGS_SOUND_SUBMITTED,AE_SETTINGS_SOUND_OBSERVED,AE_SETTINGS_SOUND_REJECTED,AE_SETTINGS_SOUND_UNKNOWN};
@@ -85,4 +92,5 @@ bool ae_settings_sound_take(struct ae_settings *,struct ae_settings_sound_reques
 void ae_settings_sound_result(struct ae_settings *,enum ae_audio_submit);
 bool ae_settings_wlan_can_toggle(const struct ae_settings_wlan *);
 bool ae_settings_wlan_request(struct ae_settings_wlan *,enum ae_settings_wlan_request);
+bool ae_settings_wlan_join(struct ae_settings_wlan *,size_t,const char *,size_t);
 #endif

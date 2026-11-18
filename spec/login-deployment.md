@@ -211,7 +211,8 @@ stager or `--wlan-control` in the development desktop builder. Use
 apply the controller and unit file contexts. The control service starts on
 a system-bus request and can exit after an idle interval.
 
-The [Wlan1 interface](api/wlan-v1.xml) exposes service control and discovery.
+The [Wlan1 interface](api/wlan-v1.xml) exposes service control, discovery and
+association.
 `GetState`
 reports the iwd unit state as `off`, `starting`, `on`, `stopping`, `failed`
 or `unavailable`. `SetEnabled` accepts a boolean and returns once systemd
@@ -256,6 +257,39 @@ The controller selects the station objects and calls iwd with a bounded
 deadline. It checks the active Settings caller again before every radio
 scan and before returning a snapshot. Settings uses Wlan1 for discovery
 and the WLAN profile directory remains inside the iwd role.
+
+Version 1.2 adds `GetJoinNetworks` and `Join`. The original discovery
+methods keep their wire shape. `GetJoinNetworks` adds a nonzero selection
+number to each row and keeps distinct iwd network objects visible even if
+their display names match. A selection belongs to the original Settings
+process, active session and original iwd process. It expires after two
+minutes. A new selectable snapshot, scan, WLAN switch request or consumed
+join invalidates the previous selection set.
+
+`Join` accepts a selection number and a transient string. Open networks
+use an empty string. A WPA personal passphrase uses 8 to 63 printable ASCII
+characters. An empty personal passphrase permits a profile iwd already
+holds in its private runtime directory during that service lifetime.
+The controller rejects unknown and enterprise security. It addresses the
+captured iwd object through a separate connection to the verified system
+bus. The temporary agent answers at most one password request, and only
+for that object, the original iwd sender and an authorized active session.
+The app and controller mark password-bearing messages sensitive. Closing
+the operation connection retires its agent. Stopping the WLAN service
+removes the iwd runtime profiles.
+
+The system bus admits three root-sent, descriptor-free method calls on
+the fixed agent path and interface. They cover the password request,
+cancellation and release. The agent verifies the original sender even
+after the broker accepts the call. See the [D-Bus policy reference](https://dbus.freedesktop.org/doc/dbus-daemon.1.html)
+and [systemd message handling](https://www.freedesktop.org/software/systemd/man/latest/sd_bus_message_sensitive.html).
+
+`connected` means the original iwd peer confirmed the association and its
+network object's `Connected` property. `StaleSelection` requires a fresh
+selectable snapshot. `ConnectionFailed` reports a refused or failed
+operation. `OutcomeUnknown` calls for a fresh observation before another
+attempt. The controller never retries the connect operation. DHCP, DNS and
+internet reachability are separate observations.
 
 ### PipeWire and WirePlumber files
 

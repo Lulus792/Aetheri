@@ -345,3 +345,56 @@ on the HP laptop remain open. The first-version USB gate applies.
 The build receipts, scans, controls and screenshots are in
 `local/login-review-2026-11-10/desktop-wlan-discovery-2026-11-18-evidence.tar.gz`
 with SHA-256 `4e9599217e6dca373243240d6e7792fdf5160bef8f904accb42855648b33606e`.
+
+## WLAN association from Settings
+
+Wlan1 1.2 adds a two-minute, one-use selection for the original iwd network
+object. Each snapshot is bound to the original Settings process and its
+session cgroup, plus the original iwd process. The controller checks the
+local session throughout the pending request. Its passphrase agent accepts
+one request for the selected object from that same iwd connection. The
+on-demand agent connection closes after the result or timeout.
+
+The native Settings window displays a connection form for each selectable
+open or personal network. A password stays masked in the field and its
+semantic value stays empty. Escape returns focus to the original row. The
+view regression exercises short input, cancellation, German at 200% text
+size, and the explicit confirmation of an open network. Settings reads a
+new snapshot after attempting an association, and the controller checks the
+peer's `Network.Connected` property before reporting success.
+
+Both Release profiles pass five Settings CTests. The unprivileged controller
+caller check and 45 desktop and login Python tests pass. The installed
+package still contains 13 files and one library alias.
+
+Signed test `561ba918` stops when the harness misses the AP's completion
+marker. The AP completed and signed startup succeeded. The corrected
+harness reaches password entry and submits a join in `59db5e0d`. The broker
+refuses the actual `RequestPassphrase` method between the two original bus
+peers. Settings reports the failed operation and returns a fresh scan row.
+The updated bus config admits the three descriptor-free methods on the
+agent path for root senders. The existing enforcing SELinux policy and the
+agent's live sender check still apply.
+
+The final package selects controller `17a87246cc09…d5a7`, Settings
+`dc6199599f7b…55c3` and broker config `487deb05fc5d…3afc`. Signed image
+`5d555d013e6b`, VM `9268f373`, uses the known enforcing policy readback
+`c396c6562cdb…ec1c`. With keyboard input from the virtual seat,
+Settings discovers the protected fixture network, cancels one draft,
+and submits a fresh masked password. It then displays the connected row.
+Wi-Fi turns off, the original Settings process exits at zero, PAM closes
+and the replacement greeter appears. ACPI powers the VM down at zero and
+the data overlay passes its consistency check. This case requires no
+external network. A second cold VM `a3c9b372` on the same signed image
+rejects an incorrect password, returns a disconnected row in a new
+snapshot, and connects after explicit reselection with the correct
+password. It passes the same retirement and overlay checks.
+
+Independent DHCP and DNS, an open-network live join,
+and physical WLAN testing remain open. The first-version USB gate applies.
+The staged iwd profile uses `NameResolvingService=none`. The resolver
+therefore needs its own integration and acceptance case.
+
+The build and VM records are in
+`local/login-review-2026-11-10/desktop-wlan-join-2026-11-18-evidence.tar.gz`
+with SHA-256 `bbdd87e4acecdf21726721f9094c107d85c73c03a64f7935026f702ef255561b`.

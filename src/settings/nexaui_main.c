@@ -345,7 +345,10 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
                 nx_window_status event_status;bool chrome_handled=false;
                 if(nx_window_get_status(window,&event_status)!=NX_OK ||
                    !chrome_event(window,&model,&info,&event_status,&event,&pointer,diagnostics,&chrome_handled)) {okay=0;break;}
-                if(!chrome_handled && event.type==NX_EVENT_KEY_DOWN && (event.key==NX_KEY_ESCAPE ||
+                if(event.type==NX_EVENT_FOCUS && !event.focused) (void)ae_settings_view_cancel_join(view);
+                if(!chrome_handled && event.type==NX_EVENT_KEY_DOWN && event.key==NX_KEY_ESCAPE &&
+                   ae_settings_view_cancel_join(view)) pointer.escape_down=true;
+                else if(!chrome_handled && event.type==NX_EVENT_KEY_DOWN && (event.key==NX_KEY_ESCAPE ||
                    (event.key==NX_KEY_Q && event.modifiers==NX_MOD_CONTROL))) quit=1;
                 else if(event.type==NX_EVENT_KEY_DOWN && event.key==NX_KEY_F5) {
                     if(model.page==AE_SETTINGS_NETWORK) (void)ae_settings_wlan_request(&model.wlan,AE_SETTINGS_WLAN_READ);
@@ -431,6 +434,8 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
             if(model.wlan.scan!=AE_SETTINGS_SCAN_IDLE)
                 printf("WLAN_SCAN state=%d count=%zu more=%d\n",(int)model.wlan.scan,
                        model.wlan.networks.count,model.wlan.networks.more);
+            if(model.wlan.join!=AE_SETTINGS_JOIN_IDLE)
+                printf("WLAN_JOIN state=%d\n",(int)model.wlan.join);
             fflush(stdout);
         }
         if((audio || sound_fd) && diagnostics) {

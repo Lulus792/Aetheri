@@ -133,6 +133,7 @@ bool ae_settings_wlan_request(struct ae_settings_wlan *wlan,enum ae_settings_wla
     if(request==AE_SETTINGS_WLAN_SCAN) {
         if(wlan->state!=AE_SETTINGS_WLAN_ON || wlan->uncertain) return false;
         wlan->scan=AE_SETTINGS_SCAN_RUNNING;
+        wlan->join=AE_SETTINGS_JOIN_IDLE;
         wlan->networks=(struct ae_wlan_networks){0};
     } else if(request!=AE_SETTINGS_WLAN_READ) {
         bool target_on=request==AE_SETTINGS_WLAN_ENABLE;
@@ -142,5 +143,24 @@ bool ae_settings_wlan_request(struct ae_settings_wlan *wlan,enum ae_settings_wla
     wlan->request=request;
     wlan->busy=true;
     wlan->changing=request==AE_SETTINGS_WLAN_ENABLE || request==AE_SETTINGS_WLAN_DISABLE;
+    return true;
+}
+
+bool ae_settings_wlan_join(struct ae_settings_wlan *wlan,size_t index,const char *passphrase,size_t length) {
+    if(!wlan->supported || wlan->busy || wlan->uncertain || wlan->state!=AE_SETTINGS_WLAN_ON ||
+       wlan->scan!=AE_SETTINGS_SCAN_READY || index>=wlan->networks.count || index>=AE_WLAN_NETWORK_LIMIT)
+        return false;
+    const struct ae_wlan_network *network=&wlan->networks.rows[index];
+    if(!network->selection || network->connected ||
+       (network->security!=AE_WLAN_OPEN && network->security!=AE_WLAN_PERSONAL) ||
+       (network->security==AE_WLAN_OPEN && length) ||
+       (network->security==AE_WLAN_PERSONAL && !ae_wlan_passphrase_valid(passphrase,length)))
+        return false;
+    if(length) memcpy(wlan->passphrase,passphrase,length);
+    wlan->passphrase[length]='\0';
+    wlan->join_selection=network->selection;
+    wlan->join=AE_SETTINGS_JOIN_RUNNING;
+    wlan->request=AE_SETTINGS_WLAN_JOIN;
+    wlan->busy=true;
     return true;
 }

@@ -36,7 +36,19 @@ shows when the scan is running, when it fails, and when it finds no
 networks. The list shows names, security, signal and connection status
 from the WLAN service. The scan control regains keyboard focus when the
 results arrive if you stay on that control. Turning Wi-Fi off clears the
-list. Joining networks and persistent profiles are separate milestones.
+list.
+
+Choose an open or password-protected personal network to see its connection
+form. For a protected network, Settings focuses the masked password field.
+Enter submits the password. Escape cancels the form and returns focus to the
+selected network. Settings discards an unfinished password when its window
+loses focus or you leave the page.
+
+**Connect** sends one request. Settings shows the outcome and reads a fresh
+list. The connected label confirms the wireless link. IP configuration and
+internet reachability have separate checks. If the result cannot be confirmed,
+scan again before attempting another connection. Profiles are temporary and
+are removed when the wireless service stops.
 
 ### Native Sound page
 

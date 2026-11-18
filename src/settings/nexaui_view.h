@@ -28,6 +28,7 @@ bool ae_settings_view_create(struct ae_settings *model, const void *font,
     size_t length, struct ae_settings_view **out);
 void ae_settings_view_destroy(struct ae_settings_view *view);
 nx_context *ae_settings_view_context(struct ae_settings_view *view);
+bool ae_settings_view_cancel_join(struct ae_settings_view *view);
 bool ae_settings_view_frame(struct ae_settings_view *view, float width, float height,
     const nx_window_status *status, bool *changed);
 /* Consumed once by the original host; a request is not observed window state. */
