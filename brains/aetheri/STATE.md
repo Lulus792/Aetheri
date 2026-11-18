@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — Network scans from the original Settings app now use
+Wlan1 1.1 and the pinned iwd peer. Signed VM `b75e7341` shows the simulated
+protected network and its signal. Cold VM `ad993a64` shows the completed
+empty state. Keyboard focus, switch-off, Settings exit, logout, ACPI
+power-off and overlay checks pass in both. Joining, independent DHCP/DNS,
+inactive-session calls and physical WLAN remain open. See the
+[discovery record](journal/2026-11-18-desktop-iwd.md#network-discovery-from-settings).
+
 18 November 2026 — The native Network page controls the WLAN service
 through the authenticated controller. Signed desktop VM `156753ed`
 passes off/on/off with Tab and Space, switch focus after both changes,

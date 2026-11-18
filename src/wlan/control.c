@@ -1,5 +1,6 @@
 /* Local Settings control for the fixed WLAN service. */
 #include "linux/peer.h"
+#include "wlan/discovery.h"
 
 #include <errno.h>
 #include <selinux/selinux.h>
@@ -112,29 +113,30 @@ done:
     return result;
 }
 
-static int capture_manager(sd_bus *bus, struct ae_peer *manager)
+static int capture_backend(sd_bus *bus,const char *service,const char *label,pid_t fixed_pid,struct ae_peer *peer)
 {
     const uint64_t required = SD_BUS_CREDS_UNIQUE_NAME | SD_BUS_CREDS_EUID | SD_BUS_CREDS_PID |
                               SD_BUS_CREDS_PIDFD | SD_BUS_CREDS_SELINUX_CONTEXT;
     sd_bus_creds *creds = NULL;
     const char *name = NULL, *context = NULL;
-    int result = sd_bus_get_name_creds(bus, MANAGER, required, &creds);
+    int result = sd_bus_get_name_creds(bus, service, required, &creds);
     if (result < 0)
         return result;
     result = -EACCES;
     if ((sd_bus_creds_get_mask(creds) & required) != required ||
         (sd_bus_creds_get_augmented_mask(creds) & required) ||
-        sd_bus_creds_get_euid(creds, &manager->connection_uid) < 0 || manager->connection_uid != 0 ||
-        sd_bus_creds_get_pid(creds, &manager->connection_pid) < 0 || manager->connection_pid != 1 ||
-        sd_bus_creds_get_selinux_context(creds, &context) < 0 || strcmp(context, MANAGER_CONTEXT) ||
+        sd_bus_creds_get_euid(creds, &peer->connection_uid) < 0 || peer->connection_uid != 0 ||
+        sd_bus_creds_get_pid(creds, &peer->connection_pid) < 0 ||
+        (fixed_pid ? peer->connection_pid != fixed_pid : peer->connection_pid <= 1) ||
+        sd_bus_creds_get_selinux_context(creds, &context) < 0 || strcmp(context, label) ||
         sd_bus_creds_get_unique_name(creds, &name) < 0 || name[0] != ':' ||
-        !sd_bus_service_name_is_valid(name) || strnlen(name, sizeof manager->unique_name) >= sizeof manager->unique_name)
+        !sd_bus_service_name_is_valid(name) || strnlen(name, sizeof peer->unique_name) >= sizeof peer->unique_name)
         goto done;
-    result = sd_bus_creds_get_pidfd_dup(creds, &manager->pidfd);
+    result = sd_bus_creds_get_pidfd_dup(creds, &peer->pidfd);
     if (result >= 0) {
-        strcpy(manager->unique_name, name);
-        strcpy(manager->connection_label, MANAGER_CONTEXT);
-        result = ae_peer_alive(manager);
+        strcpy(peer->unique_name, name);
+        strcpy(peer->connection_label, label);
+        result = ae_peer_alive(peer);
     }
 done:
     sd_bus_creds_unref(creds);
@@ -168,6 +170,43 @@ static const char *public_state(const char *state)
     return "unavailable";
 }
 
+static bool scan_authorized(void *data) {
+    return observe_caller(data)>=0;
+}
+
+static int reply_networks(sd_bus_message *request,const struct ae_wlan_networks *snapshot) {
+    sd_bus_message *reply=NULL;
+    int result=sd_bus_message_new_method_return(request,&reply);
+    if(result>=0) result=sd_bus_message_append(reply,"bb",snapshot->scanning,snapshot->more);
+    if(result>=0) result=sd_bus_message_open_container(reply,'a',"(" AE_WLAN_NETWORK_FIELDS ")");
+    for(size_t i=0;result>=0 && i<snapshot->count;++i) {
+        const struct ae_wlan_network *row=&snapshot->rows[i];
+        result=sd_bus_message_append(reply,"(" AE_WLAN_NETWORK_FIELDS ")",row->name,
+                                     (uint8_t)row->security,row->signal,row->connected);
+    }
+    if(result>=0) result=sd_bus_message_close_container(reply);
+    if(result>=0) result=sd_bus_send(NULL,reply,NULL);
+    sd_bus_message_unref(reply);
+    return result;
+}
+
+static int discovery_method(sd_bus_message *message,sd_bus *bus,struct caller *caller,bool scan,sd_bus_error *error) {
+    struct ae_peer iwd=AE_PEER_INIT;
+    struct ae_wlan_networks snapshot={0};
+    uint64_t cgroup=0,last=0;
+    int result=capture_backend(bus,AE_IWD_BUS,AE_IWD_CONTEXT,0,&iwd);
+    if(result>=0 && (identity(&iwd,&cgroup)<0 || current_context(&iwd)<0)) result=-ESTALE;
+    if(result>=0 && !scan_authorized(caller)) result=-EPERM;
+    if(result>=0) result=ae_wlan_discover(bus,&iwd,&snapshot,scan,scan_authorized,caller);
+    if(result>=0 && (current_context(&iwd)<0 || identity(&iwd,&last)<0 || cgroup!=last)) result=-ESTALE;
+    ae_peer_clear(&iwd);
+    if(result==-EPERM || !scan_authorized(caller))
+        return sd_bus_error_set_const(error,"org.aetheri.Error1.NotAuthorized","Active local Settings session required");
+    if(result<0)
+        return sd_bus_error_set_const(error,"org.aetheri.Error1.Unavailable","Wireless discovery unavailable");
+    return scan?sd_bus_reply_method_return(message,""):reply_networks(message,&snapshot);
+}
+
 static int method(sd_bus_message *message, void *data, sd_bus_error *error)
 {
     sd_bus *backend = data;
@@ -181,11 +220,15 @@ static int method(sd_bus_message *message, void *data, sd_bus_error *error)
     int result = ae_peer_capture(message, &caller.peer);
     if (result < 0 || observe_caller(&caller) < 0)
         goto denied;
+    if (!strcmp(member,"StartScan") || !strcmp(member,"GetNetworks")) {
+        result=discovery_method(message,backend,&caller,!strcmp(member,"StartScan"),error);
+        goto done;
+    }
     if (setting && sd_bus_message_read(message, "b", &enabled) <= 0) {
         result = sd_bus_error_set_const(error, SD_BUS_ERROR_INVALID_ARGS, "Expected an enabled flag");
         goto done;
     }
-    if (capture_manager(backend, &manager) < 0 || load_wlan(backend, &manager) < 0)
+    if (capture_backend(backend,MANAGER,MANAGER_CONTEXT,1,&manager) < 0 || load_wlan(backend, &manager) < 0)
         goto unavailable;
     if (observe_caller(&caller) < 0)
         goto denied;
@@ -230,6 +273,8 @@ static const sd_bus_vtable methods[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("GetState", "", "s", method, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("SetEnabled", "b", "", method, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("StartScan", "", "", method, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("GetNetworks", "", AE_WLAN_NETWORK_REPLY, method, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_VTABLE_END,
 };
 

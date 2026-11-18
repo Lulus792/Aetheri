@@ -31,8 +31,12 @@ for confirmation for up to ten seconds. You can continue using the window
 while it waits. The request connection and wait descriptor close when the
 operation completes or the window closes.
 
-The switch manages the WLAN service. Network discovery, joining and
-persistent profiles are separate milestones.
+When Wi-Fi is on, **Scan for networks** requests one search. The page
+shows when the scan is running, when it fails, and when it finds no
+networks. The list shows names, security, signal and connection status
+from the WLAN service. The scan control regains keyboard focus when the
+results arrive if you stay on that control. Turning Wi-Fi off clears the
+list. Joining networks and persistent profiles are separate milestones.
 
 ### Native Sound page
 

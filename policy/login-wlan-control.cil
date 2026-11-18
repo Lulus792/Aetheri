@@ -62,6 +62,16 @@
 (allow aetheri_settings_t aetheri_wlan_control_t (dbus (send_msg)))
 (allow aetheri_wlan_control_t aetheri_settings_t (dbus (send_msg)))
 
+; Discovery uses the confined iwd peer and its current process descriptor.
+(allow aetheri_wlan_control_t aetheri_wlan_t (dbus (send_msg)))
+(allow aetheri_wlan_t aetheri_wlan_control_t (dbus (send_msg)))
+(allow aetheri_wlan_control_t aetheri_wlan_t (process (getattr)))
+(allow aetheri_wlan_control_t aetheri_wlan_t (dir (search getattr)))
+(allow aetheri_wlan_control_t aetheri_wlan_t (file (read open getattr)))
+(allow aetheri_wlan_control_t aetheri_wlan_t (fd (use)))
+(neverallow aetheri_wlan_control_t aetheri_wlan_t (process (ptrace signal sigkill)))
+(neverallow aetheri_wlan_control_t aetheri_wlan_runtime_t (file (read open write create unlink)))
+
 ; Only PID 1 and this unit label enter the privileged operation path.
 (allow aetheri_wlan_control_t init_t (dbus (send_msg)))
 (allow init_t aetheri_wlan_control_t (dbus (send_msg)))
@@ -74,7 +84,6 @@
 (neverallow aetheri_desktop_apps aetheri_wlan_unit_t (service (start stop reload enable disable)))
 (neverallow aetheri_document_apps aetheri_wlan_control_t (dbus (send_msg)))
 (neverallow aetheri_desktop_apps aetheri_wlan_control_exec_t (file (execute execute_no_trans entrypoint)))
-(neverallow aetheri_wlan_control_t aetheri_wlan_t (dbus (send_msg)))
 (neverallow aetheri_wlan_control_t self (capability (net_admin net_raw sys_admin sys_ptrace setuid setgid)))
 (neverallow aetheri_wlan_control_t shadow_t (file (read open write)))
 (neverallow aetheri_wlan_control_t user_home_t (file (read open write)))

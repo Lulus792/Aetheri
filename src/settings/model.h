@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "audio/types.h"
+#include "wlan/networks.h"
 
 /* Transient display observations, never saved device identities or authority. */
 #define AE_SETTINGS_DISPLAYS 16
@@ -22,12 +23,18 @@ enum ae_settings_wlan_state {
     AE_SETTINGS_WLAN_STARTING, AE_SETTINGS_WLAN_STOPPING, AE_SETTINGS_WLAN_FAILED
 };
 enum ae_settings_wlan_request {
-    AE_SETTINGS_WLAN_NONE, AE_SETTINGS_WLAN_READ, AE_SETTINGS_WLAN_ENABLE, AE_SETTINGS_WLAN_DISABLE
+    AE_SETTINGS_WLAN_NONE, AE_SETTINGS_WLAN_READ, AE_SETTINGS_WLAN_ENABLE, AE_SETTINGS_WLAN_DISABLE,
+    AE_SETTINGS_WLAN_SCAN, AE_SETTINGS_WLAN_LIST
+};
+enum ae_settings_scan_state {
+    AE_SETTINGS_SCAN_IDLE, AE_SETTINGS_SCAN_RUNNING, AE_SETTINGS_SCAN_READY, AE_SETTINGS_SCAN_FAILED
 };
 struct ae_settings_wlan {
     enum ae_settings_wlan_state state;
     enum ae_settings_wlan_request request;
+    enum ae_settings_scan_state scan;
     bool supported, busy, changing, uncertain;
+    struct ae_wlan_networks networks;
 };
 enum ae_settings_sound_feedback {AE_SETTINGS_SOUND_IDLE,AE_SETTINGS_SOUND_QUEUED,
     AE_SETTINGS_SOUND_SUBMITTED,AE_SETTINGS_SOUND_OBSERVED,AE_SETTINGS_SOUND_REJECTED,AE_SETTINGS_SOUND_UNKNOWN};

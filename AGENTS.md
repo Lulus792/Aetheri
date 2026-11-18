@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current WLAN discovery: read the discovery section of the 2026-11-18
+desktop-iwd journal and the Wlan1 1.1 contract. Keep the original Settings
+session and iwd ProcessFD, bounded snapshot, and display-only names.
+Signed VM b75e7341 displays the isolated AP; cold VM ad993a64 shows
+zero networks. Both return scan focus and pass power-off and data checks.
+Preserve the fixture order, prior denials, harness timeouts and repeat
+scan after restart. Next network join, independent DHCP/DNS and physical
+WLAN. USB gate.
+
 Current Network page: read `spec/settings.md#network-page` and the native
 Network section of the 2026-11-18 desktop-iwd journal. Keep the optional
 WLAN build selection, one async change per activation, bounded readback

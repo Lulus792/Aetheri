@@ -33,11 +33,20 @@ static void finish(struct ae_settings_wlan_client *client,enum ae_settings_wlan_
     model->busy=false;
     model->changing=false;
     model->uncertain=uncertain;
+    if(state!=AE_SETTINGS_WLAN_ON && !uncertain) {
+        model->scan=AE_SETTINGS_SCAN_IDLE;
+        model->networks=(struct ae_wlan_networks){0};
+    }
     ae_settings_wlan_close(client);
 }
 
 static void lost(struct ae_settings_wlan_client *client) {
     struct ae_settings_wlan *model=client->model;
+    if(model->scan==AE_SETTINGS_SCAN_RUNNING) {
+        model->scan=AE_SETTINGS_SCAN_FAILED;
+        finish(client,model->state,false);
+        return;
+    }
     bool uncertain=model->changing || model->uncertain;
     finish(client,uncertain?model->state:AE_SETTINGS_WLAN_UNAVAILABLE,uncertain);
 }
@@ -55,22 +64,71 @@ static enum ae_settings_wlan_state read_state(sd_bus_message *message) {
     return AE_SETTINGS_WLAN_UNAVAILABLE;
 }
 
+static bool read_networks(sd_bus_message *m,struct ae_wlan_networks *out) {
+    struct ae_wlan_networks snapshot={0};
+    int scanning,more;
+    if(sd_bus_message_is_method_error(m,NULL)!=0 ||
+       !sd_bus_message_has_signature(m,AE_WLAN_NETWORK_REPLY) ||
+       sd_bus_message_read(m,"bb",&scanning,&more)<=0 ||
+       sd_bus_message_enter_container(m,'a',"(" AE_WLAN_NETWORK_FIELDS ")")<=0) return false;
+    snapshot.scanning=scanning!=0;
+    snapshot.more=more!=0;
+    int result;
+    while((result=sd_bus_message_enter_container(m,'r',AE_WLAN_NETWORK_FIELDS))>0) {
+        const char *name=NULL;
+        uint8_t security=0;
+        int16_t signal=0;
+        int connected=0;
+        if(snapshot.count==AE_WLAN_NETWORK_LIMIT ||
+           sd_bus_message_read(m,AE_WLAN_NETWORK_FIELDS,&name,&security,&signal,&connected)<=0 ||
+           sd_bus_message_exit_container(m)<0 || security>AE_WLAN_ENTERPRISE ||
+           signal>0 || signal<-10000) return false;
+        size_t length=strnlen(name,AE_WLAN_NAME_CAPACITY);
+        if(!length || length==AE_WLAN_NAME_CAPACITY) return false;
+        struct ae_wlan_network *row=&snapshot.rows[snapshot.count++];
+        memcpy(row->name,name,length+1);
+        row->security=(enum ae_wlan_security)security;
+        row->signal=signal;
+        row->connected=connected!=0;
+    }
+    if(result<0 || sd_bus_message_exit_container(m)<0 ||
+       (snapshot.scanning && (snapshot.more || snapshot.count))) return false;
+    *out=snapshot;
+    return true;
+}
+
 static int reply(sd_bus_message *message,void *data,sd_bus_error *error) {
     (void)error;
     struct ae_settings_wlan_client *client=data;
     client->reply_ready=true;
-    if(client->sent==AE_SETTINGS_WLAN_READ) client->reply_state=read_state(message);
-    else client->refused=sd_bus_message_is_method_error(message,"org.aetheri.Error1.NotAuthorized")>0;
+    switch(client->sent) {
+        case AE_SETTINGS_WLAN_READ:
+            client->reply_state=read_state(message);
+            break;
+        case AE_SETTINGS_WLAN_SCAN:
+            client->reply_valid=sd_bus_message_is_method_error(message,NULL)==0 &&
+                sd_bus_message_has_signature(message,"");
+            break;
+        case AE_SETTINGS_WLAN_LIST:
+            client->reply_valid=read_networks(message,&client->reply_networks);
+            break;
+        default:
+            client->refused=sd_bus_message_is_method_error(message,"org.aetheri.Error1.NotAuthorized")>0;
+            break;
+    }
     return 1;
 }
 
 static bool submit(struct ae_settings_wlan_client *client,enum ae_settings_wlan_request request) {
     int result;
-    if(request==AE_SETTINGS_WLAN_READ)
-        result=sd_bus_call_method_async(client->bus,NULL,WLAN_BUS,WLAN_PATH,WLAN_BUS,"GetState",reply,client,"");
-    else
+    if(request==AE_SETTINGS_WLAN_ENABLE || request==AE_SETTINGS_WLAN_DISABLE)
         result=sd_bus_call_method_async(client->bus,NULL,WLAN_BUS,WLAN_PATH,WLAN_BUS,"SetEnabled",reply,client,
                                       "b",request==AE_SETTINGS_WLAN_ENABLE);
+    else {
+        const char *member=request==AE_SETTINGS_WLAN_SCAN?"StartScan":
+            request==AE_SETTINGS_WLAN_LIST?"GetNetworks":"GetState";
+        result=sd_bus_call_method_async(client->bus,NULL,WLAN_BUS,WLAN_PATH,WLAN_BUS,member,reply,client,"");
+    }
     if(result<0) return false;
     client->sent=request;
     client->next_read=0;
@@ -97,6 +155,11 @@ static bool watch(int wait_fd,int fd,uint32_t mask) {
     return errno==EEXIST && epoll_ctl(wait_fd,EPOLL_CTL_MOD,fd,&event)==0;
 }
 
+static void schedule(struct ae_settings_wlan_client *client,enum ae_settings_wlan_request request,uint64_t when) {
+    client->next=request;
+    client->next_read=when;
+}
+
 static void limit_timeout(uint32_t *timeout,uint64_t now,uint64_t when) {
     uint64_t usec=when>now?when-now:0;
     uint64_t millis=usec/1000+(usec%1000!=0);
@@ -113,7 +176,7 @@ int ae_settings_wlan_prepare(struct ae_settings_wlan_client *client,int parent_f
         if(!now || !start(client,request,now)) goto failed;
     }
     if(!now || now>=client->deadline) goto failed;
-    if(client->next_read && client->next_read<=now && !submit(client,AE_SETTINGS_WLAN_READ)) goto failed;
+    if(client->next_read && client->next_read<=now && !submit(client,client->next)) goto failed;
     if(client->parent_fd!=parent_fd) {
         if(client->parent_fd>=0) (void)epoll_ctl(client->wait_fd,EPOLL_CTL_DEL,client->parent_fd,NULL);
         if(!watch(client->wait_fd,parent_fd,EPOLLIN)) goto failed;
@@ -139,6 +202,26 @@ failed:
     return parent_fd;
 }
 
+static bool scan_result(struct ae_settings_wlan_client *client,enum ae_settings_wlan_request sent,uint64_t now) {
+    struct ae_settings_wlan *model=client->model;
+    if(!client->reply_valid) {
+        lost(client);
+        return true;
+    }
+    if(sent==AE_SETTINGS_WLAN_SCAN) {
+        schedule(client,AE_SETTINGS_WLAN_LIST,now);
+        return false;
+    }
+    if(client->reply_networks.scanning) {
+        schedule(client,AE_SETTINGS_WLAN_LIST,now+READ_INTERVAL);
+        return false;
+    }
+    model->scan=AE_SETTINGS_SCAN_READY;
+    model->networks=client->reply_networks;
+    finish(client,model->state,false);
+    return true;
+}
+
 bool ae_settings_wlan_process(struct ae_settings_wlan_client *client) {
     if(!client->bus) return false;
     struct epoll_event events[2];
@@ -159,11 +242,12 @@ bool ae_settings_wlan_process(struct ae_settings_wlan_client *client) {
     enum ae_settings_wlan_request sent=client->sent;
     client->sent=AE_SETTINGS_WLAN_NONE;
     client->reply_ready=false;
+    if(sent==AE_SETTINGS_WLAN_SCAN || sent==AE_SETTINGS_WLAN_LIST) return scan_result(client,sent,now);
     if(sent!=AE_SETTINGS_WLAN_READ) {
         if(client->refused) {finish(client,AE_SETTINGS_WLAN_UNAVAILABLE,false);return true;}
         /* A job reply, timeout or malformed reply all need fresh readback.
          * This path only schedules GetState and never repeats SetEnabled. */
-        client->next_read=now;
+        schedule(client,AE_SETTINGS_WLAN_READ,now);
         return false;
     }
     struct ae_settings_wlan *model=client->model;
@@ -176,6 +260,6 @@ bool ae_settings_wlan_process(struct ae_settings_wlan_client *client) {
     }
     bool changed=model->state!=state;
     model->state=state;
-    client->next_read=now+READ_INTERVAL;
+    schedule(client,AE_SETTINGS_WLAN_READ,now+READ_INTERVAL);
     return changed;
 }

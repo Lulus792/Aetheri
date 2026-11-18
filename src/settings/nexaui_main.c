@@ -428,6 +428,9 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
         if(diagnostics && model.page==AE_SETTINGS_NETWORK) {
             printf("WLAN state=%d busy=%d changing=%d uncertain=%d\n",(int)model.wlan.state,
                    model.wlan.busy,model.wlan.changing,model.wlan.uncertain);
+            if(model.wlan.scan!=AE_SETTINGS_SCAN_IDLE)
+                printf("WLAN_SCAN state=%d count=%zu more=%d\n",(int)model.wlan.scan,
+                       model.wlan.networks.count,model.wlan.networks.more);
             fflush(stdout);
         }
         if((audio || sound_fd) && diagnostics) {

@@ -11,9 +11,10 @@ struct ae_settings_wlan_client {
     sd_bus *bus;
     uint64_t deadline, next_read;
     int wait_fd, parent_fd;
-    enum ae_settings_wlan_request sent;
+    enum ae_settings_wlan_request sent, next;
     enum ae_settings_wlan_state target, reply_state;
-    bool reply_ready, refused, drain;
+    bool reply_ready, reply_valid, refused, drain;
+    struct ae_wlan_networks reply_networks;
 };
 
 int ae_settings_wlan_prepare(struct ae_settings_wlan_client *,int parent_fd,uint32_t *timeout,int *dirty);

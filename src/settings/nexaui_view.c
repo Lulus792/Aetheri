@@ -38,13 +38,14 @@ struct ae_settings_view {
     bool last_german;
     enum ae_settings_page last_page;
     enum ae_settings_window_action action;
-    bool refresh,restore_wlan_focus;
+    bool refresh;
+    uint64_t restore_wlan_focus;
     uint64_t sound_drag_id,sound_target;
     double sound_draft,sound_volume;
     enum ae_audio_command_kind sound_kind;
     bool sound_intent,sound_mute,sound_redraw;
 };
-enum { WLAN_SWITCH = 60, WLAN_REFRESH = 61 };
+enum { WLAN_SWITCH = 60, WLAN_REFRESH = 61, WLAN_SCAN = 62 };
 static nx_utf8_span span(const char *s) { return (nx_utf8_span){s, strlen(s)}; }
 static nx_color rgb(unsigned value) {
     return (nx_color){(float)((value>>16)&255u)/255, (float)((value>>8)&255u)/255,
@@ -220,7 +221,8 @@ static bool toggle(struct ae_settings_view *v,uint64_t id,uint64_t parent,uint64
 static const char *wlan_status(const struct ae_settings_view *v) {
     const struct ae_settings_wlan *wlan=&v->model->wlan;
     if(wlan->changing) return tr(v,"Applying change…","Änderung wird angewendet…");
-    if(wlan->busy) return tr(v,"Checking Wi-Fi status…","WLAN-Status wird geprüft…");
+    if(wlan->busy && wlan->scan!=AE_SETTINGS_SCAN_RUNNING)
+        return tr(v,"Checking Wi-Fi status…","WLAN-Status wird geprüft…");
     if(wlan->uncertain)
         return tr(v,"Change unconfirmed. Check the Wi-Fi status.","Änderung unbestätigt. Prüfe den WLAN-Status.");
     switch(wlan->state) {
@@ -231,6 +233,56 @@ static const char *wlan_status(const struct ae_settings_view *v) {
         case AE_SETTINGS_WLAN_FAILED: return tr(v,"Wi-Fi could not start.","WLAN konnte nicht gestartet werden.");
         default: return tr(v,"Wi-Fi is unavailable.","WLAN ist nicht verfügbar.");
     }
+}
+
+static const char *network_security(const struct ae_settings_view *v,enum ae_wlan_security security) {
+    switch(security) {
+        case AE_WLAN_OPEN: return tr(v,"Open","Offen");
+        case AE_WLAN_PERSONAL: return tr(v,"Password protected","Passwortgeschützt");
+        case AE_WLAN_ENTERPRISE: return tr(v,"Enterprise","Unternehmen");
+        default: return tr(v,"Security unknown","Sicherheit unbekannt");
+    }
+}
+
+static bool available_networks(struct ae_settings_view *v,float x,float *y,float w,float scale) {
+    const struct ae_settings_wlan *wlan=&v->model->wlan;
+    *y+=22;
+    if(!text(v,63,5,tr(v,"Available networks","Verfügbare Netze"),16*scale,x,y,w,false)) return false;
+    *y+=12;
+    nx_rect scan={x,*y,w,40};
+    if(!choice(v,BUTTON,WLAN_SCAN,5,tr(v,"Scan for networks","Netze suchen"),13*scale,&scan,
+               false,wlan->busy,NX_ICON_SEARCH)) return false;
+    *y+=scan.height+12;
+    const char *status=NULL;
+    if(wlan->scan==AE_SETTINGS_SCAN_RUNNING)
+        status=tr(v,"Looking for networks…","Netze werden gesucht…");
+    if(wlan->scan==AE_SETTINGS_SCAN_FAILED)
+        status=tr(v,"The scan could not complete.","Die Suche konnte nicht abgeschlossen werden.");
+    if(wlan->scan==AE_SETTINGS_SCAN_READY && !wlan->networks.count)
+        status=tr(v,"No networks found.","Keine Netze gefunden.");
+    if(status) return text(v,64,5,status,13*scale,x,y,w,true);
+    if(wlan->scan!=AE_SETTINGS_SCAN_READY) return true;
+    size_t card;
+    if(!group(v,32,x,*y,w,&card)) return false;
+    *y+=12;
+    for(size_t i=0;i<wlan->networks.count;++i) {
+        const struct ae_wlan_network *row=&wlan->networks.rows[i];
+        uint64_t id=300+2*i;
+        char detail[100];
+        (void)snprintf(detail,sizeof detail,"%s%s · %d dBm",
+                       row->connected?tr(v,"Connected · ","Verbunden · "):"",
+                       network_security(v,row->security),(int)row->signal/100);
+        if(!text(v,id,32,row->name,14*scale,x+16,y,w-32,false) ||
+           !text(v,id+1,32,detail,12*scale,x+16,y,w-32,true)) return false;
+        *y+=12;
+    }
+    v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
+    if(wlan->networks.more) {
+        *y+=12;
+        return text(v,64,5,tr(v,"More networks are in range.","Weitere Netze sind in Reichweite."),
+                    12*scale,x,y,w,true);
+    }
+    return true;
 }
 
 static bool network_content(struct ae_settings_view *v,float x,float *y,float w,float scale) {
@@ -253,7 +305,7 @@ static bool network_content(struct ae_settings_view *v,float x,float *y,float w,
                    false,wlan->busy,NX_ICON_NONE)) return false;
         *y+=refresh.height;
     }
-    return true;
+    return wlan->state!=AE_SETTINGS_WLAN_ON || wlan->uncertain || available_networks(v,x,y,w,scale);
 }
 
 static bool sound_content(struct ae_settings_view *v,float x,float *y,float w,float s) {
@@ -550,6 +602,7 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     struct ae_settings *m=v->model;
     enum ae_settings_page last_page=m->wlan.supported?AE_SETTINGS_NETWORK:AE_SETTINGS_SOUND;
     if(m->page<AE_SETTINGS_DISPLAY || m->page>last_page || m->count>AE_SETTINGS_DISPLAYS || m->sound.observation.count>AE_AUDIO_OUTPUTS_MAX ||
+       m->wlan.networks.count>AE_WLAN_NETWORK_LIMIT ||
        (m->count && m->selected>=m->count) || m->theme<AE_SETTINGS_DARK || m->theme>AE_SETTINGS_CONTRAST ||
        (m->text_percent!=100 && m->text_percent!=150 && m->text_percent!=200)) return false;
     for(size_t i=0;i<m->count;++i)
@@ -557,7 +610,7 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     v->label_count=v->node_count=0;
     v->sound_intent=false;v->sound_redraw=false;
     if(width<320 || height<240) {
-        v->restore_wlan_focus=false;
+        v->restore_wlan_focus=0;
         return small_frame(v,width,height);
     }
     float s=(float)m->text_percent/100;
@@ -645,6 +698,7 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
         *changed=ae_settings_wlan_request(&m->wlan,request);
     }
     else if(pressed==WLAN_REFRESH) *changed=ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_READ);
+    else if(pressed==WLAN_SCAN) *changed=ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_SCAN);
     else if(pressed>=100 && pressed<=102) {m->theme=(enum ae_settings_theme)(pressed-100);*changed=true;}
     else if(pressed>=110 && pressed<=112) {const unsigned values[]={100,150,200};m->text_percent=values[pressed-110];*changed=true;}
     else if(pressed==120 || pressed==121) {m->german=pressed==121;*changed=true;}
@@ -659,15 +713,16 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(v->sound_intent && ae_settings_sound_request(m,v->sound_target,v->sound_kind,v->sound_volume,v->sound_mute)) *changed=true;
     if(v->sound_redraw) *changed=true;
     uint64_t current_focus=nx_focus_id(v->context);
-    if(m->page!=AE_SETTINGS_NETWORK || (current_focus && current_focus!=WLAN_SWITCH)) {
-        v->restore_wlan_focus=false;
+    if(m->page!=AE_SETTINGS_NETWORK) {
+        v->restore_wlan_focus=0;
     } else if(m->wlan.busy) {
-        /* The disabled switch can lose toolkit focus during a service call. */
-        if(focus==WLAN_SWITCH || current_focus==WLAN_SWITCH) v->restore_wlan_focus=true;
+        /* The disabled controls can lose toolkit focus during a service call. */
+        uint64_t active=current_focus?current_focus:focus;
+        if(active) v->restore_wlan_focus=active==WLAN_SWITCH || active==WLAN_SCAN?active:0;
     } else if(v->restore_wlan_focus) {
-        v->restore_wlan_focus=false;
-        if(!current_focus && ae_settings_wlan_can_toggle(&m->wlan) &&
-           nx_focus_set(v->context,WLAN_SWITCH)==NX_OK) *changed=true;
+        uint64_t restore_id=v->restore_wlan_focus;
+        v->restore_wlan_focus=0;
+        if(!current_focus && nx_focus_set(v->context,restore_id)==NX_OK) *changed=true;
     }
     return true;
 }

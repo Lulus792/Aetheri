@@ -294,3 +294,54 @@ and physical laptop WLAN remain open. The first-version USB gate applies.
 The build receipts, tests, signed VM results and screenshots are in
 `local/login-review-2026-11-10/desktop-wlan-network-view-2026-11-18-evidence.tar.gz`
 with SHA-256 `e452b2e90b465e1eb8407d5958521838b953f94b16c337a793e563e67f885cb5`.
+
+## Network discovery from Settings
+
+Wlan1 1.1 adds an explicit scan request and a bounded snapshot of
+display names, security, signal and connection state. The controller
+uses the original confined iwd process and version 3.12 station and
+network interfaces. Settings requests one scan and reads while iwd
+reports scanning. It exposes a progress, failure, empty or populated
+state and keeps the synchronized switch state. Names in the list carry
+no connection authority.
+
+The Release builds pass five Settings CTests with WLAN enabled and five
+with it disabled. The unprivileged caller test and 45 desktop/login
+Python tests pass. The optional package count stays at 13 files and one
+alias. It selects controller `d90d033bb74c…6462` and Settings
+`ad8e795ee2a5…0e2c`. Strict policy compilation rejects eight altered
+inputs, including direct app-to-iwd, profile-file access and tracing iwd.
+
+The full installed policy is `bbe900addf6e…7c13`. Two cold readbacks
+`ab9db52b` and `891ce45f` agree on 3,810,308 enforcing bytes, SHA-256
+`c396c6562cdb90c7185e1c690243cd041899407ef274f69b7edb5a0d86b9ec1c`.
+The two native cases use the same format-5 selection bytes.
+
+In `f5d41666`, the broker denies the initial AP fixture's direct
+unconfined-service request. The VM-only fixture then uses the existing
+controller role while the installed controller stays at its fixed path.
+In `2d7c5905`, station discovery in the fixture fails and the boot trace
+places iwd startup before the two virtual radios are ready. A VM-only
+drop-in orders iwd after virtual radio discovery. Run `5d02ec21` starts
+the AP successfully and the harness times out on the ANSI-decorated
+systemd marker. The next run checks the service's completion marker.
+
+Signed image `ee55c631fbbb`, VM `b75e7341`, displays exactly one
+network after a keyboard scan. The native Settings frame shows
+`Aetheri-Scan-Lab`, Password protected and `-30 dBm`. The scan button
+regains focus. Turning Wi-Fi off clears the displayed list. A repeat
+scan after restarting iwd in `fedc56f3` still returns one row, so that
+run does not establish an empty radio environment.
+
+In the cold boot of image `ccdac6c14bf7`, VM `ad993a64`, the AP unit is
+absent from the boot dependencies. Settings starts the WLAN service
+through the switch and scans two virtual stations. It displays No
+networks found and returns focus to the scan control. Both accepted
+VMs close Settings, log out normally, power off via ACPI at exit zero
+and pass the qcow2 overlay check. The earlier cgroup ioctl denials stay
+visible in the logs. Network joining, DHCP and DNS acceptance and testing
+on the HP laptop remain open. The first-version USB gate applies.
+
+The build receipts, scans, controls and screenshots are in
+`local/login-review-2026-11-10/desktop-wlan-discovery-2026-11-18-evidence.tar.gz`
+with SHA-256 `4e9599217e6dca373243240d6e7792fdf5160bef8f904accb42855648b33606e`.

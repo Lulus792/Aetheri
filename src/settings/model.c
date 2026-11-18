@@ -128,15 +128,19 @@ bool ae_settings_wlan_can_toggle(const struct ae_settings_wlan *wlan) {
 }
 
 bool ae_settings_wlan_request(struct ae_settings_wlan *wlan,enum ae_settings_wlan_request request) {
-    if(!wlan->supported || wlan->busy || request<AE_SETTINGS_WLAN_READ || request>AE_SETTINGS_WLAN_DISABLE)
+    if(!wlan->supported || wlan->busy || request<AE_SETTINGS_WLAN_READ || request>AE_SETTINGS_WLAN_SCAN)
         return false;
-    if(request!=AE_SETTINGS_WLAN_READ) {
+    if(request==AE_SETTINGS_WLAN_SCAN) {
+        if(wlan->state!=AE_SETTINGS_WLAN_ON || wlan->uncertain) return false;
+        wlan->scan=AE_SETTINGS_SCAN_RUNNING;
+        wlan->networks=(struct ae_wlan_networks){0};
+    } else if(request!=AE_SETTINGS_WLAN_READ) {
         bool target_on=request==AE_SETTINGS_WLAN_ENABLE;
         bool currently_on=wlan->state==AE_SETTINGS_WLAN_ON;
         if(!ae_settings_wlan_can_toggle(wlan) || target_on==currently_on) return false;
     }
     wlan->request=request;
     wlan->busy=true;
-    wlan->changing=request!=AE_SETTINGS_WLAN_READ;
+    wlan->changing=request==AE_SETTINGS_WLAN_ENABLE || request==AE_SETTINGS_WLAN_DISABLE;
     return true;
 }

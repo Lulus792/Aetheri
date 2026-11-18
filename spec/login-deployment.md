@@ -211,12 +211,12 @@ stager or `--wlan-control` in the development desktop builder. Use
 apply the controller and unit file contexts. The control service starts on
 a system-bus request and can exit after an idle interval.
 
-The [Wlan1 interface](api/wlan-v1.xml) exposes two methods. `GetState`
+The [Wlan1 interface](api/wlan-v1.xml) exposes service control and discovery.
+`GetState`
 reports the iwd unit state as `off`, `starting`, `on`, `stopping`, `failed`
 or `unavailable`. `SetEnabled` accepts a boolean and returns once systemd
 accepts a job for the fixed WLAN unit. Settings reads `GetState` for the
-resulting state. Association and IP configuration have their own state and
-will use separate operations.
+resulting state. Association and IP configuration have their own state.
 
 Both methods require the bus-authenticated original Settings process in
 the active local seat0 Wayland user session. The controller rechecks the
@@ -237,6 +237,25 @@ uses a probe ELF in the normal Settings launch. It confirms the unit
 cycle and the direct-call denials under enforcing SELinux. The native
 Settings application uses the same controller to read and change the unit
 state. Network association has its own acceptance case.
+
+Version 1.1 adds `StartScan` and `GetNetworks`. A successful scan request
+means iwd accepted a station scan or had one in progress. `GetNetworks`
+reports whether a scan is in progress. While it is running the response
+has an empty list. Once it ends the controller returns up to 32 rows and
+marks whether additional distinct networks were observed.
+
+Each row carries a display name of up to 128 UTF-8 bytes, security
+(`0` unknown, `1` open, `2` personal, `3` enterprise), signal in
+hundredths of dBm and a connected flag. Control characters and
+bidirectional formatting in names are replaced for display. Matching
+display names and security from different stations share a row, combining
+the strongest signal and the connected flag. Names are presentation data.
+
+Discovery uses the original confined iwd process and its unique bus name.
+The controller selects the station objects and calls iwd with a bounded
+deadline. It checks the active Settings caller again before every radio
+scan and before returning a snapshot. Settings uses Wlan1 for discovery
+and the WLAN profile directory remains inside the iwd role.
 
 ### PipeWire and WirePlumber files
 
