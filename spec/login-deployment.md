@@ -225,6 +225,16 @@ means the backend could not be admitted. `OutcomeUnknown` requires a state
 read before another change request because the original job might have
 reached systemd. The request contains no caller identity or unit name.
 
+The session and scope lookups use systemd's read-only cgroup view of
+Settings and PID 1. The controller reads logind's session and seat
+records under `/run/systemd` to verify the active local owner. It has no
+permission to modify the PID 1 or logind records or trace PID 1.
+
+The [signed desktop test](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#installed-wlan-control-from-settings)
+uses a probe ELF in the normal Settings launch. It confirms the unit
+cycle and the direct-call denials under enforcing SELinux. The native
+Settings switch and network association are separate acceptance cases.
+
 ### PipeWire and WirePlumber files
 
 Stage the runtime in the offline desktop root before applying file contexts.

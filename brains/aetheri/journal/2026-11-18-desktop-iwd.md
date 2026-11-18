@@ -206,3 +206,50 @@ Settings process. The visual switch, WPA routes and DHCP remain open.
 The Release build, staged payload and offline compiler checks are in
 `local/login-review-2026-11-10/desktop-wlan-control-2026-11-18-evidence.tar.gz`
 with SHA-256 `381d16fe398038b6a7f57a88e256b69a99fe960f4d9010c340c0e4858dfeecee`.
+
+## Installed WLAN control from Settings
+
+Image `e4cc9e8aba8d` boots with enforcing SELinux and opens the desktop
+through graphical PAM login. The desktop search launches a test ELF
+at the fixed Settings path and the first request activates the WLAN
+controller. The controller returns `NotAuthorized` on `GetState`.
+The first diagnostic run `6e3a6d89` reproduces the rejection without
+the expected stderr trace. In `bd68ac63`, a diagnostic reply reports
+successful peer capture. Both pidfd session and scope reads return
+`-EACCES`. No manager call has run at that point.
+
+The selected systemd cgroup helpers resolve the process path relative to
+PID 1. The matching Fedora carrier labels `/proc/1/cgroup` as `init_t`,
+`/run/systemd` as `init_var_run_t`, and the logind seat and session
+directories separately. The revised rules grant filesystem observation
+through those labels and prohibit file writes and PID 1 tracing.
+[systemd 259.10 cgroup path resolution](https://github.com/systemd/systemd/blob/v259.10/src/basic/cgroup-util.c#L646-L705).
+
+Two cold boots `7f400d38` and `cc643a7e` each read the same 3,810,236
+enforcing policy bytes. The effective SHA-256 is
+`e995f8d663e3f0843ca119cd0ed99a541de710f11f0025cdacd05185159e9b34`.
+The installed policy digest is `79ae00124ad9…690f`. The canonical
+format-5 VM record changes the policy and Settings probe rows. It
+preserves the other rows and uses the existing VM-only signing key.
+The final boot uses the original controller ELF `36d1ea410fe5…39ba`
+at its staged mode.
+
+Image `f54a34f2d3a9`, session `92901c25`, boots normally and launches the
+Settings probe as UID 1000. It reads off, submits a start job and reads on.
+While the unit is on, both direct requests, one to iwd and one to systemd,
+return access denied. A fresh read still reports on. The probe submits
+a stop job and observes off. Ordinary logout closes PAM and displays the
+replacement greeter. ACPI power-off exits zero, the qcow2 overlay check
+reports zero errors and the original disk digests agree.
+
+The strict desktop WLAN policy compiles and rejects six altered inputs
+covering generic unit start, direct Settings start, controller access to
+iwd, session writes, PID 1 file writes and PID 1 tracing. All 45 desktop
+and login Python tests pass. The live caller is a VM-only Settings
+replacement. Live denial after switching away from the user's seat
+remains open. The visible switch, network joining, DHCP/DNS and physical
+WLAN also require verification. The first-version USB gate applies.
+
+The failed and successful runs, policy, readback and probe are archived in
+`local/login-review-2026-11-10/desktop-wlan-settings-2026-11-18-evidence.tar.gz`
+with SHA-256 `c6fc4433b5880ce9e833ffe59a2dd7d1a1bef2b9b33bccbbe6adf33553ba7085`.

@@ -35,8 +35,19 @@
 (allow aetheri_wlan_control_t aetheri_settings_t (file (read open getattr ioctl)))
 (allow aetheri_wlan_control_t aetheri_settings_t (fd (use)))
 (allow aetheri_wlan_control_t cgroup_t (dir (search getattr)))
+; sd-login resolves session and scope relative to PID 1's cgroup and reads
+; logind's exported seat and session records under /run/systemd.
+(allow aetheri_wlan_control_t init_t (dir (search)))
+(allow aetheri_wlan_control_t init_t (file (read open getattr)))
+(allow aetheri_wlan_control_t init_var_run_t (dir (search getattr)))
 (allow aetheri_wlan_control_t systemd_logind_var_run_t (dir (search getattr)))
 (allow aetheri_wlan_control_t systemd_logind_var_run_t (file (read open getattr)))
+(allow aetheri_wlan_control_t systemd_logind_sessions_t (dir (search getattr)))
+(allow aetheri_wlan_control_t systemd_logind_sessions_t (file (read open getattr)))
+(neverallow aetheri_wlan_control_t init_t (file (write append create unlink)))
+(neverallow aetheri_wlan_control_t systemd_logind_var_run_t (file (write append create unlink)))
+(neverallow aetheri_wlan_control_t systemd_logind_sessions_t (file (write append create unlink)))
+(neverallow aetheri_wlan_control_t init_t (process (ptrace signal sigkill)))
 
 (typeattribute aetheri_wlan_bus_roles)
 (typeattributeset aetheri_wlan_bus_roles (aetheri_settings_t aetheri_wlan_control_t))

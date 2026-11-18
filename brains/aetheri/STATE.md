@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The signed desktop launches the WLAN probe through the
+ordinary Settings path. It activates the controller on demand and reads
+the WLAN unit off, on and off again. Direct requests to iwd and systemd
+are denied. Read-only access to the PID 1 cgroup view and logind records
+allows the session check in enforcing mode. The VM also passes logout,
+ACPI shutdown and the data overlay check. The visible switch, a live
+inactive-session request, network joining and physical WLAN remain open.
+See the [live Settings record](journal/2026-11-18-desktop-iwd.md#installed-wlan-control-from-settings).
+
 18 November 2026 — The optional WLAN controller implements the Settings
 status and unit toggle contract. It selects only the active local Settings
 peer and the fixed WLAN unit. The native caller test, Release payload and

@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current installed WLAN control: read the live Settings section in the
+2026-11-18 desktop-iwd journal. The original Settings launch reaches the
+controller but both sd-login cgroup lookups return EACCES on the first
+policy. Keep the new read-only PID 1 and logind observation rules.
+Image f54a34f2d3a9/session 92901c25 observes off/on/on/off, both direct
+access denials, normal logout and ACPI power-off. Two cold readbacks and
+six strict mutations pass. The Settings entry uses a VM-only probe ELF.
+Next visible switch, WLAN association/DHCP and physical hardware. USB gate.
+
 Current WLAN control: read `spec/login-deployment.md#wlan-control-for-settings`
 and the WLAN control record. The optional C controller builds and stages
 with ELF 36d1ea410fe5 and complete policy 2859a121008b. Keep non-augmented
