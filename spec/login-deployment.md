@@ -197,6 +197,10 @@ directory. The immutable configuration and runtime have separate labels.
 The desktop app roles cannot execute the daemon, inspect its private state
 or send directly to it. Keep the iwd receipt with the image inputs.
 
+The iwd role can bind the leased IPv4 address and UDP client port 68 for
+unicast lease renewal. The two permissions apply in the WLAN service role.
+See the [socket check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#dhcp-client-socket-admission).
+
 The base WLAN profile enables IP configuration. For DNS, add the signed
 systemd-resolved and OpenSSL RPMs from the
 [resolver inventory](desktop-resolver-inputs.json) to the iwd RPM directory

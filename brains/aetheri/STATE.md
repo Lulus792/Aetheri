@@ -8,14 +8,12 @@ first version.
 ## Current work
 
 The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings.
-VM `e0390a4a` confirms IPv4 DHCP, an ordinary user DNS lookup through the
-DHCP-supplied server, and removal of the address, route and resolver
-runtime after Wi-Fi off. Settings exit, logout and ACPI power-off pass.
-The new renewal fixture associates across separate namespaces and times out
-before its first lease. Client DHCP startup in that topology, renewal, IPv6
-and physical WLAN remain open.
-[DNS result](journal/2026-11-18-desktop-iwd.md#resolver-and-dns-lifetime) ·
-[Renewal diagnostics](journal/2026-11-18-desktop-iwd.md#ipv4-lease-renewal)
+VM `2a15c2cc` verifies IPv4 DHCP and three lease renewals using the fixed
+WLAN socket policy. DNS lookup, Wi-Fi off, address and route removal,
+resolver cleanup, logout and ACPI power-off pass. The passing case uses two
+virtual radios in one guest namespace. DHCP startup in the separate-namespace
+fixture, IPv6 and physical WLAN remain open.
+[WLAN record](journal/2026-11-18-desktop-iwd.md#dhcp-client-socket-admission)
 
 ## Verified milestones
 

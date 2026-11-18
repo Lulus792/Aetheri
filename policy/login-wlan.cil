@@ -59,6 +59,9 @@
 (allow aetheri_wlan_t self (netlink_kobject_uevent_socket (create bind read getattr getopt setopt)))
 (allow aetheri_wlan_t self (packet_socket (create bind read write getattr getopt setopt ioctl)))
 (allow aetheri_wlan_t self (udp_socket (create bind connect read write getattr getopt setopt ioctl)))
+; ELL binds the leased IPv4 address and DHCP client port for unicast renewal.
+(allow aetheri_wlan_t dhcpc_port_t (udp_socket (name_bind)))
+(allow aetheri_wlan_t node_t (udp_socket (node_bind)))
 (allow aetheri_wlan_t self (rawip_socket (create bind read write getattr getopt setopt ioctl)))
 
 (allow aetheri_wlan_t self (unix_stream_socket (create connect read write getattr getopt setopt shutdown)))

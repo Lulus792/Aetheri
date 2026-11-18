@@ -549,3 +549,47 @@ flows, and each data overlay passes `qemu-img check`. The compact evidence
 with fixture sources and decision rows is
 `local/login-review-2026-11-10/desktop-wlan-renewal-2026-11-18-evidence.tar.gz`
 with SHA-256 `d58ec25751b1a4d8fa3e85a6d32c75b3d4b68a102ccdce181eedc6a35215509e`.
+
+### DHCP client socket admission
+
+The 24-second control uses the previous working AP topology. Its first VM
+`47ceccfe` starts the short-lease peer, then the greeter times out before
+the network action. A separate diagnostic calls the libell bind sequence
+from the WLAN service's actual executable path, enforcing role and systemd
+credentials. The first diagnostic launcher `97ce6425` fails to execute
+`systemctl`. Its replacement uses a test-only unit dependency.
+
+The same C probe binds the proposed IPv4 address with `IP_FREEBIND` on
+`wlan1`, once on port 68 and once with an ephemeral port. Original policy
+`bbe900addf6e5…7c13`, VM `10dfcfa6`, returns `EACCES` from both binds.
+The production policy adds UDP `name_bind` on `dhcpc_port_t` and UDP
+`node_bind` on `node_t` for `aetheri_wlan_t`. The exact checked-in source
+compiles to `edc25c928068…a5d8`. Eight offline decisions cover the two grants
+and denials for server and general port binding, TCP, `sys_admin` and the
+Settings role. The strict WLAN subset compiles.
+
+New policy VM `d0ded4f1` permits both binds with the same probe. The old
+signed login selection is refused and the VM powers off cleanly. Separate
+VM `398d52a6` reads the new enforcing kernel policy digest
+`9ad5c8b1a8ac…ebdf` with the real iwd executable restored. Both VM data
+overlays pass consistency checks.
+
+The first re-signed test `642ce817` entered the new digest while retaining
+the old policy size. Startup refuses that record. The corrected fixture
+signs the complete policy row with 3,810,332 bytes and the measured digest.
+Only that row and the signature change.
+
+Image `45b47f9be2f7`, VM `2a15c2cc`, accepts the new selection and reaches
+the desktop. Settings joins the open network with the real iwd daemon.
+The peer serves the 24-second lease and records exactly one initial
+Discover and three subsequent renewal Requests and Acknowledgements for
+the same IPv4 address and client MAC. The original station remains configured
+through 36.4 seconds after first address observation. The UID 1000 DNS
+lookup, Wi-Fi off, address and route removal, resolver stub removal, logout,
+ACPI power-off and overlay check pass. This run uses two virtual radios in
+one guest network namespace. The separate-namespace startup failure and
+physical hardware acceptance remain open.
+
+The 21 Windows payload, desktop image and login deployment tests pass.
+The compact record is `local/login-review-2026-11-10/desktop-wlan-udp-bind-2026-11-18-evidence.tar.gz`
+with SHA-256 `18d6ad7aa0fe096cde35311194b7880b5d2c826ec2da2812c50347a3a88adfec`.
