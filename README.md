@@ -1,245 +1,50 @@
 # Aetheri
 
-Aetheri is a planned Linux-based desktop operating system for personal daily use,
-with its own desktop and applications, including required suspend/resume support.
+Aetheri is a Linux-based desktop operating system in development for personal,
+offline-first use. It has its own desktop, shell, Terminal, editor, Files and
+Settings. The first hardware target is the HP EliteBook 840 G4. The target
+architecture is x86-64 with UEFI.
 
-The C17 prototype runs in a dedicated Fedora/UEFI test VM. Separate system and
-user services manage verified test packages, private data and durable app-start
-records. An isolated test under enforcing SELinux joins the actual caller,
-supervisor, private mounts and running executable before accepting app readiness.
+## Project status
 
-That test now also closes a successful app run. The user service records
-quiescence for this document-free fixture; the system service verifies that the
-original process and its entire supervised group have ended, and each owner
-records its own result. The code
-lease is released atomically; the original start receipts remain unchanged.
-This works for the fixed test profile. General session provisioning, restart
-recovery, document access and full app removal are still in progress.
-See the [runtime contracts](spec/runtime.md#separate-durable-run-closure).
+The current USB development image boots on the EliteBook and preserves edited
+documents across boots. Signed VM builds have verified graphical login,
+virtual Wi-Fi and Sound controls, and suspend with a lock screen. The
+[current state](brains/aetheri/STATE.md) links the exact test results and lists
+what remains for the first version. The [laptop test guide](spec/first-laptop-test.md)
+describes the existing USB image.
 
-Normal app launch, document access and the desktop remain in progress. The first
-[native Settings development view](spec/settings.md) reads actual virtual-display
-information and supports keyboard input, per-window themes, text size and DE/EN.
-An opt-in [NexaUI Settings presentation](spec/nexaui.md#aetheri-owned-settings-presentation)
-now provides separate display, appearance and language pages with an opaque fallback.
-The separate [graphical development image](spec/desktop-image.md) now boots
-through UEFI into the original desktop, Terminal, Files and Settings. Its system
-root stays read-only; an ordinary document survives cold boots on a separate data
-volume. Real virtual-keyboard input and normal unmount/poweroff are tested.
-The [single-medium USB desktop](spec/usb-desktop.md) now joins that desktop and
-persistent data to the checked USB initrd on one full-size virtual removable
-medium. Two cold boots, document persistence and unchanged system/EFI/GPT ranges
-pass. Independent filesystem inspection also passes. A separate
-[laptop profile](spec/laptop-probe.md) adds Intel/input drivers and automatic
-display-device selection. Two cold boots without a serial port and independent
-data inspection now pass. The user reports the renewed USB image starts on the HP,
-with working editing, retained file contents and interface language changes. Full
-physical hardware acceptance remains work. Normal login,
-the installer and admitted daily-use applications remain work. The first authorized
-Intenso USB write and complete readback pass; the later replacement and HP report
-are recorded separately in the current state.
-The [first laptop test guide](spec/first-laptop-test.md) explains USB startup,
-the current controls, persistence and a useful hardware report.
-The [current state](brains/aetheri/STATE.md) records exact implementation
-and test limits.
+Aetheri uses C17 for most original code, with targeted Rust and small adapters
+where needed. Linux, glibc, wlroots and selected systemd components provide the
+platform. A versioned read-only system base and a SQLite component catalogue
+support separately managed apps. The
+[project requirements](brains/aetheri/PROJECT.md) cover planned daily-use
+workflows, app and file ownership, complete removal of managed app data and
+the resettable experiment desktop.
 
-The opt-in [audio foundation](spec/audio.md) now sends original C17 stereo samples
-through a private PipeWire graph and checks the actual output independently.
-Release and ASan/UBSan tests cover complete/short playback, silence, server loss,
-interruption and timeout. A separate diskless guest now verifies complete stereo
-playback through ALSA and a virtual HDA card against a host-file capture.
-The separate [policy profile](spec/audio-policy.md) now tests automatic stream
-links, a default output, volume and mute against real captured samples.
-The [discovered-device test](spec/audio-device.md) joins udev, ALSA/ACP profile
-selection and automatic HDA playback in two diskless cold boots.
-An opt-in [C17 management adapter](spec/audio-control.md) now lists outputs and
-controls default selection, volume and mute through the library, with native
-readback, timeout and independent sample tests.
-This is not yet sound in the USB desktop: physical output, headphone/Bluetooth
-policy and Settings controls remain work.
+## Development
 
-The first [original command shell](spec/shell.md) now runs noninteractive commands
-and scripts, with its own parser, quoting/variables, pipes, file redirections and
-basic cwd/environment builtins. Explicit `-i` adds foreground terminal ownership,
-Ctrl+C/Ctrl+Z and jobs/fg/bg. An opt-in [graphical terminal](spec/terminal.md) now
-connects it to a real PTY, bounded Unicode/color grid and SDL3 view, with native
-DE/US/AltGr input, scrollback, text sizing and stable mouse/keyboard selection.
-The terminal now selects our [own line editor](spec/line-editor.md), with
-whole-grapheme editing, bounded undo/redo and in-memory history, plus literal
-command/path Tab completion and reversible history search. The syntax is experimental;
-advanced completion/richer search, persistent sessions and admitted app/session
-launch remain work.
-
-The own NexaUI Terminal presenter now supports up to eight independent original
-shell sessions in one window, with tabs, split panes and actual PTY resizing.
-Select it in the development desktop with `--terminal-ui nexaui-owned`.
-The [tabs and panes guide](spec/terminal.md#original-session-tabs-and-split-panes)
-explains controls, ownership and current limits. Persistent/restorable sessions
-and complete multipane assistive use remain work.
-
-The opt-in [own modal editor](spec/editor.md) now opens, edits and saves local
-files inside that terminal, with grapheme-aware Normal/Insert controls, preserved
-line endings/metadata and explicit close choices. Uncertain saves stay fenced;
-create-only export can retain a recovery copy. Its bounded undo/redo restores
-typing groups and the saved content state. Literal document search adds reversible
-previews and forward/backward repeat. Character/line selection and a private
-editor register now support copy, cut, change and paste. Block/mouse selection,
-richer search, plugins,
-split document views, accessible document integration and ordinary brokered access remain work.
-
-The separate [graphical Editor](spec/graphical-editor.md) now has an opt-in native
-NexaUI window with direct input, document tabs, a local file picker and explicit
-Save/Discard/Cancel review. Real Wayland tests cover saved bytes, undo/redo,
-external-change conflicts, English/German, themes and a 2x virtual output.
-Saving now uses an original bounded worker while newer edits remain unsaved.
-Responsive file loading/folder reads, complete text accessibility, final design and normal desktop
-admission remain work; the modal Terminal editor keeps its existing role.
-
-The opt-in [Files app](spec/files.md) now provides list/card views, a held-location
-sidebar, optional information, keyboard selection and filtering. It supports
-inline create-only empty files/folders and renaming, plus
-cross-folder moves through window-local Cut/Paste. It opens a selected text
-file in an owned Terminal/editor. Its file-operation worker keeps the view responsive;
-unknown outcomes block further creation rather than replaying an operation.
-Both Files views now observe external folder changes without a manual refresh,
-preserving the filter/selected object and deferring changes during active input.
-It checks a held file witness before reading and preserves the editor's dirty-close
-choice. Files is now available in the fixed development dock/search alongside Settings
-and Terminal. This remains an ordinary-user development workflow; normal app
-admission, brokered file access, durable operation recovery and copy/cross-filesystem move/removal
-are still work.
-
-An optional [built-in Compose provider](spec/compose.md) now routes real dead keys
-and Compose sequences through native Wayland preedit/commit to the terminal and
-shell. `start --desktop --compose` selects it in a matching development build.
-External IMEs, full text accessibility and trusted session integration remain work.
-
-A separate [private Wayland compositor](spec/graphics.md) now renders native
-windows on three virtual outputs or inside a named parent Wayland display.
-Native keyboard/pointer focus, move/resize, fullscreen and independent teardown
-pass protocol, composed-pixel and sanitizer checks. Clipboard bytes now transfer
-between separate native clients with focus/serial checks and source cleanup.
-Physical display/input, a trusted session and ordinary app integration remain work.
-
-The optional [development session](spec/development-session.md) now starts the
-compositor and Settings on the carrier's actual virtual display/input. It has a
-repeatable start/status/stop command and an optional native QEMU console. This
-continues desktop development while normal session/app admission remains closed.
-
-The original [development desktop](spec/desktop-ui.md) now provides a compact
-dock, DE/EN keyboard search, current-window selection and separate Settings/Terminal
-launch. Either app can close and reopen while the other and desktop stay running.
-The owner waits for original processes and output pipes before ordered shutdown.
-Use the controller's explicit
-`start --desktop` mode. Its [private compositor connection](spec/desktop.md) remains
-separate from ordinary app clients; the design and normal app admission are unfinished.
-
-[Project](brains/aetheri/PROJECT.md) · [State](brains/aetheri/STATE.md) ·
-[Decisions](brains/aetheri/DECISIONS.md) ·
-[Architecture options](brains/aetheri/knowledge/architecture-options.md) ·
-[Module and interface plan](brains/aetheri/knowledge/modules-and-interfaces.md) ·
-[Identity and lifecycle](brains/aetheri/knowledge/identity-and-lifecycle.md) ·
-[Schema and API](brains/aetheri/knowledge/schema-and-api.md) ·
-[Storage and permissions](brains/aetheri/knowledge/filesystem-and-permissions.md) ·
-[Launch and access protocol](brains/aetheri/knowledge/launch-access-and-removal.md) ·
-[First Linux prototype](brains/aetheri/knowledge/first-linux-prototype.md) ·
-[Versioned contracts](spec/README.md) ·
-[P0 runtime contracts](spec/runtime.md) ·
-[Application lifecycle](brains/aetheri/knowledge/app-lifecycle.md)
-
-## Direction
-
-The first useful system should support ordinary web browsing, an original
-terminal/editor with document viewing and integrated pane/session management,
-Physim, and up to three monitors. The desktop should feel calm and compact:
-dark themes, glass, restrained animation and strong keyboard support.
-Normal operation must work offline without a cloud account.
-
-Original code, clear structure and efficient operation are priorities. The system
-will explain component/file/process ownership and offer complete removal of an
-app's managed state, not just its executable. A custom browser should avoid feeds,
-promotions and sponsored clutter, with content filtering under user control.
-
-The agreed starting point is C17, targeted Rust and small adapters where justified,
-glibc and selected maintained technical backends. Early app UI can use suitable
-working foundations such as SDL3 while NexaUI develops, then migrate per app when
-its required scope is ready. Physim should migrate to NexaUI when ready.
-
-The selected architecture uses an original wlroots-based Wayland compositor,
-selected systemd components, SQLite component metadata, a versioned read-only
-system base and separately managed apps. Exact releases and runtime behavior
-remain to be validated.
-
-The laptop is the first hardware test target. The current Xeon W-2123/32 GB/
-RTX 2080 Ti development workstation is also a main-PC target. A later AM5 upgrade
-must remain supported within x86-64/UEFI; exact hardware and drivers require
-separate acceptance.
-
-## Project memory
-
-The project memory follows [SecondBrain](https://github.com/Lulus792/SecondBrain).
-Open the `brains` workspace and select `aetheri`, or read
-[START.md](brains/aetheri/START.md).
-
-The [spec/](spec/README.md) directory holds frozen v1 and current v2 SQLite
-contracts plus the additive D-Bus interfaces. Run
-`python tools/test_contracts.py` with Python 3.11+ and SQLite 3.37+ for migration,
-crash-reopen, constraint and wire checks. Test databases are disposable; these
-checks do not start an OS service or create a production catalogue.
-
-P0 fixture/ownership/intent formats have a development reference and frozen byte
-vectors. Run `python tools/test_runtime_contracts.py` for format/payload checks and
-`python tools/test_vm_inputs.py` for download-cache checks. Python remains test/
-preparation tooling; the two prototype service roles are implemented in C17.
-
-`python tools/prepare_vm.py fetch` downloads the pinned development-carrier inputs
-under ignored downloads; `verify` checks cached bytes. Neither installs software,
-executes an installer or starts a VM. The reviewed Windows provisioning path reads
-MSI/NSIS archives as data and extracts local tools, preserving their licenses.
-Read [test environment](brains/aetheri/knowledge/testumgebung.md) before using the
-disposable guest. These carrier files are not an Aetheri system image.
-
-## Development guest
-
-With the pinned inputs present, use Python 3.11+ on Windows:
+Run the host contract tests with Python 3.11+ and SQLite 3.37+.
 
 ```text
-python tools/provision_windows.py
-python tools/run_vm.py install
-python tools/run_vm.py --offline boot
-python tools/run_vm.py status
-python tools/sync_guest.py
-python tools/run_vm.py poweroff
+python tools/test_contracts.py
+python tools/test_runtime_contracts.py
+python tools/test_vm_inputs.py
 ```
 
-install and boot stay attached while QEMU runs. Use a second terminal for status,
-SSH, source transfer and poweroff. Build tools are pinned separately in vm-inputs;
-the carrier image alone does not freeze package repositories.
+The [test environment](brains/aetheri/knowledge/testumgebung.md) covers
+pinned downloads, Windows provisioning and the Fedora development guest.
+Use the [development session guide](spec/development-session.md) to start
+and inspect the desktop in a VM. Follow the
+[storage guide](spec/development-storage.md) when building and retaining images.
 
-Install runs only on the registered 48 GiB virtual disk, after guest firmware,
-product, disk serial and size checks. Reinstallation requires --retry-install;
-an unobserved/live start never silently becomes a second VM. QMP uses a protected
-local AF_UNIX socket, not a guest-reachable TCP listener. SSH binds localhost,
-uses a guest-only key/known-host file and ignores personal SSH configuration/agents.
-Offline boot restricts guest networking while retaining that host SSH connection.
-
-sync_guest copies an explicit source snapshot through SSH. No host folder or
-physical drive is passed into the guest. Native build/test commands and their
-limits are in [runtime contracts](spec/runtime.md).
-
-| Directory | Contents |
+| Path | Contents |
 | --- | --- |
-| src/core | Ownership/allocation records, fixture metadata, bounded storage, staging/publication and SHA-256 verification |
-| src/catalogue | SQLite catalogues, lifecycle journals and explicit migrations |
-| src/linux | Bus/process checks, original lifetime observation/handle transfer, private mount views and internal image/one-way execution primitives |
-| src/authority | System/user endpoints, protected identity, broker enrollment and administrative fixture staging |
-| src/launcher | Short-lived no-exec view preparer; real app-start integration remains work |
-| policy | Disposable fixture and service policies; production launch policy and category allocation remain pending |
-| tests | Native functional and private mount-namespace probes |
-| tools | Host preparation, source transfer and development checks; not resident OS services |
-| spec | SQL/XML/byte contracts and pinned carrier/build inputs |
-| brains/aetheri | Requirements, decisions, evidence and remaining work |
-| local, downloads, vm, out, build | Ignored tool/cache/guest/test artifacts; never public source |
+| `src/` | Desktop, apps and Linux service implementations |
+| `tests/`, `tools/` | Native tests, build tools and VM controllers |
+| [`spec/`](spec/README.md) | Versioned contracts, component references and build inputs |
+| [`brains/aetheri/`](brains/aetheri/START.md) | Requirements, decisions and test records in the [SecondBrain](https://github.com/Lulus792/SecondBrain) structure |
+| `local/`, `downloads/`, `vm/` | Local test artifacts, downloads and development VM disks |
 
 ## License
 

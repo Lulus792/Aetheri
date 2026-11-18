@@ -12,6 +12,7 @@ import re
 import shutil
 import stat
 
+import image_io
 import test_boot_probe as boot
 import uefi_probe_image as media
 
@@ -25,6 +26,23 @@ def check_held(stream, path, expected):
     named = path.lstat()
     if not stat.S_ISREG(held.st_mode) or not stat.S_ISREG(named.st_mode) or identity(held) != expected or identity(named) != expected:
         raise ValueError('original data file replaced or resized; preserve attempt')
+
+
+def copy_initial_data(path, target, size):
+    """Copy the seed into a fresh test disk without allocating its zero bytes."""
+    with path.open('rb') as source:
+        if os.fstat(source.fileno()).st_size != size:
+            raise ValueError('changed initial data size')
+        try:
+            image_io.sparse_file(target)
+        except OSError as error:
+            if getattr(error, 'winerror', None) not in (1, 50):
+                raise
+            # Some Windows filesystems require a dense copy.
+            shutil.copyfileobj(source, target, 1024**2)
+            return
+        image_io.copy_extent(source, target, size)
+    image_io.set_length(target, size)
 
 
 def command(image, output, data, serial):
@@ -63,8 +81,7 @@ def run(image, output, negative_volume=False, timeout=120):
 
     record()
     with data.open('x+b') as held:
-        with source.open('rb') as original:
-            shutil.copyfileobj(original, held, 1024**2)
+        copy_initial_data(source, held, volume['size'])
         held.flush();os.fsync(held.fileno())
         if boot.sha(data) != volume['initial_sha256']:
             raise ValueError('changed data copy')

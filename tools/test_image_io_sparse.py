@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 import image_io as io
+from test_data_probe import copy_initial_data
 
 
 @unittest.skipUnless(os.name=='nt','local NTFS API conformance is Windows-only')
@@ -13,6 +14,21 @@ class SparseIO(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[1]/'local')
         self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+
+    def test_data_probe_seed_copy_keeps_dense_input_and_sparse_output_identical(self):
+        source = self.root / 'seed.raw'
+        copy = self.root / 'data.raw'
+        expected = b'prefix' + bytes(8 * 1024**2 - 6)
+        source.write_bytes(expected)
+        with copy.open('x+b') as target:
+            copy_initial_data(source, target, len(expected))
+            target.flush()
+            os.fsync(target.fileno())
+            ranges = io.allocated_ranges(target, 0, len(expected))
+            self.assertIsInstance(ranges, list)
+            self.assertLess(sum(end - start for start, end in ranges), len(expected) // 2)
+        self.assertEqual(copy.read_bytes(), expected)
+        self.assertEqual(source.read_bytes(), expected)
 
     def test_actual_sparse_ranges_hash_windows_and_copy_match_literal_bytes(self):
         size=8*1024**2;expected=b'first'+b'\0'*(size-9)+b'last';a=self.root/'a';b=self.root/'b'

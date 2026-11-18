@@ -106,9 +106,10 @@ def run(image,output,timeout=180,*,profile=None):
     def record():vm.write_state(output/'sequence.json',state)
     record();data=output/('medium.raw' if profile else 'data.raw')
     with data.open('x+b') as held:
-        if profile:profile.copy(original,held,volume)
+        if profile:
+            profile.copy(original, held, volume)
         else:
-            with original.open('rb') as source:shutil.copyfileobj(source,held,1024**2)
+            data_test.copy_initial_data(original, held, volume['size'])
         held.flush();os.fsync(held.fileno())
         expected=data_test.identity(os.fstat(held.fileno()))
         if boot.sha(data)!=volume['initial_sha256']:raise ValueError('changed data copy')

@@ -79,7 +79,14 @@ class DataContract(unittest.TestCase):
                 if attempt.name=='boot-2':raise RuntimeError('unknown dispatch')
                 (attempt/'serial.log').write_text(self.result)
                 return dict(boot_ids=[self.identifier])
-            with patch.object(runner.media,'inspect',return_value=m),patch.object(boot,'host_tools',return_value={}),patch.object(boot,'sha',return_value='0'*64),patch.object(runner.shutil,'copyfileobj',side_effect=sparse_copy),patch.object(runner.shutil,'copyfile'),patch.object(boot,'observe',side_effect=observe) as dispatch:
+            with (
+                patch.object(runner.media, 'inspect', return_value=m),
+                patch.object(boot, 'host_tools', return_value={}),
+                patch.object(boot, 'sha', return_value='0'*64),
+                patch.object(runner, 'copy_initial_data', side_effect=sparse_copy),
+                patch.object(runner.shutil, 'copyfile'),
+                patch.object(boot, 'observe', side_effect=observe) as dispatch,
+            ):
                 with self.assertRaisesRegex(RuntimeError,'unknown dispatch'):runner.run(image,output)
                 self.assertEqual(dispatch.call_count,2)
                 state=json.loads((output/'sequence.json').read_text())

@@ -1,6 +1,20 @@
 # Developer build and capture storage
 
-## Host test artifacts
+## Where development storage goes
+
+| Path | Purpose |
+| --- | --- |
+| `vm/p0/` | Registered Fedora carrier with protected prototype state and local build tools |
+| `vm/audio-lab/` | Fedora carrier for current desktop and device testing |
+| `local/` | Pinned tools, selected test images, logs, captures and historical build evidence |
+| `downloads/` | Verified installers and package inputs used to reproduce the environment |
+| Windows temporary directory | In-progress compositions and test scratch files |
+
+See the [measured inventory and cleanup record](../brains/aetheri/journal/2026-11-18-storage-retention.md)
+for sizes. The size of a VM disk on the host and the space used inside the guest
+are separate measurements.
+
+## Keep and retire test artifacts
 
 Keep one selected, reusable boot base and seed data disk per active test
 profile. Build VM cases from the read-only base with changed block extents
@@ -8,22 +22,31 @@ and a small writable data overlay. A virtual USB image can report a large
 capacity even when it occupies little space. Use allocated bytes and
 volume free space when planning the next build.
 
-Record the selected source revision, image hash, input pins, exact test
-result and any failure in one project journal entry. Retain the small
-receipts, compressed logs, required screenshots and fixture sources. A
-historical image hash identifies the test run after its generated disk has
-been retired. Keep a full image only while it serves as an input, an
-identified recovery copy or evidence that cannot be recovered from the
-recorded outputs.
+The desktop and writable-data test controllers use sparse copies for private
+raw data disks. They verify the copied image before attaching it to the guest.
 
-After the VM exits, check the backing paths of retained QCOW2 and VMDK
-files before retiring a test image. Verify the content of a replacement
-before removing a duplicate. Retain working VM disks, pinned inputs,
-hardware test data and the current USB recovery image with the selected
-profiles. Keep detailed historical results in the journal and use the
-project state for the current handoff.
+Record the selected source revision, image hash, input pins, exact result and
+failure observations in one dated journal entry. Keep the small receipts,
+compressed logs, required screenshots and fixture sources. Refer to the Git
+revision and retained package inputs when the build can be reconstructed from
+them. Reuse the same archive when later cases have identical inputs.
 
-See the [18 November host cleanup](../brains/aetheri/journal/2026-11-18-storage-retention.md).
+After the VM exits, check the backing paths of retained QCOW2 and VMDK files.
+Keep full images that serve as active inputs, recovery copies or irreplaceable
+evidence. Verify a replacement before removing a duplicate. Keep working VM
+disks, pinned inputs, hardware test data and the current USB recovery image.
+Review both the output directory and temporary scratch after each test batch.
+
+When a historical raw regular-file image must remain byte-for-byte available,
+NTFS can release space occupied by verified zero ranges. Use an exclusive file
+handle on a completed case and verify the full digest before and after.
+This is a host file operation. Physical media, active VM disks and active
+overlays require their own handling.
+[NTFS sparse file control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse)
+and [zero range control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data).
+
+Keep detailed historical results in the journal and current work in
+[project state](../brains/aetheri/STATE.md).
 
 ## Separate carrier work disk
 
