@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — Two cold WLAN-policy boots return identical enforcing
+readback `6017642b4d44…5d7a`. The installed login verifier rejects the old
+signature selection and accepts the updated format-5 selection in VM
+`50558f29`. The signed desktop image passes two confined iwd lifetimes,
+graphical PAM login, a visible desktop, logout and ACPI shutdown. The WLAN
+test uses an administrative VM observer. Settings control, WPA and DHCP
+under the role, DNS and IPv6 remain open. See the
+[signed WLAN boot record](journal/2026-11-18-desktop-iwd.md#signed-desktop-boot-with-wlan).
+
 18 November 2026 — The WLAN service has a dedicated SELinux role and typed
 configuration and runtime. Enforcing VM `d06ad76c` verifies two starts,
 iwd/bus identity, both virtual interfaces, original stops and runtime

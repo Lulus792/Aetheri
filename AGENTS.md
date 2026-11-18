@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current signed WLAN desktop: read the last section of the 2026-11-18
+desktop-iwd journal. Two cold boots agree on enforcing readback 6017642b4d44…5d7a.
+Preserve the format-5 rows except the effective policy and use the reviewed
+VM signer. The old selection fails in dadf504c. c8777115b7b6/50558f29 passes
+two confined iwd cycles, original graphical PAM login, visible desktop,
+normal logout and ACPI shutdown. Keep the VM-only observer and package
+receipt scope. Next authenticated WLAN control, WPA/DHCP and Settings.
+Preserve IPv6 accept_ra evidence and the USB gate.
+
 Current WLAN confinement: read the SELinux section of the 2026-11-18
 desktop-iwd journal and `spec/login-deployment.md`. Select `--desktop-wlan`
 and apply the dedicated exec/config/runtime labels. Enforcing headless

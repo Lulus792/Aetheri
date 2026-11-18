@@ -137,3 +137,35 @@ and the Settings mediator remain open. The first-version USB gate applies.
 The compiled policy, assertion checks and original boot attempts are in
 `local/login-review-2026-11-10/desktop-wlan-policy-2026-11-18-evidence.tar.gz`
 with SHA-256 `8f73e251e9b1e7df0b4dfa6402b9034e56b88e1e1592062daa778a51b1f5f36b`.
+
+## Signed desktop boot with WLAN
+
+Two cold UEFI boots, `760c28e1` and `6e52e743`, read exactly the same
+3,731,274 bytes from enforcing selinuxfs. The effective SHA-256 is
+`6017642b4d446a171b070ca689815f24434a1def5d962e9d8d467fe6dfdc5d7a`.
+The staged `policy.35` is `2628a410426b…7b26`. The other format-5 selection
+rows, release ID and account selection stay byte-for-byte equal to the
+existing signed fixture. The normal encoder regenerates the record from
+the reviewed stage, the verified drop-in and the new kernel readback. The
+existing local VM Ed25519 key signs the record.
+
+The control `60bf069267ae`/`dadf504c` keeps the earlier valid signature.
+The installed startup verifier rejects its policy selection with `-74`.
+Image `c8777115b7b6`/`50558f29` uses the updated signature, passes the
+installed login checks and opens the authenticated desktop through PAM and
+the graphical greeter. The rendered desktop, ordinary logout, PAM close,
+replacement greeter and ACPI power-off pass.
+
+In the positive boot, iwd starts inactive. The isolated VM observer
+requests two administrative start and stop cycles before login. Each cycle
+matches the bus owner to the original confined process, observes both new
+virtual interfaces and confirms original process exit and runtime directory
+removal. Both desktop attempts power off at exit zero. The original data
+volume digest stays intact and both qcow2 overlays pass verification.
+The package receipt covers the WLAN files separately from the signed login
+selection. WLAN control from the user session, WPA and DHCP under the new
+role, DNS and IPv6 still need verification. The USB gate applies.
+
+The readbacks, boot traces, screenshots and composition receipts are in
+`local/login-review-2026-11-10/desktop-wlan-signed-2026-11-18-evidence.tar.gz`
+with SHA-256 `a2fe65de60627a19cb402724c58f27ae5de6936e7e1af7d224f087984af934e9`.
