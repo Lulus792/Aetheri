@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The lock broker now prepares and ends a suspend hold.
+Each transition requires fresh black frames on all outputs. The original
+dialog drains old Wayland input and clears its draft. Carrier case
+`420878c47851` discards a queued accepted PAM reply during preparation and
+restores all three original frames only after fresh authentication on
+simulated wake. Next bind the privileged, required startup condition to the
+installed suspend job and test the actual signed S3 lifecycle and hardware.
+See the [coordination record](journal/2026-11-18-suspend-lock-coordination.md).
+
 18 November 2026 — The signed Sound and lock image reaches the desktop with
 enforcing SELinux. VM `c639ec7d` presents the focused lock dialog, refuses a
 wrong password through Linux-PAM, restores the same visible desktop and

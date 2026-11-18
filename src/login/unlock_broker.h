@@ -30,6 +30,13 @@ void ae_unlock_broker_poll(const struct ae_unlock_broker *, struct pollfd [AE_UN
    A negative return permanently fences the broker. */
 int ae_unlock_broker_step(struct ae_unlock_broker *);
 bool ae_unlock_broker_open_desktop(const struct ae_unlock_broker *);
+/* An admitted power coordinator starts preparation and waits for both the
+   compositor and the original dialog to finish quiescing. Wake includes
+   cancellation of a sleep operation after preparation. Neither operation
+   authorizes a release. */
+int ae_unlock_broker_prepare_sleep(struct ae_unlock_broker *);
+bool ae_unlock_broker_sleep_ready(const struct ae_unlock_broker *);
+int ae_unlock_broker_finish_sleep(struct ae_unlock_broker *);
 /* Discard the current attempt, close both channels and retire the owned worker. */
 void ae_unlock_broker_close(struct ae_unlock_broker **);
 

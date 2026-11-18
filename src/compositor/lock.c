@@ -18,13 +18,16 @@
 static const char request[] = "AELK1";
 static const char covered[] = "AELK1 COVERED";
 
+enum power_cover { POWER_NONE, POWER_SLEEP, POWER_WAKE };
+
 struct ae_lock {
     struct server *server;
     struct wl_event_source *source, *owner_source, *release_idle;
     int fd, owner;
     struct stat owner_identity;
     uint64_t generation;
-    bool active, managed, presented, release_requested;
+    enum power_cover power;
+    bool active, managed, presented, release_requested, user_cover;
 };
 
 bool ae_lock_active(const struct ae_lock *lock) {
@@ -107,7 +110,8 @@ static void release_if_ready(void *data) {
     struct ae_lock *lock = data;
     lock->release_idle = NULL;
     struct server *s = lock->server;
-    if (!lock->release_requested || !cover_presented(s) || !ae_lock_view_ready(s->lock_view) ||
+    if (lock->power != POWER_NONE || !lock->release_requested || !cover_presented(s) ||
+            !ae_lock_view_ready(s->lock_view) ||
             !ae_input_release_ready(s->input)) return;
     if (!respond(lock, AE_LOCK_RELEASED, lock->generation)) return;
     lock->active = lock->presented = lock->release_requested = false;
@@ -132,9 +136,15 @@ static void acknowledge(struct server *s) {
     struct ae_lock *lock = s->lock;
     if (lock->fd < 0 || !cover_presented(s)) return;
     if (lock->managed) {
-        if (!lock->presented && respond(lock, AE_LOCK_COVERED, lock->generation)) {
+        enum ae_lock_action action = AE_LOCK_COVERED;
+        if (lock->power == POWER_SLEEP) action = AE_LOCK_SLEEP_COVERED;
+        else if (lock->power == POWER_WAKE) action = AE_LOCK_WAKE_COVERED;
+        if (!lock->presented && respond(lock, action, lock->generation)) {
             lock->presented = true;
-            ae_lock_view_show(s->lock_view);
+            if (lock->power != POWER_SLEEP) {
+                lock->power = POWER_NONE;
+                ae_lock_view_show(s->lock_view);
+            }
         }
         ae_lock_input_changed(lock);
         return;
@@ -195,8 +205,9 @@ bool ae_lock_commit(struct output *o, const struct wlr_output_state *state) {
 static void begin_cover(struct ae_lock *lock) {
     struct server *s = lock->server;
     ++lock->generation;
+    if (!lock->active) ae_input_cover(s->input);
     lock->active = true;
-    ae_input_cover(s->input);
+    lock->presented = lock->release_requested = lock->user_cover = false;
     wlr_scene_node_set_enabled(&s->normal_tree->node, false);
     for (unsigned i = 0; i < s->output_count; ++i) {
         struct output *o = &s->outputs[i];
@@ -211,6 +222,30 @@ bool ae_lock_request_user(struct ae_lock *lock) {
         return false;
     /* Keyboard lock is immediate even if the controller has gone away. */
     (void)respond(lock, AE_LOCK_REQUEST, lock->generation + 1);
+    begin_cover(lock);
+    lock->user_cover = true;
+    return true;
+}
+
+static bool change_power_cover(struct ae_lock *lock, enum ae_lock_action action, uint64_t generation) {
+    struct server *s = lock->server;
+    if (!s->lock_view || s->failed || s->shutting_down) return false;
+    if (action == AE_LOCK_SLEEP_COVER) {
+        /* A physical request can have advanced the cover before its REQUEST
+           arrives at the owner. Both notifications still precede the sleep ack. */
+        bool crossing = lock->active && lock->user_cover && generation < UINT64_MAX &&
+            generation + 1 == lock->generation;
+        if (lock->power != POWER_NONE || lock->generation >= UINT64_MAX - 1 ||
+                (generation != lock->generation && !crossing)) return false;
+        lock->power = POWER_SLEEP;
+    } else {
+        if (lock->power != POWER_SLEEP || !lock->presented || generation != lock->generation ||
+                !cover_presented(s)) return false;
+        lock->power = POWER_WAKE;
+    }
+    /* Invalidate the old release and the old view before tracking new commits.
+       The normal scene and its original focus stay preserved when already locked. */
+    ae_lock_view_hide(s->lock_view);
     begin_cover(lock);
     return true;
 }
@@ -241,16 +276,20 @@ static int receive_managed(int fd, uint32_t mask, void *data) {
     ssize_t size = ae_pidfd_receive(fd, packet, sizeof packet, &lock->owner_identity);
     if (size == -EAGAIN && !(mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR))) return 0;
     if (size != (ssize_t)sizeof packet || memcmp(packet, "AELK2", 5) ||
-            (packet[5] != AE_LOCK_COVER && packet[5] != AE_LOCK_RELEASE) || !owner_live(lock)) {
+            (packet[5] != AE_LOCK_COVER && packet[5] != AE_LOCK_RELEASE &&
+             packet[5] != AE_LOCK_SLEEP_COVER && packet[5] != AE_LOCK_WAKE_COVER) || !owner_live(lock)) {
         retire_channel(lock);
         return 0;
     }
     uint64_t generation = ae_lock_wire_generation(packet);
-    if (packet[5] == AE_LOCK_COVER && generation == lock->generation && !lock->active &&
+    if (packet[5] == AE_LOCK_SLEEP_COVER || packet[5] == AE_LOCK_WAKE_COVER) {
+        if (!change_power_cover(lock, (enum ae_lock_action)packet[5], generation))
+            (void)respond(lock, AE_LOCK_REJECTED, generation);
+    } else if (packet[5] == AE_LOCK_COVER && generation == lock->generation && !lock->active &&
             generation < UINT64_MAX && !lock->server->failed && !lock->server->shutting_down) {
         begin_cover(lock);
     } else if (packet[5] == AE_LOCK_RELEASE && generation == lock->generation &&
-            lock->presented && !lock->release_requested && cover_presented(lock->server) &&
+            lock->power == POWER_NONE && lock->presented && !lock->release_requested && cover_presented(lock->server) &&
             ae_lock_view_ready(lock->server->lock_view)) {
         lock->release_requested = true;
         ae_lock_input_changed(lock);

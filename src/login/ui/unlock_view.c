@@ -27,6 +27,7 @@ struct view {
     struct wl_seat *seat;
     struct wl_keyboard *keyboard;
     struct wl_surface *surface;
+    struct wl_callback *pause_sync;
     struct xkb_context *xkb;
     struct xkb_state *keys;
     struct ae_wayland_buffer buffers[2];
@@ -35,7 +36,7 @@ struct view {
     int broker, feedback;
     unsigned char password[AE_UNLOCK_PASSWORD_MAX];
     size_t length, entered;
-    bool german, focused, action, pending, dirty, failed;
+    bool german, focused, action, pending, dirty, failed, paused;
 };
 
 static void reset(struct view *v) {
@@ -74,8 +75,8 @@ static bool paint(struct view *v, struct ae_wayland_buffer *buffer, const struct
     Uint32 edge = color(surface, 65, 76, 113), panel = color(surface, 24, 28, 43);
     Uint32 accent = color(surface, 179, 190, 255), field = color(surface, 15, 19, 33);
     Uint32 muted = color(surface, 85, 96, 132);
-    bool field_focus = v->focused && !v->action && !v->pending;
-    bool action_focus = v->focused && v->action && !v->pending;
+    bool field_focus = v->focused && !v->paused && !v->action && !v->pending;
+    bool action_focus = v->focused && !v->paused && v->action && !v->pending;
     char time[12];
     if (!strftime(time, sizeof time, "%H:%M", now)) { SDL_DestroySurface(surface); return false; }
     const char *label = v->german ? "Passwort" : "Password";
@@ -160,7 +161,8 @@ static void key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint3
     (void)serial;
     (void)when;
     struct view *v = data;
-    if (!v->focused || v->pending || !v->keys || action != WL_KEYBOARD_KEY_STATE_PRESSED || code > KEY_MAX) return;
+    if (!v->focused || v->paused || v->pending || !v->keys ||
+            action != WL_KEYBOARD_KEY_STATE_PRESSED || code > KEY_MAX) return;
     xkb_keysym_t symbol = xkb_state_key_get_one_sym(v->keys, code + 8);
     v->feedback = 0;
     if (symbol == XKB_KEY_Escape) { reset(v); v->action = false; }
@@ -246,6 +248,19 @@ static void remove_global(void *data, struct wl_registry *registry, uint32_t nam
 }
 static const struct wl_registry_listener registry_events = {.global = global, .global_remove = remove_global};
 
+static void pause_ready(void *data, struct wl_callback *callback, uint32_t serial) {
+    (void)serial;
+    struct view *v = data;
+    wl_callback_destroy(callback);
+    v->pause_sync = NULL;
+    unsigned char reply[AE_UNLOCK_VIEW_MAGIC_SIZE + 1] = AE_UNLOCK_VIEW_MAGIC;
+    reply[AE_UNLOCK_VIEW_MAGIC_SIZE] = AE_UNLOCK_VIEW_PAUSED;
+    if (v->focused || send(v->broker, reply, sizeof reply, MSG_DONTWAIT | MSG_NOSIGNAL) !=
+            (ssize_t)sizeof reply) v->failed = true;
+}
+
+static const struct wl_callback_listener pause_events = {.done = pause_ready};
+
 static bool feedback(struct view *v) {
     char bytes[AE_UNLOCK_VIEW_MAGIC_SIZE + 1];
     struct iovec body = {bytes, sizeof bytes};
@@ -255,6 +270,22 @@ static bool feedback(struct view *v) {
     if (size != (ssize_t)sizeof bytes || (message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)) ||
             memcmp(bytes, AE_UNLOCK_VIEW_MAGIC, AE_UNLOCK_VIEW_MAGIC_SIZE)) return false;
     int kind = bytes[AE_UNLOCK_VIEW_MAGIC_SIZE];
+    if (kind == AE_UNLOCK_VIEW_PAUSE && !v->paused) {
+        v->paused = true;
+        v->pending = v->action = false;
+        v->feedback = 0;
+        reset(v);
+        repaint(v);
+        /* The compositor sent the focus leave before acknowledging cover.
+           Order it and any earlier keys before the credential-channel ack. */
+        v->pause_sync = wl_display_sync(v->display);
+        return v->pause_sync && !wl_callback_add_listener(v->pause_sync, &pause_events, v);
+    }
+    if (kind == AE_UNLOCK_VIEW_RESUME && v->paused && !v->pause_sync) {
+        v->paused = false;
+        repaint(v);
+        return true;
+    }
     if (kind != AE_UNLOCK_VIEW_DENIED && kind != AE_UNLOCK_VIEW_ERROR) return false;
     if (v->pending) { v->pending = false; v->feedback = kind; v->action = false; repaint(v); }
     return true;
@@ -327,6 +358,7 @@ int main(int argc, char **argv) {
         }
     }
     reset(&v);
+    if (v.pause_sync) wl_callback_destroy(v.pause_sync);
     for (size_t i = 0; i < 2; ++i) ae_wayland_buffer_close(&v.buffers[i]);
     if (v.surface) wl_surface_destroy(v.surface);
     if (v.keyboard) wl_keyboard_release(v.keyboard);

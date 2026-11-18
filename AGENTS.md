@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current suspend lock coordination: read spec/session.md#suspend-and-resume-lock-coordination
+and the 2026-11-18 suspend-lock-coordination record. Keep separate sleep and
+wake cover generations, the original dialog Wayland sync and old PAM-result
+retirement. Release c1a694200ba6 passes eight selected tests and the separate
+authority test. Carrier 420878c47851 observes an accepted original reply
+queued before sleep preparation, then restores all three frames only after
+a new successful attempt. The wake is simulated. Preserve the hold fixture
+and capture failures. Next connect the privileged original session to a
+required systemd suspend condition and verify actual signed S3 and aftermath.
+The USB gate and NexaUI maintenance state apply.
+
 Current signed desktop lock: read spec/login-deployment.md#signed-login-selection
 and the 2026-11-18 signed-desktop-lock record. Format 4 retains the ten-source
 handoff and observes the lock ELF, unlock PAM and shared font in both views.

@@ -276,6 +276,10 @@ compositor instance.
 | `RELEASED` | 4 | Confirm acceptance of that release and schedule the ordinary scene |
 | `REJECTED` | 5 | Refuse the request and echo its generation |
 | `REQUEST` | 6 | Notify the controller that physical Super+L began the indicated new cover |
+| `SLEEP_COVER` | 7 | Replace any in-progress release with a new black cover and hide the dialog |
+| `SLEEP_COVERED` | 8 | Confirm fresh presentation of the black cover on every output |
+| `WAKE_COVER` | 9 | Request fresh presentation after wake or an abandoned sleep operation |
+| `WAKE_COVERED` | 10 | Confirm the new covered generation, then allow the dialog to present again |
 
 The controller authenticates separately before it sends a release. The
 compositor also waits for all current outputs to be covered and every
@@ -287,8 +291,12 @@ the channel and discards any pending release.
 
 The [managed lock record](../brains/aetheri/journal/2026-11-18-managed-lock.md)
 includes a fixture that consumes real PAM outcomes and restores the exact
-original scene. The signed desktop still needs the installed owner and
-the sleep and wake paths.
+original scene. The [signed desktop](../brains/aetheri/journal/2026-11-18-signed-desktop-lock.md)
+supports manual lock. The sleep and wake commands use the same authenticated
+parent channel and require two separate covered generations. If physical
+Super+L wins the race for the next generation, its notification precedes
+the sleep acknowledgement. The compositor renders the sleep generation
+with the private view hidden and refuses every release during that hold.
 
 ### Desktop owner lock broker
 
@@ -315,15 +323,38 @@ requests release for the same generation. The compositor still waits
 for neutral input. Loss of the session, protocol or actor closes the
 channels and discards outstanding outcomes.
 
-This candidate exercises the unprivileged broker and real PAM in
-the development VM. In the installed path, the owner and all its
-children inherit `NoNewPrivileges`, so executing a setuid helper preserves
-the existing UID. Release integration needs password
-verification under a separately admitted authority with access to
-the protected local account verifier. The candidate is limited to
-development builds pending those protected runtime inputs. The
-[broker record](../brains/aetheri/journal/2026-11-18-lock-broker.md)
-tracks the VM and rights boundary. [Linux kernel privilege flag](https://docs.kernel.org/userspace-api/no_new_privs.html)
+In the installed path, the desktop and all its children inherit
+`NoNewPrivileges`. The original PAM worker holds the privileged end of
+the authority connection. The [broker record](../brains/aetheri/journal/2026-11-18-lock-broker.md)
+tracks the earlier unprivileged verifier and the privilege boundary.
+[Linux kernel privilege flag](https://docs.kernel.org/userspace-api/no_new_privs.html)
+
+### Suspend and resume lock coordination
+
+The broker accepts preparation only from its owning thread. It invalidates
+any in-flight release and stops using password submissions while the power
+transition is active. Once every output presents the sleep cover, it asks
+the original dialog to pause. The dialog zeroes its draft, drains its
+private Wayland connection through a display sync and confirms that it
+has lost focus. The broker accepts this acknowledgement after earlier
+credential packets on the same ordered channel. Preparation succeeds only
+while the original session, processes and both peer endpoints remain live.
+
+After the suspend operation returns or is abandoned, the coordinator ends
+the hold. Every output must present again with a new generation. The broker
+settles any outstanding pre-sleep PAM result against its original generation
+and discards its outcome before letting the dialog accept passwords again.
+Normal release still needs a fresh successful attempt, a presented dialog
+and neutral input. Failure or actor loss during a transition fences the
+broker.
+
+The installed sleep service still needs the privileged caller that holds
+this transaction through the operation. An inhibitor delay is bounded by
+logind and can expire before a compositor replies. The installed suspend
+job must require successful preparation before `systemd-sleep` starts,
+and it must end the same hold after the job finishes. [systemd inhibitor
+contract](https://systemd.io/INHIBITOR_LOCKS/) · [systemd 259.10 suspend
+unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-suspend.service.in)
 
 ### Privileged password verification
 
@@ -352,10 +383,9 @@ forwarding the PAM verdict. Peer or context loss fences the channel. The desktop
 broker still rechecks the login context and the compositor still waits
 for the cover generation and neutral input before release.
 
-The development carrier exercises this handoff. Signed assembly still
-requires the protected PAM profile, updated runtime selection, enforcing
-policy and the combined sleep and wake lifecycle. See the [privileged
-handoff record](../brains/aetheri/journal/2026-11-18-unlock-authority.md).
+The [privileged handoff record](../brains/aetheri/journal/2026-11-18-unlock-authority.md)
+defines the carrier tests. The [signed lock record](../brains/aetheri/journal/2026-11-18-signed-desktop-lock.md)
+covers the installed policy and manual PAM unlock.
 
 ### Private password dialog
 
@@ -394,6 +424,11 @@ associates the attempt with the current lock generation. A five-byte
 Value 1 means denied and 2 means unavailable. A successful PAM
 result uses the managed lock's release, which still waits for physical
 input neutrality. The retry status carries no account details.
+
+For suspend, control byte 3 pauses the dialog and 5 re-enables it. The
+dialog replies with byte 4 only after it drains earlier Wayland events
+and confirms focus loss. Those single-byte control values lie outside
+the range of accepted password characters.
 
 The selected font can be passed as `AETHERI_LOCK_VIEW_TEST_FONT` for
 the native compositor test. The [password dialog

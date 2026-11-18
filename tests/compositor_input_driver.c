@@ -61,8 +61,9 @@ static void remove_devices(struct input_driver *d) {
 static void hold_present(struct wl_listener *listener, void *data) {
     struct input_driver *d = wl_container_of(listener, d, hold_present);
     const struct wlr_output_event_present *present = data;
-    if (d->captured_present || !present->presented || !d->held_output->cover_pending ||
-            present->commit_seq != d->held_output->cover_seq) return;
+    if (!present->presented || !d->held_output->cover_pending ||
+            present->commit_seq != d->held_output->cover_seq ||
+            (d->captured_present && d->held_present.commit_seq == present->commit_seq)) return;
     d->held_present = *present;
     d->captured_present = true;
     puts("TEST_COVER_PRESENT_HELD");
@@ -73,6 +74,7 @@ static void release_present(struct input_driver *d) {
     wl_list_remove(&d->hold_present.link);
     wl_signal_add(&output->output->events.present, &output->present);
     d->held_output = NULL;
+    d->captured_present = false;
 }
 static int receive_input(int fd, uint32_t mask, void *data) {
     struct input_driver *d = data;

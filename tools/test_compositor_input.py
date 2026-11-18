@@ -170,6 +170,74 @@ def main():
             before = commits()
             time.sleep(0.25)
             assert commits() == before, "idle dialog repeatedly redraws"
+
+        key(30, True); key(30, False)
+        wait_pixels("draft before sleep", [(790, 551, accent)])
+        key(42, True)
+        lock.sendall(lock_message(2, 1))
+        assert not select.select([lock], [], [], 0.15)[0], "release bypassed held Shift"
+        held = log("server").count("TEST_COVER_PRESENT_HELD\n")
+        event("hold-cover")
+        lock.sendall(lock_message(7, 1))
+        wait(lambda: log("server").count("TEST_COVER_PRESENT_HELD\n") > held,
+             "sleep cover waits for third display")
+        lock.sendall(lock_message(9, 2))
+        lock_expect(5, 2)
+        event("stale-cover")
+        assert not select.select([lock], [], [], 0.2)[0], "stale frame acknowledged for sleep"
+        event("release-cover")
+        lock_expect(8, 2)
+        credential.sendall(b"AELV1\x03")
+        assert credential.recv(64) == b"AELV1\x04", "view did not acknowledge focus loss"
+        key(42, False)
+        for code in (30, 28):
+            key(code, True); key(code, False)
+        assert not select.select([lock, credential], [], [], 0.2)[0], "sleep cover left input live"
+        lock.sendall(lock_message(2, 2))
+        lock_expect(5, 2)
+        snapshot("sleep replaces a pending release with a fresh cover on all displays", {}, covered=True)
+
+        held = log("server").count("TEST_COVER_PRESENT_HELD\n")
+        event("hold-cover")
+        lock.sendall(lock_message(9, 2))
+        wait(lambda: log("server").count("TEST_COVER_PRESENT_HELD\n") > held,
+             "wake cover waits for third display")
+        lock.sendall(lock_message(2, 3))
+        lock_expect(5, 3)
+        event("stale-cover")
+        assert not select.select([lock], [], [], 0.2)[0], "sleep frame acknowledged for wake"
+        snapshot("wake keeps the dialog hidden until all displays present again", {}, covered=True)
+        event("release-cover")
+        lock_expect(10, 3)
+        credential.sendall(b"AELV1\x05")
+        lock.sendall(lock_message(2, 1))
+        lock_expect(5, 1)
+        wait_pixels("wake refocuses the dialog with an empty draft",
+                    [(775, 531, accent), (790, 551, field)])
+        key(28, True); key(28, False)
+        assert not select.select([credential], [], [], 0.15)[0], "pre-sleep draft survived wake"
+        key(30, True); key(30, False); key(28, True); key(28, False)
+        assert credential.recv(64) == b"AELV1a"
+        lock.sendall(lock_message(2, 3))
+        lock_expect(4, 3)
+        key(30, True); key(30, False)
+        wait(lambda: "KEY 1 30 1 97\n" in log(), "original window gets fresh input after wake release")
+
+        held = log("server").count("TEST_COVER_PRESENT_HELD\n")
+        event("hold-cover")
+        key(125, True); key(38, True); key(38, False); key(125, False)
+        wait(lambda: log("server").count("TEST_COVER_PRESENT_HELD\n") > held,
+             "physical lock advances before the owner reads its notification")
+        lock.sendall(lock_message(7, 3))
+        lock_expect(6, 4)
+        wait(lambda: log("server").count("TEST_COVER_PRESENT_HELD\n") > held + 1,
+             "crossing sleep request starts a separate presentation")
+        event("release-cover")
+        lock_expect(8, 5)
+        credential.sendall(b"AELV1\x03")
+        assert credential.recv(64) == b"AELV1\x04"
+        snapshot("physical lock crossing a sleep request remains covered", {}, covered=True)
+
         credential.close()
         assert view.wait(timeout=4) == 0, log("view")
         processes.remove(view)

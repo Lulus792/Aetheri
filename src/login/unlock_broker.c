@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 enum phase { OPEN, COVERING, COVERED, RELEASING, FENCED };
+enum power_phase { POWER_IDLE, POWER_COVERING, POWER_PAUSING, POWER_HELD, POWER_REPAINTING, POWER_RESUMING };
 enum { COVER_MS = 5000, ATTEMPT_MS = 15000 };
 
 struct ae_unlock_broker {
@@ -33,7 +34,8 @@ struct ae_unlock_broker {
     bool (*session_live)(void *);
     void *session;
     enum phase phase;
-    uint64_t generation, deadline;
+    enum power_phase power;
+    uint64_t generation, deadline, power_deadline, remote_generation;
     bool remote_pending;
 };
 
@@ -179,9 +181,11 @@ void ae_unlock_broker_poll(const struct ae_unlock_broker *b, struct pollfd fds[A
         *timeout = 0;
         return;
     }
-    if (b->deadline) {
+    uint64_t deadline = b->power_deadline;
+    if (b->deadline && (!deadline || b->deadline < deadline)) deadline = b->deadline;
+    if (deadline) {
         uint64_t now;
-        *timeout = !now_ms(&now) || now >= b->deadline ? 0 : (int)(b->deadline - now);
+        *timeout = !now_ms(&now) || now >= deadline ? 0 : (int)(deadline - now);
     }
 }
 
@@ -190,6 +194,48 @@ static int send_control(struct ae_unlock_broker *b, enum ae_lock_action action) 
     ae_lock_wire_write(frame, action, b->generation);
     return send(b->control, frame, sizeof frame, MSG_DONTWAIT | MSG_NOSIGNAL) ==
         (ssize_t)sizeof frame ? 0 : -EPIPE;
+}
+
+int ae_unlock_broker_prepare_sleep(struct ae_unlock_broker *b) {
+    if (!b) return -EINVAL;
+    if (b->phase == FENCED) return -ESTALE;
+    if (b->power != POWER_IDLE) return -EBUSY;
+    uint64_t now;
+    if (b->generation >= UINT64_MAX - 2 || !current(b) || !now_ms(&now)) return fence(b, -ESTALE);
+    int status = cancel_worker(b);
+    if (!status) status = send_control(b, AE_LOCK_SLEEP_COVER);
+    if (status) return fence(b, status);
+    b->power = POWER_COVERING;
+    b->power_deadline = now + COVER_MS;
+    if (!b->remote_pending) b->deadline = 0;
+    return 0;
+}
+
+bool ae_unlock_broker_sleep_ready(const struct ae_unlock_broker *b) {
+    if (!b || b->phase != COVERED || b->power != POWER_HELD || !current(b)) return false;
+    struct pollfd peers[] = {{.fd = b->control}, {.fd = b->credentials}};
+    /* A closed endpoint may become visible before its original process exits. */
+    return poll(peers, sizeof peers / sizeof peers[0], 0) == 0;
+}
+
+int ae_unlock_broker_finish_sleep(struct ae_unlock_broker *b) {
+    if (!b) return -EINVAL;
+    if (b->phase == FENCED) return -ESTALE;
+    if (b->power != POWER_HELD) return -EBUSY;
+    uint64_t now;
+    if (!ae_unlock_broker_sleep_ready(b) || !now_ms(&now)) return fence(b, -ESTALE);
+    int status = send_control(b, AE_LOCK_WAKE_COVER);
+    if (status) return fence(b, status);
+    b->power = POWER_REPAINTING;
+    b->power_deadline = now + COVER_MS;
+    return 0;
+}
+
+static int feedback(struct ae_unlock_broker *b, unsigned char message) {
+    unsigned char packet[AE_UNLOCK_VIEW_MAGIC_SIZE + 1] = AE_UNLOCK_VIEW_MAGIC;
+    packet[AE_UNLOCK_VIEW_MAGIC_SIZE] = message;
+    return send(b->credentials, packet, sizeof packet, MSG_DONTWAIT | MSG_NOSIGNAL) ==
+        (ssize_t)sizeof packet ? 0 : -EPIPE;
 }
 
 static int receive_control(struct ae_unlock_broker *b, uint64_t now) {
@@ -209,15 +255,18 @@ static int receive_control(struct ae_unlock_broker *b, uint64_t now) {
     } else if (frame[5] == AE_LOCK_RELEASED && b->phase == RELEASING && generation == b->generation) {
         b->phase = OPEN;
         b->deadline = 0;
+    } else if (frame[5] == AE_LOCK_SLEEP_COVERED && b->power == POWER_COVERING &&
+            generation > b->generation && generation - b->generation == (b->phase == COVERING ? 2u : 1u)) {
+        b->generation = generation;
+        b->phase = COVERED;
+        b->power = POWER_PAUSING;
+        return feedback(b, AE_UNLOCK_VIEW_PAUSE);
+    } else if (frame[5] == AE_LOCK_WAKE_COVERED && b->power == POWER_REPAINTING &&
+            generation > b->generation && generation - b->generation == 1) {
+        b->generation = generation;
+        b->power = POWER_RESUMING;
     } else return -ESTALE;
     return 0;
-}
-
-static int feedback(struct ae_unlock_broker *b, unsigned char message) {
-    unsigned char packet[AE_UNLOCK_VIEW_MAGIC_SIZE + 1] = AE_UNLOCK_VIEW_MAGIC;
-    packet[AE_UNLOCK_VIEW_MAGIC_SIZE] = message;
-    return send(b->credentials, packet, sizeof packet, MSG_DONTWAIT | MSG_NOSIGNAL) ==
-        (ssize_t)sizeof packet ? 0 : -EPIPE;
 }
 
 static int verify(struct ae_unlock_broker *b, const void *password, size_t size) {
@@ -261,15 +310,27 @@ static int receive_password(struct ae_unlock_broker *b, uint64_t now) {
     ssize_t count = ae_pidfd_receive(b->credentials, packet, sizeof packet, &b->view_id);
     int status = 0;
     if (count != -EAGAIN) {
-        if (b->phase != COVERED || b->attempt || b->remote_pending || count <= AE_UNLOCK_VIEW_MAGIC_SIZE ||
+        if (count <= AE_UNLOCK_VIEW_MAGIC_SIZE ||
                 memcmp(packet, AE_UNLOCK_VIEW_MAGIC, AE_UNLOCK_VIEW_MAGIC_SIZE) ||
                 memchr(packet + AE_UNLOCK_VIEW_MAGIC_SIZE, 0, (size_t)count - AE_UNLOCK_VIEW_MAGIC_SIZE)) {
+            status = -EPROTO;
+        } else if (count == AE_UNLOCK_VIEW_MAGIC_SIZE + 1 && packet[AE_UNLOCK_VIEW_MAGIC_SIZE] == AE_UNLOCK_VIEW_PAUSED) {
+            if (b->power != POWER_PAUSING) status = -EPROTO;
+            else {
+                b->power = POWER_HELD;
+                b->power_deadline = 0;
+            }
+        } else if (b->power != POWER_IDLE) {
+            /* The dialog's pause ack follows every earlier password packet. */
+            status = 0;
+        } else if (b->phase != COVERED || b->attempt || b->remote_pending) {
             status = -EPROTO;
         } else if (b->authority) {
             status = ae_unlock_authority_client_begin(b->authority, b->generation,
                 packet + AE_UNLOCK_VIEW_MAGIC_SIZE, (size_t)count - AE_UNLOCK_VIEW_MAGIC_SIZE);
             if (!status) {
                 b->remote_pending = true;
+                b->remote_generation = b->generation;
                 b->deadline = now + ATTEMPT_MS;
             }
         } else if (b->worker_pin >= 0 ||
@@ -286,7 +347,7 @@ static int receive_password(struct ae_unlock_broker *b, uint64_t now) {
 
 static int publish(struct ae_unlock_broker *b, enum ae_unlock_result value) {
     b->deadline = 0;
-    if (b->phase != COVERED || !current(b)) return -ESTALE;
+    if (b->phase != COVERED || b->power != POWER_IDLE || !current(b)) return -ESTALE;
     if (value == AE_UNLOCK_UNAVAILABLE) return feedback(b, AE_UNLOCK_VIEW_ERROR);
     if (value == AE_UNLOCK_DENIED) return feedback(b, AE_UNLOCK_VIEW_DENIED);
     if (send_control(b, AE_LOCK_RELEASE)) return -EPIPE;
@@ -309,10 +370,15 @@ static int result(struct ae_unlock_broker *b, uint64_t now) {
 static int remote_result(struct ae_unlock_broker *b, uint64_t now) {
     if (b->remote_pending && now >= b->deadline) return -ETIMEDOUT;
     enum ae_unlock_result value = AE_UNLOCK_UNAVAILABLE;
-    int status = ae_unlock_authority_client_receive(b->authority, b->generation, &value);
+    uint64_t generation = b->remote_pending ? b->remote_generation : b->generation;
+    int status = ae_unlock_authority_client_receive(b->authority, generation, &value);
     if (status == -EAGAIN) return 0;
     if (status || !b->remote_pending) return -ESTALE;
     b->remote_pending = false;
+    if (b->power != POWER_IDLE) {
+        b->deadline = 0;
+        return 0;
+    }
     return publish(b, value);
 }
 
@@ -325,14 +391,22 @@ int ae_unlock_broker_step(struct ae_unlock_broker *b) {
     if (b->phase == FENCED) return -ESTALE;
     uint64_t now;
     if (!current(b) || !now_ms(&now)) return fence(b, -ESTALE);
-    if (b->phase == COVERING && now >= b->deadline) return fence(b, -ETIMEDOUT);
+    if ((b->phase == COVERING && b->power == POWER_IDLE && now >= b->deadline) ||
+            (b->power_deadline && now >= b->power_deadline)) return fence(b, -ETIMEDOUT);
     int status = receive_control(b, now);
     if (!status) status = receive_password(b, now);
     if (!status && b->attempt) status = result(b, now);
     if (!status && b->authority) status = remote_result(b, now);
+    if (!status && b->power == POWER_RESUMING && !b->remote_pending) {
+        status = feedback(b, AE_UNLOCK_VIEW_RESUME);
+        if (!status) {
+            b->power = POWER_IDLE;
+            b->power_deadline = 0;
+        }
+    }
     return status ? fence(b, status) : 0;
 }
 
 bool ae_unlock_broker_open_desktop(const struct ae_unlock_broker *b) {
-    return b && b->phase == OPEN;
+    return b && b->phase == OPEN && b->power == POWER_IDLE;
 }
