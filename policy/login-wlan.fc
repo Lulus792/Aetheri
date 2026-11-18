@@ -1,0 +1,3 @@
+/usr/libexec/iwd -- system_u:object_r:aetheri_wlan_exec_t:s0
+/usr/share/aetheri/wlan(/.*)? system_u:object_r:aetheri_wlan_config_t:s0
+/run/aetheri-wlan(/.*)? system_u:object_r:aetheri_wlan_runtime_t:s0

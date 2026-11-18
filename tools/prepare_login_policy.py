@@ -37,7 +37,8 @@ def inventory(root: Path) -> dict:
 
 
 def prepare(base: Path, output: Path, desktop_audio: bool = False,
-            desktop_sound: bool = False, desktop_lock: bool = False, desktop_suspend: bool = False) -> dict:
+            desktop_sound: bool = False, desktop_lock: bool = False, desktop_suspend: bool = False,
+            desktop_wlan: bool = False) -> dict:
     if sys.platform != "linux":
         raise ValueError("run the offline policy compiler on Linux")
     if desktop_sound and not desktop_audio:
@@ -61,6 +62,8 @@ def prepare(base: Path, output: Path, desktop_audio: bool = False,
         names = (*names, "login-lock.cil")
     if desktop_suspend:
         names = (*names, "login-suspend.cil")
+    if desktop_wlan:
+        names = (*names, "login-wlan.cil")
     module_sources = {name: (POLICY / name).read_bytes().replace(b"\r\n", b"\n") for name in names}
     file_contexts = (POLICY / "login.fc").read_bytes().replace(b"\r\n", b"\n")
     if desktop_audio:
@@ -71,6 +74,8 @@ def prepare(base: Path, output: Path, desktop_audio: bool = False,
         file_contexts += b"\n" + (POLICY / "login-lock.fc").read_bytes().replace(b"\r\n", b"\n")
     if desktop_suspend:
         file_contexts += b"\n" + (POLICY / "login-suspend.fc").read_bytes().replace(b"\r\n", b"\n")
+    if desktop_wlan:
+        file_contexts += b"\n" + (POLICY / "login-wlan.fc").read_bytes().replace(b"\r\n", b"\n")
     output.mkdir()
     root = output / "root"
     target = root / "etc/selinux"
@@ -128,10 +133,11 @@ def main() -> int:
     parser.add_argument("--desktop-sound", action="store_true")
     parser.add_argument("--desktop-lock", action="store_true")
     parser.add_argument("--desktop-suspend", action="store_true")
+    parser.add_argument("--desktop-wlan", action="store_true")
     args = parser.parse_args()
     try:
         record = prepare(args.base, args.output.absolute(), args.desktop_audio, args.desktop_sound,
-                         args.desktop_lock, args.desktop_suspend)
+                         args.desktop_lock, args.desktop_suspend, desktop_wlan=args.desktop_wlan)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

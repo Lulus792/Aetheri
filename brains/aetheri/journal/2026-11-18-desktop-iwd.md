@@ -83,3 +83,57 @@ A separate exchange with a DHCP server is still required.
 The exact images and fixture results are identified in
 `local/login-review-2026-11-10/desktop-wlan-service-2026-11-18-evidence.tar.gz`
 with SHA-256 `2a108915408af9016dccaf4efac77044f1f6d446b15e116ead4a6f802054a14e`.
+
+## Dedicated SELinux service role
+
+The WLAN service selects `aetheri_wlan_t` and requires SELinux. The image
+policy labels the fixed iwd executable, read-only configuration and private
+runtime directory separately. The daemon can use the wireless device,
+system bus and selected network sockets. The desktop app roles remain
+outside its execution, private runtime and bus boundaries. The image
+compiler accepts the role through `--desktop-wlan`.
+
+The permissive-role diagnostic `5a81c40c` identifies the original iwd
+process in the dedicated domain. The observer's direct control attempt
+ends with `EACCES`. The old signed login selection rejects the changed
+policy. The next strict run starts the unit but exits while loading the
+configuration. An isolated boot removes the greeter's unrelated audit
+traffic and exposes two original denials in `d9bd6e2e`. iwd maps
+`main.conf` and creates a private `hotspot` directory. Both operations are
+admitted only on their selected types.
+
+Session `0f512ebe` verifies two strict service starts, bus-owner matches,
+typed runtime directories, original exits and runtime removal. Its
+headless target omitted logind and the host eventually quit the VM after
+the ACPI power-off timeout. The service also exposed profile watch, network
+sysctl search, its own keyring and socket denials. The next candidate admits
+profile watches, read-only network sysctl access and the identified private
+socket operations. `2d0e05bc` shows that interface discovery uses
+`SIOCGIFNAME` on a UNIX datagram socket. The policy limits that socket's
+extended ioctl access to request `0x8910`.
+[Linux socket request numbers](https://github.com/torvalds/linux/blob/v6.19/include/uapi/linux/sockios.h).
+
+Fedora's normal offline configuration has `expand-check=0`. Enabling it
+for the full stack exposes existing audio and lock assertions against a
+conditional distribution-wide file-map rule. The full compiler keeps the
+distribution selection. A private strict compile of the base desktop and
+WLAN role accepts the original policy and rejects three direct changes for
+shadow reads, generic executable entry and Settings-to-iwd bus access.
+
+Image `37ec642aca02` boots the complete candidate policy in enforcing mode.
+Session `d06ad76c` starts from inactive, starts iwd twice under
+`aetheri_wlan_t`, and matches each original daemon to the bus owner.
+Each cycle produces new interface indexes for both virtual radios. Both
+stops retire the original processes and remove the typed runtime. ACPI
+power-off exits zero and the data overlay check passes. The isolated
+boot target exercises the service without starting the graphical login.
+
+The final policy keeps the write denial on general network sysctls. The
+trace shows iwd attempting to write the per-interface IPv6 `accept_ra`
+setting. IPv6 admission needs a separate path for that operation. A signed
+desktop image with the new policy, WPA under this role, independent DHCP
+and the Settings mediator remain open. The first-version USB gate applies.
+
+The compiled policy, assertion checks and original boot attempts are in
+`local/login-review-2026-11-10/desktop-wlan-policy-2026-11-18-evidence.tar.gz`
+with SHA-256 `8f73e251e9b1e7df0b4dfa6402b9034e56b88e1e1592062daa778a51b1f5f36b`.

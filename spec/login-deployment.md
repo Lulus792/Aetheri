@@ -189,10 +189,17 @@ mode-0700 `/run/aetheri-wlan`. systemd removes that directory on stop.
 [systemd service readiness](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
 [systemd runtime directories](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#RuntimeDirectory=).
 
-This profile enables IP configuration and leaves DNS integration pending.
-Release activation requires a dedicated SELinux role and an authenticated
-Settings control path. Persistent credential storage has its own admission.
-Keep the iwd receipt with the image inputs.
+Select `--desktop-wlan` when compiling the image policy and apply the WLAN
+file contexts before boot. The unit requires SELinux and selects
+`aetheri_wlan_t` for the labeled iwd executable. The role uses the system
+bus, the wireless device, the required network sockets and its own runtime
+directory. The immutable configuration and runtime have separate labels.
+The desktop app roles cannot execute the daemon, inspect its private state
+or send directly to it. An authenticated Settings mediator still needs its
+own policy. Keep the iwd receipt with the image inputs.
+
+This profile enables IP configuration and leaves DNS integration and
+persistent credentials pending.
 
 ### PipeWire and WirePlumber files
 
@@ -288,6 +295,7 @@ Pass `--desktop-audio` when building an image with `AETHERI_DESKTOP_SESSION_AUDI
 Add `--desktop-sound` for the image with the Settings mediator.
 Add `--desktop-lock` for the image with the installed password dialog.
 Add `--desktop-suspend` alongside `--desktop-lock` for format `5`.
+Add `--desktop-wlan` for the WLAN service.
 The receipt identifies the inputs and compiled policy. The compiler store
 stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
 

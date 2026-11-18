@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The WLAN service has a dedicated SELinux role and typed
+configuration and runtime. Enforcing VM `d06ad76c` verifies two starts,
+iwd/bus identity, both virtual interfaces, original stops and runtime
+cleanup. ACPI shutdown passes. Three forbidden policy mutations fail the
+strict desktop WLAN compile. The final policy still denies the IPv6
+`accept_ra` write. Signed desktop integration, WPA under this role and the
+Settings mediator remain open. See the
+[WLAN policy record](journal/2026-11-18-desktop-iwd.md#dedicated-selinux-service-role).
+
 18 November 2026 — The WLAN payload now stages `aetheri-wlan.service`
 and its immutable configuration. Enforcing VM `3b9a9588` boots with iwd
 inactive and passes two explicit start and stop cycles. The bus owner is

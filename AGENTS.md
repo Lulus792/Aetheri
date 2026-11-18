@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current WLAN confinement: read the SELinux section of the 2026-11-18
+desktop-iwd journal and `spec/login-deployment.md`. Select `--desktop-wlan`
+and apply the dedicated exec/config/runtime labels. Enforcing headless
+37ec642aca02/d06ad76c passes two iwd lifetimes, radio interface discovery,
+runtime cleanup and ACPI shutdown. Keep the typed watch, inherited journal
+stream and exact SIOCGIFNAME ioctl. Preserve the IPv6 accept_ra write denial,
+diagnostic failures and three rejected strict policy mutations. Next capture
+the exact effective policy for signed desktop, then mediated WPA/DHCP and
+Settings. USB gate applies.
+
 Current WLAN service: read `spec/login-deployment.md#wireless-connection-manager-files`
 and the start/stop section of the 2026-11-18 desktop-iwd journal. Stage the
 unit and immutable main.conf with the existing iwd inventory. Keep explicit

@@ -1,5 +1,6 @@
 [Unit]
 Description=Aetheri Wireless Service
+AssertSecurity=selinux
 Requires=dbus.service
 After=dbus.service aetheri-udev.service
 
@@ -7,6 +8,7 @@ After=dbus.service aetheri-udev.service
 Type=dbus
 BusName=net.connman.iwd
 ExecStart=/usr/libexec/iwd
+SELinuxContext=system_u:system_r:aetheri_wlan_t:s0
 Environment=DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
 Environment=CONFIGURATION_DIRECTORY=/usr/share/aetheri/wlan
 Environment=STATE_DIRECTORY=/run/aetheri-wlan
