@@ -208,6 +208,54 @@ class LoginDeploymentTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "strictly increasing"):
             selection.payload(*args[:-1], [60000, 993])
+
+    def test_lock_profile_signs_view_and_pam_with_optional_sound(self):
+        self.selection["format"] = deployment.LOCK_FORMAT
+        self.save()
+        with self.assertRaisesRegex(ValueError, "complete format-4"):
+            deployment.stage(self.manifest, self.root / "missing-view")
+        self.assertFalse((self.root / "missing-view").exists())
+        header = (self.root / "aetheri-editor.input").read_bytes()[:64]
+        self.select(deployment.LOCK_EXECUTABLE, header + deployment.LOCK_EXECUTABLE.encode())
+        dropin, policy = self.root / "distribution", self.root / "policy"
+        dropin.write_bytes(b"distribution service\n")
+        policy.write_bytes(b"\x01\x02")
+        for with_sound in (False, True):
+            with self.subTest(with_sound=with_sound):
+                if with_sound:
+                    self.select(deployment.SOUND_EXECUTABLE, header + deployment.SOUND_EXECUTABLE.encode())
+                self.save()
+                stage = self.root / f"lock-{with_sound}"
+                receipt = deployment.stage(self.manifest, stage)
+                self.assertEqual(receipt["format"], deployment.LOCK_FORMAT)
+                args = (stage, dropin, policy, "2a" + "00" * 31, 992, 993, [993, 60000])
+                body = selection.payload(*args)
+                self.assertEqual((body[:8], len(body)), (b"AETHLS04", 1015))
+                if with_sound:
+                    self.assertEqual(body[911:943].hex(), deployment.digest(header + deployment.SOUND_EXECUTABLE.encode()))
+                else:
+                    self.assertEqual(body[907:943], bytes(36))
+                    orphan = stage / "root" / deployment.LIBEXEC / deployment.SOUND_EXECUTABLE
+                    orphan.write_bytes(header)
+                    with self.assertRaisesRegex(ValueError, "no reviewed receipt"):
+                        selection.payload(*args)
+                    orphan.unlink()
+                if self.verifier:
+                    encoded, signed = stage / "body", stage / "signed"
+                    encoded.write_bytes(body)
+                    subprocess.run([self.verifier, encoded, signed], check=True, timeout=15)
+                    self.assertEqual((signed.read_bytes()[:len(body)], signed.stat().st_size), (body, 1079))
+                for name, offset in ((f"{deployment.LIBEXEC}/{deployment.LOCK_EXECUTABLE}", 943),
+                                     (deployment.LOCK_PAM, 979)):
+                    path = stage / "root" / name
+                    original = path.read_bytes()
+                    self.assertEqual(int.from_bytes(body[offset:offset+4], "big"), len(original))
+                    self.assertEqual(body[offset+4:offset+36].hex(), deployment.digest(original))
+                    path.chmod(0o755)
+                    path.write_bytes(original[:-1] + b"!")
+                    with self.assertRaisesRegex(ValueError, f"staged file differs.*{path.name}"):
+                        selection.payload(*args)
+                    path.write_bytes(original)
         candidate = stage / "root" / deployment.LIBEXEC / "aetheri-login-greeter"
         candidate.chmod(0o755)
         original = candidate.read_bytes()

@@ -17,6 +17,7 @@
 static const char selection_leaf[] = "selection.bin";
 static const char config_label[] = "system_u:object_r:aetheri_login_config_t:s0";
 static const char unit_label[] = "system_u:object_r:systemd_unit_file_t:s0";
+static const char greeter_font_label[] = "system_u:object_r:aetheri_greeter_assets_t:s0";
 
 struct ae_login_installed {
     struct ae_login_sources *anchor;
@@ -56,11 +57,14 @@ int ae_login_installed_open(const struct ae_login_release_anchor *trust, struct 
 {
     if (!trust || !out || *out) return -EINVAL;
     if (security_getenforce() != 1) return -EACCES;
-    uint8_t bytes[AE_LOGIN_SELECTION_SOUND_BYTES];
-    uint32_t size = trust->desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES;
+    uint8_t bytes[AE_LOGIN_SELECTION_LOCK_BYTES];
+    uint32_t size = trust->desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
+        trust->desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES;
     struct ae_login_selection selected;
     int result = read_record(bytes, size);
     if (!result) result = ae_login_selection_verify(bytes, size, trust->key, trust->release, &selected);
+    if (!result && (selected.files[AE_LOGIN_SELECT_SOUND].size != 0) != trust->desktop_sound)
+        result = -EBADMSG;
     struct ae_login_source_expect anchor = {
         .directory = LOGIN_DATA, .leaf = selection_leaf, .label = config_label,
         .kind = AE_LOGIN_SOURCE_DATA, .mode = 0444, .size = size,
@@ -170,7 +174,7 @@ int ae_login_installed_font(struct ae_login_installed *installed, struct ae_logi
     if (result) return result;
     struct ae_login_source_expect font = {
         .directory = LOGIN_DATA, .leaf = "greeter.ttf",
-        .label = "system_u:object_r:aetheri_greeter_assets_t:s0",
+        .label = greeter_font_label,
         .kind = AE_LOGIN_SOURCE_ASSET, .mode = 0444,
     };
     selected_file(installed, AE_LOGIN_SELECT_FONT, &font);
@@ -245,6 +249,33 @@ int ae_login_installed_desktop_apps(struct ae_login_installed *installed,
         out[index] = expected;
     }
     *count = selected;
+    return 0;
+}
+
+int ae_login_installed_lock(struct ae_login_installed *installed,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_LOCK_COUNT], size_t *count)
+{
+    if (!out || !count) return -EINVAL;
+    int result = ae_login_installed_check(installed);
+    if (result) return result;
+    if (!installed->selection.files[AE_LOGIN_SELECT_LOCK_VIEW].size) {
+        *count = 0;
+        return 0;
+    }
+    struct ae_login_source_expect expected[AE_LOGIN_INSTALLED_LOCK_COUNT] = {
+        {LOGIN_EXEC, "aetheri-lock-view", "system_u:object_r:aetheri_lock_view_exec_t:s0",
+            AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        {"/etc/pam.d", "aetheri-unlock", "system_u:object_r:aetheri_unlock_pam_t:s0",
+            AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        {LOGIN_DATA, "greeter.ttf", greeter_font_label, AE_LOGIN_SOURCE_ASSET, 0444, 0, {0}},
+    };
+    static const enum ae_login_selection_role roles[AE_LOGIN_INSTALLED_LOCK_COUNT] = {
+        AE_LOGIN_SELECT_LOCK_VIEW, AE_LOGIN_SELECT_UNLOCK_PAM, AE_LOGIN_SELECT_FONT,
+    };
+    for (size_t i = 0; i < AE_LOGIN_INSTALLED_LOCK_COUNT; ++i)
+        selected_file(installed, roles[i], &expected[i]);
+    memcpy(out, expected, sizeof expected);
+    *count = AE_LOGIN_INSTALLED_LOCK_COUNT;
     return 0;
 }
 

@@ -48,6 +48,9 @@
 #ifndef AETHERI_DESKTOP_LIBRARIES
 #define AETHERI_DESKTOP_LIBRARIES "/usr/lib/aetheri/runtime"
 #endif
+#ifndef AETHERI_DESKTOP_LOCK_FONT
+#define AETHERI_DESKTOP_LOCK_FONT AETHERI_DESKTOP_SANS
+#endif
 #if !defined(AETHERI_DESKTOP_DOCUMENTS) && !defined(AETHERI_DESKTOP_SESSION_ENTRY)
 #define AETHERI_DESKTOP_DOCUMENTS "/home/aetheri/Documents"
 #endif
@@ -582,7 +585,7 @@ static bool lock_start(struct session_lock *lock, struct child *children, struct
     snprintf(credential, sizeof credential, "%d", lock->credentials[1]);
     const char *locale = getenv("LANG");
     const char *account = getenv("USER"); /* Derived from the authenticated UID in entry_paths. */
-    char *command[] = {BIN "aetheri-lock-view", display, credential, SANS, (char *)account,
+    char *command[] = {BIN "aetheri-lock-view", display, credential, AETHERI_DESKTOP_LOCK_FONT, (char *)account,
         locale && !strncmp(locale, "de_", 3) ? "de" : "en", NULL};
     int pass[] = {lock->display[1], lock->credentials[1]};
     bool started = account && spawn_role(&children[LOCK_VIEW], LOCK_VIEW, command, pass, 2);

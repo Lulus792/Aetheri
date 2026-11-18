@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The signed Sound and lock image reaches the desktop with
+enforcing SELinux. VM `c639ec7d` presents the focused lock dialog, refuses a
+wrong password through Linux-PAM, restores the same visible desktop and
+passes logout and ACPI power-off. Format 4 binds the dialog and unlock PAM
+input. The enforcing policy readback passes 184 checks. Next combine the
+installed lock with suspend and wake, then exercise the HP hardware. The
+[signed desktop lock record](journal/2026-11-18-signed-desktop-lock.md)
+retains both earlier installed failures and the USB gate.
+
 18 November 2026 — The original greetd PAM worker hands the authenticated
 desktop a private password-check connection. Three-display case
 `a070ee80f14d` restores the original frames while the ordinary desktop

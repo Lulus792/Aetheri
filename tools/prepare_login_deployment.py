@@ -19,6 +19,9 @@ MAX_INPUT = 16 * 1024 * 1024
 FORMAT = 2
 SOUND_FORMAT = 3
 SOUND_EXECUTABLE = "aetheri-audio-desktop-control"
+LOCK_FORMAT = 4
+LOCK_EXECUTABLE = "aetheri-lock-view"
+LOCK_PAM = "etc/pam.d/aetheri-unlock"
 
 DESKTOP_EXECUTABLES = (
     "aetheri-settings-nexaui", "aetheri-files-nexaui", "aetheri-terminal-nexaui",
@@ -57,6 +60,11 @@ SUPPORT = {
 }
 SOUND_SUPPORT = {f"policy/{name}": f"{DATA}/policy/{name}" for name in
                  ("login-audio-control.cil", "login-audio-control.fc")}
+LOCK_SUPPORT = {
+    "data/pam.d/aetheri-unlock": LOCK_PAM,
+    **{f"policy/{name}": f"{DATA}/policy/{name}" for name in
+       ("login-lock.cil", "login-lock.fc")},
+}
 
 
 def digest(body: bytes) -> str:
@@ -87,7 +95,7 @@ def read_artifact(manifest: Path, name: str, selection: object) -> bytes:
         body = stream.read(size + 1)
     if len(body) != size or digest(body) != expected:
         raise ValueError(f"artifact differs from its selection: {name}")
-    if name in EXECUTABLES or name == SOUND_EXECUTABLE:
+    if name in EXECUTABLES or name in (SOUND_EXECUTABLE, LOCK_EXECUTABLE):
         # Full executable and live-process admission belong to the native verifier.
         if (len(body) < 64 or body[:7] != b"\x7fELF\x02\x01\x01"
                 or body[16:18] not in (b"\x02\x00", b"\x03\x00") or body[18:20] != b"\x3e\x00"):
@@ -107,15 +115,19 @@ def stage(manifest: Path, destination: Path) -> dict:
         raise ValueError("login artifact selection exceeds 64 KiB")
     selected = json.loads(data, object_pairs_hook=unique_object)
     if (not isinstance(selected, dict) or set(selected) != {"format", "artifacts"}
-            or type(selected["format"]) is not int or selected["format"] not in (FORMAT, SOUND_FORMAT)
+            or type(selected["format"]) is not int
+            or selected["format"] not in (FORMAT, SOUND_FORMAT, LOCK_FORMAT)
             or not isinstance(selected["artifacts"], dict)):
-        raise ValueError("expected a format-2 or format-3 login artifact selection")
+        raise ValueError("expected a format-2, format-3 or format-4 login artifact selection")
     version = selected["format"]
     artifacts = ARTIFACTS
     support = SUPPORT
-    if version == SOUND_FORMAT:
-        artifacts = {**ARTIFACTS, SOUND_EXECUTABLE: (f"{LIBEXEC}/{SOUND_EXECUTABLE}", 0o555)}
-        support = {**SUPPORT, **SOUND_SUPPORT}
+    if version == SOUND_FORMAT or (version == LOCK_FORMAT and SOUND_EXECUTABLE in selected["artifacts"]):
+        artifacts = {**artifacts, SOUND_EXECUTABLE: (f"{LIBEXEC}/{SOUND_EXECUTABLE}", 0o555)}
+        support = {**support, **SOUND_SUPPORT}
+    if version == LOCK_FORMAT:
+        artifacts = {**artifacts, LOCK_EXECUTABLE: (f"{LIBEXEC}/{LOCK_EXECUTABLE}", 0o555)}
+        support = {**support, **LOCK_SUPPORT}
     if set(selected["artifacts"]) != set(artifacts):
         raise ValueError(f"expected the complete format-{version} login artifact selection")
     payload = {

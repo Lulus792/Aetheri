@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 struct runtime_observation {
-    struct ae_login_sources *core, *apps;
+    struct ae_login_sources *core, *apps, *lock;
 };
 
 struct deployment {
@@ -27,9 +27,10 @@ struct deployment {
 
 static int close_runtime(struct runtime_observation *value)
 {
-    int result = ae_login_sources_close(&value->apps);
+    int result = ae_login_sources_close(&value->lock);
+    int closed_apps = ae_login_sources_close(&value->apps);
     int closed = ae_login_sources_close(&value->core);
-    return result ? result : closed;
+    return result ? result : closed_apps ? closed_apps : closed;
 }
 
 static int observe_runtime(struct ae_login_installed *installed, struct runtime_observation *out)
@@ -44,6 +45,9 @@ static int observe_runtime(struct ae_login_installed *installed, struct runtime_
     size_t count;
     if (!result) result = ae_login_installed_desktop_apps(installed, apps, &count);
     if (!result) result = ae_login_sources_create(apps, count, &out->apps);
+    struct ae_login_source_expect lock[AE_LOGIN_INSTALLED_LOCK_COUNT];
+    if (!result) result = ae_login_installed_lock(installed, lock, &count);
+    if (!result && count) result = ae_login_sources_create(lock, count, &out->lock);
     if (result) close_runtime(out);
     return result;
 }
@@ -79,6 +83,7 @@ static int check(void *value)
         &deployment->backend_runtime : &deployment->original_runtime;
     if (!result) result = ae_login_sources_check(runtime->core);
     if (!result) result = ae_login_sources_check(runtime->apps);
+    if (!result && runtime->lock) result = ae_login_sources_check(runtime->lock);
     uint32_t sequence;
     if (!result) result = policy_sequence(deployment,&sequence);
     if (!result) result = check_policy(&deployment->policy);

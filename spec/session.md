@@ -398,10 +398,14 @@ input neutrality. The retry status carries no account details.
 The selected font can be passed as `AETHERI_LOCK_VIEW_TEST_FONT` for
 the native compositor test. The [password dialog
 record](../brains/aetheri/journal/2026-11-18-lock-view.md) covers visible
-states and real PAM in the carrier. The installed desktop still needs
-the signed dialog and broker, production policy and trusted power
-coordination. Pointer interaction, scalable layout and accessibility
-services remain open for the dialog.
+states and real PAM in the carrier. The
+[installed profile](login-deployment.md#signed-login-selection) includes the
+dialog, font and unlock PAM profile in the signed inputs. The confined dialog
+and the original PAM worker pass manual lock and unlock in an
+[installed VM](../brains/aetheri/journal/2026-11-18-signed-desktop-lock.md#installed-manual-lock).
+The trusted suspend and resume sequence still needs integration. Pointer
+interaction, scalable layout and accessibility services remain open for the
+dialog.
 
 ### Password verification for unlock
 
@@ -418,9 +422,10 @@ conversation test. Select `AETHERI_UNLOCK_PAM_INCLUDE_DIR` and
 `AETHERI_UNLOCK_PAM_LIBRARY` from the reviewed SDK and runtime. The
 [SDK record](login-unlock-pam-inputs.json) identifies the three development
 headers. The existing runtime contains the PAM library, modules and helper.
-The candidate `data/pam.d/aetheri-unlock` service checks password and account
-status and denies session creation and password changes. Its final deployment
-needs protected profile admission alongside the verifier. [Linux-PAM
+The `data/pam.d/aetheri-unlock` service checks password and account status and
+denies session creation and password changes. The version-4 release selection
+binds the installed profile's size and digest alongside the lock dialog.
+[Linux-PAM
 conversation contract](https://github.com/linux-pam/linux-pam/blob/v1.7.2/doc/man/pam_conv.3.xml)
 
 Only the owner of the protected original lock may act on a successful check.

@@ -101,8 +101,54 @@ def check_desktop_sound(check, process, obj) -> None:
         check(control, peer, "process", "ptrace", False)
 
 
+def check_desktop_lock(check, process, obj) -> None:
+    session = process("aetheri_session_t")
+    worker = process("aetheri_login_worker_t")
+    startup = process("aetheri_login_startup_t")
+    view = process("aetheri_lock_view_t")
+    entry = obj("aetheri_lock_view_exec_t")
+    profile = obj("aetheri_unlock_pam_t")
+    pixels = obj("aetheri_lock_pixels_t")
+    check(session, entry, "file", "execute", True)
+    check(session, entry, "file", "execute_no_trans", False)
+    check(session, view, "process2", "nnp_transition", True)
+    check(view, entry, "file", "entrypoint", True)
+    check(startup, entry, "file", "read", True)
+    check(startup, entry, "file", "execute", False)
+    check(startup, profile, "file", "read", True)
+    check(startup, obj("aetheri_greeter_assets_t"), "file", "read", True)
+    check(worker, profile, "file", "read", True)
+    check(worker, profile, "file", "write", False)
+    check(session, profile, "file", "read", False)
+    check(view, profile, "file", "read", False)
+    for permission in ("read", "write", "getattr", "getopt"):
+        check(view, session, "unix_stream_socket", permission, True)
+        check(session, worker, "unix_stream_socket", permission, True)
+    check(view, session, "unix_stream_socket", "connectto", False)
+    check(session, worker, "unix_stream_socket", "connectto", False)
+    check(view, worker, "unix_stream_socket", "read", False)
+    check(worker, session, "fd", "use", True)
+    keymap = obj("aetheri_session_shm_t")
+    for permission in ("read", "getattr", "map"):
+        check(view, keymap, "file", permission, True)
+    for permission in ("open", "write"):
+        check(view, keymap, "file", permission, False)
+    check(view, obj("aetheri_session_memfd_t"), "file", "read", False)
+    check(view, pixels, "file", "create", True)
+    check(session, pixels, "file", "map", True)
+    check(view, obj("shadow_t"), "file", "read", False)
+    check(view, obj("dri_device_t"), "chr_file", "open", False)
+    check(view, obj("event_device_t"), "chr_file", "open", False)
+    check(view, view, "tcp_socket", "create", False)
+    for name in ("settings", "files", "terminal"):
+        app = process(f"aetheri_{name}_t")
+        check(app, entry, "file", "execute", False)
+        check(app, pixels, "file", "map", False)
+        check(app, worker, "unix_stream_socket", "read", False)
+
+
 def inspect(expected: str, graphical: bool = False, applications: bool = False,
-            desktop_audio: bool = False, desktop_sound: bool = False) -> dict:
+            desktop_audio: bool = False, desktop_sound: bool = False, desktop_lock: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -341,6 +387,8 @@ def inspect(expected: str, graphical: bool = False, applications: bool = False,
         check_desktop_audio(check, process, obj)
     if desktop_sound:
         check_desktop_sound(check, process, obj)
+    if desktop_lock:
+        check_desktop_lock(check, process, obj)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -356,10 +404,11 @@ def main() -> int:
     parser.add_argument("--applications", action="store_true", help="also check the installed desktop app roles")
     parser.add_argument("--desktop-audio", action="store_true", help="also check the desktop audio roles")
     parser.add_argument("--desktop-sound", action="store_true", help="also check the desktop Sound mediator")
+    parser.add_argument("--desktop-lock", action="store_true", help="also check the installed lock roles")
     args = parser.parse_args()
     try:
         record = inspect(args.expected_policy_sha256, args.graphical, args.applications,
-                         args.desktop_audio, args.desktop_sound)
+                         args.desktop_audio, args.desktop_sound, args.desktop_lock)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

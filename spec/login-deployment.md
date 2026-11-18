@@ -10,6 +10,7 @@ deployment provider can bind them to independently selected release inputs.
 | `/usr/share/aetheri/login/` | Signed release selection, backend configuration, greeter font and SELinux policy inputs |
 | `/etc/pam.d/aetheri-login` | Local human authentication and session setup through PAM |
 | `/etc/pam.d/aetheri-greeter` | Internal PAM session for the locked display account |
+| `/etc/pam.d/aetheri-unlock` | Password and account checks for the active desktop's lock |
 | `/etc/pam.d/other` | Deny authentication, account, password and session requests for unknown PAM services |
 | `/etc/nsswitch.conf` | Local account and group lookup, with DNS available for host names |
 | `/etc/ld.so.conf` | Search path for the image's reviewed desktop libraries |
@@ -58,7 +59,10 @@ at boot keeps those contexts, including on both scratch directories.
 
 With the installed startup, greeter and desktop profiles configured, use
 `cmake --build BUILD --target aetheri-login-image-artifacts` to build the
-native executables. Build the selected greetd backend separately.
+native executables. The installed desktop starts the compositor with Compose
+enabled, so select the [reviewed Compose inputs](compose.md#standard-data-and-licenses).
+Use the compositor ELF for both `aetheri-compositor` and `aetheri-login-display`.
+Build the selected greetd backend separately.
 
 ```sh
 python tools/prepare_login_deployment.py --inputs login-inputs.json --output login-stage
@@ -81,6 +85,15 @@ the package tree. `receipt.json` lists the target paths, file sizes, intended
 POSIX modes in decimal, and SHA-256 digests in path order. A partial write has
 no completion receipt until all files are written. Use a fresh tree for a new
 attempt.
+
+Use staging format `3` for the Sound mediator without desktop lock. Add
+`aetheri-audio-desktop-control` to the artifact list. Use format `4` for
+desktop lock and add `aetheri-lock-view`. In format `4`, include
+`aetheri-audio-desktop-control` when the selected desktop starts the mediator.
+The stager takes the unlock PAM profile and lock file contexts from this
+source tree. Build the backend with `aetheri-session-unlock` and the native session
+with `AETHERI_DESKTOP_SESSION_LOCK=ON` and
+`AETHERI_DESKTOP_UNLOCK_AUTHORITY=ON` for that image.
 
 ## Image integration
 
@@ -191,6 +204,7 @@ inside a fresh copy of that store and stages the
 policy and login file contexts under `login-policy/root/etc/selinux`.
 Pass `--desktop-audio` when building an image with `AETHERI_DESKTOP_SESSION_AUDIO=ON`.
 Add `--desktop-sound` for the image with the Settings mediator.
+Add `--desktop-lock` for the image with the installed password dialog.
 The receipt identifies the inputs and compiled policy. The compiler store
 stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
 
@@ -264,6 +278,8 @@ python tools/verify_login_pam_root.py --root /mnt/aetheri-image
 The verifier checks the three PAM configuration files and follows the selected
 module files' ELF dependencies through exact aliases to pinned file bytes in
 the image. It checks the loader and the password helper's path, mode and label.
+Pass `--desktop-lock` to verify the unlock profile's exact bytes, mode and
+label and include its PAM module requirements.
 The JSON result lists the checked objects and references. Image boot tests still
 need to exercise loader configuration, account data, the installed platform
 gates and full PAM session creation. The
@@ -359,6 +375,14 @@ observations in both mount views. The common backend handoff continues
 to contain ten sources and includes the exact authenticated selection
 size and digest.
 
+Version 4 uses `AETHLS04`, a 1,015-byte body and a 1,079-byte signed record.
+It follows the same order through the editor, then carries Sound, the lock
+dialog and the unlock PAM profile. The Sound row is 36 zero bytes when the
+mediator is absent. The dialog and profile are required, and the profile is
+limited to 65,536 bytes. Both login entry points require the format and Sound
+presence selected at build time. The dialog uses the existing signed greeter
+font at its fixed image path.
+
 The native verifier checks the exact record size, release identifier,
 signature, account IDs, group ordering, reserved fields, and the size bounds
 of each role. A valid record supplies expectations for the subsequent live
@@ -408,6 +432,14 @@ view. An observed loss fences the attempt. The ten-entry backend handoff
 fingerprint retains its existing form. SELinux grants the startup domain
 read access to the selected desktop and app executable types while prohibiting
 execution and mutation.
+
+For a lock-enabled image, the startup helper also retains the lock dialog,
+unlock PAM profile and shared font in each view. SELinux assigns the dialog
+its own process type on exec. The dialog consumes the display and credential
+sockets inherited from the desktop. It maps the compositor's received,
+read-only Wayland keymap and writes its own typed pixel buffers. The original
+privileged PAM worker reads the unlock profile and owns the authority socket
+used by the desktop. The handoff still contains the same ten sources.
 
 The adapter compares the signed policy size and SHA-256 with the actual
 policy read from selinuxfs in each gate invocation. The loaded service checks,

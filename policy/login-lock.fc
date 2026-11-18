@@ -1,0 +1,2 @@
+/usr/libexec/aetheri/aetheri-lock-view  -- system_u:object_r:aetheri_lock_view_exec_t:s0
+/etc/pam.d/aetheri-unlock             -- system_u:object_r:aetheri_unlock_pam_t:s0

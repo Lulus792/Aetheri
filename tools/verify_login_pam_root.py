@@ -70,7 +70,7 @@ def offline_root(root: Path) -> None:
         raise ValueError("expected a protected root directory")
 
 
-def verify(root: Path) -> dict:
+def verify(root: Path, desktop_lock: bool = False) -> dict:
     offline_root(root)
     supplement, supplement_sha = load("login-pam-runtime-inputs.json")
     desktop, desktop_sha = load("desktop-image-inputs.json")
@@ -90,10 +90,12 @@ def verify(root: Path) -> dict:
     link(root, "/usr/sbin", "bin")
 
     pending = {loader_name}
-    for profile in PROFILES:
+    profiles = (*PROFILES, "aetheri-unlock") if desktop_lock else PROFILES
+    for profile in profiles:
         body = (SPEC.parent / "data/pam.d" / profile).read_bytes().replace(b"\r\n", b"\n")
         entry = {"mode": 0o444, "size": len(body), "sha256": hashlib.sha256(body).hexdigest()}
-        file(root, PAM_DIR + profile, entry, CONFIG_CONTEXT)
+        context = "system_u:object_r:aetheri_unlock_pam_t:s0" if profile == "aetheri-unlock" else CONFIG_CONTEXT
+        file(root, PAM_DIR + profile, entry, context)
         for raw in body.decode("utf-8").splitlines():
             line = raw.partition("#")[0].strip()
             if line:
@@ -130,7 +132,7 @@ def verify(root: Path) -> dict:
         "supplement_sha256": supplement_sha,
         "desktop_sha256": desktop_sha,
         "boot_sha256": boot_sha,
-        "profiles": list(PROFILES),
+        "profiles": list(profiles),
         "elf_objects": checked,
         "aliases": checked_links,
     }
@@ -139,9 +141,10 @@ def verify(root: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--desktop-lock", action="store_true")
     args = parser.parse_args()
     try:
-        print(json.dumps(verify(args.root), indent=2))
+        print(json.dumps(verify(args.root, args.desktop_lock), indent=2))
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"login PAM root: {error}", file=sys.stderr)
         return 1

@@ -30,6 +30,8 @@ static const uint32_t limits[AE_LOGIN_SELECT_COUNT] = {
     [AE_LOGIN_SELECT_SHELL] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_EDITOR] = AE_DIGEST_MAX_BYTES,
     [AE_LOGIN_SELECT_SOUND] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_LOCK_VIEW] = AE_DIGEST_MAX_BYTES,
+    [AE_LOGIN_SELECT_UNLOCK_PAM] = 65536,
 };
 
 static uint32_t read_u32(const uint8_t *p)
@@ -80,6 +82,8 @@ int ae_login_selection_verify(const uint8_t *bytes, size_t size,
     if (size == AE_LOGIN_SELECTION_BYTES && !memcmp(bytes, "AETHLS02", 8))
         roles = AE_LOGIN_SELECT_SOUND;
     else if (size == AE_LOGIN_SELECTION_SOUND_BYTES && !memcmp(bytes, "AETHLS03", 8))
+        roles = AE_LOGIN_SELECT_LOCK_VIEW;
+    else if (size == AE_LOGIN_SELECTION_LOCK_BYTES && !memcmp(bytes, "AETHLS04", 8))
         roles = AE_LOGIN_SELECT_COUNT;
     else return -EBADMSG;
     const uint8_t *p = bytes + 8;
@@ -109,6 +113,8 @@ int ae_login_selection_verify(const uint8_t *bytes, size_t size,
     for (size_t i = 0; i < roles; ++i, p += 4 + AE_SHA256_BYTES) {
         struct ae_login_selected_file *file = &parsed.files[i];
         file->size = read_u32(p);
+        if (roles == AE_LOGIN_SELECT_COUNT && i == AE_LOGIN_SELECT_SOUND &&
+                !file->size && !nonzero(p + 4, AE_SHA256_BYTES)) continue;
         if (!file->size || file->size > limits[i] || !nonzero(p + 4, AE_SHA256_BYTES))
             return -EBADMSG;
         memcpy(file->digest, p + 4, sizeof file->digest);

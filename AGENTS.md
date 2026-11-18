@@ -1,5 +1,16 @@
 # Working on Aetheri
 
+Current signed desktop lock: read spec/login-deployment.md#signed-login-selection
+and the 2026-11-18 signed-desktop-lock record. Format 4 retains the ten-source
+handoff and observes the lock ELF, unlock PAM and shared font in both views.
+Use the reviewed Compose table and the inherited original worker connection.
+Keep received-only read/map for the wlroots keymap and separate lock pixels.
+Final image 23bcbeebbda6/session c639ec7d passes actual PAM refusal, restores
+the same desktop, logs out and powers off. The final effective policy passes
+184 decisions and the composed root checks pass. Preserve the Compose and
+keymap failures and the two signed-input refusals. Next coordinate suspend and
+wake with the installed lock. The USB gate and NexaUI maintenance state apply.
+
 Current unlock authority: read spec/session.md#privileged-password-verification,
 spec/login-backend.md#privileged-unlock-handoff and the 2026-11-18 journal.
 The optional backend passes FD 3 only to the exact authenticated desktop.

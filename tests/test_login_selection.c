@@ -49,13 +49,14 @@ int main(int argc, char **argv)
 
     uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS02";
     if (argc >= 2 && argc <= 4) {
-        uint8_t external[AE_LOGIN_SELECTION_SOUND_BYTES];
+        uint8_t external[AE_LOGIN_SELECTION_LOCK_BYTES];
         int offset = argc == 4 ? 2 : 1;
         if (argc == 4) CHECK(!strcmp(argv[1], "--sign-body"));
         FILE *file = fopen(argv[offset], "rb");
         CHECK(file);
-        size_t body = fread(external, 1, AE_LOGIN_SELECTION_SOUND_BODY_BYTES, file);
-        CHECK(body == AE_LOGIN_SELECTION_BODY_BYTES || body == AE_LOGIN_SELECTION_SOUND_BODY_BYTES);
+        size_t body = fread(external, 1, AE_LOGIN_SELECTION_LOCK_BODY_BYTES, file);
+        CHECK(body == AE_LOGIN_SELECTION_BODY_BYTES || body == AE_LOGIN_SELECTION_SOUND_BODY_BYTES ||
+              body == AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
         CHECK(fgetc(file) == EOF && !ferror(file) && !fclose(file));
         sign_body(key, external, body);
         size_t length = body + AE_LOGIN_SELECTION_SIGNATURE_BYTES;
@@ -71,6 +72,11 @@ int main(int argc, char **argv)
             if (body == AE_LOGIN_SELECTION_SOUND_BODY_BYTES)
                 CHECK(selected.files[AE_LOGIN_SELECT_SOUND].size ==
                       64 + sizeof("aetheri-audio-desktop-control") - 1);
+            if (body == AE_LOGIN_SELECTION_LOCK_BODY_BYTES) {
+                CHECK(selected.files[AE_LOGIN_SELECT_LOCK_VIEW].size ==
+                      64 + sizeof("aetheri-lock-view") - 1);
+                CHECK(selected.files[AE_LOGIN_SELECT_UNLOCK_PAM].size > 0);
+            }
         }
         if (argc >= 3) {
             file = fopen(argv[offset + 1], "wbx");
@@ -118,6 +124,33 @@ int main(int argc, char **argv)
     refused(sound, sizeof sound, public_key, release, -EBADMSG);
     sound[7] = '2';
     refused(sound, sizeof sound, public_key, release, -EBADMSG);
+
+    uint8_t lock[AE_LOGIN_SELECTION_LOCK_BYTES] = {0};
+    memcpy(lock, record, AE_LOGIN_SELECTION_BODY_BYTES);
+    lock[7] = '4';
+    size_t view = AE_LOGIN_SELECTION_SOUND_BODY_BYTES;
+    size_t pam = view + 36;
+    lock[view + 3] = 10;
+    lock[view + 4] = 91;
+    lock[pam + 3] = 11;
+    lock[pam + 4] = 92;
+    sign_body(key, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+    CHECK(!ae_login_selection_verify(lock, sizeof lock, public_key, release, &out));
+    CHECK(!out.files[AE_LOGIN_SELECT_SOUND].size && out.files[AE_LOGIN_SELECT_LOCK_VIEW].size == 10);
+    CHECK(out.files[AE_LOGIN_SELECT_UNLOCK_PAM].size == 11);
+    refused(lock, AE_LOGIN_SELECTION_SOUND_BYTES, public_key, release, -EBADMSG);
+    lock[role + 4] = 73;
+    sign_body(key, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+    refused(lock, sizeof lock, public_key, release, -EBADMSG);
+    lock[role + 3] = 13;
+    sign_body(key, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+    CHECK(!ae_login_selection_verify(lock, sizeof lock, public_key, release, &out));
+    CHECK(out.files[AE_LOGIN_SELECT_SOUND].size == 13);
+    lock[pam + 4] ^= 1;
+    refused(lock, sizeof lock, public_key, release, -EKEYREJECTED);
+    lock[pam + 3] = 0;
+    sign_body(key, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+    refused(lock, sizeof lock, public_key, release, -EBADMSG);
 
     uint8_t another_release[sizeof release] = {7};
     refused(record, sizeof record, public_key, another_release, -EKEYREJECTED);

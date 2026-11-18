@@ -13,10 +13,17 @@
 
 int main(int argc, char **argv)
 {
-    CHECK(argc == 2 || (argc == 3 && !strcmp(argv[2], "--desktop-sound")));
+    CHECK(argc >= 2 && argc <= 4);
     CHECK(getuid() && getuid() == geteuid());
     const uint8_t test_seed[32] = {11};
-    struct ae_login_release_anchor trust = {.release = {42}, .desktop_sound = argc == 3};
+    struct ae_login_release_anchor trust = {.release = {42}};
+    for (int i = 2; i < argc; ++i) {
+        if (!strcmp(argv[i], "--desktop-sound")) trust.desktop_sound = true;
+        else {
+            CHECK(!strcmp(argv[i], "--desktop-lock"));
+            trust.desktop_lock = true;
+        }
+    }
     EVP_PKEY *signer = EVP_PKEY_new_raw_private_key_ex(NULL, "ED25519", NULL, test_seed, sizeof test_seed);
     CHECK(signer);
     size_t size = sizeof trust.key;
@@ -37,8 +44,17 @@ int main(int argc, char **argv)
         }
         struct ae_login_source_expect backend[AE_LOGIN_INSTALLED_BACKEND_COUNT];
         CHECK(!ae_login_installed_backend(installed, backend));
-        CHECK(backend[AE_LOGIN_INSTALLED_SELECTION].size ==
-              (trust.desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES));
+        CHECK(backend[AE_LOGIN_INSTALLED_SELECTION].size == (trust.desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
+              trust.desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES));
+        struct ae_login_source_expect lock[AE_LOGIN_INSTALLED_LOCK_COUNT];
+        CHECK(!ae_login_installed_lock(installed, lock, &count));
+        CHECK(count == (trust.desktop_lock ? AE_LOGIN_INSTALLED_LOCK_COUNT : 0u));
+        if (count) {
+            CHECK(!strcmp(lock[0].leaf, "aetheri-lock-view") && lock[0].kind == AE_LOGIN_SOURCE_ELF);
+            CHECK(!strcmp(lock[1].leaf, "aetheri-unlock") && lock[1].kind == AE_LOGIN_SOURCE_DATA);
+            CHECK(!strcmp(lock[1].label, "system_u:object_r:aetheri_unlock_pam_t:s0"));
+            CHECK(!strcmp(lock[2].leaf, "greeter.ttf") && lock[2].kind == AE_LOGIN_SOURCE_ASSET);
+        }
         CHECK(!ae_login_installed_close(&installed));
         return 0;
     }
