@@ -362,8 +362,27 @@ one message byte. The desktop sends `HELLO` (1) after enabling sender pidfd
 receipt. The guard sends `PREPARE` (2) and waits for `READY` (3). It keeps the
 same connection open through the sleep job. The desktop uses its closure
 to end that hold and request the new cover presentation. Preparation is
-bounded, and a failed attempt retains the locked desktop when the original
-actors are still valid. [systemd unit ordering and lifetime](https://github.com/systemd/systemd/blob/v259.10/man/systemd.unit.xml)
+bounded. Once preparation begins, abandoning the sleep job leaves the
+desktop locked. [systemd unit ordering and lifetime](https://github.com/systemd/systemd/blob/v259.10/man/systemd.unit.xml)
+
+The guard reports its failure phase to systemd through its exit status. The
+service log also records the error number when its diagnostic stream is
+available. A normal end returns status zero.
+
+| Status | Failed phase |
+| --- | --- |
+| 10 | Guard process identity and enforcing mode |
+| 11 | Stop signal handling |
+| 12 | Active seat lookup |
+| 13 | Desktop connection |
+| 14 | Original peer identity |
+| 15 | Original active session observation |
+| 16 | Local Wayland user session properties |
+| 17 | Initial desktop acknowledgement |
+| 18 | Lock preparation request |
+| 19 | Covered output and paused dialog acknowledgement |
+| 20 | Readiness notification to systemd |
+| 21 | Hold through the sleep job |
 
 ### Privileged password verification
 

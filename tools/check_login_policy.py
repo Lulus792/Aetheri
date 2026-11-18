@@ -157,6 +157,12 @@ def check_desktop_suspend(check, process, obj) -> None:
     check(guard, entry, "file", "entrypoint", True)
     check(guard, session, "unix_stream_socket", "connectto", True)
     check(session, guard, "unix_stream_socket", "connectto", False)
+    selinux = obj("security_t")
+    for access in ("open", "read"):
+        check(session, selinux, "file", access, True)
+    check(session, selinux, "file", "write", False)
+    for access in ("read_policy", "load_policy", "setenforce", "setbool"):
+        check(session, selinux, "security", access, False)
     for source, target in ((guard, session), (session, guard)):
         check(source, target, "fd", "use", True)
     check(guard, session, "file", "read", True)

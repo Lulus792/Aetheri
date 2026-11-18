@@ -24,6 +24,10 @@
 (allow aetheri_suspend_guard_t self (unix_stream_socket (create connect read write getattr getopt setopt)))
 (allow aetheri_suspend_guard_t aetheri_session_t (fd (use)))
 (allow aetheri_session_t aetheri_suspend_guard_t (fd (use)))
+; The desktop verifies enforcing mode before accepting the guard endpoint.
+(allow aetheri_session_t security_t (file (open read)))
+(neverallow aetheri_session_t security_t (file (write append create unlink)))
+(neverallow aetheri_session_t security_t (security (read_policy load_policy setenforce setbool)))
 (neverallow aetheri_session_t aetheri_suspend_guard_t (unix_stream_socket (connectto)))
 (neverallow aetheri_desktop_apps aetheri_suspend_guard_t (unix_stream_socket (connectto read write)))
 (neverallow aetheri_lock_view_t aetheri_suspend_guard_t (unix_stream_socket (connectto read write)))

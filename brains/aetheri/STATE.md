@@ -1,5 +1,15 @@
 # State
 
+18 November 2026 — The installed suspend guard now admits the original
+desktop in enforcing SELinux. The desktop can read the enforcement flag and
+keeps its policy mutation denials. Signed image `ac97b7682ba1` enters actual
+ACPI S3 in TCG and wakes to a focused lock dialog. The same desktop returns
+after fresh Linux-PAM authentication, then logs out and powers down cleanly.
+The same image repeats two completed cycles in one login without an HDA
+controller. The effective policy passes 226 checks. Physical acceptance
+still applies.
+See the [installed suspend record](journal/2026-11-18-installed-suspend-guard.md#signed-suspend-and-fresh-unlock).
+
 18 November 2026 — The installed suspend guard adds a required systemd
 readiness condition and binds seven runtime files in signed selection
 format 5. The guard is launched for the sleep job and checks the original

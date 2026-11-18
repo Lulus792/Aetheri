@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current signed suspend: read the installed-suspend-guard record and
+`spec/session.md#suspend-and-resume-lock-coordination`. Keep guard phase
+exit statuses and read-only desktop access to the enforcing flag, with
+policy read and mutation denied. Signed ac97b7682ba1/TCG 87ef5424 reaches
+deep S3, resumes, refuses a wrong password, unlocks the original desktop
+and exits after normal logout and ACPI power-off. Retain the handshake
+refusals 74ad32dc/e3ccb051 and the 226 policy decisions. The same signed
+image repeats two S3/guard retire/reauth cycles in no-HDA TCG d30a0607.
+The physical test and first-version USB gate remain. NexaUI maintenance only.
+
 Current installed suspend guard: read `spec/session.md#suspend-and-resume-lock-coordination`
 and the 2026-11-18 installed-suspend-guard record. Format 5 observes the
 seven suspend inputs in both mount views. Preserve the original ten-source

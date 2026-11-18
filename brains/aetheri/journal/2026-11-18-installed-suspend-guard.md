@@ -92,3 +92,76 @@ The build and policy receipts, selected binary records, VM traces and
 screenshots are retained in
 `local/login-review-2026-11-10/installed-suspend-guard-2026-11-18-evidence.tar.gz`
 with SHA-256 `3f3ea97f0c854bbe9e3fb9eb59353d9c0947878ad70b32f220fc7a9cd5bbd6b9`.
+
+## Installed endpoint diagnosis
+
+Release `d53c1a431c7a` adds phase-specific systemd exit statuses. Nine
+native CTests and the separate authority test pass. The signed copy
+`53a39b56ca89` uses the original enforcing policy. Its WHPX session
+`74ad32dc` starts the desktop and reports status 17. The guard has already
+admitted the original active session and fails while receiving `HELLO`.
+The audit stream splits the systemd status line in this trace.
+
+The isolated handshake probe `5c6917227a63` also passes the selected
+native tests. Signed image `a57b49f304d3` and WHPX session `e3ccb051`
+reproduce the failure without an HDA controller. The desktop accepts the
+socket and its first peer admission returns `-EACCES`. The guard sees the
+connection close and reports the diagnostic status 31 (`-ESTALE` while
+waiting for `HELLO`). The desktop has no peer-credential, label or pidfd
+rejection in the instrumented path. The first effective-policy query assumed
+the directory search was denied. The revised query finds the search allowed
+and `security_t` file `open` and `read` denied in the desktop domain.
+The endpoint uses `security_getenforce()` before it reads peer credentials.
+[libselinux enforcement check](https://github.com/SELinuxProject/selinux/blob/3.11/libselinux/src/getenforce.c)
+
+The installed suspend policy permits those two file permissions for the
+desktop domain. Policy changes, write access and privileged policy reads
+stay denied. The SELinux directory search remains inherited from the base
+policy. The kernel cgroup ioctl rules are unchanged.
+
+The test image copies were edited in fresh private mount namespaces in
+the Fedora carrier after two temporary WSL registrations timed out. The
+editor checks the original image digest, file modes, owners, labels and
+old and new bytes. It checks ext4 read-only before returning the edited
+copy. The carrier's running policy stays at its original digest.
+
+## Signed suspend and fresh unlock
+
+Release `6dce5b7918af` passes nine selected CTests and the privileged
+authority test. Offline policy `4c5d68f6afea` passes 87 decisions in each
+profile. The enforcing kernel readback in `25b1c1b857` passes 226 decisions
+with digest `4eb2990bab4b43aeefac35165d7f62f4b5f82515ed6b77917dac9d51f329b6b8`.
+The first desktop composition controller failed before filesystem changes
+because its embedded Python was truncated by host string substitution.
+The corrected controller creates fresh signed image `ac97b7682ba1` and
+verifies the ext4 root. The instrumented actor binaries are absent from this
+normal Release build.
+
+TCG session `87ef5424` authenticates and presents the desktop with one
+virtual display and Intel HDA. A virtual sleep key starts the guarded stock
+sleep service. QMP reports `suspended`, Linux records deep suspend entry,
+and a wake request returns it to `running`. Linux records suspend exit
+and systemd reports successful guard deactivation. The focused lock dialog
+refuses a wrong password through actual Linux-PAM. A fresh correct attempt
+restores the original desktop. Normal logout closes its PAM session and
+starts a replacement greeter. An ACPI power-button request powers down
+the guest at exit zero. The signed boot image retains its original digest.
+
+TCG session `d30a0607` boots the same image without an HDA controller and
+repeats the complete transition twice within one login. Two distinct sleep
+helper processes enter S3 and each guard deactivates successfully after
+wake. The original desktop process stays alive. Both new password dialogs
+refuse an incorrect attempt through PAM and require a fresh correct attempt
+before restoring the desktop. Logout, replacement greeter and ACPI
+power-off pass again. All new QEMU attempts are terminal.
+
+The guard's stderr markers are absent from this serial trace. Admission
+is witnessed by systemd starting the signed `Type=notify` unit's dependent
+sleep job, the kernel entering deep sleep, and the successful unit
+deactivation after resume. The cgroup ioctl denials remain visible during
+the successful transition. Physical HP validation remains a release item.
+
+The endpoint probes, signed composition receipts, policy decisions, finite
+VM traces and screenshots are in
+`local/login-review-2026-11-10/installed-suspend-endpoint-2026-11-18-evidence.tar.gz`
+with SHA-256 `9f37b757c4b5fb92657a1d2258c0b2786dfc78cddd5828c78ec5a212ba98614b`.
