@@ -398,3 +398,56 @@ therefore needs its own integration and acceptance case.
 The build and VM records are in
 `local/login-review-2026-11-10/desktop-wlan-join-2026-11-18-evidence.tar.gz`
 with SHA-256 `bbdd87e4acecdf21726721f9094c107d85c73c03a64f7935026f702ef255561b`.
+
+## Open WLAN and IPv4 configuration
+
+A separate hostapd process owns the first simulated radio. A test process
+linked to the selected libell serves IPv4 leases on that interface. The
+installed iwd process uses the second radio. Only the VM fixture selects
+the station interface explicitly. The image boots with no external NIC.
+The production Settings ELF, controller and enforcing policy retain
+their signed association inputs.
+
+The carrier verifies the Fedora signature and payload digest for
+hostapd 2.11, libnl 3.12, libell 0.83 and OpenSSL 3.5.9. The target
+image's loader resolves both fixture executables. The first offline
+editor stops while writing the receipt because its local path shadows
+the source lookup. The resumed editor reuses the 29 verified parts
+and passes the ext4 check.
+
+Signed image `1eb8ab271b99`, VM `57c171bd`, opens the regular Settings
+window, turns WLAN on, scans, selects the open network, and confirms
+the connection without a password field. Hostapd reports the station's
+MAC. The separate DHCP server receives DISCOVER, sends ACK through
+Rapid Commit and records a lease for the same MAC. The independent
+observer sees `192.0.2.80/24` on the station and that source address
+selected for an off-subnet route. The harness originally waits for OFFER
+and stops because its four-message expectation does not cover Rapid Commit.
+The classical fixture disables Rapid Commit on the test server only.
+
+Signed image `9feea5e21ad6`, VM `42da0e06`, repeats the full open-network
+flow from the initially inactive WLAN service. The separate server records
+DISCOVER, OFFER, REQUEST and ACK in order. The offered address and logged
+lease match the station's actual `192.0.2.80/24`. The lease MAC matches the
+hostapd association. A route lookup selects the leased source for an
+off-subnet test address. After Wi-Fi is switched off, the station address
+disappears and a fresh socket returns `ENETUNREACH` for that destination.
+Settings exits normally, PAM closes, the greeter returns, and ACPI
+power-off and the data overlay check pass. DHCP renewal and physical
+acceptance remain open.
+
+For DNS, the inspected Fedora 44 `systemd-resolved-259.10-1.fc44.x86_64`
+RPM passes its Fedora signature and payload digest check. Its SHA-256 is
+`a5d7893d4feb79adae49d39b179581df47b79910df82560bc6f43f701f1ab977`.
+The daemon needs the matching systemd shared library and both OpenSSL
+libraries. The package supplies the fixed `systemd-resolve` account with
+UID and GID 193. Aetheri's local account lookup already selects
+`hosts: files dns`. The next image needs the resolver's account, startup
+ordering, a loopback stub configuration and the bounded iwd D-Bus calls
+for per-link DNS. Its acceptance case needs a real upstream DNS query and
+removal of the link's DNS state after Wi-Fi is turned off. [Fedora resolver
+package](https://packages.fedoraproject.org/pkgs/systemd/systemd-resolved/).
+
+The packet, route, boot and fixture records are in
+`local/login-review-2026-11-10/desktop-wlan-dhcp-2026-11-18-evidence.tar.gz`
+with SHA-256 `b3619050ad9b27ad86104ee2038a47dba8a59c47f2a7c9689c90cff1f15c7392`.

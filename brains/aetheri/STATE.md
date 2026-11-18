@@ -1,5 +1,12 @@
 # State
 
+18 November 2026 — Signed VM `42da0e06` joins the open test network through
+the normal Settings window. A separate DHCP server completes the four
+message exchange. The station adopts the offered IPv4 address and route
+and removes both when Wi-Fi is switched off. Logout, ACPI power-off and the
+overlay check pass. Lease renewal, DNS and physical WLAN still need testing.
+See the [IPv4 record](journal/2026-11-18-desktop-iwd.md#open-wlan-and-ipv4-configuration).
+
 18 November 2026 — The native Network page joins a protected WLAN through
 Wlan1 1.2. Signed VM `9268f373` checks password masking, Escape and the
 original row's focus, confirms the wireless association through iwd, and

@@ -200,6 +200,12 @@ or send directly to it. Keep the iwd receipt with the image inputs.
 This profile enables IP configuration and leaves DNS integration and
 persistent credentials pending.
 
+In the [signed VM check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#open-wlan-and-ipv4-configuration),
+iwd obtains an IPv4 lease from a separate DHCP server after joining an
+open network through Settings. Turning off Wi-Fi removes the associated
+address and route. The fixture records the actual DHCP packet exchange
+and checks the resulting station state independently.
+
 ### WLAN control for Settings
 
 Build `aetheri-wlan-control` with `AETHERI_LINUX_IPC=ON` and

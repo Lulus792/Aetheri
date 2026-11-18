@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current WLAN addressing: read the open WLAN and IPv4 section in the
+2026-11-18 desktop-iwd journal. Signed VM 42da0e06 on image 9feea5e21ad6
+joins the separate open AP, exchanges all four DHCP messages, and installs
+and removes the observed station address and route. The settings binaries
+and effective enforcing policy match the signed WPA case. Keep the first
+editor failure and Rapid Commit trace 57c171bd. Next integrate the signed
+systemd-resolved 259.10 input and verify actual DNS. The USB gate applies.
+
 Current WLAN association: read the 2026-11-18 desktop-iwd association
 record and Wlan1 1.2. Keep original process/session-bound selections,
 one credential response on the dedicated iwd connection, the limited
