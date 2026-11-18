@@ -177,14 +177,22 @@ depmod -C /dev/null -b "$IMAGE_ROOT" -a 6.19.10-300.fc44.x86_64
 The development desktop builder accepts the same inputs through
 `--iwd-inputs` and regenerates the combined indexes. The payload adds a
 system-bus rule that permits root to own and call `net.connman.iwd` and
-denies direct application calls. The runtime unit must set
+denies direct application calls. The runtime unit sets
 `DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket` for libell.
 Aetheri puts the socket on `/run` and the library defaults to `/var/run`.
 
-Staging leaves Wi-Fi off. The image has no iwd unit, activation entry or
-network profiles at this stage. Production activation, credential storage,
-DNS integration and an authenticated Settings control path require separate
-runtime admission. Keep the iwd receipt with the image inputs.
+In the development image, an explicit administrative request starts
+`aetheri-wlan.service`. Installing the unit leaves it inactive at boot.
+systemd waits for the `net.connman.iwd` bus name on start. The daemon reads
+`/usr/share/aetheri/wlan/main.conf` and keeps profiles in the root-owned
+mode-0700 `/run/aetheri-wlan`. systemd removes that directory on stop.
+[systemd service readiness](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
+[systemd runtime directories](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#RuntimeDirectory=).
+
+This profile enables IP configuration and leaves DNS integration pending.
+Release activation requires a dedicated SELinux role and an authenticated
+Settings control path. Persistent credential storage has its own admission.
+Keep the iwd receipt with the image inputs.
 
 ### PipeWire and WirePlumber files
 

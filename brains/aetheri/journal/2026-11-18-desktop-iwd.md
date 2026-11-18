@@ -54,3 +54,32 @@ and physical HP acceptance remain open. The first-version USB gate applies.
 The staging receipts, boot attempts and fixture sources are in
 `local/login-review-2026-11-10/desktop-iwd-2026-11-18-evidence.tar.gz`
 with SHA-256 `ff2fc5ddad91988d6d1ee47d0d778aea5e83e9a747c54b6317732c146f50b1df`.
+
+## Explicit service start and stop
+
+The stager now installs `aetheri-wlan.service` and `main.conf` with the
+original seven files and one alias. The two added files match the source
+bytes. The unit starts on an explicit administrative request and uses the
+system bus name for readiness. It places iwd profiles in the mode-0700
+runtime directory, which systemd removes on stop. The daemon is limited to
+its network capabilities, selected socket families and `/dev/rfkill`.
+
+WHPX session `3b9a9588` boots image `1aa38f0e4bbc` with the original signed
+login selection and enforcing policy. Before the first request the unit is
+inactive, its runtime directory is absent and the system bus reports no
+iwd owner. The root test client requests two start and stop cycles using
+the installed unit. Each start yields a distinct bus owner with the same PID
+as the unit's iwd ELF. Each stop retires the original pidfd and removes the
+bus name, runtime directory and synthetic marker. Signed login startup and
+ACPI shutdown succeed. The kernel modules are staged and indexed. The test
+starts the reviewed service without a fixture preloader for DES.
+
+The test uses the current base SELinux policy and a privileged observer.
+Dedicated WLAN confinement, an authenticated Settings mediator and DNS
+remain open. This lifecycle test uses two virtual radios and stops at bus
+and device discovery. The earlier WPA test remains the association proof.
+A separate exchange with a DHCP server is still required.
+
+The exact images and fixture results are identified in
+`local/login-review-2026-11-10/desktop-wlan-service-2026-11-18-evidence.tar.gz`
+with SHA-256 `2a108915408af9016dccaf4efac77044f1f6d446b15e116ead4a6f802054a14e`.

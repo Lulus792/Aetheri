@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The WLAN payload now stages `aetheri-wlan.service`
+and its immutable configuration. Enforcing VM `3b9a9588` boots with iwd
+inactive and passes two explicit start and stop cycles. The bus owner is
+the unit's daemon and its mode-0700 runtime is removed on each stop. Signed
+login startup and ACPI shutdown pass. Dedicated SELinux policy, the Settings
+mediator, DHCP packet exchange and DNS are open. See the
+[service lifecycle record](journal/2026-11-18-desktop-iwd.md#explicit-service-start-and-stop).
+
 18 November 2026 — The optional iwd 3.12 payload stages the verified Fedora
 daemon, libell, required kernel crypto modules and a root-only bus rule.
 Enforcing VM `1040603b` scans, associates over WPA-PSK, receives an IPv4

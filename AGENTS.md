@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current WLAN service: read `spec/login-deployment.md#wireless-connection-manager-files`
+and the start/stop section of the 2026-11-18 desktop-iwd journal. Stage the
+unit and immutable main.conf with the existing iwd inventory. Keep explicit
+activation, the fixed bus path and mode-0700 volatile runtime. Enforcing
+1aa38f0e4bbc/3b9a9588 proves inactive boot, two distinct service/bus owners,
+original process exits, marker/runtime removal and clean power-off. No
+fixture DES preloader. Next dedicated policy, Settings control mediator and
+independent DHCP evidence. USB gate applies.
+
 Current WLAN association: read `spec/login-deployment.md#wireless-connection-manager-files`
 and the 2026-11-18 desktop-iwd journal. The optional payload stages signed
 iwd 3.12, libell 0.83, the two pinned DES modules and a root-only bus rule.

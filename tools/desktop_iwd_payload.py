@@ -14,7 +14,8 @@ import desktop_wlan_payload
 import prepare_audio
 
 
-PROFILE = Path(__file__).resolve().parents[1] / "spec/desktop-iwd-inputs.json"
+ROOT = Path(__file__).resolve().parents[1]
+PROFILE = ROOT / "spec/desktop-iwd-inputs.json"
 SIGNER = "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6"
 PACKAGES = {
     "iwd-3.12-1.fc44.x86_64.rpm": {"/usr/libexec/iwd", "/usr/share/licenses/iwd/COPYING"},
@@ -25,6 +26,10 @@ MODULES = desktop_wlan_payload.MODULES
 CRYPTO_MODULES = {f"{MODULES}/kernel/lib/crypto/libdes.ko.xz",
                   f"{MODULES}/kernel/crypto/des_generic.ko.xz"}
 BUS_POLICY = "/usr/share/dbus-1/system.d/aetheri-iwd.conf"
+SETUP_FILES = {
+    "/usr/lib/systemd/system/aetheri-wlan.service": ROOT / "data/systemd/aetheri-wlan.service",
+    "/usr/share/aetheri/wlan/main.conf": ROOT / "data/wlan/main.conf",
+}
 BUS_RULES = b'''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
 <busconfig>
@@ -104,8 +109,10 @@ def install(tree: Path, kernel_root: Path, packages: Path) -> dict:
             files.extend(unpack(packages / name, package, scratch))
         policy = scratch / "aetheri-iwd.conf"
         policy.write_bytes(BUS_RULES)
-        files.append({"destination": BUS_POLICY, "source": str(policy), "provenance": "Aetheri",
-                      "size": len(BUS_RULES), "sha256": prepare_audio.sha(BUS_RULES), "mode": 0o644})
+        for destination, source in {**SETUP_FILES, BUS_POLICY: policy}.items():
+            files.append({"destination": destination, "source": str(source), "provenance": "Aetheri",
+                          "size": source.stat().st_size, "sha256": desktop_wlan_payload.digest(source),
+                          "mode": 0o644})
         inventory = desktop_payload.install(tree, {"format": 1, "files": files, "symlinks": ALIAS})
     return {
         "profile_sha256": prepare_audio.sha(raw), "kernel_release": profile["kernel_release"],
