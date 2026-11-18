@@ -82,3 +82,45 @@ SQL, runtime and cached-input contract tests passed on Windows with Python
 
 The README and project handoff now link the relevant specs and dated test
 records. The original long handoffs remain in Git history.
+
+## Archive and scratch cleanup
+
+Aetheri occupied 121.5 GiB on F: at the start of this pass. It occupied about
+111.3 GiB after cleanup. The inventory used allocated bytes and counted each
+file identity once. The separate Steam library occupied about 42.6 GiB on F:.
+
+| Remaining Aetheri storage on F: | Allocated | Purpose |
+| --- | ---: | --- |
+| `vm/p0/system.qcow2` | 44.71 GiB | Fedora toolchain and protected prototype state |
+| `vm/audio-lab/system.qcow2` | 29.73 GiB | Running Fedora carrier for desktop and hardware integration |
+| `local/` | 35.22 GiB | Pinned tools, selected boot and recovery files, archived test results |
+| `downloads/` | 1.54 GiB | Pinned installers and build inputs |
+| Other project files and VM metadata | About 0.06 GiB | Source, tests, documentation, Git and controller metadata |
+
+This pass reclaimed about 10.2 GiB on F: and 0.77 GiB on C:.
+
+| Cleanup | Verified result |
+| --- | --- |
+| 354 extracted build files | 5.58 GiB on F:. Each file matches an original member of a verified build archive. |
+| 219 generated launch wrappers | 3.11 GiB on F:. Each retained source archive and compact restoration record reproduce the original script SHA-256. |
+| 442 historical captures | 1.01 GiB on F: and 0.15 GiB on C:. NTFS compression preserves the original image bytes and names. |
+| Four installer files | 0.53 GiB on F:. Both carriers can extract their installer kernel and initrd from the retained pinned ISO. |
+| Three temporary root copies | 0.62 GiB on C:. Each matches the system partition of its retained boot image. |
+
+The per-file receipts are the `expanded-build-removed`, `wrappers-removed`,
+`captures`, `installer-copies` and `embedded-root-copies` entries with the
+`storage-review-2026-11-18-` prefix under `local/`. The wrapper manifest is
+`storage-review-2026-11-18-wrapper-recipes.jsonl.gz`. Run the local helper
+without arguments to list restorable paths, or pass one listed path relative
+to `local/` to restore it. The helper checks both SHA-256 digests and refuses
+to overwrite an existing file.
+
+```text
+python local/storage-wrapper-restore.py
+```
+
+The wrapper restoration test passed. QEMU checked the offline P0 disk and
+opened the current signed WLAN VM image. The active audio lab kept its
+original QEMU process. The USB recovery input and the unique data from closed
+test cases remain available. Four sparse-image tests and seven pinned-input
+tests passed.

@@ -2,17 +2,19 @@
 
 ## Where development storage goes
 
-| Path | Purpose |
-| --- | --- |
-| `vm/p0/` | Registered Fedora carrier with protected prototype state and local build tools |
-| `vm/audio-lab/` | Fedora carrier for current desktop and device testing |
-| `local/` | Pinned tools, selected test images, logs, captures and historical build evidence |
-| `downloads/` | Verified installers and package inputs used to reproduce the environment |
-| Windows temporary directory | In-progress compositions and test scratch files |
+| Path | Purpose | Lifetime |
+| --- | --- | --- |
+| `vm/p0/` | Fedora carrier with protected prototype state and its build toolchain | Keep the registered disk and its state |
+| `vm/audio-lab/` | Fedora carrier for current desktop and device testing | Keep the working disk and its state |
+| `local/` | Pinned tools, active test media and archived test evidence | Keep active inputs and one verified copy of each historical artifact |
+| `downloads/` | Verified installers and package inputs | Keep the versions used to reproduce an active environment |
+| `out/` and Windows temporary directory | Build output and test scratch files | Retire generated copies after the case ends and its evidence is retained |
 
-See the [measured inventory and cleanup record](../brains/aetheri/journal/2026-11-18-storage-retention.md)
-for sizes. The size of a VM disk on the host and the space used inside the guest
-are separate measurements.
+The two Fedora disks belong to the development environment. See the
+[current inventory and cleanup record](../brains/aetheri/journal/2026-11-18-storage-retention.md#archive-and-scratch-cleanup)
+for their measured sizes and the tracked project size. A virtual disk's capacity,
+its allocated size on Windows and its free space inside the guest describe three
+different quantities.
 
 ## Keep and retire test artifacts
 
@@ -25,17 +27,25 @@ volume free space when planning the next build.
 The desktop and writable-data test controllers use sparse copies for private
 raw data disks. They verify the copied image before attaching it to the guest.
 
-Record the selected source revision, image hash, input pins, exact result and
-failure observations in one dated journal entry. Keep the small receipts,
-compressed logs, required screenshots and fixture sources. Refer to the Git
-revision and retained package inputs when the build can be reconstructed from
-them. Reuse the same archive when later cases have identical inputs.
+Keep the current checkpoint in [project state](../brains/aetheri/STATE.md) and
+the source revision, input pins, image hash and observed results in one dated
+journal entry. Link from that entry to the local receipts, compressed logs,
+required screenshots and fixture sources. Put the reusable contract in the
+subsystem spec.
+
+Reuse the same source archive when later cases have identical inputs. Pass a
+large payload separately to its launch script and record its hash. For a
+historical build file that also exists in a verified archive, record the archive,
+member and SHA-256 before retiring the extracted copy. Keep the archive and its
+receipt so the file can be restored.
 
 After the VM exits, check the backing paths of retained QCOW2 and VMDK files.
 Keep full images that serve as active inputs, recovery copies or irreplaceable
 evidence. Verify a replacement before removing a duplicate. Keep working VM
 disks, pinned inputs, hardware test data and the current USB recovery image.
 Review both the output directory and temporary scratch after each test batch.
+Keep the input pins and the small verification receipt together with the case so
+the next run can reuse the base without copying a full image.
 
 When a historical raw regular-file image must remain byte-for-byte available,
 NTFS can release space occupied by verified zero ranges. Use an exclusive file
@@ -44,9 +54,6 @@ This is a host file operation. Physical media, active VM disks and active
 overlays require their own handling.
 [NTFS sparse file control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse)
 and [zero range control](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data).
-
-Keep detailed historical results in the journal and current work in
-[project state](../brains/aetheri/STATE.md).
 
 ## Separate carrier work disk
 
