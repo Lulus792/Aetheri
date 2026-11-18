@@ -164,10 +164,10 @@ if __name__=='__main__':
     p.add_argument('--hda-modules-root',type=Path,help='kernel input tree for the selected Intel HDA modules')
     p.add_argument('--wlan-inputs',type=Path,nargs=3,metavar=('KERNEL_ROOT','FIRMWARE_DIR','REGDB_RPM'),
                    help='stage the selected Intel WLAN inputs')
-    p.add_argument('--iwd-inputs',type=Path,nargs=2,metavar=('KERNEL_ROOT','RPM_DIR'),
+    p.add_argument('--iwd-inputs',type=Path,nargs=2,metavar=('KERNEL_ROOT','PACKAGE_DIR'),
                    help='stage iwd, libell and the required kernel crypto modules')
     p.add_argument('--wlan-control',type=Path,help='also stage the selected WLAN control executable and units')
-    p.add_argument('--wlan-resolver',action='store_true',help='stage the resolver from the selected iwd RPM directory')
+    p.add_argument('--wlan-resolver',action='store_true',help='stage the resolver and pinned patched iwd daemon')
     a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),input_runtime=a.input_runtime,
                            hda_modules_root=a.hda_modules_root,wlan_inputs=a.wlan_inputs,iwd_inputs=a.iwd_inputs,
                            wlan_control=a.wlan_control,wlan_resolver=a.wlan_resolver)

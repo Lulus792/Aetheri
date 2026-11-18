@@ -10,10 +10,11 @@ first version.
 The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings.
 VM `96d620f7` verifies IPv4 DHCP, IPv6 SLAAC and DNS from an IPv6 router
 advertisement. Wi-Fi off retires both address families and the resolver.
-The source patch clears the last explicitly withdrawn DNS server in VM
-`961f4262`. Release staging for the patch, passive DNS lifetime expiry,
-DHCPv6, the separate-namespace fixture and physical WLAN remain open.
-[WLAN record](journal/2026-11-18-desktop-iwd.md#router-advertised-dns)
+The standard resolver profile stages the reproducible daemon that clears
+the last explicitly withdrawn DNS server in VM `961f4262`. All staged WLAN
+files match that booted profile. Passive DNS lifetime expiry, DHCPv6,
+the separate-namespace fixture and physical WLAN remain open.
+[WLAN record](journal/2026-11-18-desktop-iwd.md#standard-resolver-build)
 
 ## Verified milestones
 

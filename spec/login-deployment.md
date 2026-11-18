@@ -211,9 +211,23 @@ its match. [udev rule behavior](https://github.com/systemd/systemd/blob/v259.10/
 The base WLAN profile enables IP configuration. For DNS, add the signed
 systemd-resolved and OpenSSL RPMs from the
 [resolver inventory](desktop-resolver-inputs.json) to the iwd RPM directory
-and select `--with-resolver` when staging a fresh tree. The development
-desktop builder exposes the same option as `--wlan-resolver` alongside
-`--iwd-inputs`. Select `--desktop-wlan-resolver` with `--desktop-wlan` when
+and prepare the pinned resolver-enabled iwd daemon in that directory.
+The version 2 [iwd inventory](desktop-iwd-inputs.json) gives the source archive,
+patch, signed libell development RPM and output digest. With those cached
+inputs and GNU patch on the ordinary x86-64 Fedora builder, run
+
+```sh
+python3 tools/build_iwd_daemon.py --packages "$IWD_RPMS"
+```
+
+The build publishes `iwd-3.12-aetheri-clear-dns.x86_64` once its binary matches
+the reviewed size and digest. iwd retains its LGPL-2.1-or-later license and
+the stager includes the original notice. [Fedora iwd license](https://packages.fedoraproject.org/pkgs/iwd/iwd/).
+
+Select `--with-resolver` when staging a fresh tree. The development desktop
+builder exposes the same selection as `--wlan-resolver` alongside
+`--iwd-inputs`. A missing or different daemon fails staging before it copies
+the WLAN payload. Select `--desktop-wlan-resolver` with `--desktop-wlan` when
 compiling the installed login policy. Apply the resulting local file contexts
 in the image. They label the two generated resolver configuration files as
 resolver runtime files so PID 1 can retire them when it stops the resolver.
@@ -245,11 +259,10 @@ routes.
 
 The [IPv6 DNS check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#router-advertised-dns)
 verifies a libc lookup through a link-local server advertised by the router.
-Wi-Fi off retires the resolver stub and ordinary lookups. The Fedora iwd 3.12
-package retains the final resolver entry when the router explicitly withdraws
-it. The Aetheri source patch sends the updated empty list to the resolver.
-Release staging still selects the reviewed Fedora RPM. DHCPv6 and physical
-WLAN have separate acceptance checks.
+Wi-Fi off retires the resolver stub and ordinary lookups. The selected iwd
+build sends an empty list to the resolver when the router explicitly
+withdraws the final DNS server. Passive DNS lifetime expiry, DHCPv6 and
+physical WLAN have separate acceptance checks.
 
 ### WLAN control for Settings
 

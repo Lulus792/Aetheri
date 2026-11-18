@@ -1,7 +1,31 @@
 {
-  "format": 1,
+  "format": 2,
   "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
   "kernel_release": "6.19.10-300.fc44.x86_64",
+  "resolver_daemon": {
+    "filename": "iwd-3.12-aetheri-clear-dns.x86_64",
+    "destination": "/usr/libexec/iwd",
+    "size": 1018112,
+    "mode": 493,
+    "sha256": "b6fb3608ad0ced148f2887b0d8396da38c833111ba6edb1931da2bbceb27d7d7",
+    "source_archive": {
+      "filename": "iwd-3.12.tar.xz",
+      "size": 1125180,
+      "sha256": "d89a5e45c7180170e19be828f9e944a768c593758094fc57a358d0e7c4cb1a49",
+      "url": "https://www.kernel.org/pub/linux/network/wireless/iwd-3.12.tar.xz"
+    },
+    "patch": {
+      "path": "patches/iwd-3.12-clear-dns.patch",
+      "size": 758,
+      "sha256": "2c4aaa6e2372331783581a719df8e7791afd15e240f2aa5da5b7b217fa3cb833"
+    },
+    "headers_rpm": {
+      "filename": "libell-devel-0.83-1.fc44.x86_64.rpm",
+      "size": 47434,
+      "sha256": "ac20f80832858a680bc9843d1a9554948a9cdd6ad864d20e15cb761d75e97267",
+      "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/l/libell-devel-0.83-1.fc44.x86_64.rpm"
+    }
+  },
   "kernel_modules": [
     {"destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/lib/crypto/libdes.ko.xz", "size": 15476, "mode": 420, "sha256": "7ae892ff8e0e9abfaa6d5f466e28b1f1daa12f3c7c41957351ed0f2850831939", "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"},
     {"destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/crypto/des_generic.ko.xz", "size": 9244, "mode": 420, "sha256": "28da0a1354a3e9fe1a3ae4f3face0c58e17b7146c490a0ad68227dd1d67e79bd", "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"}

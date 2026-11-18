@@ -1,5 +1,6 @@
 """Checks for offline WLAN staging and refusal before image mutation."""
 
+from contextlib import chdir
 import hashlib
 import json
 from pathlib import Path
@@ -9,7 +10,8 @@ from unittest.mock import patch
 
 import desktop_wlan_payload as wlan
 from desktop_iwd_payload import (
-    RESOLVER_ACCOUNTS, RESOLVER_SOCKET_UNITS, remove_resolver_socket_activation, resolver_accounts,
+    DAEMON, RESOLVER_ACCOUNTS, RESOLVER_DAEMON, RESOLVER_SOCKET_UNITS, remove_resolver_socket_activation,
+    resolver_accounts, reviewed_resolver_daemon,
 )
 
 
@@ -128,6 +130,24 @@ class DesktopResolverAccounts(unittest.TestCase):
         self.assertEqual(Path(entry["source"]).read_bytes(), service + account)
         self.assertNotIn("package", entry)
         self.assertIn("reviewed-resolver.rpm", entry["provenance"])
+
+    def test_resolver_daemon_selects_exact_bytes_from_relative_package_directory(self):
+        payload = b"patched daemon"
+        profile = {"resolver_daemon": {
+            "filename": RESOLVER_DAEMON, "destination": DAEMON, "mode": 0o755,
+            "size": len(payload), "sha256": hashlib.sha256(payload).hexdigest(),
+        }}
+        packages = self.image / "packages"
+        packages.mkdir()
+        daemon = packages / RESOLVER_DAEMON
+        daemon.write_bytes(payload)
+        with chdir(self.image.resolve()):
+            selected = reviewed_resolver_daemon(profile, Path("packages"))
+            self.assertEqual(Path(selected["source"]), daemon.resolve())
+            self.assertEqual(selected["destination"], DAEMON)
+            daemon.write_bytes(b"altered daemon")
+            with self.assertRaisesRegex(ValueError, "different WLAN input"):
+                reviewed_resolver_daemon(profile, Path("packages"))
 
 
 if __name__ == "__main__":

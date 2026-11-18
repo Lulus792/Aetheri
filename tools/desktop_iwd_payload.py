@@ -18,8 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "spec/desktop-iwd-inputs.json"
 RESOLVER_PROFILE = ROOT / "spec/desktop-resolver-inputs.json"
 SIGNER = "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6"
+DAEMON = "/usr/libexec/iwd"
+RESOLVER_DAEMON = "iwd-3.12-aetheri-clear-dns.x86_64"
 PACKAGES = {
-    "iwd-3.12-1.fc44.x86_64.rpm": {"/usr/libexec/iwd", "/usr/share/licenses/iwd/COPYING"},
+    "iwd-3.12-1.fc44.x86_64.rpm": {DAEMON, "/usr/share/licenses/iwd/COPYING"},
     "libell-0.83-1.fc44.x86_64.rpm": {"/usr/lib64/libell.so.0.0.2", "/usr/share/licenses/libell/COPYING"},
 }
 ALIAS = {"/usr/lib64/libell.so.0": "libell.so.0.0.2"}
@@ -83,7 +85,7 @@ BUS_RULES = b'''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Config
 '''
 
 
-def unpack(package_path: Path, package: dict, scratch: Path, aliases: dict[str, str]) -> list[dict]:
+def verified_archive(package_path: Path, package: dict) -> bytes:
     name = package_path.name
     with prepare_audio.sealed_package(package_path, package, description=name) as fd:
         archive_path = f"/proc/self/fd/{fd}"
@@ -93,8 +95,12 @@ def unpack(package_path: Path, package: dict, scratch: Path, aliases: dict[str, 
         ).lower()
         if f"{SIGNER}: ok" not in proof or "payload sha256 digest: ok" not in proof:
             raise ValueError(f"unverified WLAN package: {name}")
-        archive = subprocess.check_output(["rpm2cpio", archive_path], pass_fds=(fd,))
+        return subprocess.check_output(["rpm2cpio", archive_path], pass_fds=(fd,))
 
+
+def unpack(package_path: Path, package: dict, scratch: Path, aliases: dict[str, str]) -> list[dict]:
+    name = package_path.name
+    archive = verified_archive(package_path, package)
     wanted = {entry["destination"][1:]: entry for entry in package["files"]}
     files = []
     selected = wanted.keys() | {path[1:] for path in aliases}
@@ -206,6 +212,15 @@ def remove_resolver_socket_activation(entry: dict, scratch: Path) -> None:
                  provenance=provenance)
 
 
+def reviewed_resolver_daemon(profile: dict, packages: Path) -> dict:
+    pin = profile["resolver_daemon"]
+    if pin["filename"] != RESOLVER_DAEMON or pin["destination"] != DAEMON or pin["mode"] != 0o755:
+        raise ValueError("unreviewed iwd resolver build")
+    entry = {field: pin[field] for field in ("destination", "size", "sha256", "mode")}
+    entry["provenance"] = "iwd 3.12 with the Aetheri DNS withdrawal patch"
+    return desktop_wlan_payload.pinned_source(packages.absolute() / RESOLVER_DAEMON, entry)
+
+
 def install(tree: Path, kernel_root: Path, packages: Path, *, control_executable: Path | None = None,
             with_resolver: bool = False) -> dict:
     if sys.platform != "linux" or os.getuid() == 0 or os.getuid() != os.geteuid() or os.getgid() != os.getegid():
@@ -241,7 +256,7 @@ def install(tree: Path, kernel_root: Path, packages: Path, *, control_executable
     raw = PROFILE.read_bytes()
     profile = json.loads(raw)
     modules = profile["kernel_modules"]
-    if (profile["format"] != 1 or profile["signer"] != SIGNER
+    if (profile["format"] != 2 or profile["signer"] != SIGNER
             or profile["packages"].keys() != PACKAGES.keys()
             or profile["kernel_release"] != desktop_wlan_payload.KERNEL_RELEASE
             or len(modules) != len(CRYPTO_MODULES)
@@ -249,10 +264,13 @@ def install(tree: Path, kernel_root: Path, packages: Path, *, control_executable
         raise ValueError("unreviewed iwd profile")
     with tempfile.TemporaryDirectory(prefix="aetheri-iwd-") as directory:
         scratch = Path(directory)
+        if with_resolver:
+            patched_daemon = reviewed_resolver_daemon(profile, packages)
         files = [desktop_wlan_payload.pinned_source(kernel_root / entry["destination"][1:], entry)
                  for entry in modules]
         files.extend(package_files(packages, profile, PACKAGES, scratch, ALIAS))
         if with_resolver:
+            files = [patched_daemon if entry["destination"] == DAEMON else entry for entry in files]
             resolver_files = package_files(packages, resolver_profile, RESOLVER_PACKAGES, scratch, RESOLVER_ALIAS)
             service = next(entry for entry in resolver_files if entry["destination"] == RESOLVER_SERVICE)
             remove_resolver_socket_activation(service, scratch)
@@ -273,7 +291,7 @@ def install(tree: Path, kernel_root: Path, packages: Path, *, control_executable
     }
     if with_resolver:
         result["resolver"] = {"profile_sha256": prepare_audio.sha(resolver_raw), "uid": 193, "gid": 193,
-                              "resolv_conf": RESOLV_TARGET}
+                              "resolv_conf": RESOLV_TARGET, "iwd_sha256": patched_daemon["sha256"]}
     return result
 
 
@@ -283,7 +301,7 @@ def main() -> int:
     parser.add_argument("--kernel-root", required=True, type=Path)
     parser.add_argument("--packages", required=True, type=Path)
     parser.add_argument("--control-executable", type=Path)
-    parser.add_argument("--with-resolver", action="store_true")
+    parser.add_argument("--with-resolver", action="store_true", help="stage systemd-resolved and the pinned patched iwd daemon")
     args = parser.parse_args()
     try:
         print(json.dumps(install(args.image_root, args.kernel_root, args.packages,

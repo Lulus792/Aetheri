@@ -690,9 +690,8 @@ the unpatched rebuild `e8b95f6f94bd…01ec` sends that fresh query and the old
 server answers it. Both runs verify DHCPv4, SLAAC, the ordinary user's
 initial lookup, Wi-Fi off, PAM closure and ACPI shutdown.
 
-Release staging still uses the Fedora daemon. Selecting the source-built
-correction in the normal image pathway is a separate gate. Passive DNS
-lifetime expiry, DHCPv6 and physical WLAN remain open.
+The matched experiment uses a VM layer for the source-built daemon.
+Passive DNS lifetime expiry, DHCPv6 and physical WLAN remain open.
 
 All seven QEMU processes reached terminal status and their data overlay
 checks passed. The 21 Windows payload, desktop-image and deployment tests
@@ -700,3 +699,33 @@ passed. The compact record includes the daemon-only disk comparison and
 both matched runs. It is `desktop-wlan-rdnss-2026-11-18-evidence.tar.gz` under
 `local/login-review-2026-11-10/`, SHA-256
 `a966a61ed0abb3f4173b0310959a07bdfcbb1b0fe4a0ff1e4dc5afee094c7e31`.
+
+### Standard resolver build
+
+The version 2 iwd inventory pins the upstream archive, local patch, Fedora
+libell headers and the selected executable. The offline builder verifies the
+runtime and header RPMs before compiling. Two fresh ordinary-user builds with
+GCC 16.2.1, GNU ld 2.46.1 and Make 4.4.1 yield 1,018,112 identical bytes with
+SHA-256 `b6fb3608ad0ced148f2887b0d8396da38c833111ba6edb1931da2bbceb27d7d7`.
+The build publishes the verified executable to the input directory.
+
+The standard resolver staging command copies 22 files and installs two
+library links. It reuses all 22 files on a second run. The base profile
+selects the Fedora executable. The first resolver attempt rejected a
+relative package directory. The corrected path handling passes the CLI
+case and a regression test. Missing and stock replacement executables and
+a changed resolver RPM fail before copying the WLAN payload or adding
+the resolver account files.
+
+The first read-only image audit exhausts the carrier's default scratch
+mount. The final audit uses a private temporary mount with a sparse root
+copy. It checks the complete media hash against the original VM result.
+All 22 staged files match the root from VM `961f4262` by size, mode and
+SHA-256. The two library links, resolver stub link, locked resolver account
+and installed iwd SELinux type also match. This ties the standard staging
+output to the VM run that cleared the withdrawn server while connected.
+
+The 22 host payload, image and deployment tests pass. The build receipts,
+refusals, selected executable and read-only comparison are in
+`local/login-review-2026-11-10/desktop-wlan-iwd-build-2026-11-18-evidence.tar.gz`,
+SHA-256 `6cb51801642661ebef0a9856a0466ef0b84bc60e7fa87976b12f0c889b96d81e`.
