@@ -1,5 +1,12 @@
 # Working on Aetheri
 
+Current unlock PAM: read spec/session.md#password-verification-for-unlock and
+the 2026-11-18 unlock-pam record. Keep one hidden prompt, original UID/name,
+the 512-byte limit and the auth-only profile. Both build profiles and analyzer
+pass. Private case 646ae8304fba confirms correct password, refusal and expiry
+with the exact frozen PAM library/module/helper. Preserve first SDK failures.
+Next original-lock/attempt admission and the trusted prompt. USB gate applies.
+
 Current compositor cover: read spec/session.md#compositor-cover and the
 2026-11-18 desktop-lock record. Release f54319119195 passes seven compositor
 tests. Three-output fixture holds the third presentation, rejects its stale

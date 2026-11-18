@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "package": "pam-devel-1.7.2-1.fc44.x86_64.rpm",
+  "url": "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/pam-devel-1.7.2-1.fc44.x86_64.rpm",
+  "source_package": "pam-1.7.2-1.fc44.src.rpm",
+  "size": 107864,
+  "sha256": "8d06b5a66056783d7af2831bb0e5ce5b1acc08fcfca05cfa34ebec0218829134",
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "license": "BSD-3-Clause AND GPL-2.0-or-later",
+  "headers": {
+    "usr/include/security/pam_appl.h": {
+      "size": 3484,
+      "sha256": "b17abd539c885e10dea23145ebfbd98be60e1bc52cf16166cad00edb18d0d588"
+    },
+    "usr/include/security/_pam_types.h": {
+      "size": 13022,
+      "sha256": "44600b6b087dd93b850c418a397c0b837573ceb863de127265fbf74a2a2b6e16"
+    },
+    "usr/include/security/_pam_compat.h": {
+      "size": 2972,
+      "sha256": "675a39fb8e51edceb66de0d6399f4a027a49ce0e47d2d14fad519019efdede0f"
+    }
+  }
+}

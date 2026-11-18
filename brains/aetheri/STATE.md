@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The desktop unlock verifier checks the original account
+with Linux-PAM. Private carrier case `646ae8304fba` accepts the correct
+password and rejects incorrect credentials, account mismatch, expiry and the
+missing profile. The profile also refuses session and password-change
+operations. Release and sanitizer tests pass. Next bind the result to the
+live covered session and add the trusted unlock UI. See the
+[unlock record](journal/2026-11-18-unlock-pam.md).
+
 18 November 2026 — The compositor cover cuts ordinary focus and waits
 for each output's matching presented buffer. The three-output native test
 holds one report and sends a stale sequence before releasing the original

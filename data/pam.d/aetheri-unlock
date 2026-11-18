@@ -1,0 +1,6 @@
+# Password reauthentication for the local account already running a session.
+auth requisite pam_succeed_if.so uid > 0 user != aetheri-greeter quiet
+auth required pam_unix.so
+account required pam_unix.so
+password required pam_deny.so
+session required pam_deny.so

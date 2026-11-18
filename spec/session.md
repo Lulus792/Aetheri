@@ -255,6 +255,33 @@ requests after those paths are exercised together. The
 [cover record](../brains/aetheri/journal/2026-11-18-desktop-lock.md) documents
 headless and virtual DRM evidence.
 
+### Password verification for unlock
+
+The password check in `src/login/unlock_pam.c` takes the account name and UID
+selected by the trusted session owner. The local account database must resolve
+both to the same account before and after verification. The conversation accepts
+one hidden password prompt during authentication. The worker discards PAM text
+and rejects additional prompts, changes to the PAM account and expired
+credentials. Passwords are bounded to 512 bytes to match the selected
+`pam_unix` helper.
+
+The build option `AETHERI_UNLOCK_PAM=ON` compiles the verifier and its
+conversation test. Select `AETHERI_UNLOCK_PAM_INCLUDE_DIR` and
+`AETHERI_UNLOCK_PAM_LIBRARY` from the reviewed SDK and runtime. The
+[SDK record](login-unlock-pam-inputs.json) identifies the three development
+headers. The existing runtime contains the PAM library, modules and helper.
+The candidate `data/pam.d/aetheri-unlock` service checks password and account
+status and denies session creation and password changes. Its final deployment
+needs protected profile admission alongside the verifier. [Linux-PAM
+conversation contract](https://github.com/linux-pam/linux-pam/blob/v1.7.2/doc/man/pam_conv.3.xml)
+
+Only the owner of the protected original lock may act on a successful check.
+Bind the result to one live, outstanding attempt for that lock and session.
+Loss of the seat, worker, credential channel or lock instance keeps the cover
+in place. The trusted UI and worker own and wipe their own password copies.
+The [unlock verification record](../brains/aetheri/journal/2026-11-18-unlock-pam.md)
+covers the standalone verifier and its private Linux-PAM test.
+
 ## Dependency review and build
 
 [session-inputs.json](session-inputs.json) adds eleven exact signed Fedora RPMs:
