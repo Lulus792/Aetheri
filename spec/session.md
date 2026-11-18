@@ -325,6 +325,38 @@ development builds pending those protected runtime inputs. The
 [broker record](../brains/aetheri/journal/2026-11-18-lock-broker.md)
 tracks the VM and rights boundary. [Linux kernel privilege flag](https://docs.kernel.org/userspace-api/no_new_privs.html)
 
+### Privileged password verification
+
+With `AETHERI_DESKTOP_UNLOCK_AUTHORITY=ON`, the desktop owner admits
+descriptor 3 from its original root PAM parent and marks it close-on-exec.
+It uses this connection exclusively for password attempts. The PAM parent
+creates the pair before forking. It selects the
+account and pins the original desktop child in its original cgroup.
+Each request must have that child's kernel sender pidfd and the selected
+real, effective, saved and filesystem UID and GID. The desktop checks the
+original root parent and its kernel identity for every result.
+
+The private seqpacket protocol starts with `AEUA1`, followed by an
+unsigned 64-bit cover generation and an unsigned 64-bit attempt number
+in network byte order. Attempt numbers start at one and increase within
+the original connection. The generation can stay the same for a retry or
+increase for a new cover. A request appends 1 to 512 password bytes.
+The response repeats that header and adds one byte for accepted, denied
+or unavailable. It can settle only the current outstanding attempt.
+
+The PAM parent polls in its existing session wait. Each attempt runs in
+one finite privileged child with a 12-second deadline, a fresh PAM
+transaction using the `aetheri-unlock` profile, and a one-way result
+pipe. The parent requires a complete result and normal zero exit before
+forwarding the PAM verdict. Peer or context loss fences the channel. The desktop
+broker still rechecks the login context and the compositor still waits
+for the cover generation and neutral input before release.
+
+The development carrier exercises this handoff. Signed assembly still
+requires the protected PAM profile, updated runtime selection, enforcing
+policy and the combined sleep and wake lifecycle. See the [privileged
+handoff record](../brains/aetheri/journal/2026-11-18-unlock-authority.md).
+
 ### Private password dialog
 
 Build the optional `aetheri-lock-view` executable with

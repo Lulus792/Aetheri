@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The original greetd PAM worker hands the authenticated
+desktop a private password-check connection. Three-display case
+`a070ee80f14d` restores the original frames while the ordinary desktop
+holds NoNewPrivileges. The original worker also closes after SIGHUP with
+a verifier still active. Next include the new inputs and dedicated policy
+in the signed image and run lock with suspend and wake. See the
+[privileged handoff record](journal/2026-11-18-unlock-authority.md).
+
 18 November 2026 — The candidate desktop owner has a native lock broker.
 Super+L covers immediately. The broker checks original process identities,
 the current cover generation and the login context before a release. The

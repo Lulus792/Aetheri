@@ -5,6 +5,7 @@
 #include <poll.h>
 
 struct ae_unlock_broker;
+struct ae_unlock_authority_client;
 
 struct ae_unlock_broker_config {
     int control, credentials;
@@ -12,6 +13,9 @@ struct ae_unlock_broker_config {
     const char *worker, *account;
     bool (*session_live)(void *);
     void *session;
+    /* Takes ownership on successful open. A null authority selects the
+       development verifier launched as the ordinary session user. */
+    struct ae_unlock_authority_client *authority;
 };
 
 enum { AE_UNLOCK_BROKER_FDS = 6 };

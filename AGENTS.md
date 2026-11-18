@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current unlock authority: read spec/session.md#privileged-password-verification,
+spec/login-backend.md#privileged-unlock-handoff and the 2026-11-18 journal.
+The optional backend passes FD 3 only to the exact authenticated desktop.
+Keep the original pidfds, UID/GID/cgroup checks, finite verifier and shutdown
+ordering. Final GUI `a070ee80f14d` uses real PAM with NoNewPrivileges 1 and
+passes all three outputs and queued-result rejection. Backend 5b6373f85c77
+passes 25 unit tests, one doc test and three compatibility checks. Actual
+worker `reauth-worker-pu6_ndc5` retires the active verifier and desktop on
+SIGHUP and closes PAM with zero worker exit. Five selected CTests, one
+privileged test and 13 source-preparer tests pass. Preserve the earlier
+fixture failures. Next sign the runtime and PAM profile, verify dedicated
+policy, and boot the combined lock and sleep paths. The USB gate applies.
+
 Current lock broker: read spec/session.md#desktop-owner-lock-broker and
 the 2026-11-18 lock-broker record. Super+L starts cover locally. The original
 compositor and dialog pidfds gate the native event loop, with one PAM

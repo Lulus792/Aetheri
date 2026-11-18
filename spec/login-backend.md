@@ -239,3 +239,22 @@ and terminates that child. The original worker still owns PAM
 teardown, with Start acknowledgement distinct from exec or
 graphical readiness. The startup-only carrier profile retains
 greetd's upstream shell execution.
+
+## Privileged unlock handoff
+
+The optional `aetheri-session-unlock` feature builds on direct execution
+and links the native `libaetheri_unlock_pam.a` archive. Build that archive
+with `AETHERI_UNLOCK_PAM=ON` and pass its directory to Rust with
+`-L native=PATH`. Use the same reviewed PAM development and runtime inputs.
+The frozen Rust dependency graph is unchanged.
+
+Only an authenticated user session executing the literal installed desktop
+program with its single executable argument gets the private socket.
+The PAM worker retains one end and the original desktop child's pidfd.
+The desktop inherits the other end at descriptor 3. The worker uses a
+signal descriptor to wait for shutdown and the private authority in the
+same event loop. It retires the password verifier before processing a
+shutdown request, and finishes normal PAM teardown after retiring the
+original desktop child. The [session
+contract](session.md#privileged-password-verification) defines the wire
+credentials, request bounds and reply admission.

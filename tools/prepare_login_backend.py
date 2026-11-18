@@ -112,6 +112,7 @@ def startup_notice(source):
     worker_lifetime(source)
     session_close(source)
     direct_exec(source)
+    session_unlock(source)
 
 
 def worker_lifetime(source):
@@ -459,6 +460,60 @@ def direct_exec(source):
     if path in source:
         raise ValueError('unexpected direct exec integration file')
     source[path] = (ROOT / 'patches/greetd/aetheri_exec.rs').read_bytes().replace(b'\r\n', b'\n')
+
+
+def session_unlock(source):
+    """Pass a privileged unlock connection only to the original desktop child."""
+    def replace(path, original, replacement):
+        if source[path].count(original) != 1:
+            raise ValueError('unexpected session unlock integration site: ' + path)
+        source[path] = source[path].replace(original, replacement)
+
+    cargo = 'greetd/Cargo.toml'
+    main = 'greetd/src/main.rs'
+    worker = 'greetd/src/session/worker.rs'
+    replace(cargo, b'aetheri-direct-exec = ["aetheri-startup"]\n',
+            b'aetheri-direct-exec = ["aetheri-startup"]\naetheri-session-unlock = ["aetheri-direct-exec"]\n')
+    replace(main, b'mod aetheri_exec;\n',
+            b'mod aetheri_exec;\n#[cfg(feature = "aetheri-session-unlock")]\nmod aetheri_unlock;\n')
+    replace(worker, b'    // Make this process a session leader.\n', b'''    #[cfg(feature = "aetheri-session-unlock")]
+    let unlock_pair = if crate::aetheri_unlock::selected(
+        &command, authenticate && matches!(class, SessionClass::User)
+    ) {
+        Some(crate::aetheri_unlock::Pair::prepare()?)
+    } else {
+        None
+    };
+
+    // Make this process a session leader.
+''')
+    replace(worker, b'                let error = execve(&command[0], &command, &envvec).unwrap_err();\n',
+            b'''                #[cfg(feature = "aetheri-session-unlock")]
+                if let Some(pair) = unlock_pair {
+                    if !pair.inherit() {
+                        eprintln!("session: unable to inherit the private unlock endpoint");
+                        unsafe { libc::_exit(125) }
+                    }
+                }
+                let error = execve(&command[0], &command, &envvec).unwrap_err();
+''')
+    replace(worker, b'        close_signals.wait(child);\n', b'''        #[cfg(feature = "aetheri-session-unlock")]
+        if let Some(pair) = unlock_pair {
+            let root = pair.bind(child, user.uid.as_raw(), user.gid.as_raw(), &cusername);
+            if root.is_none() {
+                eprintln!("AETHERI_UNLOCK_AUTHORITY_START_FAILED");
+            }
+            close_signals.wait_unlock(child, root);
+        } else {
+            close_signals.wait(child);
+        }
+        #[cfg(not(feature = "aetheri-session-unlock"))]
+        close_signals.wait(child);
+''')
+    path = 'greetd/src/aetheri_unlock.rs'
+    if path in source:
+        raise ValueError('unexpected session unlock integration file')
+    source[path] = (ROOT / 'patches/greetd/aetheri_unlock.rs').read_bytes().replace(b'\r\n', b'\n')
 
 
 def plan(source_archive, crate_cache, lockfile, pins, *, notice=False):

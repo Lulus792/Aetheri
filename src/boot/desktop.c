@@ -26,6 +26,7 @@
 #include <sys/prctl.h>
 #include "../linux/session.h"
 #ifdef AETHERI_DESKTOP_SESSION_LOCK
+#include "login/unlock_authority.h"
 #include "login/unlock_broker.h"
 #endif
 
@@ -268,13 +269,16 @@ static bool ready_notification(void) {
 #endif
     return sd_notify(0,"READY=1\nSTATUS=Aetheri desktop submitted its first frame")>0;
 }
-/* The post-login entry accepts no inherited activation/document/credential FDs.
- * Drop them before opening our own session observers or spawning any child.
- * The fixed development owner retains its separate invocation contract. */
+/* Drop inherited descriptors before opening observers or spawning children.
+ * The explicit authority profile reserves only the original unlock socket. */
 static bool entry_descriptors(void) {
 #ifdef AETHERI_DESKTOP_SESSION_ENTRY
     for(int fd=0;fd<3;++fd)if(fcntl(fd,F_GETFD)<0)return false;
+#ifdef AETHERI_DESKTOP_UNLOCK_AUTHORITY
+    return fcntl(3,F_GETFD)>=0 && close_range(4,~0u,CLOSE_RANGE_UNSHARE)==0;
+#else
     return close_range(3,~0u,CLOSE_RANGE_UNSHARE)==0;
+#endif
 #else
     return true;
 #endif
@@ -560,6 +564,7 @@ static bool settings_start(struct child *children,const struct session_audio *au
 struct session_lock {
     int control[2], display[2], credentials[2];
     struct ae_unlock_broker *broker;
+    struct ae_unlock_authority_client *authority;
     bool fenced;
 };
 
@@ -588,13 +593,14 @@ static bool lock_start(struct session_lock *lock, struct child *children, struct
         .compositor = children[COMPOSITOR].pin, .view = children[LOCK_VIEW].pin,
         .control = lock->control[0], .credentials = lock->credentials[0],
         .worker = BIN "aetheri-unlock-worker", .account = account,
-        .session_live = lock_session_live, .session = session,
+        .session_live = lock_session_live, .session = session, .authority = lock->authority,
     };
     int status = ae_unlock_broker_open(&lock->broker, &config);
     if (status) {
         printf("AETHERI_LOCK_UNAVAILABLE startup=%d\n", status);
         return false;
     }
+    lock->authority = NULL;
     lock->control[0] = lock->credentials[0] = -1;
     return true;
 }
@@ -610,6 +616,7 @@ static void lock_step(struct session_lock *lock) {
 
 static void lock_close(struct session_lock *lock) {
     ae_unlock_broker_close(&lock->broker);
+    ae_unlock_authority_client_close(&lock->authority);
     for (unsigned i = 0; i < 2; ++i) {
         close_fd(&lock->control[i]);
         close_fd(&lock->display[i]);
@@ -627,6 +634,12 @@ int main(void) {
 #endif
 #ifdef AETHERI_DESKTOP_SESSION_LOCK
     struct session_lock lock = {.control = {-1,-1}, .display = {-1,-1}, .credentials = {-1,-1}};
+#endif
+#ifdef AETHERI_DESKTOP_UNLOCK_AUTHORITY
+    if (ae_unlock_authority_client_open(&lock.authority, 3)) {
+        fputs("AETHERI_DESKTOP_FAIL unlock authority\n", stderr);
+        return 1;
+    }
 #endif
     struct session_runtime owned = { .parent = -1, .directory = -1, .cache = -1 };
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);

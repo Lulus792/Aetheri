@@ -41,7 +41,29 @@ impl Signals {
         self.parent_lost=getppid()!=self.parent;
     }
     pub(crate) fn wait(&self, child: Pid) {
-        let mut sent=false;let mut killed=false;let mut force=false;let mut requested=self.parent_lost;
+        self.wait_events(child, false, || self.events.wait());
+    }
+    #[cfg(feature = "aetheri-session-unlock")]
+    pub(crate) fn wait_unlock(&self, child: Pid, root: Option<crate::aetheri_unlock::Authority>) {
+        use nix::sys::signalfd::{SfdFlags, SignalFd};
+        if self.parent_lost || root.is_none() {
+            drop(root);
+            self.wait_events(child, true, || self.events.wait());
+            return;
+        }
+        let mut signals = match SignalFd::with_flags(&self.events, SfdFlags::SFD_CLOEXEC | SfdFlags::SFD_NONBLOCK) {
+            Ok(fd) => fd,
+            Err(_) => {
+                drop(root);
+                self.wait_events(child, true, || self.events.wait());
+                return;
+            },
+        };
+        let mut authority = root;
+        self.wait_events(child, false, || crate::aetheri_unlock::next_signal(&mut authority, &mut signals));
+    }
+    fn wait_events(&self, child: Pid, stop: bool, mut next: impl FnMut() -> nix::Result<Signal>) {
+        let mut sent=false;let mut killed=false;let mut force=false;let mut requested=self.parent_lost || stop;
         loop {
             if requested && !sent {
                 sent=true;
@@ -65,7 +87,7 @@ impl Signals {
                 // Lost identity cannot authorize PAM teardown over a live child.
                 _ => retain("original session child observation lost"),
             }
-            match self.events.wait() {
+            match next() {
                 Ok(Signal::SIGTERM | Signal::SIGHUP) => requested=true,
                 Ok(Signal::SIGUSR1) => force=true,
                 Ok(Signal::SIGCHLD) | Err(Errno::EINTR) => (),

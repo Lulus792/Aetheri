@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "unlock_broker.h"
+#include "unlock_authority.h"
 #include "unlock_channel.h"
 #include "unlock_pam.h"
 #include "unlock_view_contract.h"
@@ -27,11 +28,13 @@ struct ae_unlock_broker {
     int control, credentials, compositor, view, worker_pin;
     struct stat compositor_id, view_id;
     struct ae_unlock_attempt *attempt;
+    struct ae_unlock_authority_client *authority;
     char *worker, *account;
     bool (*session_live)(void *);
     void *session;
     enum phase phase;
     uint64_t generation, deadline;
+    bool remote_pending;
 };
 
 static void close_slot(int *fd) {
@@ -105,6 +108,7 @@ static int fence(struct ae_unlock_broker *b, int error) {
     close_slot(&b->control);
     close_slot(&b->credentials);
     (void)cancel_worker(b);
+    ae_unlock_authority_client_close(&b->authority);
     return error;
 }
 
@@ -114,6 +118,7 @@ void ae_unlock_broker_close(struct ae_unlock_broker **slot) {
     *slot = NULL;
     close_slot(&b->control);
     close_slot(&b->credentials);
+    ae_unlock_authority_client_close(&b->authority);
     if (!cancel_worker(b)) (void)reap_worker(b, 0);
     close_slot(&b->worker_pin);
     close_slot(&b->compositor);
@@ -124,7 +129,7 @@ void ae_unlock_broker_close(struct ae_unlock_broker **slot) {
 }
 
 int ae_unlock_broker_open(struct ae_unlock_broker **out, const struct ae_unlock_broker_config *p) {
-    if (!out || *out || !p || !p->session_live || !p->worker || p->worker[0] != '/' ||
+    if (!out || *out || !p || !p->session_live || (!p->authority && (!p->worker || p->worker[0] != '/')) ||
             !p->account || !*p->account || strnlen(p->account, 33) > 32 ||
             p->control < 3 || p->credentials < 3 || p->control == p->credentials ||
             !getuid() || getuid() != geteuid() || getgid() != getegid()) return -EINVAL;
@@ -140,15 +145,16 @@ int ae_unlock_broker_open(struct ae_unlock_broker **out, const struct ae_unlock_
     if (!current(b) || (b->compositor_id.st_dev == b->view_id.st_dev &&
             b->compositor_id.st_ino == b->view_id.st_ino)) goto failed;
     error = -ENOMEM;
-    b->worker = strdup(p->worker);
+    if (!p->authority) b->worker = strdup(p->worker);
     b->account = strdup(p->account);
-    if (!b->worker || !b->account) goto failed;
+    if ((!p->authority && !b->worker) || !b->account) goto failed;
     error = -EPERM;
     if (prctl(PR_SET_DUMPABLE, 0L, 0L, 0L, 0L) ||
             !arm_reader(p->control) || !arm_reader(p->credentials)) goto failed;
     b->phase = OPEN;
     b->control = p->control;
     b->credentials = p->credentials;
+    b->authority = p->authority;
     *out = b;
     return 0;
 
@@ -168,6 +174,7 @@ void ae_unlock_broker_poll(const struct ae_unlock_broker *b, struct pollfd fds[A
     fds[1] = (struct pollfd){.fd = b->credentials, .events = POLLIN};
     fds[2] = (struct pollfd){.fd = b->compositor, .events = POLLIN};
     fds[3] = (struct pollfd){.fd = b->view, .events = POLLIN};
+    if (b->authority) ae_unlock_authority_client_poll(b->authority, &fds[4]);
     if (b->attempt && ae_unlock_attempt_poll(b->attempt, &fds[4])) {
         *timeout = 0;
         return;
@@ -254,10 +261,17 @@ static int receive_password(struct ae_unlock_broker *b, uint64_t now) {
     ssize_t count = ae_pidfd_receive(b->credentials, packet, sizeof packet, &b->view_id);
     int status = 0;
     if (count != -EAGAIN) {
-        if (b->phase != COVERED || b->attempt || count <= AE_UNLOCK_VIEW_MAGIC_SIZE ||
+        if (b->phase != COVERED || b->attempt || b->remote_pending || count <= AE_UNLOCK_VIEW_MAGIC_SIZE ||
                 memcmp(packet, AE_UNLOCK_VIEW_MAGIC, AE_UNLOCK_VIEW_MAGIC_SIZE) ||
                 memchr(packet + AE_UNLOCK_VIEW_MAGIC_SIZE, 0, (size_t)count - AE_UNLOCK_VIEW_MAGIC_SIZE)) {
             status = -EPROTO;
+        } else if (b->authority) {
+            status = ae_unlock_authority_client_begin(b->authority, b->generation,
+                packet + AE_UNLOCK_VIEW_MAGIC_SIZE, (size_t)count - AE_UNLOCK_VIEW_MAGIC_SIZE);
+            if (!status) {
+                b->remote_pending = true;
+                b->deadline = now + ATTEMPT_MS;
+            }
         } else if (b->worker_pin >= 0 ||
                 verify(b, packet + AE_UNLOCK_VIEW_MAGIC_SIZE, (size_t)count - AE_UNLOCK_VIEW_MAGIC_SIZE)) {
             status = cancel_worker(b);
@@ -270,6 +284,17 @@ static int receive_password(struct ae_unlock_broker *b, uint64_t now) {
     return status;
 }
 
+static int publish(struct ae_unlock_broker *b, enum ae_unlock_result value) {
+    b->deadline = 0;
+    if (b->phase != COVERED || !current(b)) return -ESTALE;
+    if (value == AE_UNLOCK_UNAVAILABLE) return feedback(b, AE_UNLOCK_VIEW_ERROR);
+    if (value == AE_UNLOCK_DENIED) return feedback(b, AE_UNLOCK_VIEW_DENIED);
+    if (send_control(b, AE_LOCK_RELEASE)) return -EPIPE;
+    b->phase = RELEASING;
+    /* Release can legitimately wait for a held key or mouse button. */
+    return 0;
+}
+
 static int result(struct ae_unlock_broker *b, uint64_t now) {
     enum ae_unlock_result value = AE_UNLOCK_UNAVAILABLE;
     int status = now >= b->deadline ? -ETIMEDOUT :
@@ -277,14 +302,18 @@ static int result(struct ae_unlock_broker *b, uint64_t now) {
     if (status == -EAGAIN) return 0;
     int cancelled = cancel_worker(b);
     int reaped = reap_worker(b, WNOHANG);
-    b->deadline = 0;
-    if (cancelled || (reaped && (!status || reaped != -EAGAIN)) || !current(b)) return -ESTALE;
-    if (status || value == AE_UNLOCK_UNAVAILABLE) return feedback(b, AE_UNLOCK_VIEW_ERROR);
-    if (value == AE_UNLOCK_DENIED) return feedback(b, AE_UNLOCK_VIEW_DENIED);
-    if (send_control(b, AE_LOCK_RELEASE)) return -EPIPE;
-    b->phase = RELEASING;
-    /* Release can legitimately wait for a held key or mouse button. */
-    return 0;
+    if (cancelled || (reaped && (!status || reaped != -EAGAIN))) return -ESTALE;
+    return publish(b, status ? AE_UNLOCK_UNAVAILABLE : value);
+}
+
+static int remote_result(struct ae_unlock_broker *b, uint64_t now) {
+    if (b->remote_pending && now >= b->deadline) return -ETIMEDOUT;
+    enum ae_unlock_result value = AE_UNLOCK_UNAVAILABLE;
+    int status = ae_unlock_authority_client_receive(b->authority, b->generation, &value);
+    if (status == -EAGAIN) return 0;
+    if (status || !b->remote_pending) return -ESTALE;
+    b->remote_pending = false;
+    return publish(b, value);
 }
 
 int ae_unlock_broker_step(struct ae_unlock_broker *b) {
@@ -300,6 +329,7 @@ int ae_unlock_broker_step(struct ae_unlock_broker *b) {
     int status = receive_control(b, now);
     if (!status) status = receive_password(b, now);
     if (!status && b->attempt) status = result(b, now);
+    if (!status && b->authority) status = remote_result(b, now);
     return status ? fence(b, status) : 0;
 }
 
