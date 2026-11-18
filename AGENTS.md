@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current WLAN association: read `spec/login-deployment.md#wireless-connection-manager-files`
+and the 2026-11-18 desktop-iwd journal. The optional payload stages signed
+iwd 3.12, libell 0.83, the two pinned DES modules and a root-only bus rule.
+Keep the explicit /run system-bus address, combined depmod and the failed
+DES/default-bus evidence. Enforcing d85a9a3548a0/1040603b verifies scan,
+WPA-PSK, an IPv4 pool address, disconnect, ordinary UID denial and power-off.
+The fixture DHCP marker is address-only compatibility evidence. Next verify
+actual DHCP exchange and admit the production service and Settings mediator.
+Physical HP testing and the first-version USB gate remain.
+
 Current Intel WLAN inputs: read `spec/login-deployment.md#intel-pci-wlan-files`
 and the 2026-11-18 desktop-wlan record. Stage the six pinned modules, two
 API 36 blobs, notices, signed regulatory data and the scoped 8086:24fd rule.

@@ -152,8 +152,39 @@ depmod -C /dev/null -b "$IMAGE_ROOT" -a 6.19.10-300.fc44.x86_64
 
 The development desktop builder accepts the same three inputs through
 `--wlan-inputs` and regenerates the combined indexes after staging. Keep
-the WLAN receipt with the image inputs. The connection manager, Settings
-controls and physical HP acceptance have their own runtime tests.
+the WLAN receipt with the image inputs. Settings controls and physical HP
+acceptance have their own runtime tests.
+
+### Wireless connection manager files
+
+The [iwd inventory](desktop-iwd-inputs.json) pairs Fedora iwd 3.12 with
+libell 0.83. iwd controls scanning, association and WPA authentication. Its
+optional network configuration can obtain addresses through DHCP. The
+stager checks the Fedora signatures and payload hashes before selecting
+the daemon, the library, its SONAME alias and the original license notices.
+The iwd startup self-check also requires the pinned generic DES module and
+its `libdes` dependency from the selected kernel build.
+[Fedora iwd package](https://packages.fedoraproject.org/pkgs/iwd/iwd/fedora-44.html),
+[Fedora libell package](https://packages.fedoraproject.org/pkgs/libell/libell/fedora-44.html),
+[iwd configuration](https://kernel.googlesource.com/pub/scm/network/wireless/iwd/+/master/src/iwd.config.rst).
+
+```sh
+python3 tools/desktop_iwd_payload.py --image-root "$IMAGE_ROOT" \
+  --kernel-root "$KERNEL_ROOT" --packages "$IWD_RPMS"
+depmod -C /dev/null -b "$IMAGE_ROOT" -a 6.19.10-300.fc44.x86_64
+```
+
+The development desktop builder accepts the same inputs through
+`--iwd-inputs` and regenerates the combined indexes. The payload adds a
+system-bus rule that permits root to own and call `net.connman.iwd` and
+denies direct application calls. The runtime unit must set
+`DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket` for libell.
+Aetheri puts the socket on `/run` and the library defaults to `/var/run`.
+
+Staging leaves Wi-Fi off. The image has no iwd unit, activation entry or
+network profiles at this stage. Production activation, credential storage,
+DNS integration and an authenticated Settings control path require separate
+runtime admission. Keep the iwd receipt with the image inputs.
 
 ### PipeWire and WirePlumber files
 

@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The optional iwd 3.12 payload stages the verified Fedora
+daemon, libell, required kernel crypto modules and a root-only bus rule.
+Enforcing VM `1040603b` scans, associates over WPA-PSK, receives an IPv4
+address and disconnects across two virtual radios. The direct ordinary-user
+iwd call is denied. Signed login startup and ACPI shutdown still pass.
+DHCP packet exchange, production activation, Settings and physical WLAN
+remain open. See the [iwd record](journal/2026-11-18-desktop-iwd.md).
+
 18 November 2026 — The Intel `8086:24fd` WLAN layer stages the six pinned
 driver modules, API 36 firmware, signed regulatory data and a PCI-scoped
 udev rule. The merged desktop module index resolves the Intel alias and

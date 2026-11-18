@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "kernel_release": "6.19.10-300.fc44.x86_64",
+  "kernel_modules": [
+    {"destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/lib/crypto/libdes.ko.xz", "size": 15476, "mode": 420, "sha256": "7ae892ff8e0e9abfaa6d5f466e28b1f1daa12f3c7c41957351ed0f2850831939", "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"},
+    {"destination": "/usr/lib/modules/6.19.10-300.fc44.x86_64/kernel/crypto/des_generic.ko.xz", "size": 9244, "mode": 420, "sha256": "28da0a1354a3e9fe1a3ae4f3face0c58e17b7146c490a0ad68227dd1d67e79bd", "package": "kernel-modules-core-6.19.10-300.fc44.x86_64"}
+  ],
+  "packages": {
+    "iwd-3.12-1.fc44.x86_64.rpm": {
+      "size": 677727,
+      "sha256": "0d18a626515d18f474a8d4bcfc77e706f5d050ee6ad13b17711de4897f4759d8",
+      "files": [
+        {"destination": "/usr/libexec/iwd", "size": 979368, "mode": 493, "sha256": "3345db34ea99b6830a9395746c26a43429983d338977a12627e1be2dbdb25548"},
+        {"destination": "/usr/share/licenses/iwd/COPYING", "size": 26423, "mode": 420, "sha256": "ec60b993835e2c6b79e6d9226345f4e614e686eb57dc13b6420c15a33a8996e5"}
+      ]
+    },
+    "libell-0.83-1.fc44.x86_64.rpm": {
+      "size": 282735,
+      "sha256": "c200e9eae8825262ccb833a82c6d789b830a6bcd081912ff1f1b62b49f5eb9cb",
+      "files": [
+        {"destination": "/usr/lib64/libell.so.0.0.2", "size": 607536, "mode": 493, "sha256": "31834f450af6b0621f499f187d3eaf87147a2400edee9afedf19349b7b32c595"},
+        {"destination": "/usr/share/licenses/libell/COPYING", "size": 26423, "mode": 420, "sha256": "ec60b993835e2c6b79e6d9226345f4e614e686eb57dc13b6420c15a33a8996e5"}
+      ]
+    }
+  }
+}
