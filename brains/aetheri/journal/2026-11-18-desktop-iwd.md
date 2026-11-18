@@ -510,3 +510,42 @@ uses the existing read-only base, a shared block patch and one signature
 cluster. The compact test record is
 `local/login-review-2026-11-10/desktop-wlan-dns-2026-11-18-evidence.tar.gz`
 with SHA-256 `d7dca811f4ae19b8047ac5dacec29e6bbad75ed59cdc5db30bb22c3ee4baefa7`.
+
+## IPv4 lease renewal
+
+The renewal fixture moves the simulated AP radio into its own network
+namespace before starting hostapd, the libell DHCP peer and the DNS peer.
+The Aetheri station stays in the original namespace. Unicast renewal in
+this fixture depends on traffic crossing the two radios. The server offers
+24-second leases. The station observer reads `IFA_CACHEINFO` over rtnetlink
+to distinguish a lifetime update on the same address from address removal
+and another acquisition. Acceptance requires the original address to survive
+past its initial expiry, DNS to work, and Wi-Fi off to remove the route and
+resolver state. [DHCP renewal and expiry](https://www.rfc-editor.org/rfc/rfc2131.html#section-4.4.5)
+
+VM `adb5afa5` proves distinct AP and station namespaces and reports an
+association through hostapd and the station kernel. Settings times out on
+join with no DHCP message recorded by the peer. VM `4112d626` reproduces the
+same result with the same production components. The intermediate attempt
+`6150871e` stops at synthetic credential selection before QEMU launch. The
+first packet and journal observation attempt `0a1bf393` stops on a signed
+startup namespace timeout before Settings. The failed runs and their exact
+overlays are retained as evidence.
+
+The retry `1249e4b5` and the two-interface packet observation `256c2051`
+both reach signed login, scan and association, then time out before a lease
+is installed. In `256c2051`, no DHCP packet marker appears on either
+interface and the service journal reader yields no iwd messages. This
+leaves the client-side cause unobserved. An offline query of the installed
+policy records denied UDP `name_bind` on `dhcpc_port_t` and `node_bind` on
+`node_t`. Those decisions are relevant to the later unicast path. Runtime
+bind behavior remains unverified. These boots use the compiled policy and
+signed selection from the DNS case.
+
+The labeled case layers share the original boot and data bases. The final
+packet observer uses one 64 KiB block over the preceding diagnostic layer.
+All launched controllers return a terminal QEMU exit, including failed
+flows, and each data overlay passes `qemu-img check`. The compact evidence
+with fixture sources and decision rows is
+`local/login-review-2026-11-10/desktop-wlan-renewal-2026-11-18-evidence.tar.gz`
+with SHA-256 `d58ec25751b1a4d8fa3e85a6d32c75b3d4b68a102ccdce181eedc6a35215509e`.
