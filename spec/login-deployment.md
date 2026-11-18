@@ -241,7 +241,15 @@ and checks the resulting station state independently.
 The [IPv6 VM check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#ipv6-router-discovery)
 verifies a global address and default route from a router advertisement,
 alongside IPv4 DHCP. Switching off Wi-Fi removes both families' addresses and
-routes. DNS advertised by IPv6 routers and physical WLAN still need tests.
+routes.
+
+The [IPv6 DNS check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#router-advertised-dns)
+verifies a libc lookup through a link-local server advertised by the router.
+Wi-Fi off retires the resolver stub and ordinary lookups. The Fedora iwd 3.12
+package retains the final resolver entry when the router explicitly withdraws
+it. The Aetheri source patch sends the updated empty list to the resolver.
+Release staging still selects the reviewed Fedora RPM. DHCPv6 and physical
+WLAN have separate acceptance checks.
 
 ### WLAN control for Settings
 

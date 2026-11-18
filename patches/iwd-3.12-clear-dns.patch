@@ -1,0 +1,31 @@
+--- a/src/netconfig-commit.c
++++ b/src/netconfig-commit.c
+@@ -292,7 +292,7 @@
+ 	if (l_strv_eq(netconfig->dns_list, dns_list))
+ 		return;
+ 
+-	if (netconfig->resolve && dns_list)
++	if (netconfig->resolve)
+ 		resolve_set_dns(netconfig->resolve, dns_list);
+ 
+ 	l_strv_free(netconfig->dns_list);
+--- a/src/resolve.c
++++ b/src/resolve.c
+@@ -61,13 +61,10 @@
+ 
+ void resolve_set_dns(struct resolve *resolve, char **dns_list)
+ {
+-	if (!dns_list || !*dns_list)
+-		return;
+-
+-	if (!resolve->ops->set_dns)
+-		return;
+-
+-	resolve->ops->set_dns(resolve, dns_list);
++	char *empty_dns[] = { NULL };
++
++	if (resolve->ops->set_dns)
++		resolve->ops->set_dns(resolve, dns_list ? dns_list : empty_dns);
+ }
+ 
+ void resolve_set_domains(struct resolve *resolve, char **domain_list)

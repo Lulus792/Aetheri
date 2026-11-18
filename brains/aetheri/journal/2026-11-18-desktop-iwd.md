@@ -639,3 +639,64 @@ advertisements, DHCPv6 and physical WLAN remain open. The local evidence
 archive `desktop-wlan-ipv6-2026-11-18-evidence.tar.gz` under
 `local/login-review-2026-11-10/` is 178,389 bytes and has SHA-256
 `4508c06a6bea23646f4195d0d46ce7f38f9606c24faa72e3e6b997eec7dfafc6`.
+
+### Router-advertised DNS
+
+The virtual router advertises its link-local IPv6 DNS server. The DHCPv4
+fixture still supplies an address and gateway. The DNS server observes
+the incoming AP interface, checks the originating station address and
+answers a test AAAA query. The ordinary UID 1000 client uses libc name
+resolution. [RDNSS format and lifetime](https://www.rfc-editor.org/rfc/rfc8106.html#section-5.1).
+
+Image `c5eaafbff7e6` first reaches actual IPv6 DNS in `b009ef42`.
+That attempt has no observed DHCPv4 packet exchange and Settings reports
+a failed join. The same image in `96d620f7` completes the Settings join,
+IPv4 DHCP, IPv6 SLAAC, ordinary DNS lookup, Wi-Fi off and resolver cleanup.
+A follow-up lookup after Wi-Fi off is unavailable. Logout, ACPI shutdown
+and overlay validation pass.
+
+The next router advertises zero DNS lifetime while keeping the prefix
+and gateway. In `f21309f3`, the Fedora iwd package still sends an uncached
+query to the withdrawn server while the link and resolver stay active.
+Wi-Fi off removes the resolver runtime. iwd 3.12 drops the empty list in
+both the network commit path and the resolver dispatch function. The
+[source patch](../../../patches/iwd-3.12-clear-dns.patch) sends the empty
+list through the existing resolver call.
+
+The two test builds use the same iwd 3.12 source, compiler and checked
+Fedora libell 0.83 runtime and development RPMs. The source archive hash
+matches the kernel.org index. The first compile misses the external headers.
+The next two attempts reach the linker and find that the carrier lacks the
+patch tools. The final recipe applies the patch to the two selected source
+files on the host and rebuilds them in the carrier's temporary filesystem.
+The linked daemon needs `libell.so.0`. [iwd archive checksums](https://www.kernel.org/pub/linux/network/wireless/sha256sums.asc)
+and [Fedora libell headers](https://packages.fedoraproject.org/pkgs/libell/libell-devel/fedora-44.html).
+
+The first offline composition rejects the mounted xattr observation. The
+second compares the actual on-disk labels before and after replacement,
+and checks loader resolution and `e2fsck -fn`. The first patched boot's DNS
+peer rejects early source addresses, then accepts a later request and the
+controller stops at the original assertion. The corrected peer accepts
+only addresses currently assigned to `wlan1` and requires AP ingress.
+The next attempt verifies withdrawal on the associated link and observes
+another DHCPv4 timeout. Both interrupted attempts have separate receipts.
+
+The matched runs use the same fixture, policy and signed selection and
+change only the daemon bytes between images. In `961f4262` on `4ba6dd0a967a`,
+the patched daemon `b6fb3608ad0c…d7d7` clears the withdrawn server. The
+resolver stub stays active, Settings remains connected, and the fresh
+lookup sends no request to the old server. In `0c03d6ac` on `0836002042e9`,
+the unpatched rebuild `e8b95f6f94bd…01ec` sends that fresh query and the old
+server answers it. Both runs verify DHCPv4, SLAAC, the ordinary user's
+initial lookup, Wi-Fi off, PAM closure and ACPI shutdown.
+
+Release staging still uses the Fedora daemon. Selecting the source-built
+correction in the normal image pathway is a separate gate. Passive DNS
+lifetime expiry, DHCPv6 and physical WLAN remain open.
+
+All seven QEMU processes reached terminal status and their data overlay
+checks passed. The 21 Windows payload, desktop-image and deployment tests
+passed. The compact record includes the daemon-only disk comparison and
+both matched runs. It is `desktop-wlan-rdnss-2026-11-18-evidence.tar.gz` under
+`local/login-review-2026-11-10/`, SHA-256
+`a966a61ed0abb3f4173b0310959a07bdfcbb1b0fe4a0ff1e4dc5afee094c7e31`.

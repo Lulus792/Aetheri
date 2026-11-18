@@ -8,12 +8,12 @@ first version.
 ## Current work
 
 The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings.
-VM `60256433` verifies IPv6 router discovery and IPv4 DHCP in one connection.
-Switching off Wi-Fi removes both families' addresses and default routes.
-The previous VM verifies IPv4 lease renewal and DNS. Both use two virtual
-radios in one guest namespace. IPv6 router-provided DNS, the separate-namespace
-fixture and physical WLAN remain open.
-[WLAN record](journal/2026-11-18-desktop-iwd.md#ipv6-router-discovery)
+VM `96d620f7` verifies IPv4 DHCP, IPv6 SLAAC and DNS from an IPv6 router
+advertisement. Wi-Fi off retires both address families and the resolver.
+The source patch clears the last explicitly withdrawn DNS server in VM
+`961f4262`. Release staging for the patch, passive DNS lifetime expiry,
+DHCPv6, the separate-namespace fixture and physical WLAN remain open.
+[WLAN record](journal/2026-11-18-desktop-iwd.md#router-advertised-dns)
 
 ## Verified milestones
 
