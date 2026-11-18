@@ -1,5 +1,10 @@
 # Working on Aetheri
 
+Host storage: follow the host test artifact rules in
+`spec/development-storage.md`. Use the selected boot base and small
+overlays, record test evidence compactly, and retire unreferenced generated
+disks after the VM exits. See the 2026-11-18 storage retention journal.
+
 Current WLAN addressing: read the open WLAN and IPv4 section in the
 2026-11-18 desktop-iwd journal. Signed VM 42da0e06 on image 9feea5e21ad6
 joins the separate open AP, exchanges all four DHCP messages, and installs

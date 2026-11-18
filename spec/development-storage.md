@@ -1,25 +1,52 @@
 # Developer build and capture storage
 
+## Host test artifacts
+
+Keep one selected, reusable boot base and seed data disk per active test
+profile. Build VM cases from the read-only base with changed block extents
+and a small writable data overlay. A virtual USB image can report a large
+capacity even when it occupies little space. Use allocated bytes and
+volume free space when planning the next build.
+
+Record the selected source revision, image hash, input pins, exact test
+result and any failure in one project journal entry. Retain the small
+receipts, compressed logs, required screenshots and fixture sources. A
+historical image hash identifies the test run after its generated disk has
+been retired. Keep a full image only while it serves as an input, an
+identified recovery copy or evidence that cannot be recovered from the
+recorded outputs.
+
+After the VM exits, check the backing paths of retained QCOW2 and VMDK
+files before retiring a test image. Verify the content of a replacement
+before removing a duplicate. Retain working VM disks, pinned inputs,
+hardware test data and the current USB recovery image with the selected
+profiles. Keep detailed historical results in the journal and use the
+project state for the current handoff.
+
+See the [18 November host cleanup](../brains/aetheri/journal/2026-11-18-storage-retention.md).
+
+## Separate carrier work disk
+
 7 November 2026. The carrier root is almost full. A separate fixed 8 GiB work
 disk keeps future builds and captures away from protected prototype state.
 It does not move current programs, SDKs, documents, catalogues or test history.
 This is disposable development infrastructure, not Aetheri's production storage
 allocator or the resettable experiment product.
 
-## Current boundary
+### Enrollment checkpoint
 
 The host image is prepared and registered. Actual QEMU cold attachment and its
 block-node/serial observations pass in a separate stopped-CPU probe. A real
 64 MiB loop-device test in the enforcing carrier passes format, mount, normal-user
-compilation/execution, remount and content retention. The fixed host image has
-**not** been attached, formatted or mounted in the running carrier. That machine
-still has a live foreign NexaUI test helper; do not reboot it to activate this disk.
+compilation, execution, remount and content retention. Enrollment of the fixed
+disk was pending at the 7 November checkpoint. The original run left the
+carrier online for a separate NexaUI test helper.
 
 The current q35 configuration has no hotplug-capable root port. The same-version
 isolated QEMU probe rejects both direct root-bus virtio and existing IDE-bus
 hotplug. No hotplug mutation was attempted on the running carrier.
 
-## Ownership and lifetime
+### Ownership and lifetime
 
 `vm/p0/development-storage/registration.json` independently binds the existing
 VM UUID, random operation token, fixed serial, filesystem UUID, 8 GiB capacity
@@ -57,7 +84,7 @@ the exact device/UUID and `rw,nosuid,nodev`, with execution enabled for builds.
 Directory metadata and state are flushed before acknowledging readiness. SELinux
 stays enforcing with existing labels; no new policy rule or domain is installed.
 
-## Use after a safely coordinated next boot
+### Use after a safely coordinated next boot
 
 From the Windows repository, with the existing Python runtime:
 
@@ -96,7 +123,7 @@ Automatic boot mounting, actual fixed-disk enrollment and moving future build/
 capture consumers onto it remain pending. Do not change old normal build paths
 or historical records to make them appear migrated.
 
-## Verification
+### Verification
 
 Host tests use temporary files and mocked image/SSH effects:
 
