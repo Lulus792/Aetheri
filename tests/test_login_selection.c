@@ -49,14 +49,14 @@ int main(int argc, char **argv)
 
     uint8_t record[AE_LOGIN_SELECTION_BYTES] = "AETHLS02";
     if (argc >= 2 && argc <= 4) {
-        uint8_t external[AE_LOGIN_SELECTION_LOCK_BYTES];
+        uint8_t external[AE_LOGIN_SELECTION_SUSPEND_BYTES];
         int offset = argc == 4 ? 2 : 1;
         if (argc == 4) CHECK(!strcmp(argv[1], "--sign-body"));
         FILE *file = fopen(argv[offset], "rb");
         CHECK(file);
-        size_t body = fread(external, 1, AE_LOGIN_SELECTION_LOCK_BODY_BYTES, file);
+        size_t body = fread(external, 1, AE_LOGIN_SELECTION_SUSPEND_BODY_BYTES, file);
         CHECK(body == AE_LOGIN_SELECTION_BODY_BYTES || body == AE_LOGIN_SELECTION_SOUND_BODY_BYTES ||
-              body == AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+              body == AE_LOGIN_SELECTION_LOCK_BODY_BYTES || body == AE_LOGIN_SELECTION_SUSPEND_BODY_BYTES);
         CHECK(fgetc(file) == EOF && !ferror(file) && !fclose(file));
         sign_body(key, external, body);
         size_t length = body + AE_LOGIN_SELECTION_SIGNATURE_BYTES;
@@ -72,10 +72,15 @@ int main(int argc, char **argv)
             if (body == AE_LOGIN_SELECTION_SOUND_BODY_BYTES)
                 CHECK(selected.files[AE_LOGIN_SELECT_SOUND].size ==
                       64 + sizeof("aetheri-audio-desktop-control") - 1);
-            if (body == AE_LOGIN_SELECTION_LOCK_BODY_BYTES) {
+            if (body >= AE_LOGIN_SELECTION_LOCK_BODY_BYTES) {
                 CHECK(selected.files[AE_LOGIN_SELECT_LOCK_VIEW].size ==
                       64 + sizeof("aetheri-lock-view") - 1);
                 CHECK(selected.files[AE_LOGIN_SELECT_UNLOCK_PAM].size > 0);
+            }
+            if (body == AE_LOGIN_SELECTION_SUSPEND_BODY_BYTES) {
+                CHECK(selected.files[AE_LOGIN_SELECT_SUSPEND_GUARD].size == 64 + sizeof("aetheri-suspend-guard") - 1);
+                CHECK(selected.files[AE_LOGIN_SELECT_SUSPEND_DROPIN].size > 0);
+                CHECK(selected.files[AE_LOGIN_SELECT_SLEEP_PROGRAM].size > 0);
             }
         }
         if (argc >= 3) {
@@ -146,6 +151,25 @@ int main(int argc, char **argv)
     sign_body(key, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
     CHECK(!ae_login_selection_verify(lock, sizeof lock, public_key, release, &out));
     CHECK(out.files[AE_LOGIN_SELECT_SOUND].size == 13);
+
+    uint8_t suspend[AE_LOGIN_SELECTION_SUSPEND_BYTES] = {0};
+    memcpy(suspend, lock, AE_LOGIN_SELECTION_LOCK_BODY_BYTES);
+    suspend[7] = '5';
+    for (size_t i = AE_LOGIN_SELECT_SUSPEND_GUARD; i < AE_LOGIN_SELECT_COUNT; ++i) {
+        suspend[115 + 36 * i + 3] = (uint8_t)(i + 1);
+        suspend[115 + 36 * i + 4] = (uint8_t)(100 + i);
+    }
+    sign_body(key, suspend, AE_LOGIN_SELECTION_SUSPEND_BODY_BYTES);
+    CHECK(!ae_login_selection_verify(suspend, sizeof suspend, public_key, release, &out));
+    CHECK(out.files[AE_LOGIN_SELECT_SLEEP_PROGRAM].size == AE_LOGIN_SELECT_SLEEP_PROGRAM + 1);
+    refused(suspend, AE_LOGIN_SELECTION_LOCK_BYTES, public_key, release, -EBADMSG);
+    size_t sleep_program = 115 + 36 * AE_LOGIN_SELECT_SLEEP_PROGRAM;
+    suspend[sleep_program + 4] ^= 1;
+    refused(suspend, sizeof suspend, public_key, release, -EKEYREJECTED);
+    suspend[sleep_program + 3] = 0;
+    sign_body(key, suspend, AE_LOGIN_SELECTION_SUSPEND_BODY_BYTES);
+    refused(suspend, sizeof suspend, public_key, release, -EBADMSG);
+
     lock[pam + 4] ^= 1;
     refused(lock, sizeof lock, public_key, release, -EKEYREJECTED);
     lock[pam + 3] = 0;

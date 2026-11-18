@@ -1,5 +1,18 @@
 # Working on Aetheri
 
+Current installed suspend guard: read `spec/session.md#suspend-and-resume-lock-coordination`
+and the 2026-11-18 installed-suspend-guard record. Format 5 observes the
+seven suspend inputs in both mount views. Preserve the original ten-source
+handoff, signed stock systemd bytes and optional Sound row. The guard needs
+the original active logind desktop and its ordered endpoint through the job.
+Keep the observed seat and cgroup reads and the write and ptrace denials.
+Preserve the first publication failure and the enforcing guard refusals.
+Release af4f75f6419c passes nine tests and the authority fixture. Signed
+c87cf60a8f17 passes 219 readback decisions and starts the desktop. TCG
+7178be3f and quiet no-HDA WHPX b93fea3b still block the sleep job. Observe
+the exact guard result before changing the denied cgroup ioctls. The USB
+gate and NexaUI maintenance state apply.
+
 Current suspend lock coordination: read spec/session.md#suspend-and-resume-lock-coordination
 and the 2026-11-18 suspend-lock-coordination record. Keep separate sleep and
 wake cover generations, the original dialog Wayland sync and old PAM-result

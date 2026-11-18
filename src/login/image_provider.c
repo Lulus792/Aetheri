@@ -15,6 +15,7 @@
 static const struct ae_login_release_anchor release = {
     .desktop_sound = AETHERI_DESKTOP_SESSION_SOUND,
     .desktop_lock = AETHERI_DESKTOP_SESSION_LOCK,
+    .desktop_suspend = AETHERI_DESKTOP_SESSION_SUSPEND,
     .key = {AE_LOGIN_IMAGE_PUBLIC_KEY},
     .release = {AE_LOGIN_IMAGE_RELEASE},
 };

@@ -8,6 +8,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+from unittest.mock import patch
 
 import prepare_login_deployment as deployment
 import prepare_login_selection as selection
@@ -262,6 +263,60 @@ class LoginDeploymentTests(unittest.TestCase):
         candidate.write_bytes(original[:-1] + b"P")
         with self.assertRaisesRegex(ValueError, "differs from reviewed receipt"):
             selection.payload(*args)
+
+    def test_suspend_profile_signs_required_guard_and_systemd_inputs(self):
+        self.selection["format"] = deployment.SUSPEND_FORMAT
+        header = (self.root / "aetheri-editor.input").read_bytes()[:64]
+        for name in (deployment.LOCK_EXECUTABLE, deployment.SUSPEND_EXECUTABLE):
+            self.select(name, header + name.encode())
+        self.save()
+        stage = self.root / "suspend"
+        with self.assertRaisesRegex(ValueError, "requires exactly one"):
+            deployment.stage(self.manifest, stage)
+        self.assertFalse(stage.exists())
+
+        systemd = self.root / "systemd"
+        rows = []
+        for name in deployment.SUSPEND_RUNTIME:
+            path = systemd / "root" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            value = name.encode()
+            path.write_bytes(value)
+            rows.append(dict(destination="/" + name, size=len(value), sha256=deployment.digest(value)))
+        last = rows[-1]
+        with patch("prepare_desktop_suspend.profile", return_value=({"files": rows}, {}, "")):
+            path.write_bytes(path.read_bytes()[:-1] + b"!")
+            with self.assertRaisesRegex(ValueError, "different staged systemd suspend bytes"):
+                deployment.stage(self.manifest, stage, systemd)
+            self.assertFalse(stage.exists())
+            path.write_bytes(last["destination"][1:].encode())
+            receipt = deployment.stage(self.manifest, stage, systemd)
+        self.assertEqual(receipt["format"], 5)
+        dropin, policy = self.root / "distribution", self.root / "policy"
+        dropin.write_bytes(b"distribution service\n")
+        policy.write_bytes(b"\x01\x02")
+        args = (stage, dropin, policy, "2a" + "00" * 31, 992, 993, [993, 60000])
+        body = selection.payload(*args)
+        self.assertEqual((body[:8], len(body)), (b"AETHLS05", 1267))
+        self.assertEqual(body[907:943], bytes(36))
+        required = (f"{deployment.LIBEXEC}/{deployment.SUSPEND_EXECUTABLE}", deployment.SUSPEND_UNIT,
+                    deployment.SUSPEND_DROPIN, *deployment.SUSPEND_RUNTIME)
+        for index, name in enumerate(required):
+            candidate = stage / "root" / name
+            raw = candidate.read_bytes()
+            offset = 1015 + 36 * index
+            self.assertEqual(int.from_bytes(body[offset:offset + 4], "big"), len(raw))
+            self.assertEqual(body[offset + 4:offset + 36].hex(), deployment.digest(raw))
+            candidate.chmod(0o644)
+            candidate.write_bytes(raw + b"!")
+            with self.assertRaisesRegex(ValueError, "staged file differs"):
+                selection.payload(*args)
+            candidate.write_bytes(raw)
+        if self.verifier:
+            encoded, signed = stage / "body", stage / "signed"
+            encoded.write_bytes(body)
+            subprocess.run([self.verifier, encoded, signed], check=True, timeout=15)
+            self.assertEqual((signed.read_bytes()[:len(body)], signed.stat().st_size), (body, 1331))
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@
 *.cil text eol=lf
 *.conf text eol=lf
 *.desktop text eol=lf
+data/systemd/aetheri-suspend-guard.service text eol=lf
+policy/login-suspend.fc text eol=lf
 data/pam.d/* text eol=lf
 # Unified diffs contain literal context prefixes before blank lines and tabs.
 *.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

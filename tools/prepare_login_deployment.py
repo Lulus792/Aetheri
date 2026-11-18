@@ -22,6 +22,16 @@ SOUND_EXECUTABLE = "aetheri-audio-desktop-control"
 LOCK_FORMAT = 4
 LOCK_EXECUTABLE = "aetheri-lock-view"
 LOCK_PAM = "etc/pam.d/aetheri-unlock"
+SUSPEND_FORMAT = 5
+SUSPEND_EXECUTABLE = "aetheri-suspend-guard"
+SUSPEND_UNIT = f"{UNITS}/aetheri-suspend-guard.service"
+SUSPEND_DROPIN = f"{UNITS}/systemd-suspend.service.d/20-aetheri-lock.conf"
+SUSPEND_RUNTIME = {
+    f"{UNITS}/sleep.target": 0o644,
+    f"{UNITS}/suspend.target": 0o644,
+    f"{UNITS}/systemd-suspend.service": 0o644,
+    "usr/lib/systemd/systemd-sleep": 0o555,
+}
 
 DESKTOP_EXECUTABLES = (
     "aetheri-settings-nexaui", "aetheri-files-nexaui", "aetheri-terminal-nexaui",
@@ -65,6 +75,11 @@ LOCK_SUPPORT = {
     **{f"policy/{name}": f"{DATA}/policy/{name}" for name in
        ("login-lock.cil", "login-lock.fc")},
 }
+SUSPEND_SUPPORT = {
+    "data/systemd/aetheri-suspend-guard.service": SUSPEND_UNIT,
+    "data/systemd/systemd-suspend.service.d/20-aetheri-lock.conf": SUSPEND_DROPIN,
+    **{f"policy/{name}": f"{DATA}/policy/{name}" for name in ("login-suspend.cil", "login-suspend.fc")},
+}
 
 
 def digest(body: bytes) -> str:
@@ -95,7 +110,7 @@ def read_artifact(manifest: Path, name: str, selection: object) -> bytes:
         body = stream.read(size + 1)
     if len(body) != size or digest(body) != expected:
         raise ValueError(f"artifact differs from its selection: {name}")
-    if name in EXECUTABLES or name in (SOUND_EXECUTABLE, LOCK_EXECUTABLE):
+    if name in EXECUTABLES or name in (SOUND_EXECUTABLE, LOCK_EXECUTABLE, SUSPEND_EXECUTABLE):
         # Full executable and live-process admission belong to the native verifier.
         if (len(body) < 64 or body[:7] != b"\x7fELF\x02\x01\x01"
                 or body[16:18] not in (b"\x02\x00", b"\x03\x00") or body[18:20] != b"\x3e\x00"):
@@ -108,7 +123,28 @@ def read_artifact(manifest: Path, name: str, selection: object) -> bytes:
     return body
 
 
-def stage(manifest: Path, destination: Path) -> dict:
+def suspend_inputs(source: Path) -> dict:
+    from prepare_desktop_suspend import profile
+
+    pins, _, _ = profile()
+    files = {}
+    for row in pins["files"]:
+        name = row["destination"].lstrip("/")
+        path = source / "root" / name
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size != row["size"]:
+            raise ValueError(f"different staged systemd suspend input: {path}")
+        with path.open("rb") as stream:
+            body = stream.read(row["size"] + 1)
+        if len(body) != info.st_size or digest(body) != row["sha256"]:
+            raise ValueError(f"different staged systemd suspend bytes: {path}")
+        files[name] = body, SUSPEND_RUNTIME[name]
+    if files.keys() != SUSPEND_RUNTIME.keys():
+        raise ValueError("incomplete systemd suspend input")
+    return files
+
+
+def stage(manifest: Path, destination: Path, suspend_stage: Path | None = None) -> dict:
     with manifest.open("rb") as stream:
         data = stream.read(65537)
     if len(data) > 65536:
@@ -116,24 +152,31 @@ def stage(manifest: Path, destination: Path) -> dict:
     selected = json.loads(data, object_pairs_hook=unique_object)
     if (not isinstance(selected, dict) or set(selected) != {"format", "artifacts"}
             or type(selected["format"]) is not int
-            or selected["format"] not in (FORMAT, SOUND_FORMAT, LOCK_FORMAT)
+            or selected["format"] not in (FORMAT, SOUND_FORMAT, LOCK_FORMAT, SUSPEND_FORMAT)
             or not isinstance(selected["artifacts"], dict)):
-        raise ValueError("expected a format-2, format-3 or format-4 login artifact selection")
+        raise ValueError("expected a format-2 through format-5 login artifact selection")
     version = selected["format"]
+    if (version == SUSPEND_FORMAT) != (suspend_stage is not None):
+        raise ValueError("format 5 requires exactly one staged systemd suspend input")
     artifacts = ARTIFACTS
     support = SUPPORT
-    if version == SOUND_FORMAT or (version == LOCK_FORMAT and SOUND_EXECUTABLE in selected["artifacts"]):
+    if version == SOUND_FORMAT or (version >= LOCK_FORMAT and SOUND_EXECUTABLE in selected["artifacts"]):
         artifacts = {**artifacts, SOUND_EXECUTABLE: (f"{LIBEXEC}/{SOUND_EXECUTABLE}", 0o555)}
         support = {**support, **SOUND_SUPPORT}
-    if version == LOCK_FORMAT:
+    if version >= LOCK_FORMAT:
         artifacts = {**artifacts, LOCK_EXECUTABLE: (f"{LIBEXEC}/{LOCK_EXECUTABLE}", 0o555)}
         support = {**support, **LOCK_SUPPORT}
+    if version == SUSPEND_FORMAT:
+        artifacts = {**artifacts, SUSPEND_EXECUTABLE: (f"{LIBEXEC}/{SUSPEND_EXECUTABLE}", 0o555)}
+        support = {**support, **SUSPEND_SUPPORT}
     if set(selected["artifacts"]) != set(artifacts):
         raise ValueError(f"expected the complete format-{version} login artifact selection")
     payload = {
         target: (read_artifact(manifest, name, selected["artifacts"][name]), mode)
         for name, (target, mode) in artifacts.items()
     }
+    if suspend_stage is not None:
+        payload.update(suspend_inputs(suspend_stage))
     for source, target in support.items():
         body = (ROOT / source).read_bytes().replace(b"\r\n", b"\n")
         if source.endswith(".service.in"):
@@ -163,9 +206,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--suspend-stage", type=Path, help="use the reviewed systemd suspend payload for format 5")
     args = parser.parse_args()
     try:
-        record = stage(args.inputs, args.output)
+        record = stage(args.inputs, args.output, args.suspend_stage)
     except (OSError, ValueError) as error:
         print(f"login deployment: {error}", file=sys.stderr)
         return 1

@@ -12,6 +12,7 @@ struct ae_login_release_anchor {
     uint8_t release[AE_LOGIN_SELECTION_RELEASE_BYTES];
     bool desktop_sound;
     bool desktop_lock;
+    bool desktop_suspend;
 };
 
 enum {
@@ -39,6 +40,7 @@ enum {
 
 enum { AE_LOGIN_INSTALLED_DESKTOP_APP_MAX = 7 };
 enum { AE_LOGIN_INSTALLED_LOCK_COUNT = 3 };
+enum { AE_LOGIN_INSTALLED_SUSPEND_COUNT = 7 };
 
 /* Providers supply independent build-selected trust anchors. Open the literal
  * installed selection path, authenticate the bytes, then retain and observe the
@@ -67,6 +69,8 @@ int ae_login_installed_desktop_apps(struct ae_login_installed *,
  * lock view, PAM profile and the signed font shared with the greeter. */
 int ae_login_installed_lock(struct ae_login_installed *,
     struct ae_login_source_expect out[AE_LOGIN_INSTALLED_LOCK_COUNT], size_t *count);
+int ae_login_installed_suspend(struct ae_login_installed *,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_SUSPEND_COUNT], size_t *count);
 int ae_login_installed_display(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_font(struct ae_login_installed *, struct ae_login_source_expect *);
 int ae_login_installed_close(struct ae_login_installed **);

@@ -1,5 +1,15 @@
 # State
 
+18 November 2026 — The installed suspend guard adds a required systemd
+readiness condition and binds seven runtime files in signed selection
+format 5. The guard is launched for the sleep job and checks the original
+active desktop before making the lock request. The first enforcing VM
+refused suspend on a logind seat read. The next admitted that read and
+exposed the cgroup root search. Final signed image `c87cf60a8f17` passes 219
+policy readback checks and reaches the desktop in TCG and WHPX. The sleep
+job still fails its guard dependency. Capture the exact guard return path
+before the positive S3 and wake tests. See the [installed guard record](journal/2026-11-18-installed-suspend-guard.md).
+
 18 November 2026 — The lock broker now prepares and ends a suspend hold.
 Each transition requires fresh black frames on all outputs. The original
 dialog drains old Wayland input and clears its draft. Carrier case

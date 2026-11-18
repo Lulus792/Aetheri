@@ -29,6 +29,9 @@
 #include "login/unlock_authority.h"
 #include "login/unlock_broker.h"
 #endif
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+#include "boot/suspend.h"
+#endif
 
 /* Build-selected paths. The image keeps these defaults; a separate, explicitly
    reviewed lab binary can bind the protected runtime without altering the host.
@@ -670,6 +673,9 @@ int main(void) {
     bool failed=!supported || !session_live(session) ||
         !spawn_role(&children[COMPOSITOR],COMPOSITOR,compositor,compositor_fds,sizeof compositor_fds / sizeof compositor_fds[0]);
     bool stopping=failed,notified=false,fence_logged=false;
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+    struct ae_suspend_server *suspend = NULL;
+#endif
 #ifdef AETHERI_DESKTOP_SESSION_LOCK
     close_fd(&lock.control[1]);
     close_fd(&lock.display[0]);
@@ -692,8 +698,18 @@ int main(void) {
         }
         if(!stopping && !notified && children[COMPOSITOR].ready && children[DESKTOP].ready && children[DESKTOP].layout){
             if(!session_live(session) || !ready_notification()){failed=true;stopping=true;}
-            else{notified=true;printf("AETHERI_DESKTOP_READY uid=%lu cap_zero=1 seat=seat0\n",(unsigned long)getuid());}
+            else{
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+                int status = lock.fenced ? -ESTALE : ae_suspend_server_open(&suspend);
+                if (status) printf("AETHERI_SUSPEND_UNAVAILABLE error=%d\n", status);
+#endif
+                notified=true;printf("AETHERI_DESKTOP_READY uid=%lu cap_zero=1 seat=seat0\n",(unsigned long)getuid());
+            }
         }
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+        if (stopping || lock.fenced) ae_suspend_server_close(&suspend);
+        else ae_suspend_server_step(suspend, lock.broker);
+#endif
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
         if(!stopping && notified)audio_step(&audio,children,&owned,runtime);
 #endif
@@ -725,6 +741,9 @@ int main(void) {
 #endif
         if(stopping){
             if(!fence_logged){puts("STOPPING");fence_logged=true;}
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+            ae_suspend_server_close(&suspend);
+#endif
 #ifdef AETHERI_DESKTOP_SESSION_LOCK
             lock_close(&lock);
 #endif
@@ -738,6 +757,9 @@ int main(void) {
         enum { SESSION_EVENTS = ROLE_COUNT + 3
 #ifdef AETHERI_DESKTOP_SESSION_LOCK
             + AE_UNLOCK_BROKER_FDS
+#endif
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+            + AE_SUSPEND_SERVER_FDS
 #endif
         };
         struct pollfd fds[SESSION_EVENTS];int roles[SESSION_EVENTS];nfds_t count=0;uint64_t until=UINT64_MAX;
@@ -758,6 +780,12 @@ int main(void) {
             ae_unlock_broker_poll(lock.broker,&fds[count],&lock_timeout);
             for (unsigned i=0;i<AE_UNLOCK_BROKER_FDS;++i) roles[count++]=-4;
             if (lock_timeout>=0 && (timeout<0 || lock_timeout<timeout)) timeout=lock_timeout;
+        }
+#endif
+#ifdef AETHERI_DESKTOP_SESSION_SUSPEND
+        if (!stopping && suspend) {
+            ae_suspend_server_poll(suspend, &fds[count]);
+            for (unsigned i=0;i<AE_SUSPEND_SERVER_FDS;++i) roles[count++]=-4;
         }
 #endif
         if(until!=UINT64_MAX){

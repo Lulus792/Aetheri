@@ -1,0 +1,19 @@
+[Unit]
+Description=Hold the original Aetheri desktop lock through suspend
+DefaultDependencies=no
+After=systemd-logind.service
+RefuseManualStart=yes
+StopWhenUnneeded=yes
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/libexec/aetheri/aetheri-suspend-guard
+SELinuxContext=system_u:system_r:aetheri_suspend_guard_t:s0
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX
+ProtectSystem=strict
+LimitCORE=0
+TimeoutStartSec=9s
+TimeoutStopSec=5s

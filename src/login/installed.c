@@ -17,6 +17,7 @@
 static const char selection_leaf[] = "selection.bin";
 static const char config_label[] = "system_u:object_r:aetheri_login_config_t:s0";
 static const char unit_label[] = "system_u:object_r:systemd_unit_file_t:s0";
+static const char power_unit_label[] = "system_u:object_r:power_unit_file_t:s0";
 static const char greeter_font_label[] = "system_u:object_r:aetheri_greeter_assets_t:s0";
 
 struct ae_login_installed {
@@ -55,10 +56,11 @@ static int read_record(uint8_t *bytes, uint32_t size)
 
 int ae_login_installed_open(const struct ae_login_release_anchor *trust, struct ae_login_installed **out)
 {
-    if (!trust || !out || *out) return -EINVAL;
+    if (!trust || !out || *out || (trust->desktop_suspend && !trust->desktop_lock)) return -EINVAL;
     if (security_getenforce() != 1) return -EACCES;
-    uint8_t bytes[AE_LOGIN_SELECTION_LOCK_BYTES];
-    uint32_t size = trust->desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
+    uint8_t bytes[AE_LOGIN_SELECTION_SUSPEND_BYTES];
+    uint32_t size = trust->desktop_suspend ? AE_LOGIN_SELECTION_SUSPEND_BYTES :
+        trust->desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
         trust->desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES;
     struct ae_login_selection selected;
     int result = read_record(bytes, size);
@@ -276,6 +278,34 @@ int ae_login_installed_lock(struct ae_login_installed *installed,
         selected_file(installed, roles[i], &expected[i]);
     memcpy(out, expected, sizeof expected);
     *count = AE_LOGIN_INSTALLED_LOCK_COUNT;
+    return 0;
+}
+
+int ae_login_installed_suspend(struct ae_login_installed *installed,
+    struct ae_login_source_expect out[AE_LOGIN_INSTALLED_SUSPEND_COUNT], size_t *count)
+{
+    if (!out || !count) return -EINVAL;
+    int result = ae_login_installed_check(installed);
+    if (result) return result;
+    if (!installed->selection.files[AE_LOGIN_SELECT_SUSPEND_GUARD].size) {
+        *count = 0;
+        return 0;
+    }
+    struct ae_login_source_expect expected[AE_LOGIN_INSTALLED_SUSPEND_COUNT] = {
+        {LOGIN_EXEC, "aetheri-suspend-guard", "system_u:object_r:aetheri_suspend_guard_exec_t:s0", AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+        {SYSTEMD_UNITS, "aetheri-suspend-guard.service", unit_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        {SYSTEMD_UNITS "/systemd-suspend.service.d", "20-aetheri-lock.conf", power_unit_label, AE_LOGIN_SOURCE_DATA, 0444, 0, {0}},
+        {SYSTEMD_UNITS, "sleep.target", power_unit_label, AE_LOGIN_SOURCE_DATA, 0644, 0, {0}},
+        {SYSTEMD_UNITS, "suspend.target", power_unit_label, AE_LOGIN_SOURCE_DATA, 0644, 0, {0}},
+        {SYSTEMD_UNITS, "systemd-suspend.service", power_unit_label, AE_LOGIN_SOURCE_DATA, 0644, 0, {0}},
+        {"/usr/lib/systemd", "systemd-sleep", "system_u:object_r:systemd_sleep_exec_t:s0", AE_LOGIN_SOURCE_ELF, 0555, 0, {0}},
+    };
+    _Static_assert(AE_LOGIN_INSTALLED_SUSPEND_COUNT == AE_LOGIN_SELECT_COUNT - AE_LOGIN_SELECT_SUSPEND_GUARD,
+        "complete installed suspend selection");
+    for (size_t i = 0; i < AE_LOGIN_INSTALLED_SUSPEND_COUNT; ++i)
+        selected_file(installed, (enum ae_login_selection_role)(AE_LOGIN_SELECT_SUSPEND_GUARD + i), &expected[i]);
+    memcpy(out, expected, sizeof expected);
+    *count = AE_LOGIN_INSTALLED_SUSPEND_COUNT;
     return 0;
 }
 

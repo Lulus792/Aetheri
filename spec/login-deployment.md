@@ -95,6 +95,11 @@ source tree. Build the backend with `aetheri-session-unlock` and the native sess
 with `AETHERI_DESKTOP_SESSION_LOCK=ON` and
 `AETHERI_DESKTOP_UNLOCK_AUTHORITY=ON` for that image.
 
+Use format `5` to require a covered session before installed suspend. Build
+the session with `AETHERI_DESKTOP_SESSION_SUSPEND=ON`, add
+`aetheri-suspend-guard` to the artifact list and supply `--suspend-stage`.
+Sound remains optional in this format.
+
 ## Image integration
 
 ### Intel HDA kernel modules
@@ -170,7 +175,8 @@ login artifact manifest. Install it as Root-owned mode 0555 at
 
 ### Suspend runtime files
 
-Use [the suspend payload](desktop-suspend-inputs.json) in a dedicated VM image.
+Use [the suspend payload](desktop-suspend-inputs.json) for the pinned
+systemd inputs in a suspend-enabled image.
 It contains the three systemd units and the helper that requests sleep from the
 kernel. The stager reads the same signed systemd-udev 259.10 RPM used for the
 sound rule. It verifies the package signature and digest, then checks the four
@@ -184,13 +190,20 @@ python3 tools/prepare_desktop_suspend.py --rpm "$UDEV_RPM" \
 ```
 
 Apply the modes, root ownership and SELinux contexts in `inputs.json` when
-assembling the test image. The three units use `power_unit_file_t`. The helper
-uses `systemd_sleep_exec_t` so the distribution policy can assign the dedicated
-domain. The Aetheri signer's login selection has its own file inventory. Keep
-the separate payload receipt and verify the final image bytes.
+assembling a VM-only suspend baseline. In format `5`, pass the staged payload
+to the login deployment stager. It independently verifies the four stock
+file digests and sets the selected helper's final mode to 0555. The three
+stock units keep mode 0644 and use `power_unit_file_t`. The helper uses
+`systemd_sleep_exec_t` so the distribution policy assigns its own domain.
+The stager also supplies the Aetheri guard service and the drop-in for
+`systemd-suspend.service`, both mode 0444. Keep the separate payload receipt
+and verify the final image bytes.
 
-Physical suspend and a trusted lock that protects a resumed session remain
-release requirements. [Upstream sleep unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-suspend.service.in)
+The drop-in orders the original sleep job after the guard and binds it to
+the guard's lifetime. The guard reports systemd readiness only after the
+original session confirms that its outputs are covered and its password
+dialog is paused. See [the session protocol](session.md#suspend-and-resume-lock-coordination)
+and the [upstream sleep unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-suspend.service.in).
 
 ### Compile the image policy
 
@@ -205,6 +218,7 @@ policy and login file contexts under `login-policy/root/etc/selinux`.
 Pass `--desktop-audio` when building an image with `AETHERI_DESKTOP_SESSION_AUDIO=ON`.
 Add `--desktop-sound` for the image with the Settings mediator.
 Add `--desktop-lock` for the image with the installed password dialog.
+Add `--desktop-suspend` alongside `--desktop-lock` for format `5`.
 The receipt identifies the inputs and compiled policy. The compiler store
 stays beside that layer. [SELinux module compiler](https://github.com/SELinuxProject/selinux/tree/3.11/policycoreutils/semodule)
 
@@ -382,6 +396,19 @@ mediator is absent. The dialog and profile are required, and the profile is
 limited to 65,536 bytes. Both login entry points require the format and Sound
 presence selected at build time. The dialog uses the existing signed greeter
 font at its fixed image path.
+
+Version 5 uses `AETHLS05`, a 1,267-byte body and a 1,331-byte signed record.
+It appends seven required rows after the unlock PAM profile, in this order.
+
+1. Suspend guard ELF and guard service
+2. Aetheri drop-in for `systemd-suspend.service`
+3. Stock `sleep.target`, `suspend.target` and `systemd-suspend.service`
+4. Stock `systemd-sleep` ELF
+
+The startup helper holds a separate set of observations for these files in
+each mount view. The staged guard ELF and sleep helper have mode 0555. The
+two login entry points compile in the selection version and Sound presence.
+The original backend handoff still contains ten source observations.
 
 The native verifier checks the exact record size, release identifier,
 signature, account IDs, group ordering, reserved fields, and the size bounds

@@ -19,6 +19,7 @@ int main(int argc, char **argv)
     struct ae_login_release_anchor trust = {.release = {42}};
     for (int i = 2; i < argc; ++i) {
         if (!strcmp(argv[i], "--desktop-sound")) trust.desktop_sound = true;
+        else if (!strcmp(argv[i], "--desktop-suspend")) trust.desktop_suspend = trust.desktop_lock = true;
         else {
             CHECK(!strcmp(argv[i], "--desktop-lock"));
             trust.desktop_lock = true;
@@ -44,7 +45,8 @@ int main(int argc, char **argv)
         }
         struct ae_login_source_expect backend[AE_LOGIN_INSTALLED_BACKEND_COUNT];
         CHECK(!ae_login_installed_backend(installed, backend));
-        CHECK(backend[AE_LOGIN_INSTALLED_SELECTION].size == (trust.desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
+        CHECK(backend[AE_LOGIN_INSTALLED_SELECTION].size == (trust.desktop_suspend ? AE_LOGIN_SELECTION_SUSPEND_BYTES :
+              trust.desktop_lock ? AE_LOGIN_SELECTION_LOCK_BYTES :
               trust.desktop_sound ? AE_LOGIN_SELECTION_SOUND_BYTES : AE_LOGIN_SELECTION_BYTES));
         struct ae_login_source_expect lock[AE_LOGIN_INSTALLED_LOCK_COUNT];
         CHECK(!ae_login_installed_lock(installed, lock, &count));
@@ -54,6 +56,14 @@ int main(int argc, char **argv)
             CHECK(!strcmp(lock[1].leaf, "aetheri-unlock") && lock[1].kind == AE_LOGIN_SOURCE_DATA);
             CHECK(!strcmp(lock[1].label, "system_u:object_r:aetheri_unlock_pam_t:s0"));
             CHECK(!strcmp(lock[2].leaf, "greeter.ttf") && lock[2].kind == AE_LOGIN_SOURCE_ASSET);
+        }
+        struct ae_login_source_expect suspend[AE_LOGIN_INSTALLED_SUSPEND_COUNT];
+        CHECK(!ae_login_installed_suspend(installed, suspend, &count));
+        CHECK(count == (trust.desktop_suspend ? AE_LOGIN_INSTALLED_SUSPEND_COUNT : 0u));
+        if (count) {
+            CHECK(!strcmp(suspend[0].leaf, "aetheri-suspend-guard") && suspend[0].kind == AE_LOGIN_SOURCE_ELF);
+            CHECK(!strcmp(suspend[2].leaf, "20-aetheri-lock.conf") && suspend[2].mode == 0444);
+            CHECK(!strcmp(suspend[count - 1].leaf, "systemd-sleep") && suspend[count - 1].mode == 0555);
         }
         CHECK(!ae_login_installed_close(&installed));
         return 0;

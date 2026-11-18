@@ -348,13 +348,22 @@ Normal release still needs a fresh successful attempt, a presented dialog
 and neutral input. Failure or actor loss during a transition fences the
 broker.
 
-The installed sleep service still needs the privileged caller that holds
-this transaction through the operation. An inhibitor delay is bounded by
-logind and can expire before a compositor replies. The installed suspend
-job must require successful preparation before `systemd-sleep` starts,
-and it must end the same hold after the job finishes. [systemd inhibitor
-contract](https://systemd.io/INHIBITOR_LOCKS/) · [systemd 259.10 suspend
-unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-suspend.service.in)
+In the format-5 image, `systemd-suspend.service` requires the Aetheri
+guard and waits for its `READY=1` notification before running `systemd-sleep`.
+The guard checks that the connected desktop is in the active local Wayland
+user session on `seat0`. Both peers check enforcing SELinux, the expected
+socket label, kernel credentials, the original pidfd and its cgroup.
+The abstract socket address is used to find the desktop. Before each protocol
+transition, the receiver checks the packet sender's pidfd against the held
+peer. A request without an authenticated active desktop fails closed.
+
+The private sequenced-packet protocol uses the five-byte `AESS1` prefix and
+one message byte. The desktop sends `HELLO` (1) after enabling sender pidfd
+receipt. The guard sends `PREPARE` (2) and waits for `READY` (3). It keeps the
+same connection open through the sleep job. The desktop uses its closure
+to end that hold and request the new cover presentation. Preparation is
+bounded, and a failed attempt retains the locked desktop when the original
+actors are still valid. [systemd unit ordering and lifetime](https://github.com/systemd/systemd/blob/v259.10/man/systemd.unit.xml)
 
 ### Privileged password verification
 
@@ -438,9 +447,8 @@ states and real PAM in the carrier. The
 dialog, font and unlock PAM profile in the signed inputs. The confined dialog
 and the original PAM worker pass manual lock and unlock in an
 [installed VM](../brains/aetheri/journal/2026-11-18-signed-desktop-lock.md#installed-manual-lock).
-The trusted suspend and resume sequence still needs integration. Pointer
-interaction, scalable layout and accessibility services remain open for the
-dialog.
+Pointer interaction, scalable layout and accessibility services remain open
+for the dialog.
 
 ### Password verification for unlock
 

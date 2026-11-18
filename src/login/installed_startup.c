@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 struct runtime_observation {
-    struct ae_login_sources *core, *apps, *lock;
+    struct ae_login_sources *core, *apps, *lock, *suspend;
 };
 
 struct deployment {
@@ -27,10 +27,11 @@ struct deployment {
 
 static int close_runtime(struct runtime_observation *value)
 {
-    int result = ae_login_sources_close(&value->lock);
+    int result = ae_login_sources_close(&value->suspend);
+    int closed_lock = ae_login_sources_close(&value->lock);
     int closed_apps = ae_login_sources_close(&value->apps);
     int closed = ae_login_sources_close(&value->core);
-    return result ? result : closed_apps ? closed_apps : closed;
+    return result ? result : closed_lock ? closed_lock : closed_apps ? closed_apps : closed;
 }
 
 static int observe_runtime(struct ae_login_installed *installed, struct runtime_observation *out)
@@ -48,6 +49,9 @@ static int observe_runtime(struct ae_login_installed *installed, struct runtime_
     struct ae_login_source_expect lock[AE_LOGIN_INSTALLED_LOCK_COUNT];
     if (!result) result = ae_login_installed_lock(installed, lock, &count);
     if (!result && count) result = ae_login_sources_create(lock, count, &out->lock);
+    struct ae_login_source_expect suspend[AE_LOGIN_INSTALLED_SUSPEND_COUNT];
+    if (!result) result = ae_login_installed_suspend(installed, suspend, &count);
+    if (!result && count) result = ae_login_sources_create(suspend, count, &out->suspend);
     if (result) close_runtime(out);
     return result;
 }
@@ -84,6 +88,7 @@ static int check(void *value)
     if (!result) result = ae_login_sources_check(runtime->core);
     if (!result) result = ae_login_sources_check(runtime->apps);
     if (!result && runtime->lock) result = ae_login_sources_check(runtime->lock);
+    if (!result && runtime->suspend) result = ae_login_sources_check(runtime->suspend);
     uint32_t sequence;
     if (!result) result = policy_sequence(deployment,&sequence);
     if (!result) result = check_policy(&deployment->policy);

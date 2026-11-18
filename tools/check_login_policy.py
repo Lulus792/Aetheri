@@ -147,8 +147,46 @@ def check_desktop_lock(check, process, obj) -> None:
         check(app, worker, "unix_stream_socket", "read", False)
 
 
+def check_desktop_suspend(check, process, obj) -> None:
+    guard = process("aetheri_suspend_guard_t")
+    session = process("aetheri_session_t")
+    manager = process("init_t")
+    startup = process("aetheri_login_startup_t")
+    entry = obj("aetheri_suspend_guard_exec_t")
+    check(manager, guard, "process2", "nnp_transition", True)
+    check(guard, entry, "file", "entrypoint", True)
+    check(guard, session, "unix_stream_socket", "connectto", True)
+    check(session, guard, "unix_stream_socket", "connectto", False)
+    for source, target in ((guard, session), (session, guard)):
+        check(source, target, "fd", "use", True)
+    check(guard, session, "file", "read", True)
+    seat_state = obj("systemd_logind_var_run_t")
+    for access in ("getattr", "open", "read"):
+        check(guard, seat_state, "file", access, True)
+    check(guard, seat_state, "file", "write", False)
+    check(guard, manager, "dir", "search", True)
+    check(guard, manager, "file", "read", True)
+    check(guard, manager, "file", "write", False)
+    check(guard, manager, "process", "ptrace", False)
+    check(guard, session, "process", "ptrace", False)
+    check(guard, session, "process", "sigkill", False)
+    check(guard, manager, "unix_dgram_socket", "sendto", True)
+    check(guard, obj("shadow_t"), "file", "read", False)
+    check(guard, obj("sysfs_t"), "file", "write", False)
+    check(guard, guard, "tcp_socket", "create", False)
+    for name in ("aetheri_suspend_guard_exec_t", "systemd_sleep_exec_t", "power_unit_file_t"):
+        file = obj(name)
+        check(startup, file, "file", "read", True)
+        check(startup, file, "file", "write", False)
+    for name in ("settings", "files", "terminal", "lock_view"):
+        role = process(f"aetheri_{name}_t")
+        check(role, guard, "unix_stream_socket", "connectto", False)
+        check(role, entry, "file", "execute", False)
+
+
 def inspect(expected: str, graphical: bool = False, applications: bool = False,
-            desktop_audio: bool = False, desktop_sound: bool = False, desktop_lock: bool = False) -> dict:
+            desktop_audio: bool = False, desktop_sound: bool = False, desktop_lock: bool = False,
+            desktop_suspend: bool = False) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise ValueError("expected-policy-sha256 must be 64 lowercase hex digits")
     policy = Path("/sys/fs/selinux/policy")
@@ -389,6 +427,8 @@ def inspect(expected: str, graphical: bool = False, applications: bool = False,
         check_desktop_sound(check, process, obj)
     if desktop_lock:
         check_desktop_lock(check, process, obj)
+    if desktop_suspend:
+        check_desktop_suspend(check, process, obj)
     if len({row["seqno"] for row in rows}) != 1:
         raise RuntimeError("policy sequence changed during observation")
     if lib.security_getenforce() != 1 or policy.read_bytes() != before:
@@ -405,10 +445,11 @@ def main() -> int:
     parser.add_argument("--desktop-audio", action="store_true", help="also check the desktop audio roles")
     parser.add_argument("--desktop-sound", action="store_true", help="also check the desktop Sound mediator")
     parser.add_argument("--desktop-lock", action="store_true", help="also check the installed lock roles")
+    parser.add_argument("--desktop-suspend", action="store_true", help="also check the installed suspend guard")
     args = parser.parse_args()
     try:
         record = inspect(args.expected_policy_sha256, args.graphical, args.applications,
-                         args.desktop_audio, args.desktop_sound, args.desktop_lock)
+                         args.desktop_audio, args.desktop_sound, args.desktop_lock, args.desktop_suspend)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

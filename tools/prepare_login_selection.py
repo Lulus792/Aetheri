@@ -12,6 +12,7 @@ import sys
 from prepare_login_deployment import (
     DATA, DESKTOP_EXECUTABLES, FORMAT, LIBEXEC, MAX_INPUT, UNITS, digest, unique_object,
     LOCK_EXECUTABLE, LOCK_FORMAT, LOCK_PAM, SOUND_EXECUTABLE, SOUND_FORMAT,
+    SUSPEND_DROPIN, SUSPEND_EXECUTABLE, SUSPEND_FORMAT, SUSPEND_RUNTIME, SUSPEND_UNIT,
 )
 from verify_login_accounts import verify as verify_accounts
 
@@ -63,9 +64,9 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
     selection = json.loads(read_regular(stage / "receipt.json", 65536), object_pairs_hook=unique_object)
     if (not isinstance(selection, dict) or set(selection) != {"format", "files"}
             or type(selection["format"]) is not int
-            or selection["format"] not in (FORMAT, SOUND_FORMAT, LOCK_FORMAT)
+            or selection["format"] not in (FORMAT, SOUND_FORMAT, LOCK_FORMAT, SUSPEND_FORMAT)
             or not isinstance(selection["files"], list)):
-        raise ValueError("expected a format-2, format-3 or format-4 login staging receipt")
+        raise ValueError("expected a format-2 through format-5 login staging receipt")
     files = {}
     for entry in selection["files"]:
         if (not isinstance(entry, dict) or set(entry) != {"path", "mode", "size", "sha256"}
@@ -76,13 +77,17 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
     version = selection["format"]
     sound_path = f"/{LIBEXEC}/{SOUND_EXECUTABLE}"
     roles = (*ROLES, (sound_path, MAX_INPUT)) if version != FORMAT else ROLES
-    if version == LOCK_FORMAT:
+    if version >= LOCK_FORMAT:
         roles = (*roles, (f"/{LIBEXEC}/{LOCK_EXECUTABLE}", MAX_INPUT), (f"/{LOCK_PAM}", 65536))
+    if version == SUSPEND_FORMAT:
+        roles = (*roles, (f"/{LIBEXEC}/{SUSPEND_EXECUTABLE}", MAX_INPUT), (f"/{SUSPEND_UNIT}", 65536),
+                 (f"/{SUSPEND_DROPIN}", 65536),
+                 *((f"/{name}", MAX_INPUT if mode == 0o555 else 65536) for name, mode in SUSPEND_RUNTIME.items()))
     body = bytearray(f"AETHLS{version:02d}".encode("ascii") + bytes.fromhex(release))
     body.extend(struct.pack(">IIB2x16I", uid, gid, len(groups), *groups, *([0] * (16 - len(groups)))))
     external = iter((dropin, policy))
     for name, limit in roles:
-        if version == LOCK_FORMAT and name == sound_path and name not in files:
+        if version >= LOCK_FORMAT and name == sound_path and name not in files:
             try:
                 (stage / "root" / sound_path[1:]).lstat()
             except FileNotFoundError:
@@ -95,6 +100,7 @@ def payload(stage: Path, dropin: Path, policy: Path, release: str, uid: int,
         if name is not None:
             entry = files.get(name)
             mode = 0o555 if name.startswith(f"/{LIBEXEC}/") else 0o444
+            mode = SUSPEND_RUNTIME.get(name[1:], mode)
             if (entry is None or entry["mode"] != mode or entry["size"] != len(value)
                     or entry["sha256"] != hashed):
                 raise ValueError(f"staged file differs from reviewed receipt: {name}")
