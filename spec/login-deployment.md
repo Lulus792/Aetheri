@@ -201,6 +201,13 @@ The iwd role can bind the leased IPv4 address and UDP client port 68 for
 unicast lease renewal. The two permissions apply in the WLAN service role.
 See the [socket check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#dhcp-client-socket-admission).
 
+The iwd stager also installs the WLAN IPv6 rule. On wireless interface add
+and move events, udev sets the interface's kernel `accept_ra` value to `0`.
+iwd then handles router discovery, address configuration and route lifetime.
+This uses udev's existing network sysctl access and retains the iwd role's
+read-only sysctl permissions. The rule leaves other interface types outside
+its match. [udev rule behavior](https://github.com/systemd/systemd/blob/v259.10/src/udev/udev-rules.c#L2821)
+
 The base WLAN profile enables IP configuration. For DNS, add the signed
 systemd-resolved and OpenSSL RPMs from the
 [resolver inventory](desktop-resolver-inputs.json) to the iwd RPM directory
@@ -230,6 +237,11 @@ iwd obtains an IPv4 lease from a separate DHCP server after joining an
 open network through Settings. Turning off Wi-Fi removes the associated
 address and route. The fixture records the actual DHCP packet exchange
 and checks the resulting station state independently.
+
+The [IPv6 VM check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#ipv6-router-discovery)
+verifies a global address and default route from a router advertisement,
+alongside IPv4 DHCP. Switching off Wi-Fi removes both families' addresses and
+routes. DNS advertised by IPv6 routers and physical WLAN still need tests.
 
 ### WLAN control for Settings
 

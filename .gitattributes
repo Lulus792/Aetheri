@@ -10,6 +10,7 @@
 *.cil text eol=lf
 *.conf text eol=lf
 *.desktop text eol=lf
+data/wlan/90-aetheri-wlan-ipv6.rules text eol=lf
 data/systemd/aetheri-suspend-guard.service text eol=lf
 data/systemd/aetheri-wlan.service text eol=lf
 data/systemd/aetheri-wlan-control.service text eol=lf

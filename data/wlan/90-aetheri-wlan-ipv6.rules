@@ -1,0 +1,2 @@
+# iwd owns IPv6 router discovery on wireless links.
+ACTION=="add|move", SUBSYSTEM=="net", ENV{DEVTYPE}=="wlan", SYSCTL{net/ipv6/conf/$kernel/accept_ra}="0"

@@ -593,3 +593,49 @@ physical hardware acceptance remain open.
 The 21 Windows payload, desktop image and login deployment tests pass.
 The compact record is `local/login-review-2026-11-10/desktop-wlan-udp-bind-2026-11-18-evidence.tar.gz`
 with SHA-256 `18d6ad7aa0fe096cde35311194b7880b5d2c826ec2da2812c50347a3a88adfec`.
+
+### IPv6 router discovery
+
+The signed VM uses iwd 3.12 and libell 0.83 for IPv6 autoconfiguration.
+The test router on `wlan0` sends a Router Advertisement with an autonomous
+`2001:db8:ae:6::/64` prefix and a link-local default gateway. The first
+sender fails with `EINVAL` before a packet leaves. The corrected sender
+binds its link-local address with the interface scope before sending.
+[Neighbor Discovery](https://www.rfc-editor.org/rfc/rfc4861.html) and
+[Stateless Address Autoconfiguration](https://www.rfc-editor.org/rfc/rfc4862.html).
+
+With `accept_ra=0` set by the test fixture, VM `6c2bfc72` observes the iwd
+address and default route with metric 303. The kernel-default control
+`0208e265` observes `accept_ra=1` and a route with metric 1024. Settings
+reports a failed join after the AP observes association. The cause of that
+join failure remains open.
+
+The iwd stager installs `90-aetheri-wlan-ipv6.rules` in both profiles.
+udev sets `accept_ra=0` on WLAN interface add and move events. Eleven
+offline decisions on the installed compiled policy verify udev access and
+denied writes from iwd and Settings. The resolver profile stages 22 files
+and two links, and a second run reuses all 22 files. The base profile stages
+14 files. Both install the same rule with mode 0644. The changed-RPM counter
+still refuses before writing WLAN files.
+
+The first offline assembly expected the wrong udev file label. The second
+used a chroot without procfs for the rule verification. The final assembly
+matches the installed HP WLAN rule's `lib_t` type. The installed `udevadm
+verify` checks the rule with private read-only procfs and ext4 passes
+`e2fsck -fn`. The eight-block overlay retains the previous policy and signed
+selection bytes.
+
+Image `bf98acf09d2b`, VM `60256433`, boots with the installed rule and
+observes `accept_ra=0` before iwd starts. Settings joins the open network.
+The station gets `192.0.2.80` by DHCP and `2001:db8:ae:6:0:ff:fe00:100`
+by SLAAC, with a default route through `fe80::ff:fe00:0` at metric 303.
+Switching off Wi-Fi removes both families' addresses and routes. Normal
+logout, replacement greeter, ACPI shutdown and overlay verification pass.
+The four QEMU runs are terminal. The Windows payload, desktop image and
+login deployment suites pass 21 tests.
+
+The test uses two virtual radios in one guest. DNS from IPv6 router
+advertisements, DHCPv6 and physical WLAN remain open. The local evidence
+archive `desktop-wlan-ipv6-2026-11-18-evidence.tar.gz` under
+`local/login-review-2026-11-10/` is 178,389 bytes and has SHA-256
+`4508c06a6bea23646f4195d0d46ce7f38f9606c24faa72e3e6b997eec7dfafc6`.

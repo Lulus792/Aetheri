@@ -29,6 +29,7 @@ CRYPTO_MODULES = {f"{MODULES}/kernel/lib/crypto/libdes.ko.xz",
 BUS_POLICY = "/usr/share/dbus-1/system.d/aetheri-iwd.conf"
 SETUP_FILES = {
     "/usr/lib/systemd/system/aetheri-wlan.service": ROOT / "data/systemd/aetheri-wlan.service",
+    "/usr/lib/udev/rules.d/90-aetheri-wlan-ipv6.rules": ROOT / "data/wlan/90-aetheri-wlan-ipv6.rules",
     "/usr/share/aetheri/wlan/main.conf": ROOT / "data/wlan/main.conf",
 }
 RESOLVER_PACKAGES = {

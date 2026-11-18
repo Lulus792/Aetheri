@@ -8,12 +8,12 @@ first version.
 ## Current work
 
 The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings.
-VM `2a15c2cc` verifies IPv4 DHCP and three lease renewals using the fixed
-WLAN socket policy. DNS lookup, Wi-Fi off, address and route removal,
-resolver cleanup, logout and ACPI power-off pass. The passing case uses two
-virtual radios in one guest namespace. DHCP startup in the separate-namespace
-fixture, IPv6 and physical WLAN remain open.
-[WLAN record](journal/2026-11-18-desktop-iwd.md#dhcp-client-socket-admission)
+VM `60256433` verifies IPv6 router discovery and IPv4 DHCP in one connection.
+Switching off Wi-Fi removes both families' addresses and default routes.
+The previous VM verifies IPv4 lease renewal and DNS. Both use two virtual
+radios in one guest namespace. IPv6 router-provided DNS, the separate-namespace
+fixture and physical WLAN remain open.
+[WLAN record](journal/2026-11-18-desktop-iwd.md#ipv6-router-discovery)
 
 ## Verified milestones
 
