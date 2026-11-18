@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The optional WLAN controller implements the Settings
+status and unit toggle contract. It selects only the active local Settings
+peer and the fixed WLAN unit. The native caller test, Release payload and
+offline controller policy compile pass. Three broader authority mutations
+are refused. A live enforcing Settings-to-controller operation and the UI
+switch remain open. See the
+[WLAN control record](journal/2026-11-18-desktop-iwd.md#wlan-control-interface).
+
 18 November 2026 — Two cold WLAN-policy boots return identical enforcing
 readback `6017642b4d44…5d7a`. The installed login verifier rejects the old
 signature selection and accepts the updated format-5 selection in VM

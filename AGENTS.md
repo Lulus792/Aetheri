@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current WLAN control: read `spec/login-deployment.md#wlan-control-for-settings`
+and the WLAN control record. The optional C controller builds and stages
+with ELF 36d1ea410fe5 and complete policy 2859a121008b. Keep non-augmented
+ProcessFD, current Settings context, active local session and cgroup,
+pinned PID 1, fixed unit label and job/result separation. Native caller
+and strict mutation checks pass. Next actual enforcing Settings-to-unit
+VM calls, UI and WPA/DHCP. Keep the signed baseline and USB gate.
+
 Current signed WLAN desktop: read the last section of the 2026-11-18
 desktop-iwd journal. Two cold boots agree on enforcing readback 6017642b4d44…5d7a.
 Preserve the format-5 rows except the effective policy and use the reviewed

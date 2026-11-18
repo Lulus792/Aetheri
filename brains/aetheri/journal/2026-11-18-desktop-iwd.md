@@ -169,3 +169,40 @@ role, DNS and IPv6 still need verification. The USB gate applies.
 The readbacks, boot traces, screenshots and composition receipts are in
 `local/login-review-2026-11-10/desktop-wlan-signed-2026-11-18-evidence.tar.gz`
 with SHA-256 `a2fe65de60627a19cb402724c58f27ae5de6936e7e1af7d224f087984af934e9`.
+
+## WLAN control interface
+
+The Settings contract is `org.aetheri.Wlan1`. The optional controller
+accepts `GetState` and `SetEnabled` on the system bus. It uses the existing
+non-augmented peer capture to obtain the sender's original ProcessFD and
+checks live credentials, the exact Settings label, the original session
+scope and active local seat0. A state change sends a fixed `StartUnit` or
+`StopUnit` request to the pinned PID 1 bus peer. The reply acknowledges the
+manager job. Unit readiness remains observable through `GetState`.
+
+The controller service activates on demand and has a 30-second idle wait.
+Its SELinux role grants start and stop on the dedicated WLAN unit label.
+Settings can send the controller requests. Apps retain their direct iwd
+denial, and the controller has no direct iwd permission in this selection.
+The first controller applies an on/off operation at the unit boundary.
+
+The Fedora C17 Release targets build with the selected SDK. The native
+`wlan.caller` test uses the real process descriptor and credentials with
+scripted logind and context observations. It checks the admitted scope,
+UID and labels plus wrong PID, remote and inactive sessions, greeter,
+wrong scope, another active session, replaced session and cgroup drift.
+The unconfined standalone executable is refused. The payload without the
+controller still selects nine files. The optional payload selects 13 files
+and one alias, copies ELF `36d1ea410fe5…39ba` without an RPATH and refuses a
+non-ELF before writing to the image tree.
+
+The full offline policy compiles as `2859a121008b…eeca`. The strict desktop
+WLAN compile refuses three changed inputs that try to grant generic unit
+start, direct Settings unit start or controller access to iwd. The 45
+desktop and login Python tests also pass. The controller still needs
+the live enforcing bus and systemd execution check from an original
+Settings process. The visual switch, WPA routes and DHCP remain open.
+
+The Release build, staged payload and offline compiler checks are in
+`local/login-review-2026-11-10/desktop-wlan-control-2026-11-18-evidence.tar.gz`
+with SHA-256 `381d16fe398038b6a7f57a88e256b69a99fe960f4d9010c340c0e4858dfeecee`.

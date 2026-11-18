@@ -30,6 +30,12 @@ SETUP_FILES = {
     "/usr/lib/systemd/system/aetheri-wlan.service": ROOT / "data/systemd/aetheri-wlan.service",
     "/usr/share/aetheri/wlan/main.conf": ROOT / "data/wlan/main.conf",
 }
+CONTROL_FILES = {
+    "/usr/lib/systemd/system/aetheri-wlan-control.service": ROOT / "data/systemd/aetheri-wlan-control.service",
+    "/usr/share/dbus-1/system-services/org.aetheri.Wlan1.service": ROOT / "data/dbus-1/org.aetheri.Wlan1.service",
+    "/usr/share/dbus-1/system.d/org.aetheri.Wlan1.conf": ROOT / "policy/org.aetheri.Wlan1.conf",
+}
+CONTROL_ELF = "/usr/libexec/aetheri/aetheri-wlan-control"
 BUS_RULES = b'''<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
 <busconfig>
@@ -81,13 +87,26 @@ def unpack(package_path: Path, package: dict, scratch: Path) -> list[dict]:
     return files
 
 
-def install(tree: Path, kernel_root: Path, packages: Path) -> dict:
+def install(tree: Path, kernel_root: Path, packages: Path, *, control_executable: Path | None = None) -> dict:
     if sys.platform != "linux" or os.getuid() == 0 or os.getuid() != os.geteuid() or os.getgid() != os.getegid():
         raise ValueError("use an ordinary Linux account to stage iwd")
     tree = tree.absolute()
     if tree == Path(tree.anchor) or tree.resolve(strict=True) != tree or not tree.is_dir():
         raise ValueError("select a canonical offline image tree")
     kernel_root = desktop_wlan_payload.canonical_directory(kernel_root)
+    setup = dict(SETUP_FILES)
+    if control_executable is not None:
+        control_executable = control_executable.absolute()
+        if (control_executable.resolve(strict=True) != control_executable
+                or not control_executable.is_file() or not 64 <= control_executable.stat().st_size <= 16 * 1024**2):
+            raise ValueError("expected a bounded regular WLAN control executable")
+        with control_executable.open("rb") as stream:
+            header = stream.read(20)
+        if (header[:7] != b"\x7fELF\x02\x01\x01" or header[16:18] not in (b"\x02\x00", b"\x03\x00")
+                or header[18:20] != b"\x3e\x00"):
+            raise ValueError("expected an x86-64 WLAN control ELF")
+        setup.update(CONTROL_FILES)
+        setup[CONTROL_ELF] = control_executable
     raw = PROFILE.read_bytes()
     profile = json.loads(raw)
     modules = profile["kernel_modules"]
@@ -109,10 +128,10 @@ def install(tree: Path, kernel_root: Path, packages: Path) -> dict:
             files.extend(unpack(packages / name, package, scratch))
         policy = scratch / "aetheri-iwd.conf"
         policy.write_bytes(BUS_RULES)
-        for destination, source in {**SETUP_FILES, BUS_POLICY: policy}.items():
+        for destination, source in {**setup, BUS_POLICY: policy}.items():
             files.append({"destination": destination, "source": str(source), "provenance": "Aetheri",
                           "size": source.stat().st_size, "sha256": desktop_wlan_payload.digest(source),
-                          "mode": 0o644})
+                          "mode": 0o755 if destination == CONTROL_ELF else 0o644})
         inventory = desktop_payload.install(tree, {"format": 1, "files": files, "symlinks": ALIAS})
     return {
         "profile_sha256": prepare_audio.sha(raw), "kernel_release": profile["kernel_release"],
@@ -126,9 +145,11 @@ def main() -> int:
     parser.add_argument("--image-root", required=True, type=Path)
     parser.add_argument("--kernel-root", required=True, type=Path)
     parser.add_argument("--packages", required=True, type=Path)
+    parser.add_argument("--control-executable", type=Path)
     args = parser.parse_args()
     try:
-        print(json.dumps(install(args.image_root, args.kernel_root, args.packages), indent=2))
+        print(json.dumps(install(args.image_root, args.kernel_root, args.packages,
+                                 control_executable=args.control_executable), indent=2))
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
         print(f"desktop iwd: {error}", file=sys.stderr)
         return 1

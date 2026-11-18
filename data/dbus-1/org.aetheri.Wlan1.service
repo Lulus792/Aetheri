@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.aetheri.Wlan1
+Exec=/usr/libexec/aetheri/aetheri-wlan-control
+User=root
+SystemdService=aetheri-wlan-control.service

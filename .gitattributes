@@ -12,8 +12,11 @@
 *.desktop text eol=lf
 data/systemd/aetheri-suspend-guard.service text eol=lf
 data/systemd/aetheri-wlan.service text eol=lf
+data/systemd/aetheri-wlan-control.service text eol=lf
+data/dbus-1/org.aetheri.Wlan1.service text eol=lf
 policy/login-suspend.fc text eol=lf
 policy/login-wlan.fc text eol=lf
+policy/login-wlan-control.fc text eol=lf
 data/pam.d/* text eol=lf
 # Unified diffs contain literal context prefixes before blank lines and tabs.
 *.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

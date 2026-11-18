@@ -1,0 +1,2 @@
+/usr/libexec/aetheri/aetheri-wlan-control -- system_u:object_r:aetheri_wlan_control_exec_t:s0
+/usr/lib/systemd/system/aetheri-wlan\.service -- system_u:object_r:aetheri_wlan_unit_t:s0

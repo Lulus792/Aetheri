@@ -195,11 +195,35 @@ file contexts before boot. The unit requires SELinux and selects
 bus, the wireless device, the required network sockets and its own runtime
 directory. The immutable configuration and runtime have separate labels.
 The desktop app roles cannot execute the daemon, inspect its private state
-or send directly to it. An authenticated Settings mediator still needs its
-own policy. Keep the iwd receipt with the image inputs.
+or send directly to it. Keep the iwd receipt with the image inputs.
 
 This profile enables IP configuration and leaves DNS integration and
 persistent credentials pending.
+
+### WLAN control for Settings
+
+Build `aetheri-wlan-control` with `AETHERI_LINUX_IPC=ON` and
+`AETHERI_WLAN_CONTROL=ON`. Select it with `--control-executable` in the iwd
+stager or `--wlan-control` in the development desktop builder. Use
+`--desktop-wlan-control` with `--desktop-wlan` for the image policy and
+apply the controller and unit file contexts. The control service starts on
+a system-bus request and can exit after an idle interval.
+
+The [Wlan1 interface](api/wlan-v1.xml) exposes two methods. `GetState`
+reports the iwd unit state as `off`, `starting`, `on`, `stopping`, `failed`
+or `unavailable`. `SetEnabled` accepts a boolean and returns once systemd
+accepts a job for the fixed WLAN unit. Settings reads `GetState` for the
+resulting state. Association and IP configuration have their own state and
+will use separate operations.
+
+Both methods require the bus-authenticated original Settings process in
+the active local seat0 Wayland user session. The controller rechecks the
+live process, SELinux context, session and cgroup before forwarding a
+change. Systemd enforces the controller's start and stop permissions on the
+WLAN unit label. `NotAuthorized` means the caller check failed. `Unavailable`
+means the backend could not be admitted. `OutcomeUnknown` requires a state
+read before another change request because the original job might have
+reached systemd. The request contains no caller identity or unit name.
 
 ### PipeWire and WirePlumber files
 
