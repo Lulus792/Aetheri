@@ -1,5 +1,15 @@
 # Working on Aetheri
 
+Current compositor cover: read spec/session.md#compositor-cover and the
+2026-11-18 desktop-lock record. Release f54319119195 passes seven compositor
+tests. Three-output fixture holds the third presentation, rejects its stale
+sequence, then captures every pixel covered. DRM bf56b0c437ac confirms black
+QMP scanout and native keyboard denial in the original UID1000 session.
+Original actors and unit retire normally. tty1 returns and enforcing stays active.
+Preserve the nested case also reproduced on dceaf9e, linkage/timestamp build
+failures and DRM frame/retirement fixture failures. Next private trusted
+unlock UI/PAM and normal owner power path. USB gate applies.
+
 Current suspend VM: read spec/login-deployment.md#suspend-runtime-files
 and the 2026-11-18 desktop-suspend record. Keep the four exact Fedora 259.10
 members, original signed login selection and native deactivation fences.

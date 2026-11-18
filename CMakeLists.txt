@@ -1272,7 +1272,7 @@ if(AETHERI_COMPOSITOR)
         COMMAND "${WAYLAND_SCANNER}" client-header "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CLIENT}"
         COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CODE}"
         DEPENDS "${AETHERI_DESKTOP_XML}" "${AETHERI_LAYER_XML}" VERBATIM)
-    set(AETHERI_COMPOSITOR_SOURCES src/compositor/main.c src/compositor/input.c src/compositor/desktop.c
+    set(AETHERI_COMPOSITOR_SOURCES src/compositor/main.c src/compositor/input.c src/compositor/desktop.c src/compositor/lock.c
         "${AETHERI_XDG_HEADER}" "${AETHERI_DESKTOP_SERVER}" "${AETHERI_DESKTOP_CODE}" "${AETHERI_LAYER_SERVER}")
     if(AETHERI_COMPOSE)
         set(AETHERI_COMPOSE_TABLE "/usr/share/X11/locale/en_US.UTF-8/Compose" CACHE FILEPATH "Exact reviewed standard Compose table")
@@ -1327,7 +1327,7 @@ if(AETHERI_COMPOSITOR)
     if(AETHERI_COMPOSE)
         target_link_libraries(aetheri-compositor PRIVATE aetheri_compose)
     endif()
-    target_include_directories(aetheri-compositor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    target_include_directories(aetheri-compositor PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}/generated")
     target_compile_definitions(aetheri-compositor PRIVATE _GNU_SOURCE WLR_USE_UNSTABLE)
     if(AETHERI_DRM_SESSION)
         if(TARGET aetheri_login_display)

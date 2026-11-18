@@ -232,6 +232,29 @@ trusted unlock can restore application input and content to that session.
 Loss of the lock client keeps the display covered. Laptop and workstation
 hardware must each pass device recovery and unlock. [Wayland session-lock protocol](https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/1.49/staging/ext-session-lock/ext-session-lock-v1.xml)
 
+### Compositor cover
+
+The compositor can take `--lock-fd FD` in a controlled headless or DRM
+session. The caller supplies one end of an unnamed Unix seqpacket socket.
+The first packet must be the five bytes `AELK1` with no descriptors.
+The compositor clears ordinary seat focus, cancels any active move or
+resize, hides the cursor and disables the desktop and application
+scene branch. Applications keep running behind the cover.
+
+`AELK1 COVERED` acknowledges the original request. The compositor first
+requires a successful buffer commit and its matching positive presentation
+report on every enrolled active output. An older commit sequence cannot
+meet this condition. After sending the response, the compositor closes the
+channel. A failed response or lost channel leaves an active cover in place.
+The current entry supports one transition per compositor lifetime.
+
+The installed desktop login path still needs a trusted lock UI and an unlock
+verifier bound to the session. Keep ordinary input and output covered until
+that verifier accepts the fresh attempt. Connect user and hardware sleep
+requests after those paths are exercised together. The
+[cover record](../brains/aetheri/journal/2026-11-18-desktop-lock.md) documents
+headless and virtual DRM evidence.
+
 ## Dependency review and build
 
 [session-inputs.json](session-inputs.json) adds eleven exact signed Fedora RPMs:

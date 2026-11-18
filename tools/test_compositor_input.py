@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import select
 import signal
 import socket
 import subprocess
@@ -24,6 +25,8 @@ def main():
         env.pop(name, None)
     controller, issuer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     controller.settimeout(4)
+    lock, lock_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+    lock.settimeout(4)
     processes, streams = [], []
 
     def start(binary, name, *args, pass_fds=()):
@@ -60,7 +63,7 @@ def main():
 
     sequence, images, cases = 0, [], []
 
-    def snapshot(label, points):
+    def snapshot(label, points, *, covered=False):
         nonlocal sequence
         sequence += 1
         server.send_signal(signal.SIGUSR1)
@@ -70,6 +73,8 @@ def main():
             raw = path.read_bytes(); magic, dimensions, peak, pixels = raw.split(b"\n", 3)
             width, height = map(int, dimensions.split())
             assert magic == b"P6" and peak == b"255" and len(pixels) == width * height * 3
+            if covered:
+                assert pixels == bytes(len(pixels)), (label, i)
             for x, y, color in points.get(i, []):
                 offset = (y * width + x) * 3
                 assert tuple(pixels[offset:offset + 3]) == color, (label, i, x, y, pixels[offset:offset + 3])
@@ -83,8 +88,11 @@ def main():
 
     blue, green, bg = (41, 99, 196), (38, 180, 120), (16, 20, 28)
     try:
-        server = start(server_binary, "server", "--headless", env["WAYLAND_DISPLAY"], captures, issuer.fileno(), pass_fds=(issuer.fileno(),))
+        server = start(server_binary, "server", "--headless", env["WAYLAND_DISPLAY"], captures,
+                       issuer.fileno(), "--lock-fd", lock_peer.fileno(),
+                       pass_fds=(issuer.fileno(), lock_peer.fileno()))
         issuer.close()
+        lock_peer.close()
         wait(lambda: "READY " in log("server"), "server readiness")
         client = start(client_binary, "client", "--input")
         wait(lambda: "CAPS 3\n" in log() and "FRAME 1 " in log() and "KEYBOARD_ENTER 1\n" in log(), "seat and mapped windows")
@@ -162,6 +170,36 @@ def main():
         key(21, True); key(21, False)
         wait(lambda: "KEY 0 21 1 122\n" in log(), "German Z at the US Y physical key")
         cases.append("German keymap retained instead of replaced with US")
+        clicks = log().count("BUTTON 0 272 1\n")
+        event("M 200 180")
+        event("B 272 1")
+        wait(lambda: log().count("BUTTON 0 272 1\n") > clicks, "held pointer before cover")
+        leaves = log().count("KEYBOARD_LEAVE")
+        pointer_leaves = log().count("POINTER_LEAVE")
+        event("hold-cover")
+        lock.sendall(b"AELK1")
+        wait(lambda: "TEST_COVER_PRESENT_HELD\n" in log("server"), "third display presentation withheld")
+        assert not select.select([lock], [], [], 0.25)[0], "acknowledged with one output pending"
+        event("stale-cover")
+        assert not select.select([lock], [], [], 0.25)[0], "acknowledged a stale frame"
+        event("release-cover")
+        assert lock.recv(64) == b"AELK1 COVERED", log("server")
+        assert lock.recv(64) == b"", "cover channel remained open after acknowledgement"
+        lock.close()
+        wait(lambda: log().count("KEYBOARD_LEAVE") > leaves and
+             log().count("POINTER_LEAVE") > pointer_leaves, "normal clients lost focus")
+        mark = len(log())
+        event("B 272 0")
+        key(30, True); key(30, False)
+        click(210, 190)
+        event("S 30")
+        event("D"); event("G")
+        command("t", "INPUT_SYNC\n")
+        denied = ("KEY ", "KEYBOARD_ENTER ", "POINTER_ENTER ", "BUTTON ", "AXIS ", "MOTION ")
+        assert not any(line.startswith(denied) for line in log()[mark:].splitlines()), log()[mark:]
+        client.stdin.write(b"c"); client.stdin.flush()
+        wait(lambda: log("server").count("MAP 2\n") == 1, "new ordinary window while covered")
+        snapshot("cover survives closed owner channel, held pointer and device replacement", {}, covered=True)
         client.stdin.write(b"q"); client.stdin.flush()
         assert client.wait(timeout=6) == 0, log()
         server.terminate()
@@ -178,6 +216,7 @@ def main():
             p.stdin.close()
         for stream in streams: stream.close()
         controller.close(); issuer.close()
+        lock.close(); lock_peer.close()
         print("Input evidence:", root)
 
 

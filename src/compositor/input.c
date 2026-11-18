@@ -1,4 +1,5 @@
 #include "input.h"
+#include "lock.h"
 #include "server.h"
 #include "desktop.h"
 #include "text_input.h"
@@ -65,6 +66,7 @@ static void image_end(struct wlr_buffer *buffer) { (void)buffer; }
 static const struct wlr_buffer_impl image_impl = {
     .destroy = image_destroy, .begin_data_ptr_access = image_access, .end_data_ptr_access = image_end};
 static void default_cursor(struct ae_input *in) {
+    if (ae_lock_active(in->server->lock)) return;
     struct cursor_image *image = calloc(1, sizeof(*image));
     if (!image) { wlr_cursor_unset_image(in->cursor); return; }
     for (int y = 0; y < 18; ++y) for (int x = 0; x <= y / 2 && x < 12; ++x)
@@ -74,7 +76,7 @@ static void default_cursor(struct ae_input *in) {
     wlr_buffer_drop(&image->base);
 }
 static void focus(struct ae_input *in, struct window *w) {
-    if (w && !w->mapped) return;
+    if (ae_lock_active(in->server->lock) || (w && !w->mapped)) return;
     struct window *old = in->focused;
     bool changed = in->focused != w || (w && in->seat->keyboard_state.focused_surface != w->toplevel->base->surface);
     if (in->focused && in->focused != w) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
@@ -122,7 +124,8 @@ bool ae_input_focused(struct ae_input *in, struct window *w) {
 }
 void ae_input_activate(struct ae_input *in, struct window *w) { if (in) focus(in, w); }
 void ae_input_shell_focus(struct ae_input *in, struct wlr_surface *surface) {
-    if (!in || !surface || !surface->mapped || in->seat->keyboard_state.focused_surface == surface) return;
+    if (!in || ae_lock_active(in->server->lock) || !surface || !surface->mapped ||
+            in->seat->keyboard_state.focused_surface == surface) return;
     if (in->grabbed) wlr_xdg_toplevel_set_resizing(in->grabbed->toplevel, false);
     in->grabbed = NULL; in->clipboard_focus_valid = false;
     if (in->focused) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
@@ -178,6 +181,7 @@ static void locate_surface(struct wlr_scene_buffer *buffer, int x, int y, void *
     }
 }
 static void route(struct ae_input *in, uint32_t time) {
+    if (ae_lock_active(in->server->lock)) return;
     if (in->grabbed) {
         struct window *w = in->grabbed;
         double dx = in->cursor->x - in->start_x, dy = in->cursor->y - in->start_y;
@@ -230,7 +234,7 @@ static void route(struct ae_input *in, uint32_t time) {
     wlr_seat_pointer_notify_motion(in->seat, time, x, y);
 }
 void ae_input_recheck_pointer(struct ae_input *in) {
-    if (!in || !in->seat || !in->cursor || wl_list_empty(&in->pointers) ||
+    if (!in || ae_lock_active(in->server->lock) || !in->seat || !in->cursor || wl_list_empty(&in->pointers) ||
             in->grabbed || in->seat->pointer_state.button_count) return;
     double x = 0, y = 0;
     struct wlr_scene_node *node = wlr_scene_node_at(&in->server->scene->tree.node, in->cursor->x, in->cursor->y, &x, &y);
@@ -264,6 +268,7 @@ static void absolute(struct wl_listener *listener, void *data) {
 }
 static void button(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, button);
+    if (ae_lock_active(in->server->lock)) return;
     struct wlr_pointer_button_event *e = data;
     if (e->state == WL_POINTER_BUTTON_STATE_PRESSED && !in->seat->pointer_state.button_count) {
         double x, y;
@@ -281,23 +286,25 @@ static void button(struct wl_listener *listener, void *data) {
 static void axis(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, axis);
     struct wlr_pointer_axis_event *e = data;
-    if (isfinite(e->delta)) wlr_seat_pointer_notify_axis(in->seat, e->time_msec, e->orientation,
+    if (!ae_lock_active(in->server->lock) && isfinite(e->delta)) wlr_seat_pointer_notify_axis(in->seat, e->time_msec, e->orientation,
         e->delta, e->delta_discrete, e->source, e->relative_direction);
 }
 static void frame(struct wl_listener *listener, void *data) {
     (void)data;
     struct ae_input *in = wl_container_of(listener, in, frame);
-    wlr_seat_pointer_notify_frame(in->seat);
+    if (!ae_lock_active(in->server->lock)) wlr_seat_pointer_notify_frame(in->seat);
 }
 static void cursor_request(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, cursor_request);
     struct wlr_seat_pointer_request_set_cursor_event *e = data;
-    if (in->seat->pointer_state.focused_client == e->seat_client && e->serial == in->cursor_serial)
+    if (!ae_lock_active(in->server->lock) &&
+            in->seat->pointer_state.focused_client == e->seat_client && e->serial == in->cursor_serial)
         wlr_cursor_set_surface(in->cursor, e->surface, e->hotspot_x, e->hotspot_y);
 }
 static void modifiers(struct wl_listener *listener, void *data) {
     (void)data;
     struct keyboard *k = wl_container_of(listener, k, modifiers);
+    if (ae_lock_active(k->input->server->lock)) return;
     wlr_seat_set_keyboard(k->input->seat, k->keyboard);
     ae_text_input_modifiers(k->input->server->text_input,k->keyboard);
     wlr_seat_keyboard_notify_modifiers(k->input->seat, &k->keyboard->modifiers);
@@ -325,11 +332,21 @@ static void cancel_grab(struct ae_input *in) {
     printf("GRAB_CANCEL restored=%d\n",restore);fflush(stdout);
 #endif
 }
+void ae_input_cover(struct ae_input *in) {
+    cancel_grab(in);
+    if (in->focused) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
+    in->focused = NULL;
+    in->clipboard_focus_valid = false;
+    in->cursor_serial = 0;
+    wlr_seat_keyboard_notify_clear_focus(in->seat);
+    wlr_seat_pointer_notify_clear_focus(in->seat);
+    wlr_cursor_unset_image(in->cursor);
+}
 static void key(struct wl_listener *listener, void *data) {
     struct keyboard *k = wl_container_of(listener, k, key);
     struct wlr_keyboard_key_event *e = data;
     struct ae_input *in = k->input;
-    if (e->keycode > KEY_MAX) return;
+    if (e->keycode > KEY_MAX || ae_lock_active(in->server->lock)) return;
     wlr_seat_set_keyboard(in->seat, k->keyboard);
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;

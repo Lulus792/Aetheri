@@ -1,27 +1,17 @@
 #define _GNU_SOURCE
 #include "login/display_channel.h"
+#include "linux/unnamed_socket.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 static const char offer[] = "AGW1";
 
 int ae_login_display_channel_check(int fd, int type)
 {
-    int value;
-    socklen_t size = sizeof value;
-    if (getsockopt(fd, SOL_SOCKET, SO_TYPE, &value, &size)) return -errno;
-    if (size != sizeof value || value != type) return -EPROTO;
-    struct sockaddr_un address;
-    size = sizeof address;
-    if (getsockname(fd, (struct sockaddr *)&address, &size)) return -errno;
-    if (size != sizeof address.sun_family || address.sun_family != AF_UNIX) return -EPROTO;
-    size = sizeof address;
-    if (getpeername(fd, (struct sockaddr *)&address, &size)) return -errno;
-    return size == sizeof address.sun_family && address.sun_family == AF_UNIX ? 0 : -EPROTO;
+    return ae_unnamed_socket_check(fd, type);
 }
 
 int ae_login_display_offer(int control, int stream)

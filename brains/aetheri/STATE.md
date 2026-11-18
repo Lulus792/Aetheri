@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The compositor cover cuts ordinary focus and waits
+for each output's matching presented buffer. The three-output native test
+holds one report and sends a stale sequence before releasing the original
+report. DRM case `bf56b0c437ac` independently shows visible app content,
+then black scanout with native input denied, and the original actor exits.
+Next add the trusted lock UI, original-session unlock verification and the
+sleep gate. See the [cover record](journal/2026-11-18-desktop-lock.md).
+
 18 November 2026 — A VM-only Fedora 259.10 suspend supplement exercises
 the installed sleep key. TCG case `b0cbc1e5` enters and leaves deep suspend
 twice in the same login. The original Settings and Sound mediator confirm

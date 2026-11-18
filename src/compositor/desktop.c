@@ -1,6 +1,7 @@
 /* Original-connection development shell. No account/app admission is implied. */
 #include "desktop.h"
 #include "input.h"
+#include "lock.h"
 #include "server.h"
 #include "aetheri-development-desktop-v1-server.h"
 #include <fcntl.h>
@@ -94,7 +95,7 @@ static void activate_request(struct wl_client *client, struct wl_resource *resou
     (void)client;
     struct ae_desktop *d = wl_resource_get_user_data(resource);
     bool found = false;
-    if (!d->retired && !ae_desktop_keyboard_surface(d)) {
+    if (!d->retired && !ae_lock_active(d->server->lock) && !ae_desktop_keyboard_surface(d)) {
         struct window *w;
         wl_list_for_each(w, &d->server->windows, link) if (w->mapped && w->id == id) {
             ae_input_activate(d->server->input, w); found = true; break;
@@ -323,7 +324,7 @@ struct ae_desktop *ae_desktop_create(struct server *s, int fd) {
     if (!d) return NULL;
     d->server = s; wl_list_init(&d->surfaces); wl_list_init(&d->client_destroy.link);
     wl_list_init(&d->new_layer.link);
-    d->tree = wlr_scene_tree_create(&s->scene->tree);
+    d->tree = wlr_scene_tree_create(s->normal_tree);
     d->layers = wlr_layer_shell_v1_create(s->display, 5);
     d->global = wl_global_create(s->display, &aetheri_development_desktop_v1_interface, 1, d, bind_control);
     if (!d->tree || !d->layers || !d->global) { ae_desktop_destroy(d); return NULL; }

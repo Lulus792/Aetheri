@@ -24,6 +24,10 @@ struct input_driver {
     bool live;
     uint32_t time;
     struct ae_test_text_input *ime;
+    struct output *held_output;
+    struct wl_listener hold_present;
+    struct wlr_output_event_present held_present;
+    bool captured_present;
 };
 static const struct wlr_keyboard_impl keyboard_impl = {.name = "aetheri-test-keyboard"};
 static const struct wlr_pointer_impl pointer_impl = {.name = "aetheri-test-pointer"};
@@ -53,6 +57,22 @@ static void remove_devices(struct input_driver *d) {
     wlr_pointer_finish(&d->pointer);
     wlr_keyboard_finish(&d->keyboard);
     d->live = false;
+}
+static void hold_present(struct wl_listener *listener, void *data) {
+    struct input_driver *d = wl_container_of(listener, d, hold_present);
+    const struct wlr_output_event_present *present = data;
+    if (d->captured_present || !present->presented || !d->held_output->cover_pending ||
+            present->commit_seq != d->held_output->cover_seq) return;
+    d->held_present = *present;
+    d->captured_present = true;
+    puts("TEST_COVER_PRESENT_HELD");
+}
+static void release_present(struct input_driver *d) {
+    if (!d->held_output) return;
+    struct output *output = d->held_output;
+    wl_list_remove(&d->hold_present.link);
+    wl_signal_add(&output->output->events.present, &output->present);
+    d->held_output = NULL;
 }
 static int receive_input(int fd, uint32_t mask, void *data) {
     struct input_driver *d = data;
@@ -94,6 +114,22 @@ static int receive_input(int fd, uint32_t mask, void *data) {
     else if (sscanf(text,"I %u%n",&code,&used)==1 && used==length) { if (!ae_test_text_input_command(d->ime,code)) goto invalid; }
     else if (!strcmp(text, "D")) remove_devices(d);
     else if (!strcmp(text, "A") || !strcmp(text, "G")) { if (!add(d, text[0] == 'G')) goto invalid; }
+    else if (!strcmp(text, "hold-cover")) {
+        if (d->held_output || d->captured_present || d->server->output_count != 3 ||
+                !d->server->outputs[2].present.notify) goto invalid;
+        d->held_output = &d->server->outputs[2];
+        wl_list_remove(&d->held_output->present.link);
+        d->hold_present.notify = hold_present;
+        wl_signal_add(&d->held_output->output->events.present, &d->hold_present);
+    }
+    else if (!strcmp(text, "stale-cover") || !strcmp(text, "release-cover")) {
+        if (!d->held_output || !d->captured_present) goto invalid;
+        struct output *output = d->held_output;
+        struct wlr_output_event_present event = d->held_present;
+        if (text[0] == 's') --event.commit_seq;
+        else release_present(d);
+        output->present.notify(&output->present, &event);
+    }
     else if (sscanf(text,"Z %u %u%n",&output_index,&width,&used)==2 && used==length &&
             output_index<d->server->output_count && (width==100 || width==200)) {
         /* Test-only integer output density. This is not a production display
@@ -157,5 +193,6 @@ struct input_driver *input_driver_start(struct server *s, int fd) {
 }
 void input_driver_close(struct input_driver *d) {
     if (!d) return;
+    release_present(d);
     wl_event_source_remove(d->source);ae_test_text_input_destroy(d->ime);remove_devices(d);close(d->fd);free(d);
 }

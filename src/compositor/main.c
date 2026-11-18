@@ -39,6 +39,7 @@
 
 #include "server.h"
 #include "input.h"
+#include "lock.h"
 #include "desktop.h"
 #include "text_input.h"
 #ifdef AETHERI_GREETER_DISPLAY
@@ -106,7 +107,7 @@ static void output_frame(struct wl_listener *listener, void *data) {
     struct wlr_output_state state;
     wlr_output_state_init(&state);
     bool ok = wlr_scene_output_build_state(o->scene, &state, NULL);
-    if (ok) ok = wlr_output_commit_state(o->output, &state);
+    if (ok) ok = ae_lock_commit(o, &state);
     if (ok) {
         ++o->commits;
         if (o->capture) {
@@ -128,6 +129,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&o->frame.link);
     wl_list_remove(&o->destroy.link);
     wl_list_remove(&o->request_state.link);
+    ae_lock_remove_output(o);
     o->output = NULL;
     o->scene = NULL;
     if (o->server->nested && !o->server->shutting_down) wl_display_terminate(o->server->display);
@@ -135,6 +137,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 }
 static void output_request_state(struct wl_listener *listener, void *data) {
     struct output *o = wl_container_of(listener, o, request_state);
+    if (ae_lock_active(o->server->lock)) return;
     struct wlr_output_event_request_state *event = data;
     const struct wlr_output_state *state = event->state;
     if (state->committed & WLR_OUTPUT_STATE_MODE) {
@@ -200,6 +203,7 @@ static void drm_output(struct wl_listener *listener, void *data) {
     wl_signal_add(&raw->events.request_state, &o->request_state);
     o->frame.notify = output_frame;
     wl_signal_add(&raw->events.frame, &o->frame);
+    ae_lock_add_output(o);
     if (!wlr_output_init_render(raw, s->allocator, s->renderer)) {
         fail(s, "DRM rendering initialization failed"); return;
     }
@@ -513,12 +517,17 @@ int main(int argc, char **argv) {
     expected_argc = 5;
     struct input_driver *driver = NULL;
 #endif
-    int shell_fd = -1, greeter_fd = -1;bool compose=false,options_valid=true;
+    int shell_fd = -1, greeter_fd = -1, lock_fd = -1;
+    bool compose=false,options_valid=true;
     const char *keyboard_layout = NULL;
     for (int at=expected_argc;at<argc;++at) {
         if (!strcmp(argv[at],"--shell-fd") && shell_fd<0 && at+1<argc) {
             shell_fd = descriptor_argument(argv[++at]);
             if (shell_fd < 0) { options_valid=false;break; }
+        }
+        else if (!strcmp(argv[at], "--lock-fd") && lock_fd < 0 && at + 1 < argc) {
+            lock_fd = descriptor_argument(argv[++at]);
+            if (lock_fd < 0) { options_valid = false; break; }
         }
 #ifdef AETHERI_GREETER_DISPLAY
         else if (!strcmp(argv[at],"--greeter-fd") && greeter_fd<0 && at+1<argc) {
@@ -545,6 +554,7 @@ int main(int argc, char **argv) {
                         "                     aetheri-compositor --nested SOCKET CAPTURE_DIR_OR_- PARENT_SOCKET\n"
                         "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- auto|/dev/dri/cardN\n"
                         "  optional private desktop connection: --shell-fd FD\n"
+                        "  optional private cover channel: --lock-fd FD\n"
 #ifdef AETHERI_GREETER_DISPLAY
                         "  single-client DRM login output: --greeter-fd FD\n"
 #endif
@@ -553,6 +563,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     if (greeter_fd >= 0 && (!drm || shell_fd >= 0 || strcmp(argv[3], "-"))) return 2;
+    if (lock_fd >= 0 && (nested || greeter_fd >= 0 || lock_fd == shell_fd)) return 2;
 #ifdef AETHERI_GREETER_DISPLAY
     if (greeter_fd >= 0 && ae_login_display_channel_check(greeter_fd, SOCK_SEQPACKET)) return 2;
     struct greeter_client greeter_lifetime = {0};
@@ -610,11 +621,13 @@ int main(int argc, char **argv) {
             !wlr_viewporter_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
     const float background[] = {0.0627451f, 0.0784314f, 0.109804f, 1.0f};
-    if (!wlr_scene_rect_create(&s.scene->tree, drm ? 11520 : 8320, 2160, background)) goto done;
-    s.windows_tree = wlr_scene_tree_create(&s.scene->tree);
+    s.normal_tree = wlr_scene_tree_create(&s.scene->tree);
+    if (!s.normal_tree || !wlr_scene_rect_create(s.normal_tree, drm ? 11520 : 8320, 2160, background)) goto done;
+    s.windows_tree = wlr_scene_tree_create(s.normal_tree);
     if (!s.windows_tree) goto done;
     s.input = ae_input_create(&s);
     if (!s.input || (nested && !wlr_backend_start(s.backend))) goto done;
+    if (lock_fd >= 0 && !(s.lock = ae_lock_create(&s, lock_fd))) goto done;
     if (compose && !(s.text_input=ae_text_input_create(&s,ae_input_seat(s.input)))) goto done;
     int x = 0;
     for (unsigned i = 0; !drm && i < OUTPUT_LIMIT; ++i) {
@@ -631,6 +644,7 @@ int main(int argc, char **argv) {
         if (nested) wlr_wl_output_set_title(o->output, "Aetheri private desktop");
         o->frame.notify = output_frame;
         wl_signal_add(&o->output->events.frame, &o->frame);
+        ae_lock_add_output(o);
         if (!wlr_output_init_render(o->output, s.allocator, s.renderer)) goto done;
         struct wlr_output_state state;
         wlr_output_state_init(&state);
@@ -658,7 +672,7 @@ int main(int argc, char **argv) {
 #ifdef AETHERI_INPUT_TEST
     char *end = NULL;
     long input_fd = strtol(argv[4], &end, 10);
-    if (!end || *end || input_fd < 3 || input_fd > INT32_MAX || input_fd == shell_fd) goto done;
+    if (!end || *end || input_fd < 3 || input_fd > INT32_MAX || input_fd == shell_fd || input_fd == lock_fd) goto done;
     driver = input_driver_start(&s, (int)input_fd);
     if (!driver) goto done;
 #endif
@@ -701,6 +715,8 @@ done:
     ae_input_stop_backend(s.input);
     if (s.backend) wlr_backend_destroy(s.backend);
     ae_input_destroy(s.input);
+    if (s.lock) ae_lock_destroy(s.lock);
+    else if (lock_fd >= 0) close(lock_fd);
     if (s.scene) wlr_scene_node_destroy(&s.scene->tree.node);
     if (s.layout) wlr_output_layout_destroy(s.layout);
     if (s.allocator) wlr_allocator_destroy(s.allocator);

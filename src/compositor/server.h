@@ -19,6 +19,9 @@ struct output {
     struct wl_listener frame;
     struct wl_listener destroy;
     struct wl_listener request_state;
+    struct wl_listener present;
+    uint32_t cover_seq;
+    bool cover_pending, cover_committed, cover_presented;
     unsigned index;
     unsigned capture;
     uint64_t commits;
@@ -46,6 +49,8 @@ struct server {
     struct ae_input *input;
     struct ae_desktop *desktop;
     struct ae_text_input *text_input;
+    struct ae_lock *lock;
+    struct wlr_scene_tree *normal_tree;
     struct wlr_scene_tree *windows_tree;
     struct wl_listener new_toplevel;
     struct wl_listener backend_destroy;
