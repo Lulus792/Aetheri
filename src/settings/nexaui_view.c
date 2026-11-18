@@ -38,12 +38,13 @@ struct ae_settings_view {
     bool last_german;
     enum ae_settings_page last_page;
     enum ae_settings_window_action action;
-    bool refresh;
+    bool refresh,restore_wlan_focus;
     uint64_t sound_drag_id,sound_target;
     double sound_draft,sound_volume;
     enum ae_audio_command_kind sound_kind;
     bool sound_intent,sound_mute,sound_redraw;
 };
+enum { WLAN_SWITCH = 60, WLAN_REFRESH = 61 };
 static nx_utf8_span span(const char *s) { return (nx_utf8_span){s, strlen(s)}; }
 static nx_color rgb(unsigned value) {
     return (nx_color){(float)((value>>16)&255u)/255, (float)((value>>8)&255u)/255,
@@ -205,6 +206,56 @@ static bool group(struct ae_settings_view *v, uint64_t id, float x, float y, flo
     *index=v->node_count;
     return node(v,(struct node){.kind=CARD,.id=id,.parent=5,.rect={x,y,w,0}});
 }
+static bool toggle(struct ae_settings_view *v,uint64_t id,uint64_t parent,uint64_t target,
+    const char *name,float x,float *y,float w,float scale,bool checked,bool disabled) {
+    size_t caption;
+    if(!label(v,name,13*scale,w-16-36*scale,&caption)) return false;
+    float height=fmaxf(44*scale,(float)nx_text_layout_height(v->labels[caption].layout)+24);
+    if(!node(v,(struct node){.kind=TOGGLE,.id=id,.target_id=target,.parent=parent,
+            .rect={x,*y,w,height},.label=caption,.name=name,.selected=checked,.disabled=disabled})) return false;
+    *y+=height;
+    return true;
+}
+
+static const char *wlan_status(const struct ae_settings_view *v) {
+    const struct ae_settings_wlan *wlan=&v->model->wlan;
+    if(wlan->changing) return tr(v,"Applying change…","Änderung wird angewendet…");
+    if(wlan->busy) return tr(v,"Checking Wi-Fi status…","WLAN-Status wird geprüft…");
+    if(wlan->uncertain)
+        return tr(v,"Change unconfirmed. Check the Wi-Fi status.","Änderung unbestätigt. Prüfe den WLAN-Status.");
+    switch(wlan->state) {
+        case AE_SETTINGS_WLAN_OFF: return tr(v,"Off","Aus");
+        case AE_SETTINGS_WLAN_ON: return tr(v,"On","An");
+        case AE_SETTINGS_WLAN_STARTING: return tr(v,"Starting…","Wird eingeschaltet…");
+        case AE_SETTINGS_WLAN_STOPPING: return tr(v,"Stopping…","Wird ausgeschaltet…");
+        case AE_SETTINGS_WLAN_FAILED: return tr(v,"Wi-Fi could not start.","WLAN konnte nicht gestartet werden.");
+        default: return tr(v,"Wi-Fi is unavailable.","WLAN ist nicht verfügbar.");
+    }
+}
+
+static bool network_content(struct ae_settings_view *v,float x,float *y,float w,float scale) {
+    const struct ae_settings_wlan *wlan=&v->model->wlan;
+    bool checked=wlan->state==AE_SETTINGS_WLAN_ON || wlan->state==AE_SETTINGS_WLAN_STOPPING;
+    size_t card;
+    if(!group(v,30,x,*y,w,&card)) return false;
+    *y+=8;
+    if(!toggle(v,WLAN_SWITCH,30,0,tr(v,"Wi-Fi","WLAN"),x+16,y,w-32,scale,checked,
+               !ae_settings_wlan_can_toggle(wlan)) ||
+       !text(v,22,30,wlan_status(v),13*scale,x+16,y,w-32,true)) return false;
+    *y+=16;
+    v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
+    if(wlan->uncertain || wlan->state==AE_SETTINGS_WLAN_UNAVAILABLE ||
+       wlan->state==AE_SETTINGS_WLAN_FAILED || wlan->state==AE_SETTINGS_WLAN_STARTING ||
+       wlan->state==AE_SETTINGS_WLAN_STOPPING) {
+        *y+=12;
+        nx_rect refresh={x,*y,w,40};
+        if(!choice(v,BUTTON,WLAN_REFRESH,5,tr(v,"Check status","Status prüfen"),13*scale,&refresh,
+                   false,wlan->busy,NX_ICON_NONE)) return false;
+        *y+=refresh.height;
+    }
+    return true;
+}
+
 static bool sound_content(struct ae_settings_view *v,float x,float *y,float w,float s) {
     struct ae_settings_sound *audio=&v->model->sound;
     const char *status=audio->fenced?tr(v,"Audio connection lost. Changes are disabled.","Audioverbindung verloren. Änderungen sind gesperrt."):
@@ -251,23 +302,27 @@ static bool sound_content(struct ae_settings_view *v,float x,float *y,float w,fl
     if(!node(v,(struct node){.kind=VALUE,.id=audio->ids[selected]+1,.target_id=audio->ids[selected],.parent=31,
             .rect={x+16,*y,w-32,40*s},.name=tr(v,"Volume","Lautstärke"),.value=fmin(o->volume,1),.disabled=!enabled || o->muted})) return false;
     *y+=40*s+12;
-    size_t label_id;
-    if(!label(v,tr(v,"Mute output","Ausgabe stummschalten"),13*s,w-48-36*s,&label_id) ||
-            !node(v,(struct node){.kind=TOGGLE,.id=audio->ids[selected]+2,.target_id=audio->ids[selected],.parent=31,
-            .rect={x+16,*y,w-32,fmaxf(44*s,(float)nx_text_layout_height(v->labels[label_id].layout)+24)},
-            .label=label_id,.name=tr(v,"Mute output","Ausgabe stummschalten"),.selected=o->muted,.disabled=!enabled})) return false;
-    *y+=v->nodes[v->node_count-1].rect.height+16;
+    if(!toggle(v,audio->ids[selected]+2,31,audio->ids[selected],tr(v,"Mute output","Ausgabe stummschalten"),
+               x+16,y,w-32,s,o->muted,!enabled)) return false;
+    *y+=16;
     v->nodes[card].rect.height=*y-v->nodes[card].rect.y;
     return true;
 }
 static bool content(struct ae_settings_view *v, float width, float *extent) {
     struct ae_settings *m=v->model;
     float s=(float)m->text_percent/100, x=16, y=20, w=width-32;
-    const char *titles[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),tr(v,"Sound","Ton")};
+    const char *titles[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),
+        tr(v,"Sound","Ton"),tr(v,"Network","Netzwerk")};
     const char *subtitles[]={tr(v,"Displays observed in this session","Beobachtete Bildschirme dieser Sitzung"),
         tr(v,"Colors and text for this window","Farben und Text für dieses Fenster"),
         tr(v,"Language for this window","Sprache für dieses Fenster"),tr(v,"Output and volume","Ausgabe und Lautstärke")};
     if(!text(v,20,5,titles[m->page],25*s,x,&y,w,false)) return false;
+    if(m->page==AE_SETTINGS_NETWORK) {
+        y+=20;
+        if(!network_content(v,x,&y,w,s)) return false;
+        *extent=y+24;
+        return true;
+    }
     y+=8;
     if(!text(v,21,5,subtitles[m->page],13*s,x,&y,w,true)) return false;
     y+=24;
@@ -377,7 +432,12 @@ static bool paint(struct ae_settings_view *v, struct node n, float dx, float dy,
                     nx_fill_round_rect(v->context,thumb,8*scale,n.selected?p.canvas:p.text)!=NX_OK ||
                     nx_draw_text_layout(v->context,l->layout,(nx_point){r.x,r.y+(r.height-(float)nx_text_layout_height(l->layout))/2},n.disabled?p.secondary:p.text,GLYPH_CACHE)!=NX_OK ||
                     (state.focused && nx_stroke_rect(v->context,r,2,p.focus)!=NX_OK)) return false;
-            if(state.clicked && !n.disabled && !v->sound_intent) {v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_MUTE;v->sound_mute=!n.selected;}
+            if(state.clicked && !n.disabled) {
+                if(n.id==WLAN_SWITCH) *pressed=n.id;
+                else if(!v->sound_intent) {
+                    v->sound_intent=true;v->sound_target=n.target_id;v->sound_kind=AE_AUDIO_MUTE;v->sound_mute=!n.selected;
+                }
+            }
         } else {
             if(v->sound_drag_id!=n.id || n.disabled) {v->sound_drag_id=0;v->sound_draft=n.value;}
             /* Compare on the slider's whole-percent grid. Upstream readback
@@ -488,14 +548,18 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(!v || !changed || !status || !isfinite(width) || !isfinite(height) || width<64 || height<64) return false;
     *changed=false;
     struct ae_settings *m=v->model;
-    if(m->page<AE_SETTINGS_DISPLAY || m->page>AE_SETTINGS_SOUND || m->count>AE_SETTINGS_DISPLAYS || m->sound.observation.count>AE_AUDIO_OUTPUTS_MAX ||
+    enum ae_settings_page last_page=m->wlan.supported?AE_SETTINGS_NETWORK:AE_SETTINGS_SOUND;
+    if(m->page<AE_SETTINGS_DISPLAY || m->page>last_page || m->count>AE_SETTINGS_DISPLAYS || m->sound.observation.count>AE_AUDIO_OUTPUTS_MAX ||
        (m->count && m->selected>=m->count) || m->theme<AE_SETTINGS_DARK || m->theme>AE_SETTINGS_CONTRAST ||
        (m->text_percent!=100 && m->text_percent!=150 && m->text_percent!=200)) return false;
     for(size_t i=0;i<m->count;++i)
         if(!m->displays[i].id || !memchr(m->displays[i].name,0,sizeof(m->displays[i].name))) return false;
     v->label_count=v->node_count=0;
     v->sound_intent=false;v->sound_redraw=false;
-    if(width<320 || height<240) return small_frame(v,width,height);
+    if(width<320 || height<240) {
+        v->restore_wlan_focus=false;
+        return small_frame(v,width,height);
+    }
     float s=(float)m->text_percent/100;
     bool narrow=width<640*s;
     struct ae_settings_chrome chrome;
@@ -523,11 +587,13 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(!node(v,(struct node){.kind=CHROME,.id=11,.parent=1,.rect=chrome.zoom,
         .name=restore?tr(v,"Restore","Wiederherstellen"):tr(v,"Maximize","Maximieren"),.selected=restore,
         .disabled=!(status->capabilities&(restore?NX_WINDOW_CAP_RESTORE:NX_WINDOW_CAP_MAXIMIZE))})) return false;
-    float nav_y=header+18, nav_x=12, nav_width=narrow?(width-36)/4:side-24;
-    const char *names[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),tr(v,"Sound","Ton")};
-    const nx_icon icons[]={NX_ICON_GRID,NX_ICON_SUN,NX_ICON_SETTINGS,NX_ICON_SETTINGS};
+    unsigned pages=(unsigned)last_page+1;
+    float nav_y=header+18, nav_x=12, nav_width=narrow?(width-24-4*(float)(pages-1))/(float)pages:side-24;
+    const char *names[]={tr(v,"Displays","Bildschirme"),tr(v,"Appearance","Darstellung"),tr(v,"Language","Sprache"),
+        tr(v,"Sound","Ton"),tr(v,"Network","Netzwerk")};
+    const nx_icon icons[]={NX_ICON_GRID,NX_ICON_SUN,NX_ICON_SETTINGS,NX_ICON_SETTINGS,NX_ICON_WIFI};
     float nav_bottom=header;
-    for(unsigned i=0;i<4;++i) {
+    for(unsigned i=0;i<pages;++i) {
         nx_rect r={nav_x,nav_y,nav_width,narrow?32:40*s};
         if(!choice(v,NAV,50+i,2,narrow?"":names[i],13*s,&r,(unsigned)m->page==i,false,icons[i])) return false;
         v->nodes[v->node_count-1].name=names[i];v->nodes[v->node_count-1].icon_only=narrow;
@@ -567,7 +633,18 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     if(pressed==10) v->action=AE_SETTINGS_WINDOW_CLOSE;
     else if(pressed==11) v->action=AE_SETTINGS_WINDOW_ZOOM;
     else if(pressed==12) v->action=AE_SETTINGS_WINDOW_MINIMIZE;
-    else if(pressed>=50 && pressed<=53) {m->page=(enum ae_settings_page)(pressed-50);v->sound_drag_id=0;*changed=true;}
+    else if(pressed>=50 && pressed<50+pages) {
+        enum ae_settings_page selected=(enum ae_settings_page)(pressed-50);
+        if(selected==AE_SETTINGS_NETWORK && m->page!=selected)
+            (void)ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_READ);
+        m->page=selected;v->sound_drag_id=0;*changed=true;
+    }
+    else if(pressed==WLAN_SWITCH) {
+        enum ae_settings_wlan_request request=m->wlan.state==AE_SETTINGS_WLAN_ON?
+            AE_SETTINGS_WLAN_DISABLE:AE_SETTINGS_WLAN_ENABLE;
+        *changed=ae_settings_wlan_request(&m->wlan,request);
+    }
+    else if(pressed==WLAN_REFRESH) *changed=ae_settings_wlan_request(&m->wlan,AE_SETTINGS_WLAN_READ);
     else if(pressed>=100 && pressed<=102) {m->theme=(enum ae_settings_theme)(pressed-100);*changed=true;}
     else if(pressed>=110 && pressed<=112) {const unsigned values[]={100,150,200};m->text_percent=values[pressed-110];*changed=true;}
     else if(pressed==120 || pressed==121) {m->german=pressed==121;*changed=true;}
@@ -581,5 +658,16 @@ bool ae_settings_view_frame(struct ae_settings_view *v, float width, float heigh
     }
     if(v->sound_intent && ae_settings_sound_request(m,v->sound_target,v->sound_kind,v->sound_volume,v->sound_mute)) *changed=true;
     if(v->sound_redraw) *changed=true;
+    uint64_t current_focus=nx_focus_id(v->context);
+    if(m->page!=AE_SETTINGS_NETWORK || (current_focus && current_focus!=WLAN_SWITCH)) {
+        v->restore_wlan_focus=false;
+    } else if(m->wlan.busy) {
+        /* The disabled switch can lose toolkit focus during a service call. */
+        if(focus==WLAN_SWITCH || current_focus==WLAN_SWITCH) v->restore_wlan_focus=true;
+    } else if(v->restore_wlan_focus) {
+        v->restore_wlan_focus=false;
+        if(!current_focus && ae_settings_wlan_can_toggle(&m->wlan) &&
+           nx_focus_set(v->context,WLAN_SWITCH)==NX_OK) *changed=true;
+    }
     return true;
 }

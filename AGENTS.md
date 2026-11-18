@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current Network page: read `spec/settings.md#network-page` and the native
+Network section of the 2026-11-18 desktop-iwd journal. Keep the optional
+WLAN build selection, one async change per activation, bounded readback
+and conditional focus return. Signed image 40ae87db5c27/session 156753ed
+uses the native Settings ELF, observes off/on/off with keyboard focus
+and F5, then passes Settings exit, logout and ACPI power-off. Both CTest
+profiles pass. Next scan/join, independent DHCP/DNS and physical WLAN.
+Preserve the earlier focus-loss run and ioctl audit evidence. USB gate.
+
 Current installed WLAN control: read the live Settings section in the
 2026-11-18 desktop-iwd journal. The original Settings launch reaches the
 controller but both sd-login cgroup lookups return EACCES on the first

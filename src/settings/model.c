@@ -120,3 +120,23 @@ void ae_settings_sound_result(struct ae_settings *m,enum ae_audio_submit result)
     if(m->sound.fenced) return;
     m->sound.feedback=result==AE_AUDIO_SUBMITTED?AE_SETTINGS_SOUND_SUBMITTED:AE_SETTINGS_SOUND_REJECTED;
 }
+
+bool ae_settings_wlan_can_toggle(const struct ae_settings_wlan *wlan) {
+    return wlan->supported && !wlan->busy && !wlan->uncertain &&
+        (wlan->state==AE_SETTINGS_WLAN_OFF || wlan->state==AE_SETTINGS_WLAN_ON ||
+         wlan->state==AE_SETTINGS_WLAN_FAILED);
+}
+
+bool ae_settings_wlan_request(struct ae_settings_wlan *wlan,enum ae_settings_wlan_request request) {
+    if(!wlan->supported || wlan->busy || request<AE_SETTINGS_WLAN_READ || request>AE_SETTINGS_WLAN_DISABLE)
+        return false;
+    if(request!=AE_SETTINGS_WLAN_READ) {
+        bool target_on=request==AE_SETTINGS_WLAN_ENABLE;
+        bool currently_on=wlan->state==AE_SETTINGS_WLAN_ON;
+        if(!ae_settings_wlan_can_toggle(wlan) || target_on==currently_on) return false;
+    }
+    wlan->request=request;
+    wlan->busy=true;
+    wlan->changing=request!=AE_SETTINGS_WLAN_READ;
+    return true;
+}

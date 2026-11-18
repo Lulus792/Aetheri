@@ -1,5 +1,14 @@
 # State
 
+18 November 2026 — The native Network page controls the WLAN service
+through the authenticated controller. Signed desktop VM `156753ed`
+passes off/on/off with Tab and Space, switch focus after both changes,
+F5 status refresh, original Settings exit, logout and power-off. The
+window stays usable while acknowledging and reading back requests.
+Both Release build profiles pass their five Settings tests. Scan, join,
+DHCP/DNS, live inactive-session calls and physical WLAN remain open.
+See the [native Network record](journal/2026-11-18-desktop-iwd.md#native-network-page).
+
 18 November 2026 — The signed desktop launches the WLAN probe through the
 ordinary Settings path. It activates the controller on demand and reads
 the WLAN unit off, on and off again. Direct requests to iwd and systemd

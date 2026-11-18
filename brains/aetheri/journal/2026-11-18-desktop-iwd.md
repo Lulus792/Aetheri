@@ -253,3 +253,44 @@ WLAN also require verification. The first-version USB gate applies.
 The failed and successful runs, policy, readback and probe are archived in
 `local/login-review-2026-11-10/desktop-wlan-settings-2026-11-18-evidence.tar.gz`
 with SHA-256 `c6fc4433b5880ce9e833ffe59a2dd7d1a1bef2b9b33bccbbe6adf33553ba7085`.
+
+## Native Network page
+
+The selected native Settings build adds the [Network page](../../../spec/settings.md#network-page)
+using the existing switch style and Wi-Fi icon. It reads on arrival or
+explicit refresh. A toggle queues one `SetEnabled` and waits for
+`GetState` to observe the target. The window loop integrates the
+asynchronous D-Bus connection with its existing wait sources. Subsequent
+reads are bounded to one operation window. Unconfirmed changes require
+fresh state before the switch is usable again.
+
+The first signed native app image `15d7fe785ead`, VM `1708f000`, passes
+off/on/off, F5, logout and ACPI power-off. The switch loses keyboard focus
+while disabled for the pending change. The view now returns focus after a
+successful observation when focus was lost on that switch. A deliberate
+move to a different control cancels the return. The view test covers both
+outcomes, pending and unknown states, and the disabled switch.
+
+Final image `40ae87db5c27`, VM `156753ed`, selects the native Settings ELF
+`c4ccd67113de…d69b`. The prior enforcing policy digest and controller are
+reused. The Settings row is the only changed row between the two native
+image selections. After graphical login, the desktop launches the usual
+Settings window. Tab reaches Network and Wi-Fi, and Space turns the
+service on. Once the switch regains focus, another Space turns it off.
+Both readable states and switch semantics agree. F5 produces a fresh
+off observation and focus returns again. Settings exits at zero. The
+session closes normally, the replacement greeter appears, and ACPI
+power-off ends the VM at zero. The data overlay check reports zero errors.
+
+Five Settings CTests pass in each Release build, with the controller
+option enabled and disabled. The unprivileged WLAN caller test and 45
+desktop/login Python tests pass. View cases cover both languages, three
+themes, text scales from 100% to 200%, narrow and wide layouts, and 1×
+and 2× text rasterization. The VM logs retain the nonfatal denied
+`ioctlcmd=0x542a` on `/proc/1/cgroup`. The image uses virtual radios.
+Network discovery, joining, DHCP and DNS, a live inactive-session call,
+and physical laptop WLAN remain open. The first-version USB gate applies.
+
+The build receipts, tests, signed VM results and screenshots are in
+`local/login-review-2026-11-10/desktop-wlan-network-view-2026-11-18-evidence.tar.gz`
+with SHA-256 `e452b2e90b465e1eb8407d5958521838b953f94b16c337a793e563e67f885cb5`.

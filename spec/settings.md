@@ -12,6 +12,28 @@ or establish native accessibility/normal session acceptance.
 
 ## Behavior and responsibility
 
+### Network page
+
+The installed NexaUI Settings build selects Network with
+`AETHERI_WLAN_CONTROL=ON`. The Wi-Fi switch uses the same control and
+focus styling as Sound. It shows the WLAN service state in English or
+German and keeps the current scroll position while the state changes.
+
+Opening Network reads the status from [Wlan1](api/wlan-v1.xml). Turn Wi-Fi
+on or off with the switch. The previous setting remains visible while the
+request runs. Settings confirms the result from a subsequent service
+state read. Tab reaches the switch and Space activates it. Focus returns to
+the switch after a successful operation if you stay on that control.
+
+Use **Check status** or F5 to refresh after a failed or unconfirmed
+change. Each activation sends at most one change request. Settings waits
+for confirmation for up to ten seconds. You can continue using the window
+while it waits. The request connection and wait descriptor close when the
+operation completes or the window closes.
+
+The switch manages the WLAN service. Network discovery, joining and
+persistent profiles are separate milestones.
+
 ### Native Sound page
 
 The optional NexaUI view now has a **Sound** page alongside the original three

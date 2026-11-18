@@ -14,7 +14,21 @@ struct ae_settings_display {
     float scale, refresh;
     bool mode_known;
 };
-enum ae_settings_page { AE_SETTINGS_DISPLAY, AE_SETTINGS_APPEARANCE, AE_SETTINGS_LANGUAGE, AE_SETTINGS_SOUND };
+enum ae_settings_page {
+    AE_SETTINGS_DISPLAY, AE_SETTINGS_APPEARANCE, AE_SETTINGS_LANGUAGE, AE_SETTINGS_SOUND, AE_SETTINGS_NETWORK
+};
+enum ae_settings_wlan_state {
+    AE_SETTINGS_WLAN_UNAVAILABLE, AE_SETTINGS_WLAN_OFF, AE_SETTINGS_WLAN_ON,
+    AE_SETTINGS_WLAN_STARTING, AE_SETTINGS_WLAN_STOPPING, AE_SETTINGS_WLAN_FAILED
+};
+enum ae_settings_wlan_request {
+    AE_SETTINGS_WLAN_NONE, AE_SETTINGS_WLAN_READ, AE_SETTINGS_WLAN_ENABLE, AE_SETTINGS_WLAN_DISABLE
+};
+struct ae_settings_wlan {
+    enum ae_settings_wlan_state state;
+    enum ae_settings_wlan_request request;
+    bool supported, busy, changing, uncertain;
+};
 enum ae_settings_sound_feedback {AE_SETTINGS_SOUND_IDLE,AE_SETTINGS_SOUND_QUEUED,
     AE_SETTINGS_SOUND_SUBMITTED,AE_SETTINGS_SOUND_OBSERVED,AE_SETTINGS_SOUND_REJECTED,AE_SETTINGS_SOUND_UNKNOWN};
 struct ae_settings_sound_request {
@@ -42,6 +56,7 @@ struct ae_settings {
     enum ae_settings_theme theme;
     unsigned text_percent;
     struct ae_settings_sound sound;
+    struct ae_settings_wlan wlan;
 };
 void ae_settings_init(struct ae_settings *model);
 /* Failed snapshots preserve the previous observation and mark it stale. */
@@ -61,4 +76,6 @@ bool ae_settings_sound_request(struct ae_settings *,uint64_t output_id,
     enum ae_audio_command_kind,double volume,bool mute);
 bool ae_settings_sound_take(struct ae_settings *,struct ae_settings_sound_request *);
 void ae_settings_sound_result(struct ae_settings *,enum ae_audio_submit);
+bool ae_settings_wlan_can_toggle(const struct ae_settings_wlan *);
+bool ae_settings_wlan_request(struct ae_settings_wlan *,enum ae_settings_wlan_request);
 #endif

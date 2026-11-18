@@ -203,7 +203,9 @@ persistent credentials pending.
 ### WLAN control for Settings
 
 Build `aetheri-wlan-control` with `AETHERI_LINUX_IPC=ON` and
-`AETHERI_WLAN_CONTROL=ON`. Select it with `--control-executable` in the iwd
+`AETHERI_WLAN_CONTROL=ON`. The same option enables the
+[Network page](settings.md#network-page) in the native NexaUI Settings build.
+Select the controller with `--control-executable` in the iwd
 stager or `--wlan-control` in the development desktop builder. Use
 `--desktop-wlan-control` with `--desktop-wlan` for the image policy and
 apply the controller and unit file contexts. The control service starts on
@@ -233,7 +235,8 @@ permission to modify the PID 1 or logind records or trace PID 1.
 The [signed desktop test](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#installed-wlan-control-from-settings)
 uses a probe ELF in the normal Settings launch. It confirms the unit
 cycle and the direct-call denials under enforcing SELinux. The native
-Settings switch and network association are separate acceptance cases.
+Settings application uses the same controller to read and change the unit
+state. Network association has its own acceptance case.
 
 ### PipeWire and WirePlumber files
 

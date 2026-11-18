@@ -5,6 +5,9 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #include "settings/nexaui_view.h"
+#ifdef AETHERI_SETTINGS_WLAN
+#include "settings/wlan.h"
+#endif
 #include "settings/nexaui_main.h"
 #include "settings/sound_channel.h"
 #include "audio/control_wire.h"
@@ -267,6 +270,10 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
     struct chrome_pointer pointer={0};
     size_t length=0; unsigned char *font=load_font(font_path,&length);
     struct ae_settings model; ae_settings_init(&model);
+#ifdef AETHERI_SETTINGS_WLAN
+    model.wlan.supported=true;
+    struct ae_settings_wlan_client wlan={.model=&model.wlan,.wait_fd=-1,.parent_fd=-1};
+#endif
     struct ae_settings_sound_channel sound;
     int sound_wait=-1;
     if(sound_fd) {
@@ -309,6 +316,9 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
         if(audio) {wait_fd=ae_settings_audio_host_prepare(audio,fds[0],&timeout);if(wait_fd<0) {okay=0;break;}}
 #endif
+#ifdef AETHERI_SETTINGS_WLAN
+        wait_fd=ae_settings_wlan_prepare(&wlan,wait_fd,&timeout,&dirty);
+#endif
         nx_result waited=nx_window_poll_with_fd(window,timeout,wait_fd,&signal_events);
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
         if(audio) {
@@ -322,6 +332,9 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
         if(signal_events & (NX_WINDOW_FD_ERROR|NX_WINDOW_FD_HANGUP)) {okay=0;break;}
         if(stopping) break;
         if(info.should_close) break;
+#ifdef AETHERI_SETTINGS_WLAN
+        if(ae_settings_wlan_process(&wlan)) dirty=1;
+#endif
         if(sound_wait>=0 && (signal_events&NX_WINDOW_FD_READABLE)) {
             sound_receive(sound_wait,&sound,&model,&dirty);
             if(sound.retired) sound_detach(&sound_wait,sound_fd);
@@ -334,7 +347,11 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
                    !chrome_event(window,&model,&info,&event_status,&event,&pointer,diagnostics,&chrome_handled)) {okay=0;break;}
                 if(!chrome_handled && event.type==NX_EVENT_KEY_DOWN && (event.key==NX_KEY_ESCAPE ||
                    (event.key==NX_KEY_Q && event.modifiers==NX_MOD_CONTROL))) quit=1;
-                else if(event.type==NX_EVENT_KEY_DOWN && event.key==NX_KEY_F5) {outputs_seen=UINT64_MAX;dirty=1;}
+                else if(event.type==NX_EVENT_KEY_DOWN && event.key==NX_KEY_F5) {
+                    if(model.page==AE_SETTINGS_NETWORK) (void)ae_settings_wlan_request(&model.wlan,AE_SETTINGS_WLAN_READ);
+                    else outputs_seen=UINT64_MAX;
+                    dirty=1;
+                }
                 else if(!chrome_handled && nx_context_queue_event(ae_settings_view_context(view),&event)!=NX_OK) {okay=0;break;}
                 dirty=1;
             }
@@ -408,6 +425,11 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
             }
             fflush(stdout);}
         if(verify || diagnostics) {printf("MODEL theme=%d german=%d text=%u page=%d\n",(int)model.theme,model.german,model.text_percent,(int)model.page);fflush(stdout);}
+        if(diagnostics && model.page==AE_SETTINGS_NETWORK) {
+            printf("WLAN state=%d busy=%d changing=%d uncertain=%d\n",(int)model.wlan.state,
+                   model.wlan.busy,model.wlan.changing,model.wlan.uncertain);
+            fflush(stdout);
+        }
         if((audio || sound_fd) && diagnostics) {
             const struct ae_settings_sound *s=&model.sound;
             printf("AUDIO state=%d revision=%llu count=%zu feedback=%d stale=%d fenced=%d\n",(int)s->observation.state,
@@ -434,6 +456,9 @@ static int run(int argc,char **argv,struct ae_settings_audio_host *audio,int *so
         dirty=changed?1:0;
     }
 done:
+#ifdef AETHERI_SETTINGS_WLAN
+    ae_settings_wlan_close(&wlan);
+#endif
     if(sound_wait>=0) sound_detach(&sound_wait,sound_fd);
 #ifdef AETHERI_SETTINGS_AUDIO_HOST
     if(audio_bound && !ae_settings_audio_host_bind(audio,NULL)) okay=0;

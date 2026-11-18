@@ -246,6 +246,49 @@ int main(int argc,char **argv) {
     capture(ui,captures,"sound-light-de-200-controls",640,600);
     CHECK(ae_settings_sound_snapshot(&m,NULL,8));frame(v,1000,720);CHECK(!m.sound.queued);
     CHECK(nx_semantics_request_action(ui,m.sound.ids[1],NX_ACTION_PRESS)!=NX_OK);
+
+    m.wlan.supported=true;m.german=false;m.text_percent=100;
+    frame(v,1000,720);
+    activate(v,54);
+    CHECK(m.page==AE_SETTINGS_NETWORK && m.wlan.request==AE_SETTINGS_WLAN_READ && m.wlan.busy);
+    CHECK(find(ui,60).role==NX_ROLE_SWITCH && (find(ui,60).state&NX_SEM_DISABLED));
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_OFF};
+    frame(v,1000,720);
+    CHECK(!(find(ui,60).state&(NX_SEM_DISABLED|NX_SEM_CHECKED)));
+    capture(ui,captures,"network-off-light",1000,720);
+    activate(v,60);
+    CHECK(m.wlan.request==AE_SETTINGS_WLAN_ENABLE && m.wlan.changing);
+    CHECK((find(ui,60).state&(NX_SEM_DISABLED|NX_SEM_CHECKED))==NX_SEM_DISABLED);
+    CHECK(!ae_settings_wlan_request(&m.wlan,AE_SETTINGS_WLAN_ENABLE));
+    CHECK(nx_semantics_request_action(ui,60,NX_ACTION_PRESS)!=NX_OK);
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_ON};
+    frame(v,1000,720);CHECK(nx_focus_id(ui)==60);
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_ON,.uncertain=true};
+    frame(v,1000,720);
+    CHECK((find(ui,60).state&(NX_SEM_DISABLED|NX_SEM_CHECKED))==(NX_SEM_DISABLED|NX_SEM_CHECKED));
+    CHECK(!ae_settings_wlan_request(&m.wlan,AE_SETTINGS_WLAN_DISABLE));
+    activate(v,61);
+    CHECK(m.wlan.request==AE_SETTINGS_WLAN_READ && m.wlan.busy && !m.wlan.changing);
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_ON};
+    frame(v,1000,720);
+    activate(v,60);
+    CHECK(m.wlan.request==AE_SETTINGS_WLAN_DISABLE && m.wlan.changing);
+    CHECK((find(ui,60).state&(NX_SEM_DISABLED|NX_SEM_CHECKED))==(NX_SEM_DISABLED|NX_SEM_CHECKED));
+    CHECK(nx_focus_set(ui,54)==NX_OK);
+    frame(v,1000,720);
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_OFF};
+    frame(v,1000,720);CHECK(nx_focus_id(ui)==54);
+    m.wlan=(struct ae_settings_wlan){.supported=true,.state=AE_SETTINGS_WLAN_ON};
+    for(unsigned theme=0;theme<3;++theme) for(unsigned language=0;language<2;++language)
+        for(unsigned scale=100;scale<=200;scale+=50) {
+            m.theme=(enum ae_settings_theme)theme;m.german=language!=0;m.text_percent=scale;
+            frame(v,1000,720);visible(ui,60,1000,720);
+            frame(v,320,320);visible(ui,54,320,320);
+            CHECK(m.wlan.request==AE_SETTINGS_WLAN_NONE);
+        }
+    m.theme=AE_SETTINGS_CONTRAST;m.german=true;m.text_percent=200;frame(v,640,600);
+    CHECK(nx_focus_set(ui,60)==NX_OK);frame(v,640,600);visible(ui,60,640,600);
+    capture(ui,captures,"network-on-contrast-de-200",640,600);
     ae_settings_view_destroy(v);free(font);
     printf("Settings presentation: %u theme/language/text/viewport/page frames, keyboard, ownership and stale-state cases\n",frames);
     return 0;
