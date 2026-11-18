@@ -25,6 +25,9 @@
 #include <pwd.h>
 #include <sys/prctl.h>
 #include "../linux/session.h"
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+#include "login/unlock_broker.h"
+#endif
 
 /* Build-selected paths. The image keeps these defaults; a separate, explicitly
    reviewed lab binary can bind the protected runtime without altering the host.
@@ -52,6 +55,9 @@
 #define MONO AETHERI_DESKTOP_MONO
 #define BOLD AETHERI_DESKTOP_BOLD
 enum role { COMPOSITOR, DESKTOP, FILES, TERMINAL, SETTINGS,
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+    LOCK_VIEW,
+#endif
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
     PIPEWIRE, WIREPLUMBER,
 #ifdef AETHERI_DESKTOP_SESSION_SOUND
@@ -60,6 +66,9 @@ enum role { COMPOSITOR, DESKTOP, FILES, TERMINAL, SETTINGS,
 #endif
     ROLE_COUNT };
 static const char *const names[]={"compositor","desktop","files","terminal","settings",
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+    "lock-view",
+#endif
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
     "pipewire","wireplumber",
 #ifdef AETHERI_DESKTOP_SESSION_SOUND
@@ -198,7 +207,11 @@ static bool reap(struct child *c) {
 static bool ended(const struct child *c) { return !c->pid || (c->reaped && c->eof); }
 static bool success(const struct child *c) { return WIFEXITED(c->status) && WEXITSTATUS(c->status)==0; }
 static bool retire(struct child *children) {
-    static const enum role order[]={FILES,TERMINAL,SETTINGS,DESKTOP,COMPOSITOR};
+    static const enum role order[]={FILES,TERMINAL,SETTINGS,DESKTOP,
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+        LOCK_VIEW,
+#endif
+        COMPOSITOR};
     for(size_t i=0;i<sizeof(order)/sizeof(order[0]);++i){
         struct child *c=&children[order[i]];
         if(!c->pid)continue;
@@ -543,12 +556,77 @@ static bool settings_start(struct child *children,const struct session_audio *au
 }
 #endif
 
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+struct session_lock {
+    int control[2], display[2], credentials[2];
+    struct ae_unlock_broker *broker;
+    bool fenced;
+};
+
+static bool lock_channels(struct session_lock *lock) {
+    return !socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, lock->control) &&
+        !socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, lock->display) &&
+        !socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, lock->credentials);
+}
+
+static bool lock_session_live(void *session) { return session_live(session); }
+
+static bool lock_start(struct session_lock *lock, struct child *children, struct ae_session *session) {
+    char display[32], credential[32];
+    snprintf(display, sizeof display, "%d", lock->display[1]);
+    snprintf(credential, sizeof credential, "%d", lock->credentials[1]);
+    const char *locale = getenv("LANG");
+    const char *account = getenv("USER"); /* Derived from the authenticated UID in entry_paths. */
+    char *command[] = {BIN "aetheri-lock-view", display, credential, SANS, (char *)account,
+        locale && !strncmp(locale, "de_", 3) ? "de" : "en", NULL};
+    int pass[] = {lock->display[1], lock->credentials[1]};
+    bool started = account && spawn_role(&children[LOCK_VIEW], LOCK_VIEW, command, pass, 2);
+    close_fd(&lock->display[1]);
+    close_fd(&lock->credentials[1]);
+    if (!started) return false;
+    struct ae_unlock_broker_config config = {
+        .compositor = children[COMPOSITOR].pin, .view = children[LOCK_VIEW].pin,
+        .control = lock->control[0], .credentials = lock->credentials[0],
+        .worker = BIN "aetheri-unlock-worker", .account = account,
+        .session_live = lock_session_live, .session = session,
+    };
+    int status = ae_unlock_broker_open(&lock->broker, &config);
+    if (status) {
+        printf("AETHERI_LOCK_UNAVAILABLE startup=%d\n", status);
+        return false;
+    }
+    lock->control[0] = lock->credentials[0] = -1;
+    return true;
+}
+
+static void lock_step(struct session_lock *lock) {
+    if (!lock->broker) return;
+    int status = ae_unlock_broker_step(lock->broker);
+    if (status && !lock->fenced) {
+        lock->fenced = true;
+        printf("AETHERI_LOCK_UNAVAILABLE live=%d\n", status);
+    }
+}
+
+static void lock_close(struct session_lock *lock) {
+    ae_unlock_broker_close(&lock->broker);
+    for (unsigned i = 0; i < 2; ++i) {
+        close_fd(&lock->control[i]);
+        close_fd(&lock->display[i]);
+        close_fd(&lock->credentials[i]);
+    }
+}
+#endif
+
 int main(void) {
     if(!entry_descriptors()){fputs("AETHERI_DESKTOP_FAIL descriptors\n",stderr);return 1;}
     if(!entry_logging()){fputs("AETHERI_DESKTOP_FAIL logging\n",stderr);return 1;}
     struct child children[ROLE_COUNT];for(size_t i=0;i<ROLE_COUNT;++i)empty(&children[i]);
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
     struct session_audio audio={.directory=-1,.state=-1};
+#endif
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+    struct session_lock lock = {.control = {-1,-1}, .display = {-1,-1}, .credentials = {-1,-1}};
 #endif
     struct session_runtime owned = { .parent = -1, .directory = -1, .cache = -1 };
     char runtime[512],cache[512],documents[4096];struct ae_session *session=NULL;setvbuf(stdout,NULL,_IOLBF,0);
@@ -560,12 +638,35 @@ int main(void) {
         close_fd(&signals);for(unsigned i=0;i<2;++i){close_fd(&shell[i]);close_fd(&launch[i]);}runtime_finish(&owned);ae_session_close(&session);return 1;
     }
     char shell_number[32],launch_number[32];snprintf(shell_number,sizeof(shell_number),"%d",shell[0]);
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+    bool supported = lock_channels(&lock);
+    char control_number[32], display_number[32];
+    snprintf(control_number, sizeof control_number, "%d", lock.control[1]);
+    snprintf(display_number, sizeof display_number, "%d", lock.display[0]);
+    char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","auto","--shell-fd",shell_number,
+        "--compose","--session-lock-fd",control_number,"--lock-view-fd",display_number,NULL};
+    int compositor_fds[] = {shell[0], lock.control[1], lock.display[0]};
+#else
+    bool supported = true;
     char *compositor[]={BIN "aetheri-compositor","--drm","aetheri-image","-","auto","--shell-fd",shell_number,"--compose",NULL};
-    bool failed=!session_live(session) || !spawn_role(&children[COMPOSITOR],COMPOSITOR,compositor,&shell[0],1),stopping=failed,notified=false,fence_logged=false;
+    int compositor_fds[] = {shell[0]};
+#endif
+    bool failed=!supported || !session_live(session) ||
+        !spawn_role(&children[COMPOSITOR],COMPOSITOR,compositor,compositor_fds,sizeof compositor_fds / sizeof compositor_fds[0]);
+    bool stopping=failed,notified=false,fence_logged=false;
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+    close_fd(&lock.control[1]);
+    close_fd(&lock.display[0]);
+#endif
     close_fd(&shell[0]);unsigned launches[ROLE_COUNT]={0};double deadline=now()+60;
     while(true){
         if(!stopping && !session_live(session)){failed=true;stopping=true;}
         for(size_t i=0;i<ROLE_COUNT;++i)if(!reap(&children[i])){failed=true;stopping=true;}
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+        if (!stopping && children[COMPOSITOR].ready && !lock.broker && !lock_start(&lock,children,session))
+            failed=stopping=true;
+        if (!stopping) lock_step(&lock);
+#endif
         if(!stopping && children[COMPOSITOR].ready && !children[DESKTOP].pid){
             snprintf(shell_number,sizeof(shell_number),"%d",shell[1]);snprintf(launch_number,sizeof(launch_number),"%d",launch[1]);
             int pass[]={shell[1],launch[1]};
@@ -608,6 +709,9 @@ int main(void) {
 #endif
         if(stopping){
             if(!fence_logged){puts("STOPPING");fence_logged=true;}
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+            lock_close(&lock);
+#endif
             close_fd(&launch[1]);close_fd(&shell[1]);
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
             if(audio_ended && retire(children))break;
@@ -615,7 +719,12 @@ int main(void) {
             if(retire(children))break;
 #endif
         }
-        struct pollfd fds[ROLE_COUNT+3];int roles[ROLE_COUNT+3];nfds_t count=0;uint64_t until=UINT64_MAX;
+        enum { SESSION_EVENTS = ROLE_COUNT + 3
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+            + AE_UNLOCK_BROKER_FDS
+#endif
+        };
+        struct pollfd fds[SESSION_EVENTS];int roles[SESSION_EVENTS];nfds_t count=0;uint64_t until=UINT64_MAX;
         fds[count]=(struct pollfd){.fd=signals,.events=POLLIN};roles[count++]=-1;
         if(!stopping){
             if(ae_session_poll(session,&fds[count],&until)<0){failed=true;stopping=true;continue;}
@@ -626,6 +735,14 @@ int main(void) {
         int timeout=!notified && !stopping?1000:-1;
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
         if(!audio_ended || (!audio.disabled && children[PIPEWIRE].pid && !children[WIREPLUMBER].pid))timeout=100;
+#endif
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+        if (!stopping && lock.broker) {
+            int lock_timeout;
+            ae_unlock_broker_poll(lock.broker,&fds[count],&lock_timeout);
+            for (unsigned i=0;i<AE_UNLOCK_BROKER_FDS;++i) roles[count++]=-4;
+            if (lock_timeout>=0 && (timeout<0 || lock_timeout<timeout)) timeout=lock_timeout;
+        }
 #endif
         if(until!=UINT64_MAX){
             double seconds=now();if(seconds<0){failed=true;stopping=true;continue;}
@@ -645,6 +762,13 @@ int main(void) {
                 else if(request<0){failed=true;stopping=true;}
                 else if(request>0 && !stopping){
                     enum role role=(enum role)(request-1);
+#ifdef AETHERI_DESKTOP_SESSION_LOCK
+                    lock_step(&lock);
+                    if(!ae_unlock_broker_open_desktop(lock.broker)) {
+                        if(!reply(launch[0],'E',role)) failed=stopping=true;
+                        continue;
+                    }
+#endif
                     if(!reap(&children[role])){failed=true;stopping=true;}
                     else if(children[role].pid){if(!reply(launch[0],children[role].reaped?'E':'A',role)){failed=true;stopping=true;}}
                     else if(launches[role]>=128){if(!reply(launch[0],'E',role)){failed=true;stopping=true;}}
@@ -659,7 +783,7 @@ int main(void) {
                         if(!started || !reply(launch[0],'A',role)){failed=true;stopping=true;}
                     }
                 }
-            }else if(!drain_line(&children[roles[i]],names[roles[i]])){
+            }else if(roles[i]>=0 && !drain_line(&children[roles[i]],names[roles[i]])){
 #ifdef AETHERI_DESKTOP_SESSION_AUDIO
                 if(roles[i]>=PIPEWIRE){
                     struct child *child=&children[roles[i]];

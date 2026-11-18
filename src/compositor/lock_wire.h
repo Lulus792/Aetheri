@@ -7,6 +7,7 @@
 enum ae_lock_action {
     AE_LOCK_COVER = 1, AE_LOCK_RELEASE = 2,
     AE_LOCK_COVERED = 3, AE_LOCK_RELEASED = 4, AE_LOCK_REJECTED = 5,
+    AE_LOCK_REQUEST = 6,
 };
 enum { AE_LOCK_WIRE_SIZE = 14 };
 

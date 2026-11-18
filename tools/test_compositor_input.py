@@ -115,10 +115,13 @@ def main():
     def check_lock_view(view):
         accent = (179, 190, 255)
         field = (15, 19, 33)
-        app_events = tuple(log().count(event) for event in ("KEY ", "BUTTON "))
         event("hold-cover")
-        lock.sendall(lock_message(1, 0))
+        key(125, True); key(38, True); key(38, False); key(125, False)
+        lock_expect(6, 1)
         wait(lambda: "TEST_COVER_PRESENT_HELD" in log("server"), "third display still pending")
+        command("t", "INPUT_SYNC\n")
+        assert not any(line.startswith("KEY ") and line.split()[2] == "38" for line in log().splitlines())
+        app_events = tuple(log().count(event) for event in ("KEY ", "BUTTON "))
         key(30, True); key(30, False)
         assert not select.select([lock, credential], [], [], 0.2)[0]
         snapshot("dialog stays hidden before all displays present", {}, covered=True)

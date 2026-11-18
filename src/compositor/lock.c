@@ -205,6 +205,16 @@ static void begin_cover(struct ae_lock *lock) {
     }
 }
 
+bool ae_lock_request_user(struct ae_lock *lock) {
+    if (!lock || !lock->managed || !lock->server->lock_view || lock->active ||
+            lock->generation == UINT64_MAX || lock->server->failed || lock->server->shutting_down)
+        return false;
+    /* Keyboard lock is immediate even if the controller has gone away. */
+    (void)respond(lock, AE_LOCK_REQUEST, lock->generation + 1);
+    begin_cover(lock);
+    return true;
+}
+
 static int receive_cover(int fd, uint32_t mask, void *data) {
     struct ae_lock *lock = data;
     (void)mask;

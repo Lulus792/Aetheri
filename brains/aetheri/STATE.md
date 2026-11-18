@@ -1,5 +1,12 @@
 # State
 
+18 November 2026 — The candidate desktop owner has a native lock broker.
+Super+L covers immediately. The broker checks original process identities,
+the current cover generation and the login context before a release. The
+NoNewPrivileges counter confirms the signed desktop needs its independently
+admitted PAM verifier. The image guard keeps the candidate out of release
+assembly. See the [broker record](journal/2026-11-18-lock-broker.md).
+
 18 November 2026 — The private SDL3 password dialog has a native
 three-output test. The private surface receives focus after actual
 presentation. Carrier case `d0e16659dc55` checks a wrong and a correct

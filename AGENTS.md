@@ -1,5 +1,17 @@
 # Working on Aetheri
 
+Current lock broker: read spec/session.md#desktop-owner-lock-broker and
+the 2026-11-18 lock-broker record. Super+L starts cover locally. The original
+compositor and dialog pidfds gate the native event loop, with one PAM
+worker per covered attempt. Release passes 12 tests and sanitizers pass
+four. Real PAM case `bb346b38dbb9` restores the same three displays and
+retains cover on a simulated session loss. The carrier's privilege
+counter `ee12beb0f6f2` confirms that the correct
+password is refused with NoNewPrivileges. Preserve the isolated failures
+and the signed-image guard. Next admit the original privileged PAM
+authority, sign the runtime, and combine lock with suspend/wake. The USB
+gate applies.
+
 Current lock view: read spec/session.md#private-password-dialog and the
 2026-11-18 lock-view record. Keep the same original parent, private Wayland
 surface, full primary composition, matching presentation before focus and

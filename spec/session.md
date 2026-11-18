@@ -275,6 +275,7 @@ compositor instance.
 | `RELEASE` | 2 | Apply the controller's verified result for the current covered generation |
 | `RELEASED` | 4 | Confirm acceptance of that release and schedule the ordinary scene |
 | `REJECTED` | 5 | Refuse the request and echo its generation |
+| `REQUEST` | 6 | Notify the controller that physical Super+L began the indicated new cover |
 
 The controller authenticates separately before it sends a release. The
 compositor also waits for all current outputs to be covered and every
@@ -288,6 +289,41 @@ The [managed lock record](../brains/aetheri/journal/2026-11-18-managed-lock.md)
 includes a fixture that consumes real PAM outcomes and restores the exact
 original scene. The signed desktop still needs the installed owner and
 the sleep and wake paths.
+
+### Desktop owner lock broker
+
+Physical Super+L starts a cover immediately when the managed compositor
+has a private view. The compositor tells the broker the new generation
+and separately reports its completed cover. A broken controller
+connection leaves the cover active with the dialog hidden.
+
+The candidate `AETHERI_DESKTOP_SESSION_LOCK` build wires the broker
+into the session owner's poll loop. The owner creates the private
+compositor, display and credential pairs, launches the original dialog
+and pins both children. It selects the account from the authenticated
+UID. The broker recognizes compositor notifications and password
+submissions by their original kernel sender pidfds. Before applying
+any result, it rechecks both children and the original login context.
+App launches from the desktop shell require the broker's open state
+when this option is enabled.
+
+The broker accepts one attempt for a fully covered generation and
+starts one finite worker for it. It wipes its bounded receive buffer
+after handoff. A wrong password returns the generic refusal. An
+unavailable worker returns the generic retry status. A verified result
+requests release for the same generation. The compositor still waits
+for neutral input. Loss of the session, protocol or actor closes the
+channels and discards outstanding outcomes.
+
+This candidate exercises the unprivileged broker and real PAM in
+the development VM. In the installed path, the owner and all its
+children inherit `NoNewPrivileges`, so executing a setuid helper preserves
+the existing UID. Release integration needs password
+verification under a separately admitted authority with access to
+the protected local account verifier. The candidate is limited to
+development builds pending those protected runtime inputs. The
+[broker record](../brains/aetheri/journal/2026-11-18-lock-broker.md)
+tracks the VM and rights boundary. [Linux kernel privilege flag](https://docs.kernel.org/userspace-api/no_new_privs.html)
 
 ### Private password dialog
 

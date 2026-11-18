@@ -428,6 +428,10 @@ static void key(struct wl_listener *listener, void *data) {
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;
     }
+    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode == KEY_L &&
+            (wlr_keyboard_get_modifiers(k->keyboard) &
+            (WLR_MODIFIER_LOGO | WLR_MODIFIER_CTRL | WLR_MODIFIER_ALT | WLR_MODIFIER_SHIFT)) ==
+            WLR_MODIFIER_LOGO && ae_lock_request_user(in->server->lock)) return;
     if(e->state==WL_KEYBOARD_KEY_STATE_PRESSED && e->keycode==KEY_ESC) {
         if(k->suppressed[KEY_ESC]) return;
         if(in->grabbed && ae_input_focused(in,in->grabbed) && !ae_desktop_keyboard_surface(in->server->desktop)) {
