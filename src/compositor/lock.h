@@ -14,6 +14,8 @@ struct ae_lock *ae_lock_create(struct server *server, int fd, bool managed);
 void ae_lock_destroy(struct ae_lock *lock);
 bool ae_lock_active(const struct ae_lock *lock);
 void ae_lock_input_changed(struct ae_lock *lock);
+bool ae_lock_view_endpoint(const struct ae_lock *lock, int fd);
+void ae_lock_view_lost(struct ae_lock *lock);
 
 void ae_lock_add_output(struct output *output);
 void ae_lock_remove_output(struct output *output);

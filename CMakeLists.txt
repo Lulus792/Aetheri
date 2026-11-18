@@ -69,6 +69,10 @@ if(AETHERI_DESKTOP_OWNER AND NOT AETHERI_LINUX_IPC)
 endif()
 option(AETHERI_POLICY_PROBES "Build the disposable SELinux policy probe (does not install policy)" OFF)
 option(AETHERI_COMPOSITOR "Build the private headless Wayland compositor prototype" OFF)
+option(AETHERI_LOCK_VIEW "Build the private desktop password dialog" OFF)
+if(AETHERI_LOCK_VIEW AND NOT AETHERI_COMPOSITOR)
+    message(FATAL_ERROR "AETHERI_LOCK_VIEW requires AETHERI_COMPOSITOR")
+endif()
 option(AETHERI_COMPOSE "Build the reviewed in-process Compose/text-input provider" OFF)
 if(AETHERI_COMPOSE AND NOT AETHERI_COMPOSITOR)
     message(FATAL_ERROR "AETHERI_COMPOSE requires AETHERI_COMPOSITOR")
@@ -913,7 +917,7 @@ if(AETHERI_FILES)
         target_link_libraries(test_files_fault PRIVATE aetheri_files_session SDL3::SDL3 SDL3_ttf::SDL3_ttf m)
     endif()
 endif()
-if(AETHERI_SETTINGS OR AETHERI_DESKTOP OR AETHERI_TERMINAL OR AETHERI_FILES)
+if(AETHERI_SETTINGS OR AETHERI_DESKTOP OR AETHERI_TERMINAL OR AETHERI_FILES OR AETHERI_LOCK_VIEW)
     find_package(PkgConfig REQUIRED)
     find_package(SDL3 3.4.20 EXACT CONFIG REQUIRED)
     find_package(SDL3_ttf 3.2.2 EXACT CONFIG REQUIRED)
@@ -1265,6 +1269,17 @@ if(AETHERI_COMPOSITOR)
     pkg_check_modules(PIXMAN REQUIRED IMPORTED_TARGET pixman-1=0.46.2)
     pkg_check_modules(DRM REQUIRED IMPORTED_TARGET libdrm=2.4.134)
     pkg_check_modules(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon=1.13.1)
+    if(AETHERI_LOCK_VIEW)
+        add_executable(aetheri-lock-view src/login/ui/unlock_view.c src/linux/wayland_shm.c)
+        target_include_directories(aetheri-lock-view PRIVATE src)
+        target_link_libraries(aetheri-lock-view PRIVATE PkgConfig::WAYLAND_CLIENT PkgConfig::XKBCOMMON
+            SDL3::SDL3 SDL3_ttf::SDL3_ttf)
+        target_compile_options(aetheri-lock-view PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        if(AETHERI_SANITIZERS)
+            target_compile_options(aetheri-lock-view PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(aetheri-lock-view PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
     pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
     pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols=1.49)
     find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
@@ -1305,7 +1320,7 @@ if(AETHERI_COMPOSITOR)
         COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CODE}"
         DEPENDS "${AETHERI_DESKTOP_XML}" "${AETHERI_LAYER_XML}" VERBATIM)
     set(AETHERI_COMPOSITOR_SOURCES src/compositor/main.c src/compositor/input.c src/compositor/desktop.c src/compositor/lock.c
-        src/linux/pidfd_channel.c
+        src/compositor/lock_view.c src/linux/pidfd_channel.c
         "${AETHERI_XDG_HEADER}" "${AETHERI_DESKTOP_SERVER}" "${AETHERI_DESKTOP_CODE}" "${AETHERI_LAYER_SERVER}")
     if(AETHERI_COMPOSE)
         set(AETHERI_COMPOSE_TABLE "/usr/share/X11/locale/en_US.UTF-8/Compose" CACHE FILEPATH "Exact reviewed standard Compose table")
@@ -1548,6 +1563,17 @@ if(AETHERI_COMPOSITOR)
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
             "${CMAKE_CURRENT_BINARY_DIR}" --managed)
         set_tests_properties(compositor.managed_lock PROPERTIES TIMEOUT 45)
+        if(AETHERI_LOCK_VIEW)
+            set(AETHERI_LOCK_VIEW_TEST_FONT "" CACHE FILEPATH "Reviewed Liberation Sans for the lock view test")
+            if(AETHERI_LOCK_VIEW_TEST_FONT)
+                add_test(NAME compositor.lock_view COMMAND Python3::Interpreter
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor_input.py"
+                    $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
+                    "${CMAKE_CURRENT_BINARY_DIR}" --lock-view $<TARGET_FILE:aetheri-lock-view>
+                    "${AETHERI_LOCK_VIEW_TEST_FONT}")
+                set_tests_properties(compositor.lock_view PROPERTIES TIMEOUT 45)
+            endif()
+        endif()
         add_test(NAME compositor.keyboard_layout COMMAND Python3::Interpreter
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_keyboard_layout.py"
             $<TARGET_FILE:aetheri-compositor> $<TARGET_FILE:test_compositor_server>

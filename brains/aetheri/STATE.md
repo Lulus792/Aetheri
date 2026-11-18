@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The private SDL3 password dialog has a native
+three-output test. The private surface receives focus after actual
+presentation. Carrier case `d0e16659dc55` checks a wrong and a correct
+password through real PAM and restores the original scene. Loss of the
+dialog keeps every output covered. The installed desktop still needs a
+signed broker and power coordination. See the
+[password dialog record](journal/2026-11-18-lock-view.md).
+
 18 November 2026 — The managed compositor restores the original windows
 after the current lock's PAM result and neutral physical input.
 Fixture `b5b2e34b6d57` observes a wrong password leave every output black,

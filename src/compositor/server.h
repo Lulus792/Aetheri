@@ -44,12 +44,14 @@ struct server {
     struct wlr_renderer *renderer;
     struct wlr_allocator *allocator;
     struct wlr_scene *scene;
+    struct wlr_compositor *compositor;
     struct wlr_output_layout *layout;
     struct wlr_xdg_shell *shell;
     struct ae_input *input;
     struct ae_desktop *desktop;
     struct ae_text_input *text_input;
     struct ae_lock *lock;
+    struct ae_lock_view *lock_view;
     struct wlr_scene_tree *normal_tree;
     struct wlr_scene_tree *windows_tree;
     struct wl_listener new_toplevel;

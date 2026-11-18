@@ -1,5 +1,14 @@
 # Working on Aetheri
 
+Current lock view: read spec/session.md#private-password-dialog and the
+2026-11-18 lock-view record. Keep the same original parent, private Wayland
+surface, full primary composition, matching presentation before focus and
+neutral input before release. Workflow `e5f134d571c2` passes 11 Release and
+three sanitizer tests. Actual PAM case `d0e16659dc55` verifies German masked input, denial, all three
+original frames on restore and black cover after view loss. Preserve the
+earlier undersized scanout evidence. Next signed session owner and broker,
+PAM policy and suspend/wake. The USB gate applies.
+
 Current managed lock: read spec/session.md#managed-compositor-lock and the
 2026-11-18 managed-lock record. Keep the original parent pidfd, exact covered
 generation, all-output presentation and neutral-input gate. Release aa018293d4

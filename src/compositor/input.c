@@ -1,5 +1,6 @@
 #include "input.h"
 #include "lock.h"
+#include "lock_view.h"
 #include "server.h"
 #include "desktop.h"
 #include "text_input.h"
@@ -326,7 +327,14 @@ static void cursor_request(struct wl_listener *listener, void *data) {
 static void modifiers(struct wl_listener *listener, void *data) {
     (void)data;
     struct keyboard *k = wl_container_of(listener, k, modifiers);
-    if (ae_lock_active(k->input->server->lock)) return;
+    if (ae_lock_active(k->input->server->lock)) {
+        struct wlr_surface *surface = ae_lock_view_surface(k->input->server->lock_view);
+        if (surface && k->input->seat->keyboard_state.focused_surface == surface) {
+            wlr_seat_set_keyboard(k->input->seat, k->keyboard);
+            wlr_seat_keyboard_notify_modifiers(k->input->seat, &k->keyboard->modifiers);
+        }
+        return;
+    }
     wlr_seat_set_keyboard(k->input->seat, k->keyboard);
     ae_text_input_modifiers(k->input->server->text_input,k->keyboard);
     wlr_seat_keyboard_notify_modifiers(k->input->seat, &k->keyboard->modifiers);
@@ -392,6 +400,15 @@ void ae_input_uncover(struct ae_input *in) {
         ae_input_recheck_pointer(in);
     }
 }
+void ae_input_lock_focus(struct ae_input *in, struct wlr_surface *surface) {
+    struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(in->seat);
+    if (keyboard && surface->mapped && in->seat->keyboard_state.focused_surface != surface &&
+            ae_input_release_ready(in))
+        wlr_seat_keyboard_notify_enter(in->seat, surface, NULL, 0, &keyboard->modifiers);
+}
+void ae_input_lock_blur(struct ae_input *in, struct wlr_surface *surface) {
+    if (in->seat->keyboard_state.focused_surface == surface) wlr_seat_keyboard_notify_clear_focus(in->seat);
+}
 static void key(struct wl_listener *listener, void *data) {
     struct keyboard *k = wl_container_of(listener, k, key);
     struct wlr_keyboard_key_event *e = data;
@@ -399,6 +416,11 @@ static void key(struct wl_listener *listener, void *data) {
     if (e->keycode > KEY_MAX) return;
     update_pressed(&k->pressed, e->keycode, e->state == WL_KEYBOARD_KEY_STATE_PRESSED);
     if (ae_lock_active(in->server->lock)) {
+        struct wlr_surface *surface = ae_lock_view_surface(in->server->lock_view);
+        if (surface && in->seat->keyboard_state.focused_surface == surface) {
+            wlr_seat_set_keyboard(in->seat, k->keyboard);
+            wlr_seat_keyboard_notify_key(in->seat, e->time_msec, e->keycode, e->state);
+        }
         ae_lock_input_changed(in->server->lock);
         return;
     }

@@ -40,6 +40,7 @@
 #include "server.h"
 #include "input.h"
 #include "lock.h"
+#include "lock_view.h"
 #include "desktop.h"
 #include "text_input.h"
 #ifdef AETHERI_GREETER_DISPLAY
@@ -517,7 +518,7 @@ int main(int argc, char **argv) {
     expected_argc = 5;
     struct input_driver *driver = NULL;
 #endif
-    int shell_fd = -1, greeter_fd = -1, lock_fd = -1;
+    int shell_fd = -1, greeter_fd = -1, lock_fd = -1, view_fd = -1;
     bool managed_lock = false;
     bool compose=false,options_valid=true;
     const char *keyboard_layout = NULL;
@@ -531,6 +532,10 @@ int main(int argc, char **argv) {
             managed_lock = !strcmp(argv[at], "--session-lock-fd");
             lock_fd = descriptor_argument(argv[++at]);
             if (lock_fd < 0) { options_valid = false; break; }
+        }
+        else if (!strcmp(argv[at], "--lock-view-fd") && view_fd < 0 && at + 1 < argc) {
+            view_fd = descriptor_argument(argv[++at]);
+            if (view_fd < 0) { options_valid = false; break; }
         }
 #ifdef AETHERI_GREETER_DISPLAY
         else if (!strcmp(argv[at],"--greeter-fd") && greeter_fd<0 && at+1<argc) {
@@ -559,6 +564,7 @@ int main(int argc, char **argv) {
                         "  optional private desktop connection: --shell-fd FD\n"
                         "  optional private cover channel: --lock-fd FD\n"
                         "  managed private session lock: --session-lock-fd FD\n"
+                        "  private view for a managed lock: --lock-view-fd FD\n"
 #ifdef AETHERI_GREETER_DISPLAY
                         "  single-client DRM login output: --greeter-fd FD\n"
 #endif
@@ -568,6 +574,7 @@ int main(int argc, char **argv) {
     }
     if (greeter_fd >= 0 && (!drm || shell_fd >= 0 || strcmp(argv[3], "-"))) return 2;
     if (lock_fd >= 0 && (nested || greeter_fd >= 0 || lock_fd == shell_fd)) return 2;
+    if (view_fd >= 0 && (!managed_lock || view_fd == lock_fd || view_fd == shell_fd)) return 2;
 #ifdef AETHERI_GREETER_DISPLAY
     if (greeter_fd >= 0 && ae_login_display_channel_check(greeter_fd, SOCK_SEQPACKET)) return 2;
     struct greeter_client greeter_lifetime = {0};
@@ -620,7 +627,7 @@ int main(int argc, char **argv) {
     s.scene = wlr_scene_create();
     s.layout = wlr_output_layout_create(s.display);
     if (!s.allocator || !s.scene || !s.layout || !wlr_renderer_init_wl_display(s.renderer, s.display) ||
-            !wlr_compositor_create(s.display, 6, s.renderer) || !wlr_subcompositor_create(s.display) ||
+            !(s.compositor = wlr_compositor_create(s.display, 6, s.renderer)) || !wlr_subcompositor_create(s.display) ||
             (greeter_fd < 0 && !wlr_data_device_manager_create(s.display)) ||
             !wlr_viewporter_create(s.display)) goto done;
     const int widths[] = {1920, 2560, 3840}, heights[] = {1080, 1440, 2160};
@@ -676,7 +683,8 @@ int main(int argc, char **argv) {
 #ifdef AETHERI_INPUT_TEST
     char *end = NULL;
     long input_fd = strtol(argv[4], &end, 10);
-    if (!end || *end || input_fd < 3 || input_fd > INT32_MAX || input_fd == shell_fd || input_fd == lock_fd) goto done;
+    if (!end || *end || input_fd < 3 || input_fd > INT32_MAX || input_fd == shell_fd ||
+            input_fd == lock_fd || input_fd == view_fd) goto done;
     driver = input_driver_start(&s, (int)input_fd);
     if (!driver) goto done;
 #endif
@@ -684,6 +692,12 @@ int main(int argc, char **argv) {
         s.desktop = ae_desktop_create(&s, shell_fd);
         if (!s.desktop) goto done;
         shell_fd = -1;
+    }
+    if (view_fd >= 0) {
+        s.lock_view = ae_lock_view_create(&s, view_fd);
+        if (!s.lock_view) goto done;
+        wl_display_set_global_filter(s.display, ae_lock_view_global, s.lock_view);
+        view_fd = -1;
     }
     if ((greeter_fd < 0 && wl_display_add_socket(s.display, argv[2]) != 0) ||
             (!nested && !wlr_backend_start(s.backend))) goto done;
@@ -706,6 +720,10 @@ int main(int argc, char **argv) {
 done:
     s.shutting_down = true;
     wl_display_destroy_clients(s.display);
+    if (s.lock_view) wl_display_set_global_filter(s.display, NULL, NULL);
+    ae_lock_view_destroy(s.lock_view);
+    s.lock_view = NULL;
+    if (view_fd >= 0) close(view_fd);
     ae_text_input_destroy(s.text_input);s.text_input=NULL;
     ae_desktop_destroy(s.desktop);
     s.desktop = NULL;

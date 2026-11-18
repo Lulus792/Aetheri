@@ -16,8 +16,10 @@ import time
 
 def main():
     server_binary, client_binary, build = map(lambda s: Path(s).resolve(), sys.argv[1:4])
-    managed = sys.argv[4:] == ["--managed"]
-    assert managed or not sys.argv[4:]
+    options = sys.argv[4:]
+    lock_view = len(options) == 3 and options[0] == "--lock-view"
+    managed = options == ["--managed"] or lock_view
+    assert managed or not options
     if os.getuid() == 0:
         raise RuntimeError("private input test must be unprivileged")
     root = Path(tempfile.mkdtemp(prefix="compositor-input-", dir=build))
@@ -30,6 +32,12 @@ def main():
     controller.settimeout(4)
     lock, lock_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     lock.settimeout(4)
+    private_sockets = []
+    if lock_view:
+        display, display_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        credential, credential_peer = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        credential.settimeout(4)
+        private_sockets = [display, display_peer, credential, credential_peer]
     processes, streams = [], []
 
     def start(binary, name, *args, pass_fds=()):
@@ -72,39 +80,124 @@ def main():
 
     sequence, images, cases = 0, [], []
 
-    def snapshot(label, points, *, covered=False):
+    def snapshot(label, points, *, covered=False, black_outputs=(), wait_for_pixels=False):
         nonlocal sequence
         sequence += 1
         server.send_signal(signal.SIGUSR1)
         wait(lambda: all(f"CAPTURE {sequence} {i}\n" in log("server") for i in range(3)), label)
+        missing = []
         for i in range(3):
             path = captures / f"capture-{sequence}-output-{i}.ppm"
             raw = path.read_bytes(); magic, dimensions, peak, pixels = raw.split(b"\n", 3)
             width, height = map(int, dimensions.split())
             assert magic == b"P6" and peak == b"255" and len(pixels) == width * height * 3
-            if covered:
+            if lock_view:
+                assert (width, height) == ((1920, 1080), (2560, 1440), (3840, 2160))[i], (
+                    label, i, width, height)
+            if covered or i in black_outputs:
                 assert pixels == bytes(len(pixels)), (label, i)
             for x, y, color in points.get(i, []):
                 offset = (y * width + x) * 3
-                assert tuple(pixels[offset:offset + 3]) == color, (label, i, x, y, pixels[offset:offset + 3])
+                if tuple(pixels[offset:offset + 3]) != color:
+                    missing.append((i, x, y, width, height, tuple(pixels[offset:offset + 3])))
             digest = hashlib.sha256(raw).hexdigest()
             packed = path.with_suffix(".ppm.gz")
             with packed.open("xb") as f:
                 f.write(gzip.compress(raw, mtime=0))
             path.unlink()
             images.append({"file": packed.name, "sha256": digest})
-        cases.append(label)
+        if not wait_for_pixels:
+            assert not missing, (label, missing)
+        if not missing:
+            cases.append(label)
+        return missing
+
+    def check_lock_view(view):
+        accent = (179, 190, 255)
+        field = (15, 19, 33)
+        app_events = tuple(log().count(event) for event in ("KEY ", "BUTTON "))
+        event("hold-cover")
+        lock.sendall(lock_message(1, 0))
+        wait(lambda: "TEST_COVER_PRESENT_HELD" in log("server"), "third display still pending")
+        key(30, True); key(30, False)
+        assert not select.select([lock, credential], [], [], 0.2)[0]
+        snapshot("dialog stays hidden before all displays present", {}, covered=True)
+        event("release-cover")
+        lock_expect(3, 1)
+        # A fresh, focused, visibly masked draft provides an observable readiness
+        # witness without adding a production credential or focus test hook.
+        for _ in range(12):
+            key(30, True); key(30, False)
+            time.sleep(0.03)
+            key(28, True); key(28, False)
+            if select.select([credential], [], [], 0.04)[0]:
+                assert credential.recv(64) == b"AELV1a"
+                break
+        else:
+            raise AssertionError("private view never received keyboard focus")
+        credential.sendall(b"AELV1\x01")
+        time.sleep(0.10)
+        key(30, True); key(30, False)
+
+        def wait_pixels(label, points):
+            for _ in range(6):
+                missing = snapshot(label, {0: points}, black_outputs=(1, 2), wait_for_pixels=True)
+                if not missing:
+                    return
+                time.sleep(0.04)
+            raise AssertionError((label, missing))
+
+        wait_pixels("private focus and masked password on the first display",
+                    [(0, 0, (0, 0, 0)), (775, 531, accent), (790, 551, accent)])
+        key(1, True); key(1, False)
+        wait_pixels("Escape clears the private draft", [(790, 551, field)])
+        click(100, 100)
+        command("t", "INPUT_SYNC\n")
+        assert tuple(log().count(event) for event in ("KEY ", "BUTTON ")) == app_events, (
+            "ordinary client received lock input")
+
+        def commits():
+            old = log("server").count("STATS ")
+            server.send_signal(signal.SIGUSR2)
+            wait(lambda: log("server").count("STATS ") > old, "idle output statistics")
+            return int(log("server").strip().split("commits=")[-1].split()[0])
+
+        # Avoid the legitimate minute tick near the sampling window.
+        if 1 <= time.localtime().tm_sec <= 57:
+            before = commits()
+            time.sleep(0.25)
+            assert commits() == before, "idle dialog repeatedly redraws"
+        credential.close()
+        assert view.wait(timeout=4) == 0, log("view")
+        processes.remove(view)
+        assert lock.recv(64) == b"", "loss of original view left the release channel live"
+        snapshot("original view loss leaves all displays covered", {}, covered=True)
 
     blue, green, bg = (41, 99, 196), (38, 180, 120), (16, 20, 28)
     try:
+        view_args = ("--lock-view-fd", display.fileno()) if lock_view else ()
+        extra_fds = (display.fileno(),) if lock_view else ()
         server = start(server_binary, "server", "--headless", env["WAYLAND_DISPLAY"], captures,
                        issuer.fileno(), "--session-lock-fd" if managed else "--lock-fd", lock_peer.fileno(),
-                       pass_fds=(issuer.fileno(), lock_peer.fileno()))
+                       *view_args, pass_fds=(issuer.fileno(), lock_peer.fileno(), *extra_fds))
         issuer.close()
         lock_peer.close()
         wait(lambda: "READY " in log("server"), "server readiness")
         client = start(client_binary, "client", "--input")
         wait(lambda: "CAPS 3\n" in log() and "FRAME 1 " in log() and "KEYBOARD_ENTER 1\n" in log(), "seat and mapped windows")
+        if lock_view:
+            display.close()
+            view_fds = (display_peer.fileno(), credential_peer.fileno())
+            view = start(options[1], "view", *view_fds, options[2], "fixture", "en", pass_fds=view_fds)
+            display_peer.close(); credential_peer.close()
+            check_lock_view(view)
+            view.stdin.close()
+            client.stdin.write(b"q"); client.stdin.flush()
+            assert client.wait(timeout=6) == 0, log()
+            server.terminate()
+            assert server.wait(timeout=6) == 0, log("server")
+            (root / "result.json").write_text(json.dumps({"result": "passed", "cases": cases, "images": images}, indent=2))
+            return
         click(100, 100)
         wait(lambda: "KEYBOARD_ENTER 0\n" in log(), "click focus")
         key(30, True); key(30, False)
@@ -269,6 +362,7 @@ def main():
         for stream in streams: stream.close()
         controller.close(); issuer.close()
         lock.close(); lock_peer.close()
+        for sock in private_sockets: sock.close()
         print("Input evidence:", root)
 
 

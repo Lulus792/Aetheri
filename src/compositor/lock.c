@@ -1,6 +1,7 @@
 #include "lock.h"
 #include "input.h"
 #include "lock_wire.h"
+#include "lock_view.h"
 #include "server.h"
 #include "linux/pidfd_channel.h"
 #include "linux/unnamed_socket.h"
@@ -52,6 +53,11 @@ static void retire_channel(struct ae_lock *lock) {
         lock->owner = -1;
     }
     lock->release_requested = false;
+    ae_lock_view_hide(lock->server->lock_view);
+}
+
+void ae_lock_view_lost(struct ae_lock *lock) {
+    if (lock) retire_channel(lock);
 }
 
 static void schedule_cover(struct output *o) {
@@ -75,6 +81,18 @@ static bool owner_live(const struct ae_lock *lock) {
     return poll(&pin, 1, 0) == 0;
 }
 
+bool ae_lock_view_endpoint(const struct ae_lock *lock, int fd) {
+    if (!lock || !lock->managed || !owner_live(lock) || ae_unnamed_socket_check(fd, SOCK_STREAM)) return false;
+    int peer = -1;
+    socklen_t size = sizeof peer;
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERPIDFD, &peer, &size)) return false;
+    struct stat identity;
+    bool matches = peer >= 0 && size == sizeof peer && !fstat(peer, &identity) &&
+        identity.st_dev == lock->owner_identity.st_dev && identity.st_ino == lock->owner_identity.st_ino;
+    if (peer >= 0) close(peer);
+    return matches;
+}
+
 static bool respond(struct ae_lock *lock, enum ae_lock_action action, uint64_t generation) {
     unsigned char response[AE_LOCK_WIRE_SIZE];
     ae_lock_wire_write(response, action, generation);
@@ -89,16 +107,20 @@ static void release_if_ready(void *data) {
     struct ae_lock *lock = data;
     lock->release_idle = NULL;
     struct server *s = lock->server;
-    if (!lock->release_requested || !cover_presented(s) || !ae_input_release_ready(s->input)) return;
+    if (!lock->release_requested || !cover_presented(s) || !ae_lock_view_ready(s->lock_view) ||
+            !ae_input_release_ready(s->input)) return;
     if (!respond(lock, AE_LOCK_RELEASED, lock->generation)) return;
     lock->active = lock->presented = lock->release_requested = false;
+    ae_lock_view_hide(s->lock_view);
     for (unsigned i = 0; i < s->output_count; ++i) s->outputs[i].cover_pending = false;
     wlr_scene_node_set_enabled(&s->normal_tree->node, true);
     ae_input_uncover(s->input);
 }
 
 void ae_lock_input_changed(struct ae_lock *lock) {
-    if (!lock || !lock->release_requested || lock->release_idle) return;
+    if (!lock) return;
+    ae_lock_view_focus(lock->server->lock_view);
+    if (!lock->release_requested || lock->release_idle) return;
     /* The keyboard backend updates modifiers after the key callback. Sample
        the seat after that dispatch, before giving any client normal focus. */
     lock->release_idle = wl_event_loop_add_idle(wl_display_get_event_loop(lock->server->display),
@@ -110,7 +132,10 @@ static void acknowledge(struct server *s) {
     struct ae_lock *lock = s->lock;
     if (lock->fd < 0 || !cover_presented(s)) return;
     if (lock->managed) {
-        if (!lock->presented) lock->presented = respond(lock, AE_LOCK_COVERED, lock->generation);
+        if (!lock->presented && respond(lock, AE_LOCK_COVERED, lock->generation)) {
+            lock->presented = true;
+            ae_lock_view_show(s->lock_view);
+        }
         ae_lock_input_changed(lock);
         return;
     }
@@ -122,6 +147,8 @@ static void acknowledge(struct server *s) {
 static void present(struct wl_listener *listener, void *data) {
     struct output *o = wl_container_of(listener, o, present);
     const struct wlr_output_event_present *event = data;
+    if (o->index == 0 && event->output == o->output)
+        ae_lock_view_present(o->server->lock_view, event->commit_seq, event->presented);
     if (!o->cover_pending || event->output != o->output ||
             event->commit_seq != o->cover_seq) return;
     if (!event->presented) {
@@ -144,15 +171,20 @@ void ae_lock_remove_output(struct output *o) {
 }
 
 bool ae_lock_commit(struct output *o, const struct wlr_output_state *state) {
+    uint32_t sequence = o->output->commit_seq + 1;
+    struct ae_lock_view *view = o->index == 0 ? o->server->lock_view : NULL;
+    if ((state->committed & WLR_OUTPUT_STATE_BUFFER) && state->buffer)
+        ae_lock_view_before_commit(view, sequence);
     bool track = ae_lock_active(o->server->lock) && !o->cover_pending &&
         (state->committed & WLR_OUTPUT_STATE_BUFFER) && state->buffer;
     if (track) {
-        o->cover_seq = o->output->commit_seq + 1;
+        o->cover_seq = sequence;
         o->cover_pending = true;
         o->cover_committed = false;
         o->cover_presented = false;
     }
     bool ok = wlr_output_commit_state(o->output, state);
+    ae_lock_view_commit(view, sequence, ok);
     if (track && ok) {
         o->cover_committed = true;
         acknowledge(o->server);
@@ -208,7 +240,8 @@ static int receive_managed(int fd, uint32_t mask, void *data) {
             generation < UINT64_MAX && !lock->server->failed && !lock->server->shutting_down) {
         begin_cover(lock);
     } else if (packet[5] == AE_LOCK_RELEASE && generation == lock->generation &&
-            lock->presented && !lock->release_requested && cover_presented(lock->server)) {
+            lock->presented && !lock->release_requested && cover_presented(lock->server) &&
+            ae_lock_view_ready(lock->server->lock_view)) {
         lock->release_requested = true;
         ae_lock_input_changed(lock);
     } else {

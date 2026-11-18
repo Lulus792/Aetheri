@@ -286,8 +286,54 @@ the channel and discards any pending release.
 
 The [managed lock record](../brains/aetheri/journal/2026-11-18-managed-lock.md)
 includes a fixture that consumes real PAM outcomes and restores the exact
-original scene. The signed desktop still needs the admitted owner, its
-trusted password input and the sleep and wake paths.
+original scene. The signed desktop still needs the installed owner and
+the sleep and wake paths.
+
+### Private password dialog
+
+Build the optional `aetheri-lock-view` executable with
+`AETHERI_LOCK_VIEW=ON` and `AETHERI_COMPOSITOR=ON`. The same original
+parent supplies `--lock-view-fd FD` to the compositor and the other
+end to the dialog. The compositor checks the stream against the
+original managed lock's parent pidfd. The dialog takes the display FD,
+credential FD, font path, local account and `en` or `de` in that order.
+The current candidate expects both unnamed endpoints from its same-user
+parent and uses the inherited display stream exclusively.
+
+The compositor gives that client one surface and limits its Wayland
+globals to compositor, shared memory and seat. First, all enrolled
+outputs present the black cover. Then the compositor renders the dialog
+and its black surroundings together on the first output. The other
+outputs remain black. The dialog receives keyboard focus only after
+a matching successful commit and positive presentation for its own
+frame and after neutral input.
+Ordinary surfaces and pointer input stay fenced. Loss of the private
+client or surface closes the managed control channel and keeps an
+active cover in place.
+
+SDL draws the clock, local account, password field and action into
+release-tracked shared memory. Password bytes stay in the bounded
+input buffer and credential socket. The rendered draft shows a bounded
+mask. Tab moves between controls, Enter submits, Backspace removes a
+character and Escape clears the draft. Submission and focus loss
+also clear it.
+
+The private credential channel uses one seqpacket per submission.
+`AELV1` precedes exactly the nonempty password bytes.
+The controller identifies the original dialog's kernel sender and
+associates the attempt with the current lock generation. A five-byte
+`AELV1` prefix followed by one byte returns a generic retry status.
+Value 1 means denied and 2 means unavailable. A successful PAM
+result uses the managed lock's release, which still waits for physical
+input neutrality. The retry status carries no account details.
+
+The selected font can be passed as `AETHERI_LOCK_VIEW_TEST_FONT` for
+the native compositor test. The [password dialog
+record](../brains/aetheri/journal/2026-11-18-lock-view.md) covers visible
+states and real PAM in the carrier. The installed desktop still needs
+the signed dialog and broker, production policy and trusted power
+coordination. Pointer interaction, scalable layout and accessibility
+services remain open for the dialog.
 
 ### Password verification for unlock
 
