@@ -1,5 +1,12 @@
 # State
 
+18 November 2026 — Each unlock attempt now uses an original-process socket
+pair and a finite PAM worker. Private fixture `1a00753c08f6` accepts the
+correct password through actual exec and PAM, rejects a copied-descriptor
+sender and discards a completed result for a changed covered generation.
+Both build profiles pass. Next bind the covered generation to the compositor
+and trusted prompt. See the [channel record](journal/2026-11-18-unlock-channel.md).
+
 18 November 2026 — The desktop unlock verifier checks the original account
 with Linux-PAM. Private carrier case `646ae8304fba` accepts the correct
 password and rejects incorrect credentials, account mismatch, expiry and the

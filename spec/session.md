@@ -282,6 +282,30 @@ in place. The trusted UI and worker own and wipe their own password copies.
 The [unlock verification record](../brains/aetheri/journal/2026-11-18-unlock-pam.md)
 covers the standalone verifier and its private Linux-PAM test.
 
+### One worker per unlock attempt
+
+The broker creates a fresh socket pair before starting the selected
+`aetheri-unlock-worker` binary. The child receives only the worker socket and
+the chosen account name. It runs as the unprivileged session user, checks its
+original parent, disables process dumps and sets close-on-exec on the socket.
+The broker supplies the password only after spawning the worker. The worker
+clears the received password when PAM returns. The broker also clears its
+own copy after submitting the packet.
+
+Each request carries a fresh random ticket and at most 512 password bytes.
+The result contains the ticket and a single outcome. Each endpoint checks the
+kernel-supplied process descriptor for the packet against its original peer
+identity. The receiving broker also requires orderly end of the channel and
+normal zero exit of the original child. Keep the original child unreaped
+until the attempt consumes the outcome. The broker then owns its retirement.
+
+The broker supplies the current covered generation when consuming the result.
+A lost or changed generation invalidates the attempt permanently, and each
+outcome is returned at most once. The caller must confirm the actual active
+session and original cover before applying a display change. The installed
+desktop still needs the protected broker, password UI and compositor release
+path. [Kernel Unix socket credentials](https://github.com/torvalds/linux/blob/v6.19/net/unix/af_unix.c)
+
 ## Dependency review and build
 
 [session-inputs.json](session-inputs.json) adds eleven exact signed Fedora RPMs:

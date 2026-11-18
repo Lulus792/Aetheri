@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current unlock channel: read spec/session.md#one-worker-per-unlock-attempt
+and the 2026-11-18 unlock-channel record. Keep the worker receive option
+before spawn and broker receive option after its only send. Original sender
+pidfds, random ticket, EOF, zero exit and cover generation all gate delivery.
+Final Release/memory 6fd5a55a1ea3 and live exec/PAM 1a00753c08f6 pass.
+Preserve the initial macro and abstract-autobind failures. Next compositor
+generation/release and private trusted UI. USB gate applies.
+
 Current unlock PAM: read spec/session.md#password-verification-for-unlock and
 the 2026-11-18 unlock-pam record. Keep one hidden prompt, original UID/name,
 the 512-byte limit and the auth-only profile. Both build profiles and analyzer
