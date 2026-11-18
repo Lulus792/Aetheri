@@ -197,8 +197,29 @@ directory. The immutable configuration and runtime have separate labels.
 The desktop app roles cannot execute the daemon, inspect its private state
 or send directly to it. Keep the iwd receipt with the image inputs.
 
-This profile enables IP configuration and leaves DNS integration and
-persistent credentials pending.
+The base WLAN profile enables IP configuration. For DNS, add the signed
+systemd-resolved and OpenSSL RPMs from the
+[resolver inventory](desktop-resolver-inputs.json) to the iwd RPM directory
+and select `--with-resolver` when staging a fresh tree. The development
+desktop builder exposes the same option as `--wlan-resolver` alongside
+`--iwd-inputs`. Select `--desktop-wlan-resolver` with `--desktop-wlan` when
+compiling the installed login policy. Apply the resulting local file contexts
+in the image. They label the two generated resolver configuration files as
+resolver runtime files so PID 1 can retire them when it stops the resolver.
+
+The resolver profile provisions a locked `systemd-resolve` account with
+UID and GID 193 and selects the loopback DNS stub through `/etc/resolv.conf`.
+The WLAN service starts the resolver on demand. iwd submits link DNS
+configuration through four descriptor-free manager calls. The broker allows
+those calls from root processes. Client name lookup uses the loopback stub.
+Public fallback DNS, LLMNR and mDNS are disabled. Persistent WLAN credentials
+remain a separate image concern.
+
+The [resolver VM check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#resolver-and-dns-lifetime)
+confirms a libc lookup through the DHCP-supplied server and removal of the
+resolver runtime after Wi-Fi is switched off. The test uses a separate DNS
+peer and virtual radios. Physical WLAN and app-specific network admission
+have their own acceptance checks.
 
 In the [signed VM check](../brains/aetheri/journal/2026-11-18-desktop-iwd.md#open-wlan-and-ipv4-configuration),
 iwd obtains an IPv4 lease from a separate DHCP server after joining an

@@ -7,12 +7,12 @@ first version.
 
 ## Current work
 
-The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings. VM
-`42da0e06` completed the four-message IPv4 DHCP exchange with a separate
-server and removed the station address and default route when Wi-Fi was
-switched off. Resolver integration and DNS shutdown verification are in
-progress. Lease renewal and physical WLAN remain open.
-[WLAN record](journal/2026-11-18-desktop-iwd.md)
+The signed desktop joins an open or WPA-PSK Wi-Fi network from Settings.
+VM `e0390a4a` confirms IPv4 DHCP, an ordinary user DNS lookup through the
+DHCP-supplied server, and removal of the address, route and resolver
+runtime after Wi-Fi off. Settings exit, logout and ACPI power-off pass.
+Lease renewal, IPv6 and physical WLAN remain open.
+[WLAN record](journal/2026-11-18-desktop-iwd.md#resolver-and-dns-lifetime)
 
 ## Verified milestones
 

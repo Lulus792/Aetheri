@@ -451,3 +451,62 @@ package](https://packages.fedoraproject.org/pkgs/systemd/systemd-resolved/).
 The packet, route, boot and fixture records are in
 `local/login-review-2026-11-10/desktop-wlan-dhcp-2026-11-18-evidence.tar.gz`
 with SHA-256 `b3619050ad9b27ad86104ee2038a47dba8a59c47f2a7c9689c90cff1f15c7392`.
+
+## Resolver and DNS lifetime
+
+The optional image payload stages the signed Fedora 44 resolver 259.10 and
+the matching OpenSSL 3.5.9 TLS library. The Linux staging check copies 21
+files and two library aliases, reuses all 21 files on an exact retry, and
+rejects a changed resolver RPM before image writes. The earlier WLAN-only
+profile still stages its 13 files and one alias. The generated unit removes
+the two vendor socket dependencies. The WLAN unit starts the resolver on
+demand, and the ordinary libc path uses its loopback stub. The offline
+loader resolves the daemon and its selected dependencies.
+[Upstream service unit](https://github.com/systemd/systemd/blob/v259.10/units/systemd-resolved.service.in)
+
+VM `dc812923` receives the upstream DNS address through DHCP. An independent
+DNS peer answers the test name and the ordinary UID 1000 glibc client receives
+`198.51.100.43`. Wi-Fi off removes the address and route. The first harness
+times out waiting for DNS retirement. The next image projects the corrected
+service unit and distinguishes the listener from its runtime files. Its
+first launch script times out waiting for the editor, then a fresh launch
+of the completed image (`eea57e3f`) confirms the TCP listener stops while
+the mode-0644 stub file remains.
+
+The diagnostic image records the effective systemd properties and filesystem
+labels. VM `937fb7e5` observes the online resolver, then the Settings join
+times out after hostapd records association. VM `2cc4985e` toggles Wi-Fi
+without joining and observes `ActiveState=inactive`, `MainPID=0` and
+`RuntimeDirectoryPreserve=no`. The same inode for the stub remains under
+the tmpfs runtime directory with the Fedora `net_conf_t` label. Its serial
+stream interleaves the Settings exit marker with an audit message, and the
+harness times out at that check. Both diagnostic overlays pass consistency.
+
+The exact enforcing policy denies PID 1 `unlink` on `net_conf_t` and allows
+it on `systemd_resolved_var_run_t`. The optional resolver file contexts use
+the existing runtime type for the two literal generated files. The normal
+image compiler produces the same binary policy as before, `bbe900addf6e5…7c13`,
+and the strict WLAN subset compiles. A strict compile of the combined Sound,
+lock and WLAN profile reports two existing conditional `map` conflicts.
+The same compile without the resolver context option reports the identical
+pair. Ordinary sandboxed application network admission remains independent.
+[Runtime cleanup in systemd 259.10](https://github.com/systemd/systemd/blob/v259.10/src/core/unit.c#L5783)
+
+Image `e5a0816facb7`, VM `e0390a4a`, passes signed login selection and joins
+the open network from Settings. A separate DHCP peer performs Discover,
+Offer, Request and Acknowledge. The resolver uses that lease's DNS address,
+and the UID 1000 glibc lookup receives the answer from the independent DNS
+peer. When Wi-Fi turns off, the IPv4 address and route disappear, the TCP
+stub refuses connections, and the runtime directory and stub configuration
+are absent. The ordinary client no longer gets the test answer. Settings
+exits at zero, the original PAM session closes, the greeter returns, and
+ACPI power-off and the QCOW2 overlay check pass. The run uses two virtual
+radios in one guest with no external NIC. DHCP renewal, IPv6, and physical
+hardware acceptance remain open.
+
+Twenty-eight Windows payload, image and login-preparation tests pass. The VM
+agrees with the selected enforcing readback `c396c6562cdb…ec1c`. Its boot disk
+uses the existing read-only base, a shared block patch and one signature
+cluster. The compact test record is
+`local/login-review-2026-11-10/desktop-wlan-dns-2026-11-18-evidence.tar.gz`
+with SHA-256 `d7dca811f4ae19b8047ac5dacec29e6bbad75ed59cdc5db30bb22c3ee4baefa7`.

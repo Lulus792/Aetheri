@@ -38,7 +38,8 @@ def inventory(root: Path) -> dict:
 
 def prepare(base: Path, output: Path, desktop_audio: bool = False,
             desktop_sound: bool = False, desktop_lock: bool = False, desktop_suspend: bool = False,
-            desktop_wlan: bool = False, desktop_wlan_control: bool = False) -> dict:
+            desktop_wlan: bool = False, desktop_wlan_control: bool = False,
+            desktop_wlan_resolver: bool = False) -> dict:
     if sys.platform != "linux":
         raise ValueError("run the offline policy compiler on Linux")
     if desktop_sound and not desktop_audio:
@@ -47,6 +48,8 @@ def prepare(base: Path, output: Path, desktop_audio: bool = False,
         raise ValueError("desktop suspend requires the desktop lock policy")
     if desktop_wlan_control and not desktop_wlan:
         raise ValueError("desktop WLAN control requires the WLAN service policy")
+    if desktop_wlan_resolver and not desktop_wlan:
+        raise ValueError("desktop WLAN resolver requires the WLAN service policy")
     base_config = base / "etc/selinux"
     base_store = base / STORE
     if any(output.resolve().is_relative_to(source.resolve()) for source in (base_config, base_store)):
@@ -82,6 +85,8 @@ def prepare(base: Path, output: Path, desktop_audio: bool = False,
         file_contexts += b"\n" + (POLICY / "login-wlan.fc").read_bytes().replace(b"\r\n", b"\n")
     if desktop_wlan_control:
         file_contexts += b"\n" + (POLICY / "login-wlan-control.fc").read_bytes().replace(b"\r\n", b"\n")
+    if desktop_wlan_resolver:
+        file_contexts += b"\n" + (POLICY / "login-wlan-resolver.fc").read_bytes().replace(b"\r\n", b"\n")
     output.mkdir()
     root = output / "root"
     target = root / "etc/selinux"
@@ -141,11 +146,13 @@ def main() -> int:
     parser.add_argument("--desktop-suspend", action="store_true")
     parser.add_argument("--desktop-wlan", action="store_true")
     parser.add_argument("--desktop-wlan-control", action="store_true")
+    parser.add_argument("--desktop-wlan-resolver", action="store_true")
     args = parser.parse_args()
     try:
         record = prepare(args.base, args.output.absolute(), args.desktop_audio, args.desktop_sound,
                          args.desktop_lock, args.desktop_suspend, desktop_wlan=args.desktop_wlan,
-                         desktop_wlan_control=args.desktop_wlan_control)
+                         desktop_wlan_control=args.desktop_wlan_control,
+                         desktop_wlan_resolver=args.desktop_wlan_resolver)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"login policy: {error}", file=sys.stderr)
         return 1

@@ -40,11 +40,13 @@ def runtime_selection(input_runtime=None):
 
 
 def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input_runtime=None,
-          hda_modules_root=None,wlan_inputs=None,iwd_inputs=None,wlan_control=None):
+          hda_modules_root=None,wlan_inputs=None,iwd_inputs=None,wlan_control=None,wlan_resolver=False):
     if sys.platform!='linux' or os.uname().machine!='x86_64' or os.geteuid()==0:
         raise ValueError('use the ordinary x86-64 Linux image builder')
     if wlan_control is not None and iwd_inputs is None:
         raise ValueError('the WLAN controller requires the iwd inputs')
+    if wlan_resolver and iwd_inputs is None:
+        raise ValueError('the WLAN resolver requires the iwd inputs')
     raw,manifest=runtime_selection(input_runtime)
     selected=json.loads((ROOT/'spec/nexaui-inputs.json').read_text())
     if manifest['sdk']['nexaui_revision']!=selected['revision'] or manifest['sdk']['nexaui_version']!=selected['version']:
@@ -82,7 +84,8 @@ def build(base,packages,output,*,prepare_extra=None,data_bytes=256*1024**2,input
         put('etc/modules-load.d/aetheri-graphics.conf','bochs\n')
         hda = desktop_hda_payload.install(tree, hda_modules_root) if hda_modules_root is not None else None
         wlan = desktop_wlan_payload.install(tree, *wlan_inputs) if wlan_inputs is not None else None
-        iwd = desktop_iwd_payload.install(tree, *iwd_inputs, control_executable=wlan_control) if iwd_inputs is not None else None
+        iwd = desktop_iwd_payload.install(tree, *iwd_inputs, control_executable=wlan_control,
+                                          with_resolver=wlan_resolver) if iwd_inputs is not None else None
         run('depmod',['/usr/bin/depmod','-C','/dev/null','-b',str(tree),'-a','6.19.10-300.fc44.x86_64'])
         (tree/'etc/passwd').write_text((tree/'etc/passwd').read_text()+'dbus:x:81:81:D-Bus:/nonexistent:/nonexistent\n')
         (tree/'etc/group').write_text((tree/'etc/group').read_text()+'dbus:x:81:\ntty:x:5:\ndisk:x:6:\nlp:x:7:\ncdrom:x:11:\ndialout:x:18:\ntape:x:33:\nkvm:x:36:\naudio:x:63:\nsgx:x:995:\ninput:x:998:\nvideo:x:997:\nrender:x:996:\nclock:x:103:\nkmem:x:9:\n')
@@ -164,6 +167,7 @@ if __name__=='__main__':
     p.add_argument('--iwd-inputs',type=Path,nargs=2,metavar=('KERNEL_ROOT','RPM_DIR'),
                    help='stage iwd, libell and the required kernel crypto modules')
     p.add_argument('--wlan-control',type=Path,help='also stage the selected WLAN control executable and units')
+    p.add_argument('--wlan-resolver',action='store_true',help='stage the resolver from the selected iwd RPM directory')
     a=p.parse_args();build(a.boot_image.resolve(),a.packages.resolve(),a.output.absolute(),input_runtime=a.input_runtime,
                            hda_modules_root=a.hda_modules_root,wlan_inputs=a.wlan_inputs,iwd_inputs=a.iwd_inputs,
-                           wlan_control=a.wlan_control)
+                           wlan_control=a.wlan_control,wlan_resolver=a.wlan_resolver)

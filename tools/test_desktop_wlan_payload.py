@@ -8,6 +8,9 @@ import unittest
 from unittest.mock import patch
 
 import desktop_wlan_payload as wlan
+from desktop_iwd_payload import (
+    RESOLVER_ACCOUNTS, RESOLVER_SOCKET_UNITS, remove_resolver_socket_activation, resolver_accounts,
+)
 
 
 class DesktopWlan(unittest.TestCase):
@@ -75,6 +78,56 @@ class DesktopWlan(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unreviewed desktop WLAN profile"):
             self.install()
         self.assertFalse((self.image / wlan.RULE_PATH[1:]).exists())
+
+
+class DesktopResolverAccounts(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.image = Path(temporary.name)
+        self.etc = self.image / "etc"
+        self.etc.mkdir()
+        (self.etc / "passwd").write_bytes(b"root:x:0:0:root:/:/usr/sbin/nologin\n")
+        (self.etc / "group").write_bytes(b"root:x:0:\n")
+
+    def test_preflight_selects_locked_identity_and_is_idempotent(self):
+        updates = resolver_accounts(self.image)
+        self.assertEqual({path.name for path, _, _ in updates}, RESOLVER_ACCOUNTS.keys())
+        self.assertFalse((self.etc / "resolv.conf").exists())
+        for path, record, create in updates:
+            with path.open("xb" if create else "ab") as out:
+                out.write(record + b"\n")
+        self.assertEqual(resolver_accounts(self.image), [])
+
+    def test_foreign_primary_group_is_refused_before_changes(self):
+        group = self.etc / "group"
+        original = group.read_bytes() + b"other:x:0193:\n"
+        group.write_bytes(original)
+        with self.assertRaisesRegex(ValueError, "conflicting resolver account or ID"):
+            resolver_accounts(self.image)
+        self.assertEqual(group.read_bytes(), original)
+        self.assertFalse((self.etc / "shadow").exists())
+
+    def test_foreign_resolver_configuration_is_refused(self):
+        conf = self.etc / "resolv.conf"
+        conf.write_bytes(b"nameserver 192.0.2.1\n")
+        with self.assertRaisesRegex(ValueError, "conflicting offline resolver configuration"):
+            resolver_accounts(self.image)
+        self.assertEqual(conf.read_bytes(), b"nameserver 192.0.2.1\n")
+
+    def test_resolver_service_projects_without_socket_dependencies(self):
+        source = self.image / "packaged.service"
+        service = b"[Service]\nType=notify-reload\n"
+        account = b"User=systemd-resolve\n\n[Install]\nWantedBy=sysinit.target\n"
+        original = service + b"Sockets=" + RESOLVER_SOCKET_UNITS + b"\n" + account
+        original += b"Also=" + RESOLVER_SOCKET_UNITS + b"\n"
+        source.write_bytes(original)
+        entry = {"source": str(source), "package": "reviewed-resolver.rpm"}
+        remove_resolver_socket_activation(entry, self.image)
+        self.assertEqual(source.read_bytes(), original)
+        self.assertEqual(Path(entry["source"]).read_bytes(), service + account)
+        self.assertNotIn("package", entry)
+        self.assertIn("reviewed-resolver.rpm", entry["provenance"])
 
 
 if __name__ == "__main__":

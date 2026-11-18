@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "signer": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
+  "packages": {
+    "systemd-resolved-259.10-1.fc44.x86_64.rpm": {
+      "size": 293381,
+      "sha256": "a5d7893d4feb79adae49d39b179581df47b79910df82560bc6f43f701f1ab977",
+      "files": [
+        {"destination": "/usr/lib/systemd/systemd-resolved", "size": 606568, "mode": 493, "sha256": "3acc077597d0fb92c02510c67d00041931eb624e7c89da559c75e85449618d5e"},
+        {"destination": "/usr/lib/systemd/system/systemd-resolved.service", "size": 1975, "mode": 420, "sha256": "504e4073b734648c2daadf8de7d883dca45a8c30dd7ff888ea60806369b23d86"}
+      ]
+    },
+    "openssl-libs-3.5.9-1.fc44.x86_64.rpm": {
+      "size": 2890271,
+      "sha256": "9b0efe3cf1f2ebaa3dfa0367c0cff4790c6c5d1269f2bcad53d7ace2759e0ede",
+      "files": [
+        {"destination": "/usr/lib64/libssl.so.3.5.9", "size": 1048056, "mode": 493, "sha256": "970950c1a999fa48ec8fc8df075ad0b211f3cd0bc35573ba4e788d20c3141796"},
+        {"destination": "/usr/share/licenses/openssl-libs/LICENSE.txt", "size": 10175, "mode": 420, "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"}
+      ]
+    }
+  },
+  "symlinks": {
+    "/usr/lib64/libssl.so.3": "libssl.so.3.5.9"
+  }
+}
