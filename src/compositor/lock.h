@@ -8,11 +8,12 @@ struct output;
 struct server;
 struct wlr_output_state;
 
-/* An inherited, unnamed seqpacket channel. Takes fd only on success.
-   The reserved channel accepts one cover request. Disconnect cannot uncover. */
-struct ae_lock *ae_lock_create(struct server *server, int fd);
+/* Takes the original unnamed seqpacket fd only on success. A managed channel
+   also pins the original parent and supports generation-bound release. */
+struct ae_lock *ae_lock_create(struct server *server, int fd, bool managed);
 void ae_lock_destroy(struct ae_lock *lock);
 bool ae_lock_active(const struct ae_lock *lock);
+void ae_lock_input_changed(struct ae_lock *lock);
 
 void ae_lock_add_output(struct output *output);
 void ae_lock_remove_output(struct output *output);

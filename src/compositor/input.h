@@ -12,6 +12,8 @@ struct ae_input *ae_input_create(struct server *server);
 void ae_input_destroy(struct ae_input *input);
 void ae_input_stop_backend(struct ae_input *input);
 void ae_input_cover(struct ae_input *input);
+bool ae_input_release_ready(struct ae_input *input);
+void ae_input_uncover(struct ae_input *input);
 bool ae_input_add(struct ae_input *input, struct wlr_input_device *device);
 void ae_input_map_outputs(struct ae_input *input);
 void ae_input_map(struct window *window);

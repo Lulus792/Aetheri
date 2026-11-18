@@ -2,6 +2,7 @@
 #include "unlock_channel.h"
 #include "unlock_pam.h"
 #include "linux/unnamed_socket.h"
+#include "linux/pidfd_channel.h"
 
 #include <fcntl.h>
 #include <stdbool.h>
@@ -121,52 +122,10 @@ int ae_unlock_attempt_poll(const struct ae_unlock_attempt *a, struct pollfd sour
     return 0;
 }
 
-static bool same_process(int fd, const struct stat *expected) {
-    struct stat info;
-    return !fstat(fd, &info) && info.st_dev == expected->st_dev && info.st_ino == expected->st_ino;
-}
-
-/* Receive one packet from the original process. A datagram with an empty body
-   still carries a pidfd, while orderly EOF carries no control record. */
-static ssize_t receive_bound(int fd, void *data, size_t capacity, const struct stat *peer) {
-    struct iovec part = {data, capacity};
-    union {
-        struct cmsghdr alignment;
-        unsigned char data[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(4 * sizeof(int))];
-    } control = {0};
-    struct msghdr message = {.msg_iov = &part, .msg_iovlen = 1,
-        .msg_control = control.data, .msg_controllen = sizeof control.data};
-    ssize_t bytes = recvmsg(fd, &message, MSG_DONTWAIT | MSG_CMSG_CLOEXEC);
-    if (bytes < 0) return errno == EINTR || errno == EAGAIN ? -EAGAIN : -errno;
-    if (!bytes && !message.msg_controllen && !(message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)))
-        return 0;
-
-    bool valid = !(message.msg_flags & (MSG_TRUNC | MSG_CTRUNC));
-    unsigned pins = 0;
-    for (struct cmsghdr *c = CMSG_FIRSTHDR(&message); c; c = CMSG_NXTHDR(&message, c)) {
-        if (c->cmsg_level != SOL_SOCKET || c->cmsg_len < CMSG_LEN(0) ||
-                (c->cmsg_type != SCM_RIGHTS && c->cmsg_type != SCM_PIDFD)) {
-            valid = false;
-            continue;
-        }
-        size_t size = c->cmsg_len - CMSG_LEN(0);
-        bool pin = c->cmsg_type == SCM_PIDFD && size == sizeof(int);
-        if (!pin) valid = false;
-        for (size_t i = 0; i + sizeof(int) <= size; i += sizeof(int)) {
-            int incoming;
-            memcpy(&incoming, CMSG_DATA(c) + i, sizeof incoming);
-            if (pin && (++pins != 1 || !same_process(incoming, peer))) valid = false;
-            close(incoming);
-        }
-    }
-    if (!valid || pins != 1 || !bytes) return -EPROTO;
-    return bytes;
-}
-
 /* 0 means EOF, 1 records a complete reply, -EAGAIN means pending. */
 static int read_reply(struct ae_unlock_attempt *a) {
     unsigned char data[HEADER_SIZE + 1];
-    ssize_t bytes = receive_bound(a->fd, data, sizeof data, &a->child);
+    ssize_t bytes = ae_pidfd_receive(a->fd, data, sizeof data, &a->child);
     if (bytes <= 0) return (int)bytes;
     if (a->result || bytes != (ssize_t)sizeof data ||
             memcmp(data, reply, MAGIC_SIZE) ||
@@ -252,7 +211,7 @@ int ae_unlock_worker_once(int fd, const char *account) {
     if (ready <= 0) return ready < 0 ? -errno : -ETIMEDOUT;
 
     unsigned char payload[HEADER_SIZE + AE_UNLOCK_PASSWORD_MAX];
-    ssize_t bytes = receive_bound(fd, payload, sizeof payload, &identity);
+    ssize_t bytes = ae_pidfd_receive(fd, payload, sizeof payload, &identity);
     int failure = bytes < 0 ? (int)bytes : -EPROTO;
     unsigned char answer[HEADER_SIZE + 1];
     if (bytes <= HEADER_SIZE || memcmp(payload, request, MAGIC_SIZE)) {

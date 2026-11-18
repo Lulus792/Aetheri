@@ -1,5 +1,13 @@
 # Working on Aetheri
 
+Current managed lock: read spec/session.md#managed-compositor-lock and the
+2026-11-18 managed-lock record. Keep the original parent pidfd, exact covered
+generation, all-output presentation and neutral-input gate. Release aa018293d4
+passes ten selected tests and memory 95df69f669 passes four. Headless VM case
+b5b2e34b6d57 uses real PAM and restores all three exact original frames in
+the same app, then refuses an old release. Preserve early focus/startup failures.
+Next trusted password UI, installed broker and sleep/wake. USB gate applies.
+
 Current unlock channel: read spec/session.md#one-worker-per-unlock-attempt
 and the 2026-11-18 unlock-channel record. Keep the worker receive option
 before spawn and broker receive option after its only send. Original sender

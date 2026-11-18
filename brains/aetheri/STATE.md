@@ -1,5 +1,13 @@
 # State
 
+18 November 2026 — The managed compositor restores the original windows
+after the current lock's PAM result and neutral physical input.
+Fixture `b5b2e34b6d57` observes a wrong password leave every output black,
+then a correct password restore all three frame digests with the same app
+process. A replay during the next cover is denied. Next wire the trusted
+password dialog and installed broker, then combine sleep with hardware
+recovery. See the [managed lock record](journal/2026-11-18-managed-lock.md).
+
 18 November 2026 — Each unlock attempt now uses an original-process socket
 pair and a finite PAM worker. Private fixture `1a00753c08f6` accepts the
 correct password through actual exec and PAM, rejects a copied-descriptor

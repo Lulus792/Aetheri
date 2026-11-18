@@ -362,7 +362,7 @@ include(CTest)
 if(AETHERI_UNLOCK_PAM)
     find_path(AETHERI_UNLOCK_PAM_INCLUDE_DIR NAMES security/pam_appl.h REQUIRED)
     find_library(AETHERI_UNLOCK_PAM_LIBRARY NAMES pam REQUIRED)
-    add_library(aetheri_unlock_pam STATIC src/login/unlock_pam.c src/login/unlock_channel.c)
+    add_library(aetheri_unlock_pam STATIC src/login/unlock_pam.c src/login/unlock_channel.c src/linux/pidfd_channel.c)
     target_include_directories(aetheri_unlock_pam PUBLIC src PRIVATE "${AETHERI_UNLOCK_PAM_INCLUDE_DIR}")
     target_compile_options(aetheri_unlock_pam PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
     target_link_libraries(aetheri_unlock_pam PRIVATE "${AETHERI_UNLOCK_PAM_LIBRARY}")
@@ -1305,6 +1305,7 @@ if(AETHERI_COMPOSITOR)
         COMMAND "${WAYLAND_SCANNER}" private-code "${AETHERI_LAYER_XML}" "${AETHERI_LAYER_CODE}"
         DEPENDS "${AETHERI_DESKTOP_XML}" "${AETHERI_LAYER_XML}" VERBATIM)
     set(AETHERI_COMPOSITOR_SOURCES src/compositor/main.c src/compositor/input.c src/compositor/desktop.c src/compositor/lock.c
+        src/linux/pidfd_channel.c
         "${AETHERI_XDG_HEADER}" "${AETHERI_DESKTOP_SERVER}" "${AETHERI_DESKTOP_CODE}" "${AETHERI_LAYER_SERVER}")
     if(AETHERI_COMPOSE)
         set(AETHERI_COMPOSE_TABLE "/usr/share/X11/locale/en_US.UTF-8/Compose" CACHE FILEPATH "Exact reviewed standard Compose table")
@@ -1542,6 +1543,11 @@ if(AETHERI_COMPOSITOR)
             $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
             "${CMAKE_CURRENT_BINARY_DIR}")
         set_tests_properties(compositor.input PROPERTIES TIMEOUT 45)
+        add_test(NAME compositor.managed_lock COMMAND Python3::Interpreter
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compositor_input.py"
+            $<TARGET_FILE:test_compositor_server> $<TARGET_FILE:test_compositor_client>
+            "${CMAKE_CURRENT_BINARY_DIR}" --managed)
+        set_tests_properties(compositor.managed_lock PROPERTIES TIMEOUT 45)
         add_test(NAME compositor.keyboard_layout COMMAND Python3::Interpreter
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_keyboard_layout.py"
             $<TARGET_FILE:aetheri-compositor> $<TARGET_FILE:test_compositor_server>

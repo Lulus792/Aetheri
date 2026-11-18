@@ -255,6 +255,40 @@ requests after those paths are exercised together. The
 [cover record](../brains/aetheri/journal/2026-11-18-desktop-lock.md) documents
 headless and virtual DRM evidence.
 
+### Managed compositor lock
+
+The optional `--session-lock-fd FD` entry uses a different private channel.
+The compositor requires an unnamed socket from its same-user parent,
+pins that process and accepts packets only with its kernel sender
+descriptor. The controller waits for compositor readiness before sending.
+The original process and channel must stay live during a release.
+
+Managed packets carry the five bytes `AELK2`, a one-byte operation and an
+eight-byte unsigned generation in network byte order. The generation starts
+at zero and increases for every cover. The channel belongs to this
+compositor instance.
+
+| Operation | Code | Meaning |
+| --- | --- | --- |
+| `COVER` | 1 | Request a cover while open, using the last generation |
+| `COVERED` | 3 | Notify the controller of the new generation after all output presentations |
+| `RELEASE` | 2 | Apply the controller's verified result for the current covered generation |
+| `RELEASED` | 4 | Confirm acceptance of that release and schedule the ordinary scene |
+| `REJECTED` | 5 | Refuse the request and echo its generation |
+
+The controller authenticates separately before it sends a release. The
+compositor also waits for all current outputs to be covered and every
+tracked keyboard key and pointer button to be up. Then it restores ordinary
+focus and the existing scene. If the saved window disappears while
+covered, focus is selected from the remaining mapped windows. Wrong
+generations leave the cover intact. Peer loss or malformed input closes
+the channel and discards any pending release.
+
+The [managed lock record](../brains/aetheri/journal/2026-11-18-managed-lock.md)
+includes a fixture that consumes real PAM outcomes and restores the exact
+original scene. The signed desktop still needs the admitted owner, its
+trusted password input and the sleep and wake paths.
+
 ### Password verification for unlock
 
 The password check in `src/login/unlock_pam.c` takes the account name and UID
@@ -303,8 +337,8 @@ The broker supplies the current covered generation when consuming the result.
 A lost or changed generation invalidates the attempt permanently, and each
 outcome is returned at most once. The caller must confirm the actual active
 session and original cover before applying a display change. The installed
-desktop still needs the protected broker, password UI and compositor release
-path. [Kernel Unix socket credentials](https://github.com/torvalds/linux/blob/v6.19/net/unix/af_unix.c)
+desktop still needs the protected broker and password UI connected to the
+managed compositor path. [Kernel Unix socket credentials](https://github.com/torvalds/linux/blob/v6.19/net/unix/af_unix.c)
 
 ## Dependency review and build
 

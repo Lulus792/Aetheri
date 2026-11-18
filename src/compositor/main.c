@@ -518,6 +518,7 @@ int main(int argc, char **argv) {
     struct input_driver *driver = NULL;
 #endif
     int shell_fd = -1, greeter_fd = -1, lock_fd = -1;
+    bool managed_lock = false;
     bool compose=false,options_valid=true;
     const char *keyboard_layout = NULL;
     for (int at=expected_argc;at<argc;++at) {
@@ -525,7 +526,9 @@ int main(int argc, char **argv) {
             shell_fd = descriptor_argument(argv[++at]);
             if (shell_fd < 0) { options_valid=false;break; }
         }
-        else if (!strcmp(argv[at], "--lock-fd") && lock_fd < 0 && at + 1 < argc) {
+        else if (lock_fd < 0 && at + 1 < argc && (!strcmp(argv[at], "--lock-fd") ||
+                !strcmp(argv[at], "--session-lock-fd"))) {
+            managed_lock = !strcmp(argv[at], "--session-lock-fd");
             lock_fd = descriptor_argument(argv[++at]);
             if (lock_fd < 0) { options_valid = false; break; }
         }
@@ -555,6 +558,7 @@ int main(int argc, char **argv) {
                         "  session build only: aetheri-compositor --drm SOCKET CAPTURE_DIR_OR_- auto|/dev/dri/cardN\n"
                         "  optional private desktop connection: --shell-fd FD\n"
                         "  optional private cover channel: --lock-fd FD\n"
+                        "  managed private session lock: --session-lock-fd FD\n"
 #ifdef AETHERI_GREETER_DISPLAY
                         "  single-client DRM login output: --greeter-fd FD\n"
 #endif
@@ -627,7 +631,7 @@ int main(int argc, char **argv) {
     if (!s.windows_tree) goto done;
     s.input = ae_input_create(&s);
     if (!s.input || (nested && !wlr_backend_start(s.backend))) goto done;
-    if (lock_fd >= 0 && !(s.lock = ae_lock_create(&s, lock_fd))) goto done;
+    if (lock_fd >= 0 && !(s.lock = ae_lock_create(&s, lock_fd, managed_lock))) goto done;
     if (compose && !(s.text_input=ae_text_input_create(&s,ae_input_seat(s.input)))) goto done;
     int x = 0;
     for (unsigned i = 0; !drm && i < OUTPUT_LIMIT; ++i) {

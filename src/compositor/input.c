@@ -25,18 +25,31 @@
 #include <wlr/util/edges.h>
 #include <xkbcommon/xkbcommon.h>
 
+struct pressed_codes {
+    unsigned count;
+    bool held[KEY_MAX + 1];
+};
+static void update_pressed(struct pressed_codes *pressed, uint32_t code, bool down) {
+    if (code > KEY_MAX || pressed->held[code] == down) return;
+    pressed->held[code] = down;
+    if (down) ++pressed->count;
+    else --pressed->count;
+}
+
 struct keyboard {
     struct ae_input *input;
     struct wlr_keyboard *keyboard;
     struct wl_list link;
     struct wl_listener key, modifiers, keymap, destroy;
     bool suppressed[KEY_MAX + 1];
+    struct pressed_codes pressed;
 };
 struct pointer {
     struct ae_input *input;
     struct wlr_input_device *device;
     struct wl_list link;
     struct wl_listener destroy;
+    struct pressed_codes pressed;
 };
 struct ae_input {
     struct server *server;
@@ -45,7 +58,7 @@ struct ae_input {
     struct wl_list keyboards, pointers;
     struct wl_listener new_input, motion, absolute, button, axis, frame, cursor_request;
     struct wl_listener selection_request, drag_request;
-    struct window *focused, *grabbed;
+    struct window *focused, *grabbed, *restore_window;
     double start_x, start_y;
     int grab_x, grab_y, width, height;
     int32_t grab_min_width, grab_min_height, grab_max_width, grab_max_height;
@@ -160,6 +173,7 @@ void ae_input_unmap(struct window *w) {
     struct ae_input *in = w->server->input;
     w->mapped = false;
     if (in->grabbed == w) in->grabbed = NULL;
+    if (in->restore_window == w) in->restore_window = NULL;
     if (in->focused == w) fallback(in, w);
     ae_desktop_refresh_visibility(w->server->desktop);
 }
@@ -268,8 +282,16 @@ static void absolute(struct wl_listener *listener, void *data) {
 }
 static void button(struct wl_listener *listener, void *data) {
     struct ae_input *in = wl_container_of(listener, in, button);
-    if (ae_lock_active(in->server->lock)) return;
     struct wlr_pointer_button_event *e = data;
+    struct pointer *p;
+    wl_list_for_each(p, &in->pointers, link) if (p->device == &e->pointer->base) {
+        update_pressed(&p->pressed, e->button, e->state == WL_POINTER_BUTTON_STATE_PRESSED);
+        break;
+    }
+    if (ae_lock_active(in->server->lock)) {
+        ae_lock_input_changed(in->server->lock);
+        return;
+    }
     if (e->state == WL_POINTER_BUTTON_STATE_PRESSED && !in->seat->pointer_state.button_count) {
         double x, y;
         struct wlr_scene_node *node = wlr_scene_node_at(&in->server->scene->tree.node, in->cursor->x, in->cursor->y, &x, &y);
@@ -334,19 +356,52 @@ static void cancel_grab(struct ae_input *in) {
 }
 void ae_input_cover(struct ae_input *in) {
     cancel_grab(in);
+    in->restore_window = in->focused;
     if (in->focused) wlr_xdg_toplevel_set_activated(in->focused->toplevel, false);
     in->focused = NULL;
     in->clipboard_focus_valid = false;
     in->cursor_serial = 0;
     wlr_seat_keyboard_notify_clear_focus(in->seat);
     wlr_seat_pointer_notify_clear_focus(in->seat);
+    struct wlr_seat_pointer_state *pointer = &in->seat->pointer_state;
+    /* The old client has left. Empty the logical seat's implicit grab while
+       preserving our independent observation of the physical buttons. */
+    while (pointer->button_count)
+        wlr_seat_pointer_notify_button(in->seat, 0, pointer->buttons[0].button, WL_POINTER_BUTTON_STATE_RELEASED);
     wlr_cursor_unset_image(in->cursor);
+}
+bool ae_input_release_ready(struct ae_input *in) {
+    struct keyboard *k;
+    wl_list_for_each(k, &in->keyboards, link)
+        if (k->pressed.count || k->keyboard->num_keycodes) return false;
+    struct pointer *p;
+    wl_list_for_each(p, &in->pointers, link)
+        if (p->pressed.count) return false;
+    return true;
+}
+void ae_input_uncover(struct ae_input *in) {
+    struct keyboard *k;
+    wl_list_for_each(k, &in->keyboards, link) memset(k->suppressed, 0, sizeof k->suppressed);
+    if (in->restore_window) focus(in, in->restore_window);
+    else fallback(in, NULL);
+    in->restore_window = NULL;
+    struct wlr_surface *shell = ae_desktop_keyboard_surface(in->server->desktop);
+    if (shell) ae_input_shell_focus(in, shell);
+    if (!wl_list_empty(&in->pointers)) {
+        default_cursor(in);
+        ae_input_recheck_pointer(in);
+    }
 }
 static void key(struct wl_listener *listener, void *data) {
     struct keyboard *k = wl_container_of(listener, k, key);
     struct wlr_keyboard_key_event *e = data;
     struct ae_input *in = k->input;
-    if (e->keycode > KEY_MAX || ae_lock_active(in->server->lock)) return;
+    if (e->keycode > KEY_MAX) return;
+    update_pressed(&k->pressed, e->keycode, e->state == WL_KEYBOARD_KEY_STATE_PRESSED);
+    if (ae_lock_active(in->server->lock)) {
+        ae_lock_input_changed(in->server->lock);
+        return;
+    }
     wlr_seat_set_keyboard(in->seat, k->keyboard);
     if (e->state == WL_KEYBOARD_KEY_STATE_RELEASED && k->suppressed[e->keycode]) {
         k->suppressed[e->keycode] = false; return;
@@ -420,6 +475,7 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
         wlr_seat_keyboard_notify_clear_focus(in->seat);
     }
     capabilities(in);
+    ae_lock_input_changed(in->server->lock);
 }
 static void pointer_destroy(struct wl_listener *listener, void *data) {
     (void)data;
@@ -433,6 +489,7 @@ static void pointer_destroy(struct wl_listener *listener, void *data) {
         wlr_cursor_unset_image(in->cursor);
     }
     capabilities(in);
+    ae_lock_input_changed(in->server->lock);
 }
 bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
     if (device->type == WLR_INPUT_DEVICE_KEYBOARD) {
@@ -448,6 +505,8 @@ bool ae_input_add(struct ae_input *in, struct wlr_input_device *device) {
             if (!ok) { free(k); return false; }
         }
         k->input = in; k->keyboard = kb;
+        for (size_t i = 0; i < kb->num_keycodes; ++i)
+            update_pressed(&k->pressed, kb->keycodes[i], true);
         k->key.notify = key; k->modifiers.notify = modifiers; k->keymap.notify=keymap_changed;k->destroy.notify = keyboard_destroy;
         wl_signal_add(&kb->events.key, &k->key); wl_signal_add(&kb->events.modifiers, &k->modifiers);
         wl_signal_add(&kb->events.keymap,&k->keymap);

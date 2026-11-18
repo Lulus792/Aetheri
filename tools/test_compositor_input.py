@@ -8,13 +8,16 @@ import select
 import signal
 import socket
 import subprocess
+import struct
 import sys
 import tempfile
 import time
 
 
 def main():
-    server_binary, client_binary, build = map(lambda s: Path(s).resolve(), sys.argv[1:])
+    server_binary, client_binary, build = map(lambda s: Path(s).resolve(), sys.argv[1:4])
+    managed = sys.argv[4:] == ["--managed"]
+    assert managed or not sys.argv[4:]
     if os.getuid() == 0:
         raise RuntimeError("private input test must be unprivileged")
     root = Path(tempfile.mkdtemp(prefix="compositor-input-", dir=build))
@@ -61,6 +64,12 @@ def main():
         client.stdin.write(c.encode()); client.stdin.flush()
         wait(lambda: log().count(expected) > before, expected)
 
+    def lock_message(action, generation):
+        return struct.pack("!5sBQ", b"AELK2", action, generation)
+
+    def lock_expect(action, generation):
+        assert lock.recv(64) == lock_message(action, generation), (action, generation, log("server"))
+
     sequence, images, cases = 0, [], []
 
     def snapshot(label, points, *, covered=False):
@@ -89,7 +98,7 @@ def main():
     blue, green, bg = (41, 99, 196), (38, 180, 120), (16, 20, 28)
     try:
         server = start(server_binary, "server", "--headless", env["WAYLAND_DISPLAY"], captures,
-                       issuer.fileno(), "--lock-fd", lock_peer.fileno(),
+                       issuer.fileno(), "--session-lock-fd" if managed else "--lock-fd", lock_peer.fileno(),
                        pass_fds=(issuer.fileno(), lock_peer.fileno()))
         issuer.close()
         lock_peer.close()
@@ -177,18 +186,61 @@ def main():
         leaves = log().count("KEYBOARD_LEAVE")
         pointer_leaves = log().count("POINTER_LEAVE")
         event("hold-cover")
-        lock.sendall(b"AELK1")
+        lock.sendall(lock_message(1, 0) if managed else b"AELK1")
         wait(lambda: "TEST_COVER_PRESENT_HELD\n" in log("server"), "third display presentation withheld")
         assert not select.select([lock], [], [], 0.25)[0], "acknowledged with one output pending"
+        if managed:
+            lock.sendall(lock_message(2, 1))
+            lock_expect(5, 1)
         event("stale-cover")
         assert not select.select([lock], [], [], 0.25)[0], "acknowledged a stale frame"
         event("release-cover")
-        assert lock.recv(64) == b"AELK1 COVERED", log("server")
-        assert lock.recv(64) == b"", "cover channel remained open after acknowledgement"
-        lock.close()
+        if managed:
+            lock_expect(3, 1)
+        else:
+            assert lock.recv(64) == b"AELK1 COVERED", log("server")
+            assert lock.recv(64) == b"", "cover channel remained open after acknowledgement"
+            lock.close()
         wait(lambda: log().count("KEYBOARD_LEAVE") > leaves and
              log().count("POINTER_LEAVE") > pointer_leaves, "normal clients lost focus")
         mark = len(log())
+        if managed:
+            lock.sendall(lock_message(2, 0))
+            lock_expect(5, 0)
+            key(42, True)
+            lock.sendall(lock_message(2, 1))
+            assert not select.select([lock], [], [], 0.25)[0], "released with held keyboard and pointer"
+            key(42, False)
+            assert not select.select([lock], [], [], 0.25)[0], "released with held pointer"
+            command("t", "INPUT_SYNC\n")
+            denied = ("KEY ", "KEYBOARD_ENTER ", "POINTER_ENTER ", "BUTTON ", "AXIS ", "MOTION ")
+            assert not any(line.startswith(denied) for line in log()[mark:].splitlines()), log()[mark:]
+            event("B 272 0")
+            lock_expect(4, 1)
+            key(30, True); key(30, False)
+            wait(lambda: "KEY 0 30 1 97\n" in log()[mark:], "fresh key to restored original window")
+            snapshot("same window restored after neutral input", {0: [(105, 85, blue)]})
+
+            event("B 272 1")
+            lock.sendall(lock_message(1, 1))
+            lock_expect(3, 2)
+            lock.sendall(lock_message(2, 1))
+            lock_expect(5, 1)
+            key(28, True)
+            lock.sendall(lock_message(2, 2))
+            assert not select.select([lock], [], [], 0.25)[0], "released with held Enter"
+            other = os.fork()
+            if other == 0:
+                try:
+                    lock.sendall(lock_message(2, 2))
+                except OSError:
+                    os._exit(1)
+                os._exit(0)
+            assert os.waitpid(other, 0) == (other, 0)
+            assert lock.recv(64) == b"", "copied descriptor accepted a foreign sender"
+            lock.close()
+            mark = len(log())
+            key(28, False)
         event("B 272 0")
         key(30, True); key(30, False)
         click(210, 190)
