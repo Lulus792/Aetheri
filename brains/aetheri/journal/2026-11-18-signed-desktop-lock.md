@@ -120,6 +120,13 @@ zero on logout. PAM closes, a new greeter appears and ACPI power-off reaches
 the kernel's power-down marker. The QEMU exit status is zero and the boot
 media SHA-256 stays consistent.
 
+VM `0828050c` repeats the same run against the same signed medium with
+no virtual HDA controller. Startup, visible lock, PAM refusal, desktop
+restore, logout and ACPI power-off pass again. The boot hash is consistent.
+The supplemental evidence is
+`local/login-review-2026-11-10/signed-desktop-lock-no-hda-0828050c.tar.gz`,
+SHA-256 `6daaf7cba80c250b3ea794111cdc397d6491c3a4bedde9c714b3d170b6c38093`.
+
 This installed VM has one virtual display. The earlier carrier tests
 cover three displays under their own profile. The installed lock still
 needs suspend and resume coordination and confirmation on physical test
